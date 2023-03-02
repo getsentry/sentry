@@ -7,6 +7,10 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 class SharedGroupDetailsTest(APITestCase):
     def _get_path_functions(self):
+        # The urls for shared group details are supported both with an org slug and without.
+        # We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove either path schema is a TODO.
         return (
             lambda share_id: f"/api/0/shared/issues/{share_id}/",
             lambda share_id: f"/api/0/organizations/{self.organization.slug}/shared/issues/{share_id}/",

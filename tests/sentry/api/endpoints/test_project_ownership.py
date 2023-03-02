@@ -5,6 +5,7 @@ from rest_framework.exceptions import ErrorDetail
 
 from sentry.models import ProjectOwnership
 from sentry.testutils import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -18,6 +19,11 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
 
         self.team = self.create_team(
             organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+
+        self.member_user = self.create_user("member@localhost", is_superuser=False)
+        self.create_member(
+            user=self.member_user, organization=self.organization, role="member", teams=[self.team]
         )
 
         self.project = self.project = self.create_project(
@@ -51,6 +57,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.data["dateCreated"] is not None
         assert resp.data["lastUpdated"] is not None
         assert resp.data["codeownersAutoSync"] is True
+        assert "schema" not in resp.data.keys()
 
         resp = self.client.put(self.path, {"fallthrough": False})
         assert resp.status_code == 200
@@ -152,6 +159,22 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
 
+    @with_feature("organizations:streamline-targeting-context")
+    def test_update_with_streamline_targeting(self):
+        resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        assert resp.data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "path", "pattern": "*.js"},
+                    "owners": [
+                        {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
+                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    ],
+                }
+            ],
+        }
+
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
@@ -205,3 +228,15 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         )
         ownership.refresh_from_db()
         assert ownership.raw == new_raw
+
+    def test_update_by_member(self):
+        self.login_as(user=self.member_user)
+
+        resp = self.client.put(self.path, {"raw": "*.js member@localhost #tiger-team"})
+        assert resp.status_code == 200
+        assert resp.data["fallthrough"] is True
+        assert resp.data["autoAssignment"] == "Auto Assign to Issue Owner"
+        assert resp.data["raw"] == "*.js member@localhost #tiger-team"
+        assert resp.data["dateCreated"] is not None
+        assert resp.data["lastUpdated"] is not None
+        assert resp.data["codeownersAutoSync"] is True

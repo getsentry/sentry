@@ -1,0 +1,56 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            lineno*
+              61
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            function*
+              "Te"
+            lineno (function takes precedence)
+              146
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "4ee404c13ebc4a7097d65b0a19e98b3c"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            lineno*
+              61
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (module takes precedence)
+              "/react-dom@16.13.1/umd/react-dom.production.min.js"
+            function*
+              "Te"
+            lineno (function takes precedence)
+              146
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"

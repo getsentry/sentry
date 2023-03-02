@@ -1,15 +1,13 @@
-import type Fuse from 'fuse.js';
-
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
-  match: Fuse.RangeTuple;
+  match: ReadonlyArray<[number, number]>;
 };
 
 export type SpansSearchResult = {
-  match: Fuse.RangeTuple;
+  match: ReadonlyArray<[number, number]>;
   span: SpanChartNode;
 };
 

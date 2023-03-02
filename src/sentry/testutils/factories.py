@@ -39,6 +39,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators import (
     sentry_app_installation_tokens,
     sentry_app_installations,
@@ -101,7 +102,6 @@ from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
@@ -273,6 +273,7 @@ class Factories:
     @exempt_from_silo_limits()
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
+        teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
 
@@ -281,7 +282,7 @@ class Factories:
                 Factories.create_team_membership(team=team, member=om, role=role)
         elif teams:
             for team in teams:
-                Factories.create_team_membership(team=team, member=om)
+                Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
 
     @staticmethod
@@ -324,9 +325,7 @@ class Factories:
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
 
-        env = Environment.objects.create(
-            organization_id=organization_id, project_id=project.id, name=name
-        )
+        env = Environment.objects.create(organization_id=organization_id, name=name)
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
 
@@ -654,8 +653,7 @@ class Factories:
                     raise ValueError(
                         "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
-
-                group_type = GroupType(int(f_data[0]))
+                group_type = get_group_type_by_type_id(int(f_data[0]))
                 perf_fingerprint = f_data[1]
 
                 job["performance_problems"].append(
@@ -1141,14 +1139,16 @@ class Factories:
             IncidentProject.objects.create(incident=incident, project=project)
         if seen_by:
             for user in seen_by:
-                IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
+                IncidentSeen.objects.create(
+                    incident=incident, user_id=user.id, last_seen=timezone.now()
+                )
         return incident
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_incident_activity(incident, type, comment=None, user=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user=user
+            incident=incident, type=type, comment=comment, user_id=user_id
         )
 
     @staticmethod

@@ -1,4 +1,5 @@
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import patch
 from uuid import UUID
 
@@ -6,7 +7,14 @@ from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
+from sentry.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    MonitorType,
+)
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -15,7 +23,7 @@ from sentry.testutils.silo import region_silo_test
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorTestCase):
     endpoint = "sentry-api-0-monitor-check-in-index"
-    endpoint_with_org = "sentry-api-0-monitor-check-in-index-with-org"
+    endpoint_with_org = "sentry-api-0-organization-monitor-check-in-index"
 
     def setUp(self):
         super().setUp()
@@ -25,7 +33,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "ok"})
             assert resp.status_code == 201, resp.content
@@ -47,7 +55,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             if not first_monitor_id:
                 first_monitor_id = str(monitor.guid)
 
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "ok"})
             assert resp.status_code == 201, resp.content
@@ -59,6 +67,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.status == MonitorStatus.OK
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
 
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_checkins
@@ -76,7 +91,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 201, resp.content
@@ -88,6 +103,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.status == MonitorStatus.ERROR
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.ERROR
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
 
     def test_disabled(self):
         self.login_as(self.user)
@@ -101,7 +123,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
                 status=MonitorStatus.DISABLED,
                 config={"schedule": "* * * * *"},
             )
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 201, resp.content
@@ -113,6 +135,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.status == MonitorStatus.DISABLED
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.DISABLED
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
 
     def test_pending_deletion(self):
         self.login_as(self.user)
@@ -127,7 +156,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 404
@@ -145,7 +174,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"})
             assert resp.status_code == 404
@@ -155,7 +184,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(
                 path, {"status": "ok"}, HTTP_AUTHORIZATION=f"DSN {project_key.dsn_public}"
@@ -179,7 +208,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         )
 
         for path_func in self._get_path_functions():
-            path = path_func(monitor)
+            path = path_func(monitor.guid)
 
             resp = self.client.post(
                 path,
@@ -197,3 +226,17 @@ class CreateMonitorCheckInTest(MonitorTestCase):
         resp = self.client.post(path)
 
         assert resp.status_code == 400
+
+    def test_rate_limit(self):
+        self.login_as(self.user)
+
+        for path_func in self._get_path_functions():
+            monitor = self._create_monitor()
+
+            path = path_func(monitor.guid)
+
+            with mock.patch("sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
+                resp = self.client.post(path, {"status": "ok"})
+                assert resp.status_code == 201, resp.content
+                resp = self.client.post(path, {"status": "ok"})
+                assert resp.status_code == 429, resp.content

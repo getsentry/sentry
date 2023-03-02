@@ -3,12 +3,12 @@ import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
 import Badge from 'sentry/components/badge';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import TextOverflow from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconReleases} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useReleases} from 'sentry/utils/releases/releasesProvider';
 
 import {DashboardFilterKeys, DashboardFilters} from './types';
@@ -55,13 +55,13 @@ function ReleasesSelectControl({
   return (
     <CompactSelect
       multiple
-      isClearable
-      isSearchable
-      isDisabled={isDisabled}
-      isLoading={loading}
+      clearable
+      searchable
+      disabled={isDisabled}
+      loading={loading}
       menuTitle={<MenuTitleWrapper>{t('Filter Releases')}</MenuTitleWrapper>}
       className={className}
-      onInputChange={debounce(val => {
+      onSearch={debounce(val => {
         onSearch(val);
       }, DEFAULT_DEBOUNCE_DURATION)}
       options={[

@@ -1,6 +1,7 @@
 import datetime
 from unittest import mock
 
+import pytest
 from django.conf import settings
 from django.core import mail
 from django.db.models import F
@@ -184,6 +185,18 @@ class UserAuthenticatorDeviceDetailsTest(UserAuthenticatorDetailsTestBase):
             name="for testing",
             method="put",
         )
+
+
+@pytest.fixture
+def pickle_mode_alternate():
+    field = Authenticator._meta.get_field("config")
+    with mock.patch.object(field, "write_json", not field.write_json):
+        yield
+
+
+@pytest.mark.usefixtures("pickle_mode_alternate")
+class PickleModeUserAuthenticatorDeviceDetailsTest(UserAuthenticatorDeviceDetailsTest):
+    pass
 
 
 @control_silo_test

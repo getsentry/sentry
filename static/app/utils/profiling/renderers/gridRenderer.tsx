@@ -83,9 +83,7 @@ class GridRenderer {
       0,
       0,
       physicalViewRect.width,
-      this.theme.SIZES.LABEL_FONT_SIZE * window.devicePixelRatio +
-        this.theme.SIZES.LABEL_FONT_PADDING * window.devicePixelRatio * 2 -
-        this.theme.SIZES.LABEL_FONT_PADDING
+      this.theme.SIZES.TIMELINE_HEIGHT * window.devicePixelRatio
     );
 
     // Draw top timeline lines

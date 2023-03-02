@@ -29,6 +29,12 @@ from sentry.api.serializers.models.event import get_entries, get_problems
 from sentry.eventstore.models import Event, GroupEvent
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.integrations import IntegrationFeatures, IntegrationProvider
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -49,7 +55,6 @@ from sentry.models import (
 )
 from sentry.notifications.notify import notify
 from sentry.notifications.utils.participants import split_participants_and_context
-from sentry.types.issues import GROUP_TYPE_TO_TEXT, GroupCategory, GroupType
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -153,6 +158,7 @@ def get_email_link_extra_params(
     environment: str | None = None,
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
+    **kwargs: Any,
 ) -> dict[int, str]:
     alert_timestamp_str = (
         str(round(time.time() * 1000)) if not alert_timestamp else str(alert_timestamp)
@@ -167,6 +173,7 @@ def get_email_link_extra_params(
                     "alert_timestamp": alert_timestamp_str,
                     "alert_rule_id": rule_detail.id,
                     **dict([] if environment is None else [("environment", environment)]),
+                    **kwargs,
                 }
             )
         )
@@ -180,6 +187,7 @@ def get_group_settings_link(
     rule_details: Sequence[NotificationRuleDetails] | None = None,
     alert_timestamp: int | None = None,
     referrer: str = "alert_email",
+    **kwargs: Any,
 ) -> str:
     alert_rule_id: int | None = rule_details[0].id if rule_details and rule_details[0].id else None
     return str(
@@ -187,9 +195,9 @@ def get_group_settings_link(
         + (
             ""
             if not alert_rule_id
-            else get_email_link_extra_params(referrer, environment, rule_details, alert_timestamp)[
-                alert_rule_id
-            ]
+            else get_email_link_extra_params(
+                referrer, environment, rule_details, alert_timestamp, **kwargs
+            )[alert_rule_id]
         )
     )
 
@@ -241,7 +249,9 @@ def get_commits(project: Project, event: Event) -> Sequence[Mapping[str, Any]]:
                     commit_data = dict(commit)
                     commit_data["shortId"] = commit_data["id"][:7]
                     commit_data["author"] = committer["author"]
-                    commit_data["subject"] = commit_data["message"].split("\n", 1)[0]
+                    commit_data["subject"] = (
+                        commit_data["message"].split("\n", 1)[0] if commit_data["message"] else ""
+                    )
                     commits[commit["id"]] = commit_data
 
     # TODO(nisanthan): Once Commit Context is GA, no need to sort by "score"
@@ -437,7 +447,7 @@ def get_notification_group_title(
     group: Group, event: Event | GroupEvent, max_length: int = 255, **kwargs: str
 ) -> str:
     if group.issue_category == GroupCategory.PERFORMANCE:
-        issue_type = GROUP_TYPE_TO_TEXT.get(group.issue_type, "Issue")
+        issue_type = group.issue_type.description
         transaction = get_performance_issue_alert_subtitle(event)
         title = f"{issue_type}: {transaction}"
         return (title[: max_length - 2] + "..") if len(title) > max_length else title
@@ -466,6 +476,7 @@ def send_activity_notification(notification: ActivityNotification | UserReportNo
 class PerformanceProblemContext:
     problem: PerformanceProblem
     spans: Union[List[Dict[str, Union[str, float]]], None]
+    event: Event | None
 
     def __post_init__(self) -> None:
         parent_span, repeating_spans = get_parent_and_repeating_spans(self.spans, self.problem)
@@ -473,15 +484,37 @@ class PerformanceProblemContext:
         self.parent_span = parent_span
         self.repeating_spans = repeating_spans
 
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
-            "transaction_name": get_span_evidence_value_problem(self.problem),
+            "transaction_name": self.transaction,
             "parent_span": get_span_evidence_value(self.parent_span),
             "repeating_spans": get_span_evidence_value(self.repeating_spans),
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
             if self.problem.offender_span_ids
             else "",
         }
+
+    @property
+    def transaction(self) -> str:
+        if self.event and self.event.transaction:
+            return str(self.event.transaction)
+        return ""
+
+    @property
+    def transaction_duration(self) -> float:
+        if not self.event:
+            return 0
+
+        return self.duration(self.event.data)
+
+    def duration(self, item: Mapping[str, Any] | None) -> float:
+        if not item:
+            return 0
+
+        start = float(item.get("start_timestamp", 0) or 0)
+        end = float(item.get("timestamp", 0) or 0)
+
+        return (end - start) * 1000
 
     def _find_span_by_id(self, id: str) -> Dict[str, Any] | None:
         if not self.spans:
@@ -500,18 +533,20 @@ class PerformanceProblemContext:
         spans: Union[List[Dict[str, Union[str, float]]], None],
         event: Event | None = None,
     ) -> PerformanceProblemContext:
-        if problem.type == GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS:
-            return NPlusOneAPICallProblemContext(problem, spans)
-        if problem.type == GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES:
+        if problem.type == PerformanceNPlusOneAPICallsGroupType:
+            return NPlusOneAPICallProblemContext(problem, spans, event)
+        if problem.type == PerformanceConsecutiveDBQueriesGroupType:
             return ConsecutiveDBQueriesProblemContext(problem, spans, event)
+        if problem.type == PerformanceRenderBlockingAssetSpanGroupType:
+            return RenderBlockingAssetProblemContext(problem, spans, event)
         else:
-            return cls(problem, spans)
+            return cls(problem, spans, event)
 
 
 class NPlusOneAPICallProblemContext(PerformanceProblemContext):
-    def to_dict(self) -> Dict[str, str | List[str]]:
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
         return {
-            "transaction_name": self.problem.desc,
+            "transaction_name": self.transaction,
             "repeating_spans": self.path_prefix,
             "parameters": self.parameters,
             "num_repeating_spans": str(len(self.problem.offender_span_ids))
@@ -554,15 +589,6 @@ class NPlusOneAPICallProblemContext(PerformanceProblemContext):
 
 
 class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
-    def __init__(
-        self,
-        problem: PerformanceProblem,
-        spans: Union[List[Dict[str, Union[str, float]]], None],
-        event: Event | None,
-    ):
-        PerformanceProblemContext.__init__(self, problem, spans)
-        self.event = event
-
     def to_dict(self) -> Dict[str, Any]:
         return {
             "span_evidence_key_value": [
@@ -575,12 +601,6 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
                 },
             ],
         }
-
-    @property
-    def transaction(self) -> str:
-        if self.event and self.event.transaction:
-            return str(self.event.transaction)
-        return ""
 
     @property
     def starting_span(self) -> str:
@@ -602,3 +622,47 @@ class ConsecutiveDBQueriesProblemContext(PerformanceProblemContext):
 
     def _find_span_desc_by_id(self, id: str) -> str:
         return get_span_evidence_value(self._find_span_by_id(id))
+
+
+class RenderBlockingAssetProblemContext(PerformanceProblemContext):
+    def to_dict(self) -> Dict[str, str | float | List[str]]:
+        return {
+            "transaction_name": self.transaction,
+            "slow_span_description": self.slow_span_description,
+            "slow_span_duration": self.slow_span_duration,
+            "transaction_duration": self.transaction_duration,
+            "fcp": self.fcp,
+        }
+
+    @property
+    def slow_span(self) -> Dict[str, Union[str, float]] | None:
+        if not self.spans:
+            return None
+
+        offending_spans = [
+            span for span in self.spans if span.get("span_id") in self.problem.offender_span_ids
+        ]
+
+        if len(offending_spans) == 0:
+            return None
+
+        return offending_spans[0]
+
+    @property
+    def slow_span_description(self) -> str:
+        slow_span = self.slow_span
+        if not slow_span:
+            return ""
+
+        return str(slow_span.get("description", ""))
+
+    @property
+    def slow_span_duration(self) -> float:
+        return self.duration(self.slow_span)
+
+    @property
+    def fcp(self) -> float:
+        if not self.event:
+            return 0
+
+        return float(self.event.data.get("measurements", {}).get("fcp", {}).get("value", 0) or 0)

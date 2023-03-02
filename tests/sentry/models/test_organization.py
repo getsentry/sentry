@@ -2,8 +2,9 @@ import copy
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.core import mail
-from django.db import models
+from django.db import ProgrammingError, models, transaction
 
 from sentry import audit_log
 from sentry.api.base import ONE_DAY
@@ -33,9 +34,12 @@ from sentry.models import (
     ReleaseFile,
     Team,
     User,
+    UserOption,
 )
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
@@ -189,6 +193,13 @@ class OrganizationTest(TestCase):
     def test_default_owner_id_no_owner(self):
         org = self.create_organization()
         assert org.default_owner_id is None
+
+    def test_default_owner_id_only_owner_through_team(self):
+        user = self.create_user("foo@example.com")
+        org = self.create_organization()
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
+        assert org.default_owner_id == user.id
 
     @mock.patch.object(
         Organization, "get_owners", side_effect=Organization.get_owners, autospec=True
@@ -488,6 +499,9 @@ class Require2fa(TestCase):
 
     def test_send_delete_confirmation_system_audit(self):
         org = self.create_organization(owner=self.user)
+        user = self.create_user("bar@example.com")
+        owner_team = self.create_team(organization=org, org_role="owner")
+        self.create_member(organization=org, user=user, teams=[owner_team])
         audit_entry = create_system_audit_entry(
             organization=org,
             target_object=org.id,
@@ -496,8 +510,9 @@ class Require2fa(TestCase):
         )
         with self.tasks():
             org.send_delete_confirmation(audit_entry, ONE_DAY)
-        assert len(mail.outbox) == 1
+        assert len(mail.outbox) == 2
         assert "User: Sentry" in mail.outbox[0].body
+        assert "User: Sentry" in mail.outbox[1].body
 
     def test_absolute_url_no_customer_domain(self):
         org = self.create_organization(owner=self.user, slug="acme")
@@ -518,3 +533,32 @@ class Require2fa(TestCase):
 
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
+
+
+@region_silo_test
+class OrganizationDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        org = self.create_organization()
+        assert Organization.objects.exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Organization.objects.filter(id=org.id).delete()
+        assert Organization.objects.exists()
+
+    def test_hybrid_cloud_deletion(self):
+        org = self.create_organization()
+        user = self.create_user()
+        UserOption.objects.set_value(user, "cool_key", "Hello!", organization_id=org.id)
+        org_id = org.id
+
+        with outbox_runner():
+            org.delete()
+
+        assert not Organization.objects.filter(id=org_id).exists()
+
+        # cascade is asynchronous, ensure there is still related search,
+        assert UserOption.objects.filter(organization_id=org_id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Ensure they are all now gone.
+        assert not UserOption.objects.filter(organization_id=org_id).exists()

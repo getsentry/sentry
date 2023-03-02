@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
@@ -166,6 +166,7 @@ class Candidates extends Component<Props, State> {
         label: filterOptionCategories.status,
         options: candidateStatus.map(status => ({
           value: `status-${status}`,
+          textValue: status,
           label: <Status status={status} />,
         })),
       });

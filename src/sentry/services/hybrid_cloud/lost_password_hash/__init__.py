@@ -15,25 +15,25 @@ class LostPasswordHashService(InterfaceWithLifecycle):
     def get_or_create(
         self,
         user_id: int,
-    ) -> "APILostPasswordHash":
+    ) -> "RpcLostPasswordHash":
         """
-        This method returns a valid APILostPasswordHash for a user
+        This method returns a valid RpcLostPasswordHash for a user
         :return:
         """
         pass
 
     @classmethod
-    def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> "APILostPasswordHash":
+    def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> "RpcLostPasswordHash":
         args = {
             field.name: getattr(lph, field.name)
-            for field in fields(APILostPasswordHash)
+            for field in fields(RpcLostPasswordHash)
             if hasattr(lph, field.name)
         }
-        return APILostPasswordHash(**args)
+        return RpcLostPasswordHash(**args)
 
 
 @dataclass(frozen=True)
-class APILostPasswordHash:
+class RpcLostPasswordHash:
     id: int = -1
     user_id: int = -1
     hash: str = ""

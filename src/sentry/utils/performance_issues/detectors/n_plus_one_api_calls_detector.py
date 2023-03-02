@@ -9,7 +9,7 @@ from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
 from sentry import features
-from sentry.grouptype.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.models import Organization, Project
 
 from ..base import (
@@ -188,7 +188,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # Ignore anything that looks like an asset. Some frameworks (and apps)
         # fetch assets via XHR, which is not our concern
         _pathname, extension = os.path.splitext(parsed_url.path)
-        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3"]:
+        if extension and extension in [".js", ".css", ".svg", ".png", ".mp3", ".jpg", ".jpeg"]:
             return False
 
         return True

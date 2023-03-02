@@ -15,21 +15,21 @@ from sentry.integrations.message_builder import (
 )
 from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SLACK_URL_FORMAT, SlackBody
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import ActorTuple, Group, GroupStatus, Project, ReleaseProject, Rule, Team, User
 from sentry.notifications.notifications.base import BaseNotification, ProjectNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.identity import APIIdentity, identity_service
+from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupCategory
 from sentry.utils import json
 from sentry.utils.dates import to_timestamp
 
 STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-opened"}
 
 
-def build_assigned_text(identity: APIIdentity, assignee: str) -> str | None:
+def build_assigned_text(identity: RpcIdentity, assignee: str) -> str | None:
     actor = ActorTuple.from_actor_identifier(assignee)
 
     try:
@@ -55,7 +55,7 @@ def build_assigned_text(identity: APIIdentity, assignee: str) -> str | None:
     return f"*Issue assigned to {assignee_text} by <@{identity.external_id}>*"
 
 
-def build_action_text(identity: APIIdentity, action: MessageAction) -> str | None:
+def build_action_text(identity: RpcIdentity, action: MessageAction) -> str | None:
     if action.name == "assign":
         selected_options = action.selected_options or []
         if not len(selected_options):
@@ -125,7 +125,7 @@ def has_releases(project: Project) -> bool:
 def get_action_text(
     text: str,
     actions: Sequence[Any],
-    identity: APIIdentity,
+    identity: RpcIdentity,
 ) -> str:
     return (
         text
@@ -146,7 +146,7 @@ def build_actions(
     text: str,
     color: str,
     actions: Sequence[MessageAction] | None = None,
-    identity: APIIdentity | None = None,
+    identity: RpcIdentity | None = None,
 ) -> tuple[Sequence[MessageAction], str, str]:
     """Having actions means a button will be shown on the Slack message e.g. ignore, resolve, assign."""
     if actions and identity:
@@ -237,7 +237,7 @@ class SlackIssuesMessageBuilder(SlackMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        identity: APIIdentity | None = None,
+        identity: RpcIdentity | None = None,
         actions: Sequence[MessageAction] | None = None,
         rules: list[Rule] | None = None,
         link_to_event: bool = False,
@@ -303,7 +303,7 @@ def build_group_attachment(
     group: Group,
     event: GroupEvent | None = None,
     tags: set[str] | None = None,
-    identity: APIIdentity | None = None,
+    identity: RpcIdentity | None = None,
     actions: Sequence[MessageAction] | None = None,
     rules: list[Rule] | None = None,
     link_to_event: bool = False,

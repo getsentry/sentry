@@ -1,10 +1,10 @@
 from datetime import datetime
 from unittest import mock
 
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models import OrganizationMemberTeam
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
 from sentry.utils.samples import load_data
 
@@ -32,6 +32,7 @@ class IssueOccurrenceTest(APITestCase):
         }
         self.data = {
             "id": "55f1419e73884cd2b45c79918f4b6dc5",
+            "project_id": project.id,
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
@@ -54,7 +55,7 @@ class IssueOccurrenceTest(APITestCase):
                     "important": False,
                 },
             ],
-            "type": GroupType.PROFILE_BLOCKED_THREAD.value,
+            "type": ProfileFileIOGroupType.type_id,
             "detection_time": ensure_aware(datetime.now()),
             "event": self.event,
         }
@@ -63,52 +64,21 @@ class IssueOccurrenceTest(APITestCase):
         response = self.client.post(self.url, data=self.data, format="json")
         assert response.status_code == 201, response.content
 
-    def test_incorrect_event_payload(self, mock_func):
-        data = dict(self.data)
-        data["event"]["tags"] = ["hello", "there"]
-        response = self.client.post(self.url, data=data, format="json")
-        assert response.status_code == 400, response.content
-
-    def test_incorrect_occurrence_payload(self, mock_func):
-        data = dict(self.data)
-        data["detection_time"] = "today"
-        response = self.client.post(self.url, data=data, format="json")
-        assert response.status_code == 400, response.content
-
-    def test_load_fake_event(self, mock_func):
-        url = self.url + "?dummyEvent=True"
-        data = dict(self.data)
-        data.pop("event", None)
-        response = self.client.post(url, data=data, format="json")
-        assert response.status_code == 201, response.content
-
-    def test_load_fake_occurrence(self, mock_func):
+    def test_load_fake_data(self, mock_func):
         url = self.url + "?dummyOccurrence=True"
-        data = {"event": self.event}
+        data = dict(self.data)
+        data.pop("event", None)
         response = self.client.post(url, data=data, format="json")
         assert response.status_code == 201, response.content
 
-    def test_load_fake_event_and_occurrence(self, mock_func):
-        url = self.url + "?dummyEvent=True&dummyOccurrence=True"
-        response = self.client.post(url, data={}, format="json")
-        assert response.status_code == 201, response.content
-
-    def test_no_event_passed(self, mock_func):
-        data = dict(self.data)
-        data.pop("event", None)
-        response = self.client.post(self.url, data=data, format="json")
-        assert response.status_code == 400, response.content
-
-    def test_no_occurrence_passed(self, mock_func):
-        data = dict(self.data)
-        data = data["event"]
-        response = self.client.post(self.url, data=data, format="json")
+    def test_no_data_passed(self, mock_func):
+        response = self.client.post(self.url, data={}, format="json")
         assert response.status_code == 400, response.content
 
     def test_no_projects(self, mock_func):
         """Test that we raise a 400 if the user belongs to no project teams and passes the dummyEvent query param"""
         OrganizationMemberTeam.objects.all().delete()
-        url = self.url + "?dummyEvent=True"
+        url = self.url + "?dummyOccurrence=True"
         data = dict(self.data)
         data.pop("event", None)
         response = self.client.post(url, data=data, format="json")

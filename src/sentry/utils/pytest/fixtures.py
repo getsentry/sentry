@@ -417,11 +417,12 @@ def reset_snuba(call_snuba):
         "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
+        "/tests/search_issues/drop",
     ]
 
     assert all(
         response.status_code == 200
-        for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
     )
 
 

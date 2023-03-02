@@ -19,6 +19,7 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
@@ -103,24 +104,26 @@ def test_distribution():
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "source,txname,feature_enabled,expected",
+    "source, txname, tags, feature_enabled, expected",
     [
-        ("url", "/a/b/c", True, 1),
-        ("route", "/", True, 0),
-        ("url", None, True, 0),
-        ("url", "/", False, 0),
-        ("route", None, False, 0),
+        ("url", "/a/b/c", [["transaction", "/a/b/c"]], True, 1),
+        ("url", "/a/b/c", [["http.status_code", "200"]], True, 1),
+        ("route", "/", [["transaction", "/"]], True, 0),
+        ("url", None, [], True, 0),
+        ("url", "/a/b/c", [["http.status_code", "404"]], True, 0),
+        ("url", "/", [["transaction", "/"]], False, 0),
+        ("route", None, [], False, 0),
     ],
 )
 def test_record_transactions(
-    mocked_record, default_organization, source, txname, feature_enabled, expected
+    mocked_record, default_organization, source, txname, tags, feature_enabled, expected
 ):
     with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
         project = Project(id=111, name="project", organization_id=default_organization.id)
         record_transaction_name(
             project,
             {
-                "tags": [["transaction", txname]],
+                "tags": tags,
                 "transaction": txname,
                 "transaction_info": {"source": source},
             },
@@ -137,8 +140,16 @@ def test_sort_rules():
     ]
 
 
+@pytest.fixture(params=(True, False))
+def pickle_mode(request):
+    field = ProjectOption._meta.get_field("value")
+    with mock.patch.object(field, "write_json", request.param):
+        yield
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @pytest.mark.django_db
+@pytest.mark.usefixtures("pickle_mode")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(default_project)) == 0
 

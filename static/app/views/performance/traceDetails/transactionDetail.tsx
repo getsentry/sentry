@@ -19,9 +19,9 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
+import {IconLink, IconProfiling} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
@@ -30,6 +30,7 @@ import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import {Row, Tags, TransactionDetails, TransactionDetailsContainer} from './styles';
@@ -126,6 +127,38 @@ class TransactionDetail extends Component<Props> {
     );
   }
 
+  renderGoToProfileButton() {
+    const {organization, transaction} = this.props;
+
+    if (!transaction.profile_id) {
+      return null;
+    }
+
+    const target = generateProfileFlamechartRoute({
+      orgSlug: organization.slug,
+      projectSlug: transaction.project_slug,
+      profileId: transaction.profile_id,
+    });
+
+    function handleOnClick() {
+      trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+        organization,
+        source: 'performance.trace_view',
+      });
+    }
+
+    return (
+      <StyledButton
+        size="xs"
+        to={target}
+        onClick={handleOnClick}
+        icon={<IconProfiling size="xs" />}
+      >
+        {t('Go to Profile')}
+      </StyledButton>
+    );
+  }
+
   renderMeasurements() {
     const {transaction} = this.props;
     const {measurements = {}} = transaction;
@@ -210,6 +243,11 @@ class TransactionDetail extends Component<Props> {
             </Row>
             <Row title="Transaction Status">{transaction['transaction.status']}</Row>
             <Row title="Span ID">{transaction.span_id}</Row>
+            {transaction.profile_id && (
+              <Row title="Profile ID" extra={this.renderGoToProfileButton()}>
+                {transaction.profile_id}
+              </Row>
+            )}
             <Row title="Project">{transaction.project_slug}</Row>
             <Row title="Start Date">
               {getDynamicText({

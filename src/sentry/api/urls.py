@@ -1,24 +1,5 @@
 from django.conf.urls import include, url
 
-from sentry.api.endpoints.integration_features import IntegrationFeaturesEndpoint
-from sentry.api.endpoints.organization_codeowners_associations import (
-    OrganizationCodeOwnersAssociationsEndpoint,
-)
-from sentry.api.endpoints.organization_derive_code_mappings import (
-    OrganizationDeriveCodeMappingsEndpoint,
-)
-from sentry.api.endpoints.organization_profiling_profiles import (
-    OrganizationProfilingFiltersEndpoint,
-)
-from sentry.api.endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
-from sentry.api.endpoints.organization_sentry_function_details import (
-    OrganizationSentryFunctionDetailsEndpoint,
-)
-from sentry.api.endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
-from sentry.api.endpoints.project_transaction_names import ProjectTransactionNamesCluster
-from sentry.api.endpoints.project_transaction_threshold_override import (
-    ProjectTransactionThresholdOverrideEndpoint,
-)
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -88,6 +69,7 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
+from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
 from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
@@ -165,6 +147,7 @@ from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.grouping_level_new_issues import GroupingLevelNewIssuesEndpoint
 from .endpoints.grouping_levels import GroupingLevelsEndpoint
 from .endpoints.index import IndexEndpoint
+from .endpoints.integration_features import IntegrationFeaturesEndpoint
 from .endpoints.integrations import (
     DocIntegrationDetailsEndpoint,
     DocIntegrationsEndpoint,
@@ -210,8 +193,6 @@ from .endpoints.internal import (
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
 from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
-from .endpoints.monitor_details import MonitorDetailsEndpoint
-from .endpoints.monitor_stats import MonitorStatsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -227,6 +208,9 @@ from .endpoints.organization_code_mapping_codeowners import (
 )
 from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
 from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
+from .endpoints.organization_codeowners_associations import (
+    OrganizationCodeOwnersAssociationsEndpoint,
+)
 from .endpoints.organization_config_repositories import OrganizationConfigRepositoriesEndpoint
 from .endpoints.organization_dashboard_details import (
     OrganizationDashboardDetailsEndpoint,
@@ -236,10 +220,8 @@ from .endpoints.organization_dashboard_widget_details import (
     OrganizationDashboardWidgetDetailsEndpoint,
 )
 from .endpoints.organization_dashboards import OrganizationDashboardsEndpoint
+from .endpoints.organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .endpoints.organization_details import OrganizationDetailsEndpoint
-from .endpoints.organization_dynamic_sampling_sdk_versions import (
-    OrganizationDynamicSamplingSDKVersionsEndpoint,
-)
 from .endpoints.organization_environments import OrganizationEnvironmentsEndpoint
 from .endpoints.organization_event_details import OrganizationEventDetailsEndpoint
 from .endpoints.organization_eventid import EventIdLookupEndpoint
@@ -310,6 +292,11 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
+from .endpoints.organization_monitor_checkin_attachment import (
+    OrganizationMonitorCheckInAttachmentEndpoint,
+)
+from .endpoints.organization_monitor_details import OrganizationMonitorDetailsEndpoint
+from .endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
 from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
@@ -317,6 +304,7 @@ from .endpoints.organization_onboarding_continuation_email import (
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
+from .endpoints.organization_profiling_profiles import OrganizationProfilingFiltersEndpoint
 from .endpoints.organization_projects import (
     OrganizationProjectsCountEndpoint,
     OrganizationProjectsEndpoint,
@@ -346,6 +334,10 @@ from .endpoints.organization_request_project_creation import OrganizationRequest
 from .endpoints.organization_sdk_updates import OrganizationSdkUpdatesEndpoint
 from .endpoints.organization_search_details import OrganizationSearchDetailsEndpoint
 from .endpoints.organization_searches import OrganizationSearchesEndpoint
+from .endpoints.organization_sentry_function import OrganizationSentryFunctionEndpoint
+from .endpoints.organization_sentry_function_details import (
+    OrganizationSentryFunctionDetailsEndpoint,
+)
 from .endpoints.organization_sessions import OrganizationSessionsEndpoint
 from .endpoints.organization_shortid import ShortIdLookupEndpoint
 from .endpoints.organization_slugs import SlugsUpdateEndpoint
@@ -384,6 +376,7 @@ from .endpoints.project_filter_details import ProjectFilterDetailsEndpoint
 from .endpoints.project_filters import ProjectFiltersEndpoint
 from .endpoints.project_group_index import ProjectGroupIndexEndpoint
 from .endpoints.project_group_stats import ProjectGroupStatsEndpoint
+from .endpoints.project_grouping_configs import ProjectGroupingConfigsEndpoint
 from .endpoints.project_index import ProjectIndexEndpoint
 from .endpoints.project_issues_resolved_in_release import ProjectIssuesResolvedInReleaseEndpoint
 from .endpoints.project_key_details import ProjectKeyDetailsEndpoint
@@ -402,6 +395,7 @@ from .endpoints.project_processingissues import (
 )
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
+    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingFunctionsEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
@@ -434,7 +428,11 @@ from .endpoints.project_tagkey_values import ProjectTagKeyValuesEndpoint
 from .endpoints.project_tags import ProjectTagsEndpoint
 from .endpoints.project_team_details import ProjectTeamDetailsEndpoint
 from .endpoints.project_teams import ProjectTeamsEndpoint
+from .endpoints.project_transaction_names import ProjectTransactionNamesCluster
 from .endpoints.project_transaction_threshold import ProjectTransactionThresholdEndpoint
+from .endpoints.project_transaction_threshold_override import (
+    ProjectTransactionThresholdOverrideEndpoint,
+)
 from .endpoints.project_transfer import ProjectTransferEndpoint
 from .endpoints.project_user_details import ProjectUserDetailsEndpoint
 from .endpoints.project_user_reports import ProjectUserReportsEndpoint
@@ -657,7 +655,7 @@ urlpatterns = [
     url(
         r"^accept-invite/(?P<organization_slug>[^\/]+)/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
         AcceptOrganizationInvite.as_view(),
-        name="sentry-api-0-accept-organization-invite-with-org",
+        name="sentry-api-0-organization-accept-organization-invite",
     ),
     url(
         r"^accept-invite/(?P<member_id>[^\/]+)/(?P<token>[^\/]+)/$",
@@ -670,11 +668,6 @@ urlpatterns = [
         include(
             [
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/$",
-                    MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-index",
@@ -683,11 +676,6 @@ urlpatterns = [
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
                     name="sentry-api-0-monitor-check-in-details",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/stats/$",
-                    MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-stats",
                 ),
             ]
         ),
@@ -698,24 +686,14 @@ urlpatterns = [
         include(
             [
                 url(
-                    r"^(?P<monitor_id>[^\/]+)/$",
-                    MonitorDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-details-with-org",
-                ),
-                url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/$",
                     MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-index",
                 ),
                 url(
                     r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
                     MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-details-with-org",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/stats/$",
-                    MonitorStatsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-stats-with-org",
+                    name="sentry-api-0-organization-monitor-check-in-details",
                 ),
             ]
         ),
@@ -1337,6 +1315,21 @@ urlpatterns = [
                     name="sentry-api-0-organization-monitors",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/$",
+                    OrganizationMonitorDetailsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-details",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/stats/$",
+                    OrganizationMonitorStatsEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-stats",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+                    OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
+                    name="sentry-api-0-organization-monitor-check-in-attachment",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
                     OrganizationPinnedSearchEndpoint.as_view(),
                     name="sentry-api-0-organization-pinned-searches",
@@ -1570,11 +1563,6 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/transaction-anomaly-detection/$",
                     OrganizationTransactionAnomalyDetectionEndpoint.as_view(),
                     name="sentry-api-0-organization-transaction-anomaly-detection",
-                ),
-                url(
-                    r"^(?P<organization_slug>[^\/]+)/dynamic-sampling/sdk-versions/$",
-                    OrganizationDynamicSamplingSDKVersionsEndpoint.as_view(),
-                    name="sentry-api-0-organization-dynamic-sampling-sdk-versions",
                 ),
                 # relay usage
                 url(
@@ -2310,6 +2298,11 @@ urlpatterns = [
                     name="sentry-api-0-project-profiling-raw-profile",
                 ),
                 url(
+                    r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/flamegraph/$",
+                    ProjectProfilingFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-project-profiling-flamegraph",
+                ),
+                url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/profiling/transactions/(?P<transaction_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
                     ProjectProfilingTransactionIDProfileIDEndpoint.as_view(),
                     name="sentry-api-0-project-profiling-transactions",
@@ -2335,7 +2328,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
         GroupParticipantsEndpoint.as_view(),
-        name="sentry-api-0-group-stats-with-org",
+        name="sentry-api-0-organization-group-stats",
     ),
     url(
         r"^issues/(?P<issue_id>[^\/]+)/participants/$",
@@ -2346,7 +2339,7 @@ urlpatterns = [
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
-        name="sentry-api-0-shared-group-details-with-org",
+        name="sentry-api-0-organization-shared-group-details",
     ),
     url(
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
@@ -2485,6 +2478,11 @@ urlpatterns = [
                 url(r"^packages/$", InternalPackagesEndpoint.as_view()),
                 url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
                 url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^project-config/$",
+                    AdminRelayProjectConfigsEndpoint.as_view(),
+                    name="sentry-api-0-internal-project-config",
+                ),
             ]
         ),
     ),

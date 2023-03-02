@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import operator
 from collections import defaultdict
+from enum import Enum
 from functools import reduce
 from typing import (
     Any,
@@ -148,6 +149,13 @@ class AuthorCommitsWithReleaseSerialized(TypedDict):
 class AnnotatedFrame(TypedDict):
     frame: str
     commits: Sequence[Tuple[Commit, int]]
+
+
+class SuspectCommitType(Enum):
+    """Used to distinguish old suspect commits from the newer commits obtained via the commit_context."""
+
+    RELEASE_COMMIT = "via commit in release"
+    INTEGRATION_COMMIT = "via SCM integration"
 
 
 def _get_committers(
@@ -311,16 +319,26 @@ def get_serialized_event_file_committers(
         if not owner:
             return []
         commit = Commit.objects.get(id=owner.context.get("commitId"))
-        author = (
-            user_service.serialize_many(filter={"user_ids": [owner.user_id]})[0]
-            if owner.user
-            else {"email": commit.author.email, "name": commit.author.name}
-        )
+
+        author = {"email": commit.author.email, "name": commit.author.name}
+        if owner.user_id is not None:
+            serialized_owners = user_service.serialize_many(filter={"user_ids": [owner.user_id]})
+            # No guarantee that just because the user_id is set that the value exists, so we still have to check
+            if serialized_owners:
+                author = serialized_owners[0]
 
         return [
             {
                 "author": author,
-                "commits": [serialize(commit, serializer=CommitSerializer(exclude=["author"]))],
+                "commits": [
+                    serialize(
+                        commit,
+                        serializer=CommitSerializer(
+                            exclude=["author"],
+                            type=SuspectCommitType.INTEGRATION_COMMIT.value,
+                        ),
+                    )
+                ],
             }
         ]
 
@@ -338,7 +356,11 @@ def get_serialized_event_file_committers(
         )
         commits = [commit for committer in committers for commit in committer["commits"]]
         serialized_commits: Sequence[MutableMapping[str, Any]] = serialize(
-            [c for (c, score) in commits], serializer=CommitSerializer(exclude=["author"])
+            [c for (c, score) in commits],
+            serializer=CommitSerializer(
+                exclude=["author"],
+                type=SuspectCommitType.RELEASE_COMMIT.value,
+            ),
         )
 
         serialized_commits_by_id = {}

@@ -19,6 +19,34 @@ class ProjectOwnershipTestCase(TestCase):
 
         super().tearDown()
 
+    def python_event_data(self):
+        return {
+            "message": "Kaboom!",
+            "platform": "python",
+            "timestamp": iso_format(before_now(seconds=10)),
+            "stacktrace": {
+                "frames": [
+                    {
+                        "function": "handle_set_commits",
+                        "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
+                        "module": "sentry.api",
+                        "in_app": True,
+                        "lineno": 30,
+                        "filename": "sentry/api/foo.py",
+                    },
+                    {
+                        "function": "set_commits",
+                        "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                        "module": "sentry.models.release",
+                        "in_app": True,
+                        "lineno": 39,
+                        "filename": "sentry/models/release.py",
+                    },
+                ]
+            },
+            "tags": {"sentry:release": self.release.version},
+        }
+
     def assert_ownership_equals(self, o1, o2):
         # Ensure actors match
         assert sorted(o1[0], key=actor_key) == sorted(o2[0], key=actor_key)
@@ -150,7 +178,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
     def test_get_issue_owners_no_codeowners_or_issueowners(self):
-        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
 
     def test_get_issue_owners_only_issueowners_exists(self):
         rule_a = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
@@ -162,13 +190,13 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         # No data matches
-        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
 
         # Match on stacktrace
         assert ProjectOwnership.get_issue_owners(
             self.project.id,
             {"stacktrace": {"frames": [{"filename": "foo.py"}]}},
-        )[0] == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
+        ) == [(rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value)]
 
     def test_get_issue_owners_where_owner_is_not_in_project(self):
         self.team = self.create_team(
@@ -196,7 +224,7 @@ class ProjectOwnershipTestCase(TestCase):
             ProjectOwnership.get_issue_owners(
                 self.project.id,
                 {"stacktrace": {"frames": [{"filename": "src/foo.js"}]}},
-            )[0]
+            )
             == []
         )
 
@@ -217,12 +245,12 @@ class ProjectOwnershipTestCase(TestCase):
             schema=dump_schema([rule_a]),
         )
         # No data matches
-        assert ProjectOwnership.get_issue_owners(self.project.id, {})[0] == []
+        assert ProjectOwnership.get_issue_owners(self.project.id, {}) == []
 
         # Match on stacktrace
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "foo.js"}]}}
-        )[0] == [(rule_a, [self.team], OwnerRuleType.CODEOWNERS.value)]
+        ) == [(rule_a, [self.team], OwnerRuleType.CODEOWNERS.value)]
 
     def test_get_issue_owners_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -252,7 +280,7 @@ class ProjectOwnershipTestCase(TestCase):
 
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "api/foo.py"}]}}
-        )[0] == [
+        ) == [
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_c, [self.team2], OwnerRuleType.CODEOWNERS.value),
         ]
@@ -260,7 +288,7 @@ class ProjectOwnershipTestCase(TestCase):
         # more than 2 matches
         assert ProjectOwnership.get_issue_owners(
             self.project.id, {"stacktrace": {"frames": [{"filename": "src/foo.py"}]}}
-        )[0] == [
+        ) == [
             (rule_b, [user_service.get_user(self.user.id)], OwnerRuleType.OWNERSHIP_RULE.value),
             (rule_a, [self.team], OwnerRuleType.OWNERSHIP_RULE.value),
         ]
@@ -280,32 +308,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         self.event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
-                            "module": "sentry.api",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/api/foo.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
+            data=self.python_event_data(),
             project_id=self.project.id,
         )
 
@@ -323,6 +326,51 @@ class ProjectOwnershipTestCase(TestCase):
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
         assert assignee.team_id == self.team.id
+
+    def test_handle_skip_auto_assignment(self):
+        """Test that if an issue has already been manually assigned, we skip overriding the assignment
+        on a future event with auto-assignment.
+        """
+        self.team = self.create_team(
+            organization=self.organization, slug="tiger-team", members=[self.user]
+        )
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.code_mapping = self.create_code_mapping(project=self.project)
+
+        rule_c = Rule(Matcher("path", "*.py"), [Owner("team", self.team.slug)])
+
+        self.create_codeowners(
+            self.project, self.code_mapping, raw="*.py @tiger-team", schema=dump_schema([rule_c])
+        )
+
+        self.event = self.store_event(
+            data=self.python_event_data(),
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=self.event.group,
+            type=GroupOwnerType.CODEOWNERS.value,
+            user_id=None,
+            team_id=self.team.id,
+            project=self.project,
+            organization=self.project.organization,
+            context={"rule": str(rule_c)},
+        )
+
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.team_id == self.team.id
+
+        # manually assign the issue to someone else
+        GroupAssignee.objects.assign(self.event.group, self.user)
+
+        # ensure the issue was not reassigned
+        ProjectOwnership.handle_auto_assignment(self.project.id, self.event)
+        assert len(GroupAssignee.objects.all()) == 1
+        assignee = GroupAssignee.objects.get(group=self.event.group)
+        assert assignee.user_id == self.user.id
 
     def test_handle_auto_assignment_when_codeowners_and_issueowners_exists(self):
         self.team = self.create_team(
@@ -353,32 +401,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         self.event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
-                            "module": "sentry.api",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/api/foo.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
+            data=self.python_event_data(),
             project_id=self.project.id,
         )
 
@@ -465,32 +488,7 @@ class ProjectOwnershipTestCase(TestCase):
         )
 
         self.event = self.store_event(
-            data={
-                "message": "Kaboom!",
-                "platform": "python",
-                "timestamp": iso_format(before_now(seconds=10)),
-                "stacktrace": {
-                    "frames": [
-                        {
-                            "function": "handle_set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/api/foo.py",
-                            "module": "sentry.api",
-                            "in_app": True,
-                            "lineno": 30,
-                            "filename": "sentry/api/foo.py",
-                        },
-                        {
-                            "function": "set_commits",
-                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
-                            "module": "sentry.models.release",
-                            "in_app": True,
-                            "lineno": 39,
-                            "filename": "sentry/models/release.py",
-                        },
-                    ]
-                },
-                "tags": {"sentry:release": self.release.version},
-            },
+            data=self.python_event_data(),
             project_id=self.project.id,
         )
 

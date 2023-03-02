@@ -1,7 +1,8 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect, {
+import {
+  CompactSelect,
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
@@ -46,6 +47,7 @@ function OptionSelector({
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
+      textValue: String(opt.label),
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);

@@ -1,6 +1,11 @@
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
-import {ColorChannels, FlamegraphTheme, LCH} from '../flamegraph/flamegraphTheme';
+import {
+  ColorChannels,
+  ColorMapFn,
+  FlamegraphTheme,
+  LCH,
+} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
@@ -80,7 +85,7 @@ export const makeStackToColor = (
 ): FlamegraphTheme['COLORS']['STACK_TO_COLOR'] => {
   return (
     frames: ReadonlyArray<FlamegraphFrame>,
-    generateColorMap: FlamegraphTheme['COLORS']['COLOR_MAP'],
+    generateColorMap: ColorMapFn,
     colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
   ) => {
     const colorMap = generateColorMap(frames, colorBucket);
@@ -175,7 +180,7 @@ export function makeColorBucketTheme(
   };
 }
 
-export function makeColorMap(
+export function makeColorMapBySymbolName(
   frames: ReadonlyArray<FlamegraphFrame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
 ): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
