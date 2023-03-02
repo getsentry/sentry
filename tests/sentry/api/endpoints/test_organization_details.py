@@ -14,6 +14,7 @@ from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.auth.authenticators import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import (
     AuditLogEntry,
     Authenticator,
@@ -143,7 +144,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 50 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 52
+        expected_queries = 49 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 51
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -336,7 +337,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         # needed to set require2FA
         interface = TotpInterface()
         interface.enroll(self.user)
-        assert Authenticator.objects.user_has_2fa(self.user)
+        assert self.user.has_2fa()
 
         self.get_success_response(self.organization.slug, **data)
 
@@ -829,7 +830,8 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=403)
 
     def test_cannot_remove_default(self):
-        Organization.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Organization.objects.all().delete()
         org = self.create_organization(owner=self.user)
 
         with self.settings(SENTRY_SINGLE_ORGANIZATION=True):
@@ -873,14 +875,14 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.has_2fa = self.create_user()
         TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
-        assert Authenticator.objects.user_has_2fa(self.has_2fa)
+        assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
         assert len(outbox) == len(expected)
         assert sorted(email.to[0] for email in outbox) == sorted(expected)
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        assert not Authenticator.objects.user_has_2fa(self.owner)
+        assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):

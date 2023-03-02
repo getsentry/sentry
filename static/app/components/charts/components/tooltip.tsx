@@ -402,6 +402,3 @@ export function ChartTooltip({
     ...props,
   };
 }
-
-const DoNotUseChartTooltip = ChartTooltip;
-export default DoNotUseChartTooltip;

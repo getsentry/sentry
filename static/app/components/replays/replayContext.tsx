@@ -1,6 +1,6 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import {Replayer, ReplayerEvents} from 'rrweb';
+import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -85,6 +85,11 @@ type ReplayPlayerContextProps = {
   isBuffering: boolean;
 
   /**
+   * Is the data inside the `replay` complete, or are we waiting for more.
+   */
+  isFetching;
+
+  /**
    * Set to true when the replay finish event is fired
    */
   isFinished: boolean;
@@ -159,6 +164,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   highlight: () => {},
   initRoot: () => {},
   isBuffering: false,
+  isFetching: false,
   isFinished: false,
   isPlaying: false,
   isSkippingInactive: true,
@@ -175,6 +181,12 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
 
 type Props = {
   children: React.ReactNode;
+
+  /**
+   * Is the data inside the `replay` complete, or are we waiting for more.
+   */
+  isFetching: boolean;
+
   replay: ReplayReader | null;
 
   /**
@@ -198,7 +210,13 @@ function updateSavedReplayConfig(config: ReplayConfig) {
   localStorage.setItem(ReplayLocalstorageKeys.ReplayConfig, JSON.stringify(config));
 }
 
-export function Provider({children, replay, initialTimeOffset = 0, value = {}}: Props) {
+export function Provider({
+  children,
+  initialTimeOffset = 0,
+  isFetching,
+  replay,
+  value = {},
+}: Props) {
   const config = useLegacyStore(ConfigStore);
   const organization = useOrganization();
   const events = replay?.getRRWebEvents();
@@ -278,6 +296,10 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         return;
       }
 
+      if (isFetching) {
+        return;
+      }
+
       if (replayerRef.current) {
         if (!hasNewEvents && !unMountedRef.current) {
           // Already have a player for these events, the parent node must've re-rendered
@@ -331,7 +353,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         unMountedRef.current = false;
       }
     },
-    [events, theme.purple200, setReplayFinished, hasNewEvents]
+    [events, isFetching, theme.purple200, setReplayFinished, hasNewEvents]
   );
 
   const getCurrentTime = useCallback(
@@ -508,6 +530,7 @@ export function Provider({children, replay, initialTimeOffset = 0, value = {}}: 
         highlight,
         initRoot,
         isBuffering,
+        isFetching,
         isFinished,
         isPlaying,
         isSkippingInactive,

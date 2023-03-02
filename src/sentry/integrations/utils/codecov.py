@@ -6,7 +6,7 @@ from typing import Literal, Optional, Sequence, Tuple
 import requests
 from sentry_sdk import configure_scope
 
-from sentry import options
+from sentry import features, options
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
@@ -14,9 +14,12 @@ LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
 )
+NEW_CODECOV_REPORT_URL = (
+    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
+)
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 2
+CODECOV_TIMEOUT = 10
 
 
 class CodecovIntegrationError(Enum):
@@ -72,43 +75,65 @@ def get_codecov_data(
     ref: str,
     ref_type: REF_TYPE,
     path: str,
-    set_timeout: bool,
+    organization: Organization,
 ) -> Tuple[Optional[LineCoverage], Optional[str]]:
     codecov_token = options.get("codecov.client-secret")
     line_coverage = None
     codecov_url = None
+    use_new_api = features.has("organizations:codecov-stacktrace-integration-v2", organization)
     if codecov_token:
         owner_username, repo_name = repo.split("/")
         if service == "github":
             service = "gh"
+
         path = path.lstrip("/")
         url = CODECOV_REPORT_URL.format(
             service=service, owner_username=owner_username, repo_name=repo_name
         )
+        params = {ref_type: ref, "path": path}
+        if use_new_api:
+            url = NEW_CODECOV_REPORT_URL.format(
+                service=service, owner_username=owner_username, repo_name=repo_name, path=path
+            )
+            params = {}
+
         with configure_scope() as scope:
-            params = {ref_type: ref, "path": path}
+            timeout = CODECOV_TIMEOUT if use_new_api else None
+
             response = requests.get(
                 url,
                 params=params,
                 headers={"Authorization": f"Bearer {codecov_token}"},
-                timeout=CODECOV_TIMEOUT if set_timeout else None,
+                timeout=timeout,
             )
             tags = {
                 "codecov.request_url": url,
+                "codecov.request_params": params,
                 "codecov.request_path": path,
                 "codecov.request_ref": ref,
                 "codecov.http_code": response.status_code,
             }
-
             response_json = response.json()
-            files = response_json.get("files")
-            line_coverage = files[0].get("line_coverage") if files else None
+            line_coverage, codecov_url = None, None
+            if use_new_api:
+                tags["codecov.new_endpoint"] = True
+                line_coverage = response_json.get("line_coverage")
+                coverage_found = line_coverage not in [None, [], [[]]]
+                tags["codecov.coverage_found"] = coverage_found
 
-            coverage_found = line_coverage not in [None, [], [[]]]
-            tags["codecov.coverage_found"] = coverage_found
+                commit_sha = response_json.get("commit_sha")
+                codecov_url = f"https://app.codecov.io/{service}/{owner_username}/{repo_name}/commit/{commit_sha}/{path}"
+                tags["codecov.coverage_url"] = codecov_url
+            else:
+                files = response_json.get("files")
+                line_coverage = files[0].get("line_coverage") if files else None
 
-            codecov_url = response_json.get("commit_file_url", "")
-            tags["codecov.coverage_url"] = codecov_url
+                coverage_found = line_coverage not in [None, [], [[]]]
+                tags["codecov.coverage_found"] = coverage_found
+
+                codecov_url = response_json.get("commit_file_url", "")
+                tags["codecov.coverage_url"] = codecov_url
+
             for key, value in tags.items():
                 scope.set_tag(key, value)
 

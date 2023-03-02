@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
+from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -22,8 +23,9 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import test_psql_role_override
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import LostPasswordHash
+from sentry.models.authenticator import Authenticator
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
@@ -198,7 +200,7 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        with transaction.atomic(), test_psql_role_override("postgres"):
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
             avatar = self.avatar.first()
             if avatar:
                 avatar.delete()
@@ -218,6 +220,11 @@ class User(BaseModel, AbstractBaseUser):
     def has_module_perms(self, app_label):
         warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
         return self.is_superuser
+
+    def has_2fa(self):
+        return Authenticator.objects.filter(
+            user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
+        ).exists()
 
     def get_unverified_emails(self):
         return self.emails.filter(is_verified=False)
