@@ -532,6 +532,7 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
             status=200,
             json={
                 "line_coverage": self.expected_line_coverage,
+                "commit_file_url": self.expected_codecov_url,
                 "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
