@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -149,11 +149,7 @@ def handle_owner_assignment(job):
 
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
-            from sentry.models import (
-                ISSUE_OWNERS_DEBOUNCE_DURATION,
-                ISSUE_OWNERS_DEBOUNCE_KEY,
-                ProjectOwnership,
-            )
+            from sentry.models import ISSUE_OWNERS_DEBOUNCE_KEY
 
             event = job["event"]
             project, group = event.project, event.group
@@ -217,48 +213,54 @@ def handle_owner_assignment(job):
                                 "reason": "issue_owners_exist",
                             },
                         )
+                        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
                         return
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.get_issue_owners"
-                ):
-
-                    if killswitch_matches_context(
-                        "post_process.get-autoassign-owners",
-                        {
-                            "project_id": project.id,
-                        },
-                    ):
-                        # see ProjectOwnership.get_issue_owners
-                        issue_owners = []
-                    else:
-
-                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
-
-                        # Cache for 1 day after we calculated. We don't need to move that fast.
-                        cache.set(
-                            issue_owners_key,
-                            True,
-                            ISSUE_OWNERS_DEBOUNCE_DURATION,
-                        )
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.handle_group_owners"
-                ):
-                    if issue_owners:
-                        try:
-                            handle_group_owners(project, group, issue_owners)
-                            logger.info(
-                                "handle_owner_assignment.success",
-                                extra={
-                                    **basic_logging_details,
-                                    "reason": "stored_issue_owners",
-                                },
-                            )
-                        except Exception:
-                            logger.exception("Failed to store group owners")
+                process_owner_assignments.delay(job)
         except Exception:
             logger.exception("Failed to handle owner assignments")
+
+
+@instrumented_task(name="sentry.tasks.process_owner_assignments", queue="process_owner_assignments")
+def process_owner_assignments(job: PostProcessJob) -> None:
+    metrics.incr("sentry.tasks.post_process.process_owner_assignments")
+    with metrics.timer("post_process.process_owner_assignments.duration"):
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.get_issue_owners"):
+            from sentry.models import (
+                ISSUE_OWNERS_DEBOUNCE_DURATION,
+                ISSUE_OWNERS_DEBOUNCE_KEY,
+                ProjectOwnership,
+            )
+
+            event = job["event"]
+            project, group = event.project, event.group
+            issue_owners_key = ISSUE_OWNERS_DEBOUNCE_KEY(group.id)
+
+            if killswitch_matches_context(
+                "post_process.get-autoassign-owners",
+                {
+                    "project_id": project.id,
+                },
+            ):
+                # see ProjectOwnership.get_issue_owners
+                issue_owners = []
+            else:
+
+                issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
+
+                # Cache for 1 day after we calculated. We don't need to move that fast.
+                cache.set(
+                    issue_owners_key,
+                    True,
+                    ISSUE_OWNERS_DEBOUNCE_DURATION,
+                )
+
+        with sentry_sdk.start_span(op="post_process.handle_owner_assignment.handle_group_owners"):
+            if issue_owners:
+                try:
+                    handle_group_owners(project, group, issue_owners)
+                except Exception:
+                    logger.exception("Failed to store group owners")
+    handle_auto_assignment(job)
 
 
 def handle_group_owners(project, group, issue_owners):
@@ -533,7 +535,9 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in PROFILE_FILE_IO_ISSUE_TYPES and not features.has(
+    if group_event.group.issue_type.type_id in get_group_types_by_category(
+        GroupCategory.PROFILE.value
+    ) and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return
@@ -751,22 +755,12 @@ def process_code_mappings(job: PostProcessJob) -> None:
         org = event.project.organization
         org_slug = org.slug
         next_time = timezone.now() + timedelta(hours=1)
-        has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
-        has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-        if has_normal_run_flag:
-            logger.info(
-                f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
-                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
-            )
-            derive_code_mappings.delay(project.id, event.data, dry_run=False)
-        # Derive code mappings with dry_run=True to validate the generated mappings.
-        elif has_dry_run_flag:
-            logger.info(
-                f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
-                + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
-            )
-            derive_code_mappings.delay(project.id, event.data, dry_run=True)
+        logger.info(
+            f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
+            + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
+        )
+        derive_code_mappings.delay(project.id, event.data, dry_run=False)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
@@ -964,7 +958,6 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         process_inbox_adds,
         process_commits,
         handle_owner_assignment,
-        handle_auto_assignment,
         process_rules,
         process_service_hooks,
         process_resource_change_bounds,

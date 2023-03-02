@@ -10,6 +10,7 @@ class DSProject:
     blended_sample_rate: float
     new_count_per_root: float = 0.0
     new_sample_rate: float = 0.0
+    _diff: float = 0.0
 
 
 @dataclass
@@ -57,18 +58,21 @@ class AdjustedModel:
                 (average - left.count_per_root),
                 (max_possible_count - left.count_per_root),
             )
+            left._diff = diff
             left.new_count_per_root = left.count_per_root + diff
             left.new_sample_rate = left.blended_sample_rate * (
                 left.new_count_per_root / left.count_per_root
             )
-            right.new_count_per_root = right.count_per_root - diff
+            right._diff = diff
+            # we want to calculate abs difference, and then calculate proportion
+            right.new_count_per_root = abs(right.count_per_root - diff)
             right.new_sample_rate = right.blended_sample_rate * (
                 right.new_count_per_root / right.count_per_root
             )
             new_left.append(left)
             new_right.append(right)
             # This opinionated `coefficient` reduces adjustment on every step
-            coefficient = diff / left.new_count_per_root
+            coefficient = abs(diff / left.new_count_per_root)
 
         if len(sorted_projects) % 2 == 0:
             return [*new_right, *reversed(new_left)]
