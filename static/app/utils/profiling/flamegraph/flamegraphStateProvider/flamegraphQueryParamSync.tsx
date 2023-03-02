@@ -14,10 +14,7 @@ import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | (Pick<
-      FlamegraphState['preferences'],
-      'colorCoding' | 'sorting' | 'type' | 'view' | 'xAxis'
-    > &
+  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view' | 'xAxis'> &
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(

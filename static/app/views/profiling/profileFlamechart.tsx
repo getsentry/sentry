@@ -129,7 +129,11 @@ function ProfileGroupTypeProvider({
 }) {
   const preferences = useFlamegraphPreferences();
   return (
-    <ProfileGroupProvider input={input} traceID={traceID} type={preferences.type}>
+    <ProfileGroupProvider
+      input={input}
+      traceID={traceID}
+      type={preferences.sorting === 'alphabetical' ? 'flamegraph' : 'flamechart'}
+    >
       {children}
     </ProfileGroupProvider>
   );
