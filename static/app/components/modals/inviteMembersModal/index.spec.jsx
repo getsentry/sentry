@@ -269,8 +269,6 @@ describe('InviteMembersModal', function () {
       expect(
         screen.getByRole('button', {name: 'Send invite request'})
       ).toBeInTheDocument();
-
-      expect(screen.getByTestId('more-information')).toBeInTheDocument();
     });
 
     it('POSTS to the invite-request endpoint', function () {

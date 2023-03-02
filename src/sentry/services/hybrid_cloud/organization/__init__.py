@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from typing import Any, List, Mapping, Optional
@@ -6,7 +9,7 @@ from typing import Any, List, Mapping, Optional
 from pydantic import Field
 
 from sentry.models.organization import OrganizationStatus
-from sentry.roles import team_roles
+from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
     RpcModel,
@@ -15,126 +18,6 @@ from sentry.services.hybrid_cloud import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
-
-
-class OrganizationService(InterfaceWithLifecycle):
-    @abstractmethod
-    def get_organization_by_id(
-        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
-    ) -> Optional[RpcUserOrganizationContext]:
-        """
-        Fetches the organization, team, and project data given by an organization id, regardless of its visibility
-        status.  When user_id is provided, membership data related to that user from the organization
-        is also given in the response.  See RpcUserOrganizationContext for more info.
-        """
-        pass
-
-    # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
-    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
-    @abstractmethod
-    def get_organizations(
-        self,
-        user_id: Optional[int],
-        scope: Optional[str],
-        only_visible: bool,
-        organization_ids: Optional[List[int]] = None,
-    ) -> List[RpcOrganizationSummary]:
-        """
-        When user_id is set, returns all organizations associated with that user id given
-        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
-        set of organizations matching those ids, ignore scope and user_id.
-
-        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
-        organization will be returned.
-
-        Because this endpoint fetches not from region silos, but the control silo organization membership table,
-        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
-        for their full metadata is greatly discouraged for performance reasons.
-        """
-        pass
-
-    @abstractmethod
-    def check_membership_by_email(
-        self, organization_id: int, email: str
-    ) -> Optional[RpcOrganizationMember]:
-        """
-        Used to look up an organization membership by an email
-        """
-        pass
-
-    @abstractmethod
-    def check_membership_by_id(
-        self, organization_id: int, user_id: int
-    ) -> Optional[RpcOrganizationMember]:
-        """
-        Used to look up an organization membership by a user id
-        """
-        pass
-
-    @abstractmethod
-    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
-        """
-        If exists and matches the only_visible requirement, returns an organization's id by the slug.
-        """
-        pass
-
-    def get_organization_by_slug(
-        self, *, user_id: Optional[int], slug: str, only_visible: bool
-    ) -> Optional[RpcUserOrganizationContext]:
-        """
-        Defers to check_organization_by_slug -> get_organization_by_id
-        """
-        org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
-        if org_id is None:
-            return None
-
-        return self.get_organization_by_id(id=org_id, user_id=user_id)
-
-    @abstractmethod
-    def add_organization_member(
-        self,
-        *,
-        organization: RpcOrganization,
-        user: RpcUser,
-        flags: RpcOrganizationMemberFlags | None,
-        role: str | None,
-    ) -> RpcOrganizationMember:
-        pass
-
-    @abstractmethod
-    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
-        pass
-
-    @abstractmethod
-    def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
-        pass
-
-    @abstractmethod
-    def get_all_org_roles(
-        self,
-        organization_member: Optional[RpcOrganizationMember] = None,
-        member_id: Optional[int] = None,
-    ) -> List[str]:
-        pass
-
-    @abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
-        pass
-
-
-def impl_with_db() -> OrganizationService:
-    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
-
-    return DatabaseBackedOrganizationService()
-
-
-organization_service: OrganizationService = silo_mode_delegation(
-    {
-        SiloMode.MONOLITH: impl_with_db,
-        SiloMode.REGION: impl_with_db,
-        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
-    }
-)
 
 
 def team_status_visible() -> int:
@@ -158,14 +41,10 @@ class RpcTeam(RpcModel):
 class RpcTeamMember(RpcModel):
     id: int = -1
     is_active: bool = False
-    role_id: str = ""
+    role: Optional[TeamRole] = None
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
     team_id: int = -1
-
-    @property
-    def role(self) -> Optional[TeamRole]:
-        return team_roles.get(self.role_id) if self.role_id else None
 
 
 def project_status_visible() -> int:
@@ -282,4 +161,121 @@ class RpcUserOrganizationContext(RpcModel):
             assert self.user_id == self.member.user_id
 
 
-from sentry.roles.manager import TeamRole
+class OrganizationService(InterfaceWithLifecycle):
+    @abstractmethod
+    def get_organization_by_id(
+        self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
+    ) -> Optional[RpcUserOrganizationContext]:
+        """
+        Fetches the organization, team, and project data given by an organization id, regardless of its visibility
+        status.  When user_id is provided, membership data related to that user from the organization
+        is also given in the response.  See RpcUserOrganizationContext for more info.
+        """
+        pass
+
+    # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
+    #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
+    @abstractmethod
+    def get_organizations(
+        self,
+        user_id: Optional[int],
+        scope: Optional[str],
+        only_visible: bool,
+        organization_ids: Optional[List[int]] = None,
+    ) -> List[RpcOrganizationSummary]:
+        """
+        When user_id is set, returns all organizations associated with that user id given
+        a scope and visibility requirement.  When user_id is not set, but organization_ids is, provides the
+        set of organizations matching those ids, ignore scope and user_id.
+
+        When only_visible set, the organization object is only returned if it's status is Visible, otherwise any
+        organization will be returned.
+
+        Because this endpoint fetches not from region silos, but the control silo organization membership table,
+        only a subset of all organization metadata is available.  Spanning out and querying multiple organizations
+        for their full metadata is greatly discouraged for performance reasons.
+        """
+        pass
+
+    @abstractmethod
+    def check_membership_by_email(
+        self, organization_id: int, email: str
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Used to look up an organization membership by an email
+        """
+        pass
+
+    @abstractmethod
+    def check_membership_by_id(
+        self, organization_id: int, user_id: int
+    ) -> Optional[RpcOrganizationMember]:
+        """
+        Used to look up an organization membership by a user id
+        """
+        pass
+
+    @abstractmethod
+    def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
+        """
+        If exists and matches the only_visible requirement, returns an organization's id by the slug.
+        """
+        pass
+
+    def get_organization_by_slug(
+        self, *, user_id: Optional[int], slug: str, only_visible: bool
+    ) -> Optional[RpcUserOrganizationContext]:
+        """
+        Defers to check_organization_by_slug -> get_organization_by_id
+        """
+        org_id = self.check_organization_by_slug(slug=slug, only_visible=only_visible)
+        if org_id is None:
+            return None
+
+        return self.get_organization_by_id(id=org_id, user_id=user_id)
+
+    @abstractmethod
+    def add_organization_member(
+        self,
+        *,
+        organization: RpcOrganization,
+        user: RpcUser,
+        flags: Optional[RpcOrganizationMemberFlags],
+        role: Optional[str],
+    ) -> RpcOrganizationMember:
+        pass
+
+    @abstractmethod
+    def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def get_all_org_roles(
+        self,
+        organization_member: Optional[RpcOrganizationMember] = None,
+        member_id: Optional[int] = None,
+    ) -> List[str]:
+        pass
+
+    @abstractmethod
+    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+        pass
+
+
+def impl_with_db() -> OrganizationService:
+    from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+
+    return DatabaseBackedOrganizationService()
+
+
+organization_service: OrganizationService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.REGION: impl_with_db,
+        SiloMode.CONTROL: stubbed(impl_with_db, SiloMode.REGION),
+    }
+)

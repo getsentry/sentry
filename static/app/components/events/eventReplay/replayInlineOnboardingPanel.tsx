@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import replaysInlineOnboarding from 'sentry-images/spot/replays-inline-onboarding.svg';
+import replaysInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding.svg';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -26,7 +26,7 @@ function clearHideUntilTime() {
   localStorage.removeItem(LOCAL_STORAGE_KEY);
 }
 
-export default function ReplayOnboardingPanel() {
+export default function ReplayInlineOnboardingPanel() {
   const [isHidden, setIsHidden] = useState(() => {
     const hideUntilTime = getHideUntilTime();
     if (hideUntilTime && Date.now() < hideUntilTime) {

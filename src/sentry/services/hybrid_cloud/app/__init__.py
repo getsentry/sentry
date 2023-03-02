@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
 import datetime
@@ -93,7 +96,7 @@ class RpcSentryAppEventData(SentryAppEventDataInterface):
         return self.enabled
 
     @classmethod
-    def from_event(cls, data_interface: SentryAppEventDataInterface) -> RpcSentryAppEventData:
+    def from_event(cls, data_interface: SentryAppEventDataInterface) -> "RpcSentryAppEventData":
         return RpcSentryAppEventData(
             id=data_interface.id,
             label=data_interface.label,
@@ -116,7 +119,7 @@ class AppService(
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
+    ) -> Optional[RpcSentryAppInstallation]:
         pass
 
     @abc.abstractmethod
@@ -146,7 +149,11 @@ class AppService(
 
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
-        self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
+        self,
+        *,
+        event_data: RpcSentryAppEventData,
+        organization_id: int,
+        project_slug: Optional[str],
     ) -> List[Mapping[str, Any]]:
         pass
 
@@ -166,7 +173,7 @@ class AppService(
         pass
 
     def serialize_sentry_app_installation(
-        self, installation: SentryAppInstallation, app: SentryApp | None = None
+        self, installation: SentryAppInstallation, app: Optional[SentryApp] = None
     ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
@@ -182,8 +189,8 @@ class AppService(
 
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
-        self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
-    ) -> AlertRuleActionResult:
+        self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
+    ) -> "AlertRuleActionResult":
         pass
 
 

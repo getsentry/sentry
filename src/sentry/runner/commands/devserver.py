@@ -12,12 +12,6 @@ from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEV_METRICS_INDEXER_ARGS = [
-    # We don't want to burn laptop CPU while idle, but do want for
-    # metrics to be ingested with lowest latency possible.
-    "--max-batch-time-ms",
-    "10000",
-    "--max-batch-size",
-    "1",
     # We don't really need more than 1 process.
     "--processes",
     "1",
@@ -27,6 +21,9 @@ _DEV_METRICS_INDEXER_ARGS = [
     "--no-strict-offset-reset",
 ]
 
+# NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
+# in `devserver()` like so:
+#     daemons += [_get_daemon("my_new_daemon")]
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -36,8 +33,6 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=errors",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--no-strict-offset-reset",
     ],
     "post-process-forwarder-transactions": [
@@ -46,8 +41,6 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=transactions",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-transactions-commit-log",
         "--synchronize-commit-group=transactions_group",
         "--no-strict-offset-reset",
@@ -58,8 +51,6 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=search_issues",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-generic-events-commit-log",
         "--synchronize-commit-group=generic_events_group",
         "--no-strict-offset-reset",
@@ -102,6 +93,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 
@@ -330,7 +322,7 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]

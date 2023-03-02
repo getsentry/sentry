@@ -598,6 +598,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
                 organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(organization.id)
         context = serialize(
             organization,
             request.user,

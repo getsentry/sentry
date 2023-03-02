@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import datetime
 from abc import abstractmethod
@@ -132,7 +135,7 @@ class UserService(
 
     @abstractmethod
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -147,7 +150,7 @@ class UserService(
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[RpcUser]:
+    def get_from_group(self, group: "Group") -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
