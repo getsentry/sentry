@@ -23,6 +23,9 @@ export interface SegmentedControlItemProps<Value extends string>
   /**
    * Optional icon to be rendered to the left of the segment label. Use this prop to
    * ensure proper vertical alignment.
+   *
+   * NOTE: if the segment contains only an icon and no text label (i.e. `children` is
+   * not defined), then an `aria-label` must be provided for screen reader support.
    */
   icon?: React.ReactNode;
   /**
