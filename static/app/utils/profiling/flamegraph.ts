@@ -338,9 +338,4 @@ export class Flamegraph {
 
     return matches;
   }
-
-  setConfigSpace(configSpace: Rect): Flamegraph {
-    this.configSpace = configSpace;
-    return this;
-  }
 }
