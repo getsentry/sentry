@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Event} from 'sentry/types';
+import {EventTransaction} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
@@ -50,7 +50,7 @@ function renderValue(
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
   projectId: string;
-  transaction: Event | null;
+  transaction: EventTransaction | null;
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
