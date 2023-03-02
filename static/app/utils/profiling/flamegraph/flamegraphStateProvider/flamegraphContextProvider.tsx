@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
@@ -21,47 +20,12 @@ function isValidHighlightFrame(
   return !!frame && typeof frame.name === 'string';
 }
 
-function getAxisForType(
-  type: FlamegraphPreferences['type'],
-  xAxis: FlamegraphPreferences['xAxis']
-): FlamegraphPreferences['xAxis'] {
-  if (type === 'flamegraph') {
-    return 'profile';
-  }
-  return xAxis;
-}
-
-function getSortingForType(
-  type: FlamegraphPreferences['type'],
-  sorting: FlamegraphPreferences['sorting']
-): FlamegraphPreferences['sorting'] {
-  if (type === 'flamegraph' && sorting === 'call order') {
-    return 'alphabetical';
-  }
-  if (type === 'flamechart' && sorting === 'alphabetical') {
-    return 'call order';
-  }
-  return sorting;
-}
-
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
   initialState?: DeepPartial<FlamegraphState>;
 }
 
 function getDefaultState(initialState?: DeepPartial<FlamegraphState>): FlamegraphState {
-  const type =
-    initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-  const xAxis = getAxisForType(
-    type,
-    initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis
-  );
-  const sorting = getSortingForType(
-    type,
-    initialState?.preferences?.sorting ?? DEFAULT_FLAMEGRAPH_STATE.preferences.sorting
-  );
-
   return {
     profiles: {
       highlightFrames: isValidHighlightFrame(initialState?.profiles?.highlightFrames)
@@ -79,7 +43,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
-      type: initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type,
       timelines: {
         ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         ...(initialState?.preferences?.timelines ?? {}),
@@ -89,9 +52,12 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
       colorCoding:
         initialState?.preferences?.colorCoding ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
-      sorting,
+      sorting:
+        initialState?.preferences?.sorting ??
+        DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis,
+      xAxis:
+        initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,
