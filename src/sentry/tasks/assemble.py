@@ -337,7 +337,8 @@ def assemble_artifacts(org_id, project_ids, version, checksum, chunks, **kwargs)
             archive_filename,
             checksum,
             chunks,
-            file_type="release.bundle",
+            # If we have a veraion we are going to create a release bundle otherwise an artifact bundle.
+            file_type="release.bundle" if version else "artifact.bundle",
         )
 
         # If not file has been created this means that the file failed to
