@@ -3,7 +3,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import TransactionHeader from 'sentry/views/performance/transactionSummary/header';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import Tab from 'sentry/views/performance/transactionSummary/pageLayout/tabs';
 
 type InitialOpts = {
   features?: string[];

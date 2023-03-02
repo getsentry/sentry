@@ -24,7 +24,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import Tab from 'sentry/views/performance/transactionSummary/tabs';
+import Tab from 'sentry/views/performance/transactionSummary/pageLayout/tabs';
 import {
   getProfilesTableFields,
   ProfilingFieldType,

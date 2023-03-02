@@ -7,17 +7,17 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {getSelectedProjectPlatforms} from '../utils';
+import {getSelectedProjectPlatforms} from '../../utils';
+import {anomaliesRouteWithQuery} from '../transactionAnomalies/utils';
+import {eventsRouteWithQuery} from '../transactionEvents/utils';
+import {profilesRouteWithQuery} from '../transactionProfiles/utils';
+import {replaysRouteWithQuery} from '../transactionReplays/utils';
+import {spansRouteWithQuery} from '../transactionSpans/utils';
+import {tagsRouteWithQuery} from '../transactionTags/utils';
+import {vitalsRouteWithQuery} from '../transactionVitals/utils';
+import {transactionSummaryRouteWithQuery} from '../utils';
 
-import {anomaliesRouteWithQuery} from './transactionAnomalies/utils';
-import {eventsRouteWithQuery} from './transactionEvents/utils';
-import {profilesRouteWithQuery} from './transactionProfiles/utils';
-import {replaysRouteWithQuery} from './transactionReplays/utils';
-import {spansRouteWithQuery} from './transactionSpans/utils';
-import {tagsRouteWithQuery} from './transactionTags/utils';
-import {vitalsRouteWithQuery} from './transactionVitals/utils';
 import Tab from './tabs';
-import {transactionSummaryRouteWithQuery} from './utils';
 
 type TabEvents =
   | 'performance_views.vitals.vitals_tab_clicked'

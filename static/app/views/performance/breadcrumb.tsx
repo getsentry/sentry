@@ -6,7 +6,7 @@ import {Organization} from 'sentry/types';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 
-import Tab from './transactionSummary/tabs';
+import Tab from './transactionSummary/pageLayout/tabs';
 import {eventsRouteWithQuery} from './transactionSummary/transactionEvents/utils';
 import {spansRouteWithQuery} from './transactionSummary/transactionSpans/utils';
 import {tagsRouteWithQuery} from './transactionSummary/transactionTags/utils';

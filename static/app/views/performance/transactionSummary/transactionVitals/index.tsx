@@ -12,7 +12,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+import Tab from '../pageLayout/tabs';
 
 import {PERCENTILE, VITAL_GROUPS} from './constants';
 import VitalsContent from './content';

@@ -21,7 +21,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
-import Tab from '../../tabs';
+import Tab from '../../pageLayout/tabs';
 import {SpanSortOthers} from '../types';
 import {getTotalsView} from '../utils';
 

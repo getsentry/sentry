@@ -5,13 +5,9 @@ import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
-import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -24,7 +20,8 @@ import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
 import {getCurrentLandingDisplay, LandingDisplayField} from '../landing/utils';
 
-import Tab from './tabs';
+import Tab from './pageLayout/tabs';
+import TransactionSummaryTabs from './pageLayout/transactionSummaryTabs';
 import TeamKeyTransactionButton from './teamKeyTransactionButton';
 import TransactionThresholdButton from './transactionThresholdButton';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
@@ -185,51 +182,14 @@ function TransactionHeader({
       >
         {({hasMeasurements}) => {
           const renderWebVitals = getWebVitals(!!hasMeasurements);
-
           return (
-            <TabList
-              hideBorder
-              outerWrapStyles={{
-                gridColumn: '1 / -1',
-              }}
-            >
-              <TabList.Item key={Tab.TransactionSummary}>{t('Overview')}</TabList.Item>
-              <TabList.Item key={Tab.Events}>{t('All Events')}</TabList.Item>
-              <TabList.Item key={Tab.Tags}>{t('Tags')}</TabList.Item>
-              <TabList.Item key={Tab.Spans}>{t('Spans')}</TabList.Item>
-              <TabList.Item
-                key={Tab.Anomalies}
-                textValue={t('Anomalies')}
-                hidden={!hasAnomalyDetection}
-              >
-                {t('Anomalies')}
-                <FeatureBadge type="alpha" noTooltip />
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.WebVitals}
-                textValue={t('Web Vitals')}
-                hidden={!renderWebVitals}
-              >
-                {t('Web Vitals')}
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.Replays}
-                textValue={t('Replays')}
-                hidden={!hasSessionReplay}
-              >
-                {t('Replays')}
-                <ReplayCountBadge count={replaysCount} />
-                <ReplaysFeatureBadge noTooltip />
-              </TabList.Item>
-              <TabList.Item
-                key={Tab.Profiling}
-                textValue={t('Profiling')}
-                hidden={!hasProfiling}
-              >
-                {t('Profiling')}
-                <FeatureBadge type="beta" noTooltip />
-              </TabList.Item>
-            </TabList>
+            <TransactionSummaryTabs
+              hasAnomalyDetection={hasAnomalyDetection}
+              hasProfiling={!!hasProfiling}
+              hasSessionReplay={!!hasSessionReplay}
+              renderWebVitals={renderWebVitals}
+              replaysCount={replaysCount}
+            />
           );
         }}
       </HasMeasurementsQuery>

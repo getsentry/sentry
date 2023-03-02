@@ -20,10 +20,11 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {getTransactionName} from '../utils';
 
+import PageLayout from './pageLayout/pageLayout';
+import Tab from './pageLayout/tabs';
+import usePageTabs from './pageLayout/usePageTabs';
 import TransactionHeader from './header';
-import Tab from './tabs';
 import {TransactionThresholdMetric} from './transactionThresholdModal';
-import usePageTabs from './usePageTabs';
 
 export type ChildProps = {
   eventView: EventView;
@@ -53,7 +54,7 @@ type Props = {
   features?: string[];
 };
 
-function PageLayout(props: Props) {
+function Page(props: Props) {
   const {
     location,
     organization,
@@ -92,74 +93,94 @@ function PageLayout(props: Props) {
   const eventView = generateEventView({location, transactionName, organization});
 
   return (
-    <SentryDocumentTitle
+    <PageLayout
       title={getDocumentTitle(transactionName)}
-      orgSlug={organization.slug}
-      projectSlug={project?.slug}
+      organization={organization}
+      tab={tab}
+      project={project}
     >
-      <Feature
-        features={['performance-view', ...features]}
+      <ChildComponent
+        location={location}
         organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <PerformanceEventViewProvider value={{eventView}}>
-          <PageFiltersContainer
-            shouldForceProject={defined(project)}
-            forceProject={project}
-            specificProjectSlugs={defined(project) ? [project.slug] : []}
-          >
-            <Tabs value={tab} onChange={onTabChange}>
-              <Layout.Page>
-                <TransactionHeader
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
-                  }}
-                  metricsCardinality={metricsCardinality}
-                />
-                <Layout.Body>
-                  {defined(error) && (
-                    <StyledAlert type="error" showIcon>
-                      {error}
-                    </StyledAlert>
-                  )}
-                  <ChildComponent
-                    location={location}
-                    organization={organization}
-                    projects={projects}
-                    eventView={eventView}
-                    projectId={projectId}
-                    transactionName={transactionName}
-                    setError={setError}
-                    transactionThreshold={transactionThreshold}
-                    transactionThresholdMetric={transactionThresholdMetric}
-                  />
-                </Layout.Body>
-              </Layout.Page>
-            </Tabs>
-          </PageFiltersContainer>
-        </PerformanceEventViewProvider>
-      </Feature>
-    </SentryDocumentTitle>
+        projects={projects}
+        eventView={eventView}
+        projectId={projectId}
+        transactionName={transactionName}
+        setError={setError}
+        transactionThreshold={transactionThreshold}
+        transactionThresholdMetric={transactionThresholdMetric}
+      />
+    </PageLayout>
   );
+  // return (
+  //   <SentryDocumentTitle
+  //     title={getDocumentTitle(transactionName)}
+  //     orgSlug={organization.slug}
+  //     projectSlug={project?.slug}
+  //   >
+  //     <Feature
+  //       features={['performance-view', ...features]}
+  //       organization={organization}
+  //       renderDisabled={NoAccess}
+  //     >
+  //       <PerformanceEventViewProvider value={{eventView}}>
+  //         <PageFiltersContainer
+  //           shouldForceProject={defined(project)}
+  //           forceProject={project}
+  //           specificProjectSlugs={defined(project) ? [project.slug] : []}
+  //         >
+  //           <Tabs value={tab} onChange={onTabChange}>
+  //             <Layout.Page>
+  //               <TransactionHeader
+  //                 eventView={eventView}
+  //                 location={location}
+  //                 organization={organization}
+  //                 projects={projects}
+  //                 projectId={projectId}
+  //                 transactionName={transactionName}
+  //                 currentTab={tab}
+  //                 hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+  //                 onChangeThreshold={(threshold, metric) => {
+  //                   setTransactionThreshold(threshold);
+  //                   setTransactionThresholdMetric(metric);
+  //                 }}
+  //                 metricsCardinality={metricsCardinality}
+  //               />
+  //               <Layout.Body>
+  //                 {defined(error) && (
+  //                   <StyledAlert type="error" showIcon>
+  //                     {error}
+  //                   </StyledAlert>
+  //                 )}
+  //                 <ChildComponent
+  //                   location={location}
+  //                   organization={organization}
+  //                   projects={projects}
+  //                   eventView={eventView}
+  //                   projectId={projectId}
+  //                   transactionName={transactionName}
+  //                   setError={setError}
+  //                   transactionThreshold={transactionThreshold}
+  //                   transactionThresholdMetric={transactionThresholdMetric}
+  //                 />
+  //               </Layout.Body>
+  //             </Layout.Page>
+  //           </Tabs>
+  //         </PageFiltersContainer>
+  //       </PerformanceEventViewProvider>
+  //     </Feature>
+  //   </SentryDocumentTitle>
+  // );
 }
 
 export function NoAccess() {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
 
-const StyledAlert = styled(Alert)`
-  grid-column: 1/3;
-  margin: 0;
-`;
+// const StyledAlert = styled(Alert)`
+//   grid-column: 1/3;
+//   margin: 0;
+// `;
 
 export function redirectToPerformanceHomepage(
   organization: Organization,
@@ -176,4 +197,4 @@ export function redirectToPerformanceHomepage(
   );
 }
 
-export default PageLayout;
+export default Page;

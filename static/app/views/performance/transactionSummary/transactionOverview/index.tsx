@@ -33,7 +33,7 @@ import {
   SpanOperationBreakdownFilter,
 } from '../filter';
 import PageLayout, {ChildProps} from '../pageLayout';
-import Tab from '../tabs';
+import Tab from '../pageLayout/tabs';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,

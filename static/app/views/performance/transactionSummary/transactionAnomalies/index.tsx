@@ -7,7 +7,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 
 import PageLayout from '../pageLayout';
-import Tab from '../tabs';
+import Tab from '../pageLayout/tabs';
 
 import AnomaliesContent from './content';
 import {generateAnomaliesEventView} from './utils';
