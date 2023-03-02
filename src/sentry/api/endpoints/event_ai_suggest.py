@@ -118,6 +118,9 @@ def describe_event_for_ai(event):
 
 @region_silo_endpoint
 class EventAiSuggestEndpoint(ProjectEndpoint):
+    # go away
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Makes AI make suggestions about an event
