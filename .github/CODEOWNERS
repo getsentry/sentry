@@ -271,6 +271,7 @@ yarn.lock                                                @getsentry/owners-js-de
 /src/sentry/api/endpoints/sentry_app/                                @getsentry/ecosystem
 
 /static/app/views/organizationIntegrations                           @getsentry/ecosystem
+/static/app/views/settings/project/projectOwnership/                 @getsentry/ecosystem
 
 /src/sentry/digests/                                                 @getsentry/ecosystem
 /src/sentry/identity/                                                @getsentry/ecosystem
