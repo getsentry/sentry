@@ -8,7 +8,6 @@ from sentry.models import (
     Environment,
     EnvironmentProject,
     NotificationSetting,
-    Organization,
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
@@ -464,7 +463,7 @@ class ProjectDeletionTest(TestCase):
         with outbox_runner():
             proj.delete()
 
-        assert not Organization.objects.filter(id=proj_id).exists()
+        assert not Project.objects.filter(id=proj_id).exists()
 
         # cascade is asynchronous, ensure there is still related search,
         assert UserOption.objects.filter(project_id=proj_id).exists()
