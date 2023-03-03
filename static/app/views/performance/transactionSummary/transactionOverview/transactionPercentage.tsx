@@ -51,7 +51,7 @@ export function TransactionPercentage({
         data-test-id="tpm-summary-value"
         isLoading={isLoading}
         error={error}
-        value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
+        value={getValueFromTotals('count()', totals, unfilteredTotals)}
       />
       <SidebarSpacer />
     </Fragment>
