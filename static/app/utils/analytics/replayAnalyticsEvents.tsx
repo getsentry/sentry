@@ -30,6 +30,7 @@ export type ReplayEventParameters = {
     seconds: number;
     user_email: string;
   };
+  'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
     play: boolean;
     user_email: string;
@@ -62,6 +63,7 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-paginated': 'Paginated Replay List',
   'replay.list-sorted': 'Sorted Replay List',
   'replay.list-time-spent': 'Time Spent Viewing Replay List',
+  'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',
