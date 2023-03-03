@@ -551,7 +551,10 @@ register("sentry-metrics.writes-limiter.limits.releasehealth.global", default=[]
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
 register("sentry-metrics.cardinality-limiter.limits.performance.per-org", default=[])
-register("sentry-metrics.cardinality-limiter.limits.releasehealth.per-org", default=[{"window_seconds": 3600, "granularity_seconds": 300, "limit": 10000}])
+register(
+    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
+    default=[{"window_seconds": 3600, "granularity_seconds": 300, "limit": 10000}],
+)
 register("sentry-metrics.cardinality-limiter.orgs-rollout-rate", default=0.0)
 register("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", default=0.0)
 
