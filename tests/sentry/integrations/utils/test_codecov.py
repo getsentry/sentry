@@ -99,6 +99,7 @@ class TestCodecovIntegration(APITestCase):
             status=200,
             json={
                 "line_coverage": expected_line_coverage,
+                "commit_file_url": expected_codecov_url,
                 "commit_sha": "0f1e2d",
             },
         )

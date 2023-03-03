@@ -362,6 +362,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 

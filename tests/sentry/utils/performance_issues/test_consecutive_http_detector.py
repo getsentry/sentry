@@ -78,7 +78,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         ]
 
     def test_does_not_detect_conseucitve_http_issue_with_low_duration(self):
-        event = self.create_issue_event(500)
+        event = self.create_issue_event(100)
         problems = self.find_problems(event)
 
         assert problems == []

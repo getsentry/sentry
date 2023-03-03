@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -48,12 +48,12 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
     : null;
 
-  function handleGoToTransaction() {
+  const handleGoToTransaction = useCallback(() => {
     trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
       organization,
       source: 'transaction_details',
     });
-  }
+  }, [organization]);
 
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
