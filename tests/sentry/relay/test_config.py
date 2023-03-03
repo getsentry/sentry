@@ -82,6 +82,15 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
 }
 
 
+def _validate_project_config(config):
+    # Relay keeps BTreeSets for these, so sort here as well:
+    config.get("transactionMetrics", {}).get("extractMetrics", []).sort()
+    for rule in config.get("metricConditionalTagging", []):
+        rule["targetMetrics"] = sorted(rule["targetMetrics"])
+
+    validate_project_config(json.dumps(config), strict=True)
+
+
 @pytest.mark.django_db
 @region_silo_test(stable=True)
 def test_get_project_config_non_visible(default_project):
@@ -103,7 +112,7 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
     cfg = get_project_config(default_project, full_config=full, project_keys=keys)
     cfg = cfg.to_dict()
 
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
 
     # Remove keys that change everytime
     cfg.pop("lastChange")
@@ -177,7 +186,7 @@ def test_project_config_uses_filter_features(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
@@ -203,7 +212,7 @@ def test_project_config_exposed_features(default_project):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     cfg_features = get_path(cfg, "config", "features")
     assert cfg_features == ["organizations:profiling"]
 
@@ -290,7 +299,7 @@ def test_project_config_with_all_biases_enabled(
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
         "rules": [],
@@ -405,7 +414,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
@@ -430,7 +439,7 @@ def test_project_config_with_organizations_metrics_extraction(
             cfg = get_project_config(default_project, full_config=True)
 
         cfg = cfg.to_dict()
-        validate_project_config(json.dumps(cfg["config"]), strict=True)
+        _validate_project_config(cfg["config"])
         session_metrics = get_path(cfg, "config", "sessionMetrics")
         if has_metrics_extraction:
             assert session_metrics == {
@@ -478,7 +487,7 @@ def test_project_config_satisfaction_thresholds(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
@@ -488,7 +497,7 @@ def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
     cfg = cfg.to_dict()
-    validate_project_config(json.dumps(cfg["config"]), strict=True)
+    _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["spanAttributes"])
 
 
@@ -514,7 +523,7 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
     with feature, options:
         config = get_project_config(default_project)
         config = config.to_dict()["config"]
-        validate_project_config(json.dumps(config), strict=True)
+        _validate_project_config(config)
         if killswitch or not feature_flag:
             assert "transactionMetrics" not in config
         else:
@@ -533,7 +542,7 @@ def test_accept_transaction_names(default_project):
     with feature:
         config = get_project_config(default_project).to_dict()["config"]
 
-        # validate_project_config(json.dumps(config), strict=True)
+        # _validate_project_config(config)
         transaction_metrics_config = config["transactionMetrics"]
 
         assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"

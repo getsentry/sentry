@@ -35,7 +35,7 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
 
 class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
 
-    date_format = "%Y-%m-%dT%H:%M:%SZ"
+    datetime_format = "%Y-%m-%dT%H:%M:%SZ"
 
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
@@ -71,11 +71,11 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                     "id": bias_data["id"] + idx,
                     "timeRange": {
                         "start": datetime.utcfromtimestamp(boosted_release.timestamp).strftime(
-                            self.date_format
+                            self.datetime_format
                         ),
                         "end": datetime.utcfromtimestamp(
                             boosted_release.timestamp + boosted_release.platform.time_to_adoption
-                        ).strftime(self.date_format),
+                        ).strftime(self.datetime_format),
                     },
                     "decayingFn": {
                         "type": "linear",

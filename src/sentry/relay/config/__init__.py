@@ -596,9 +596,6 @@ def get_transaction_metrics_settings(
     except Exception:
         capture_exception()
 
-    # Sort extractMetrics to be consistent with Relay serialization:
-    metrics.sort()
-
     return {
         "version": TRANSACTION_METRICS_EXTRACTION_VERSION,
         "extractMetrics": metrics,
