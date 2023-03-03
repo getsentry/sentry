@@ -53,7 +53,7 @@ class TestCreatorInternal(TestCreatorBase):
         assert (
             audit_log_event.render(log) == "created a token for internal integration internal_app"
         )
-        assert log.organization == self.org
+        assert log.organization_id == self.org.id
         assert log.target_object == api_token.id
 
         record.assert_called_with(

@@ -585,7 +585,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        (first_log, second_log) = AuditLogEntry.objects.filter(organization_id=self.organization_id)
+        (first_log, second_log) = AuditLogEntry.objects.filter(organization_id=self.organization.id)
         log_str_1 = first_log.data["trustedRelays"]
         log_str_2 = second_log.data["trustedRelays"]
 
