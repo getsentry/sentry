@@ -53,7 +53,7 @@ class GroupEventToolbar extends Component<Props> {
 
     const {group, organization, location, project, hasReplay} = this.props;
     const groupId = group.id;
-    const isReplayEnabled = organization.features.includes('session-replay-ui');
+    const isReplayEnabled = organization.features.includes('session-replay');
 
     const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
 
