@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from dataclasses import dataclass
@@ -7,6 +10,7 @@ from typing import Optional
 
 from django.utils import timezone
 
+from sentry.models import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import (
     InterfaceWithLifecycle,
@@ -37,7 +41,7 @@ class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
     customer_id: Unset[str] = UnsetVal
 
     @classmethod
-    def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
+    def from_instance(cls, inst: Organization) -> "RpcOrganizationMappingUpdate":
         return cls(**cls.params_from_instance(inst), organization_id=inst.id)
 
 
@@ -101,5 +105,3 @@ organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
-
-from sentry.models import Organization

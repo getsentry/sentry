@@ -1,4 +1,4 @@
-import {forwardRef as reactForwardRef, useMemo} from 'react';
+import {forwardRef as reactForwardRef, memo, useMemo} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -13,6 +13,17 @@ import {FormSize} from 'sentry/utils/theme';
  * Menu item priority. Determines the text and background color.
  */
 type Priority = 'primary' | 'danger' | 'default';
+
+/**
+ * Leading/trailing items to be rendered alongside the main text label.
+ */
+type EdgeItems =
+  | React.ReactNode
+  | ((state: {
+      disabled: boolean;
+      isFocused: boolean;
+      isSelected: boolean;
+    }) => React.ReactNode);
 
 export type MenuListItemProps = {
   /**
@@ -33,7 +44,7 @@ export type MenuListItemProps = {
   /*
    * Items to be added to the left of the label
    */
-  leadingItems?: React.ReactNode;
+  leadingItems?: EdgeItems;
   /*
    * Whether leading items should be centered with respect to the entire
    * height of the item. If false (default), they will be centered with
@@ -61,7 +72,7 @@ export type MenuListItemProps = {
   /*
    * Items to be added to the right of the label.
    */
-  trailingItems?: React.ReactNode;
+  trailingItems?: EdgeItems;
   /*
    * Whether trailing items should be centered wrt/ the entire height of the
    * item. If false (default), they will be centered wrt/ the first line of
@@ -75,6 +86,7 @@ interface OtherProps {
   detailsProps?: object;
   innerWrapProps?: object;
   isFocused?: boolean;
+  isSelected?: boolean;
   labelProps?: object;
   showDivider?: boolean;
 }
@@ -96,6 +108,7 @@ function BaseMenuListItem({
   trailingItems = false,
   trailingItemsSpanFullHeight = false,
   isFocused = false,
+  isSelected = false,
   innerWrapProps = {},
   labelProps = {},
   detailsProps = {},
@@ -135,7 +148,9 @@ function BaseMenuListItem({
               spanFullHeight={leadingItemsSpanFullHeight}
               size={size}
             >
-              {leadingItems}
+              {typeof leadingItems === 'function'
+                ? leadingItems({disabled, isFocused, isSelected})
+                : leadingItems}
             </LeadingItems>
           )}
           <ContentWrap isFocused={isFocused} showDivider={showDivider} size={size}>
@@ -164,7 +179,9 @@ function BaseMenuListItem({
                 disabled={disabled}
                 spanFullHeight={trailingItemsSpanFullHeight}
               >
-                {trailingItems}
+                {typeof trailingItems === 'function'
+                  ? trailingItems({disabled, isFocused, isSelected})
+                  : trailingItems}
               </TrailingItems>
             )}
           </ContentWrap>
@@ -174,8 +191,10 @@ function BaseMenuListItem({
   );
 }
 
-const MenuListItem = reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>(
-  (props, ref) => <BaseMenuListItem {...props} forwardRef={ref} />
+const MenuListItem = memo(
+  reactForwardRef<HTMLLIElement, MenuListItemProps & OtherProps>((props, ref) => (
+    <BaseMenuListItem {...props} forwardRef={ref} />
+  ))
 );
 
 export default MenuListItem;
