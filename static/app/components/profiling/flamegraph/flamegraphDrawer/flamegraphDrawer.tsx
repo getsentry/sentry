@@ -19,6 +19,7 @@ import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
@@ -41,6 +42,7 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
   const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
+  const profileTransaction = useProfileTransaction();
 
   const [tab, setTab] = useLocalStorageState<'bottom up' | 'top down'>(
     'profiling-drawer-view',
@@ -200,8 +202,8 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
           <ExportProfileButton
             variant="xs"
             eventId={params.eventId}
-            orgId={orgSlug}
             projectId={params.projectId}
+            orgId={orgSlug}
             disabled={params.eventId === undefined || params.projectId === undefined}
           />
         </ProfilingDetailsListItem>
@@ -247,7 +249,13 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         canvasPoolManager={props.canvasPoolManager}
       />
 
-      <ProfileDetails profileGroup={props.profileGroup} />
+      <ProfileDetails
+        transaction={
+          profileTransaction.type === 'resolved' ? profileTransaction.data : null
+        }
+        projectId={params.projectId}
+        profileGroup={props.profileGroup}
+      />
 
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (

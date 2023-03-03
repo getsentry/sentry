@@ -17,7 +17,7 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {MonitorBadge} from './monitorBadge';
+import {MonitorBadge} from './components/monitorBadge';
 import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
 
 interface MonitorRowProps {

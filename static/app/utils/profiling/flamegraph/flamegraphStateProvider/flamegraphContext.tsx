@@ -26,7 +26,6 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     },
     colorCoding: 'by symbol name',
     sorting: 'call order',
-    type: 'flamechart',
     view: 'top down',
     layout: 'table bottom',
   },

@@ -173,7 +173,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {colorCoding, sorting, view, type} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -679,8 +679,18 @@ function Flamegraph(): ReactElement {
     [flamegraphRenderer]
   );
 
+  const physicalToConfig =
+    flamegraphView && flamegraphCanvas
+      ? mat3.invert(
+          mat3.create(),
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        )
+      : mat3.create();
+
+  const configSpacePixel = new Rect(0, 0, 1, 1).transformRect(physicalToConfig);
+
   // Register keyboard navigation
-  useViewKeyboardNavigation(flamegraphView, canvasPoolManager);
+  useViewKeyboardNavigation(flamegraphView, canvasPoolManager, configSpacePixel.width);
 
   // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
@@ -715,13 +725,6 @@ function Flamegraph(): ReactElement {
   const onThreadIdChange: FlamegraphThreadSelectorProps['onThreadIdChange'] = useCallback(
     newThreadId => {
       dispatch({type: 'set thread id', payload: newThreadId});
-    },
-    [dispatch]
-  );
-
-  const onTypeChange: FlamegraphViewSelectMenuProps['onTypeChange'] = useCallback(
-    newView => {
-      dispatch({type: 'set type', payload: newView});
     },
     [dispatch]
   );
@@ -821,12 +824,10 @@ function Flamegraph(): ReactElement {
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
-          type={type}
           view={view}
           sorting={sorting}
           onSortingChange={onSortingChange}
           onViewChange={onViewChange}
-          onTypeChange={onTypeChange}
         />
         <FlamegraphSearch
           spans={spans}
@@ -838,7 +839,7 @@ function Flamegraph(): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames && type === 'flamechart' ? (
+          hasUIFrames ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -852,7 +853,7 @@ function Flamegraph(): ReactElement {
         }
         spansTreeDepth={spanChart?.depth}
         spans={
-          spanChart && type === 'flamechart' ? (
+          spanChart ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}

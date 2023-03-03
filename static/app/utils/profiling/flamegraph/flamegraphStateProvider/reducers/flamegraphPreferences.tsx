@@ -21,7 +21,6 @@ export interface FlamegraphPreferences {
     transaction_spans: boolean;
     ui_frames: boolean;
   };
-  type: 'flamegraph' | 'flamechart';
   view: FlamegraphViewOptions[number];
 }
 
@@ -33,7 +32,6 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['colorCoding']; type: 'set color coding'}
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
-  | {payload: FlamegraphPreferences['type']; type: 'set type'}
   | {payload: FlamegraphPreferences['layout']; type: 'set layout'};
 
 export function flamegraphPreferencesReducer(
@@ -41,19 +39,6 @@ export function flamegraphPreferencesReducer(
   action: FlamegraphPreferencesAction
 ): FlamegraphPreferences {
   switch (action.type) {
-    case 'set type': {
-      return {
-        ...state,
-        sorting:
-          action.payload === 'flamegraph' && state.sorting === 'call order'
-            ? 'alphabetical'
-            : action.payload === 'flamechart' && state.sorting === 'alphabetical'
-            ? 'call order'
-            : state.sorting,
-
-        type: action.payload,
-      };
-    }
     case 'set layout': {
       return {
         ...state,

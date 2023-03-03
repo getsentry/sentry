@@ -19,7 +19,10 @@ class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
             raise ResourceDoesNotExist
 
         data = tsdb.get_range(
-            model=tsdb.models.group, keys=[group.id], **self._parse_args(request, environment_id)
+            model=tsdb.models.group,
+            keys=[group.id],
+            **self._parse_args(request, environment_id),
+            tenant_ids={"organization_id": group.project.organization_id},
         )[group.id]
 
         return Response(data)
