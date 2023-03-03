@@ -28,6 +28,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
         if self._overlaps_last_span(span):
             self._validate_and_store_performance_problem(span)
+            self._reset_variables()
 
         self._add_problem_span(span)
 
