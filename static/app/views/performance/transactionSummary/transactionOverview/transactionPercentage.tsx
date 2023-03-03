@@ -31,8 +31,15 @@ export function TransactionPercentage({
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
       if (unfilteredTotalValues) {
+        // Need to handle 0 case to avoid diving by 0
+        const volumeRatio =
+          unfilteredTotalValues[field] > 0
+            ? totalValues[field] / unfilteredTotalValues[field]
+            : 0;
+        const formattedPercentage =
+          volumeRatio < 0.0001 ? '<0.01%' : formatPercentage(volumeRatio);
         return tct('[tpm]', {
-          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
+          tpm: formattedPercentage,
         });
       }
       return tct('[tpm] tpm', {
