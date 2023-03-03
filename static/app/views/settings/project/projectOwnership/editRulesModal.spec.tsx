@@ -1,6 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
+import {IssueOwnership} from 'sentry/types';
 
 import {EditOwnershipRules} from './editRulesModal';
 
@@ -17,6 +18,15 @@ describe('Project Ownership Input', () => {
       body: TestStubs.Members(),
     });
   });
+  const ownership: IssueOwnership = {
+    fallthrough: false,
+    autoAssignment: 'Auto Assign to Suspect Commits',
+    codeownersAutoSync: false,
+    raw: 'url:src',
+    isActive: true,
+    dateCreated: '',
+    lastUpdated: '',
+  };
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -26,7 +36,7 @@ describe('Project Ownership Input', () => {
     render(
       <EditOwnershipRules
         organization={org}
-        ownership={TestStubs.CodeOwner({raw: 'url:src'})}
+        ownership={ownership}
         project={project}
         onCancel={() => {}}
         onSave={() => {}}
@@ -40,12 +50,7 @@ describe('Project Ownership Input', () => {
     render(
       <EditOwnershipRules
         organization={{...org, features: ['streamline-targeting-context']}}
-        ownership={{
-          fallthrough: false,
-          autoAssignment: 'Auto Assign to Suspect Commits',
-          codeownersAutoSync: false,
-          raw: 'url:src',
-        }}
+        ownership={ownership}
         project={project}
         onCancel={() => {}}
         onSave={() => {}}
