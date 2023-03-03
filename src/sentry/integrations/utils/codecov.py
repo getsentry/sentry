@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Literal, Optional, Sequence, Tuple
 
 import requests
+from rest_framework import status
 from sentry_sdk import configure_scope
 
 from sentry import features, options
@@ -28,6 +29,14 @@ class CodecovIntegrationError(Enum):
     MISSING_CODECOV = (
         "Codecov access can only be enabled if the organization has a Codecov integration."
     )
+
+
+def codecov_enabled(organization: Organization, user: Any) -> bool:
+    flag_enabled = features.has(
+        "organizations:codecov-stacktrace-integration", organization, actor=user
+    )
+    setting_enabled = organization.flags.codecov_access
+    return bool(flag_enabled and setting_enabled)
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
@@ -76,61 +85,107 @@ def get_codecov_data(
     ref_type: REF_TYPE,
     path: str,
     organization: Organization,
-) -> Tuple[Optional[LineCoverage], Optional[str]]:
+) -> Tuple[LineCoverage | None, str | None]:
     codecov_token = options.get("codecov.client-secret")
-    line_coverage = None
-    codecov_url = None
+    if not codecov_token:
+        return None, None
+
+    owner_username, repo_name = repo.split("/")
+    service = "gh" if service == "github" else service
+
+    path = path.lstrip("/")
+    url = CODECOV_REPORT_URL.format(
+        service=service, owner_username=owner_username, repo_name=repo_name
+    )
+    params = {ref_type: ref, "path": path}
+
     use_new_api = features.has("organizations:codecov-stacktrace-integration-v2", organization)
-    if codecov_token:
-        owner_username, repo_name = repo.split("/")
-        if service == "github":
-            service = "gh"
-
-        path = path.lstrip("/")
-        url = CODECOV_REPORT_URL.format(
-            service=service, owner_username=owner_username, repo_name=repo_name
+    if use_new_api:
+        url = NEW_CODECOV_REPORT_URL.format(
+            service=service, owner_username=owner_username, repo_name=repo_name, path=path
         )
-        params = {ref_type: ref, "path": path}
+        params = {}
+
+    line_coverage, codecov_url = None, None
+    with configure_scope() as scope:
+        timeout = CODECOV_TIMEOUT if use_new_api else None
+
+        response = requests.get(
+            url,
+            params=params,
+            headers={"Authorization": f"Bearer {codecov_token}"},
+            timeout=timeout,
+        )
+        tags = {
+            "codecov.request_url": url,
+            "codecov.request_params": params,
+            "codecov.request_path": path,
+            "codecov.request_ref": ref,
+            "codecov.http_code": response.status_code,
+        }
+
+        response_json = response.json()
         if use_new_api:
-            url = NEW_CODECOV_REPORT_URL.format(
-                service=service, owner_username=owner_username, repo_name=repo_name, path=path
-            )
-            params = {}
+            tags["codecov.new_endpoint"] = True
+            line_coverage = response_json.get("line_coverage")
+        else:
+            files = response_json.get("files")
+            line_coverage = files[0].get("line_coverage") if files else None
 
-        with configure_scope() as scope:
-            timeout = CODECOV_TIMEOUT if use_new_api else None
+        coverage_found = line_coverage not in [None, [], [[]]]
+        codecov_url = response_json.get("commit_file_url", "")
+        tags.update({"codecov.coverage_found": coverage_found, "codecov.coverage_url": codecov_url})
 
-            response = requests.get(
-                url,
-                params=params,
-                headers={"Authorization": f"Bearer {codecov_token}"},
-                timeout=timeout,
-            )
-            tags = {
-                "codecov.request_url": url,
-                "codecov.request_params": params,
-                "codecov.request_path": path,
-                "codecov.request_ref": ref,
-                "codecov.http_code": response.status_code,
-            }
-            response_json = response.json()
-            line_coverage, codecov_url = None, None
-            if use_new_api:
-                tags["codecov.new_endpoint"] = True
-                line_coverage = response_json.get("line_coverage")
-            else:
-                files = response_json.get("files")
-                line_coverage = files[0].get("line_coverage") if files else None
+        for key, value in tags.items():
+            scope.set_tag(key, value)
 
-            coverage_found = line_coverage not in [None, [], [[]]]
-            tags["codecov.coverage_found"] = coverage_found
-
-            codecov_url = response_json.get("commit_file_url", "")
-            tags["codecov.coverage_url"] = codecov_url
-
-            for key, value in tags.items():
-                scope.set_tag(key, value)
-
-            response.raise_for_status()
+        response.raise_for_status()
 
     return line_coverage, codecov_url
+
+
+def fetch_codecov_data(
+    organization: Organization,
+    sha: str | None,
+    config: Any,
+) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+    try:
+        repo = config["repository"].name
+        service = config["config"]["provider"]["key"]
+        path = config["outcome"]["sourcePath"]
+
+        ref = sha if sha else config["config"]["defaultBranch"]
+        ref_type: REF_TYPE = "sha" if sha else "branch"
+
+        lineCoverage, codecovUrl = get_codecov_data(
+            repo, service, ref, ref_type, path, organization
+        )
+        if lineCoverage and codecovUrl:
+            return {
+                "lineCoverage": lineCoverage,
+                "coverageUrl": codecovUrl,
+                "status": status.HTTP_200_OK,
+            }, None
+    except requests.exceptions.HTTPError as error:
+        data = {
+            "attemptedUrl": error.response.url,
+            "status": error.response.status_code,
+        }
+
+        message = None
+        if error.response.status_code == status.HTTP_404_NOT_FOUND:
+            message = "Failed to get expected data from Codecov. Continuing execution."
+
+        return data, message
+    except requests.Timeout:
+        with configure_scope() as scope:
+            scope.set_tag("codecov.timeout", True)
+        return {
+            "status": status.HTTP_408_REQUEST_TIMEOUT,
+        }, "Codecov request timed out. Continuing execution."
+    except Exception:
+        return {
+            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
+        }, "Something unexpected happened. Continuing execution."
+
+    return None, None
