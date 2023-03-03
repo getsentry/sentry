@@ -53,6 +53,7 @@ GroupSearchStrategy = Callable[
         Optional[Sequence[int]],
         Mapping[str, Sequence[int]],
         Sequence[Any],
+        Optional[Any],
     ],
     Optional[SnubaQueryParams],
 ]
@@ -104,6 +105,7 @@ def _query_params_for_error(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     if group_ids:
         filters = {"group_id": sorted(group_ids), **filters}
@@ -139,6 +141,7 @@ def _query_params_for_perf(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization:
@@ -202,9 +205,12 @@ def _query_params_for_generic(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has("organizations:issue-platform", organization=organization):
+    if organization and features.has(
+        "organizations:issue-platform", organization=organization, actor=actor
+    ):
         if group_ids:
             filters = {"group_id": sorted(group_ids), **filters}
 

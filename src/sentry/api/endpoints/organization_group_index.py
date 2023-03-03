@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -58,6 +58,7 @@ def inbox_search(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     max_hits: Optional[int] = None,
+    actor: Optional[Any] = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
     end: Optional[datetime] = None
@@ -171,6 +172,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.update(extra_query_kwargs)
 
             query_kwargs["environments"] = environments if environments else None
+
+            query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
