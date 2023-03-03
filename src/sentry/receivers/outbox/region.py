@@ -46,6 +46,9 @@ def process_user_ip_event(payload: Any, **kwds: Any):
 def process_organization_member_updates(object_identifier: int, **kwds: Any):
     if (org_member := maybe_process_tombstone(OrganizationMember, object_identifier)) is None:
         return
+    # TODO: alberto to implement
+    # update = RpcOrganizationMemberMappingUpdate.from_instance(org_member)
+    # organizationmember_mapping_service.update(update)
     org_member  # TODO: When we get the org member mapping table in place, here is where we'll sync it.
 
 
