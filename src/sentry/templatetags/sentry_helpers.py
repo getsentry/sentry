@@ -115,7 +115,7 @@ def loading_message():
     options = [
         "Please wait while we load an obnoxious amount of JavaScript.",
         "Downloading a dizzying amount of JavaScript.",
-        "Aquiring more vespene gas.",
+        "Acquiring more vespene gas.",
         "Escaping node_modules gravity well.",
         "Parallelizing webpack builders.",
     ]
