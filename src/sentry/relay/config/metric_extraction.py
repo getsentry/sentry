@@ -26,7 +26,7 @@ class RuleCondition(TypedDict):
 
 class MetricConditionalTaggingRule(TypedDict):
     condition: RuleCondition
-    targetMetrics: List[str]
+    targetMetrics: Sequence[str]
     targetTag: str
     tagValue: str
 
