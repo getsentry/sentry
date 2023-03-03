@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:29.982261Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -14,7 +12,7 @@ app:
               "[native code]"
             function*
               "promiseReactionJob"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -23,7 +21,7 @@ app:
               "_next"
             context-line*
               "asyncGeneratorStep(gen, resolve, reject, _next, _throw, \"next\", value);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/@babel/runtime/helpers/asyncToGenerator"
             filename (module takes precedence)
@@ -32,7 +30,7 @@ app:
               "asyncGeneratorStep"
             context-line*
               "var info = gen[key](arg);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -41,7 +39,7 @@ app:
               "key"
             context-line*
               "var record = tryCatch(innerFn, self, context);"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/regenerator-runtime/runtime"
             filename (module takes precedence)
@@ -59,7 +57,7 @@ app:
               "call"
             context-line*
               "this.setState({"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react/cjs/react.production"
             filename (module takes precedence)
@@ -68,7 +66,7 @@ app:
               "setState"
             context-line (discarded because line too long)
               "{snip} ructor=G;m(H,E.prototype);H.isPureReactComponent=!0;var I={current:null,currentDispatcher:null},J=Object.prototype.hasOwnProperty,K={key:!0, {snip}"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -77,7 +75,7 @@ app:
               "enqueueSetState"
             context-line (discarded because line too long)
               "{snip} &(e.callback=c);ff(a,e);If(a,d)},enqueueForceUpdate:function(a,b){a=a._reactInternalFiber;var c=Gf();c=Hf(c,a);var d=df(c);d.tag=2;void 0!=="
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -86,7 +84,7 @@ app:
               "tag"
             context-line (discarded because line too long)
               "var U=null,T=null,ch=0,dh=void 0,V=!1,Y=null,Z=0,Vg=0,eh=!1,fh=!1,gh=null,hh=null,W=!1,Wg=!1,Ug=!1,ih=null,jh=ba.unstable_now(),kh=(jh/10|0) {snip}"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -95,7 +93,7 @@ app:
               "Yg"
             context-line (discarded because line too long)
               "function Xg(a,b,c){V?t(\"245\"):void 0;V=!0;if(null===hh||c){var d=a.finishedWork;null!==d?rh(a,d,b):(a.finishedWork=null,Sg(a,!1,c),d=a.finis {snip}"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)
@@ -104,7 +102,7 @@ app:
               "Xg"
             context-line (discarded because line too long)
               "function rh(a,b,c){var d=a.firstBatch;if(null!==d&&d._expirationTime<=c&&(null===ih?ih=[d]:ih.push(d),d._defer)){a.finishedWork=b;a.expirati {snip}"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (path:**/node_modules/** -app))
             module*
               "usr/src/getsentry/src/sentry/node_modules/react-dom/cjs/react-dom.production"
             filename (module takes precedence)

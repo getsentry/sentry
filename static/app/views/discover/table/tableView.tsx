@@ -43,6 +43,7 @@ import {
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
+import {getShortEventId} from 'sentry/utils/events';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -341,6 +342,10 @@ function TableView(props: TableViewProps) {
       }
     } else if (columnKey === 'replayId') {
       if (dataRow.replayId) {
+        if (!dataRow['project.name']) {
+          return getShortEventId(String(dataRow.replayId));
+        }
+
         const target = replayLinkGenerator(organization, dataRow, undefined);
         cell = (
           <ViewReplayLink replayId={dataRow.replayId} to={target}>

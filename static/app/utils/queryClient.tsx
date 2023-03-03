@@ -35,9 +35,15 @@ interface UseQueryOptions<TQueryFnData, TError = RequestError, TData = TQueryFnD
   staleTime: number;
 }
 
-// We are not overriding any defaults options for stale time, retries, etc.
+// Overrides to the default react-query options.
 // See https://tanstack.com/query/v4/docs/guides/important-defaults
-const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {};
+const DEFAULT_QUERY_CLIENT_CONFIG: QueryClientConfig = {
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+    },
+  },
+};
 
 function isQueryFn<TQueryFnData, TError, TData>(
   queryFnOrQueryOptions?:

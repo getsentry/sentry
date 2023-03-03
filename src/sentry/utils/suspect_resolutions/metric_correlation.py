@@ -44,6 +44,7 @@ def is_issue_error_rate_correlated(
         rollup=600,
         start=start_time,
         end=end_time,
+        tenant_ids={"organization_id": resolved_issue.project.organization_id},
     )
 
     x = [events for _, events in data[resolved_issue.id]]

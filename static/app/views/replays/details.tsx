@@ -46,7 +46,7 @@ function ReplayDetails({
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
-  if (!fetching && !replay && fetchError) {
+  if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
         <Page orgSlug={orgSlug} replayRecord={replayRecord}>

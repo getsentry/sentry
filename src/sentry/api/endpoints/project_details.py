@@ -695,6 +695,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:reprocessing_active",
                     bool(options["sentry:reprocessing_active"]),
                 )
+            if "filters:react-hydration-errors" in options:
+                project.update_option(
+                    "filters:react-hydration-errors",
+                    bool(options["filters:react-hydration-errors"]),
+                )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
                     "sentry:blacklisted_ips",
