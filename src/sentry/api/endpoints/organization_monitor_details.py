@@ -91,6 +91,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         params = {}
         if "name" in result:
             params["name"] = result["name"]
+        if "slug" in result:
+            params["slug"] = result["slug"]
         if "status" in result:
             if result["status"] == MonitorStatus.ACTIVE:
                 if monitor.status not in (MonitorStatus.OK, MonitorStatus.ERROR):

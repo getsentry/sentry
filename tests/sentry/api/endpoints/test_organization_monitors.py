@@ -105,3 +105,16 @@ class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
             organization_id=self.organization.id,
             project_id=self.project.id,
         )
+
+    def test_slug(self):
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "my-monitor",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+        }
+        response = self.get_success_response(self.organization.slug, **data)
+
+        assert response.data["id"]
+        assert response.data["slug"] == "my-monitor"

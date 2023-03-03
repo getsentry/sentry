@@ -34,6 +34,7 @@ class MonitorSerializer(Serializer):
             "status": obj.get_status_display(),
             "type": obj.get_type_display(),
             "name": obj.name,
+            "slug": obj.slug,
             "config": config,
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
@@ -45,6 +46,7 @@ class MonitorSerializer(Serializer):
 class MonitorSerializerResponse(TypedDict):
     id: str
     name: str
+    slug: str
     status: str
     type: str
     config: Any
