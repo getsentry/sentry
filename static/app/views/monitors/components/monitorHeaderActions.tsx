@@ -9,8 +9,9 @@ import {t} from 'sentry/locale';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
+import {Monitor, MonitorStatus} from '../types';
+
 import CronsFeedbackButton from './cronsFeedbackButton';
-import {Monitor, MonitorStatus} from './types';
 
 type Props = {
   monitor: Monitor;

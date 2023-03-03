@@ -8,7 +8,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import MonitorForm from './monitorForm';
+import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &

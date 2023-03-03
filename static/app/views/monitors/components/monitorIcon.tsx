@@ -1,14 +1,8 @@
 import styled from '@emotion/styled';
 
-import {CheckInStatus} from './types';
+import {MonitorStatus} from '../types';
 
-type Props = {
-  size: number | string;
-  status: CheckInStatus;
-  color?: string;
-};
-
-export default styled('div')<Props>`
+export default styled('div')<{size: number; status: MonitorStatus}>`
   display: inline-block;
   position: relative;
   border-radius: 50%;
@@ -19,11 +13,11 @@ export default styled('div')<Props>`
     p.color
       ? `background: ${p.color};`
       : `background: ${
-          p.status === CheckInStatus.ERROR
+          p.status === 'error'
             ? p.theme.error
-            : p.status === CheckInStatus.OK
+            : p.status === 'ok'
             ? p.theme.success
-            : p.status === CheckInStatus.MISSED
+            : p.status === 'missed_checkin'
             ? p.theme.warning
             : p.theme.disabled
         };`};

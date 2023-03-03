@@ -10,8 +10,8 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import CronsFeedbackButton from './cronsFeedbackButton';
-import MonitorForm from './monitorForm';
+import CronsFeedbackButton from './components/cronsFeedbackButton';
+import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] & {

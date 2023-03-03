@@ -13,7 +13,7 @@ import theme from 'sentry/utils/theme';
 import useApiRequests from 'sentry/utils/useApiRequests';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
-import {Monitor, MonitorStat} from './types';
+import {Monitor, MonitorStat} from '../types';
 
 type Props = {
   monitor: Monitor;
