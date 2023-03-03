@@ -195,9 +195,9 @@ and run `sentry devservices up kafka zookeeper`.
 
     # Configure URL prefixes for customer-domains.
     os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
-    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = "{{slug}}.localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
     os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
-    os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = "http://{{region}}.localhost:{port}"
+    os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{port}"
 
     from django.conf import settings
 
