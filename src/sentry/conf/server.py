@@ -1022,6 +1022,10 @@ SENTRY_FEATURES = {
     "organizations:auto-enable-codecov": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
+    # Enables automatically deriving of code mappings
+    "organizations:derive-code-mappings": False,
+    # Enables automatically deriving of code mappings as a dry run for early adopters
+    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1062,14 +1066,10 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable performance spans in flamecharts
-    "organizations:profiling-flamechart-spans": False,
     # Enable flamegraph view for profiling
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling dashboard redesign
-    "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling aggregate flamegraph
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews

@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -35,6 +36,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string stacktraceFilename:
         :auth: required
         """
+        if not features.has("organizations:derive-code-mappings", organization):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         stacktrace_filename = request.GET.get("stacktraceFilename")
         installation, _ = get_installation(organization)
         if not installation:
@@ -65,6 +69,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
         :param string sourceRoot:
         :auth: required
         """
+        if not features.has("organizations:derive-code-mappings", organization):
+            return Response(status=status.HTTP_403_FORBIDDEN)
+
         installation, organization_integration = get_installation(organization)
         if not installation:
             return self.respond(

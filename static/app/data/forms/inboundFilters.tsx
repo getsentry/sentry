@@ -12,7 +12,7 @@ const globHelpText = tct('Allows [link:glob pattern matching].', {
   link: <ExternalLink href="https://en.wikipedia.org/wiki/Glob_(programming)" />,
 });
 
-const getOptionsData = (data: object) => ({options: data});
+export const getOptionsData = (data: object) => ({options: data});
 
 const formGroups: JsonFormObject[] = [
   {

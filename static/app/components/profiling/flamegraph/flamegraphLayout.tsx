@@ -2,6 +2,7 @@ import {cloneElement, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
@@ -12,7 +13,7 @@ import {
   UseResizableDrawerOptions,
 } from 'sentry/utils/useResizableDrawer';
 
-import {CollapsibleTimeline} from './collapsibleTimeline';
+import {CollapsibleTimeline, CollapsibleTimelineLabel} from './collapsibleTimeline';
 
 // 664px is approximately the width where we start to scroll inside
 // 30px is the min height to where the drawer can still be resized
@@ -133,7 +134,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     <FlamegraphLayoutContainer>
       <FlamegraphGrid layout={layout}>
         <MinimapContainer
-          height={
+          containerHeight={
             timelines.minimap
               ? flamegraphTheme.SIZES.MINIMAP_HEIGHT
               : TIMELINE_LABEL_HEIGHT
@@ -150,7 +151,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         </MinimapContainer>
         {props.uiFrames ? (
           <UIFramesContainer
-            height={
+            containerHeight={
               timelines.ui_frames
                 ? flamegraphTheme.SIZES.UI_FRAMES_HEIGHT
                 : TIMELINE_LABEL_HEIGHT
@@ -168,7 +169,7 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
         ) : null}
         {props.spans ? (
           <SpansContainer
-            height={
+            containerHeight={
               // If we have a span depth
               timelines.transaction_spans
                 ? props.spansTreeDepth
@@ -187,7 +188,10 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
             </CollapsibleTimeline>
           </SpansContainer>
         ) : null}
-        <ZoomViewContainer>{props.flamegraph}</ZoomViewContainer>
+        <ZoomViewContainer>
+          <ProfileLabel>{t('Profile')}</ProfileLabel>
+          {props.flamegraph}
+        </ZoomViewContainer>
         <FlamegraphDrawerContainer ref={flamegraphDrawerRef} layout={layout}>
           {cloneElement(props.flamegraphDrawer, {
             onResize: onMouseDown,
@@ -198,6 +202,22 @@ export function FlamegraphLayout(props: FlamegraphLayoutProps) {
     </FlamegraphLayoutContainer>
   );
 }
+
+const ProfileLabel = styled(CollapsibleTimelineLabel)`
+  position: absolute;
+  top: 0;
+  left: 0;
+  background: linear-gradient(
+    90deg,
+    ${p => p.theme.backgroundSecondary} 0%,
+    ${p => p.theme.backgroundSecondary} 80%,
+    transparent 100%
+  );
+  padding-right: ${space(2)};
+  z-index: 1;
+  /* Visually align with the grid */
+  transform: translateY(1px);
+`;
 
 const FlamegraphLayoutContainer = styled('div')`
   display: flex;
@@ -251,10 +271,10 @@ const FlamegraphGrid = styled('div')<{
 `;
 
 const MinimapContainer = styled('div')<{
-  height: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
+  containerHeight: FlamegraphTheme['SIZES']['MINIMAP_HEIGHT'];
 }>`
   position: relative;
-  height: ${p => p.height}px;
+  height: ${p => p.containerHeight}px;
   grid-area: minimap;
   display: flex;
   flex-direction: column;
@@ -269,18 +289,18 @@ const ZoomViewContainer = styled('div')`
 `;
 
 const SpansContainer = styled('div')<{
-  height: FlamegraphTheme['SIZES']['MAX_SPANS_HEIGHT'];
+  containerHeight: FlamegraphTheme['SIZES']['MAX_SPANS_HEIGHT'];
 }>`
   position: relative;
-  height: ${p => p.height}px;
+  height: ${p => p.containerHeight}px;
   grid-area: spans;
 `;
 
 const UIFramesContainer = styled('div')<{
-  height: FlamegraphTheme['SIZES']['UI_FRAMES_HEIGHT'];
+  containerHeight: FlamegraphTheme['SIZES']['UI_FRAMES_HEIGHT'];
 }>`
   position: relative;
-  height: ${p => p.height}px;
+  height: ${p => p.containerHeight}px;
   grid-area: ui-frames;
 `;
 
