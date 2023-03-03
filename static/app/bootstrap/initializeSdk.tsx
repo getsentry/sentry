@@ -5,13 +5,6 @@ import * as Sentry from '@sentry/react';
 import {Integrations} from '@sentry/tracing';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
-import {BrowserProfilingIntegration} from '@sentry/profiling-browser/dist/index.js';
-import {addExtensionMethods} from '@sentry/profiling-browser/dist/hubextensions';
-
-// @ts-ignore
-window.__DEBUG_BUILD__ = true;
-addExtensionMethods();
-
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {addExtraMeasurements, LongTaskObserver} from 'sentry/utils/performanceForSentry';
@@ -55,10 +48,11 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
         : {}),
       _experiments: {
         enableInteractions: true,
+        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
       ...partialTracingOptions,
     }),
-    new BrowserProfilingIntegration(),
+    new Sentry.BrowserProfilingIntegration(),
   ];
 
   return integrations;
@@ -81,10 +75,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
      */
-    dsn:
-      'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302' ||
-      SPA_DSN ||
-      sentryConfig?.dsn,
+    dsn: SPA_DSN || sentryConfig?.dsn,
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
      * variable for release string, useful if frontend is deployed separately
@@ -94,9 +85,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
-    // @ts-ignore dont care
     profilesSampleRate: 1,
-    profilesSamplingInterval: 1,
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
         return tracesSampleRate / 100;

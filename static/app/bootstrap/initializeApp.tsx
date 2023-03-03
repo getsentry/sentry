@@ -15,16 +15,9 @@ export function initializeApp(config: Config) {
   commonInitialization(config);
   initializeSdk(config, {routes});
 
-  const transaction = metric.startTransaction({
-    name: `render - ${window.location.pathname}`,
-  });
-
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.
   metric.mark({name: 'sentry-app-init'});
   renderOnDomReady(renderMain);
-  setTimeout(() => {
-    transaction.finish();
-  }, 3000);
   processInitQueue();
 }
