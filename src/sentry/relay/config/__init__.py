@@ -110,14 +110,27 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings["isEnabled"]:
             filter_settings[filter_id] = settings
 
+    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+    enable_react = project.get_option("filters:react-hydration-errors")
+    if enable_react:
+        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
+        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
+        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
+        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+        # 425 - Text content does not match server-rendered HTML.
+        error_messages += [
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+        ]
+
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
