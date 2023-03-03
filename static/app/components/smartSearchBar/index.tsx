@@ -1998,7 +1998,15 @@ const Highlight = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
-const SearchInput = styled('textarea')`
+const SearchInput = styled(
+  getDynamicComponent<typeof TextareaAutosize>({
+    value: TextareaAutosize,
+    fixed: 'textarea',
+  }),
+  {
+    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
+  }
+)`
   position: relative;
   display: flex;
   resize: none;

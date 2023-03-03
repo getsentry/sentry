@@ -322,7 +322,7 @@ export function format(formatString: string, args: FormatArg[]): React.ReactNode
  */
 export function gettext(string: string, ...args: FormatArg[]): string {
   const sameLanguage = i18n?.options?.locale_data?.sentry?.['']?.lang === 'en';
-  if (sameLanguage && (window as any)._localeHack) {
+  if (sameLanguage) {
     return string;
   }
   const val: string = getClient().gettext(string);
@@ -348,10 +348,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
  * [0]: https://github.com/alexei/sprintf.js
  */
 export function ngettext(singular: string, plural: string, ...args: FormatArg[]): string {
-  const sameLanguage = i18n?.options?.locale_data?.sentry?.['']?.lang === 'en';
-  if (sameLanguage && (window as any)._localeHack) {
-    return plural;
-  }
+  // TODO replace w/ sprintf
   let countArg = 0;
 
   if (args.length > 0) {

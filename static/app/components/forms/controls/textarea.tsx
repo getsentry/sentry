@@ -23,10 +23,10 @@ export interface TextAreaProps
 }
 
 const TextAreaControl = forwardRef(function TextAreaControl(
-  {rows, maxRows, size: _size, ...p}: TextAreaProps,
+  {autosize, rows, maxRows, size: _size, ...p}: TextAreaProps,
   ref: React.Ref<HTMLTextAreaElement>
 ) {
-  return false ? (
+  return autosize ? (
     <TextareaAutosize {...p} async ref={ref} rows={rows ? rows : 2} maxRows={maxRows} />
   ) : (
     <textarea ref={ref} {...p} />
