@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import copy from 'copy-text-to-clipboard';
 import uniq from 'lodash/uniq';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -8,6 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Clipboard from 'sentry/components/clipboard';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
@@ -220,18 +220,20 @@ function StacktraceLinkModal({
                     : t('Copy the URL and paste it below')}
                 </div>
                 {suggestions.length ? (
-                  <StyledSuggestions>
+                  <Suggestions>
                     {suggestions.map((suggestion, i) => {
                       return (
                         <div key={i} style={{display: 'flex', alignItems: 'center'}}>
                           <SuggestionOverflow>{suggestion}</SuggestionOverflow>
-                          <Button borderless size="xs" onClick={() => copy(suggestion)}>
-                            <IconCopy size="xs" />
-                          </Button>
+                          <Clipboard value={suggestion}>
+                            <Button type="button" borderless size="xs">
+                              <IconCopy size="xs" />
+                            </Button>
+                          </Clipboard>
                         </div>
                       );
                     })}
-                  </StyledSuggestions>
+                  </Suggestions>
                 ) : null}
 
                 <StyledTextField
@@ -277,10 +279,10 @@ const StyledList = styled(List)`
   }
 `;
 
-const StyledSuggestions = styled('div')`
+const Suggestions = styled('div')`
   background-color: ${p => p.theme.surface100};
   border-radius: ${p => p.theme.borderRadius};
-  padding: ${space(1)} ${space(2)};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
 `;
 
 const SuggestionOverflow = styled('div')`
@@ -294,11 +296,12 @@ const ItemContainer = styled('div')`
   flex-direction: column;
   margin-top: ${space(0.25)};
   flex: 1;
-  max-width: 100%;
+  max-width: calc(100% - 25px - 8px);
 `;
 
 const ModalContainer = styled('div')`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: ${space(2)};
 `;
 
