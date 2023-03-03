@@ -69,29 +69,23 @@ describe('useReplayData', () => {
   });
 
   it('should fetch the data for a given project + replayId + org', async () => {
-    const mockedReplayCall = MockApiClient.addMockResponse(
-      {
-        url: `/projects/${ORG_SLUG}/${PROJECT_SLUG}/replays/${REPLAY_ID}/`,
-        body: {data: RAW_REPLAY},
-      },
-      {asyncDelay: 1}
-    );
+    const mockedReplayCall = MockApiClient.addMockResponse({
+      asyncDelay: 1,
+      url: `/projects/${ORG_SLUG}/${PROJECT_SLUG}/replays/${REPLAY_ID}/`,
+      body: {data: RAW_REPLAY},
+    });
 
-    const mockedSegmentsCall = MockApiClient.addMockResponse(
-      {
-        url: `/projects/${ORG_SLUG}/${PROJECT_SLUG}/replays/${REPLAY_ID}/recording-segments/`,
-        body: MOCK_ATTACHMENTS,
-      },
-      {asyncDelay: 100} // Simulate 100ms response time
-    );
+    const mockedSegmentsCall = MockApiClient.addMockResponse({
+      asyncDelay: 100, // Simulate 100ms response time
+      url: `/projects/${ORG_SLUG}/${PROJECT_SLUG}/replays/${REPLAY_ID}/recording-segments/`,
+      body: MOCK_ATTACHMENTS,
+    });
 
-    const mockedEventsMetaCall = MockApiClient.addMockResponse(
-      {
-        url: `/organizations/${ORG_SLUG}/replays-events-meta/`,
-        body: {data: MOCK_ERRORS},
-      },
-      {asyncDelay: 250} // Simulate 250ms response time
-    );
+    const mockedEventsMetaCall = MockApiClient.addMockResponse({
+      asyncDelay: 250, // Simulate 250ms response time
+      url: `/organizations/${ORG_SLUG}/replays-events-meta/`,
+      body: {data: MOCK_ERRORS},
+    });
 
     const {result, waitForNextUpdate} = reactHooks.renderHook(useReplayData, {
       initialProps: {

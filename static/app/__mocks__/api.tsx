@@ -31,19 +31,16 @@ interface MatchCallable {
   (url: string, options: ApiNamespace.RequestOptions): boolean;
 }
 
+type AsyncDelay = undefined | number;
 type ResponseType = ApiNamespace.ResponseMeta & {
   body: any;
+
   callCount: 0;
   headers: Record<string, string>;
   match: MatchCallable[];
   method: string;
   statusCode: number;
   url: string;
-};
-
-type AsyncDelay = undefined | number;
-
-type AddMockResponseOptions = {
   /**
    * Whether to return mocked api responses directly, or with a setTimeout delay.
    *
@@ -53,11 +50,7 @@ type AddMockResponseOptions = {
   asyncDelay?: AsyncDelay;
 };
 
-type MockResponse = [
-  resp: ResponseType,
-  mock: jest.Mock,
-  options: AddMockResponseOptions
-];
+type MockResponse = [resp: ResponseType, mock: jest.Mock];
 
 /**
  * Compare two records. `want` is all the entries we want to have the same value in `check`
@@ -123,10 +116,7 @@ class Client implements ApiNamespace.Client {
   }
 
   // Returns a jest mock that represents Client.request calls
-  static addMockResponse(
-    response: Partial<ResponseType>,
-    options: AddMockResponseOptions = {}
-  ) {
+  static addMockResponse(response: Partial<ResponseType>) {
     const mock = jest.fn();
 
     Client.mockResponses.unshift([
@@ -141,15 +131,12 @@ class Client implements ApiNamespace.Client {
         method: 'GET',
         callCount: 0,
         match: [],
+        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         ...response,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
       mock,
-      {
-        asyncDelay: Client.asyncDelay,
-        ...options,
-      },
     ]);
 
     return mock;
@@ -220,10 +207,10 @@ class Client implements ApiNamespace.Client {
 
   // XXX(ts): We type the return type for requestPromise and request as `any`. Typically these woul
   request(url: string, options: Readonly<ApiNamespace.RequestOptions> = {}): any {
-    const [response, mock, mockResponseOptions] = Client.findMockResponse(
-      url,
-      options
-    ) || [undefined, undefined, undefined];
+    const [response, mock] = Client.findMockResponse(url, options) || [
+      undefined,
+      undefined,
+    ];
     if (!response || !mock) {
       const methodAndUrl = `${options.method || 'GET'} ${url}`;
       // Endpoints need to be mocked
@@ -281,7 +268,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          mockResponseOptions.asyncDelay,
+          response.asyncDelay,
           options.success,
           body,
           {},
@@ -294,7 +281,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(mockResponseOptions?.asyncDelay, options.complete);
+    respond(response?.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;
