@@ -1729,7 +1729,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}", ""]
 
-    # TODO: implement test for debug id when the sourcemap can't be parsed.
     def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
@@ -1856,6 +1855,135 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "type": "js_missing_sources_content",
             "source": "http://example.com/file.min.js",
             "sourcemap": debug_id,
+        }
+
+    def test_expansion_with_debug_id_and_malformed_sourcemap(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
+            zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
+            zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
+            zip_file.writestr("files/_/_/empty.js", load_fixture("empty.js"))
+            zip_file.writestr(
+                "files/_/_/file.malformed.sourcemap.js", load_fixture("file.malformed.sourcemap.js")
+            )
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "files": {
+                            "files/_/_/file.min.js": {
+                                "url": "~/file.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                    "sourcemap": "~/file.sourcemap.js",
+                                },
+                            },
+                            "files/_/_/file1.js": {
+                                "url": "~/file1.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file2.js": {
+                                "url": "~/file2.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/empty.js": {
+                                "url": "~/empty.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file.malformed.sourcemap.js": {
+                                "url": "~/file.malformed.sourcemap.js",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "debug-id": debug_id,
+                                },
+                            },
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": "abc",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+            "debug_meta": {
+                "images": [
+                    {
+                        "type": "sourcemap",
+                        "debug_id": debug_id,
+                        "code_file": "http://example.com/file.min.js",
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "type": "js_invalid_source",
+            "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
         }
 
     def test_expansion_with_debug_id_not_found(self):
