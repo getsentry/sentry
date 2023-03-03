@@ -255,7 +255,7 @@ def _extract_debug_ids_from_manifest(manifest: dict) -> List[Tuple[SourceFileTyp
     debug_ids_with_types = []
 
     files = manifest.get("files", {})
-    for filename, info in files.items():
+    for file_path, info in files.items():
         headers = _normalize_headers(info.get("headers", {}))
         if (debug_id := headers.get("debug-id", None)) is not None:
             debug_id = _normalize_debug_id(debug_id)
