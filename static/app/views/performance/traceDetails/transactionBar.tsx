@@ -5,7 +5,11 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
+import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
+import {
+  getMeasurementBounds,
+  transactionTargetHash,
+} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
@@ -40,6 +44,7 @@ import {
 } from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
@@ -53,6 +58,7 @@ const MARGIN_LEFT = 0;
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingDepths: TreeDepth[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   hasGuideAnchor: boolean;
   index: number;
   isExpanded: boolean;
@@ -67,6 +73,7 @@ type Props = {
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
+  measurements?: Map<number, eerticalMark>;
 };
 
 type State = {
@@ -138,6 +145,36 @@ class TransactionBar extends Component<Props, State> {
     const {onWheel} = this.props;
     onWheel(event.deltaX);
   };
+
+  renderMeasurements() {
+    const {measurements, generateBounds} = this.props;
+
+    return (
+      <Fragment>
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
+          const bounds = getMeasurementBounds(timestamp, generateBounds);
+
+          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
+            return null;
+          }
+
+          return (
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+              }}
+              failedThreshold={verticalMark.failedThreshold}
+            />
+          );
+        })}
+      </Fragment>
+    );
+  }
 
   renderConnector(hasToggle: boolean) {
     const {continuingDepths, isExpanded, isOrphan, isLast, transaction} = this.props;
@@ -434,7 +471,7 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index} = this.props;
+    const {hasGuideAnchor, index, measurements} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
@@ -472,6 +509,7 @@ class TransactionBar extends Component<Props, State> {
         >
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
             {this.renderRectangle()}
+            {measurements ? this.renderMeasurements() : null}
           </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}
