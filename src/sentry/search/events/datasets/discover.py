@@ -1251,7 +1251,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             "if",
             [
                 Function(
-                    "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["LOW"])]
+                    "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["low"])]
                 ),
                 "low",
                 Function(
@@ -1261,7 +1261,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                             "in",
                             [
                                 self.builder.column("tags[device.class]"),
-                                list(DEVICE_CLASS["MEDIUM"]),
+                                list(DEVICE_CLASS["medium"]),
                             ],
                         ),
                         "medium",
@@ -1272,7 +1272,7 @@ class DiscoverDatasetConfig(DatasetConfig):
                                     "in",
                                     [
                                         self.builder.column("tags[device.class]"),
-                                        list(DEVICE_CLASS["HIGH"]),
+                                        list(DEVICE_CLASS["high"]),
                                     ],
                                 ),
                                 "high",
