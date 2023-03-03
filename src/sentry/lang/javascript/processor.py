@@ -733,6 +733,8 @@ class Fetcher:
         self.dist = dist
 
     def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
+        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
+        #  we have permissions on not all the bundles.
         return DebugIdArtifactBundle.objects.filter(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -741,6 +743,11 @@ class Fetcher:
 
     def _fetch_artifact_bundle(self, debug_id, source_file_type):
         try:
+            # Here we are doing a multi-join query once but we could do a single query on the 'DebugIdArtifactBundle'
+            # table just to get the bundle id (not bundle_id) and then if we have a cache miss we can fallback to the
+            # multi-join query. The double query solution is better if we are confident of a high-level of cache hits
+            # but considering that this code will be moved to symbolicator where a completely new caching system is in
+            # place, we shouldn't worry too much.
             debug_id_artifact_bundle = self._get_debug_id_artifact_bundle_entry(
                 debug_id, source_file_type
             )
