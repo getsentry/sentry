@@ -1245,8 +1245,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable experimental session replay UI
-    "organizations:session-replay-ui": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature

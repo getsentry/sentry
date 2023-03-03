@@ -161,7 +161,6 @@ default_manager.add("organizations:session-replay-beta-grace", OrganizationFeatu
 default_manager.add("organizations:session-replay-ga", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-sdk-errors-only", OrganizationFeature, True)
-default_manager.add("organizations:session-replay-ui", OrganizationFeature, True)
 default_manager.add("organizations:session-replay-recording-scrubbing", OrganizationFeature, False)
 default_manager.add("organizations:set-grouping-config", OrganizationFeature)
 default_manager.add("organizations:slack-overage-notifications", OrganizationFeature, True)
