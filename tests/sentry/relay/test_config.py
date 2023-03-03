@@ -542,7 +542,7 @@ def test_accept_transaction_names(default_project):
     with feature:
         config = get_project_config(default_project).to_dict()["config"]
 
-        # _validate_project_config(config)
+        _validate_project_config(config)
         transaction_metrics_config = config["transactionMetrics"]
 
         assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
