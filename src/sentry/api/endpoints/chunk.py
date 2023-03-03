@@ -83,7 +83,9 @@ class ChunkUploadEndpoint(OrganizationEndpoint):
 
         # TODO: artifact bundles are still feature flagged.
         accept = CHUNK_UPLOAD_ACCEPT
-        if features.get("organizations:artifact-bundles", organization):
+        if features.has(
+            "organizations:artifact-bundles", organization=organization, actor=request.user
+        ):
             accept += ("artifact_bundles",)
 
         return Response(
