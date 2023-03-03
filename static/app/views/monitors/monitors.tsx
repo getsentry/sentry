@@ -16,6 +16,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -117,8 +118,10 @@ class Monitors extends AsyncView<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
               <CronsFeedbackButton />
+              <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
+                {t('Add monitor')}
+              </NewMonitorButton>
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
@@ -141,12 +144,18 @@ class Monitors extends AsyncView<Props, State> {
                     t('Schedule'),
                     t('Next Checkin'),
                     t('Project'),
+                    t('Actions'),
                   ]}
                 >
                   {monitorList?.map(monitor => (
                     <MonitorRow
                       key={monitor.id}
                       monitor={monitor}
+                      onDelete={() => {
+                        this.setState({
+                          monitorList: monitorList.filter(m => m.id !== monitor.id),
+                        });
+                      }}
                       organization={organization}
                     />
                   ))}
@@ -186,7 +195,7 @@ const Filters = styled('div')`
 `;
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr max-content max-content max-content max-content;
+  grid-template-columns: 1fr max-content max-content max-content max-content max-content;
 `;
 
 const ButtonList = styled(ButtonBar)`

@@ -99,8 +99,4 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-// TODO: Remove once nothing is using after a week or so
-const DoNotUseMe = Tooltip;
-export default DoNotUseMe;
-
 export {Tooltip};

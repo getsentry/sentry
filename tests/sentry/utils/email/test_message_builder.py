@@ -87,7 +87,7 @@ class MessageBuilderTest(TestCase):
         alternate_email = "bazzer@example.com"
         UserEmail.objects.create(user=user_c, email=alternate_email)
         UserOption.objects.create(
-            user=user_c, project=project, key="mail:email", value=alternate_email
+            user=user_c, project_id=project.id, key="mail:email", value=alternate_email
         )
 
         msg = MessageBuilder(
@@ -113,7 +113,7 @@ class MessageBuilderTest(TestCase):
 
         UserOption.objects.create(
             user=user_c,
-            project=project,
+            project_id=project.id,
             key="mail:email",
             value=create_fake_email("bazzer", "fake"),
         )

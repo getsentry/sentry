@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
 import {removeProject} from 'sentry/actionCreators/projects';
@@ -176,7 +177,7 @@ function Onboarding(props: Props) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('heartbeat.onboarding_back_button_clicked', {
+    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,
@@ -215,6 +216,9 @@ function Onboarding(props: Props) {
   const jumpToSetupProject = useCallback(() => {
     const nextStep = onboardingSteps.find(({id}) => id === 'setup-docs');
     if (!nextStep) {
+      Sentry.captureMessage(
+        'Missing step in onboarding: `setup-docs` when trying to jump there'
+      );
       return;
     }
     browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));

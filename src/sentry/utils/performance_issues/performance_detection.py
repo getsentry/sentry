@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-import os
 import random
 import re
 from abc import ABC, abstractmethod
@@ -38,6 +37,7 @@ from .base import (
 )
 from .detectors import (
     ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
     NPlusOneAPICallsDetector,
     UncompressedAssetSpanDetector,
 )
@@ -194,6 +194,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
             "count": settings["n_plus_one_db_count"],
@@ -226,12 +227,17 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
             "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
+        },
+        DetectorType.CONSECUTIVE_HTTP_OP: {
+            "span_duration_threshold": 300,  # ms
+            "consecutive_count_threshold": 3,
         },
     }
 
@@ -245,6 +251,7 @@ def _detect_performance_problems(
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
+        ConsecutiveHTTPSpanDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetector(detection_settings, data),
@@ -486,13 +493,17 @@ class RenderBlockingAssetSpanDetector(PerformanceDetector):
             self.fcp = None
 
     def _is_blocking_render(self, span):
+        data = span.get("data", None)
+        render_blocking_status = data and data.get("resource.render_blocking_status")
+        if render_blocking_status == "non-blocking":
+            return False
+
         span_end_timestamp = timedelta(seconds=span.get("timestamp", 0))
         fcp_timestamp = self.transaction_start + self.fcp
         if span_end_timestamp >= fcp_timestamp:
             return False
 
         minimum_size_bytes = self.settings.get("minimum_size_bytes")
-        data = span.get("data", None)
         encoded_body_size = data and data.get("Encoded Body Size", 0) or 0
         if encoded_body_size < minimum_size_bytes or encoded_body_size > self.MAX_SIZE_BYTES:
             return False
@@ -557,7 +568,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return True  # This detector is fully rolled out
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
+        return self.settings["detection_rate"] > random.random()
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -754,7 +765,6 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
-    IGNORED_EXTENSIONS = {".nib", ".plist", ".strings"}
     type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
@@ -846,17 +856,19 @@ class FileIOMainThreadDetector(PerformanceDetector):
                 module = self._deobfuscate_module(item.get("module", ""))
                 function = self._deobfuscate_function(item)
                 call_stack_strings.append(f"{module}.{function}")
-            overall_stack.append(".".join(call_stack_strings))
-        call_stack = "-".join(overall_stack).encode("utf8")
+            # Use set to remove dupes, and list index to preserve order
+            overall_stack.append(
+                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
+            )
+        call_stack = "-".join(
+            sorted(set(overall_stack), key=lambda s: overall_stack.index(s))
+        ).encode("utf8")
         hashed_stack = hashlib.sha1(call_stack).hexdigest()
         return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
 
     def _is_file_io_on_main_thread(self, span: Span) -> bool:
         data = span.get("data", {})
         if data is None:
-            return False
-        _, fileext = os.path.splitext(data.get("file.path", ""))
-        if fileext in self.IGNORED_EXTENSIONS:
             return False
         # doing is True since the value can be any type
         return data.get("blocked_main_thread", False) is True
@@ -943,7 +955,10 @@ class SearchingForMNPlusOne(MNPlusOneState):
             op = span.get("op") or ""
             description = span.get("description") or ""
             found_db_op = found_db_op or (
-                op.startswith("db") and description and not description.endswith("...")
+                op.startswith("db")
+                and not op.startswith("db.redis")
+                and description
+                and not description.endswith("...")
             )
             found_different_span = found_different_span or not self._equivalent(pattern[0], span)
             if found_db_op and found_different_span:
@@ -1086,7 +1101,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)

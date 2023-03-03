@@ -102,7 +102,7 @@ const GroupEventDetailsContent = ({
         projectSlug={project.slug}
         location={location}
       />
-      <EventEvidence event={event} group={group} />
+      <EventEvidence event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
@@ -111,6 +111,7 @@ const GroupEventDetailsContent = ({
         <SpanEvidenceSection
           event={event as EventTransaction}
           organization={organization}
+          projectSlug={project.slug}
         />
       )}
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />

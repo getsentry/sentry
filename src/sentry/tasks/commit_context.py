@@ -168,21 +168,23 @@ def process_commit_context(
 
             commit = None
             new_commit = None
-            for commit_context, selected_code_mapping in found_contexts:
+            selected_code_mapping = None
+            for commit_context, code_mapping in found_contexts:
                 try:
                     # Find commit and break
                     commit = Commit.objects.get(
-                        repository_id=selected_code_mapping.repository_id,
+                        repository_id=code_mapping.repository_id,
                         key=commit_context.get("commitId"),
                     )
+                    selected_code_mapping = code_mapping
                     break
                 except Commit.DoesNotExist:
                     # If the commit has no date, we will not add it to avoid breaking other commit ordered-based logic.
                     if not new_commit and commit_context.get("committedDate"):
                         new_commit = {
                             "context": commit_context,
-                            "repository_id": selected_code_mapping.repository_id,
-                            "code_mapping_id": selected_code_mapping.id,
+                            "repository_id": code_mapping.repository_id,
+                            "code_mapping_id": code_mapping.id,
                         }
 
                     logger.info(
@@ -190,8 +192,8 @@ def process_commit_context(
                         extra={
                             **basic_logging_details,
                             "sha": commit_context.get("commitId"),
-                            "repository_id": selected_code_mapping.repository_id,
-                            "code_mapping_id": selected_code_mapping.id,
+                            "repository_id": code_mapping.repository_id,
+                            "code_mapping_id": code_mapping.id,
                             "reason": "commit_sha_does_not_exist_in_sentry",
                         },
                     )
@@ -256,6 +258,14 @@ def process_commit_context(
                 extra={
                     **basic_logging_details,
                     "group_owner_id": group_owner.id,
+                    **(
+                        {
+                            "repository_id": selected_code_mapping.repository_id,
+                            "selected_code_mapping": selected_code_mapping.id,
+                        }
+                        if selected_code_mapping is not None
+                        else {}
+                    ),
                     "reason": "created" if created else "updated",
                 },
             )

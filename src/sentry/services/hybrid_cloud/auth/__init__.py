@@ -1,17 +1,21 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
 import base64
 import contextlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import Any, Dict, Generator, List, Mapping, Tuple, Type
+from typing import Any, Dict, Generator, List, Mapping, Optional, Tuple, Type, Union
 
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+from sentry.models import OrganizationMember
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
@@ -26,7 +30,9 @@ class RpcAuthenticatorType(IntEnum):
     SESSION_AUTHENTICATION = 2
 
     @classmethod
-    def from_authenticator(self, auth: Type[BaseAuthentication]) -> RpcAuthenticatorType | None:
+    def from_authenticator(
+        self, auth: Type[BaseAuthentication]
+    ) -> Optional["RpcAuthenticatorType"]:
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -42,7 +48,59 @@ class RpcAuthenticatorType(IntEnum):
             raise ValueError(f"{self!r} has not authenticator associated with it.")
 
 
-ApiAuthenticatorType = RpcAuthenticatorType
+def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
+    if input is None:
+        return None
+    if isinstance(input, str):
+        input = input.encode("utf8")
+    return base64.b64encode(input).decode("utf8")
+
+
+class RpcAuthentication(BaseAuthentication):  # type: ignore
+    types: List[RpcAuthenticatorType]
+
+    def __init__(self, types: List[RpcAuthenticatorType]):
+        self.types = types
+
+    def authenticate(self, request: Request) -> Optional[Tuple[Any, Any]]:
+        response = auth_service.authenticate_with(
+            request=authentication_request_from(request), authenticator_types=self.types
+        )
+
+        if response.user is not None:
+            return response.user, response.auth
+
+        return None
+
+
+@dataclass(eq=True)
+class RpcMemberSsoState:
+    is_required: bool = False
+    is_valid: bool = False
+
+
+@dataclass
+class RpcAuthState:
+    sso_state: RpcMemberSsoState
+    permissions: List[str]
+
+
+@dataclass
+class AuthenticationRequest:
+    # HTTP_X_SENTRY_RELAY_ID
+    sentry_relay_id: Optional[str] = None
+    # HTTP_X_SENTRY_RELAY_SIGNATURE
+    sentry_relay_signature: Optional[str] = None
+    backend: Optional[str] = None
+    user_id: Optional[str] = None
+    user_hash: Optional[str] = None
+    nonce: Optional[str] = None
+    remote_addr: Optional[str] = None
+    signature: Optional[str] = None
+    absolute_url: str = ""
+    absolute_url_root: str = ""
+    path: str = ""
+    authorization_b64: Optional[str] = None
 
 
 def authentication_request_from(request: Request) -> AuthenticationRequest:
@@ -62,151 +120,18 @@ def authentication_request_from(request: Request) -> AuthenticationRequest:
     )
 
 
-def _normalize_to_b64(input: str | bytes | None) -> str | None:
-    if input is None:
-        return None
-    if isinstance(input, str):
-        input = input.encode("utf8")
-    return base64.b64encode(input).decode("utf8")
-
-
-class RpcAuthentication(BaseAuthentication):  # type: ignore
-    types: List[RpcAuthenticatorType]
-
-    def __init__(self, types: List[RpcAuthenticatorType]):
-        self.types = types
-
-    def authenticate(self, request: Request) -> Tuple[Any, Any] | None:
-        response = auth_service.authenticate_with(
-            request=authentication_request_from(request), authenticator_types=self.types
-        )
-
-        if response.user is not None:
-            return response.user, response.auth
-
-        return None
-
-
-ApiAuthentication = RpcAuthentication
-
-
-class AuthService(InterfaceWithLifecycle):
-    @abc.abstractmethod
-    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
-        pass
-
-    @abc.abstractmethod
-    def authenticate_with(
-        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
-    ) -> AuthenticationContext:
-        pass
-
-    @abc.abstractmethod
-    def get_org_auth_config(
-        self, *, organization_ids: List[int]
-    ) -> List[RpcOrganizationAuthConfig]:
-        pass
-
-    @abc.abstractmethod
-    def get_user_auth_state(
-        self,
-        *,
-        user_id: int,
-        is_superuser: bool,
-        organization_id: int | None,
-        org_member: RpcOrganizationMember | OrganizationMember | None,
-    ) -> RpcAuthState:
-        pass
-
-    # TODO: Denormalize this scim enabled flag onto organizations?
-    # This is potentially a large list
-    @abc.abstractmethod
-    def get_org_ids_with_scim(
-        self,
-    ) -> List[int]:
-        """
-        This method returns a list of org ids that have scim enabled
-        :return:
-        """
-        pass
-
-    @abc.abstractmethod
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
-        """
-        This method returns a list of auth providers for an org
-        :return:
-        """
-        pass
-
-    @abc.abstractmethod
-    def handle_new_membership(
-        self,
-        request: Request,
-        organization: RpcOrganization,
-        auth_identity: RpcAuthIdentity,
-        auth_provider: RpcAuthProvider,
-    ) -> Tuple[RpcUser, RpcOrganizationMember]:
-        pass
-
-    @abc.abstractmethod
-    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
-        pass
-
-
-def impl_with_db() -> AuthService:
-    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
-
-    return DatabaseBackedAuthService()
-
-
-@dataclass
-class RpcAuthState:
-    sso_state: RpcMemberSsoState
-    permissions: List[str]
-
-
-ApiAuthState = RpcAuthState
-
-
-@dataclass(eq=True)
-class RpcMemberSsoState:
-    is_required: bool = False
-    is_valid: bool = False
-
-
-ApiMemberSsoState = RpcMemberSsoState
-
-
-@dataclass
-class AuthenticationRequest:
-    # HTTP_X_SENTRY_RELAY_ID
-    sentry_relay_id: str | None = None
-    # HTTP_X_SENTRY_RELAY_SIGNATURE
-    sentry_relay_signature: str | None = None
-    backend: str | None = None
-    user_id: str | None = None
-    user_hash: str | None = None
-    nonce: str | None = None
-    remote_addr: str | None = None
-    signature: str | None = None
-    absolute_url: str = ""
-    absolute_url_root: str = ""
-    path: str = ""
-    authorization_b64: str | None = None
-
-
 @dataclass(eq=True)
 class AuthenticatedToken:
-    entity_id: int | None = None
+    entity_id: Optional[int] = None
     kind: str = "system"
-    user_id: int | None = None  # only relevant for ApiToken
-    organization_id: int | None = None
+    user_id: Optional[int] = None  # only relevant for ApiToken
+    organization_id: Optional[int] = None
     allowed_origins: List[str] = field(default_factory=list)
     audit_log_data: Dict[str, Any] = field(default_factory=dict)
     scopes: List[str] = field(default_factory=list)
 
     @classmethod
-    def from_token(cls, token: Any) -> AuthenticatedToken | None:
+    def from_token(cls, token: Any) -> Optional["AuthenticatedToken"]:
         if token is None:
             return None
 
@@ -247,7 +172,7 @@ class AuthenticatedToken:
     def get_allowed_origins(self) -> List[str]:
         return self.allowed_origins
 
-    def get_scopes(self) -> list[str]:
+    def get_scopes(self) -> List[str]:
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:
@@ -262,10 +187,10 @@ class AuthenticationContext:
     The default of all values should be a valid, non authenticated context.
     """
 
-    auth: AuthenticatedToken | None = None
-    user: RpcUser | None = None
+    auth: Optional[AuthenticatedToken] = None
+    user: Optional[RpcUser] = None
 
-    def _get_user(self) -> RpcUser | AnonymousUser:
+    def _get_user(self) -> Union[RpcUser, AnonymousUser]:
         """
         Helper function to avoid importing AnonymousUser when `applied_to_request` is run on startup
         """
@@ -326,18 +251,12 @@ class RpcAuthProviderFlags:
     scim_enabled: bool = False
 
 
-RpcAuthProviderFlags
-
-
 @dataclass(eq=True, frozen=True)
 class RpcAuthProvider:
     id: int = -1
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = field(default_factory=lambda: RpcAuthProviderFlags())
-
-
-ApiAuthProvider = RpcAuthProvider
 
 
 @dataclass
@@ -348,17 +267,80 @@ class RpcAuthIdentity:
     ident: str = ""
 
 
-ApiAuthIdentity = RpcAuthIdentity
-
-
 @dataclass(eq=True)
 class RpcOrganizationAuthConfig:
     organization_id: int = -1
-    auth_provider: RpcAuthProvider | None = None
+    auth_provider: Optional[RpcAuthProvider] = None
     has_api_key: bool = False
 
 
-ApiOrganizationAuthConfig = RpcOrganizationAuthConfig
+class AuthService(InterfaceWithLifecycle):
+    @abc.abstractmethod
+    def authenticate(self, *, request: AuthenticationRequest) -> MiddlewareAuthenticationResponse:
+        pass
+
+    @abc.abstractmethod
+    def authenticate_with(
+        self, *, request: AuthenticationRequest, authenticator_types: List[RpcAuthenticatorType]
+    ) -> AuthenticationContext:
+        pass
+
+    @abc.abstractmethod
+    def get_org_auth_config(
+        self, *, organization_ids: List[int]
+    ) -> List[RpcOrganizationAuthConfig]:
+        pass
+
+    @abc.abstractmethod
+    def get_user_auth_state(
+        self,
+        *,
+        user_id: int,
+        is_superuser: bool,
+        organization_id: Optional[int],
+        org_member: Optional[Union[RpcOrganizationMember, OrganizationMember]],
+    ) -> RpcAuthState:
+        pass
+
+    # TODO: Denormalize this scim enabled flag onto organizations?
+    # This is potentially a large list
+    @abc.abstractmethod
+    def get_org_ids_with_scim(
+        self,
+    ) -> List[int]:
+        """
+        This method returns a list of org ids that have scim enabled
+        :return:
+        """
+        pass
+
+    @abc.abstractmethod
+    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
+        """
+        This method returns a list of auth providers for an org
+        :return:
+        """
+        pass
+
+    @abc.abstractmethod
+    def handle_new_membership(
+        self,
+        request: Request,
+        organization: RpcOrganization,
+        auth_identity: RpcAuthIdentity,
+        auth_provider: RpcAuthProvider,
+    ) -> Tuple[RpcUser, RpcOrganizationMember]:
+        pass
+
+    @abc.abstractmethod
+    def token_has_org_access(self, *, token: AuthenticatedToken, organization_id: int) -> bool:
+        pass
+
+
+def impl_with_db() -> AuthService:
+    from sentry.services.hybrid_cloud.auth.impl import DatabaseBackedAuthService
+
+    return DatabaseBackedAuthService()
 
 
 auth_service: AuthService = silo_mode_delegation(
@@ -370,5 +352,3 @@ auth_service: AuthService = silo_mode_delegation(
         ),  # this must eventually be purely RPC
     }
 )
-
-from sentry.models import OrganizationMember

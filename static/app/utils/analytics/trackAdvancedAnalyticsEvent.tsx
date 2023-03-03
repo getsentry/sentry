@@ -6,10 +6,10 @@ import {
   DynamicSamplingEventParameters,
 } from './dynamicSamplingAnalyticsEvents';
 import {growthEventMap, GrowthEventParameters} from './growthAnalyticsEvents';
-import {heartbeatEventMap, HeartbeatEventParameters} from './heartbeatAnalyticsEvents';
 import {issueEventMap, IssueEventParameters} from './issueAnalyticsEvents';
 import makeAnalyticsFunction from './makeAnalyticsFunction';
 import {monitorsEventMap, MonitorsEventParameters} from './monitorsAnalyticsEvents';
+import {onboardingEventMap, OnboardingEventParameters} from './onboardingAnalyticsEvents';
 import {
   performanceEventMap,
   PerformanceEventParameters,
@@ -19,6 +19,7 @@ import {releasesEventMap, ReleasesEventParameters} from './releasesAnalyticsEven
 import {replayEventMap, ReplayEventParameters} from './replayAnalyticsEvents';
 import {searchEventMap, SearchEventParameters} from './searchAnalyticsEvents';
 import {settingsEventMap, SettingsEventParameters} from './settingsAnalyticsEvents';
+import {stackTraceEventMap, StackTraceEventParameters} from './stackTraceAnalyticsEvents';
 import {TeamInsightsEventParameters, workflowEventMap} from './workflowAnalyticsEvents';
 
 type EventParameters = GrowthEventParameters &
@@ -35,7 +36,8 @@ type EventParameters = GrowthEventParameters &
   SettingsEventParameters &
   TeamInsightsEventParameters &
   DynamicSamplingEventParameters &
-  HeartbeatEventParameters;
+  OnboardingEventParameters &
+  StackTraceEventParameters;
 
 const allEventMap: Record<string, string | null> = {
   ...coreUIEventMap,
@@ -52,7 +54,8 @@ const allEventMap: Record<string, string | null> = {
   ...settingsEventMap,
   ...workflowEventMap,
   ...dynamicSamplingEventMap,
-  ...heartbeatEventMap,
+  ...onboardingEventMap,
+  ...stackTraceEventMap,
 };
 
 /**

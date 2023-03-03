@@ -110,10 +110,16 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 alias="root_count",
             )
         ]
+        referrer = Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS.value
         snuba_query = snuba_query.set_select(snuba_query.select + extra_select)
         data = raw_snql_query(
-            SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECT_STATS.value,
+            SnubaRequest(
+                dataset=Dataset.Discover.value,
+                app_id="default",
+                query=snuba_query,
+                tenant_ids={"referrer": referrer, "organization_id": org_id},
+            ),
+            referrer,
         )
         return builder.process_results(data)["data"]
 
@@ -259,13 +265,21 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 )
             ]
         )
+
+        referrer = Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS.value
+
         snuba_query = snuba_query.set_groupby(
             snuba_query.groupby + [Column("modulo_num"), Column("contexts.key")]
         )
 
         data = raw_snql_query(
-            SnubaRequest(dataset=Dataset.Discover.value, app_id="default", query=snuba_query),
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_TRANSACTIONS.value,
+            SnubaRequest(
+                dataset=Dataset.Discover.value,
+                app_id="default",
+                query=snuba_query,
+                tenant_ids={"referrer": referrer, "organization_id": project.organization_id},
+            ),
+            referrer,
         )["data"]
         return data
 

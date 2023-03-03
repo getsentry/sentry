@@ -51,12 +51,12 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -744,7 +744,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
@@ -2082,7 +2083,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
+        uo1 = UserOption.objects.create(
+            key="self_assign_issue", value="1", project_id=None, user=user
+        )
 
         self.login_as(user=user)
         response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
@@ -2105,7 +2108,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project=None, user=self.user
+            key="self_assign_issue", value="1", project_id=None, user=self.user
         )
 
         self.login_as(user=self.user)
