@@ -127,10 +127,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
             return self.respond(status=404)
 
