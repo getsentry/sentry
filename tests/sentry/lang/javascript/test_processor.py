@@ -1100,10 +1100,14 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 1
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile")) == 1
+        # File level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
+        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 1
+        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 1
+        # Bundle level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+        assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 1
         cache_get.reset_mock()
         cache_set.reset_mock()
 
@@ -1112,10 +1116,14 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        assert len(self.relevant_calls(cache_get, "artifactbundlefile")) == 1
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundlefile")) == 0
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile")) == 0
+        # File level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
+        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
+        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+        # Bundle level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
 
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
@@ -1168,10 +1176,14 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            assert len(self.relevant_calls(cache_get, "artifactbundle")) == 1
-            assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 1
-            assert len(self.relevant_calls(cache_set, "artifactbundle")) == 0
-            assert len(self.relevant_calls(cache_set, "meta:artifactbundle")) == 0
+            # File level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
+            assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 1
+            assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
+            assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+            # Bundle level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+            assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
             cache_get.reset_mock()
             cache_set.reset_mock()
 
@@ -1180,10 +1192,14 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            assert len(self.relevant_calls(cache_get, "artifactbundle")) == 1
-            assert len(self.relevant_calls(cache_get, "meta:artifactbundle")) == 1
-            assert len(self.relevant_calls(cache_set, "artifactbundle")) == 0
-            assert len(self.relevant_calls(cache_set, "meta:artifactbundle")) == 0
+            # File level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
+            assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 1
+            assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
+            assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+            # Bundle level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+            assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
 
 
 class BuildAbsPathDebugIdCacheTest(TestCase):
