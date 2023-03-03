@@ -180,15 +180,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         defaultValue: 0,
       },
       {
-        name: 'n_plus_one_db_issue_rate',
-        type: 'range',
-        label: t('N+1 (DB) Issue Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
-      },
-      {
         name: 'n_plus_one_db_count',
         type: 'number',
         label: t('N+1 (DB) Minimum Count'),
