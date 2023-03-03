@@ -330,7 +330,7 @@ function useTeams({limit, slugs, ids, provideUserTeams}: Options = {}) {
     }
   }, [slugOrIdRef.current, provideUserTeams]);
 
-  const isSuperuser = isActiveSuperuser();
+  const isSuperuser = useMemo(isActiveSuperuser, []);
 
   const filteredTeams = useMemo(() => {
     return slugs
