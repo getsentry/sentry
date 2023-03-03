@@ -116,7 +116,7 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onClick={e => {
           handleRowClick(e);
           trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
-            organization: project.organization,
+            organization,
             platform: project.platform,
             user_org_role: organization.orgRole,
           });
