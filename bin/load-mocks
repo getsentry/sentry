@@ -541,7 +541,7 @@ def main(
                     type=ActivityType.RELEASE.value,
                     project=project,
                     ident=release.version,
-                    user=user,
+                    user_id=user.id,
                     data={"version": release.version},
                 )
 
@@ -743,7 +743,7 @@ def main(
         type=ActivityType.RELEASE.value,
         project=project,
         ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
-        user=user,
+        user_id=user.id,
         data={"version": "4f38b65c62c4565aa94bba391ff8946922a8eed4"},
     )
 

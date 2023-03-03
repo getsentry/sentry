@@ -48,7 +48,7 @@ class TestCreatorInternal(TestCreatorBase):
 
         assert len(sentry_app_installation_tokens) == 2
 
-        log = AuditLogEntry.objects.get(organization=self.org)
+        log = AuditLogEntry.objects.get(organization_id=self.org.id)
         audit_log_event = audit_log.get(log.event)
         assert (
             audit_log_event.render(log) == "created a token for internal integration internal_app"

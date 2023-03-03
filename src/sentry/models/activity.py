@@ -62,16 +62,19 @@ class ActivityManager(BaseManager):
         group: Group,
         type: ActivityType,
         user: Optional[User | RpcUser] = None,
+        user_id: Optional[int] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
     ) -> Activity:
+        if user:
+            user_id = user.id
         activity_args = {
             "project_id": group.project_id,
             "group": group,
             "type": type.value,
             "data": data,
         }
-        if user is not None:
+        if user_id is not None:
             activity_args["user_id"] = user.id
         activity = self.create(**activity_args)
         if send_notification:

@@ -15,7 +15,6 @@ from sentry.models import Activity, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
-from sentry.utils.functional import extract_lazy_object
 
 
 @region_silo_endpoint
@@ -78,7 +77,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         activity = Activity.objects.create_group_activity(
-            group, ActivityType.NOTE, user=extract_lazy_object(request.user), data=data
+            group, ActivityType.NOTE, user_id=request.user.id, data=data
         )
 
         self.create_external_comment(request, group, activity)

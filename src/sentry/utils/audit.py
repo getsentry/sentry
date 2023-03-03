@@ -120,9 +120,10 @@ def _create_project_delete_log(entry: AuditLogEntry) -> None:
     delete_log.date_created = project.date_added
     delete_log.platform = project.platform
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
     _complete_delete_log(delete_log, entry)
 
@@ -135,9 +136,10 @@ def _create_team_delete_log(entry: AuditLogEntry) -> None:
     delete_log.slug = team.slug
     delete_log.date_created = team.date_added
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
     _complete_delete_log(delete_log, entry)
 

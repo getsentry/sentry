@@ -683,7 +683,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             project=group.project,
             group=group,
             type=ActivityType.SET_UNRESOLVED.value,
-            user=None,
+            user_id=None,
             data={"event_id": job["event"].event_id},
         )
 

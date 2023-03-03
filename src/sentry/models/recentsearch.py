@@ -41,7 +41,7 @@ def remove_excess_recent_searches(organization, user, search_type):
     practice this should only be removing a single row at most.
     """
     recent_searches_to_remove = RecentSearch.objects.filter(
-        organization=organization, user=user, type=search_type
+        organization=organization, user_id=user.id, type=search_type
     ).order_by("-last_seen")[MAX_RECENT_SEARCHES:]
     RecentSearch.objects.filter(id__in=recent_searches_to_remove).delete()
 
