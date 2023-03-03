@@ -138,6 +138,7 @@ class InMemoryTSDB(BaseTSDB):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         self.validate_arguments([model], [environment_id])
 

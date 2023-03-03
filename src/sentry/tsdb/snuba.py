@@ -326,6 +326,7 @@ class SnubaTSDB(BaseTSDB):
                 conditions,
                 use_cache,
                 jitter_value,
+                tenant_ids,
             )
 
     def __get_data_snql(
@@ -496,6 +497,7 @@ class SnubaTSDB(BaseTSDB):
         conditions=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         """
         Normalizes all the TSDB parameters and sends a query to snuba.
@@ -587,6 +589,9 @@ class SnubaTSDB(BaseTSDB):
             orderby.append(model_group)
 
         if keys:
+            referrer = f"tsdb-modelid:{model.value}"
+            tenant_ids = tenant_ids or dict()
+            tenant_ids["referrer"] = referrer
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
                 dataset=model_dataset,
@@ -599,9 +604,10 @@ class SnubaTSDB(BaseTSDB):
                 rollup=rollup,
                 limit=limit,
                 orderby=orderby,
-                referrer=f"tsdb-modelid:{model.value}",
+                referrer=referrer,
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 use_cache=use_cache,
+                tenant_ids=tenant_ids,
             )
             if model_query_settings.selected_columns:
                 result = query_func_without_selected_columns(
@@ -771,6 +777,7 @@ class SnubaTSDB(BaseTSDB):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         return self.get_data(
             model,
@@ -782,6 +789,7 @@ class SnubaTSDB(BaseTSDB):
             aggregation="uniq",
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
         )
 
     def get_distinct_counts_union(
