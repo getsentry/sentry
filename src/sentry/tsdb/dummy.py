@@ -31,6 +31,7 @@ class DummyTSDB(BaseTSDB):
         environment_ids=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
         _, series = self.get_optimal_rollup_series(start, end, rollup)
