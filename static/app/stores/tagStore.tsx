@@ -98,7 +98,11 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
           IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
           ...(org.features.includes('issue-platform')
-            ? [IssueType.PROFILE_BLOCKED_THREAD]
+            ? [
+                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+              ]
             : []),
         ],
         predefined: true,

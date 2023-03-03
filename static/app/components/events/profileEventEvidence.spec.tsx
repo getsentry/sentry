@@ -20,7 +20,7 @@ describe('ProfileEventEvidence', function () {
     }),
     group: TestStubs.Group({
       issueCategory: IssueCategory.PROFILE,
-      issueType: IssueType.PROFILE_BLOCKED_THREAD,
+      issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     }),
     projectSlug: 'project-slug',
   };
