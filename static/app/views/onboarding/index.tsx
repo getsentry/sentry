@@ -177,7 +177,7 @@ function Onboarding(props: Props) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('heartbeat.onboarding_back_button_clicked', {
+    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,
