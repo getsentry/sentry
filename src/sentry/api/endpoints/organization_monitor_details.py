@@ -136,11 +136,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Delete a monitor.
         """
-
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)
