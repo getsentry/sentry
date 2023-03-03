@@ -142,7 +142,7 @@ class AppContextType(ContextType):
 @contexttype
 class DeviceContextType(ContextType):
     type = "device"
-    context_to_tag_mapping = {"": "{model}", "family": "{family}"}
+    context_to_tag_mapping = {"": "{model}", "family": "{family}", "class": "{class}"}
     # model_id, arch
 
 
