@@ -168,6 +168,8 @@ class GroupDetails extends Component<Props, State> {
         event
       ),
       ref_fallback,
+      // Will be updated by StacktraceLink if there is a stacktrace link
+      stacktrace_link_viewed: false,
     });
   }
 

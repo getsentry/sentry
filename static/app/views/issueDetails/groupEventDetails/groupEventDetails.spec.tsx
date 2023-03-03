@@ -340,6 +340,11 @@ describe('groupEventDetails', () => {
     });
     const transaction = TestStubs.Event({
       entries: [],
+      occurrence: {
+        evidenceDisplay: [],
+        evidenceData: {},
+        type: 2000,
+      },
     });
 
     mockGroupApis(
