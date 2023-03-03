@@ -18,6 +18,7 @@ from sentry.integrations.github.webhook import (
     PullRequestEventWebhook,
     PushEventWebhook,
 )
+from sentry.integrations.utils.cleanup import clear_tags_and_context
 from sentry.models import Integration
 from sentry.utils import json
 from sentry.utils.sdk import configure_scope
@@ -112,6 +113,7 @@ class GitHubEnterpriseWebhookBase(View):
             return None
 
     def handle(self, request: Request) -> Response:
+        clear_tags_and_context()
         with configure_scope() as scope:
             meta = request.META
             try:
