@@ -143,6 +143,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         date_to: Optional[datetime],
         max_hits: Optional[int] = None,
         referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         """This function runs your actual query and returns the results
         We usually return a paginator object, which contains the results and the number of hits"""
@@ -619,6 +620,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             search_filters,
             start,
             end,
+            actor,
         )
         if count_hits and hits == 0:
             return self.empty_result
@@ -660,6 +662,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 offset=offset,
                 search_filters=search_filters,
                 referrer=referrer,
+                actor=actor,
             )
             metrics.timing("snuba.search.num_snuba_results", len(snuba_groups))
             count = len(snuba_groups)
