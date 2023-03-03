@@ -1632,7 +1632,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         file = File.objects.create(name="bundle.zip", type="artifact.bundle")
         file.putfile(compressed)
 
-        # We want to also store the release files for this bundle, to check if they work in tandem.
+        # We want to also store the release files for this bundle, to check if they work together.
         compressed.seek(0)
         file_for_release = File.objects.create(name="bundle.zip", type="release.bundle")
         file_for_release.putfile(compressed)
@@ -1729,6 +1729,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}", ""]
 
+    # TODO: implement test for debug id when the sourcemap can't be parsed.
     def test_expansion_with_debug_id_and_sourcemap_without_sources_content(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 

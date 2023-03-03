@@ -730,6 +730,7 @@ class Fetcher:
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         try:
+            # TODO: do we want to use the debug_id as result url?
             result_url = debug_id
 
             # TODO: we need to implement a better caching system that caches bundle ids for debug ids.
@@ -751,7 +752,6 @@ class Fetcher:
             ).select_related("artifact_bundle__file")[0]
 
             artifact_bundle = debug_id_artifact_bundle.artifact_bundle
-
             artifact_bundle_file = fetch_retry_policy(artifact_bundle.file.getfile)
             if artifact_bundle_file is not None:
                 try:
@@ -777,6 +777,7 @@ class Fetcher:
                                 exc_info=exc,
                             )
                             cache.set(cache_key, -1, 60)
+
                             return None
                         else:
                             result = fetch_and_cache_artifact(
@@ -1082,10 +1083,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
         # happen in one of the two we will detect them and add them to 'all_errors'.
-        # TODO: check if we want also to return errors by debug id.
-        errors = self.fetch_by_url_errors.get(frame["abs_path"])
-        if errors is not None:
-            all_errors.extend(errors)
+        url_errors = self.fetch_by_url_errors.get(frame["abs_path"])
+        if url_errors is not None:
+            all_errors.extend(url_errors)
+        debug_id_errors = self.fetch_by_debug_id_errors.get(debug_id)
+        if debug_id_errors is not None:
+            all_errors.extend(debug_id_errors)
 
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
         # In case we resolved the sourcemap with the debug_id, the url will be the debug_id.
