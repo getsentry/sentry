@@ -29,7 +29,6 @@ from sentry.lang.javascript.processor import (
     fetch_release_file,
     fold_function_name,
     generate_module,
-    get_artifact_bundle_file_cache_key_meta,
     get_function_for_token,
     get_max_age,
     get_release_file_cache_key,
@@ -999,20 +998,23 @@ class FetchFileByDebugIdTest(TestCase):
         )
 
         # Check with present debug id and source file type.
-        result = Fetcher(self.organization).fetch_by_debug_id(
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
-        assert result.url == debug_id
+        assert result.url == f"debug-id:{debug_id}"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
         assert result.encoding == "utf-8"
+        fetcher.close()
 
         # Check with present debug id and source file type.
-        result = Fetcher(self.organization).fetch_by_debug_id(
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
         )
-        assert result.url == debug_id
+        assert result.url == f"debug-id:{debug_id}"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
         assert result.headers == {
@@ -1021,25 +1023,32 @@ class FetchFileByDebugIdTest(TestCase):
             "sourcemap": "~/index.js.map",
         }
         assert result.encoding == "utf-8"
+        fetcher.close()
 
         # Check with present debug id and absent source file type.
-        result = Fetcher(self.organization).fetch_by_debug_id(
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE
         )
         assert result is None
+        fetcher.close()
 
         # Check with absent debug id and present source file type.
-        result = Fetcher(self.organization).fetch_by_debug_id(
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
             debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153",
             source_file_type=SourceFileType.SOURCE_MAP,
         )
         assert result is None
+        fetcher.close()
 
         # Check with absent debug id and absent source file type.
-        result = Fetcher(self.organization).fetch_by_debug_id(
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
             debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153", source_file_type=SourceFileType.SOURCE
         )
         assert result is None
+        fetcher.close()
 
     def test_fetch_by_debug_id_with_invalid_params(self):
         file = self.get_compressed_zip_file(
@@ -1057,8 +1066,11 @@ class FetchFileByDebugIdTest(TestCase):
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=1
         )
 
-        result = Fetcher(self.organization).fetch_by_debug_id(debug_id=None, source_file_type=None)
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(debug_id=None, source_file_type=None)
         assert result is None
+
+        fetcher.close()
 
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
@@ -1100,11 +1112,8 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        # File level cache.
-        assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 1
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 1
+        # Archive cache.
+        assert len(fetcher.open_archives) == 1
         # Bundle level cache.
         assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
         assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 1
@@ -1116,14 +1125,13 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
-        # File level cache.
-        assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
-        assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 0
-        assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
-        assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+        # Archive cache.
+        assert len(fetcher.open_archives) == 1
         # Bundle level cache.
         assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 0
         assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
+
+        fetcher.close()
 
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
@@ -1162,25 +1170,14 @@ class FetchFileByDebugIdTest(TestCase):
 
         fetcher = Fetcher(self.organization)
 
-        # With this line we basically disable caching.
-        cache.set(
-            get_artifact_bundle_file_cache_key_meta(debug_id, SourceFileType.SOURCE_MAP),
-            {"compressed_size": 10},
-        )
-        # We need to reset the mock because we called 'set' here.
-        cache_set.reset_mock()
-
         with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", 1):
             # First call without cached result.
             result = fetcher.fetch_by_debug_id(
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            # File level cache.
-            assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
-            assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 1
-            assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
-            assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+            # Archive cache.
+            assert len(fetcher.open_archives) == 1
             # Bundle level cache.
             assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
             assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
@@ -1192,14 +1189,13 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
-            # File level cache.
-            assert len(self.relevant_calls(cache_get, "artifactbundlefile:v1")) == 1
-            assert len(self.relevant_calls(cache_get, "meta:artifactbundlefile:v1")) == 1
-            assert len(self.relevant_calls(cache_set, "artifactbundlefile:v1")) == 0
-            assert len(self.relevant_calls(cache_set, "meta:artifactbundlefile:v1")) == 0
+            # Archive cache.
+            assert len(fetcher.open_archives) == 1
             # Bundle level cache.
-            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 0
             assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
+
+            fetcher.close()
 
 
 class BuildAbsPathDebugIdCacheTest(TestCase):

@@ -114,10 +114,7 @@ class ArtifactBundleArchive:
         self.manifest = self._read_manifest()
         self._build_entries_by_debug_id_map()
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc, value, tb):
+    def close(self):
         self._zip_file.close()
         self._fileobj.close()
 
@@ -145,7 +142,7 @@ class ArtifactBundleArchive:
     def _build_entries_by_debug_id_map(self):
         self._entries_by_debug_id = {}
 
-        # TODO: generalize the manifest reading methods across assemble and processor.
+        # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             headers = self._normalize_headers(info.get("headers", {}))
