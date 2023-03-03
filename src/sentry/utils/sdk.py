@@ -466,17 +466,19 @@ def bind_organization_context(organization):
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.start_span(op="other", description="bind_organization_context") as span:
+    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+        op="other", description="bind_organization_context"
+    ):
         if check_tag("organization.slug", organization.slug):
             # This can be used to find errors that may have been mistagged
-            span.set_tag("possible_mistag", True)
+            scope.set_tag("possible_mistag", True)
 
-        span.set_tag("organization", organization.id)
-        span.set_tag("organization.slug", organization.slug)
-        span.set_context("organization", {"id": organization.id, "slug": organization.slug})
+        scope.set_tag("organization", organization.id)
+        scope.set_tag("organization.slug", organization.slug)
+        scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
         if helper:
             try:
-                helper(scope=span, organization=organization)
+                helper(scope=scope, organization=organization)
             except Exception:
                 sdk_logger.exception(
                     "internal-error.organization-context",
