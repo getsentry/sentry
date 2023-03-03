@@ -1,4 +1,11 @@
-import {createContext, Fragment, useCallback, useMemo, useState} from 'react';
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -313,6 +320,18 @@ export function Control({
     },
   });
 
+  /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  useLayoutEffect(() => {
+    if (!overlayRef.current || !overlayIsOpen) {
+      return;
+    }
+    setMenuFullWidth(overlayRef.current?.offsetWidth);
+  }, [overlayRef, overlayIsOpen]);
+
   const contextValue = useMemo(
     () => ({
       registerListState,
@@ -352,7 +371,7 @@ export function Control({
           {...overlayProps}
         >
           <StyledOverlay
-            width={menuWidth}
+            width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
@@ -489,7 +508,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{
   maxHeightProp: string | number;
   maxHeight?: string | number;
@@ -502,12 +521,12 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
+  ${p => p.width && `width: ${withUnits(p.width)};`}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
       : withUnits(p.maxHeightProp)};
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.maxWidth && `max-width: ${withUnits(p.maxWidth)};`}
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
