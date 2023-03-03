@@ -11,6 +11,7 @@ import {Grid, GridCell} from './styles';
 
 type Props = {
   details: ThreadInfo;
+  hasThreadStates: boolean;
   id: number;
   crashed?: boolean;
   crashedInfo?: EntryData;
@@ -23,12 +24,20 @@ type ThreadInfo = {
   label?: string;
 };
 
-const Option = ({id, details, name, crashed, crashedInfo, state}: Props) => {
+const Option = ({
+  id,
+  details,
+  name,
+  crashed,
+  crashedInfo,
+  state,
+  hasThreadStates,
+}: Props) => {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
   return (
-    <Grid>
+    <Grid hasThreadStates={hasThreadStates}>
       <GridCell>
         {crashed && (
           <InnerCell isCentered>
@@ -70,13 +79,15 @@ const Option = ({id, details, name, crashed, crashedInfo, state}: Props) => {
           </Tooltip>
         </InnerCell>
       </GridCell>
-      <GridCell>
-        <InnerCell>
-          <Tooltip title={state} position="top">
-            <TextOverflow>{state}</TextOverflow>
-          </Tooltip>
-        </InnerCell>
-      </GridCell>
+      {hasThreadStates && (
+        <GridCell>
+          <InnerCell>
+            <Tooltip title={state} position="top">
+              <TextOverflow>{state}</TextOverflow>
+            </Tooltip>
+          </InnerCell>
+        </GridCell>
+      )}
     </Grid>
   );
 };
