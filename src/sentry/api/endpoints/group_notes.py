@@ -20,9 +20,7 @@ from sentry.types.activity import ActivityType
 @region_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
-        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value).select_related(
-            "user"
-        )
+        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
             request=request,

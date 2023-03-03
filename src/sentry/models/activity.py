@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 class ActivityManager(BaseManager):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
-        activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
+        activity_qs = self.filter(group=group).order_by("-datetime")
 
         prev_sig = None
         sig = None

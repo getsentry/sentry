@@ -29,10 +29,10 @@ class TestDestroyer(TestCase):
         assert not ApiToken.objects.filter(id=api_token.id).exists()
         assert not SentryAppInstallationToken.objects.filter(api_token_id=api_token.id).exists()
 
-        log = AuditLogEntry.objects.get(organization=self.org)
+        log = AuditLogEntry.objects.get(organization_id=self.org.id)
         audit_log_event = audit_log.get(log.event)
         assert audit_log_event.render(log) == "revoked a token for internal integration nulldb"
-        assert log.organization == self.org
+        assert log.organization_id == self.org.id
         assert log.target_object == api_token.id
 
         record.assert_called_with(
