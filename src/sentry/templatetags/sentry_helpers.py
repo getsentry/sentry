@@ -115,9 +115,8 @@ def loading_message():
     options = [
         "Please wait while we load an obnoxious amount of JavaScript.",
         "Downloading a dizzying amount of JavaScript.",
-        "Downloading a dizzying amount of JavaScript.",
-        "Reticulating splines.",
         "Aquiring more vespene gas.",
+        "Hotdogulating buns.",
     ]
     return random.choice(options)
 
