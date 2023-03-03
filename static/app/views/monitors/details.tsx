@@ -24,7 +24,7 @@ import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
   WithRouteAnalyticsProps &
-  RouteComponentProps<{monitorId: string}, {}> & {
+  RouteComponentProps<{monitorSlug: string}, {}> & {
     organization: Organization;
   };
 
@@ -42,7 +42,7 @@ class MonitorDetails extends AsyncView<Props, State> {
     return [
       [
         'monitor',
-        `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`,
+        `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`,
         {query: location.query},
       ],
     ];

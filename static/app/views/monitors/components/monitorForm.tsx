@@ -150,13 +150,6 @@ class MonitorForm extends Component<Props> {
           <PanelHeader>{t('Details')}</PanelHeader>
 
           <PanelBody>
-            {monitor && (
-              <FieldGroup label={t('ID')}>
-                <div className="controls">
-                  <TextCopyInput>{monitor.id}</TextCopyInput>
-                </div>
-              </FieldGroup>
-            )}
             <SentryProjectSelectorField
               name="project"
               label={t('Project')}
@@ -169,6 +162,17 @@ class MonitorForm extends Component<Props> {
               )}
               required
             />
+            {monitor && (
+              <FieldGroup
+                label={t('Monitor Slug')}
+                flexibleControlStateSize
+                help={t(
+                  'The monitor slug is the organization-wide unique identifier for your monitor.'
+                )}
+              >
+                <TextCopyInput>{monitor.slug}</TextCopyInput>
+              </FieldGroup>
+            )}
             <TextField
               name="name"
               placeholder={t('My Cron Job')}
@@ -199,7 +203,7 @@ class MonitorForm extends Component<Props> {
               name="config.max_runtime"
               label={t('Max Runtime')}
               help={t(
-                "Set the number of minutes a recurring job is allowed to run before it's considered failed"
+                "Set the number of minutes a recurring job is allowed to run before it's considered failed."
               )}
               placeholder="e.g. 30"
             />
