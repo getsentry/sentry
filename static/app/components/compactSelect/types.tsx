@@ -14,9 +14,14 @@ export interface SelectSection<Value extends React.Key> {
    */
   key?: React.Key;
   /**
-   * Title to display on top of section.
+   * Title to display in the section header.
    */
   label?: React.ReactNode;
+  /**
+   * Whether to show a "Select All"/"Unselect All" button in the section header (only
+   * applicable in multiple-selection mode).
+   */
+  showToggleAllButton?: boolean;
 }
 
 export type SelectOptionOrSection<Value extends React.Key> =

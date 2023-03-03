@@ -267,7 +267,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         # or getting ref from git blame was successful
         codecov_data = None
         if not fetch_commit_sha or ref:
-            lineCoverage, codecovUrl = get_codecov_data(
+            line_coverage, codecov_url = get_codecov_data(
                 repo=repo.name,
                 service=service,
                 ref=ref if ref else branch,
@@ -275,10 +275,10 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 path=path,
                 organization=org,
             )
-            if lineCoverage and codecovUrl:
+            if line_coverage and codecov_url:
                 codecov_data = {
-                    "lineCoverage": lineCoverage,
-                    "coverageUrl": codecovUrl,
+                    "lineCoverage": line_coverage,
+                    "coverageUrl": codecov_url,
                     "status": 200,
                 }
         return codecov_data

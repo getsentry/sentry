@@ -71,7 +71,6 @@ describe('StacktraceLink', function () {
         },
       })
     );
-    expect(analyticsSpy).toHaveBeenCalledTimes(1);
   });
 
   it('can dismiss stacktrace link CTA', async function () {

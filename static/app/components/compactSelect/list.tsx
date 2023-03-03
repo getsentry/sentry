@@ -1,25 +1,27 @@
-import {Fragment, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback, useContext, useEffect, useMemo} from 'react';
 import {useFocusManager} from '@react-aria/focus';
-import {useKeyboard} from '@react-aria/interactions';
-import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
-import {mergeProps} from '@react-aria/utils';
+import {AriaGridListOptions} from '@react-aria/gridlist';
+import {AriaListBoxOptions} from '@react-aria/listbox';
 import {ListProps, useListState} from '@react-stately/list';
-import {Selection} from '@react-types/shared';
 
-import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
 import {SelectContext} from './control';
-import {Option} from './option';
-import {Section} from './section';
-import {SelectOption, SelectOptionOrSection, SelectOptionOrSectionWithKey} from './types';
+import {GridList} from './gridList';
+import {ListBox} from './listBox';
+import {SelectOption, SelectOptionOrSectionWithKey} from './types';
+import {getDisabledOptions, getSelectedOptions, HiddenSectionToggle} from './utils';
 
-interface BaseListBoxProps<Value extends React.Key>
+interface BaseListProps<Value extends React.Key>
   extends ListProps<any>,
     Omit<
       AriaListBoxOptions<any>,
+      'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
+    >,
+    Omit<
+      AriaGridListOptions<any>,
       'disabledKeys' | 'selectedKeys' | 'defaultSelectedKeys' | 'onSelectionChange'
     > {
   items: SelectOptionOrSectionWithKey<Value>[];
@@ -29,29 +31,39 @@ interface BaseListBoxProps<Value extends React.Key>
    */
   closeOnSelect?: boolean;
   /**
-   * The index number of this list box inside composite select menus, which contain
-   * multiple list boxes (each corresponding to a select region).
+   * This list's index number inside composite select menus.
    */
   compositeIndex?: number;
+  /**
+   * Whether to render a grid list rather than a list box.
+   *
+   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
+   * move between option rows, and Arrow Left/Right to move between columns. This is
+   * useful when the selector contains options with smaller, interactive elements
+   * (buttons/links) inside. Grid lists allow users to focus on those child elements and
+   * interact with them, which isn't possible with list boxes.
+   */
+  grid?: boolean;
   /**
    * Custom function to determine whether an option is disabled. By default, an option
    * is considered disabled when it has {disabled: true}.
    */
   isOptionDisabled?: (opt: SelectOption<Value>) => boolean;
+  /**
+   * Text label to be rendered as heading on top of grid list.
+   */
   label?: React.ReactNode;
   size?: FormSize;
 }
 
-export interface SingleListBoxProps<Value extends React.Key>
-  extends BaseListBoxProps<Value> {
+export interface SingleListProps<Value extends React.Key> extends BaseListProps<Value> {
   defaultValue?: Value;
   multiple?: false;
   onChange?: (selectedOption: SelectOption<Value>) => void;
   value?: Value;
 }
 
-export interface MultipleListBoxProps<Value extends React.Key>
-  extends BaseListBoxProps<Value> {
+export interface MultipleListProps<Value extends React.Key> extends BaseListProps<Value> {
   multiple: true;
   defaultValue?: Value[];
   onChange?: (selectedOptions: SelectOption<Value>[]) => void;
@@ -59,34 +71,29 @@ export interface MultipleListBoxProps<Value extends React.Key>
 }
 
 /**
- * A list box wrapper with accessibile behaviors & attributes. In composite selectors,
- * there may be multiple self-contained list boxes, each representing a select "region".
- * https://react-spectrum.adobe.com/react-aria/useListBox.html
+ * A list containing selectable options. Depending on the `grid` prop, this may be a
+ * grid list or list box.
+ *
+ * In composite selectors, there may be multiple self-contained lists, each
+ * representing a select "region".
  */
-function ListBox<Value extends React.Key>({
+function List<Value extends React.Key>({
   items,
   value,
   defaultValue,
   onChange,
+  grid,
   multiple,
   disallowEmptySelection,
   isOptionDisabled,
-  size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
   compositeIndex = 0,
   closeOnSelect,
-  label,
   ...props
-}: SingleListBoxProps<Value> | MultipleListBoxProps<Value>) {
-  const ref = useRef<HTMLUListElement>(null);
-  const {
-    overlayState,
-    overlayIsOpen,
-    registerListState,
-    saveSelectedOptions,
-    filterOption,
-  } = useContext(SelectContext);
+}: SingleListProps<Value> | MultipleListProps<Value>) {
+  const {overlayState, registerListState, saveSelectedOptions, filterOption} =
+    useContext(SelectContext);
 
   /**
    * Props to be passed into useListState()
@@ -164,20 +171,6 @@ function ListBox<Value extends React.Key>({
     items,
   });
 
-  const [hasFocus, setHasFocus] = useState(false);
-  const {listBoxProps, labelProps} = useListBox(
-    {
-      ...props,
-      label,
-      onFocusChange: setHasFocus,
-      shouldFocusWrap,
-      shouldFocusOnHover,
-      shouldSelectOnPressUp: true,
-    },
-    listState,
-    ref
-  );
-
   // Register the initialized list state once on mount
   useEffect(() => {
     registerListState(compositeIndex, listState);
@@ -201,35 +194,50 @@ function ListBox<Value extends React.Key>({
     });
   }, [listState.collection, filterOption]);
 
-  // In composite selects, focus should seamlessly move from one region (listbox) to
+  // In composite selects, focus should seamlessly move from one region (list) to
   // another when the ArrowUp/Down key is pressed
   const focusManager = useFocusManager();
   const firstFocusableKey = useMemo(() => {
     let firstKey = listState.collection.getFirstKey();
-    while (firstKey && listState.selectionManager.isDisabled(firstKey)) {
+
+    while (
+      firstKey &&
+      (listState.collection.getItem(firstKey).type === 'section' ||
+        listState.selectionManager.isDisabled(firstKey))
+    ) {
       firstKey = listState.collection.getKeyAfter(firstKey);
     }
+
     return firstKey;
   }, [listState.collection, listState.selectionManager]);
   const lastFocusableKey = useMemo(() => {
     let lastKey = listState.collection.getLastKey();
-    while (lastKey && listState.selectionManager.isDisabled(lastKey)) {
+
+    while (
+      lastKey &&
+      (listState.collection.getItem(lastKey).type === 'section' ||
+        listState.selectionManager.isDisabled(lastKey))
+    ) {
       lastKey = listState.collection.getKeyBefore(lastKey);
     }
+
     return lastKey;
   }, [listState.collection, listState.selectionManager]);
-  const {keyboardProps} = useKeyboard({
-    onKeyDown: e => {
-      // Continue propagation, otherwise the overlay won't close on Esc key press
-      e.continuePropagation();
 
+  /**
+   * Keyboard event handler to seamlessly move focus from one composite list to another
+   * when an arrow key is pressed. Returns a boolean indicating whether the keyboard
+   * event was intercepted. If yes, then no further callback function should be run.
+   */
+  const keyDownHandler = useCallback(
+    (e: React.KeyboardEvent<HTMLUListElement>) => {
       // Don't handle ArrowDown/Up key presses if focus already wraps
-      if (shouldFocusWrap) {
-        return;
+      if (shouldFocusWrap && !grid) {
+        return true;
       }
 
       // Move focus to next region when ArrowDown is pressed and the last item in this
-      // list box is currently focused
+      // list is currently focused
       if (
         e.key === 'ArrowDown' &&
         listState.selectionManager.focusedKey === lastFocusableKey
@@ -237,13 +245,16 @@ function ListBox<Value extends React.Key>({
         focusManager.focusNext({
           wrap: true,
           accept: element =>
-            element.getAttribute('role') === 'option' &&
+            (element.getAttribute('role') === 'option' ||
+              element.getAttribute('role') === 'row') &&
             element.getAttribute('aria-disabled') !== 'true',
         });
+
+        return false; // event intercepted, don't run any further callbacks
       }
 
       // Move focus to previous region when ArrowUp is pressed and the first item in this
-      // list box is currently focused
+      // list is currently focused
       if (
         e.key === 'ArrowUp' &&
         listState.selectionManager.focusedKey === firstFocusableKey
@@ -251,147 +262,67 @@ function ListBox<Value extends React.Key>({
         focusManager.focusPrevious({
           wrap: true,
           accept: element =>
-            element.getAttribute('role') === 'option' &&
+            (element.getAttribute('role') === 'option' ||
+              element.getAttribute('role') === 'row') &&
             element.getAttribute('aria-disabled') !== 'true',
         });
+
+        return false; // event intercepted, don't run any further callbacks
       }
+
+      return true;
     },
-  });
+    [
+      focusManager,
+      firstFocusableKey,
+      lastFocusableKey,
+      listState.selectionManager.focusedKey,
+      shouldFocusWrap,
+      grid,
+    ]
+  );
+
+  const listId = useMemo(() => domId('select-list-'), []);
 
   return (
     <Fragment>
-      {filteredItems.length !== 0 && <Separator role="separator" />}
-      {filteredItems.length !== 0 && label && <Label {...labelProps}>{label}</Label>}
-      <SelectListBoxWrap {...mergeProps(listBoxProps, keyboardProps)} ref={ref}>
-        {overlayIsOpen &&
-          filteredItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <Section
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  listBoxHasFocus={hasFocus}
-                  size={size}
-                />
-              );
-            }
+      {grid ? (
+        <GridList
+          {...props}
+          id={listId}
+          listItems={filteredItems}
+          listState={listState}
+          keyDownHandler={keyDownHandler}
+        />
+      ) : (
+        <ListBox
+          {...props}
+          id={listId}
+          listItems={filteredItems}
+          listState={listState}
+          shouldFocusWrap={shouldFocusWrap}
+          shouldFocusOnHover={shouldFocusOnHover}
+          keyDownHandler={keyDownHandler}
+        />
+      )}
 
-            return (
-              <Option
-                key={item.key}
-                item={item}
-                listState={listState}
-                listBoxHasFocus={hasFocus}
-                size={size}
-              />
-            );
-          })}
-      </SelectListBoxWrap>
+      {multiple &&
+        filteredItems.map(item => {
+          if (item.type !== 'section' || !item.value.showToggleAllButton) {
+            return null;
+          }
+
+          return (
+            <HiddenSectionToggle
+              key={item.key}
+              item={item}
+              listState={listState}
+              listId={listId}
+            />
+          );
+        })}
     </Fragment>
   );
 }
 
-export {ListBox};
-
-/**
- * Recursively finds the selected option(s) from an options array. Useful for
- * non-flat arrays that contain sections (groups of options).
- */
-function getSelectedOptions<Value extends React.Key>(
-  items: SelectOptionOrSectionWithKey<Value>[],
-  selection: Selection
-): SelectOption<Value>[] {
-  return items.reduce<SelectOption<Value>[]>((acc, cur) => {
-    // If this is a section
-    if ('options' in cur) {
-      return acc.concat(getSelectedOptions(cur.options, selection));
-    }
-
-    // If this is an option
-    if (selection === 'all' || selection.has(String(cur.value))) {
-      const {key: _key, ...opt} = cur;
-      return acc.concat(opt);
-    }
-    return acc;
-  }, []);
-}
-
-/**
- * Recursively finds the selected option(s) from an options array. Useful for
- * non-flat arrays that contain sections (groups of options).
- */
-function getDisabledOptions<Value extends React.Key>(
-  items: SelectOptionOrSection<Value>[],
-  isOptionDisabled?: (opt: SelectOption<Value>) => boolean
-): Value[] {
-  return items.reduce((acc: Value[], cur) => {
-    // If this is a section
-    if ('options' in cur) {
-      if (cur.disabled) {
-        // If the entire section is disabled, then mark all of its children as disabled
-        return acc.concat(cur.options.map(opt => opt.value));
-      }
-      return acc.concat(getDisabledOptions(cur.options, isOptionDisabled));
-    }
-
-    // If this is an option
-    if (isOptionDisabled?.(cur) ?? cur.disabled) {
-      return acc.concat(cur.value);
-    }
-    return acc;
-  }, []);
-}
-
-const SelectListBoxWrap = styled('ul')`
-  margin: 0;
-  padding: ${space(0.5)} 0;
-
-  /* Add 1px to top padding if preceded by menu header, to account for the header's
-  shadow border */
-  div[data-header] ~ &:first-of-type,
-  div[data-header] ~ div > &:first-of-type {
-    padding-top: calc(${space(0.5)} + 1px);
-  }
-
-  /* Remove top padding if preceded by search input, since search input already has
-  vertical padding */
-  input ~ &&:first-of-type,
-  input ~ div > &&:first-of-type {
-    padding-top: 0;
-  }
-
-  /* Should scroll if it's in a non-composite select */
-  :only-of-type {
-    min-height: 0;
-    overflow: auto;
-  }
-
-  :focus-visible {
-    outline: none;
-  }
-`;
-
-const Label = styled('p')`
-  display: inline-block;
-  font-weight: 600;
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-  text-transform: uppercase;
-  white-space: nowrap;
-  margin: ${space(0.5)} ${space(1.5)};
-  padding-right: ${space(1)};
-`;
-
-const Separator = styled('div')`
-  border-top: solid 1px ${p => p.theme.innerBorder};
-  margin: ${space(0.5)} ${space(1.5)};
-
-  :first-child {
-    display: none;
-  }
-
-  ul:empty + & {
-    display: none;
-  }
-`;
+export {List};
