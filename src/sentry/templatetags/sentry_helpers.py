@@ -116,7 +116,8 @@ def loading_message():
         "Please wait while we load an obnoxious amount of JavaScript.",
         "Downloading a dizzying amount of JavaScript.",
         "Aquiring more vespene gas.",
-        "Hotdogulating buns.",
+        "Escaping node_modules gravity well.",
+        "Parallelizing webpack builders.",
     ]
     return random.choice(options)
 
