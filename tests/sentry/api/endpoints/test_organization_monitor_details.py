@@ -22,6 +22,12 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
 
         resp = self.get_success_response(self.organization.slug, monitor.slug)
         assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == "my-monitor"
+
+        # GUID based lookup also works
+        resp = self.get_success_response(self.organization.slug, monitor.guid)
+        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == "my-monitor"
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
@@ -49,6 +55,24 @@ class UpdateMonitorTest(MonitorTestCase):
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.name == "Monitor Name"
+
+    def test_slug(self):
+        monitor = self._create_monitor()
+        resp = self.get_success_response(
+            self.organization.slug, monitor.guid, method="PUT", **{"slug": "my-monitor"}
+        )
+        assert resp.data["id"] == str(monitor.guid)
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.slug == "my-monitor"
+
+        # Validate error cases jsut to be safe
+        self.get_error_response(
+            self.organization.slug, monitor.guid, method="PUT", status_code=400, **{"slug": ""}
+        )
+        self.get_error_response(
+            self.organization.slug, monitor.guid, method="PUT", status_code=400, **{"slug": None}
+        )
 
     def test_can_disable(self):
         monitor = self._create_monitor()

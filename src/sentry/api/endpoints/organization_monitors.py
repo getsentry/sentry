@@ -122,6 +122,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             project_id=result["project"].id,
             organization_id=organization.id,
             name=result["name"],
+            slug=result.get("slug"),
             status=result["status"],
             type=result["type"],
             config=result["config"],
