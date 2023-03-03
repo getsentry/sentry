@@ -25,7 +25,7 @@ import Projects from 'sentry/utils/projects';
 import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
-import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
+import {Footer} from 'sentry/views/onboarding/components/footer';
 
 type Props = {
   api: Client;
@@ -180,7 +180,7 @@ class ProjectInstallPlatform extends Component<Props, State> {
           )}
 
           {this.isGettingStarted && heartbeatFooter ? (
-            <HeartbeatFooter
+            <Footer
               projectSlug={projectId}
               route={this.props.route}
               router={this.props.router}
