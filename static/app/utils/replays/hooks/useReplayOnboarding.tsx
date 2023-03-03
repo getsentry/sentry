@@ -5,6 +5,8 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {Project} from 'sentry/types';
 import {PageFilters} from 'sentry/types/core';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
@@ -42,12 +44,16 @@ export function useHaveSelectedProjectsSentAnyReplayEvents() {
 
 export function useReplayOnboardingSidebarPanel() {
   const {location} = useRouteContext();
+  const organization = useOrganization();
 
   useEffect(() => {
     if (location.hash === '#replay-sidequest') {
       SidebarPanelStore.activatePanel(SidebarPanelKey.ReplaysOnboarding);
+      trackAdvancedAnalyticsEvent('replay.list-view-setup-sidebar', {
+        organization,
+      });
     }
-  }, [location.hash]);
+  }, [location.hash, organization]);
 
   const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
     event.preventDefault();
