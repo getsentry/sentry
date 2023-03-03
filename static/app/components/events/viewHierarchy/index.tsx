@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -69,6 +71,7 @@ type ViewHierarchyProps = {
 };
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+  const organization = useOrganization();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -112,6 +115,11 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         onKeyDown={handleRowKeyDown}
         onClick={e => {
           handleRowClick(e);
+          trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
+            organization,
+            platform: project.platform,
+            user_org_role: organization.orgRole,
+          });
         }}
       >
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
@@ -151,8 +159,13 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
+      trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_wireframe', {
+        organization,
+        platform: project.platform,
+        user_org_role: organization.orgRole,
+      });
     },
-    [handleScrollTo]
+    [handleScrollTo, organization, project.platform]
   );
 
   const showWireframe = project?.platform !== 'unity';
