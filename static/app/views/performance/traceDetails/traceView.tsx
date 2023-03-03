@@ -266,7 +266,10 @@ export default function TraceView({
   );
 
   const bounds = generateBounds(traceInfo);
-  const measurements = Object.keys(traces[0].measurements ?? {}).length > 0 ? getTraceMeasurements(traces[0], bounds) : null
+  const measurements =
+    Object.keys(traces[0].measurements ?? {}).length > 0
+      ? getTraceMeasurements(traces[0], bounds)
+      : null;
 
   const traceView = (
     <TraceDetailBody>
