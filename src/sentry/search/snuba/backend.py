@@ -417,6 +417,7 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_to=date_to,
             max_hits=max_hits,
             referrer=referrer,
+            actor=actor,
         )
 
     def _build_group_queryset(
