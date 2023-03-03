@@ -29,7 +29,7 @@ from sentry.lang.javascript.processor import (
     fetch_release_file,
     fold_function_name,
     generate_module,
-    get_artifact_bundle_cache_key_meta,
+    get_artifact_bundle_file_cache_key_meta,
     get_function_for_token,
     get_max_age,
     get_release_file_cache_key,
@@ -1156,7 +1156,7 @@ class FetchFileByDebugIdTest(TestCase):
 
         # With this line we basically disable caching.
         cache.set(
-            get_artifact_bundle_cache_key_meta(debug_id, SourceFileType.SOURCE_MAP),
+            get_artifact_bundle_file_cache_key_meta(debug_id, SourceFileType.SOURCE_MAP),
             {"compressed_size": 10},
         )
         # We need to reset the mock because we called 'set' here.

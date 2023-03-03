@@ -205,12 +205,16 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
-def get_artifact_bundle_cache_key(debug_id, source_file_type):
+def get_artifact_bundle_cache_key(bundle_id):
+    return f"artifactbundle:v1:{bundle_id}"
+
+
+def get_artifact_bundle_file_cache_key(debug_id, source_file_type):
     return f"artifactbundlefile:v1:{debug_id}:{source_file_type.value if source_file_type is not None else -1}"
 
 
-def get_artifact_bundle_cache_key_meta(debug_id, source_file_type):
-    return "meta:%s" % get_artifact_bundle_cache_key(debug_id, source_file_type)
+def get_artifact_bundle_file_cache_key_meta(debug_id, source_file_type):
+    return "meta:%s" % get_artifact_bundle_file_cache_key(debug_id, source_file_type)
 
 
 MAX_FETCH_ATTEMPTS = 3
@@ -728,72 +732,111 @@ class Fetcher:
         self.release = release
         self.dist = dist
 
-    def fetch_by_debug_id(self, debug_id, source_file_type):
+    def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
+        return DebugIdArtifactBundle.objects.filter(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            source_file_type=source_file_type.value if source_file_type is not None else None,
+        ).select_related("artifact_bundle__file")[0]
+
+    def _fetch_artifact_bundle(self, debug_id, source_file_type):
         try:
-            # TODO: do we want to use the debug_id as result url?
-            result_url = debug_id
-
-            # TODO: we need to implement a better caching system that caches bundle ids for debug ids.
-            cache_key = get_artifact_bundle_cache_key(debug_id, source_file_type)
-            cache_key_meta = get_artifact_bundle_cache_key_meta(debug_id, source_file_type)
-
-            result = cache.get(get_artifact_bundle_cache_key(debug_id, source_file_type))
-            if result == -1:
-                return None
-            if result:
-                return result_from_cache(result_url, result)
-
-            # TODO: in the future we would like to query the debug id and then check if that specific bundle is bound
-            #  to the passed project.
-            debug_id_artifact_bundle = DebugIdArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
-                debug_id=debug_id,
-                source_file_type=source_file_type.value if source_file_type is not None else None,
-            ).select_related("artifact_bundle__file")[0]
-
+            debug_id_artifact_bundle = self._get_debug_id_artifact_bundle_entry(
+                debug_id, source_file_type
+            )
             artifact_bundle = debug_id_artifact_bundle.artifact_bundle
+            bundle_id = artifact_bundle.bundle_id
+
+            # We try to load the bundle file from the cache. The file we are loading here is the entire bundle, not
+            # the contents.
+            cache_key = get_artifact_bundle_cache_key(bundle_id)
+            result = cache.get(cache_key)
+            if result:
+                return BytesIO(result)
+
+            # We didn't find the bundle in the cache, thus we want to fetch it.
             artifact_bundle_file = fetch_retry_policy(artifact_bundle.file.getfile)
-            if artifact_bundle_file is not None:
-                try:
-                    archive = ArtifactBundleArchive(artifact_bundle_file)
-                except Exception as exc:
-                    artifact_bundle_file.seek(0)
-                    logger.error(
-                        "Failed to initialize archive for the artifact bundle %s",
-                        artifact_bundle_file.id,
-                        exc_info=exc,
-                        extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
-                    )
-                else:
-                    with archive:
-                        try:
-                            fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
-                        except Exception as exc:
-                            logger.error(
-                                "File with debug id %s and source type %s not found in artifact bundle %s",
-                                debug_id,
-                                source_file_type,
-                                artifact_bundle_file.id,
-                                exc_info=exc,
-                            )
-                            cache.set(cache_key, -1, 60)
 
-                            return None
-                        else:
-                            result = fetch_and_cache_artifact(
-                                result_url,
-                                lambda: fp,
-                                cache_key,
-                                cache_key_meta,
-                                headers,
-                                compress_fn=compress,
-                            )
+            # `cache.set` will only keep values up to a certain size,
+            # so we should not read the entire file if it's too large for caching
+            if (
+                CACHE_MAX_VALUE_SIZE is not None
+                and artifact_bundle_file.size > CACHE_MAX_VALUE_SIZE
+            ):
+                return artifact_bundle_file
 
-                            return result
-        except IndexError:
+            with sentry_sdk.start_span(op="fetch_artifact_bundle.read_for_caching") as span:
+                span.set_data("file_size", artifact_bundle_file.size)
+                contents = artifact_bundle_file.read()
+            with sentry_sdk.start_span(op="fetch_artifact_bundle.write_to_cache") as span:
+                span.set_data("file_size", len(contents))
+                cache.set(cache_key, contents, 3600)
+
+            artifact_bundle_file.seek(0)
+            return artifact_bundle_file
+        except Exception as exc:
+            logger.error(
+                "Failed to load the artifact bundle for debug_id %s",
+                debug_id,
+                exc_info=exc,
+            )
+
+        return None
+
+    def fetch_by_debug_id(self, debug_id, source_file_type):
+        result_url = debug_id
+
+        # We try to load from the cache the data of the single file which was previously fetched with the combination
+        # ('debug_id', 'source_file_type'). This caching happens at the file level, thus we will load multiple
+        # times the same bundle if we want to fetch different files from it.
+        cache_key = get_artifact_bundle_file_cache_key(debug_id, source_file_type)
+        cache_key_meta = get_artifact_bundle_file_cache_key_meta(debug_id, source_file_type)
+        result = cache.get(get_artifact_bundle_file_cache_key(debug_id, source_file_type))
+        if result == -1:
             return None
-        else:
-            return None
+        if result:
+            return result_from_cache(result_url, result)
+
+        # If we didn't find the single file, we will load the entire bundle. Behind the scenes also the bundle itself
+        # is cached, based on its 'bundle_id'.
+        artifact_bundle_file = self._fetch_artifact_bundle(debug_id, source_file_type)
+        if artifact_bundle_file is not None:
+            try:
+                archive = ArtifactBundleArchive(artifact_bundle_file)
+            except Exception as exc:
+                artifact_bundle_file.seek(0)
+                logger.error(
+                    "Failed to initialize archive for the artifact bundle %s",
+                    artifact_bundle_file.id,
+                    exc_info=exc,
+                    extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
+                )
+            else:
+                with archive:
+                    try:
+                        fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
+                    except Exception as exc:
+                        logger.error(
+                            "File with debug id %s and source type %s not found in artifact bundle %s",
+                            debug_id,
+                            source_file_type,
+                            artifact_bundle_file.id,
+                            exc_info=exc,
+                        )
+                        cache.set(cache_key, -1, 60)
+                        return None
+                    else:
+                        result = fetch_and_cache_artifact(
+                            result_url,
+                            lambda: fp,
+                            cache_key,
+                            cache_key_meta,
+                            headers,
+                            compress_fn=compress,
+                        )
+                        return result
+
+        return None
 
     def fetch_by_url(self, url):
         """
