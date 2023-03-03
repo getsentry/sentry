@@ -34,7 +34,6 @@ interface MatchCallable {
 type AsyncDelay = undefined | number;
 type ResponseType = ApiNamespace.ResponseMeta & {
   body: any;
-
   callCount: 0;
   headers: Record<string, string>;
   match: MatchCallable[];
@@ -46,6 +45,8 @@ type ResponseType = ApiNamespace.ResponseMeta & {
    *
    * Set to `null` to disable the async delay
    * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This will override `MockApiClient.asyncDelay` for this request.
    */
   asyncDelay?: AsyncDelay;
 };
@@ -81,7 +82,12 @@ class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
   /**
-   * Default value, if nothing is passed in to addMockResponse
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This is the global/default value. `addMockResponse` can override per request.
    */
   static asyncDelay: AsyncDelay = undefined;
 

@@ -66,6 +66,7 @@ const EXPECT_ISSUE_CRUMB = expect.objectContaining({
 describe('useReplayData', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
+    MockApiClient.asyncDelay;
   });
 
   it('should fetch the data for a given project + replayId + org', async () => {
