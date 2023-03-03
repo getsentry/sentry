@@ -144,7 +144,8 @@ class Monitor(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitor"
-        index_together = (("organization_id", "slug"), ("type", "next_checkin"))
+        index_together = (("type", "next_checkin"),)
+        unique_together = (("organization_id", "slug"),)
 
     __repr__ = sane_repr("guid", "project_id", "name")
 
@@ -155,7 +156,7 @@ class Monitor(Model):
         # NOTE: We ONLY set a slug while saving when creating a new monitor and
         # the slug has not been set. Otherwise existing monitors without slugs
         # would have their guids changed
-        if self._state.adding is True and self.slug == "":
+        if self._state.adding is True and not self.slug:
             self.guid = uuid4()
             self.slug = str(self.guid)
         return super().save(*args, **kwargs)

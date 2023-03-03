@@ -1066,14 +1066,10 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable performance spans in flamecharts
-    "organizations:profiling-flamechart-spans": False,
     # Enable flamegraph view for profiling
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling dashboard redesign
-    "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling aggregate flamegraph
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
@@ -2667,6 +2663,7 @@ KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
+KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 
@@ -2715,6 +2712,7 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
+    KAFKA_INGEST_MONITORS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog

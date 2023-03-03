@@ -20,7 +20,13 @@ import commonTheme from 'sentry/utils/theme';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 
-import {IntervalConfig, Monitor, MonitorConfig, MonitorType, ScheduleType} from './types';
+import {
+  IntervalConfig,
+  Monitor,
+  MonitorConfig,
+  MonitorType,
+  ScheduleType,
+} from '../types';
 
 const SCHEDULE_TYPES: SelectValue<ScheduleType>[] = [
   {value: ScheduleType.CRONTAB, label: 'Crontab'},
