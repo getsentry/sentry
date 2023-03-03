@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface ListeItemProps extends React.HTMLAttributes<HTMLLIElement> {
   padding?: string;

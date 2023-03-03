@@ -72,28 +72,31 @@ function withDomainRedirect<P extends RouteComponentProps<{}, {}>>(
         window.location.search
       }${window.location.hash}`;
 
-      const paramOrgId = (params as any).orgId ?? '';
-      const referrer = decodeScalar(qs.parse(window.location.search).referrer ?? '');
+      // This is really noisy, so collect a subset.
+      const referrer = decodeScalar(qs.parse(window.location.search).referrer, '');
+      if (Math.random() < 0.2 || referrer !== '') {
+        const paramOrgId = (params as any).orgId ?? '';
 
-      Sentry.withScope(function (scope) {
-        const wrongOrgId = paramOrgId !== customerDomain.subdomain ? 'yes' : 'no';
-        scope.setTag('isCustomerDomain', 'yes');
-        scope.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
-        scope.setTag('customerDomain.referrer', referrer);
-        scope.setTag('customerDomain.subdomain', customerDomain.subdomain);
-        scope.setTag('customerDomain.fromRoute', fullRoute);
-        scope.setTag('customerDomain.redirectRoute', orglessSlugRoute);
-        scope.setTag('customerDomain.wrongOrgId', wrongOrgId);
-        scope.setTag('customerDomain.paramOrgId', paramOrgId);
-        scope.setContext('customerDomain', {
-          customerDomain,
-          fullRoute,
-          orglessSlugRoute,
-          redirectOrgURL,
-          routeParams: params,
+        Sentry.withScope(function (scope) {
+          const wrongOrgId = paramOrgId !== customerDomain.subdomain ? 'yes' : 'no';
+          scope.setTag('isCustomerDomain', 'yes');
+          scope.setTag('customerDomain.organizationUrl', customerDomain.organizationUrl);
+          scope.setTag('customerDomain.referrer', referrer);
+          scope.setTag('customerDomain.subdomain', customerDomain.subdomain);
+          scope.setTag('customerDomain.fromRoute', fullRoute);
+          scope.setTag('customerDomain.redirectRoute', orglessSlugRoute);
+          scope.setTag('customerDomain.wrongOrgId', wrongOrgId);
+          scope.setTag('customerDomain.paramOrgId', paramOrgId);
+          scope.setContext('customerDomain', {
+            customerDomain,
+            fullRoute,
+            orglessSlugRoute,
+            redirectOrgURL,
+            routeParams: params,
+          });
+          Sentry.captureMessage('Redirect with :orgId param on customer domain');
         });
-        Sentry.captureMessage('Redirect with :orgId param on customer domain');
-      });
+      }
 
       // Redirect to a route path with :orgId omitted.
       return <Redirect to={redirectOrgURL} router={props.router} />;

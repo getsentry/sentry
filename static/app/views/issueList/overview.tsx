@@ -26,7 +26,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -838,17 +838,6 @@ class IssueListOverview extends Component<Props, State> {
     });
   }
 
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
-
-    this.onSearch(query);
-  };
-
   onSearch = (query: string) => {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
@@ -1147,28 +1136,14 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
+    const numIssuesOnPage = groupIds.length;
 
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
     const displayCount = tct('[count] of [total]', {
-      count: pageCount,
+      count: numIssuesOnPage,
       total: (
         <StyledQueryCount
           hideParens
@@ -1199,16 +1174,11 @@ class IssueListOverview extends Component<Props, State> {
           onRealtimeChange={this.onRealtimeChange}
           router={router}
           displayReprocessingTab={showReprocessingTab}
-          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <StyledBody>
           <StyledMain>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              onSearch={this.onSearch}
-            />
+            <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
               <IssueListActions
@@ -1290,17 +1260,9 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(max-content, 1fr);
-  grid-template-areas:
-    'saved-searches'
-    'content';
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: 1fr;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'content saved-searches';
-  }
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`

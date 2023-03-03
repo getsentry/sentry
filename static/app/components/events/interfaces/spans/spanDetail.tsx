@@ -30,7 +30,7 @@ import {
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
@@ -45,6 +45,7 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
+import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
@@ -343,12 +344,20 @@ function SpanDetail(props: Props) {
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          <InlineDocs
-            orgSlug={organization.slug}
-            platform={event.sdk?.name || ''}
-            projectSlug={event?.projectSlug ?? ''}
-            resetCellMeasureCache={resetCellMeasureCache}
-          />
+          {organization.features.includes('profiling-previews') ? (
+            <GapSpanDetails
+              event={event}
+              span={span}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          ) : (
+            <InlineDocs
+              orgSlug={organization.slug}
+              platform={event.sdk?.name || ''}
+              projectSlug={event?.projectSlug ?? ''}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          )}
         </SpanDetails>
       );
     }
@@ -369,10 +378,6 @@ function SpanDetail(props: Props) {
 
     const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
       value => value === 0
-    );
-
-    const flamechartSpanFeatureEnabled = organization.features.includes(
-      'profiling-flamechart-spans'
     );
 
     return (
@@ -416,7 +421,7 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
+              {profileId && event.projectSlug && (
                 <Row
                   title="Profile ID"
                   extra={

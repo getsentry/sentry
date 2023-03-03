@@ -7,8 +7,8 @@ import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {AvatarProject, Commit, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -72,14 +72,18 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
   };
 
   const commits = getUniqueCommitsWithAuthors();
+
+  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
+
   return (
     <DataSection>
       <CauseHeader>
-        <h3 data-test-id="event-cause">
-          {t('Suspect Commits')} ({commits.length})
-        </h3>
+        <h3 data-test-id="event-cause">{commitHeading}</h3>
         {commits.length > 1 && (
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)}>
+          <ExpandButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-test-id="expand-commit-list"
+          >
             {isExpanded ? (
               <Fragment>
                 {t('Show less')} <IconSubtract isCircled size="md" />

@@ -5,7 +5,7 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {Tooltip} from 'sentry/components/tooltip';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ExceptionType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
@@ -55,7 +55,7 @@ export function Content({
   }
 
   const shouldDebugFrames = debugFramesEnabled({
-    platform,
+    sdkName: event.sdk?.name,
     organization,
     eventId: event.id,
     projectSlug,
@@ -93,9 +93,9 @@ export function Content({
         )}
         <ErrorBoundary mini>
           <Fragment>
-            {!shouldDebugFrames && <SetupSourceMapsAlert event={event} />}
+            {!shouldDebugFrames && excIdx === 0 && <SetupSourceMapsAlert event={event} />}
             {hasSourcemapDebug && (
-              <SourceMapDebug debugFrames={debugFrames} platform={platform} />
+              <SourceMapDebug debugFrames={debugFrames} event={event} />
             )}
           </Fragment>
         </ErrorBoundary>

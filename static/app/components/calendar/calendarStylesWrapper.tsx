@@ -3,7 +3,7 @@ import 'react-date-range/dist/theme/default.css';
 
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const CalendarStylesWrapper = styled('div')`
   padding: ${space(3)};

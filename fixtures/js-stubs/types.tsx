@@ -24,6 +24,7 @@ type TestStubFixtures = {
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
   BuiltInSymbolSources: OverridableStubList;
+  CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
@@ -68,9 +69,6 @@ type TestStubFixtures = {
   Members: OverridableStubList;
   MetricRule: OverridableStub;
   MetricsField: OverridableStub;
-  MetricsFieldByMeasurementRating: OverridableStub;
-  MetricsFieldByTransactionStatus: OverridableStub;
-  MetricsFieldsByMeasurementRating: OverridableStub;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;

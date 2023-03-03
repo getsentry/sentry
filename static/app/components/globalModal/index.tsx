@@ -10,7 +10,7 @@ import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -270,7 +270,7 @@ Modal.defaultProps = {
 
 const Content = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: 8px;
+  border-radius: ${p => p.theme.modalBorderRadius};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};

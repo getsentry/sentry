@@ -109,14 +109,27 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         settings = _load_filter_settings(flt, project)
         filter_settings[filter_id] = settings
 
+    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+    enable_react = project.get_option("filters:react-hydration-errors")
+    if enable_react:
+        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
+        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
+        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
+        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+        # 425 - Text content does not match server-rendered HTML.
+        error_messages += [
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+        ]
+
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
@@ -162,7 +175,10 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     ):
-        return {"rules": generate_rules(project)}
+        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
+        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
+        return {"rules": [], "rulesV2": generate_rules(project)}
+
     return None
 
 
@@ -546,11 +562,6 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
     )
 
 
-def _accept_transaction_names_strategy(project: Project) -> TransactionNameStrategy:
-    is_selected_org = sample_modulo("relay.transaction-names-client-based", project.organization_id)
-    return "clientBased" if is_selected_org else "strict"
-
-
 def get_transaction_metrics_settings(
     project: Project, breakdowns_config: Optional[Mapping[str, Any]]
 ) -> TransactionMetricsSettings:
@@ -594,5 +605,5 @@ def get_transaction_metrics_settings(
         "extractMetrics": metrics,
         "extractCustomTags": custom_tags,
         "customMeasurements": {"limit": CUSTOM_MEASUREMENT_LIMIT},
-        "acceptTransactionNames": _accept_transaction_names_strategy(project),
+        "acceptTransactionNames": "clientBased",
     }

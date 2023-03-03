@@ -14,6 +14,7 @@ export type StepProps = Pick<
 > & {
   active: boolean;
   genSkipOnboardingLink: () => React.ReactNode;
+  jumpToSetupProject: () => void;
   onComplete: () => void;
   orgId: string;
   organization: Organization;

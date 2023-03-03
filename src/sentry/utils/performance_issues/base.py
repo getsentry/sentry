@@ -2,15 +2,27 @@ from __future__ import annotations
 
 import hashlib
 import random
+import re
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from enum import Enum
 from typing import Any, Dict, List
+from urllib.parse import urlparse
 
 from sentry import options
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceFileIOMainThreadGroupType,
+    PerformanceMNPlusOneDBQueriesGroupType,
+    PerformanceNPlusOneAPICallsGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+    PerformanceUncompressedAssetsGroupType,
+)
 from sentry.models import Organization, Project
-from sentry.types.issues import GroupType
 
 from .types import PerformanceProblemsMap, Span
 
@@ -22,21 +34,23 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
+    CONSECUTIVE_HTTP_OP = "consecutive_http"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
-    DetectorType.SLOW_DB_QUERY: GroupType.PERFORMANCE_SLOW_DB_QUERY,
-    DetectorType.RENDER_BLOCKING_ASSET_SPAN: GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN,
-    DetectorType.N_PLUS_ONE_DB_QUERIES: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.N_PLUS_ONE_API_CALLS: GroupType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-    DetectorType.CONSECUTIVE_DB_OP: GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-    DetectorType.FILE_IO_MAIN_THREAD: GroupType.PERFORMANCE_FILE_IO_MAIN_THREAD,
-    DetectorType.M_N_PLUS_ONE_DB: GroupType.PERFORMANCE_M_N_PLUS_ONE_DB_QUERIES,
-    DetectorType.UNCOMPRESSED_ASSETS: GroupType.PERFORMANCE_UNCOMPRESSED_ASSETS,
+    DetectorType.SLOW_DB_QUERY: PerformanceSlowDBQueryGroupType,
+    DetectorType.RENDER_BLOCKING_ASSET_SPAN: PerformanceRenderBlockingAssetSpanGroupType,
+    DetectorType.N_PLUS_ONE_DB_QUERIES: PerformanceNPlusOneGroupType,
+    DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: PerformanceNPlusOneGroupType,
+    DetectorType.N_PLUS_ONE_API_CALLS: PerformanceNPlusOneAPICallsGroupType,
+    DetectorType.CONSECUTIVE_DB_OP: PerformanceConsecutiveDBQueriesGroupType,
+    DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
+    DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
+    DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
+    DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
 }
 
 
@@ -50,6 +64,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
+    DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
 }
 
 
@@ -177,3 +192,28 @@ def fingerprint_span(span: Span):
     ]  # 80 bits. Not a cryptographic usage, we don't need all of the sha1 for collision detection
 
     return fingerprint
+
+
+# Finds dash-separated UUIDs. (Without dashes will be caught by
+# ASSET_HASH_REGEX).
+UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
+# Preserves filename in e.g. main.[hash].js, but includes number when chunks
+# are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
+CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
+# Finds trailing hashes before the final extension.
+TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+# Looks for anything hex hash-like, but with a larger min size than the
+# above to limit false positives.
+ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
+
+
+# Creates a stable fingerprint for resource spans from their description (url), removing common cache busting tokens.
+def fingerprint_resource_span(span: Span):
+    url = urlparse(span.get("description") or "")
+    path = url.path
+    path = UUID_REGEX.sub("*", path)
+    path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
+    path = TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+    path = ASSET_HASH_REGEX.sub("*", path)
+    stripped_url = url._replace(path=path, query="").geturl()
+    return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()

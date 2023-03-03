@@ -15,6 +15,7 @@ from typing import (
     Optional,
     Protocol,
     Sequence,
+    Set,
     Tuple,
     TypedDict,
     Union,
@@ -33,8 +34,8 @@ from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import (
-    ActorTuple,
     Commit,
     Environment,
     Group,
@@ -49,7 +50,6 @@ from sentry.models import (
     GroupSnooze,
     GroupStatus,
     GroupSubscription,
-    SentryAppInstallationToken,
     Team,
     User,
 )
@@ -65,14 +65,14 @@ from sentry.notifications.helpers import (
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
-from sentry.search.events.filter import convert_search_filter_to_snuba_query
+from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
+from sentry.services.hybrid_cloud.auth import AuthenticatedToken, auth_service
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tagstore.snuba.backend import fix_tag_value_data
 from sentry.tagstore.types import GroupTagValue
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupCategory
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
 from sentry.utils.safe import safe_execute
@@ -183,19 +183,26 @@ class GroupSerializerBase(Serializer, ABC):
         self.collapse = collapse
         self.expand = expand
 
-    def _serialize_assigness(
-        self, actor_dict: Mapping[int, ActorTuple]
-    ) -> Mapping[int, Union[Team, Any]]:
-        actors_by_type: MutableMapping[Any, List[ActorTuple]] = defaultdict(list)
-        for actor in actor_dict.values():
-            actors_by_type[actor.type].append(actor)
+    def _serialize_assignees(self, item_list: Sequence[Group]) -> Mapping[int, Union[Team, Any]]:
+        gas = GroupAssignee.objects.filter(group__in=item_list)
+        result: MutableMapping[int, Union[Team, Any]] = {}
+        all_team_ids: MutableMapping[int, Set[int]] = defaultdict(set)
+        all_user_ids: MutableMapping[int, Set[int]] = defaultdict(set)
 
-        resolved_actors = {}
-        for t, actors in actors_by_type.items():
-            serializable = ActorTuple.resolve_many(actors)
-            resolved_actors[t] = {actor.id: actor for actor in serializable}
+        for g in gas:
+            if g.team_id:
+                all_team_ids[g.team_id].add(g.group_id)
+            if g.user_id:
+                all_user_ids[g.user_id].add(g.group_id)
 
-        return {key: resolved_actors[value.type][value.id] for key, value in actor_dict.items()}
+        for team in Team.objects.filter(id__in=all_team_ids.keys()):
+            for group_id in all_team_ids[team.id]:
+                result[group_id] = team
+        for user in user_service.get_many(filter=dict(user_ids=list(all_user_ids.keys()))):
+            for group_id in all_user_ids[user.id]:
+                result[group_id] = user
+
+        return result
 
     def get_attrs(
         self, item_list: Sequence[Group], user: Any, **kwargs: Any
@@ -223,11 +230,7 @@ class GroupSerializerBase(Serializer, ABC):
             seen_groups = {}
             subscriptions = defaultdict(lambda: (False, False, None))
 
-        assignees: Mapping[int, ActorTuple] = {
-            a.group_id: a.assigned_actor()
-            for a in GroupAssignee.objects.filter(group__in=item_list)
-        }
-        resolved_assignees = self._serialize_assigness(assignees)
+        resolved_assignees = self._serialize_assignees(item_list)
 
         ignore_items = {g.group_id: g for g in GroupSnooze.objects.filter(group__in=item_list)}
 
@@ -353,7 +356,7 @@ class GroupSerializerBase(Serializer, ABC):
             "subscriptionDetails": subscription_details,
             "hasSeen": attrs["has_seen"],
             "annotations": attrs["annotations"],
-            "issueType": obj.issue_type.name.lower(),
+            "issueType": obj.issue_type.slug,
             "issueCategory": obj.issue_category.name.lower(),
         }
 
@@ -719,8 +722,9 @@ class GroupSerializerBase(Serializer, ABC):
             and getattr(request.user, "is_sentry_app", False)
             and is_api_token_auth(request.auth)
         ):
-            if SentryAppInstallationToken.objects.has_organization_access(
-                request.auth, organization_id
+
+            if auth_service.token_has_org_access(
+                token=AuthenticatedToken.from_token(request.auth), organization_id=organization_id
             ):
                 return True
 
@@ -895,7 +899,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
         from sentry.search.snuba.executors import get_search_filter
 
         self.environment_ids = environment_ids
-
+        self.organization_id = organization_id
         # XXX: We copy this logic from `PostgresSnubaQueryExecutor.query`. Ideally we
         # should try and encapsulate this logic, but if you're changing this, change it
         # there as well.
@@ -909,22 +913,36 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if end_params:
             self.end = min(end_params)
 
-        self.conditions = (
-            [
-                convert_search_filter_to_snuba_query(
-                    search_filter,
-                    params={
-                        "organization_id": organization_id,
-                        "project_id": project_ids,
-                        "environment_id": environment_ids,
-                    },
-                )
-                for search_filter in search_filters
-                if search_filter.key.name not in self.skip_snuba_fields
-            ]
-            if search_filters is not None
-            else []
-        )
+        conditions = []
+        if search_filters is not None:
+            for search_filter in search_filters:
+                if search_filter.key.name not in self.skip_snuba_fields:
+                    formatted_conditions, projects_to_filter, group_ids = format_search_filter(
+                        search_filter,
+                        params={
+                            "organization_id": organization_id,
+                            "project_id": project_ids,
+                            "environment_id": environment_ids,
+                        },
+                    )
+
+                    # if no re-formatted conditions, use fallback method
+                    new_condition = None
+                    if formatted_conditions:
+                        new_condition = formatted_conditions[0]
+                    elif group_ids:
+                        new_condition = convert_search_filter_to_snuba_query(
+                            search_filter,
+                            params={
+                                "organization_id": organization_id,
+                                "project_id": project_ids,
+                                "environment_id": environment_ids,
+                            },
+                        )
+
+                    if new_condition:
+                        conditions.append(new_condition)
+        self.conditions = conditions
 
     def _seen_stats_error(
         self, error_issue_list: Sequence[Group], user

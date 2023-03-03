@@ -2,12 +2,13 @@ import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, Query} from 'history';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
@@ -77,7 +78,7 @@ export function transactionSummaryRouteWithQuery({
   orgSlug: string;
   query: Query;
   transaction: string;
-  additionalQuery?: Record<string, string>;
+  additionalQuery?: Record<string, string | undefined>;
   display?: DisplayModes;
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
@@ -149,6 +150,24 @@ export function generateTransactionLink(transactionName: string) {
       query,
       spanId
     );
+  };
+}
+
+export function generateProfileLink() {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query | undefined
+  ) => {
+    const profileId = tableRow['profile.id'];
+    if (!profileId) {
+      return {};
+    }
+    return generateProfileFlamechartRoute({
+      orgSlug: organization.slug,
+      projectSlug: String(tableRow['project.name']),
+      profileId: String(profileId),
+    });
   };
 }
 

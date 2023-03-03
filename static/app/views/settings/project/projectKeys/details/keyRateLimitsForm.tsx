@@ -10,7 +10,7 @@ import FormField from 'sentry/components/forms/formField';
 import InputControl from 'sentry/components/input';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';

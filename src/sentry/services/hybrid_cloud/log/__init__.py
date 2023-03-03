@@ -1,3 +1,8 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
 import abc
 import datetime
 from dataclasses import dataclass
@@ -20,7 +25,7 @@ class UserIpEvent:
 class AuditLogEvent:
     organization_id: int = -1
     # 'datetime' is apparently reserved attribute name for dataclasses.
-    time_of_creation: datetime.datetime = datetime.datetime(2000, 1, 1)
+    date_added: datetime.datetime = datetime.datetime(2000, 1, 1)
     event_id: int = -1
     actor_label: str = ""
     actor_user_id: Optional[int] = None

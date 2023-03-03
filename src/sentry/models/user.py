@@ -14,6 +14,7 @@ from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
 from bitfield import BitField
+from sentry.auth.authenticators import available_authenticators
 from sentry.db.models import (
     BaseManager,
     BaseModel,
@@ -22,9 +23,11 @@ from sentry.db.models import (
     control_silo_only_model,
     sane_repr,
 )
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import LostPasswordHash
+from sentry.models.authenticator import Authenticator
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils.http import absolute_uri
 
@@ -197,10 +200,13 @@ class User(BaseModel, AbstractBaseUser):
     def delete(self):
         if self.username == "sentry":
             raise Exception('You cannot delete the "sentry" user as it is required by Sentry.')
-        avatar = self.avatar.first()
-        if avatar:
-            avatar.delete()
-        return super().delete()
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            avatar = self.avatar.first()
+            if avatar:
+                avatar.delete()
+            for outbox in User.outboxes_for_update(self.id):
+                outbox.save()
+            return super().delete()
 
     def save(self, *args, **kwargs):
         if not self.username:
@@ -214,6 +220,11 @@ class User(BaseModel, AbstractBaseUser):
     def has_module_perms(self, app_label):
         warnings.warn("User.has_module_perms is deprecated", DeprecationWarning)
         return self.is_superuser
+
+    def has_2fa(self):
+        return Authenticator.objects.filter(
+            user_id=self.id, type__in=[a.type for a in available_authenticators(ignore_backup=True)]
+        ).exists()
 
     def get_unverified_emails(self):
         return self.emails.filter(is_verified=False)
@@ -354,22 +365,22 @@ class User(BaseModel, AbstractBaseUser):
 
         model_list = (
             Authenticator,
+            Identity,
+            UserAvatar,
+            UserEmail,
+            UserOption,
             GroupAssignee,
             GroupBookmark,
             GroupSeen,
             GroupShare,
             GroupSubscription,
-            Identity,
-            UserAvatar,
-            UserEmail,
-            UserOption,
         )
 
         for model in model_list:
-            for obj in model.objects.filter(user=from_user):
+            for obj in model.objects.filter(user_id=from_user.id):
                 try:
                     with transaction.atomic():
-                        obj.update(user=to_user)
+                        obj.update(user_id=to_user.id)
                 except IntegrityError:
                     pass
 
@@ -438,7 +449,7 @@ def refresh_user_nonce(sender, request, user, **kwargs):
     user.save(update_fields=["session_nonce"])
 
 
-@receiver(user_logged_out, sender=APIUser)
+@receiver(user_logged_out, sender=RpcUser)
 def refresh_api_user_nonce(sender, request, user, **kwargs):
     if user is None:
         return

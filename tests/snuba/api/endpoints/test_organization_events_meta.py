@@ -6,10 +6,10 @@ from django.utils import timezone
 from pytz import utc
 from rest_framework.exceptions import ParseError
 
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 pytestmark = pytest.mark.sentry_metrics
@@ -117,7 +117,7 @@ class OrganizationEventsMetaEndpoint(APITestCase, SnubaTestCase, SearchIssueTest
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )

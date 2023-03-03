@@ -27,7 +27,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
     colorCoding: 'by symbol name',
     sorting: 'call order',
     view: 'top down',
-    xAxis: 'profile',
+    xAxis: 'transaction',
     layout: 'table bottom',
   },
   search: {

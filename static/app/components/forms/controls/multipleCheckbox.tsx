@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
 import Checkbox from 'sentry/components/checkbox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type CheckboxValue = string | number;
 

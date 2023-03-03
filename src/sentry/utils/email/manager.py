@@ -6,7 +6,7 @@ from typing import Iterable, List, Mapping
 from sentry.models import Project, UserEmail
 
 from ...services.hybrid_cloud.user import user_service
-from ...services.hybrid_cloud.user_option import ApiUserOption, user_option_service
+from ...services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from .faker import is_fake_email
 
 logger = logging.getLogger("sentry.mail")
@@ -23,10 +23,10 @@ def get_email_addresses(
     results = {}
 
     if project:
-        to_delete: List[ApiUserOption] = []
-        options = user_option_service.query_options(
-            user_ids=pending, project_id=project.id, keys=["mail:email"]
-        ).options
+        to_delete: List[RpcUserOption] = []
+        options = user_option_service.get_many(
+            filter={"user_ids": pending, "project_id": project.id, "keys": ["mail:email"]}
+        )
         for option in (o for o in options if o.value and not is_fake_email(o.value)):
             if UserEmail.objects.filter(user_id=option.user_id, email=option.value).exists():
                 results[option.user_id] = option.value

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import FeatureBadge from 'sentry/components/featureBadge';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type MetaDataProps = {
   bodyText: React.ReactNode;
@@ -39,7 +39,7 @@ export function MetaData({
 }
 
 const HeaderInfo = styled('div')`
-  height: 78px;
+  min-height: 78px;
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`
