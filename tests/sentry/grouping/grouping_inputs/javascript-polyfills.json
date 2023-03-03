@@ -1,0 +1,33 @@
+{
+  "platform": "javascript",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "bad",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "e.<anonymous>",
+              "module": "@babel/runtime/helpers/asyncToGenerator",
+              "lineno": 21,
+              "colno": 12
+            },
+            {
+              "function": "listener",
+              "module": "core-js/internals/task",
+              "lineno": 46,
+              "colno": 3
+            },
+            {
+              "function": "_.sent",
+              "module": "tslib/tslib.es6",
+              "lineno": 81,
+              "colno": 77
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

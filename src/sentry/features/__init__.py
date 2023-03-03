@@ -134,10 +134,8 @@ default_manager.add("organizations:performance-new-widget-designs", Organization
 default_manager.add("organizations:performance-metrics-backed-transaction-summary", OrganizationFeature, True)
 default_manager.add("organizations:performance-slow-db-issue", OrganizationFeature)
 default_manager.add("organizations:profiling", OrganizationFeature)
-default_manager.add("organizations:profiling-flamechart-spans", OrganizationFeature, True)
 default_manager.add("organizations:profiling-flamegraphs", OrganizationFeature, True)
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
-default_manager.add("organizations:profiling-dashboard-redesign", OrganizationFeature, True)
 default_manager.add("organizations:profiling-aggregate-flamegraph", OrganizationFeature, True)
 default_manager.add("organizations:profiling-previews", OrganizationFeature, True)
 default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, True)
@@ -229,6 +227,7 @@ default_manager.add("organizations:derive-code-mappings", OrganizationFeature)
 default_manager.add("organizations:derive-code-mappings-dry-run", OrganizationFeature)
 default_manager.add("organizations:codecov-stacktrace-integration", OrganizationFeature, True)
 default_manager.add("organizations:codecov-stacktrace-integration-v2", OrganizationFeature, True)
+default_manager.add("organizations:auto-enable-codecov", OrganizationFeature)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, True)
 
 # Project scoped features

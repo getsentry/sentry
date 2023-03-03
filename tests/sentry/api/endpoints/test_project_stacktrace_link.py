@@ -392,21 +392,22 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
         )
         mock_blame.return_value = []
 
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={"file": self.filepath, "lineNo": 26},
-        )
-
-        # Error logging means an error is sent to Sentry
-        assert self._caplog.record_tuples == [
-            (
-                "sentry.api.endpoints.project_stacktrace_link",
-                logging.ERROR,
-                "Failed to get commit from git blame.",
+        with pytest.raises(Exception):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                qs_params={"file": self.filepath, "lineNo": 26},
             )
-        ]
-        assert response.data.get("codecov") is None
+
+            # Error logging means an error is sent to Sentry
+            assert self._caplog.record_tuples == [
+                (
+                    "sentry.api.endpoints.project_stacktrace_link",
+                    logging.ERROR,
+                    "Failed to get commit from git blame.",
+                )
+            ]
+            assert response.data.get("codecov") == {"status": 204}
 
     @patch.object(
         ExampleIntegration,
@@ -527,11 +528,12 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def test_codecov_new_endpoint(self, mock_integration):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
+                "line_coverage": self.expected_line_coverage,
                 "commit_file_url": self.expected_codecov_url,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )
