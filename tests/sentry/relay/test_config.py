@@ -169,6 +169,7 @@ def test_project_config_uses_filter_features(
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
+    default_project.update_option("filters:react-hydration-errors", False)
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)

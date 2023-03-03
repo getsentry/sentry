@@ -59,6 +59,7 @@ OPTION_KEYS = frozenset(
         "digests:mail:maximum_delay",
         "mail:subject_prefix",
         "mail:subject_template",
+        "filters:react-hydration-errors",
     ]
 )
 
