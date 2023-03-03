@@ -14,7 +14,7 @@ const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void =>
     return;
   }
 
-  if (asyncDelay !== null) {
+  if (asyncDelay !== undefined) {
     setTimeout(() => fn(...args), asyncDelay);
     return;
   }
@@ -137,8 +137,8 @@ class Client implements ApiNamespace.Client {
         method: 'GET',
         callCount: 0,
         match: [],
-        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         ...response,
+        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
