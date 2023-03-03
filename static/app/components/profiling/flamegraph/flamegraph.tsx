@@ -72,19 +72,30 @@ import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
 function getTransactionConfigSpace(
   profileGroup: ProfileGroup,
-  startedAt: number,
+  transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
 ): Rect {
+  // We have a transaction, so we should do our best to align the profile
+  // with the transaction's timeline.
+  if (transaction) {
+    // TODO: Adjust the alignment based on the profile's timestamp if it does
+    // not match the transaction's start timestamp
+    const duration = transaction.endTimestamp - transaction.startTimestamp;
+    return new Rect(0, 0, formatTo(duration, 'seconds', unit), 0);
+  }
+
+  // No transaction was found, so best we can do is align it to the starting
+  // position of the profiles
   const duration = profileGroup.metadata.durationNS;
 
   // If durationNs is present, use it
   if (typeof duration === 'number') {
-    return new Rect(startedAt, 0, formatTo(duration, 'nanoseconds', unit), 0);
+    return new Rect(0, 0, formatTo(duration, 'nanoseconds', unit), 0);
   }
 
   // else fallback to Math.max of profile durations
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
-  return new Rect(startedAt, 0, maxProfileDuration, 0);
+  return new Rect(0, 0, maxProfileDuration, 0);
 }
 
 function collectAllSpanEntriesFromTransaction(
@@ -162,7 +173,7 @@ function Flamegraph(): ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
-  const {colorCoding, sorting, view, type, xAxis} = useFlamegraphPreferences();
+  const {colorCoding, sorting, view, xAxis} = useFlamegraphPreferences();
   const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
@@ -225,6 +236,15 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
+    // Wait for the transaction to finish loading, regardless of the results.
+    // Otherwise, the rendered profile will probably shift once the transaction loads.
+    if (
+      profiledTransaction.type === 'loading' ||
+      profiledTransaction.type === 'initial'
+    ) {
+      return LOADING_OR_FALLBACK_FLAMEGRAPH;
+    }
+
     const transaction = Sentry.startTransaction({
       op: 'import',
       name: 'flamegraph.constructor',
@@ -238,13 +258,17 @@ function Flamegraph(): ReactElement {
       sort: sorting,
       configSpace:
         xAxis === 'transaction'
-          ? getTransactionConfigSpace(profileGroup, profile.startedAt, profile.unit)
+          ? getTransactionConfigSpace(
+              profileGroup,
+              profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+              profile.unit
+            )
           : undefined,
     });
     transaction.finish();
 
     return newFlamegraph;
-  }, [profile, profileGroup, sorting, threadId, view, xAxis]);
+  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view, xAxis]);
 
   const uiFrames = useMemo(() => {
     if (!hasUIFrames) {
@@ -677,8 +701,18 @@ function Flamegraph(): ReactElement {
     [flamegraphRenderer]
   );
 
+  const physicalToConfig =
+    flamegraphView && flamegraphCanvas
+      ? mat3.invert(
+          mat3.create(),
+          flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace)
+        )
+      : mat3.create();
+
+  const configSpacePixel = new Rect(0, 0, 1, 1).transformRect(physicalToConfig);
+
   // Register keyboard navigation
-  useViewKeyboardNavigation(flamegraphView, canvasPoolManager);
+  useViewKeyboardNavigation(flamegraphView, canvasPoolManager, configSpacePixel.width);
 
   // referenceNode is passed down to the flamegraphdrawer and is used to determine
   // the weights of each frame. In other words, in case there is no user selected root, then all
@@ -713,13 +747,6 @@ function Flamegraph(): ReactElement {
   const onThreadIdChange: FlamegraphThreadSelectorProps['onThreadIdChange'] = useCallback(
     newThreadId => {
       dispatch({type: 'set thread id', payload: newThreadId});
-    },
-    [dispatch]
-  );
-
-  const onTypeChange: FlamegraphViewSelectMenuProps['onTypeChange'] = useCallback(
-    newView => {
-      dispatch({type: 'set type', payload: newView});
     },
     [dispatch]
   );
@@ -819,12 +846,10 @@ function Flamegraph(): ReactElement {
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
-          type={type}
           view={view}
           sorting={sorting}
           onSortingChange={onSortingChange}
           onViewChange={onViewChange}
-          onTypeChange={onTypeChange}
         />
         <FlamegraphSearch
           spans={spans}
@@ -836,7 +861,7 @@ function Flamegraph(): ReactElement {
 
       <FlamegraphLayout
         uiFrames={
-          hasUIFrames && type === 'flamechart' ? (
+          hasUIFrames ? (
             <FlamegraphUIFrames
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
@@ -850,7 +875,7 @@ function Flamegraph(): ReactElement {
         }
         spansTreeDepth={spanChart?.depth}
         spans={
-          spanChart && type === 'flamechart' ? (
+          spanChart ? (
             <FlamegraphSpans
               canvasBounds={spansCanvasBounds}
               spanChart={spanChart}
