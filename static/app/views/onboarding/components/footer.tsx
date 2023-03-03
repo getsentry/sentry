@@ -24,7 +24,7 @@ import {usePersistedOnboardingState} from '../utils';
 
 import GenericFooter from './genericFooter';
 
-enum OnboardingStatus {
+export enum OnboardingStatus {
   WAITING = 'waiting',
   PROCESSING = 'processing',
   PROCESSED = 'processed',
@@ -99,6 +99,10 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
 
   // The explore button is only showed if Sentry has not yet received any errors OR the issue is still being processed
   const handleExploreSentry = useCallback(() => {
+    if (sessionStorage.status === OnboardingStatus.WAITING) {
+      return;
+    }
+
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
     });
@@ -107,7 +111,7 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/`,
     });
-  }, [router, organization]);
+  }, [router, organization, sessionStorage.status]);
 
   useEffect(() => {
     if (!firstError) {
@@ -194,23 +198,27 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
-      <SkipOnboardingLink
-        onClick={() => {
-          trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-            organization,
-            source: 'targeted_onboarding_first_event_footer',
-          });
-          if (clientState) {
-            setClientState({
-              ...clientState,
-              state: 'skipped',
-            });
-          }
-        }}
-        to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-      >
-        {t('Skip Onboarding')}
-      </SkipOnboardingLink>
+      <div>
+        {sessionStorage.status === OnboardingStatus.WAITING && (
+          <SkipOnboardingLink
+            onClick={() => {
+              trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+                organization,
+                source: 'targeted_onboarding_first_event_footer',
+              });
+              if (clientState) {
+                setClientState({
+                  ...clientState,
+                  state: 'skipped',
+                });
+              }
+            }}
+            to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
+          >
+            {t('Skip Onboarding')}
+          </SkipOnboardingLink>
+        )}
+      </div>
       <Statuses>
         {sessionStorage.status === OnboardingStatus.WAITING ? (
           <WaitingForErrorStatus>
@@ -237,9 +245,13 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
         ) : (
           <Button
             priority="primary"
-            disabled={!firstError}
+            disabled={sessionStorage.status === OnboardingStatus.WAITING}
             onClick={handleExploreSentry}
-            title={t('Waiting for error')}
+            title={
+              sessionStorage.status === OnboardingStatus.WAITING
+                ? t('Waiting for error')
+                : undefined
+            }
           >
             {t('Explore Sentry')}
           </Button>
