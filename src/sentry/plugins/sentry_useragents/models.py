@@ -82,6 +82,15 @@ class OsPlugin(UserAgentPlugin):
 
         version = ".".join(value for value in [ua["major"], ua["minor"], ua["patch"]] if value)
         tag = ua["family"]
+
+        # The version for Windows is capped at 10.0, so it may be newer than that
+        if tag == "Windows" and version == "10":
+            version = ">=10"
+
+        # The version for Mac OS X is capped at 10.15.7, so it may be newer than that
+        if tag == "Mac OS X" and version == "10.15.7":
+            version = ">=10.15.7"
+
         if version:
             tag += " " + version
 
