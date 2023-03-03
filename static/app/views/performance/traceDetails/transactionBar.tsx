@@ -9,6 +9,7 @@ import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/style
 import {
   getMeasurementBounds,
   transactionTargetHash,
+  VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
@@ -73,7 +74,7 @@ type Props = {
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
-  measurements?: Map<number, eerticalMark>;
+  measurements?: Map<number, VerticalMark>;
 };
 
 type State = {
