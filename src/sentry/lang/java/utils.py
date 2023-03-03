@@ -87,13 +87,13 @@ def deobfuscate_view_hierarchy(data):
     ):
         return
 
+    cache_key = cache_key_for_event(data)
+    attachments = [*attachment_cache.get(cache_key)]
+
+    if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
+        return
+
     with sentry_sdk.start_transaction(name="proguard.deobfuscate_view_hierarchy", sampled=True):
-        cache_key = cache_key_for_event(data)
-        attachments = [*attachment_cache.get(cache_key)]
-
-        if not any(attachment.type == "event.view_hierarchy" for attachment in attachments):
-            return
-
         new_attachments = []
         for attachment in attachments:
             if attachment.type == "event.view_hierarchy":
