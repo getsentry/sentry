@@ -8,6 +8,7 @@ from sentry import eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
 from sentry.utils.cache import cache
 
@@ -127,6 +128,14 @@ def describe_event_for_ai(event):
 class EventAiSuggestEndpoint(ProjectEndpoint):
     # go away
     private = True
+    enforce_rate_limit = True
+    rate_limits = {
+        "GET": {
+            RateLimitCategory.IP: RateLimit(5, 1),
+            RateLimitCategory.USER: RateLimit(5, 1),
+            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+        },
+    }
 
     def get(self, request: Request, project, event_id) -> Response:
         """
