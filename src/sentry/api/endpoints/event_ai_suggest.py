@@ -152,7 +152,10 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
         if not features.has("organizations:ai-suggest", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        cache_key = "ai:" + event_id
+        # Cache the suggestion for a certain amount by primary hash, so even when new events
+        # come into the group, we are sharing the same response.
+        cache_key = "ai:" + event.get_primary_hash()
+
         suggestion = cache.get(cache_key)
         if suggestion is None:
 
@@ -171,7 +174,7 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
             )
 
             suggestion = response["choices"][0]["message"]["content"]
-            cache.set(cache_key, suggestion, 3600)
+            cache.set(cache_key, suggestion, 300)
 
         return HttpResponse(
             json.dumps({"suggestion": suggestion}),
