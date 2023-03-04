@@ -736,6 +736,7 @@ class SnubaTagStorage(TagStorage):
             ["max", SEEN_COLUMN, "last_seen"],
         ]
         start = self.get_min_start_date(organization_id, project_ids, environment_id, versions)
+        referrer = "tagstore.get_release_tags"
         result = snuba.query(
             dataset=Dataset.Events,
             start=start,
@@ -744,7 +745,8 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             orderby="-times_seen",
-            referrer="tagstore.get_release_tags",
+            referrer=referrer,
+            tenant_ids={"organization_id": organization_id, "referrer": referrer},
         )
 
         values = []
