@@ -1,5 +1,6 @@
 import copy
 import inspect
+import logging
 import random
 
 import sentry_sdk
@@ -17,6 +18,8 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
@@ -442,11 +445,34 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
+def check_tag(tag_key: str, expected_value: str) -> bool:
+    """Detect a tag already set and being different than what we expect.
+
+    This function checks if a tag has been already been set and if it differs
+    from what we want to set it to.
+    """
+    with configure_scope() as scope:
+        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            extra = {
+                f"previous_{tag_key}": scope._tags[tag_key],
+                f"new_{tag_key}": expected_value,
+            }
+            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            return True
+
+
 def bind_organization_context(organization):
+    # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope:
+    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+        op="other", description="bind_organization_context"
+    ):
+        if check_tag("organization.slug", organization.slug):
+            # This can be used to find errors that may have been mistagged
+            scope.set_tag("possible_mistag", True)
+
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})
