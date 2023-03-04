@@ -23,24 +23,23 @@ import {SelectOption} from './types';
 
 export interface SelectContextValue {
   /**
-   * Filter function to determine whether an option should be rendered in the list box.
-   * A true return value means the option should be rendered. This function is
+   * Filter function to determine whether an option should be rendered in the select
+   * list. A true return value means the option should be rendered. This function is
    * automatically updated based on the current search string.
    */
   filterOption: (opt: SelectOption<React.Key>) => boolean;
   overlayIsOpen: boolean;
   /**
-   * Function to be called once when a list box is initialized, to register its list
-   * state in SelectContext. In composite selectors, where there can be multiple list
-   * boxes, the `index` parameter is the list box's index number (the order in which it
-   * appears). In non-composite selectors, where there's only one list box, that list
-   * box's index is 0.
+   * Function to be called once when a list is initialized, to register its state in
+   * SelectContext. In composite selectors, where there can be multiple lists, the
+   * `index` parameter is the list's index number (the order in which it appears). In
+   * non-composite selectors, where there's only one list, that list's index is 0.
    */
   registerListState: (index: number, listState: ListState<any>) => void;
   /**
-   * Function to be called when a list box's selection state changes. We need a complete
+   * Function to be called when a list's selection state changes. We need a complete
    * list of all selected options to label the trigger button. The `index` parameter
-   * indentifies the list box, in the same way as in `registerListState`.
+   * indentifies the list, in the same way as in `registerListState`.
    */
   saveSelectedOptions: (
     index: number,
@@ -68,6 +67,17 @@ export interface ControlProps extends UseOverlayProps {
    */
   clearable?: boolean;
   disabled?: boolean;
+  /**
+   * Whether to render a grid list rather than a list box.
+   *
+   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
+   * move between rows (options), and Arrow Left/Right to move between "columns". This
+   * is useful when the select options have smaller, interactive elements
+   * (buttons/links) inside. Grid lists allow users to focus on those child elements
+   * using the Arrow Left/Right keys and interact with them, which isn't possible with
+   * list boxes.
+   */
+  grid?: boolean;
   /**
    * If true, there will be a loading indicator in the menu header.
    */
@@ -145,6 +155,7 @@ export function Control({
   clearable = false,
   onClear,
   loading = false,
+  grid = false,
   children,
   ...wrapperProps
 }: ControlProps) {
@@ -187,7 +198,9 @@ export function Control({
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -196,7 +209,7 @@ export function Control({
   });
 
   /**
-   * Clears selection values across all list box states
+   * Clears selection values across all list states
    */
   const clearSelection = useCallback(() => {
     listStates.forEach(listState => listState.selectionManager.clearSelection());
@@ -212,7 +225,7 @@ export function Control({
     overlayRef,
     overlayProps,
   } = useOverlay({
-    type: 'listbox',
+    type: grid ? 'menu' : 'listbox',
     position,
     offset,
     isOpen,
@@ -223,7 +236,7 @@ export function Control({
         await new Promise(resolve => resolve(null));
 
         const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          'li[role="option"][aria-selected="true"]'
+          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
         );
 
         // Focus on first selected item
@@ -233,7 +246,9 @@ export function Control({
         }
 
         // If no item is selected, focus on first item instead
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
         return;
       }
 
@@ -399,8 +414,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1)}
-    ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
@@ -433,9 +447,10 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: 400;
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.25)};
-  margin: 0 -${space(0.25)};
+  padding: 0 ${space(0.5)};
+  margin: 0 -${space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
@@ -482,7 +497,7 @@ const StyledOverlay = styled(Overlay, {
   width?: string | number;
 }>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
-  ListBoxWrap will also shrink to fit */
+  ListBoxWrap/GridListWrap will also shrink to fit */
   display: flex;
   flex-direction: column;
   overflow: hidden;

@@ -15,11 +15,11 @@ import withRouteAnalytics, {
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import MonitorCheckIns from './monitorCheckIns';
-import MonitorHeader from './monitorHeader';
-import MonitorIssues from './monitorIssues';
-import MonitorStats from './monitorStats';
-import MonitorOnboarding from './onboarding';
+import MonitorCheckIns from './components/monitorCheckIns';
+import MonitorHeader from './components/monitorHeader';
+import MonitorIssues from './components/monitorIssues';
+import MonitorStats from './components/monitorStats';
+import MonitorOnboarding from './components/onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &

@@ -2,21 +2,22 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from rest_framework import status
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, Project, ProjectStatus
+from sentry.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    Organization,
+    Project,
+    ProjectStatus,
+)
 from sentry.utils.sdk import bind_organization_context, configure_scope
-
-
-class InvalidAuthProject(Exception):
-    pass
 
 
 class OrganizationMonitorPermission(OrganizationPermission):
@@ -53,27 +54,57 @@ class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
 
-    @staticmethod
-    def respond_invalid() -> Response:
-        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
+    def convert_args(
+        self,
+        request: Request,
+        monitor_id: str,
+        organization_slug: str | None = None,
+        *args,
+        **kwargs,
+    ):
+        organization = None
+        monitor = None
 
-    def convert_args(self, request: Request, monitor_id: str, *args, **kwargs):
-        try:
-            UUID(monitor_id)
-        except ValueError:
-            raise ParameterValidationError("Invalid monitor UUID")
+        # The only monitor endpoints that do not have the org slug in their
+        # parameters are the GUID-style checkin endpoints
+        if organization_slug:
+            try:
+                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                # Try lookup by slug first. This requires organization context since
+                # slugs are unique only to the organization
+                monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_id)
+            except (Organization.DoesNotExist, Monitor.DoesNotExist):
+                pass
 
-        try:
-            monitor = Monitor.objects.get(guid=monitor_id)
-        except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
+        # Try lookup by GUID
+        if not monitor:
+            # Validate GUIDs
+            try:
+                UUID(monitor_id)
+            except ValueError:
+                # This error is a bit confusing, because this may also mean
+                # that we've failed to lookup their monitor by slug.
+                raise ParameterValidationError("Invalid monitor UUID")
+            # When looking up by guid we don't include the org conditional
+            # (since GUID lookup allows orgless routes), we will validate
+            # permissions later in this function
+            try:
+                monitor = Monitor.objects.get(guid=monitor_id)
+            except Monitor.DoesNotExist:
+                raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
+        # Validate that the authenticated project matches the monitor
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
-            raise InvalidAuthProject
+            raise ResourceDoesNotExist
+
+        # When looking up via GUID we do not check the organiation slug,
+        # validate that the slug matches the org of the monitors project
+        if organization_slug and project.organization.slug != organization_slug:
+            raise ResourceDoesNotExist
 
         self.check_object_permissions(request, project)
 
@@ -86,11 +117,6 @@ class MonitorEndpoint(Endpoint):
 
         kwargs.update({"monitor": monitor, "project": project})
         return args, kwargs
-
-    def handle_exception(self, request: Request, exc: Exception) -> Response:
-        if isinstance(exc, InvalidAuthProject):
-            return self.respond(status=400)
-        return super().handle_exception(request, exc)
 
 
 class MonitorCheckInEndpoint(MonitorEndpoint):

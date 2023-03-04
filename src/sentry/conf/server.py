@@ -1066,14 +1066,10 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable performance spans in flamecharts
-    "organizations:profiling-flamechart-spans": False,
     # Enable flamegraph view for profiling
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling dashboard redesign
-    "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling aggregate flamegraph
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews

@@ -107,6 +107,7 @@ class GroupEventToolbar extends Component<Props> {
             </Heading>
             <Tooltip
               title={<EventCreatedTooltip event={evt} />}
+              isHoverable
               showUnderline
               disableForVisualTest
             >
