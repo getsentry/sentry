@@ -148,7 +148,7 @@ describe('Performance > Landing > Index', function () {
     }
   });
 
-  it('renders basic UI elements', function () {
+  it('renders basic UI elements', async function () {
     const data = initializeData();
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
@@ -156,7 +156,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', function () {
+  it('renders frontend pageload view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
@@ -176,7 +176,7 @@ describe('Performance > Landing > Index', function () {
     expect(titles[4]).toHaveTextContent('FCP Distribution');
   });
 
-  it('renders frontend other view', function () {
+  it('renders frontend other view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
@@ -185,7 +185,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders backend view', function () {
+  it('renders backend view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
@@ -194,7 +194,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders mobile view', function () {
+  it('renders mobile view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
@@ -264,14 +264,14 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(4)).toHaveTextContent('Failure Rate');
   });
 
-  it('Can switch between landing displays', function () {
+  it('Can switch between landing displays', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -282,7 +282,7 @@ describe('Performance > Landing > Index', function () {
     );
   });
 
-  it('Updating projects switches performance view', function () {
+  it('Updating projects switches performance view', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
@@ -301,7 +301,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('all-transactions-view')).toBeInTheDocument();
   });
 
-  it('View correctly defaults based on project without url param', function () {
+  it('View correctly defaults based on project without url param', async function () {
     const data = initializeData({
       projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
       selectedProject: 99,
@@ -318,7 +318,7 @@ describe('Performance > Landing > Index', function () {
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
 

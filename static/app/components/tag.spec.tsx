@@ -5,12 +5,12 @@ import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
   const routerContext = TestStubs.routerContext();
-  it('basic', () => {
+  it('basic', async () => {
     render(<Tag>Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('with icon', () => {
+  it('with icon', async () => {
     render(
       <Tag icon={<IconFire data-test-id="icon-fire" />} type="error">
         Error
@@ -28,11 +28,11 @@ describe('Tag', () => {
     );
     expect(screen.getByText('Tooltip')).toBeInTheDocument();
     expect(screen.queryByText('lorem ipsum')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText('Tooltip'));
+    await userEvent.hover(screen.getByText('Tooltip'));
     expect(await screen.findByText('lorem ipsum')).toBeInTheDocument();
   });
 
-  it('with dismiss', () => {
+  it('with dismiss', async () => {
     const mockCallback = jest.fn();
 
     render(
@@ -44,11 +44,11 @@ describe('Tag', () => {
     expect(screen.getByRole('button', {name: 'Dismiss'})).toBeInTheDocument();
 
     expect(mockCallback).toHaveBeenCalledTimes(0);
-    userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 
-  it('with internal link', () => {
+  it('with internal link', async () => {
     const to = '/organizations/sentry/issues/';
     render(
       <Tag type="highlight" to={to}>
@@ -61,7 +61,7 @@ describe('Tag', () => {
     expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
   });
 
-  it('with external link', () => {
+  it('with external link', async () => {
     const href = 'https://sentry.io/';
     render(
       <Tag type="highlight" href={href}>
@@ -75,7 +75,7 @@ describe('Tag', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('overrides a link default icon', () => {
+  it('overrides a link default icon', async () => {
     render(
       <Tag href="#" icon={<IconFire data-test-id="icon-fire" />}>
         3

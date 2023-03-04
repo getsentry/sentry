@@ -42,7 +42,7 @@ describe('AddCodeOwnerModal', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}
@@ -140,7 +140,7 @@ describe('AddCodeOwnerModal', function () {
 
     await selectEvent.select(screen.getByText('--'), 'example/hello-there');
 
-    userEvent.click(screen.getByRole('button', {name: 'Add File'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add File'}));
 
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(

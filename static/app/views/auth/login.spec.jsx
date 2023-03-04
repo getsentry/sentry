@@ -7,7 +7,7 @@ describe('Login', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a loading indicator', function () {
+  it('renders a loading indicator', async function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {},
@@ -65,10 +65,10 @@ describe('Login', function () {
     // Default tab is login
     expect(await screen.findByPlaceholderText('username or email')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('link', {name: 'Single Sign-On'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Single Sign-On'}));
     expect(screen.getByRole('textbox', {name: 'Organization ID'})).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('link', {name: 'Register'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Register'}));
     expect(screen.getByRole('textbox', {name: 'Name'})).toBeInTheDocument();
   });
 });

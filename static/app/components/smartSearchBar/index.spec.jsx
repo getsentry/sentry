@@ -64,12 +64,12 @@ describe('SmartSearchBar', function () {
     render(<SmartSearchBar {...defaultProps} onGetTagValues={onGetTagValuesMock} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.click(textbox);
-    userEvent.type(textbox, 'device:this');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'device:this');
 
     const option = await screen.findByText(/this is filled with spaces/);
 
-    userEvent.click(option);
+    await userEvent.click(option);
 
     expect(textbox).toHaveValue('device:"this is filled with spaces" ');
   });
@@ -82,23 +82,23 @@ describe('SmartSearchBar', function () {
     render(<SmartSearchBar {...defaultProps} onGetTagValues={onGetTagValuesMock} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.click(textbox);
-    userEvent.type(textbox, 'device:this');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'device:this');
 
     const option = await screen.findByText(/this \\" is \\" filled \\" with \\" quotes/);
 
-    userEvent.click(option);
+    await userEvent.click(option);
 
     expect(textbox).toHaveValue('device:"this \\" is \\" filled \\" with \\" quotes" ');
   });
 
-  it('does not search when pressing enter on a tag without a value', function () {
+  it('does not search when pressing enter on a tag without a value', async function () {
     const onSearchMock = jest.fn();
 
     render(<SmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'browser:{enter}');
+    await userEvent.type(textbox, 'browser:{enter}');
 
     expect(onSearchMock).not.toHaveBeenCalled();
   });
@@ -109,14 +109,14 @@ describe('SmartSearchBar', function () {
     render(<SmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'bro');
+    await userEvent.type(textbox, 'bro');
 
     expect(
       await screen.findByRole('option', {name: 'bro wser - field'})
     ).toBeInTheDocument();
 
     // down once to 'browser' dropdown item
-    userEvent.keyboard('{ArrowDown}{Tab}');
+    await userEvent.keyboard('{ArrowDown}{Tab}');
 
     await waitFor(() => {
       expect(textbox).toHaveValue('browser:');
@@ -134,14 +134,14 @@ describe('SmartSearchBar', function () {
     render(<SmartSearchBar {...defaultProps} onSearch={onSearchMock} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'bro');
+    await userEvent.type(textbox, 'bro');
 
     expect(
       await screen.findByRole('option', {name: 'bro wser - field'})
     ).toBeInTheDocument();
 
     // down once to 'browser' dropdown item
-    userEvent.keyboard('{ArrowDown}{Enter}');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
 
     await waitFor(() => {
       expect(textbox).toHaveValue('browser:');
@@ -157,11 +157,11 @@ describe('SmartSearchBar', function () {
     render(<SmartSearchBar {...defaultProps} />);
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, '!bro');
+    await userEvent.type(textbox, '!bro');
 
     const field = await screen.findByRole('option', {name: 'bro wser - field'});
 
-    userEvent.click(field);
+    await userEvent.click(field);
 
     expect(textbox).toHaveValue('!browser:');
   });
@@ -189,20 +189,20 @@ describe('SmartSearchBar', function () {
       expect(screen.getByRole('textbox')).toHaveValue('');
     });
 
-    it('should not reset user textarea if a noop props change happens', function () {
+    it('should not reset user textarea if a noop props change happens', async function () {
       const {rerender} = render(<SmartSearchBar {...defaultProps} query="one" />);
 
-      userEvent.type(screen.getByRole('textbox'), 'two');
+      await userEvent.type(screen.getByRole('textbox'), 'two');
 
       rerender(<SmartSearchBar {...defaultProps} query="one" />);
 
       expect(screen.getByRole('textbox')).toHaveValue('one two');
     });
 
-    it('should reset user textarea if a meaningful props change happens', function () {
+    it('should reset user textarea if a meaningful props change happens', async function () {
       const {rerender} = render(<SmartSearchBar {...defaultProps} query="one" />);
 
-      userEvent.type(screen.getByRole('textbox'), 'two');
+      await userEvent.type(screen.getByRole('textbox'), 'two');
 
       rerender(<SmartSearchBar {...defaultProps} query="blah" />);
 
@@ -211,7 +211,7 @@ describe('SmartSearchBar', function () {
   });
 
   describe('clear search', function () {
-    it('clicking the clear search button clears the query and calls onSearch', function () {
+    it('clicking the clear search button clears the query and calls onSearch', async function () {
       const mockOnSearch = jest.fn();
 
       render(
@@ -220,7 +220,7 @@ describe('SmartSearchBar', function () {
 
       expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
 
-      userEvent.click(screen.getByRole('button', {name: 'Clear search'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Clear search'}));
 
       expect(screen.getByRole('textbox')).toHaveValue('');
 
@@ -230,12 +230,12 @@ describe('SmartSearchBar', function () {
   });
 
   describe('dropdown open state', function () {
-    it('opens the dropdown when the search box is clicked', function () {
+    it('opens the dropdown when the search box is clicked', async function () {
       render(<SmartSearchBar {...defaultProps} />);
 
       const textbox = screen.getByRole('textbox');
 
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
     });
@@ -250,7 +250,7 @@ describe('SmartSearchBar', function () {
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
     });
 
-    it('hides the drop down when clicking outside', function () {
+    it('hides the drop down when clicking outside', async function () {
       render(
         <div data-test-id="test-container">
           <SmartSearchBar {...defaultProps} />
@@ -262,12 +262,12 @@ describe('SmartSearchBar', function () {
       // Open the dropdown
       fireEvent.focus(textbox);
 
-      userEvent.click(screen.getByTestId('test-container'));
+      await userEvent.click(screen.getByTestId('test-container'));
 
       expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     });
 
-    it('hides the drop down when pressing escape', function () {
+    it('hides the drop down when pressing escape', async function () {
       render(<SmartSearchBar {...defaultProps} />);
 
       const textbox = screen.getByRole('textbox');
@@ -275,7 +275,7 @@ describe('SmartSearchBar', function () {
       // Open the dropdown
       fireEvent.focus(textbox);
 
-      userEvent.type(textbox, '{Escape}');
+      await userEvent.type(textbox, '{Escape}');
 
       expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     });
@@ -295,11 +295,11 @@ describe('SmartSearchBar', function () {
     });
   });
 
-  it('invokes onSearch() on enter', function () {
+  it('invokes onSearch() on enter', async function () {
     const mockOnSearch = jest.fn();
     render(<SmartSearchBar {...defaultProps} query="test" onSearch={mockOnSearch} />);
 
-    userEvent.type(screen.getByRole('textbox'), '{Enter}');
+    await userEvent.type(screen.getByRole('textbox'), '{Enter}');
 
     expect(mockOnSearch).toHaveBeenCalledWith('test');
   });
@@ -310,7 +310,7 @@ describe('SmartSearchBar', function () {
     expect(screen.getByRole('textbox')).toHaveValue('');
   });
 
-  it('does not fetch tag values with environment tag and excludeEnvironment', function () {
+  it('does not fetch tag values with environment tag and excludeEnvironment', async function () {
     jest.useFakeTimers('modern');
 
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
@@ -324,14 +324,15 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'environment:');
+    await userEvent.type(textbox, 'environment:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).not.toHaveBeenCalled();
+    jest.useRealTimers();
   });
 
-  it('does not fetch tag values with timesSeen tag', function () {
+  it('does not fetch tag values with timesSeen tag', async function () {
     jest.useFakeTimers('modern');
 
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
@@ -345,14 +346,15 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'timesSeen:');
+    await userEvent.type(textbox, 'timesSeen:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).not.toHaveBeenCalled();
+    jest.useRealTimers();
   });
 
-  it('fetches and displays tag values with other tags', function () {
+  it('fetches and displays tag values with other tags', async function () {
     jest.useFakeTimers();
 
     const getTagValuesMock = jest.fn().mockResolvedValue([]);
@@ -366,11 +368,12 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'browser:');
+    await userEvent.type(textbox, 'browser:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
     expect(getTagValuesMock).toHaveBeenCalledTimes(1);
+    jest.useRealTimers();
   });
 
   it('shows correct options on cursor changes for keys and values', async function () {
@@ -391,13 +394,13 @@ describe('SmartSearchBar', function () {
 
     // Set cursor to beginning of "is" tag
     textbox.setSelectionRange(0, 0);
-    userEvent.click(textbox);
+    await userEvent.click(textbox, {delay: null});
     act(jest.runAllTimers);
     // Should show "Keys" section
     expect(await screen.findByText('Keys')).toBeInTheDocument();
 
     // Set cursor to middle of "is" tag
-    userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}', {delay: null});
     act(jest.runAllTimers);
     // Should show "Keys" and NOT "Operator Helpers" or "Values"
     expect(await screen.findByText('Keys')).toBeInTheDocument();
@@ -405,7 +408,7 @@ describe('SmartSearchBar', function () {
     expect(screen.queryByText('Values')).not.toBeInTheDocument();
 
     // Set cursor to end of "is" tag
-    userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}', {delay: null});
     act(jest.runAllTimers);
     // Should show "Tags" and "Operator Helpers" but NOT "Values"
     expect(await screen.findByText('Keys')).toBeInTheDocument();
@@ -413,7 +416,7 @@ describe('SmartSearchBar', function () {
     expect(screen.queryByText('Values')).not.toBeInTheDocument();
 
     // Set cursor after the ":"
-    userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}', {delay: null});
     act(jest.runAllTimers);
     // Should show "Values" and "Operator Helpers" but NOT "Keys"
     expect(await screen.findByText('Values')).toBeInTheDocument();
@@ -421,12 +424,13 @@ describe('SmartSearchBar', function () {
     expect(screen.queryByText('Keys')).not.toBeInTheDocument();
 
     // Set cursor inside value
-    userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{ArrowRight}', {delay: null});
     act(jest.runAllTimers);
     // Should show "Values" and NOT "Operator Helpers" or "Keys"
     expect(await screen.findByText('Values')).toBeInTheDocument();
     expect(screen.queryByText('Operator Helpers')).not.toBeInTheDocument();
     expect(screen.queryByText('Keys')).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it('shows syntax error for incorrect tokens', function () {
@@ -459,7 +463,7 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'nest');
+    await userEvent.type(textbox, 'nest');
 
     await screen.findByText('Keys');
 
@@ -486,7 +490,7 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'event');
+    await userEvent.type(textbox, 'event');
 
     await screen.findByText('Keys');
 
@@ -516,18 +520,19 @@ describe('SmartSearchBar', function () {
     const textbox = screen.getByRole('textbox');
 
     // Type key and start searching values
-    userEvent.type(textbox, 'is:');
+    await userEvent.type(textbox, 'is:', {delay: null});
 
     act(() => jest.advanceTimersByTime(200));
 
     // Before values have finished searching, clear the textbox
-    userEvent.clear(textbox);
+    await userEvent.clear(textbox);
 
     act(jest.runAllTimers);
 
     // Should show keys, not values in dropdown
     expect(await screen.findByText('Keys')).toBeInTheDocument();
     expect(screen.queryByText('Values')).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it('autocompletes tag values', async function () {
@@ -546,13 +551,13 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'browser:');
+    await userEvent.type(textbox, 'browser:');
 
     act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /Firefox/});
 
-    userEvent.click(option);
+    await userEvent.click(option, {delay: null});
 
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith(
@@ -560,6 +565,7 @@ describe('SmartSearchBar', function () {
         expect.anything()
       );
     });
+    jest.useRealTimers();
   });
 
   it('autocompletes tag values when there are other tags', async function () {
@@ -589,13 +595,13 @@ describe('SmartSearchBar', function () {
       'is:unresolved browser:'.length,
       'is:unresolved browser:'.length
     );
-    userEvent.click(textbox);
+    await userEvent.click(textbox, {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /Firefox/});
 
-    userEvent.click(option);
+    await userEvent.click(option, {delay: null});
 
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith(
@@ -603,6 +609,7 @@ describe('SmartSearchBar', function () {
         expect.anything()
       );
     });
+    jest.useRealTimers();
   });
 
   it('autocompletes tag values (user tag)', async function () {
@@ -620,17 +627,18 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'user:');
+    await userEvent.type(textbox, 'user:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
     const option = await screen.findByRole('option', {name: /id:1/});
 
-    userEvent.click(option);
+    await userEvent.click(option, {delay: null});
 
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith('user:"id:1" ', expect.anything());
     });
+    jest.useRealTimers();
   });
 
   it('autocompletes tag values (predefined values with spaces)', async function () {
@@ -654,7 +662,7 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'predefined:');
+    await userEvent.type(textbox, 'predefined:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
@@ -662,7 +670,7 @@ describe('SmartSearchBar', function () {
       name: /predefined tag with spaces/,
     });
 
-    userEvent.click(option);
+    await userEvent.click(option, {delay: null});
 
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith(
@@ -670,6 +678,8 @@ describe('SmartSearchBar', function () {
         expect.anything()
       );
     });
+
+    jest.useRealTimers();
   });
 
   it('autocompletes tag values (predefined values with quotes)', async function () {
@@ -693,7 +703,7 @@ describe('SmartSearchBar', function () {
     );
 
     const textbox = screen.getByRole('textbox');
-    userEvent.type(textbox, 'predefined:');
+    await userEvent.type(textbox, 'predefined:', {delay: null});
 
     act(jest.runOnlyPendingTimers);
 
@@ -701,7 +711,7 @@ describe('SmartSearchBar', function () {
       name: /quotes/,
     });
 
-    userEvent.click(option);
+    await userEvent.click(option, {delay: null});
 
     await waitFor(() => {
       expect(mockOnChange).toHaveBeenLastCalledWith(
@@ -709,10 +719,12 @@ describe('SmartSearchBar', function () {
         expect.anything()
       );
     });
+
+    jest.useRealTimers();
   });
 
   describe('quick actions', function () {
-    it('can delete tokens', function () {
+    it('can delete tokens', async function () {
       render(
         <SmartSearchBar
           {...defaultProps}
@@ -721,17 +733,17 @@ describe('SmartSearchBar', function () {
       );
 
       const textbox = screen.getByRole('textbox');
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
 
       // Put cursor inside is:resolved
       textbox.setSelectionRange(1, 1);
 
-      userEvent.click(screen.getByRole('button', {name: /Delete/}));
+      await userEvent.click(screen.getByRole('button', {name: /Delete/}));
 
       expect(textbox).toHaveValue('sdk.name:sentry-cocoa has:key');
     });
 
-    it('can delete a middle token', function () {
+    it('can delete a middle token', async function () {
       render(
         <SmartSearchBar
           {...defaultProps}
@@ -742,14 +754,14 @@ describe('SmartSearchBar', function () {
       const textbox = screen.getByRole('textbox');
       // Put cursor inside sdk.name
       textbox.setSelectionRange('is:unresolved s'.length, 'is:unresolved s'.length);
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
 
-      userEvent.click(screen.getByRole('button', {name: /Delete/}));
+      await userEvent.click(screen.getByRole('button', {name: /Delete/}));
 
       expect(textbox).toHaveValue('is:unresolved has:key');
     });
 
-    it('can exclude a token', function () {
+    it('can exclude a token', async function () {
       render(
         <SmartSearchBar
           {...defaultProps}
@@ -760,9 +772,9 @@ describe('SmartSearchBar', function () {
       const textbox = screen.getByRole('textbox');
       // Put cursor inside sdk.name
       textbox.setSelectionRange('is:unresolved sd'.length, 'is:unresolved sd'.length);
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
 
-      userEvent.click(screen.getByRole('button', {name: /Exclude/}));
+      await userEvent.click(screen.getByRole('button', {name: /Exclude/}));
 
       expect(textbox).toHaveValue('is:unresolved !sdk.name:sentry-cocoa has:key ');
     });
@@ -778,12 +790,12 @@ describe('SmartSearchBar', function () {
       const textbox = screen.getByRole('textbox');
       // Put cursor inside sdk.name
       textbox.setSelectionRange('is:unresolved !s'.length, 'is:unresolved !s'.length);
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
 
       expect(textbox).toHaveValue('is:unresolved !sdk.name:sentry-cocoa has:key ');
 
       await screen.findByRole('button', {name: /Include/});
-      userEvent.click(screen.getByRole('button', {name: /Include/}));
+      await userEvent.click(screen.getByRole('button', {name: /Include/}));
 
       expect(textbox).toHaveValue('is:unresolved sdk.name:sentry-cocoa has:key ');
     });
@@ -794,7 +806,7 @@ describe('SmartSearchBar', function () {
 
     const textbox = screen.getByRole('textbox');
 
-    userEvent.type(textbox, 'invalid:');
+    await userEvent.type(textbox, 'invalid:');
 
     act(jest.runOnlyPendingTimers);
 
@@ -809,47 +821,47 @@ describe('SmartSearchBar', function () {
       await import('sentry/components/calendar/datePicker');
     });
 
-    it('displays date picker dropdown when appropriate', () => {
+    it('displays date picker dropdown when appropriate', async () => {
       render(<SmartSearchBar {...defaultProps} query="" />);
 
       const textbox = screen.getByRole('textbox');
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
 
       // Just lastSeen: will display relative and absolute options, not the datepicker
-      userEvent.type(textbox, 'lastSeen:');
+      await userEvent.type(textbox, 'lastSeen:');
       expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
       expect(screen.getByText('Last hour')).toBeInTheDocument();
       expect(screen.getByText('After a custom datetime')).toBeInTheDocument();
 
       // lastSeen:> should open the date picker
-      userEvent.type(textbox, '>');
+      await userEvent.type(textbox, '>');
       expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
 
       // Continues to display with date typed out
-      userEvent.type(textbox, '2022-01-01');
+      await userEvent.type(textbox, '2022-01-01');
       expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
 
       // Goes away when on next term
-      userEvent.type(textbox, ' ');
+      await userEvent.type(textbox, ' ');
       expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
 
       // Pops back up when cursor is back in date token
-      userEvent.keyboard('{arrowleft}');
+      await userEvent.keyboard('{arrowleft}');
       expect(screen.getByTestId('search-bar-date-picker')).toBeInTheDocument();
 
       // Moving cursor inside the `lastSeen` token hides the date picker
       textbox.setSelectionRange(1, 1);
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       expect(screen.queryByTestId('search-bar-date-picker')).not.toBeInTheDocument();
     });
 
-    it('can select a suggested relative time value', () => {
+    it('can select a suggested relative time value', async () => {
       render(<SmartSearchBar {...defaultProps} query="" />);
 
-      userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
+      await userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
 
-      userEvent.click(screen.getByText('Last hour'));
+      await userEvent.click(screen.getByText('Last hour'));
 
       expect(screen.getByRole('textbox')).toHaveValue('lastSeen:-1h ');
     });
@@ -857,9 +869,9 @@ describe('SmartSearchBar', function () {
     it('can select a specific date/time', async () => {
       render(<SmartSearchBar {...defaultProps} query="" />);
 
-      userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
+      await userEvent.type(screen.getByRole('textbox'), 'lastSeen:');
 
-      userEvent.click(screen.getByText('After a custom datetime'));
+      await userEvent.click(screen.getByText('After a custom datetime'));
 
       // Should have added '>' to query and show a date picker
       expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>');
@@ -877,7 +889,7 @@ describe('SmartSearchBar', function () {
       const timeInput = screen.getByLabelText('Time');
 
       // Simulate changing time input one bit at a time
-      userEvent.click(timeInput);
+      await userEvent.click(timeInput);
       fireEvent.change(timeInput, {target: {value: '01:00:00'}});
       fireEvent.change(timeInput, {target: {value: '01:02:00'}});
       fireEvent.change(timeInput, {target: {value: '01:02:03'}});
@@ -890,7 +902,7 @@ describe('SmartSearchBar', function () {
       );
 
       // Toggle UTC on, which should remove the timezone (-05:00) from the query
-      userEvent.click(screen.getByLabelText('Use UTC'));
+      await userEvent.click(screen.getByLabelText('Use UTC'));
       expect(screen.getByRole('textbox')).toHaveValue('lastSeen:>2022-01-02T01:02:03');
     });
 
@@ -903,7 +915,7 @@ describe('SmartSearchBar', function () {
       });
 
       // Move cursor to the lastSeen date
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
@@ -926,11 +938,11 @@ describe('SmartSearchBar', function () {
 
       const textbox = screen.getByRole('textbox');
       // Move cursor to the timestamp
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
-      userEvent.click(screen.getByRole('textbox'));
+      await userEvent.click(screen.getByRole('textbox'));
 
       const dateInput = await screen.findByTestId('date-picker');
 
@@ -946,7 +958,7 @@ describe('SmartSearchBar', function () {
 
       const textbox = screen.getByRole('textbox');
       // Move cursor to the timestamp
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
@@ -964,7 +976,7 @@ describe('SmartSearchBar', function () {
 
       const textbox = screen.getByRole('textbox');
       // Move cursor to the timestamp
-      userEvent.click(textbox);
+      await userEvent.click(textbox);
       textbox.setSelectionRange(10, 10);
       fireEvent.focus(textbox);
 
@@ -977,7 +989,7 @@ describe('SmartSearchBar', function () {
   });
 
   describe('custom performance metric filters', () => {
-    it('raises Invalid file size when parsed filter unit is not a valid size unit', () => {
+    it('raises Invalid file size when parsed filter unit is not a valid size unit', async () => {
       render(
         <SmartSearchBar
           {...defaultProps}
@@ -990,9 +1002,9 @@ describe('SmartSearchBar', function () {
       );
 
       const textbox = screen.getByRole('textbox');
-      userEvent.click(textbox);
-      userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
-      userEvent.keyboard('{arrowleft}');
+      await userEvent.click(textbox);
+      await userEvent.type(textbox, 'measurements.custom.kibibyte:10ms ');
+      await userEvent.keyboard('{arrowleft}');
 
       expect(
         screen.getByText(
@@ -1001,7 +1013,7 @@ describe('SmartSearchBar', function () {
       ).toBeInTheDocument();
     });
 
-    it('raises Invalid duration when parsed filter unit is not a valid duration unit', () => {
+    it('raises Invalid duration when parsed filter unit is not a valid duration unit', async () => {
       render(
         <SmartSearchBar
           {...defaultProps}
@@ -1014,9 +1026,9 @@ describe('SmartSearchBar', function () {
       );
 
       const textbox = screen.getByRole('textbox');
-      userEvent.click(textbox);
-      userEvent.type(textbox, 'measurements.custom.minute:10kb ');
-      userEvent.keyboard('{arrowleft}');
+      await userEvent.click(textbox);
+      await userEvent.type(textbox, 'measurements.custom.minute:10kb ');
+      await userEvent.keyboard('{arrowleft}');
 
       expect(
         screen.getByText(

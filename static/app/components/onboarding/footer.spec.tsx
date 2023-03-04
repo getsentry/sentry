@@ -46,7 +46,7 @@ describe('Onboarding Footer', function () {
     // Explore Sentry button disabled
     expect(screen.getByRole('button', {name: 'Explore Sentry'})).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('button', {name: 'Explore Sentry'}));
+    await userEvent.hover(screen.getByRole('button', {name: 'Explore Sentry'}));
 
     // Explore Sentry button tooltip
     await waitFor(() => {
@@ -106,13 +106,13 @@ describe('Onboarding Footer', function () {
 
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Explore Sentry'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Explore Sentry'}));
 
     // Display are you sure modal
     expect(await screen.findByText('Are you sure?')).toBeInTheDocument();
   });
 
-  it('error processed ui', function () {
+  it('error processed ui', async function () {
     const {project, organization, router, route} = initializeOrg();
 
     // Mock useSessionStorage hook to return the mocked session data
@@ -157,7 +157,7 @@ describe('Onboarding Footer', function () {
     // View error button is rendered
     expect(screen.getByRole('button', {name: 'View Error'})).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'View Error'}));
+    await userEvent.click(screen.getByRole('button', {name: 'View Error'}));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

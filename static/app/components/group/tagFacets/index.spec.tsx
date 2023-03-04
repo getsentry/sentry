@@ -123,7 +123,7 @@ describe('Tag Facets', function () {
       expect(screen.queryByText('release')).not.toBeInTheDocument();
     });
 
-    it('displays os, device, and release tags', async function () {
+    it('displays os, device, async and release tags', async function () {
       render(
         <TagFacets
           environments={[]}
@@ -184,7 +184,7 @@ describe('Tag Facets', function () {
       expect(
         screen.getByRole('button', {name: 'Collapse os tag distribution'})
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Collapse os tag distribution'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Collapse os tag distribution'}));
       expect(
         screen.getByRole('button', {name: 'Expand os tag distribution'})
       ).toBeInTheDocument();
@@ -208,7 +208,7 @@ describe('Tag Facets', function () {
       await waitFor(() => {
         expect(tagsMock).toHaveBeenCalled();
       });
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Expand device tag distribution'})
       );
       expect(
@@ -239,7 +239,7 @@ describe('Tag Facets', function () {
       await waitFor(() => {
         expect(tagsMock).toHaveBeenCalled();
       });
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Expand device tag distribution'})
       );
       expect(

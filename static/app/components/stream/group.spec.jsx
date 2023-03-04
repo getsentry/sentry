@@ -38,7 +38,7 @@ describe('StreamGroup', function () {
     GroupStore.reset();
   });
 
-  it('renders with anchors', function () {
+  it('renders with anchors', async function () {
     const {routerContext, organization} = initializeOrg();
     const wrapper = render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
@@ -49,7 +49,7 @@ describe('StreamGroup', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('marks as reviewed', function () {
+  it('marks as reviewed', async function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -69,7 +69,7 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', function () {
+  it('marks as resolved', async function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       context: routerContext,
@@ -83,7 +83,7 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
-  it('tracks clicks from issues stream', function () {
+  it('tracks clicks from issues stream', async function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -94,7 +94,7 @@ describe('StreamGroup', function () {
       {context: routerContext, organization}
     );
 
-    userEvent.click(screen.getByText('RequestError'));
+    await userEvent.click(screen.getByText('RequestError'));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(2);
   });
 });

@@ -30,7 +30,7 @@ describe('ProjectKeys', function () {
     });
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,
@@ -47,7 +47,7 @@ describe('ProjectKeys', function () {
     ).toBeInTheDocument();
   });
 
-  it('has clippable box', function () {
+  it('has clippable box', async function () {
     render(
       <ProjectKeys
         routes={[]}
@@ -58,12 +58,12 @@ describe('ProjectKeys', function () {
     );
 
     const expandButton = screen.getByRole('button', {name: 'Expand'});
-    userEvent.click(expandButton);
+    await userEvent.click(expandButton);
 
     expect(expandButton).not.toBeInTheDocument();
   });
 
-  it('deletes key', function () {
+  it('deletes key', async function () {
     render(
       <ProjectKeys
         routes={[]}
@@ -73,9 +73,9 @@ describe('ProjectKeys', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete'}));
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -97,8 +97,8 @@ describe('ProjectKeys', function () {
 
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Disable'}));
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
 
@@ -109,8 +109,8 @@ describe('ProjectKeys', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Enable'}));
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),

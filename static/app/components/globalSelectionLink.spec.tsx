@@ -14,7 +14,7 @@ describe('GlobalSelectionLink', function () {
       },
     ]);
 
-  it('has global selection values in query', function () {
+  it('has global selection values in query', async function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -31,11 +31,11 @@ describe('GlobalSelectionLink', function () {
       'http://some.url/?environment=staging&project=foo&project=bar'
     );
 
-    userEvent.click(screen.getByText('Go somewhere!'));
+    await userEvent.click(screen.getByText('Go somewhere!'));
     expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 
-  it('does not have global selection values in query', function () {
+  it('does not have global selection values in query', async function () {
     const {container} = render(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context: getContext()}
@@ -46,7 +46,7 @@ describe('GlobalSelectionLink', function () {
     expect(container).toSnapshot();
   });
 
-  it('combines query parameters with custom query', function () {
+  it('combines query parameters with custom query', async function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -60,14 +60,14 @@ describe('GlobalSelectionLink', function () {
       {context}
     );
 
-    userEvent.click(screen.getByText('Go somewhere!'));
+    await userEvent.click(screen.getByText('Go somewhere!'));
     expect(context.context.router.push).toHaveBeenCalledWith({
       pathname: path,
       query: {project: ['foo', 'bar'], environment: 'staging', query: 'something'},
     });
   });
 
-  it('combines query parameters with no query', function () {
+  it('combines query parameters with no query', async function () {
     const query = {
       project: ['foo', 'bar'],
       environment: 'staging',
@@ -78,7 +78,7 @@ describe('GlobalSelectionLink', function () {
       {context}
     );
 
-    userEvent.click(screen.getByText('Go somewhere!'));
+    await userEvent.click(screen.getByText('Go somewhere!'));
 
     expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });

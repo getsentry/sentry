@@ -42,9 +42,9 @@ describe('FeatureTourModal', function () {
       </Fragment>
     );
 
-  const showModal = () => {
-    userEvent.click(screen.getByTestId('reveal'));
-  };
+  async function showModal() {
+    await userEvent.click(screen.getByTestId('reveal'));
+  }
 
   beforeEach(function () {
     ModalStore.reset();
@@ -52,37 +52,37 @@ describe('FeatureTourModal', function () {
     onCloseModal = jest.fn();
   });
 
-  it('shows the modal on click', function () {
+  it('shows the modal on click', async function () {
     createWrapper();
 
     // No modal showing
     expect(screen.queryByTestId('feature-tour')).not.toBeInTheDocument();
-    showModal();
+    await showModal();
 
     // Modal is now showing
     expect(screen.getByTestId('feature-tour')).toBeInTheDocument();
   });
 
-  it('advances on click', function () {
+  it('advances on click', async function () {
     createWrapper();
 
-    showModal();
+    await showModal();
 
     // Should start on the first step.
     expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
 
     // Advance to the next step.
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Should move to next step.
     expect(screen.getByRole('heading')).toHaveTextContent(steps[1].title);
     expect(onAdvance).toHaveBeenCalled();
   });
 
-  it('shows step content', function () {
+  it('shows step content', async function () {
     createWrapper();
 
-    showModal();
+    await showModal();
 
     // Should show title, image and actions
     expect(screen.getByRole('heading')).toHaveTextContent(steps[0].title);
@@ -91,30 +91,30 @@ describe('FeatureTourModal', function () {
     expect(screen.getByText('1 of 2')).toBeInTheDocument();
   });
 
-  it('last step shows done', function () {
+  it('last step shows done', async function () {
     createWrapper();
 
-    showModal();
+    await showModal();
 
     // Advance to the the last step.
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Click the done
-    userEvent.click(screen.getByRole('button', {name: 'Complete tour'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Complete tour'}));
 
     // Wait for the ModalStore action to propagate.
     expect(onAdvance).toHaveBeenCalledTimes(1);
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('last step shows doneText and uses doneUrl', function () {
+  it('last step shows doneText and uses doneUrl', async function () {
     const props = {doneText: 'Finished', doneUrl: 'http://example.org'};
     createWrapper(props);
 
-    showModal();
+    await showModal();
 
     // Advance to the the last step.
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Ensure button looks right
     const button = screen.getByRole('button', {name: 'Complete tour'});
@@ -122,17 +122,17 @@ describe('FeatureTourModal', function () {
     expect(button).toHaveAttribute('href', props.doneUrl);
 
     // Click the done
-    userEvent.click(button);
+    await userEvent.click(button);
     // Wait for the ModalStore action to propagate.
     expect(onCloseModal).toHaveBeenCalledTimes(1);
   });
 
-  it('close button dismisses modal', function () {
+  it('close button dismisses modal', async function () {
     createWrapper();
 
-    showModal();
+    await showModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Close tour'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close tour'}));
 
     // Wait for the ModalStore action to propagate.
     expect(onCloseModal).toHaveBeenCalled();

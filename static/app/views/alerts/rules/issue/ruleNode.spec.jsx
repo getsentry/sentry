@@ -133,11 +133,11 @@ describe('RuleNode', () => {
     jest.resetAllMocks();
   });
 
-  it('handles being deleted', () => {
+  it('handles being deleted', async () => {
     renderRuleNode(simpleNode);
     expect(screen.getByText(simpleNode.label)).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Delete Node'})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button', {name: 'Delete Node'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Delete Node'}));
     expect(onDelete).toHaveBeenCalledWith(index);
   });
 
@@ -167,7 +167,7 @@ describe('RuleNode', () => {
     expect(onReset).toHaveBeenCalledWith(index, fieldName, 'value3');
   });
 
-  it('renders choice number choice fields correctly', () => {
+  it('renders choice number choice fields correctly', async () => {
     const fieldName = 'exampleNumberChoiceField';
     const label = `Here is a number choice field {${fieldName}}`;
     renderRuleNode(formNode(label));
@@ -179,11 +179,11 @@ describe('RuleNode', () => {
 
     selectEvent.openMenu(screen.getByText('label2'));
 
-    userEvent.click(screen.getByText('label3'));
+    await userEvent.click(screen.getByText('label3'));
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '3');
   });
 
-  it('renders number fields correctly', () => {
+  it('renders number fields correctly', async () => {
     const fieldName = 'exampleNumberField';
     const label = `Here is a number field {${fieldName}}`;
     renderRuleNode(formNode(label));
@@ -191,12 +191,12 @@ describe('RuleNode', () => {
     expect(screen.getByText('Here is a number field')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('100')).toBeInTheDocument();
 
-    userEvent.type(screen.getByPlaceholderText('100'), '721');
-    userEvent.click(document.body);
+    await userEvent.type(screen.getByPlaceholderText('100'), '721');
+    await userEvent.click(document.body);
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '721');
   });
 
-  it('sets some number fields by default', () => {
+  it('sets some number fields by default', async () => {
     const fieldName = 'exampleNumberField';
     const label = `Here is a number field {${fieldName}}`;
     renderRuleNode(formNode(label), {
@@ -207,7 +207,7 @@ describe('RuleNode', () => {
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '100');
   });
 
-  it('renders text fields correctly', () => {
+  it('renders text fields correctly', async () => {
     const fieldName = 'exampleStringField';
     const label = `Here is a text field {${fieldName}}`;
     renderRuleNode(formNode(label));
@@ -216,18 +216,18 @@ describe('RuleNode', () => {
     const input = screen.getByPlaceholderText('placeholder');
     expect(input).toBeInTheDocument();
 
-    userEvent.paste(input, 'some text');
+    await userEvent.paste(input, 'some text');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'some text');
   });
 
-  it('renders sentry apps with schema forms correctly', () => {
+  it('renders sentry apps with schema forms correctly', async () => {
     renderRuleNode(sentryAppNode);
     const openModal = jest.spyOn(ModalStore, 'openModal');
 
     expect(screen.getByText(sentryAppNode.label)).toBeInTheDocument();
     const settingsButton = screen.getByLabelText('Settings');
     expect(settingsButton).toBeInTheDocument();
-    userEvent.click(settingsButton);
+    await userEvent.click(settingsButton);
 
     expect(openModal).toHaveBeenCalled();
   });

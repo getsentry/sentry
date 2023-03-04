@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', function () {
-  it('renders an expand link', function () {
+  it('renders an expand link', async function () {
     render(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
@@ -14,12 +14,12 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('three')).toBeInTheDocument();
   });
 
-  it('renders all elements when expanded', function () {
+  it('renders all elements when expanded', async function () {
     render(<ArrayValue value={['one', 'two', 'three', '', null]} />);
 
     // Should have a button
     let button = screen.getByRole('button');
-    userEvent.click(button);
+    await userEvent.click(button);
 
     // Button text should update.
     button = screen.getByRole('button');
@@ -33,14 +33,14 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
-  it('hides toggle on 1 element', function () {
+  it('hides toggle on 1 element', async function () {
     render(<ArrayValue value={['one']} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('one')).toBeInTheDocument();
   });
 
-  it('hides toggle on 0 elements', function () {
+  it('hides toggle on 0 elements', async function () {
     render(<ArrayValue value={[]} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

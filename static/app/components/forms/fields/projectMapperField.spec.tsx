@@ -45,7 +45,7 @@ describe('ProjectMapperField', () => {
     await selectEvent.select(screen.getByText(/Sentry project/), 'beans');
     await selectEvent.select(screen.getByText('mapped-dropdown-placeholder'), 'label 1');
 
-    userEvent.click(screen.getByLabelText('Add project'));
+    await userEvent.click(screen.getByLabelText('Add project'));
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith(
       [
@@ -63,7 +63,7 @@ describe('ProjectMapperField', () => {
     );
   });
 
-  it('can delete item', () => {
+  it('can delete item', async () => {
     render(
       <RenderField
         {...defaultProps}
@@ -73,13 +73,13 @@ describe('ProjectMapperField', () => {
         ]}
       />
     );
-    userEvent.click(screen.getAllByLabelText('Delete')[0]);
+    await userEvent.click(screen.getAllByLabelText('Delete')[0]);
 
     expect(defaultProps.onBlur).toHaveBeenCalledWith([[24, 1]], []);
     expect(defaultProps.onChange).toHaveBeenCalledWith([[24, 1]], []);
   });
 
-  it('allows a single Sentry project to map to multiple items but not the value', () => {
+  it('allows a single Sentry project to map to multiple items but not the value', async () => {
     render(<RenderField {...defaultProps} value={[[24, 1]]} />);
 
     // can find the same project again

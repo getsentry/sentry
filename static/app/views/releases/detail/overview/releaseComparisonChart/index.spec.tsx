@@ -12,7 +12,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const releaseSessions = TestStubs.SessionUserCountByStatus();
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
-  it('displays correct all/release/change data', () => {
+  it('displays correct all/release/change data', async () => {
     render(
       <ReleaseComparisonChart
         release={release}
@@ -46,7 +46,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
   });
 
-  it('can change chart by clicking on a row', () => {
+  it('can change chart by clicking on a row', async () => {
     const {rerender} = render(
       <ReleaseComparisonChart
         release={release}
@@ -65,7 +65,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    userEvent.click(screen.getByLabelText(/crash free user rate/i));
+    await userEvent.click(screen.getByLabelText(/crash free user rate/i));
 
     expect(browserHistory.push).toHaveBeenCalledWith({query: {chart: 'crashFreeUsers'}});
 
@@ -92,7 +92,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/75% 24\.908%/);
   });
 
-  it('can expand row to show more charts', () => {
+  it('can expand row to show more charts', async () => {
     render(
       <ReleaseComparisonChart
         release={release}
@@ -111,10 +111,11 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
       {context: routerContext}
     );
 
-    screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      userEvent.click(toggle);
-    });
-    userEvent.click(screen.getByLabelText(/toggle additional/i));
+    for (const toggle of screen.getAllByLabelText(/toggle chart/i)) {
+      await userEvent.click(toggle);
+    }
+
+    await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(12);
     // lazy way to make sure that all percentages are calculated correctly
@@ -125,10 +126,10 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
 
     // toggle back
-    screen.getAllByLabelText(/toggle chart/i).forEach(toggle => {
-      userEvent.click(toggle);
-    });
-    userEvent.click(screen.getByLabelText(/toggle additional/i));
+    for (const toggle of screen.getAllByLabelText(/toggle chart/i)) {
+      await userEvent.click(toggle);
+    }
+    await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
     expect(screen.getAllByRole('radio').length).toBe(2);
   });

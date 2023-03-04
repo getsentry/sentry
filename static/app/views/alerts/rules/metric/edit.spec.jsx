@@ -53,7 +53,7 @@ describe('MetricRulesEdit', function () {
     });
   });
 
-  it('renders and edits trigger', function () {
+  it('renders and edits trigger', async function () {
     const {organization, project} = initializeOrg();
     const rule = TestStubs.MetricRule();
     const onChangeTitleMock = jest.fn();
@@ -97,17 +97,17 @@ describe('MetricRulesEdit', function () {
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    userEvent.clear(screen.getByTestId('warning-threshold'));
-    userEvent.type(screen.getByTestId('warning-threshold'), '13');
+    await userEvent.clear(screen.getByTestId('warning-threshold'));
+    await userEvent.type(screen.getByTestId('warning-threshold'), '13');
 
-    userEvent.clear(screen.getByTestId('resolve-threshold'));
-    userEvent.type(screen.getByTestId('resolve-threshold'), '12');
+    await userEvent.clear(screen.getByTestId('resolve-threshold'));
+    await userEvent.type(screen.getByTestId('resolve-threshold'), '12');
 
     // Create a new action
-    userEvent.click(screen.getByLabelText('Add Action'));
+    await userEvent.click(screen.getByLabelText('Add Action'));
 
     // Save Trigger
-    userEvent.click(screen.getByLabelText('Save Rule'));
+    await userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
     expect(editRule).toHaveBeenCalledWith(
@@ -209,15 +209,15 @@ describe('MetricRulesEdit', function () {
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    userEvent.click(screen.getByLabelText('Add Action'));
+    await userEvent.click(screen.getByLabelText('Add Action'));
 
     // Clear warning Trigger
-    userEvent.clear(screen.getByTestId('warning-threshold'));
+    await userEvent.clear(screen.getByTestId('warning-threshold'));
 
     await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
 
     // Save Trigger
-    userEvent.click(screen.getByLabelText('Save Rule'));
+    await userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
@@ -255,7 +255,7 @@ describe('MetricRulesEdit', function () {
     );
   });
 
-  it('renders 404', function () {
+  it('renders 404', async function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/1234/`,

@@ -36,7 +36,7 @@ describe('ProjectReleaseTracking', function () {
     });
   });
 
-  it('renders with token', function () {
+  it('renders with token', async function () {
     render(
       <ProjectReleaseTracking
         organization={org}
@@ -49,7 +49,7 @@ describe('ProjectReleaseTracking', function () {
     expect(screen.getByRole('textbox')).toHaveValue('token token token');
   });
 
-  it('can regenerate token', function () {
+  it('can regenerate token', async function () {
     render(
       <ProjectReleaseTracking
         organization={org}
@@ -69,14 +69,14 @@ describe('ProjectReleaseTracking', function () {
     });
 
     // Click Regenerate Token
-    userEvent.click(screen.getByRole('button', {name: 'Regenerate Token'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Regenerate Token'}));
 
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalledWith(
       url,
@@ -89,7 +89,7 @@ describe('ProjectReleaseTracking', function () {
     );
   });
 
-  it('fetches new plugins when project changes', function () {
+  it('fetches new plugins when project changes', async function () {
     const {rerender} = render(
       <ProjectReleaseTrackingContainer
         organization={org}

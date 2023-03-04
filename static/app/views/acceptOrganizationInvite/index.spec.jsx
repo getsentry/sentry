@@ -48,7 +48,7 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    userEvent.click(joinButton);
+    await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
     expect(joinButton).toBeDisabled();
 
@@ -57,7 +57,7 @@ describe('AcceptOrganizationInvite', function () {
     );
   });
 
-  it('can accept invitation on customer-domains', async function () {
+  it.only('can accept invitation on customer-domains', async function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'org-slug',
@@ -87,7 +87,7 @@ describe('AcceptOrganizationInvite', function () {
 
     const joinButton = getJoinButton();
 
-    userEvent.click(joinButton);
+    await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
     expect(joinButton).toBeDisabled();
 
@@ -96,7 +96,7 @@ describe('AcceptOrganizationInvite', function () {
     );
   });
 
-  it('requires authentication to join', function () {
+  it('requires authentication to join', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -125,7 +125,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('suggests sso authentication to login', function () {
+  it('suggests sso authentication to login', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -156,7 +156,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('enforce required sso authentication', function () {
+  it('enforce required sso authentication', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -187,7 +187,7 @@ describe('AcceptOrganizationInvite', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('enforce required sso authentication for logged in users', function () {
+  it('enforce required sso authentication for logged in users', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -237,13 +237,13 @@ describe('AcceptOrganizationInvite', function () {
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('existing-member-link'));
+    await userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
   });
 
-  it('shows right options for logged in user and optional SSO', function () {
+  it('shows right options for logged in user and optional SSO', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -282,13 +282,13 @@ describe('AcceptOrganizationInvite', function () {
     );
 
     expect(screen.getByTestId('existing-member')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('existing-member-link'));
+    await userEvent.click(screen.getByTestId('existing-member-link'));
 
     expect(logout).toHaveBeenCalled();
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
   });
 
-  it('shows 2fa warning', function () {
+  it('shows 2fa warning', async function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,

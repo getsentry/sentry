@@ -18,7 +18,7 @@ describe('ExternalIssueActions', function () {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
     const configurations = [integration];
 
-    it('renders', function () {
+    it('renders', async function () {
       const {container} = render(
         <ExternalIssueActions
           key="github"
@@ -43,7 +43,7 @@ describe('ExternalIssueActions', function () {
         />
       );
 
-      userEvent.hover(screen.getByText('GitHub Issue'));
+      await userEvent.hover(screen.getByText('GitHub Issue'));
       expect(await screen.findByText('GitHub Integration')).toBeInTheDocument();
       expect(screen.getByText('github.com/test-integration')).toBeInTheDocument();
     });
@@ -64,7 +64,7 @@ describe('ExternalIssueActions', function () {
       );
       renderGlobalModal();
 
-      userEvent.click(screen.getByRole('button', {name: 'Add'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add'}));
       expect(await screen.findByText('Create Issue')).toBeInTheDocument();
       expect(integrationConfigMock).toHaveBeenCalledTimes(1);
     });
@@ -80,7 +80,7 @@ describe('ExternalIssueActions', function () {
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
     const configurations = [integration];
-    it('renders', function () {
+    it('renders', async function () {
       render(
         <ExternalIssueActions
           key="github"
@@ -93,7 +93,7 @@ describe('ExternalIssueActions', function () {
       expect(screen.getByText('getsentry/sentry#2')).toBeInTheDocument();
     });
 
-    it('deletes when clicking x', function () {
+    it('deletes when clicking x', async function () {
       const mockDelete = MockApiClient.addMockResponse({
         url: '/groups/1/integrations/1/?externalIssue=100',
         method: 'DELETE',
@@ -108,7 +108,7 @@ describe('ExternalIssueActions', function () {
         />
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Close'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Close'}));
       expect(mockDelete).toHaveBeenCalledTimes(1);
     });
   });

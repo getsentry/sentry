@@ -27,7 +27,7 @@ describe('ProjectTags', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <ProjectTags organization={org} params={{projectId: project.slug}} />
     );
@@ -35,7 +35,7 @@ describe('ProjectTags', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -47,7 +47,7 @@ describe('ProjectTags', function () {
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
-  it('disables delete button for users without access', function () {
+  it('disables delete button for users without access', async function () {
     const context = {
       organization: TestStubs.Organization({access: []}),
     };
@@ -68,11 +68,11 @@ describe('ProjectTags', function () {
     const tagCount = screen.getAllByTestId('tag-row').length;
 
     // Remove the first tag
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
 
     // Press confirm in modal
     renderGlobalModal();
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     // Wait for the tag to have been removed in the store
     await waitFor(() =>

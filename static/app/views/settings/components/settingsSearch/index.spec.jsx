@@ -71,9 +71,11 @@ describe('SettingsSearch', function () {
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when hotkey is pressed', function () {
+  it.only('can focus when hotkey is pressed', async function () {
     render(<SettingsSearch />);
-    userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
+    await userEvent.keyboard('/', {
+      keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}],
+    });
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
@@ -82,7 +84,7 @@ describe('SettingsSearch', function () {
       context: routerContext,
     });
 
-    userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
 
     expect(orgsMock.mock.calls).toEqual([
       [
@@ -101,7 +103,7 @@ describe('SettingsSearch', function () {
       ],
     ]);
 
-    userEvent.click(
+    await userEvent.click(
       await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
     );
 

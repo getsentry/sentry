@@ -75,7 +75,7 @@ describe('SentryAppExternalInstallation', () => {
       });
     });
 
-    it('sets the org automatically', () => {
+    it('sets the org automatically', async () => {
       render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
       expect(getAppMock).toHaveBeenCalled();
@@ -106,7 +106,7 @@ describe('SentryAppExternalInstallation', () => {
 
       render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
-      userEvent.click(await screen.findByTestId('install'));
+      await userEvent.click(await screen.findByTestId('install'));
 
       expect(installMock).toHaveBeenCalledWith(
         installUrl,
@@ -133,7 +133,7 @@ describe('SentryAppExternalInstallation', () => {
       });
     });
 
-    it('renders org dropdown', () => {
+    it('renders org dropdown', async () => {
       render(<SentryAppExternalInstallation params={{sentryAppSlug: sentryApp.slug}} />);
 
       expect(getAppMock).toHaveBeenCalled();

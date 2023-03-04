@@ -31,7 +31,7 @@ describe('UserFeedback', function () {
     ProjectsStore.reset();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const params = {
       organization: TestStubs.Organization(),
       location: {query: {}, search: ''},
@@ -51,7 +51,7 @@ describe('UserFeedback', function () {
     expect(screen.getByText('Something bad happened')).toBeInTheDocument();
   });
 
-  it('renders no project message', function () {
+  it('renders no project message', async function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
@@ -68,7 +68,7 @@ describe('UserFeedback', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders empty state', function () {
+  it('renders empty state', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -88,7 +88,7 @@ describe('UserFeedback', function () {
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders empty state with project query', function () {
+  it('renders empty state with project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -108,7 +108,7 @@ describe('UserFeedback', function () {
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders issue status filter', function () {
+  it('renders issue status filter', async function () {
     const params = {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
@@ -130,14 +130,14 @@ describe('UserFeedback', function () {
     const all = screen.getByRole('radio', {name: 'All Issues'});
     expect(all).toBeInTheDocument();
     expect(all).not.toBeChecked();
-    userEvent.click(all);
+    await userEvent.click(all);
 
     expect(router.replace).toHaveBeenCalledWith(
       expect.objectContaining({query: {status: ''}})
     );
   });
 
-  it('renders empty state with multi project query', function () {
+  it('renders empty state with multi project query', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],

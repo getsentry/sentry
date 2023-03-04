@@ -157,7 +157,7 @@ describe('Performance > Web Vitals', function () {
     jest.restoreAllMocks();
   });
 
-  it('render no access without feature', function () {
+  it('render no access without feature', async function () {
     const {organization, router, routerContext} = initialize({
       features: [],
     });
@@ -168,7 +168,7 @@ describe('Performance > Web Vitals', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('renders the basic UI components', function () {
+  it('renders the basic UI components', async function () {
     const {organization, router, routerContext} = initialize({
       transaction: '/organizations/:orgId/',
     });
@@ -191,7 +191,7 @@ describe('Performance > Web Vitals', function () {
     });
   });
 
-  it('renders the correct bread crumbs', function () {
+  it('renders the correct bread crumbs', async function () {
     const {organization, router, routerContext} = initialize();
 
     render(
@@ -227,7 +227,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   describe('reset view', function () {
-    it('disables button on default view', function () {
+    it('disables button on default view', async function () {
       const {organization, router, routerContext} = initialize();
 
       render(
@@ -242,7 +242,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeDisabled();
     });
 
-    it('enables button on left zoom', function () {
+    it('enables button on left zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           lcpStart: '20',
@@ -261,7 +261,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on right zoom', function () {
+    it('enables button on right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fpEnd: '20',
@@ -280,7 +280,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('enables button on left and right zoom', function () {
+    it('enables button on left and right zoom', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fcpStart: '20',
@@ -300,7 +300,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', function () {
+    it('resets view properly', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -317,7 +317,7 @@ describe('Performance > Web Vitals', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.not.objectContaining(

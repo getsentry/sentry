@@ -44,7 +44,7 @@ describe('EnvironmentPageFilter', function () {
     );
   });
 
-  it('can pick environment', function () {
+  it('can pick environment', async function () {
     render(<EnvironmentPageFilter />, {
       context: routerContext,
       organization,
@@ -52,13 +52,13 @@ describe('EnvironmentPageFilter', function () {
 
     // Open the environment dropdown
     expect(screen.getByText('All Envs')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Envs'));
+    await userEvent.click(screen.getByText('All Envs'));
 
     // Select the 'prod' env
-    userEvent.click(screen.getByRole('checkbox', {name: 'prod'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'prod'}));
 
     // Close the dropdown
-    userEvent.click(screen.getAllByText('prod')[0]);
+    await userEvent.click(screen.getAllByText('prod')[0]);
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(
@@ -80,11 +80,11 @@ describe('EnvironmentPageFilter', function () {
 
     // Open the environment dropdown
     expect(screen.getByText('All Envs')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Envs'));
+    await userEvent.click(screen.getByText('All Envs'));
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    userEvent.click(pinButton, undefined, {skipHover: true});
+    await userEvent.click(pinButton, undefined, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 
@@ -106,10 +106,10 @@ describe('EnvironmentPageFilter', function () {
 
     // Open the environment dropdown
     expect(screen.getByText('All Envs')).toBeInTheDocument();
-    userEvent.click(screen.getByText('All Envs'));
+    await userEvent.click(screen.getByText('All Envs'));
 
     // Click the first environment directly
-    userEvent.click(screen.getByText('prod'));
+    await userEvent.click(screen.getByText('prod'));
 
     // Verify we were redirected
     expect(router.push).toHaveBeenCalledWith(

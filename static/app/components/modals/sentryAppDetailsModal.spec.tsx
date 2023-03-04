@@ -22,7 +22,7 @@ function renderMockRequests({sentryAppSlug}: {sentryAppSlug: string}) {
 describe('SentryAppDetailsModal', function () {
   const sentryApp = TestStubs.SentryApp();
 
-  it('renders', function () {
+  it('renders', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
@@ -38,7 +38,7 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByText(sentryApp.name)).toBeInTheDocument();
   });
 
-  it('records interaction request', function () {
+  it('records interaction request', async function () {
     const mockRequests = renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
@@ -62,7 +62,7 @@ describe('SentryAppDetailsModal', function () {
     );
   });
 
-  it('displays the Integrations description', function () {
+  it('displays the Integrations description', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
@@ -78,7 +78,7 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByText(sentryApp.overview)).toBeInTheDocument();
   });
 
-  it('closes when Cancel is clicked', function () {
+  it('closes when Cancel is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     const handleCloseModal = jest.fn();
@@ -93,12 +93,12 @@ describe('SentryAppDetailsModal', function () {
       />
     );
 
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
 
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
-  it('installs the Integration when Install is clicked', function () {
+  it('installs the Integration when Install is clicked', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     const handleOnInstall = jest.fn();
@@ -113,12 +113,12 @@ describe('SentryAppDetailsModal', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
     expect(handleOnInstall).toHaveBeenCalled();
   });
 
-  it('does not display the Install button, when the User does not have permission to install Integrations', function () {
+  it('does not display the Install button, when the User does not have permission to install Integrations', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
@@ -136,7 +136,7 @@ describe('SentryAppDetailsModal', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('render the Install button disabled, when the Integration is installed', function () {
+  it('render the Install button disabled, when the Integration is installed', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(
@@ -152,7 +152,7 @@ describe('SentryAppDetailsModal', function () {
     expect(screen.getByRole('button', {name: 'Accept & Install'})).toBeDisabled();
   });
 
-  it('does not render permissions, when the Integration requires no permissions', function () {
+  it('does not render permissions, when the Integration requires no permissions', async function () {
     renderMockRequests({sentryAppSlug: sentryApp.slug});
 
     render(

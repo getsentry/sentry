@@ -5,12 +5,12 @@ import localStorage from 'sentry/utils/localStorage';
 
 jest.mock('sentry/utils/localStorage');
 
-const changeReactMentionsInput = (value: string) => {
+async function changeReactMentionsInput(value: string) {
   const textbox = screen.getByRole('textbox');
 
-  userEvent.clear(textbox);
-  userEvent.type(screen.getByRole('textbox'), value);
-};
+  await userEvent.clear(textbox);
+  await userEvent.type(textbox, value);
+}
 
 describe('NoteInputWithStorage', function () {
   beforeEach(() => {
@@ -36,10 +36,10 @@ describe('NoteInputWithStorage', function () {
     expect(screen.getByRole('textbox')).toHaveValue('saved item');
   });
 
-  it('saves draft when input changes', function () {
+  it('saves draft when input changes', async function () {
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    changeReactMentionsInput('WIP COMMENT');
+    await changeReactMentionsInput('WIP COMMENT');
 
     expect(localStorage.setItem).toHaveBeenLastCalledWith(
       'storage',
@@ -47,17 +47,17 @@ describe('NoteInputWithStorage', function () {
     );
   });
 
-  it('removes draft item after submitting', function () {
+  it('removes draft item after submitting', async function () {
     (localStorage as jest.Mocked<typeof localStorage>).getItem.mockImplementation(() =>
       JSON.stringify({item1: 'draft item', item2: 'item2', item3: 'item3'})
     );
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    userEvent.clear(screen.getByRole('textbox'));
-    userEvent.type(screen.getByRole('textbox'), 'new comment');
+    await userEvent.clear(screen.getByRole('textbox'));
+    await userEvent.type(screen.getByRole('textbox'), 'new comment');
 
-    userEvent.type(screen.getByRole('textbox'), '{ctrl}{enter}{/ctrl}');
+    await userEvent.type(screen.getByRole('textbox'), '{Control}{enter}{Control>}');
 
     expect(localStorage.setItem).toHaveBeenLastCalledWith(
       'storage',

@@ -16,18 +16,18 @@ describe('SentryAppRuleModal', function () {
     sentryAppInstallation = TestStubs.SentryAppInstallation({sentryApp});
   });
 
-  const _submit = () => {
-    userEvent.click(screen.getByText('Save Changes'));
+  const _submit = async () => {
+    await userEvent.click(screen.getByText('Save Changes'));
     return screen.queryAllByText('Field is required');
   };
 
-  const submitSuccess = () => {
-    const errors = _submit();
+  const submitSuccess = async () => {
+    const errors = await _submit();
     expect(errors).toHaveLength(0);
   };
 
-  const submitErrors = errorCount => {
-    const errors = _submit();
+  const submitErrors = async errorCount => {
+    const errors = await _submit();
     expect(errors).toHaveLength(errorCount);
   };
 
@@ -107,7 +107,7 @@ describe('SentryAppRuleModal', function () {
   };
 
   describe('Create UI Alert Rule', function () {
-    it('should render the Alert Rule modal with the config fields', function () {
+    it('should render the Alert Rule modal with the config fields', async function () {
       createWrapper();
       const {required_fields, optional_fields} = defaultConfig;
       const allFields = [...required_fields, ...optional_fields];
@@ -117,23 +117,23 @@ describe('SentryAppRuleModal', function () {
       });
     });
 
-    it('should raise validation errors when "Save Changes" is clicked with invalid data', function () {
+    it('should raise validation errors when "Save Changes" is clicked with invalid data', async function () {
       createWrapper();
-      submitErrors(3);
+      await submitErrors(3);
     });
 
     it('should submit when "Save Changes" is clicked with valid data', async function () {
       createWrapper();
 
       const titleInput = screen.getByTestId('title');
-      userEvent.type(titleInput, 'some title');
+      await userEvent.type(titleInput, 'some title');
 
       const descriptionInput = screen.getByTestId('description');
-      userEvent.type(descriptionInput, 'some description');
+      await userEvent.type(descriptionInput, 'some description');
 
       const channelInput = screen.getAllByText('Type to search')[0];
-      userEvent.type(channelInput, '{keyDown}');
-      userEvent.click(screen.getByText('valor'));
+      await userEvent.type(channelInput, '{keyDown}');
+      await userEvent.click(screen.getByText('valor'));
 
       // Ensure text fields are persisted on edit
       const savedExtraDetailsInput = screen.getByDisplayValue(
@@ -155,12 +155,12 @@ describe('SentryAppRuleModal', function () {
       });
       const workspaceInput = screen.getByText('Type to search');
       // Search by value
-      userEvent.type(workspaceInput, workspaceChoices[1][0]);
+      await userEvent.type(workspaceInput, workspaceChoices[1][0]);
       await waitFor(() => expect(workspaceResponse).toHaveBeenCalled());
       // Select by label
-      userEvent.click(screen.getByText(workspaceChoices[1][1]));
+      await userEvent.click(screen.getByText(workspaceChoices[1][1]));
 
-      submitSuccess();
+      await submitSuccess();
     });
   });
 });

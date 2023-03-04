@@ -55,14 +55,14 @@ describe('OrganizationMembersWrapper', function () {
     });
   });
 
-  it('can invite member', function () {
+  it('can invite member', async function () {
     render(<OrganizationMembersWrapper organization={organization} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('can not invite members without the invite-members feature', function () {
+  it('can not invite members without the invite-members feature', async function () {
     const org = TestStubs.Organization({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
@@ -75,7 +75,7 @@ describe('OrganizationMembersWrapper', function () {
     expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
 
-  it('can invite without permissions', function () {
+  it('can invite without permissions', async function () {
     const org = TestStubs.Organization({
       features: ['invite-members'],
       access: [],
@@ -86,11 +86,11 @@ describe('OrganizationMembersWrapper', function () {
 
     render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('renders member list', function () {
+  it('renders member list', async function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',

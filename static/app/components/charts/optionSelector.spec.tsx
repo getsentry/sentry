@@ -56,7 +56,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     return render(<TestComponent />, {context: initialData.routerContext});
   };
 
-  it('renders yAxisOptions with yAxisValue selected', function () {
+  it('renders yAxisOptions with yAxisValue selected', async function () {
     renderComponent();
     expect(screen.getByRole('option', {name: 'count()'})).toHaveAttribute(
       'aria-selected',
@@ -72,21 +72,21 @@ describe('Charts > OptionSelector (Multiple)', function () {
     );
   });
 
-  it('calls onChange prop with new checkbox option state', function () {
+  it('calls onChange prop with new checkbox option state', async function () {
     renderComponent();
-    userEvent.click(screen.getByRole('option', {name: 'count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['count()']);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
@@ -94,24 +94,26 @@ describe('Charts > OptionSelector (Multiple)', function () {
     ]);
   });
 
-  it('does not uncheck options when clicked if only one option is currently selected', function () {
+  it('does not uncheck options when clicked if only one option is currently selected', async function () {
     renderComponent();
-    userEvent.click(screen.getByRole('option', {name: 'count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
-    userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
     expect(onChangeStub).toHaveBeenCalledWith(['failure_count()']);
   });
 
-  it('only allows up to 3 options to be checked at one time', function () {
+  it('only allows up to 3 options to be checked at one time', async function () {
     renderComponent();
-    userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',
       'count_unique(user)',
     ]);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'avg(transaction.duration)'}));
+    await userEvent.click(
+      screen.getByRole('option', {name: 'avg(transaction.duration)'})
+    );
     expect(onChangeStub).not.toHaveBeenCalledWith([
       'count()',
       'failure_count()',
@@ -119,10 +121,10 @@ describe('Charts > OptionSelector (Multiple)', function () {
       'avg(transaction.duration)',
     ]);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith(['count()', 'failure_count()']);
     onChangeStub.mockClear();
-    userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
+    await userEvent.click(screen.getByRole('option', {name: 'count_unique(user)'}));
     expect(onChangeStub).toHaveBeenCalledWith([
       'count()',
       'failure_count()',

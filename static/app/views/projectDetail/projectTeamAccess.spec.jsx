@@ -6,7 +6,7 @@ import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -19,7 +19,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
   });
 
-  it('links to a team settings', function () {
+  it('links to a team settings', async function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -34,7 +34,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state with access', function () {
+  it('display the right empty state with access', async function () {
     render(
       <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
       {context: routerContext}
@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state without access', function () {
+  it('display the right empty state without access', async function () {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
   });
 
-  it('collapses more than 5 teams', function () {
+  it('collapses more than 5 teams', async function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -78,14 +78,14 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
 
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
 
-    userEvent.click(screen.getByRole('button', {name: 'Show 2 collapsed teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 collapsed teams'}));
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(7);
 
-    userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 
-  it('sorts teams alphabetically', function () {
+  it('sorts teams alphabetically', async function () {
     render(
       <ProjectTeamAccess
         organization={organization}

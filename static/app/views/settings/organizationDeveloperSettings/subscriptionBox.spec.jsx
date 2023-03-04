@@ -23,15 +23,15 @@ describe('SubscriptionBox', () => {
     );
   }
 
-  it('renders resource checkbox', () => {
+  it('renders resource checkbox', async () => {
     const {container} = renderComponent();
     expect(container).toSnapshot();
   });
 
-  it('calls onChange prop when checking checkbox', () => {
+  it('calls onChange prop when checking checkbox', async () => {
     renderComponent();
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith('issue', true);
   });
 
@@ -40,7 +40,7 @@ describe('SubscriptionBox', () => {
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('checkbox'));
+    await userEvent.hover(screen.getByRole('checkbox'));
     expect(
       await screen.findByText("Must have at least 'Read' permissions enabled for Event")
     ).toBeInTheDocument();
@@ -52,7 +52,7 @@ describe('SubscriptionBox', () => {
 
       expect(screen.getByRole('checkbox')).toBeDisabled();
 
-      userEvent.hover(screen.getByRole('checkbox'));
+      await userEvent.hover(screen.getByRole('checkbox'));
       expect(
         await screen.findByText(
           'Your organization does not have access to the error subscription resource.'
@@ -60,7 +60,7 @@ describe('SubscriptionBox', () => {
       ).toBeInTheDocument();
     });
 
-    it('checkbox visible with integrations-event-hooks flag', () => {
+    it('checkbox visible with integrations-event-hooks flag', async () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
       renderComponent({resource: 'error', organization: org});
 
@@ -73,7 +73,7 @@ describe('SubscriptionBox', () => {
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('checkbox'));
+    await userEvent.hover(screen.getByRole('checkbox'));
     expect(
       await screen.findByText(
         'Cannot enable webhook subscription without specifying a webhook url'

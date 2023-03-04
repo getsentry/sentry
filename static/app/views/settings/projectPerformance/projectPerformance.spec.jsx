@@ -51,7 +51,7 @@ describe('projectPerformance', function () {
     });
   });
 
-  it('renders the fields', function () {
+  it('renders the fields', async function () {
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
@@ -67,7 +67,7 @@ describe('projectPerformance', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('updates the field', function () {
+  it('updates the field', async function () {
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
@@ -78,9 +78,9 @@ describe('projectPerformance', function () {
 
     const input = screen.getByRole('textbox', {name: 'Response Time Threshold (ms)'});
 
-    userEvent.clear(input);
-    userEvent.type(input, '400');
-    userEvent.tab();
+    await userEvent.clear(input);
+    await userEvent.type(input, '400');
+    await userEvent.tab();
 
     expect(postMock).toHaveBeenCalledWith(
       configUrl,
@@ -92,7 +92,7 @@ describe('projectPerformance', function () {
     expect(input).toHaveValue('400');
   });
 
-  it('clears the data', function () {
+  it('clears the data', async function () {
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
@@ -101,11 +101,11 @@ describe('projectPerformance', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Reset All'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset All'}));
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('does not get performance issues settings without the feature flag', function () {
+  it('does not get performance issues settings without the feature flag', async function () {
     const orgWithoutPerfIssues = TestStubs.Organization({
       features: ['performance-view'],
     });

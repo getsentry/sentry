@@ -30,7 +30,7 @@ describe('TeamNotificationSettings', () => {
     team = TestStubs.Team();
   });
 
-  it('should render empty message when there are no integrations', () => {
+  it('should render empty message when there are no integrations', async () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -54,7 +54,7 @@ describe('TeamNotificationSettings', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render empty message when there are no externalTeams', () => {
+  it('should render empty message when there are no externalTeams', async () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -76,7 +76,7 @@ describe('TeamNotificationSettings', () => {
     expect(screen.getByText('No teams have been linked yet.')).toBeInTheDocument();
   });
 
-  it('should render each externalTeam', () => {
+  it('should render each externalTeam', async () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -104,7 +104,7 @@ describe('TeamNotificationSettings', () => {
     expect(screen.getByRole('button', {name: 'delete'})).toBeInTheDocument();
   });
 
-  it('should delete be able to delete the externalTeam', () => {
+  it('should delete be able to delete the externalTeam', async () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -129,10 +129,10 @@ describe('TeamNotificationSettings', () => {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

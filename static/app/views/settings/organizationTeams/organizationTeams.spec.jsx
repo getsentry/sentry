@@ -32,11 +32,11 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('opens "create team modal" when creating a new team from header', function () {
+    it('opens "create team modal" when creating a new team from header', async function () {
       createWrapper();
 
       // Click "Create Team" in Panel Header
-      userEvent.click(screen.getByLabelText('Create Team'));
+      await userEvent.click(screen.getByLabelText('Create Team'));
 
       // action creator to open "create team modal" is called
       expect(openCreateTeamModal).toHaveBeenCalledWith(
@@ -48,7 +48,7 @@ describe('OrganizationTeams', function () {
       );
     });
 
-    it('can join team and have link to details', function () {
+    it('can join team and have link to details', async function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: true,
@@ -84,13 +84,13 @@ describe('OrganizationTeams', function () {
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
 
       createWrapper({access: new Set([])});
-      act(() => void userEvent.click(screen.getByLabelText('Join Team')));
+      await userEvent.click(screen.getByLabelText('Join Team'));
       await act(() => tick());
 
       expect(getOrgMock).toHaveBeenCalledTimes(1);
     });
 
-    it('cannot leave idp-provisioned team', function () {
+    it('cannot leave idp-provisioned team', async function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
       ];
@@ -100,7 +100,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
     });
 
-    it('cannot join idp-provisioned team', function () {
+    it('cannot join idp-provisioned team', async function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
       ];
@@ -133,7 +133,7 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('can request access to team and does not have link to details', function () {
+    it('can request access to team and does not have link to details', async function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: false,
@@ -149,7 +149,7 @@ describe('OrganizationTeams', function () {
       expect(screen.queryByTestId('team-link')).not.toBeInTheDocument();
     });
 
-    it('can leave team when you are a member', function () {
+    it('can leave team when you are a member', async function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: true,
@@ -164,7 +164,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
     });
 
-    it('cannot request to join idp-provisioned team', function () {
+    it('cannot request to join idp-provisioned team', async function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
       ];
@@ -176,7 +176,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
     });
 
-    it('cannot leave idp-provisioned team', function () {
+    it('cannot leave idp-provisioned team', async function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
       ];
@@ -220,7 +220,7 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('renders team request panel', function () {
+    it('renders team request panel', async function () {
       createWrapper();
 
       expect(screen.getByText('Pending Team Requests')).toBeInTheDocument();
@@ -240,7 +240,7 @@ describe('OrganizationTeams', function () {
       createWrapper({
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
-      userEvent.click(screen.getAllByLabelText('Approve')[0]);
+      await userEvent.click(screen.getAllByLabelText('Approve')[0]);
 
       await tick();
 
@@ -266,7 +266,7 @@ describe('OrganizationTeams', function () {
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
 
-      userEvent.click(screen.getAllByLabelText('Deny')[0]);
+      await userEvent.click(screen.getAllByLabelText('Deny')[0]);
 
       await tick();
 
@@ -286,7 +286,7 @@ describe('OrganizationTeams', function () {
     const features = new Set(['team-roles']);
     const access = new Set();
 
-    it('does not render alert without feature flag', function () {
+    it('does not render alert without feature flag', async function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
@@ -301,7 +301,7 @@ describe('OrganizationTeams', function () {
       expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
     });
 
-    it('renders alert with elevated org role', function () {
+    it('renders alert with elevated org role', async function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
@@ -321,7 +321,7 @@ describe('OrganizationTeams', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render alert with lowest org role', function () {
+    it('does not render alert with lowest org role', async function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'member'}});
       render(
         <OrganizationTeams

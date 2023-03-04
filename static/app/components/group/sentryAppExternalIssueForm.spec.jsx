@@ -31,7 +31,7 @@ describe('SentryAppExternalIssueForm', () => {
   });
 
   describe('create', () => {
-    it('can create a new issue', () => {
+    it('can create a new issue', async () => {
       render(
         <SentryAppExternalIssueForm
           group={group}
@@ -50,17 +50,17 @@ describe('SentryAppExternalIssueForm', () => {
       }
 
       // Prevents submission if required fields are not set
-      userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
       expect(externalIssueRequest).not.toHaveBeenCalled();
 
       selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
-      userEvent.type(screen.getByRole('textbox', {name: 'Numbers'}), '1');
-      userEvent.click(screen.getByText('one'));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Numbers'}), '1');
+      await userEvent.click(screen.getByText('one'));
 
       // Sets required fields
-      userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'ApiError: Broken');
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'ApiError: Broken');
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
@@ -78,7 +78,7 @@ describe('SentryAppExternalIssueForm', () => {
       );
     });
 
-    it('renders prepopulated defaults', () => {
+    it('renders prepopulated defaults', async () => {
       render(
         <SentryAppExternalIssueForm
           group={group}
@@ -101,7 +101,7 @@ describe('SentryAppExternalIssueForm', () => {
   });
 
   describe('link', () => {
-    it('can link an issue', () => {
+    it('can link an issue', async () => {
       render(
         <SentryAppExternalIssueForm
           group={group}
@@ -119,8 +119,8 @@ describe('SentryAppExternalIssueForm', () => {
         expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
       }
 
-      userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), 'my issue');
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), 'my issue');
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(externalIssueRequest).toHaveBeenCalledWith(
         submitUrl,
@@ -175,7 +175,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     );
 
     selectEvent.openMenu(screen.getByText('Numbers'));
-    userEvent.type(screen.getByRole('textbox'), 'I');
+    await userEvent.type(screen.getByRole('textbox'), 'I');
 
     expect(mockGetOptions).toHaveBeenCalled();
     expect(await screen.findByText('Issue 1')).toBeInTheDocument();
@@ -239,7 +239,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       />
     );
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Project'}), 'p');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Project'}), 'p');
 
     expect(await screen.findByText('project A')).toBeInTheDocument();
     expect(screen.getByText('project B')).toBeInTheDocument();
@@ -254,7 +254,7 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
     expect(boardMock).toHaveBeenCalled();
     expect(screen.getByRole('textbox', {name: 'Board'})).toBeEnabled();
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Board'}), 'b');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Board'}), 'b');
 
     expect(await screen.findByText('board R')).toBeInTheDocument();
     expect(screen.getByText('board S')).toBeInTheDocument();

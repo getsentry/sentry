@@ -41,7 +41,7 @@ describe('Dashboards > Detail', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('denies access on missing feature', function () {
+  it('denies access on missing feature', async function () {
     render(
       <ManageDashboards
         organization={mockUnauthorizedOrg}
@@ -53,7 +53,7 @@ describe('Dashboards > Detail', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('denies access on no projects', function () {
+  it('denies access on no projects', async function () {
     act(() => ProjectsStore.loadInitialData([]));
 
     render(
@@ -69,12 +69,12 @@ describe('Dashboards > Detail', function () {
     ).toBeInTheDocument();
   });
 
-  it('creates new dashboard', function () {
+  it('creates new dashboard', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
     render(<ManageDashboards organization={org} location={{query: {}}} router={{}} />);
 
-    userEvent.click(screen.getByTestId('dashboard-create'));
+    await userEvent.click(screen.getByTestId('dashboard-create'));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboards/new/',

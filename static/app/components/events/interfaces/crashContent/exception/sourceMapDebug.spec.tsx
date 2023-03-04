@@ -72,7 +72,7 @@ describe('SourceMapDebug', () => {
     },
   } as Event;
 
-  it('should use unqiue in app frames', () => {
+  it('should use unqiue in app frames', async () => {
     expect(debugFrames).toHaveLength(1);
     expect(debugFrames[0].filename).toBe(
       './app/views/organizationStats/teamInsights/controls.tsx'
@@ -171,7 +171,7 @@ describe('SourceMapDebug', () => {
       screen.queryByText(textWithMarkupMatcher(expandedMessage))
     ).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();

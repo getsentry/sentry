@@ -81,14 +81,14 @@ describe('PluginDetailedView', function () {
 
     expect(screen.getByText('Installed')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
 
     renderGlobalModal();
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  it('view configurations', function () {
+  it('view configurations', async function () {
     const {route, router, organization} = initializeOrg({
       ...initializeOrg(),
       router: {location: {query: {tab: 'configurations'}}},

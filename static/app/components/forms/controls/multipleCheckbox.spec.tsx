@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function () {
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <MultipleCheckbox name="test" value={[1]}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
@@ -15,7 +15,7 @@ describe('MultipleCheckbox', function () {
     expect(container).toSnapshot();
   });
 
-  it('unselects a checked input', function () {
+  it('unselects a checked input', async function () {
     const onChange = jest.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
@@ -25,11 +25,11 @@ describe('MultipleCheckbox', function () {
       </MultipleCheckbox>
     );
 
-    userEvent.click(screen.getByLabelText('Choice B'));
+    await userEvent.click(screen.getByLabelText('Choice B'));
     expect(onChange).toHaveBeenCalledWith([], expect.anything());
   });
 
-  it('selects an unchecked input', function () {
+  it('selects an unchecked input', async function () {
     const onChange = jest.fn();
     render(
       <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
@@ -39,7 +39,7 @@ describe('MultipleCheckbox', function () {
       </MultipleCheckbox>
     );
 
-    userEvent.click(screen.getByLabelText('Choice A'));
+    await userEvent.click(screen.getByLabelText('Choice A'));
     expect(onChange).toHaveBeenCalledWith([1, 0], expect.anything());
   });
 });

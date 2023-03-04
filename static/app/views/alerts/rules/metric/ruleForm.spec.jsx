@@ -101,15 +101,15 @@ describe('Incident Rules Form', () => {
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
-      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'Incident Rule');
+      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'Incident Rule');
 
       // Set thresholdPeriod
       await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
 
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
         expect.anything(),
@@ -144,7 +144,7 @@ describe('Incident Rules Form', () => {
         )
       );
 
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenCalledWith(
         expect.anything(),
@@ -172,13 +172,13 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      userEvent.click(screen.getAllByText('Number of Errors').at(1));
-      userEvent.click(await screen.findByText('Custom Metric'));
+      await userEvent.click(screen.getAllByText('Number of Errors').at(1));
+      await userEvent.click(await screen.findByText('Custom Metric'));
 
-      userEvent.click(screen.getAllByText('event.type:transaction').at(1));
-      userEvent.click(await screen.findByText('event.type:error'));
+      await userEvent.click(screen.getAllByText('event.type:transaction').at(1));
+      await userEvent.click(await screen.findByText('event.type:error'));
       expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(createRule).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -222,18 +222,18 @@ describe('Incident Rules Form', () => {
       editTrigger.mockReset();
     });
 
-    it('edits metric', () => {
+    it('edits metric', async () => {
       createWrapper({
         ruleId: rule.id,
         rule,
       });
 
       // Clear field
-      userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
+      await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
-      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
+      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
 
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -258,13 +258,13 @@ describe('Incident Rules Form', () => {
       });
 
       expect(screen.getByLabelText('Static: above or below {x}')).not.toBeChecked();
-      userEvent.click(screen.getByText('Static: above or below {x}'));
+      await userEvent.click(screen.getByText('Static: above or below {x}'));
 
       await waitFor(() =>
         expect(screen.getByLabelText('Static: above or below {x}')).toBeChecked()
       );
 
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -286,10 +286,10 @@ describe('Incident Rules Form', () => {
         },
       });
 
-      userEvent.click(screen.getByText('event.type:error OR event.type:default'));
-      userEvent.click(await screen.findByText('event.type:default'));
+      await userEvent.click(screen.getByText('event.type:error OR event.type:default'));
+      await userEvent.click(await screen.findByText('event.type:default'));
       expect(screen.getAllByText('Number of Errors')).toHaveLength(2);
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(editRule).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -337,11 +337,11 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      userEvent.paste(
+      await userEvent.paste(
         screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
@@ -360,7 +360,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', () => {
+    it('pending status keeps loading true', async () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
@@ -408,11 +408,11 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      userEvent.paste(
+      await userEvent.paste(
         screen.getByPlaceholderText('Enter Alert Name'),
         'Slack Alert Rule'
       );
-      userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'));
 
       act(jest.runAllTimers);
       await waitFor(

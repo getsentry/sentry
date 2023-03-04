@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
 describe('Source', function () {
-  it('default render', function () {
+  it('default render', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -21,7 +21,7 @@ describe('Source', function () {
     expect(screen.getByRole('textbox', {name: 'Source'})).toHaveValue('$string');
   });
 
-  it('display defaultSuggestions if input is empty and focused', function () {
+  it('display defaultSuggestions if input is empty and focused', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -31,7 +31,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -39,7 +39,7 @@ describe('Source', function () {
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display defaultSuggestions if input is empty, focused and has length 3', function () {
+  it('display defaultSuggestions if input is empty, focused and has length 3', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -49,7 +49,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -57,7 +57,7 @@ describe('Source', function () {
     expect(suggestions).toHaveLength(18);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', function () {
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type string', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -67,7 +67,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -79,7 +79,7 @@ describe('Source', function () {
     expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
-  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', function () {
+  it('display defaultSuggestions + unaryOperatorSuggestions, if penultimateFieldValue has type binary', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -89,7 +89,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -99,7 +99,7 @@ describe('Source', function () {
     expect(suggestions[17]).toHaveTextContent(unarySuggestions[0].value);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', function () {
+  it('display binaryOperatorSuggestions if penultimateFieldValue has type value', async function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -109,7 +109,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -121,7 +121,7 @@ describe('Source', function () {
     expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
-  it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', () => {
+  it('display binaryOperatorSuggestions if penultimateFieldValue is of typeof Array', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -131,7 +131,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -143,7 +143,7 @@ describe('Source', function () {
     expect(suggestions[1]).toHaveTextContent(binarySuggestions[1].value);
   });
 
-  it('display defaultSuggestions if penultimateFieldValue has type unary', () => {
+  it('display defaultSuggestions if penultimateFieldValue has type unary', async () => {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -153,7 +153,7 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
@@ -166,7 +166,7 @@ describe('Source', function () {
     );
   });
 
-  it('click on a suggestion should be possible', function () {
+  it('click on a suggestion should be possible', async function () {
     const handleOnChange = jest.fn();
 
     render(
@@ -178,16 +178,16 @@ describe('Source', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
 
-    userEvent.click(suggestions[1]);
+    await userEvent.click(suggestions[1]);
 
     expect(handleOnChange).toHaveBeenCalledWith('foo && password');
   });
 
-  it('suggestions keyDown and keyUp should work', function () {
+  it('suggestions keyDown and keyUp should work', async function () {
     const handleOnChange = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
 
@@ -201,19 +201,19 @@ describe('Source', function () {
     );
 
     // makes showSuggestions === true
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     const suggestions = screen.getAllByRole('listitem');
     expect(suggestions).toHaveLength(2);
 
-    userEvent.keyboard('{arrowdown}{enter}');
+    await userEvent.keyboard('{arrowdown}{enter}');
     expect(handleOnChange).toHaveBeenNthCalledWith(1, 'foo ||');
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Source'}), ' ');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), ' ');
 
     expect(handleOnChange).toHaveBeenNthCalledWith(2, 'foo  ');
 
-    userEvent.keyboard('{arrowdown}{arrowup}{enter}');
+    await userEvent.keyboard('{arrowdown}{arrowup}{enter}');
 
     expect(handleOnChange).toHaveBeenNthCalledWith(3, 'foo &&');
   });

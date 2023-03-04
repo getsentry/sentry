@@ -61,7 +61,7 @@ describe('ProjectPluginsContainer', function () {
     );
   });
 
-  it('calls `fetchPlugins` action creator after mount', function () {
+  it('calls `fetchPlugins` action creator after mount', async function () {
     expect(fetchPlugins).toHaveBeenCalled();
   });
 
@@ -72,7 +72,7 @@ describe('ProjectPluginsContainer', function () {
 
     expect(enablePlugin).not.toHaveBeenCalled();
 
-    userEvent.click(button);
+    await userEvent.click(button);
 
     expect(enablePlugin).toHaveBeenCalled();
   });
@@ -84,7 +84,7 @@ describe('ProjectPluginsContainer', function () {
 
     expect(disablePlugin).not.toHaveBeenCalled();
 
-    userEvent.click(button);
+    await userEvent.click(button);
 
     expect(disablePlugin).toHaveBeenCalled();
   });

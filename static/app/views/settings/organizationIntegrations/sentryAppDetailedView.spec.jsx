@@ -103,7 +103,7 @@ describe('SentryAppDetailedView', function () {
       });
     });
 
-    it('renders a published sentry app', () => {
+    it('renders a published sentry app', async () => {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'clickup', orgId: org.slug}}
@@ -137,12 +137,12 @@ describe('SentryAppDetailedView', function () {
       );
       renderGlobalModal();
 
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
 
       expect(await screen.findByRole('button', {name: 'Uninstall'})).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Uninstall'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
       expect(deleteRequest).toHaveBeenCalledTimes(1);
     });
   });
@@ -203,7 +203,7 @@ describe('SentryAppDetailedView', function () {
       });
     });
 
-    it('should get redirected to Developer Settings', () => {
+    it('should get redirected to Developer Settings', async () => {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'my-headband-washer-289499', orgId: org.slug}}
@@ -284,7 +284,7 @@ describe('SentryAppDetailedView', function () {
         },
       });
     });
-    it('shows the Integration name and install status', function () {
+    it('shows the Integration name and install status', async function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
@@ -295,7 +295,7 @@ describe('SentryAppDetailedView', function () {
       expect(screen.getByText('Not Installed')).toBeInTheDocument();
     });
 
-    it('installs and uninstalls', function () {
+    it('installs and uninstalls', async function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
@@ -303,7 +303,7 @@ describe('SentryAppDetailedView', function () {
         />
       );
       renderGlobalModal();
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
       expect(createRequest).toHaveBeenCalledTimes(1);
     });
   });
@@ -367,7 +367,7 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
     });
-    it('shows the Integration name and install status', function () {
+    it('shows the Integration name and install status', async function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'go-to-google', orgId: org.slug}}
@@ -391,7 +391,7 @@ describe('SentryAppDetailedView', function () {
       );
       const locationAssignSpy = jest.spyOn(window.location, 'assign');
 
-      userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Accept & Install'}));
 
       expect(createRequest).toHaveBeenCalled();
       await waitFor(() => {

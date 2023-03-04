@@ -44,12 +44,12 @@ const baseCommit: Commit = {
 
 // static/app/components/hovercard.tsx
 describe('commitRow', () => {
-  it('renders custom avatar', () => {
+  it('renders custom avatar', async () => {
     render(<CommitRow commit={baseCommit} customAvatar="Custom Avatar" />);
     expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
   });
 
-  it('renders invite flow for non associated users', () => {
+  it('renders invite flow for non associated users', async () => {
     const commit: Commit = {
       ...baseCommit,
       author: {
@@ -67,7 +67,7 @@ describe('commitRow', () => {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByText(/Invite/));
+    await userEvent.click(screen.getByText(/Invite/));
 
     // @ts-ignore we are mocking this import
     expect(openInviteMembersModal.mock.calls[0][0].initialData[0].emails).toEqual(
@@ -75,7 +75,7 @@ describe('commitRow', () => {
     );
   });
 
-  it('renders commit info', () => {
+  it('renders commit info', async () => {
     const commit: Commit = {
       ...baseCommit,
       author: {
@@ -89,7 +89,7 @@ describe('commitRow', () => {
     expect(screen.getByText(/ref\(commitRow\): refactor to fc/)).toBeInTheDocument();
   });
 
-  it('renders pull request', () => {
+  it('renders pull request', async () => {
     const commit: Commit = {
       ...baseCommit,
       pullRequest: {
@@ -122,7 +122,7 @@ describe('commitRow', () => {
       'https://github.com/getsentry/sentry/pull/1'
     );
 
-    userEvent.click(pullRequestButton);
+    await userEvent.click(pullRequestButton);
     expect(handlePullRequestClick).toHaveBeenCalledTimes(1);
   });
 });

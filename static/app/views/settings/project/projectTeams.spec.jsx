@@ -53,7 +53,7 @@ describe('ProjectTeams', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <ProjectTeams
         params={{projectId: project.slug}}
@@ -96,7 +96,7 @@ describe('ProjectTeams', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -109,13 +109,13 @@ describe('ProjectTeams', function () {
     await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
 
     // Remove second team
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -169,7 +169,7 @@ describe('ProjectTeams', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Click "Remove"
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -181,14 +181,14 @@ describe('ProjectTeams', function () {
     await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
 
     // Remove second team
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     // Modal opens because this is the last team in project
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // Click confirm
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mock2).toHaveBeenCalledWith(
       endpoint2,
@@ -198,7 +198,7 @@ describe('ProjectTeams', function () {
     );
   });
 
-  it('can associate a team with project', function () {
+  it('can associate a team with project', async function () {
     const endpoint = `/projects/${org.slug}/${project.slug}/teams/${team2.slug}/`;
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -217,8 +217,8 @@ describe('ProjectTeams', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Add a team
-    userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
-    userEvent.click(screen.getByText('#team-slug-2'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
+    await userEvent.click(screen.getByText('#team-slug-2'));
 
     expect(mock).toHaveBeenCalledWith(
       endpoint,
@@ -261,16 +261,16 @@ describe('ProjectTeams', function () {
     );
 
     // Add new team
-    userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Add Team'})[1]);
 
     // XXX(epurkhiser): Create Team should really be a button
-    userEvent.click(screen.getByRole('link', {name: 'Create Team'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Create Team'}));
 
     renderGlobalModal();
     await screen.findByRole('dialog');
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
-    userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Team Name'}), 'new-team');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Team'}));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
 

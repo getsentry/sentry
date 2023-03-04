@@ -89,13 +89,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mockUtils.mockClear();
     });
 
-    it('renders disabled buttons when disabled prop is used', () => {
+    it('renders disabled buttons when disabled prop is used', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis, true);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeDisabled();
     });
 
-    it('renders the correct set of buttons', () => {
+    it('renders the correct set of buttons', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
     });
 
-    it('renders the correct set of buttons with the homepage query feature', () => {
+    it('renders the correct set of buttons with the homepage query feature', async () => {
       organization = TestStubs.Organization({
         features: [
           'discover-query',
@@ -137,33 +137,33 @@ describe('Discover > SaveQueryButtonGroup', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('hides the banner when save is complete.', () => {
+    it('hides the banner when save is complete.', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
+      await userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // The banner should not render
       expect(screen.queryByText('Discover Trends')).not.toBeInTheDocument();
     });
 
-    it('saves a well-formed query', () => {
+    it('saves a well-formed query', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
+      await userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
 
       // Click on Save in the Dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -177,16 +177,16 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
     });
 
-    it('rejects if query.name is empty', () => {
+    it('rejects if query.name is empty', async () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       // Click on ButtonSaveAs to open dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Do not fill in Input
 
       // Click on Save in the Dropdown
-      userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
       // Check that EventView has a name
       expect(errorsView.name).toBe('Errors by Title');
@@ -208,7 +208,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mockUtils.mockClear();
     });
 
-    it('renders the correct set of buttons', () => {
+    it('renders the correct set of buttons', async () => {
       mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
@@ -219,7 +219,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('treats undefined yAxis the same as count() when checking for changes', () => {
+    it('treats undefined yAxis the same as count() when checking for changes', async () => {
       mount(
         location,
         organization,
@@ -237,7 +237,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('converts string yAxis values to array when checking for changes', () => {
+    it('converts string yAxis values to array when checking for changes', async () => {
       mount(
         location,
         organization,
@@ -255,10 +255,10 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('deletes the saved query', () => {
+    it('deletes the saved query', async () => {
       mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
-      userEvent.click(screen.getByRole('button', {name: /delete/i}));
+      await userEvent.click(screen.getByRole('button', {name: /delete/i}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -271,7 +271,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   describe('modifying a saved query', () => {
     let mockUtils;
 
-    it('renders the correct set of buttons', () => {
+    it('renders the correct set of buttons', async () => {
       mount(
         location,
         organization,
@@ -314,7 +314,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
         );
 
         // Click on Save in the Dropdown
-        userEvent.click(screen.getByRole('button', {name: /save changes/i}));
+        await userEvent.click(screen.getByRole('button', {name: /save changes/i}));
 
         await waitFor(() => {
           expect(mockUtils).toHaveBeenCalledWith(
@@ -341,17 +341,17 @@ describe('Discover > SaveQueryButtonGroup', function () {
         mockUtils.mockClear();
       });
 
-      it('checks that it is forked from a saved query', () => {
+      it('checks that it is forked from a saved query', async () => {
         mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
         // Click on ButtonSaveAs to open dropdown
-        userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
         // Fill in the Input
-        userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
+        await userEvent.type(screen.getByPlaceholderText('Display name'), 'Forked Query');
 
         // Click on Save in the Dropdown
-        userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
 
         expect(mockUtils).toHaveBeenCalledWith(
           expect.anything(), // api
@@ -367,7 +367,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
   });
   describe('create alert from discover', () => {
-    it('renders create alert button when metrics alerts is enabled', () => {
+    it('renders create alert button when metrics alerts is enabled', async () => {
       const metricAlertOrg = {
         ...organization,
         features: ['incidents'],
@@ -376,7 +376,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       expect(screen.getByRole('button', {name: /create alert/i})).toBeInTheDocument();
     });
-    it('does not render create alert button without metric alerts', () => {
+    it('does not render create alert button without metric alerts', async () => {
       mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
       expect(

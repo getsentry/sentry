@@ -44,7 +44,7 @@ describe('Project Ownership', () => {
   });
 
   describe('without codeowners', () => {
-    it('renders', () => {
+    it('renders', async () => {
       const wrapper = render(
         <ProjectOwnership
           params={{projectId: project.slug}}
@@ -59,7 +59,7 @@ describe('Project Ownership', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders allows users to edit ownership rules', () => {
+    it('renders allows users to edit ownership rules', async () => {
       org = TestStubs.Organization({
         access: ['project:read'],
       });
@@ -82,7 +82,7 @@ describe('Project Ownership', () => {
   });
 
   describe('with codeowners', () => {
-    it('codeowners button opens modal', () => {
+    it('codeowners button opens modal', async () => {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
@@ -100,7 +100,7 @@ describe('Project Ownership', () => {
       expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
 
       // Opens modal
-      userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
   });
@@ -126,8 +126,8 @@ describe('Project Ownership', () => {
       );
 
       // Switch to Assign To Issue Owner
-      userEvent.click(screen.getByText('Auto-assign to suspect commits'));
-      userEvent.click(screen.getByText('Auto-assign to issue owner'));
+      await userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      await userEvent.click(screen.getByText('Auto-assign to issue owner'));
 
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(
@@ -141,7 +141,7 @@ describe('Project Ownership', () => {
       });
     });
 
-    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
+    it('should hide issue owners for issue-alert-fallback-targeting flag', async () => {
       const organization = {...org, features: ['issue-alert-fallback-targeting']};
       render(
         <ProjectOwnership

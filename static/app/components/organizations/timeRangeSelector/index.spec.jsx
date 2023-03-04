@@ -31,7 +31,7 @@ describe('TimeRangeSelector', function () {
     onChange.mockReset();
   });
 
-  it('renders when given relative period not in dropdown', function () {
+  it('renders when given relative period not in dropdown', async function () {
     render(
       <TimeRangeSelector
         organization={organization}
@@ -44,7 +44,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByText('Last 9 days')).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', function () {
+  it('renders when given an invalid relative period', async function () {
     render(
       <TimeRangeSelector
         organization={organization}
@@ -57,7 +57,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByText('Invalid period')).toBeInTheDocument();
   });
 
-  it('hides relative and absolute selectors', function () {
+  it('hides relative and absolute selectors', async function () {
     render(
       <TimeRangeSelector
         organization={organization}
@@ -66,7 +66,7 @@ describe('TimeRangeSelector', function () {
       />,
       {context: routerContext}
     );
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Ensure none of the relative options are shown
     expect(screen.queryByTestId('1h')).not.toBeInTheDocument();
@@ -80,9 +80,9 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByTestId('absolute')).not.toBeInTheDocument();
   });
 
-  it('does not open selector menu when disabled', function () {
+  it('does not open selector menu when disabled', async function () {
     renderComponent({disabled: true});
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Dropdown not open
     expect(screen.queryByText(/last hour/i)).not.toBeInTheDocument();
@@ -91,10 +91,10 @@ describe('TimeRangeSelector', function () {
   it('can select an absolute date range', async function () {
     renderComponent();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.queryByTestId('date-range')).not.toBeInTheDocument();
 
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     const newProps = {
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
@@ -129,10 +129,10 @@ describe('TimeRangeSelector', function () {
   it('can select an absolute range with utc enabled', async function () {
     renderComponent({utc: true});
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.queryByTestId('date-range')).not.toBeInTheDocument();
 
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     const newProps = {
       relative: null,
       start: new Date('2017-10-02T22:41:20.000Z'),
@@ -169,16 +169,16 @@ describe('TimeRangeSelector', function () {
   it('keeps time inputs focused while interacting with them', async function () {
     renderComponent();
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     await screen.findByTestId('date-range');
 
-    userEvent.click(screen.getByTestId('startTime'));
+    await userEvent.click(screen.getByTestId('startTime'));
     fireEvent.change(screen.getByTestId('startTime'), {target: {value: '05:00'}});
 
     expect(screen.getByTestId('startTime')).toHaveFocus();
 
-    userEvent.click(screen.getByTestId('endTime'));
+    await userEvent.click(screen.getByTestId('endTime'));
     fireEvent.change(screen.getByTestId('endTime'), {target: {value: '05:00'}});
 
     expect(screen.getByTestId('endTime')).toHaveFocus();
@@ -190,8 +190,8 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -199,7 +199,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(screen.getByTestId('14d'));
+    await userEvent.click(screen.getByTestId('14d'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: '14d',
       start: undefined,
@@ -213,8 +213,8 @@ describe('TimeRangeSelector', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-03T02:41:20.000Z'),
@@ -229,8 +229,8 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -238,7 +238,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(screen.getByTestId('14d'));
+    await userEvent.click(screen.getByTestId('14d'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: '14d',
       start: undefined,
@@ -252,8 +252,8 @@ describe('TimeRangeSelector', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-02T22:41:20.000Z'),
@@ -267,9 +267,9 @@ describe('TimeRangeSelector', function () {
       relative: '7d',
       utc: true,
     });
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     // Local time is 22:41:20-0500 -- this is what date picker should show
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -277,7 +277,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -285,7 +285,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -299,9 +299,9 @@ describe('TimeRangeSelector', function () {
       relative: '7d',
       utc: false,
     });
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(await screen.findByTestId('absolute'));
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000-0400'),
@@ -309,7 +309,7 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T02:41:20.000Z'),
@@ -317,7 +317,7 @@ describe('TimeRangeSelector', function () {
       utc: true,
     });
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-09T22:41:20.000Z'),
@@ -326,7 +326,7 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('maintains time when switching UTC to local time', function () {
+  it('maintains time when switching UTC to local time', async function () {
     // Times should never change when changing UTC option
     // Instead, the utc flagged is used when querying to create proper date
 
@@ -337,10 +337,10 @@ describe('TimeRangeSelector', function () {
       end: new Date('2017-10-17T23:59:59.000Z'),
       utc: true,
     });
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Local
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     state = {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -352,7 +352,7 @@ describe('TimeRangeSelector', function () {
     rerender(getComponent(state));
 
     // UTC
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     state = {
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -364,7 +364,7 @@ describe('TimeRangeSelector', function () {
     rerender(getComponent(state));
 
     // Local
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenLastCalledWith({
       relative: null,
       start: new Date('2017-10-10T00:00:00.000Z'),
@@ -379,8 +379,8 @@ describe('TimeRangeSelector', function () {
       utc: false,
     });
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
   });
 
   it('uses the default absolute date', async function () {
@@ -391,8 +391,8 @@ describe('TimeRangeSelector', function () {
       },
     });
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
 
     expect(onChange).toHaveBeenCalledWith({
       relative: null,
@@ -407,20 +407,20 @@ describe('TimeRangeSelector', function () {
       end: new Date('2022-06-14T00:00:00.000Z'),
     });
 
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(await screen.findByTestId('absolute'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(await screen.findByTestId('absolute'));
 
     // On change should not be called because start/end did not change
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it('can select arbitrary relative time ranges', () => {
+  it('can select arbitrary relative time ranges', async () => {
     renderComponent();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     const input = screen.getByRole('textbox');
-    userEvent.type(input, '5');
+    await userEvent.type(input, '5');
 
     // With just the number "5", all unit options should be present
     expect(screen.getByText('Last 5 minutes')).toBeInTheDocument();
@@ -428,7 +428,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
     expect(screen.getByText('Last 5 weeks')).toBeInTheDocument();
 
-    userEvent.type(input, 'd');
+    await userEvent.type(input, 'd');
 
     // With "5d", only "Last 5 days" should be shown
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
@@ -436,12 +436,12 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByText('Last 5 hours')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 5 weeks')).not.toBeInTheDocument();
 
-    userEvent.type(input, 'ays');
+    await userEvent.type(input, 'ays');
 
     // "5days" Should still show "Last 5 days" option
     expect(screen.getByText('Last 5 days')).toBeInTheDocument();
 
-    userEvent.type(input, '{Enter}');
+    await userEvent.type(input, '{Enter}');
 
     expect(onChange).toHaveBeenLastCalledWith({
       relative: '5d',
@@ -450,13 +450,13 @@ describe('TimeRangeSelector', function () {
     });
   });
 
-  it('respects maxPickableDays for arbitrary time ranges', () => {
+  it('respects maxPickableDays for arbitrary time ranges', async () => {
     renderComponent({maxPickableDays: 30});
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     const input = screen.getByRole('textbox');
-    userEvent.type(input, '3');
+    await userEvent.type(input, '3');
 
     // With just the number "3", all unit options should be present
     expect(screen.getByText('Last 3 minutes')).toBeInTheDocument();
@@ -464,7 +464,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByText('Last 3 days')).toBeInTheDocument();
     expect(screen.getByText('Last 3 weeks')).toBeInTheDocument();
 
-    userEvent.type(input, '1');
+    await userEvent.type(input, '1');
 
     // With "31", days and weeks should not be suggested
     expect(screen.getByText('Last 31 minutes')).toBeInTheDocument();
@@ -472,23 +472,23 @@ describe('TimeRangeSelector', function () {
     expect(screen.queryByText('Last 31 days')).not.toBeInTheDocument();
     expect(screen.queryByText('Last 31 weeks')).not.toBeInTheDocument();
 
-    userEvent.type(input, 'd');
+    await userEvent.type(input, 'd');
 
     // "31d" should return nothing
     expect(screen.getByText('No items found')).toBeInTheDocument();
   });
 
-  it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', () => {
+  it('cannot select arbitrary relative time ranges with disallowArbitraryRelativeRanges', async () => {
     renderComponent({disallowArbitraryRelativeRanges: true});
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     const input = screen.getByRole('textbox');
-    userEvent.type(input, '5');
+    await userEvent.type(input, '5');
 
     expect(screen.getByText('No items found')).toBeInTheDocument();
 
-    userEvent.type(input, '{Enter}');
+    await userEvent.type(input, '{Enter}');
 
     expect(onChange).not.toHaveBeenCalled();
   });

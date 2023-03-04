@@ -33,7 +33,7 @@ describe('GroupTagValues', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('navigates to issue details events tab with correct query params', () => {
+  it('navigates to issue details events tab with correct query params', async () => {
     const {routerContext, router, project} = init('user');
 
     MockApiClient.addMockResponse({
@@ -44,8 +44,8 @@ describe('GroupTagValues', () => {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByLabelText('Show more'));
-    userEvent.click(screen.getByText('Search All Issues with Tag Value'));
+    await userEvent.click(screen.getByLabelText('Show more'));
+    await userEvent.click(screen.getByText('Search All Issues with Tag Value'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
@@ -53,7 +53,7 @@ describe('GroupTagValues', () => {
     });
   });
 
-  it('renders an error message if no tag values are returned because of environment selection', () => {
+  it('renders an error message if no tag values are returned because of environment selection', async () => {
     const {routerContext, project} = init('user');
 
     MockApiClient.addMockResponse({

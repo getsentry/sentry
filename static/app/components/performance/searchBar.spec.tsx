@@ -79,7 +79,7 @@ describe('SearchBar', () => {
 
     render(<SearchBar {...testProps} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByRole('textbox')).toHaveValue('proje');
 
     act(jest.runAllTimers);
@@ -113,26 +113,26 @@ describe('SearchBar', () => {
     });
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
     act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
 
-    userEvent.type(screen.getByRole('textbox'), 'client');
+    await userEvent.type(screen.getByRole('textbox'), 'client');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
     act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    userEvent.keyboard('{ArrowDown}');
-    userEvent.keyboard('{ArrowDown}');
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
@@ -152,21 +152,21 @@ describe('SearchBar', () => {
     });
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.paste(screen.getByRole('textbox'), 'client*');
+    await userEvent.paste(screen.getByRole('textbox'), 'client*');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
     act(jest.runAllTimers);
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('client*');
   });
 
-  it('closes the search dropdown when clicked outside of', () => {
+  it('closes the search dropdown when clicked outside of', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -184,10 +184,10 @@ describe('SearchBar', () => {
       </Fragment>
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.type(screen.getByRole('textbox'), 'proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('some-div'));
+    await userEvent.click(screen.getByTestId('some-div'));
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
 

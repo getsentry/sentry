@@ -112,7 +112,7 @@ describe('AssigneeSelector', () => {
 
   // Doesn't need to always be async, but it was easier to prevent flakes this way
   const openMenu = async () => {
-    userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+    await userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
       // Skip hover to prevent tooltip from rendering
       skipHover: true,
     });
@@ -140,7 +140,7 @@ describe('AssigneeSelector', () => {
   });
 
   describe('putSessionUserFirst()', () => {
-    it('should place the session user at the top of the member list if present', () => {
+    it('should place the session user at the top of the member list if present', async () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '2',
@@ -151,7 +151,7 @@ describe('AssigneeSelector', () => {
       ConfigStore.get.mockRestore();
     });
 
-    it("should return the same member list if the session user isn't present", () => {
+    it("should return the same member list if the session user isn't present", async () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '555',
@@ -208,7 +208,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(`${USER_1.name} (You)`));
+    await userEvent.click(screen.getByText(`${USER_1.name} (You)`));
 
     expect(assignMock).toHaveBeenLastCalledWith(
       '/issues/1337/',
@@ -237,7 +237,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -259,7 +259,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
 
     // Assign first item in list, which is TEAM_1
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -271,7 +271,7 @@ describe('AssigneeSelector', () => {
     );
 
     await openMenu();
-    userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -294,7 +294,7 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
+    await userEvent.click(await screen.findByRole('link', {name: 'Invite Member'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
     ConfigStore.get.mockRestore();
   });
@@ -305,13 +305,13 @@ describe('AssigneeSelector', () => {
     await openMenu();
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
-    userEvent.type(screen.getByRole('textbox'), 'JohnSmith@example.com');
+    await userEvent.type(screen.getByRole('textbox'), 'JohnSmith@example.com');
 
     // 1 total item
     expect(screen.getByTestId('assignee-option')).toBeInTheDocument();
     expect(screen.getByText(`${USER_2.name}`)).toBeInTheDocument();
 
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}');
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenLastCalledWith(
@@ -350,7 +350,7 @@ describe('AssigneeSelector', () => {
 
     const options = screen.getAllByTestId('assignee-option');
     expect(options[4]).toHaveTextContent('JD');
-    act(() => userEvent.click(options[4]));
+    await userEvent.click(options[4]);
 
     await waitFor(() => {
       expect(addMessageSpy).toHaveBeenCalledWith(
@@ -369,7 +369,7 @@ describe('AssigneeSelector', () => {
 
     expect(screen.getByTestId('suggested-avatar-stack')).toBeInTheDocument();
     // Hover over avatar
-    userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+    await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
     expect(await screen.findByText('Suggestion: Jane Bloggs')).toBeInTheDocument();
     expect(screen.getByText('commit data')).toBeInTheDocument();
 
@@ -380,7 +380,7 @@ describe('AssigneeSelector', () => {
     const options = screen.getAllByTestId('assignee-option');
     // Suggested assignee initials
     expect(options[0]).toHaveTextContent('JB');
-    userEvent.click(options[0]);
+    await userEvent.click(options[0]);
 
     await waitFor(() =>
       expect(assignGroup2Mock).toHaveBeenCalledWith(
@@ -404,7 +404,7 @@ describe('AssigneeSelector', () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_1);
     render(<AssigneeSelectorComponent id={GROUP_1.id} />);
 
-    userEvent.hover(screen.getByTestId('unassigned'));
+    await userEvent.hover(screen.getByTestId('unassigned'));
     expect(await screen.findByText('Unassigned')).toBeInTheDocument();
   });
 });

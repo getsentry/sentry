@@ -36,7 +36,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays provider information', function () {
+    it('displays provider information', async function () {
       render(
         <RepositoryRow
           repository={repository}
@@ -56,7 +56,7 @@ describe('RepositoryRow', function () {
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
     });
 
-    it('displays cancel pending button', function () {
+    it('displays cancel pending button', async function () {
       render(
         <RepositoryRow
           repository={pendingRepo}
@@ -82,7 +82,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays disabled trash', function () {
+    it('displays disabled trash', async function () {
       render(
         <RepositoryRow
           repository={repository}
@@ -97,7 +97,7 @@ describe('RepositoryRow', function () {
       expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
     });
 
-    it('displays disabled cancel', function () {
+    it('displays disabled cancel', async function () {
       render(
         <RepositoryRow
           repository={pendingRepo}
@@ -119,7 +119,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('sends api request on delete', function () {
+    it('sends api request on delete', async function () {
       const deleteRepo = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/`,
         method: 'DELETE',
@@ -137,10 +137,10 @@ describe('RepositoryRow', function () {
         {context: routerContext}
       );
       renderGlobalModal();
-      userEvent.click(screen.getByRole('button', {name: 'delete'}));
+      await userEvent.click(screen.getByRole('button', {name: 'delete'}));
 
       // Confirm modal
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteRepo).toHaveBeenCalled();
     });
@@ -152,7 +152,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('sends api request to cancel', function () {
+    it('sends api request to cancel', async function () {
       const cancel = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${pendingRepo.id}/`,
         method: 'PUT',
@@ -169,7 +169,7 @@ describe('RepositoryRow', function () {
         />,
         {context: routerContext}
       );
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(cancel).toHaveBeenCalled();
     });
@@ -182,7 +182,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays edit button', function () {
+    it('displays edit button', async function () {
       render(
         <RepositoryRow
           repository={customRepo}
@@ -202,7 +202,7 @@ describe('RepositoryRow', function () {
       expect(screen.getByRole('button', {name: 'edit'})).toBeEnabled();
     });
 
-    it('disables edit button when cancel pending', function () {
+    it('disables edit button when cancel pending', async function () {
       render(
         <RepositoryRow
           repository={customPendingRepo}

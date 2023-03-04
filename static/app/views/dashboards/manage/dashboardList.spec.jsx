@@ -125,7 +125,7 @@ describe('Dashboards > DashboardList', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', function () {
+  it('renders an empty list', async function () {
     render(
       <DashboardList
         organization={organization}
@@ -138,7 +138,7 @@ describe('Dashboards > DashboardList', function () {
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('renders dashboard list', function () {
+  it('renders dashboard list', async function () {
     render(
       <DashboardList
         organization={organization}
@@ -152,7 +152,7 @@ describe('Dashboards > DashboardList', function () {
     expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', function () {
+  it('returns landing page url for dashboards', async function () {
     render(
       <DashboardList
         organization={organization}
@@ -173,7 +173,7 @@ describe('Dashboards > DashboardList', function () {
     );
   });
 
-  it('persists global selection headers', function () {
+  it('persists global selection headers', async function () {
     render(
       <DashboardList
         organization={organization}
@@ -203,12 +203,12 @@ describe('Dashboards > DashboardList', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    userEvent.click(screen.getByTestId('dashboard-delete'));
+    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(screen.getByTestId('dashboard-delete'));
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    userEvent.click(
+    await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
     );
 
@@ -218,7 +218,7 @@ describe('Dashboards > DashboardList', function () {
     });
   });
 
-  it('cannot delete last dashboard', function () {
+  it('cannot delete last dashboard', async function () {
     const singleDashboard = [
       TestStubs.Dashboard([], {
         id: '1',
@@ -238,7 +238,7 @@ describe('Dashboards > DashboardList', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: /dashboard actions/i}));
+    await userEvent.click(screen.getByRole('button', {name: /dashboard actions/i}));
     expect(screen.getByTestId('dashboard-delete')).toHaveAttribute(
       'aria-disabled',
       'true'
@@ -256,8 +256,8 @@ describe('Dashboards > DashboardList', function () {
       />
     );
 
-    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    userEvent.click(screen.getByTestId('dashboard-duplicate'));
+    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
@@ -282,8 +282,8 @@ describe('Dashboards > DashboardList', function () {
       />
     );
 
-    userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
-    userEvent.click(screen.getByTestId('dashboard-duplicate'));
+    await userEvent.click(screen.getAllByRole('button', {name: /dashboard actions/i})[1]);
+    await userEvent.click(screen.getByTestId('dashboard-duplicate'));
 
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();

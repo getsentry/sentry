@@ -29,7 +29,7 @@ function renderMockRequests(
 }
 
 describe('Dynamic Sampling', function () {
-  it('renders default ui', function () {
+  it('renders default ui', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -87,7 +87,7 @@ describe('Dynamic Sampling', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders disabled default UI, when user has not permission to edit', async function () {
+  it('renders disabled default UI, async when user has not permission to edit', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -118,7 +118,7 @@ describe('Dynamic Sampling', function () {
 
     expect(prioritizenewReleases).toBeDisabled();
     expect(prioritizenewReleases).toBeChecked();
-    userEvent.hover(prioritizenewReleases);
+    await userEvent.hover(prioritizenewReleases);
     expect(
       await screen.findByText('You do not have permission to edit this setting')
     ).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('Dynamic Sampling', function () {
     expect(deprioritizeHealthChecks).toBeChecked();
   });
 
-  it('user can toggle option', function () {
+  it('user can toggle option', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -163,7 +163,7 @@ describe('Dynamic Sampling', function () {
 
     render(<DynamicSampling project={project} />, {organization});
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
@@ -180,7 +180,7 @@ describe('Dynamic Sampling', function () {
     );
   });
 
-  it('render and toggle "Prioritize low-volume transactions" option', function () {
+  it('render and toggle "Prioritize low-volume transactions" option', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -208,7 +208,7 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeTransactionNames).toBeEnabled();
     expect(prioritizeTransactionNames).not.toBeChecked();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {name: 'Prioritize low-volume transactions'})
     );
 

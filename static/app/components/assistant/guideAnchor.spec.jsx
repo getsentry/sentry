@@ -21,7 +21,7 @@ describe('GuideAnchor', function () {
     };
   });
 
-  it('renders, advances, and finishes', async function () {
+  it('renders, async advances, async and finishes', async function () {
     render(
       <div>
         <GuideAnchor target="issue_number" />
@@ -39,7 +39,7 @@ describe('GuideAnchor', function () {
     //
     // NOTE(epurkhiser): We may be able to remove the skipPointerEventsCheck
     // when we're on popper >= 1.
-    userEvent.click(screen.getByLabelText('Next'), undefined, {
+    await userEvent.click(screen.getByLabelText('Next'), undefined, {
       skipPointerEventsCheck: true,
     });
 
@@ -52,7 +52,7 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    userEvent.click(screen.getByLabelText('Enough Already'), undefined, {
+    await userEvent.click(screen.getByLabelText('Enough Already'), undefined, {
       skipPointerEventsCheck: true,
     });
 
@@ -84,7 +84,7 @@ describe('GuideAnchor', function () {
       url: '/assistant/',
     });
 
-    userEvent.click(screen.getByLabelText('Dismiss'), undefined, {
+    await userEvent.click(screen.getByLabelText('Dismiss'), undefined, {
       skipPointerEventsCheck: true,
     });
 
@@ -102,7 +102,7 @@ describe('GuideAnchor', function () {
     expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
   });
 
-  it('renders no container when inactive', function () {
+  it('renders no container when inactive', async function () {
     render(
       <GuideAnchor target="target 1">
         <span data-test-id="child-div" />
@@ -113,7 +113,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('renders children when disabled', function () {
+  it('renders children when disabled', async function () {
     render(
       <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />
@@ -124,7 +124,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('if forceHide is true, do not render guide', async function () {
+  it('if forceHide is true, async do not render guide', async function () {
     render(
       <div>
         <GuideAnchor target="issue_number" />

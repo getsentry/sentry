@@ -211,7 +211,7 @@ function renderMockRequests() {
 describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic'];
-    it('loads data when moving from an invalid to valid EventView', function () {
+    it('loads data when moving from an invalid to valid EventView', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -305,7 +305,7 @@ describe('Results', function () {
       );
 
       // perform a search
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'geo:canada{enter}'
       );
@@ -431,13 +431,13 @@ describe('Results', function () {
         }
       );
 
-      userEvent.click(await screen.findByRole('button', {name: /Display/}));
+      await userEvent.click(await screen.findByRole('button', {name: /Display/}));
 
       expect(screen.queryByText('Top 5 Daily')).not.toBeInTheDocument();
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
     });
 
-    it('needs confirmation on long queries', function () {
+    it('needs confirmation on long queries', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -471,7 +471,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
     });
 
-    it('needs confirmation on long query with explicit projects', function () {
+    it('needs confirmation on long query with explicit projects', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -511,7 +511,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
     });
 
-    it('does not need confirmation on short queries', function () {
+    it('does not need confirmation on short queries', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -545,7 +545,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not need confirmation with to few projects', function () {
+    it('does not need confirmation with to few projects', async function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -687,7 +687,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever yAxis parameter changes', function () {
+    it('updates chart whenever yAxis parameter changes', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -759,7 +759,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever display parameter changes', function () {
+    it('updates chart whenever display parameter changes', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -831,7 +831,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever display and yAxis parameters change', function () {
+    it('updates chart whenever display and yAxis parameters change', async function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -938,13 +938,13 @@ describe('Results', function () {
         }
       );
 
-      userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
 
       await waitFor(() => expect(mockRequests.eventFacetsMock).toHaveBeenCalled());
 
       // TODO(edward): update this to be less generic
-      userEvent.click(screen.getByText('environment'));
-      userEvent.click(screen.getByText('foo'));
+      await userEvent.click(screen.getByText('environment'));
+      await userEvent.click(screen.getByText('foo'));
 
       // since environment collides with the environment field, it is wrapped with `tags[...]`
       expect(
@@ -1165,7 +1165,7 @@ describe('Results', function () {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
       );
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
 
       expect(mockHomepageUpdate).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/homepage/',
@@ -1234,11 +1234,11 @@ describe('Results', function () {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
       );
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Total Period'));
-      userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByText('Total Period'));
+      await userEvent.click(screen.getByText('Previous Period'));
 
       const rerenderData = initializeOrg({
         ...initializeOrg(),
@@ -1306,11 +1306,11 @@ describe('Results', function () {
       );
 
       await screen.findAllByText(TRANSACTION_VIEWS[0].name);
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Total Period'));
-      userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByText('Total Period'));
+      await userEvent.click(screen.getByText('Previous Period'));
       const rerenderData = initializeOrg({
         ...initializeOrg(),
         organization,
@@ -1332,7 +1332,7 @@ describe('Results', function () {
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 
-    it('links back to the homepage through the Discover breadcrumb', () => {
+    it('links back to the homepage through the Discover breadcrumb', async () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',
@@ -1368,7 +1368,7 @@ describe('Results', function () {
       );
     });
 
-    it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
+    it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',
@@ -1402,7 +1402,7 @@ describe('Results', function () {
       );
     });
 
-    it('allows users to Set As Default on the All Events query', () => {
+    it('allows users to Set As Default on the All Events query', async () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',

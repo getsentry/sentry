@@ -4,12 +4,12 @@ import BooleanField from 'sentry/components/deprecatedforms/booleanField';
 import Form from 'sentry/components/deprecatedforms/form';
 
 describe('BooleanField', function () {
-  it('renders without form context', function () {
+  it('renders without form context', async function () {
     const wrapper = render(<BooleanField name="fieldName" />);
     expect(wrapper.container).toSnapshot();
   });
 
-  it('renders with form context', function () {
+  it('renders with form context', async function () {
     const wrapper = render(
       <Form initialData={{fieldName: true}}>
         <BooleanField name="fieldName" />
@@ -18,13 +18,13 @@ describe('BooleanField', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('toggles', function () {
+  it('toggles', async function () {
     const onChange = jest.fn();
     render(<BooleanField name="fieldName" onChange={onChange} />);
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(true);
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(false);
   });
 });

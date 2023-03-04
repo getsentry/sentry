@@ -49,12 +49,12 @@ describe('TableView > CellActions', function () {
     );
   }
 
-  function openContextMenu(cellIndex) {
+  async function openContextMenu(cellIndex) {
     const firstRow = screen.getAllByRole('row')[1];
     const emptyValueCell = within(firstRow).getAllByRole('cell')[cellIndex];
 
-    userEvent.hover(within(emptyValueCell).getByTestId('cell-action-container'));
-    userEvent.click(within(emptyValueCell).getByRole('button'));
+    await userEvent.hover(within(emptyValueCell).getByTestId('cell-action-container'));
+    await userEvent.click(within(emptyValueCell).getByRole('button'));
   }
 
   beforeEach(function () {
@@ -108,7 +108,7 @@ describe('TableView > CellActions', function () {
     ProjectsStore.reset();
   });
 
-  it('updates sort order on equation fields', function () {
+  it('updates sort order on equation fields', async function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -121,7 +121,7 @@ describe('TableView > CellActions', function () {
     );
   });
 
-  it('updates sort order on non-equation fields', function () {
+  it('updates sort order on non-equation fields', async function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -134,12 +134,12 @@ describe('TableView > CellActions', function () {
     );
   });
 
-  it('handles add cell action on null value', function () {
+  it('handles add cell action on null value', async function () {
     rows.data[0].title = null;
 
     renderComponent(initialData, rows, eventView);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -149,14 +149,14 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles add cell action on null value replace has condition', function () {
+  it('handles add cell action on null value replace has condition', async function () {
     rows.data[0].title = null;
     const view = eventView.clone();
     view.query = 'tag:value has:title';
 
     renderComponent(initialData, rows, view);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -166,13 +166,13 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles add cell action on string value replace negation', function () {
+  it('handles add cell action on string value replace negation', async function () {
     const view = eventView.clone();
     view.query = 'tag:value !title:nope';
 
     renderComponent(initialData, rows, view);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -182,12 +182,12 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles add cell action with multiple y axis', function () {
+  it('handles add cell action with multiple y axis', async function () {
     location.query.yAxis = ['count()', 'failure_count()'];
 
     renderComponent(initialData, rows, eventView);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -198,10 +198,10 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles exclude cell action on string value', function () {
+  it('handles exclude cell action on string value', async function () {
     renderComponent(initialData, rows, eventView);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -211,13 +211,13 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles exclude cell action on string value replace inclusion', function () {
+  it('handles exclude cell action on string value replace inclusion', async function () {
     const view = eventView.clone();
     view.query = 'tag:value title:nope';
 
     renderComponent(initialData, rows, view);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -227,12 +227,12 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles exclude cell action on null value', function () {
+  it('handles exclude cell action on null value', async function () {
     rows.data[0].title = null;
 
     renderComponent(initialData, rows, eventView);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -242,14 +242,14 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles exclude cell action on null value replace condition', function () {
+  it('handles exclude cell action on null value replace condition', async function () {
     const view = eventView.clone();
     view.query = 'tag:value !has:title';
     rows.data[0].title = null;
 
     renderComponent(initialData, rows, view);
-    openContextMenu(1);
-    userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+    await openContextMenu(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -259,10 +259,10 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles greater than cell action on number value', function () {
+  it('handles greater than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
-    openContextMenu(3);
-    userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
+    await openContextMenu(3);
+    await userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -272,10 +272,10 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles less than cell action on number value', function () {
+  it('handles less than cell action on number value', async function () {
     renderComponent(initialData, rows, eventView);
-    openContextMenu(3);
-    userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
+    await openContextMenu(3);
+    await userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
@@ -285,12 +285,12 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction without project column selected', function () {
+  it('handles go to transaction without project column selected', async function () {
     rows.data[0]['project.name'] = 'project-slug';
 
     renderComponent(initialData, rows, eventView);
-    openContextMenu(2);
-    userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
+    await openContextMenu(2);
+    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/summary/',
@@ -301,12 +301,12 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to transaction with project column selected', function () {
+  it('handles go to transaction with project column selected', async function () {
     rows.data[0].project = 'project-slug';
 
     renderComponent(initialData, rows, eventView);
-    openContextMenu(2);
-    userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
+    await openContextMenu(2);
+    await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/summary/',
@@ -317,10 +317,10 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('handles go to release', function () {
+  it('handles go to release', async function () {
     renderComponent(initialData, rows, eventView);
-    openContextMenu(5);
-    userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
+    await openContextMenu(5);
+    await userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/releases/v1.0.2/',
@@ -330,7 +330,7 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('has title on integer value greater than 999', function () {
+  it('has title on integer value greater than 999', async function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
@@ -340,7 +340,7 @@ describe('TableView > CellActions', function () {
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
 
-  it('renders size columns correctly', function () {
+  it('renders size columns correctly', async function () {
     const orgWithFeature = TestStubs.Organization({
       projects: [TestStubs.Project()],
     });
@@ -387,7 +387,7 @@ describe('TableView > CellActions', function () {
     expect(screen.getByText('444.3 KB')).toBeInTheDocument();
   });
 
-  it('shows events with value less than selected custom performance metric', function () {
+  it('shows events with value less than selected custom performance metric', async function () {
     const orgWithFeature = TestStubs.Organization({
       projects: [TestStubs.Project()],
     });
@@ -423,10 +423,10 @@ describe('TableView > CellActions', function () {
         onChangeShowTags={onChangeShowTags}
       />
     );
-    userEvent.hover(screen.getByText('444.3 KB'));
+    await userEvent.hover(screen.getByText('444.3 KB'));
     const buttons = screen.getAllByRole('button');
-    userEvent.click(buttons[buttons.length - 1]);
-    userEvent.click(screen.getByText('Show values less than'));
+    await userEvent.click(buttons[buttons.length - 1]);
+    await userEvent.click(screen.getByText('Show values less than'));
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: location.pathname,
       query: expect.objectContaining({

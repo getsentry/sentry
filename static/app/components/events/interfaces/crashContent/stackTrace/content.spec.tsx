@@ -29,7 +29,7 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = renderedComponent({});
 
     // stack trace content
@@ -49,7 +49,7 @@ describe('StackTrace', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders the frame in the correct order', function () {
+  it('renders the frame in the correct order', async function () {
     renderedComponent({});
 
     // frame - filename
@@ -71,7 +71,7 @@ describe('StackTrace', function () {
     expect(frameFunction[4]).toHaveTextContent('build_msg');
   });
 
-  it('collapse/expand frames by clicking anywhere in the frame element', function () {
+  it('collapse/expand frames by clicking anywhere in the frame element', async function () {
     renderedComponent({});
     // frame list
     const frames = screen.getByTestId('frames');
@@ -85,22 +85,22 @@ describe('StackTrace', function () {
     const frameTitles = screen.getAllByTestId('title');
 
     // collapse the expanded frame (by default)
-    userEvent.click(frameTitles[0]);
+    await userEvent.click(frameTitles[0]);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(5);
 
     // expand penultimate and last frame
-    userEvent.click(frameTitles[frameTitles.length - 2]);
-    userEvent.click(frameTitles[frameTitles.length - 1]);
+    await userEvent.click(frameTitles[frameTitles.length - 2]);
+    await userEvent.click(frameTitles[frameTitles.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('collapse/expand frames by clicking on the toggle button', function () {
+  it('collapse/expand frames by clicking on the toggle button', async function () {
     renderedComponent({});
 
     // frame list
@@ -114,7 +114,7 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(4);
 
     // collapse the expanded frame (by default)
-    userEvent.click(expandedToggleButtons);
+    await userEvent.click(expandedToggleButtons);
 
     // all frames are now collapsed
     expect(screen.queryByTestId('toggle-button-expanded')).not.toBeInTheDocument();
@@ -123,15 +123,15 @@ describe('StackTrace', function () {
     const collapsedToggleButtons = screen.getAllByTestId('toggle-button-collapsed');
 
     // expand penultimate and last frame
-    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
-    userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 2]);
+    await userEvent.click(collapsedToggleButtons[collapsedToggleButtons.length - 1]);
 
     // two frames are now collapsed
     expect(screen.getAllByTestId('toggle-button-expanded')).toHaveLength(2);
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('if all in_app equals false, all the frames are showing by default', function () {
+  it('if all in_app equals false, all the frames are showing by default', async function () {
     renderedComponent({});
 
     // frame list
@@ -140,7 +140,7 @@ describe('StackTrace', function () {
   });
 
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
-    it('displays crashed from only', function () {
+    it('displays crashed from only', async function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -170,7 +170,7 @@ describe('StackTrace', function () {
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
-    it('displays called from only', function () {
+    it('displays called from only', async function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -203,7 +203,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays crashed from and called from', function () {
+    it('displays crashed from and called from', async function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -237,7 +237,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays "occurred in" when event is not an error', function () {
+    it('displays "occurred in" when event is not an error', async function () {
       const dataFrames = [...data.frames];
 
       const newData = {

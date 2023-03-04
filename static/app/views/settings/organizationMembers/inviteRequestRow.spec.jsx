@@ -57,7 +57,7 @@ describe('InviteRequestRow', function () {
     teams: ['myteam'],
   });
 
-  it('renders request to be invited', function () {
+  it('renders request to be invited', async function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -74,7 +74,7 @@ describe('InviteRequestRow', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders request to join', function () {
+  it('renders request to join', async function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -90,7 +90,7 @@ describe('InviteRequestRow', function () {
     expect(screen.getByRole('button', {name: 'Deny'})).toBeInTheDocument();
   });
 
-  it('admin can approve invite request', function () {
+  it('admin can approve invite request', async function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -106,16 +106,16 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockApprove).toHaveBeenCalledWith(inviteRequest);
     expect(mockDeny).not.toHaveBeenCalled();
   });
 
-  it('admin can deny invite request', function () {
+  it('admin can deny invite request', async function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -131,13 +131,13 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Deny'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
 
     expect(mockDeny).toHaveBeenCalledWith(inviteRequest);
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('non-admin can not approve or deny invite request', function () {
+  it('non-admin can not approve or deny invite request', async function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -192,7 +192,7 @@ describe('InviteRequestRow', function () {
     TeamStore.reset();
   });
 
-  it('cannot be approved when invitee role is not allowed', function () {
+  it('cannot be approved when invitee role is not allowed', async function () {
     const ownerInviteRequest = TestStubs.Member({
       user: null,
       inviterName: TestStubs.User().name,

@@ -18,7 +18,7 @@ describe('DropdownAutoCompleteMenu', function () {
     },
   ];
 
-  it('renders without a group', function () {
+  it('renders without a group', async function () {
     const {container} = render(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
@@ -27,7 +27,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with a group', function () {
+  it('renders with a group', async function () {
     const {container} = render(
       <DropdownAutoCompleteMenu
         isOpen
@@ -55,7 +55,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(container).toSnapshot();
   });
 
-  it('can select an item by clicking', function () {
+  it('can select an item by clicking', async function () {
     const mock = jest.fn();
     const countries = [
       {
@@ -84,7 +84,7 @@ describe('DropdownAutoCompleteMenu', function () {
       </DropdownAutoCompleteMenu>
     );
 
-    userEvent.click(screen.getByRole('option', {name: 'Australia'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Australia'}));
 
     expect(mock).toHaveBeenCalledTimes(1);
     expect(mock).toHaveBeenCalledWith(
@@ -94,7 +94,7 @@ describe('DropdownAutoCompleteMenu', function () {
     );
   });
 
-  it('shows empty message when there are no items', function () {
+  it('shows empty message when there are no items', async function () {
     render(
       <DropdownAutoCompleteMenu
         items={[]}
@@ -112,19 +112,19 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('shows default empty results message when there are no items found in search', function () {
+  it('shows default empty results message when there are no items found in search', async function () {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} emptyMessage="No items!">
         {({selectedItem}) => (selectedItem ? selectedItem.label : 'Click me!')}
       </DropdownAutoCompleteMenu>
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'U-S-A');
+    await userEvent.type(screen.getByRole('textbox'), 'U-S-A');
 
     expect(screen.getByText('No items! found')).toBeInTheDocument();
   });
 
-  it('overrides default empty results message', function () {
+  it('overrides default empty results message', async function () {
     render(
       <DropdownAutoCompleteMenu
         isOpen
@@ -136,13 +136,13 @@ describe('DropdownAutoCompleteMenu', function () {
       </DropdownAutoCompleteMenu>
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'U-S-A');
+    await userEvent.type(screen.getByRole('textbox'), 'U-S-A');
 
     expect(screen.getByText('No search results')).toBeInTheDocument();
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
-  it('hides filter with `hideInput` prop', function () {
+  it('hides filter with `hideInput` prop', async function () {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} hideInput>
         {() => 'Click Me!'}
@@ -152,14 +152,14 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
   });
 
-  it('filters using a value from prop instead of input', function () {
+  it('filters using a value from prop instead of input', async function () {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} filterValue="Apple">
         {() => 'Click Me!'}
       </DropdownAutoCompleteMenu>
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'U-S-A');
+    await userEvent.type(screen.getByRole('textbox'), 'U-S-A');
 
     expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'Corn'})).not.toBeInTheDocument();

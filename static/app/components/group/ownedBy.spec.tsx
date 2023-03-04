@@ -8,7 +8,7 @@ import {buildTeamId, buildUserId} from 'sentry/utils';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Group > OwnedBy', () => {
-  it('renders unowned', () => {
+  it('renders unowned', async () => {
     const group = TestStubs.Group();
     render(
       <OwnedBy
@@ -20,7 +20,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
-  it('renders team owner', () => {
+  it('renders team owner', async () => {
     const team = TestStubs.Team();
     const group = TestStubs.Group({
       owners: [
@@ -41,7 +41,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText(`#${team.slug}`)).toBeInTheDocument();
   });
 
-  it('renders member owner', () => {
+  it('renders member owner', async () => {
     const user = TestStubs.User();
     MemberListStore.loadInitialData([user]);
     const group = TestStubs.Group({
@@ -63,7 +63,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
-  it('does not render suspect commit', () => {
+  it('does not render suspect commit', async () => {
     const user = TestStubs.User();
     MemberListStore.loadInitialData([user]);
     const group = TestStubs.Group({
@@ -85,7 +85,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
-  it('allows project:write to edit owners', () => {
+  it('allows project:write to edit owners', async () => {
     render(
       <OwnedBy
         group={TestStubs.Group()}
@@ -94,7 +94,7 @@ describe('Group > OwnedBy', () => {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Create Ownership Rule'));
+    await userEvent.click(screen.getByLabelText('Create Ownership Rule'));
 
     expect(openIssueOwnershipRuleModal).toHaveBeenCalledWith(
       expect.objectContaining({issueId: '1'})

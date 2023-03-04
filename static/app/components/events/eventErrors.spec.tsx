@@ -17,13 +17,13 @@ describe('EventErrors', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('does not render anything when no errors', () => {
+  it('does not render anything when no errors', async () => {
     const {container} = render(<EventErrors {...defaultProps} />);
 
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders with errors in event', () => {
+  it('renders with errors in event', async () => {
     const eventWithErrors = TestStubs.Event({
       errors: [
         {
@@ -45,7 +45,7 @@ describe('EventErrors', () => {
 
     render(<EventErrors {...defaultProps} event={eventWithErrors} />);
 
-    userEvent.click(screen.getByText(/there were 2 problems processing this event/i));
+    await userEvent.click(screen.getByText(/there were 2 problems processing this event/i));
     const errorItems = screen.getAllByTestId('event-error-item');
     expect(errorItems).toHaveLength(2);
     expect(within(errorItems[0]).getByText('logentry')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
 
-      userEvent.click(screen.getByText(/there was 1 problem processing this event/i));
+      await userEvent.click(screen.getByText(/there was 1 problem processing this event/i));
 
       expect(mock).toHaveBeenCalled();
       await screen.findByText(
@@ -111,7 +111,7 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDebugMeta} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByText(/there was 1 problem processing this event/i)
       );
       const errorItem = screen.getByTestId('event-error-item');
@@ -143,7 +143,7 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDebugMeta} />);
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByText(/there was 1 problem processing this event/i)
       );
       const errorItem = screen.getByTestId('event-error-item');
@@ -194,7 +194,7 @@ describe('EventErrors', () => {
 
         render(<EventErrors {...defaultProps} event={newEvent} />);
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByText(/there was 1 problem processing this event/i)
         );
         const errorItem = screen.getByTestId('event-error-item');
@@ -271,7 +271,7 @@ describe('EventErrors', () => {
 
         render(<EventErrors {...defaultProps} event={newEvent} />);
 
-        userEvent.click(
+        await userEvent.click(
           await screen.findByText(/there was 1 problem processing this event/i)
         );
         const errorItem = screen.getByTestId('event-error-item');

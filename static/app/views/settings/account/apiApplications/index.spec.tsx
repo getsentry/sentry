@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 describe('ApiApplications', function () {
-  it('renders empty', function () {
+  it('renders empty', async function () {
     const {router} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -28,7 +28,7 @@ describe('ApiApplications', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {router} = initializeOrg();
 
     const requestMock = MockApiClient.addMockResponse({
@@ -74,7 +74,7 @@ describe('ApiApplications', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Create New Application'));
+    await userEvent.click(screen.getByLabelText('Create New Application'));
 
     expect(createApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/',
@@ -107,7 +107,7 @@ describe('ApiApplications', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Remove'));
+    await userEvent.click(screen.getByLabelText('Remove'));
 
     expect(deleteApplicationRequest).toHaveBeenCalledWith(
       '/api-applications/123/',

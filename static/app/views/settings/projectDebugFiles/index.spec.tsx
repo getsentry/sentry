@@ -36,7 +36,7 @@ describe('ProjectDebugFiles', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', function () {
+  it('renders empty', async function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -72,12 +72,12 @@ describe('ProjectDebugFiles', function () {
     renderGlobalModal();
 
     // Delete button
-    userEvent.click(screen.getByTestId('delete-dif'));
+    await userEvent.click(screen.getByTestId('delete-dif'));
 
     // Confirm Modal
     await screen.findByRole('dialog');
 
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

@@ -30,17 +30,17 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     MockApiClient.clearMockResponses();
   });
 
-  const doSubmit = () =>
-    userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
+  const doSubmit = async () =>
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Changes'}));
 
-  const submitSuccess = () => {
-    doSubmit();
+  const submitSuccess = async () => {
+    await doSubmit();
     expect(addSuccessMessage).toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   };
 
-  const submitErrors = errorCount => {
-    doSubmit();
+  const submitErrors = async errorCount => {
+    await doSubmit();
     expect(screen.getAllByText('Field is required')).toHaveLength(errorCount);
     expect(closeModal).toHaveBeenCalledTimes(0);
   };
@@ -124,7 +124,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   };
 
   describe('Create Rule', function () {
-    it('should render the Ticket Rule modal', function () {
+    it('should render the Ticket Rule modal', async function () {
       renderComponent();
 
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeInTheDocument();
@@ -135,13 +135,13 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
     it('should save the modal data when "Apply Changes" is clicked with valid data', async function () {
       renderComponent();
       await selectEvent.select(screen.getByRole('textbox', {name: 'Reporter'}), 'a');
-      submitSuccess();
+      await submitSuccess();
     });
 
-    it('should raise validation errors when "Apply Changes" is clicked with invalid data', function () {
+    it('should raise validation errors when "Apply Changes" is clicked with invalid data', async function () {
       // This doesn't test anything TicketRules specific but I'm leaving it here as an example.
       renderComponent();
-      submitErrors(1);
+      await submitErrors(1);
     });
 
     it('should reload fields when an "updatesForm" field changes', async function () {
@@ -159,12 +159,12 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
       await selectEvent.select(screen.getByRole('textbox', {name: 'Issue Type'}), 'Epic');
       await selectEvent.select(screen.getByRole('textbox', {name: 'Assignee'}), 'b');
 
-      submitSuccess();
+      await submitSuccess();
     });
 
-    it('should persist values when the modal is reopened', function () {
+    it('should persist values when the modal is reopened', async function () {
       renderComponent({data: {reporter: 'a'}});
-      submitSuccess();
+      await submitSuccess();
     });
 
     it('should get async options from URL', async function () {
@@ -183,10 +183,10 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
 
       const menu = screen.getByRole('textbox', {name: 'Assignee'});
       selectEvent.openMenu(menu);
-      userEvent.type(menu, 'Marc{esc}');
+      await userEvent.type(menu, 'Marc{Escape}');
       await selectEvent.select(menu, 'Marcos');
 
-      submitSuccess();
+      await submitSuccess();
     });
   });
 });

@@ -10,17 +10,17 @@ describe('NarrowLayout', function () {
     window.location.assign.mockRestore();
   });
 
-  it('renders without logout', function () {
+  it('renders without logout', async function () {
     render(<NarrowLayout />);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
-  it('renders with logout', function () {
+  it('renders with logout', async function () {
     render(<NarrowLayout showLogout />);
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
-  it('can logout', function () {
+  it('can logout', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',
@@ -28,7 +28,7 @@ describe('NarrowLayout', function () {
     });
     render(<NarrowLayout showLogout />);
 
-    userEvent.click(screen.getByText('Sign out'));
+    await userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();
   });
 });

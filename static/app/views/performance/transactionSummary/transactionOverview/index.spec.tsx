@@ -522,7 +522,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', function () {
+    it('renders feature flagged UI elements', async function () {
       const {organization, router, routerContext} = initializeData({
         features: ['incidents'],
       });
@@ -582,7 +582,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
-    it('fetches transaction threshold', function () {
+    it('fetches transaction threshold', async function () {
       const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -641,7 +641,7 @@ describe('Performance > TransactionSummary', function () {
       expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers a navigation on search', function () {
+    it('triggers a navigation on search', async function () {
       const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -650,7 +650,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       // Fill out the search box, and submit it.
-      userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+      await userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
@@ -683,9 +683,9 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByRole('button', {name: 'Star for Team'});
 
       // Click the key transaction button
-      userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-      userEvent.click(screen.getByText('team1'), undefined, {
+      await userEvent.click(screen.getByText('team1'), undefined, {
         skipPointerEventsCheck: true,
       });
 
@@ -704,11 +704,11 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Transaction Summary');
 
       // Open the transaction filter dropdown
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
+      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -735,7 +735,7 @@ describe('Performance > TransactionSummary', function () {
       expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
 
       // Click the 'next' button
-      userEvent.click(screen.getByLabelText('Next'));
+      await userEvent.click(screen.getByLabelText('Next'));
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -820,7 +820,7 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByTestId('status-ok');
 
-      userEvent.click(screen.getByTestId('status-ok'));
+      await userEvent.click(screen.getByTestId('status-ok'));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith(
@@ -842,17 +842,17 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Tag Summary');
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
-      userEvent.click(
+      await userEvent.click(
         await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )
       );
-      userEvent.click(
+      await userEvent.click(
         await screen.findByLabelText(
           'user, id:100, 100% of all events. View events with this tag value.'
         )
@@ -933,7 +933,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', function () {
+    it('renders feature flagged UI elements', async function () {
       const {organization, router, routerContext} = initializeData({
         features: ['incidents'],
       });
@@ -993,7 +993,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
-    it('fetches transaction threshold', function () {
+    it('fetches transaction threshold', async function () {
       const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -1052,7 +1052,7 @@ describe('Performance > TransactionSummary', function () {
       expect(getProjectThresholdMock).toHaveBeenCalledTimes(1);
     });
 
-    it('triggers a navigation on search', function () {
+    it('triggers a navigation on search', async function () {
       const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -1061,7 +1061,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       // Fill out the search box, and submit it.
-      userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+      await userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
@@ -1094,9 +1094,9 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByRole('button', {name: 'Star for Team'});
 
       // Click the key transaction button
-      userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-      userEvent.click(screen.getByText('team1'), undefined, {
+      await userEvent.click(screen.getByText('team1'), undefined, {
         skipPointerEventsCheck: true,
       });
 
@@ -1115,11 +1115,11 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Transaction Summary');
 
       // Open the transaction filter dropdown
-      userEvent.click(
+      await userEvent.click(
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
 
-      userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
+      await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -1146,7 +1146,7 @@ describe('Performance > TransactionSummary', function () {
       expect(await screen.findByLabelText('Previous')).toBeInTheDocument();
 
       // Click the 'next' button
-      userEvent.click(screen.getByLabelText('Next'));
+      await userEvent.click(screen.getByLabelText('Next'));
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -1233,7 +1233,7 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByTestId('status-ok');
 
-      userEvent.click(screen.getByTestId('status-ok'));
+      await userEvent.click(screen.getByTestId('status-ok'));
 
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
       expect(browserHistory.push).toHaveBeenCalledWith(
@@ -1255,12 +1255,12 @@ describe('Performance > TransactionSummary', function () {
 
       await screen.findByText('Tag Summary');
 
-      userEvent.click(
+      await userEvent.click(
         await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
-      userEvent.click(
+      await userEvent.click(
         await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )

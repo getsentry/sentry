@@ -116,7 +116,7 @@ describe('groupEvents', () => {
     jest.clearAllMocks();
   });
 
-  it('renders', () => {
+  it('renders', async () => {
     const wrapper = render(
       <GroupEvents
         {...baseProps}
@@ -149,8 +149,8 @@ describe('groupEvents', () => {
     const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
 
     for (const item of list) {
-      userEvent.clear(input);
-      userEvent.type(input, `${item.searchTerm}{enter}`);
+      await userEvent.clear(input);
+      await userEvent.type(input, `${item.searchTerm}{enter}`);
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -160,7 +160,7 @@ describe('groupEvents', () => {
     }
   });
 
-  it('handles environment filtering', () => {
+  it('handles environment filtering', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -177,7 +177,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('renders events table for performance issue', () => {
+  it('renders events table for performance issue', async () => {
     const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
@@ -224,7 +224,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('does not make attachments request, when feature not enabled', async () => {
+  it('does not make attachments request, async when feature not enabled', async () => {
     const org = initializeOrg();
 
     render(
@@ -342,7 +342,7 @@ describe('groupEvents', () => {
     expect(requests.attachments).toHaveBeenCalled();
   });
 
-  it('renders events table for error', () => {
+  it('renders events table for error', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -365,7 +365,7 @@ describe('groupEvents', () => {
     expect(perfEventsColumn).toBeInTheDocument();
   });
 
-  it('removes sort if unsupported by the events table', () => {
+  it('removes sort if unsupported by the events table', async () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -380,7 +380,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('only request for a single projectId', () => {
+  it('only request for a single projectId', async () => {
     const group = TestStubs.Group();
 
     render(

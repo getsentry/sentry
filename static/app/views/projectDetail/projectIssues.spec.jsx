@@ -51,7 +51,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
-  it('renders a link to Issues', function () {
+  it('renders a link to Issues', async function () {
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
       organization,
@@ -59,7 +59,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
@@ -72,7 +72,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('renders a segmented control', function () {
+  it('renders a segmented control', async function () {
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
       organization,
@@ -88,13 +88,13 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(newIssuesSegment).toBeInTheDocument();
     expect(newIssuesSegment).not.toBeChecked();
 
-    userEvent.click(newIssuesSegment);
+    await userEvent.click(newIssuesSegment);
     waitFor(() => expect(newIssuesSegment).toBeChecked());
 
     expect(newIssuesEndpointMock).toHaveBeenCalled();
   });
 
-  it('renders a link to Discover', function () {
+  it('renders a link to Discover', async function () {
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
       organization,
@@ -102,7 +102,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Discover');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/discover/results/`,
@@ -117,7 +117,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('changes according to global header', function () {
+  it('changes according to global header', async function () {
     render(
       <ProjectIssues
         organization={organization}
@@ -133,7 +133,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,

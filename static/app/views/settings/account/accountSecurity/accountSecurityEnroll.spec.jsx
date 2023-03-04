@@ -37,7 +37,7 @@ describe('AccountSecurityEnroll', function () {
       });
     });
 
-    it('does not have enrolled circle indicator', function () {
+    it('does not have enrolled circle indicator', async function () {
       render(<AccountSecurityEnroll />, {context: routerContext});
 
       expect(
@@ -45,13 +45,13 @@ describe('AccountSecurityEnroll', function () {
       ).toBeInTheDocument();
     });
 
-    it('has qrcode component', function () {
+    it('has qrcode component', async function () {
       render(<AccountSecurityEnroll />, {context: routerContext});
 
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
 
-    it('can enroll', function () {
+    it('can enroll', async function () {
       const enrollMock = Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
@@ -59,7 +59,7 @@ describe('AccountSecurityEnroll', function () {
 
       render(<AccountSecurityEnroll />, {context: routerContext});
 
-      userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+      await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
       expect(enrollMock).toHaveBeenCalledWith(
         `${ENDPOINT}15/enroll/`,
@@ -73,7 +73,7 @@ describe('AccountSecurityEnroll', function () {
       );
     });
 
-    it('can redirect with already enrolled error', function () {
+    it('can redirect with already enrolled error', async function () {
       Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: {details: 'Already enrolled'},

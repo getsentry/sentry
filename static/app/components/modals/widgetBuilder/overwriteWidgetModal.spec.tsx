@@ -7,7 +7,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 describe('widget builder overwrite modal', () => {
-  it('renders with the widget title and description', () => {
+  it('renders with the widget title and description', async () => {
     const widget = {
       title: 'Test title',
       description: 'Test description',
@@ -33,7 +33,7 @@ describe('widget builder overwrite modal', () => {
     expect(screen.getByText('Test description')).toBeInTheDocument();
   });
 
-  it('calls the confirm handler and closes the modal when confirmed', () => {
+  it('calls the confirm handler and closes the modal when confirmed', async () => {
     const widget = {
       title: 'Test title',
       description: 'Test description',
@@ -56,7 +56,7 @@ describe('widget builder overwrite modal', () => {
       />
     );
 
-    userEvent.click(screen.getByText('Confirm'));
+    await userEvent.click(screen.getByText('Confirm'));
     expect(mockOnConfirm).toHaveBeenCalled();
 
     // Modal should close after confirming

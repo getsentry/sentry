@@ -47,21 +47,21 @@ describe('ReleaseActions', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(screen.getByLabelText('Actions'));
+    await userEvent.click(screen.getByLabelText('Actions'));
 
     const archiveAction = screen.getByTestId('archive');
 
     expect(archiveAction).toBeInTheDocument();
     expect(archiveAction).toHaveTextContent('Archive');
 
-    userEvent.click(archiveAction);
+    await userEvent.click(archiveAction);
 
     expect(await screen.findByText('Archive Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),
@@ -95,21 +95,21 @@ describe('ReleaseActions', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(screen.getByLabelText('Actions'));
+    await userEvent.click(screen.getByLabelText('Actions'));
 
     const restoreAction = screen.getByTestId('restore');
 
     expect(restoreAction).toBeInTheDocument(1);
     expect(restoreAction).toHaveTextContent('Restore');
 
-    userEvent.click(restoreAction);
+    await userEvent.click(restoreAction);
 
     expect(await screen.findByText('Restore Release 1.2.0')).toBeInTheDocument();
     const affectedProjects = screen.getAllByTestId('badge-display-name');
     expect(affectedProjects.length).toBe(2);
 
     // confirm modal
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.anything(),
@@ -125,7 +125,7 @@ describe('ReleaseActions', function () {
     await waitFor(() => expect(refetchDataMock).toHaveBeenCalledTimes(1));
   });
 
-  it('navigates to a next/prev release', function () {
+  it('navigates to a next/prev release', async function () {
     const routerContext = TestStubs.routerContext();
     const {rerender} = render(
       <ReleaseActions

@@ -30,12 +30,12 @@ describe('ProjectSelector', function () {
 
   const routerContext = TestStubs.routerContext([{organization: mockOrg}]);
 
-  function openMenu() {
-    userEvent.click(screen.getByRole('button'));
+  async function openMenu() {
+    await userEvent.click(screen.getByRole('button'));
   }
 
-  function applyMenu() {
-    userEvent.click(screen.getByRole('button', {name: 'Apply Filter'}));
+  async function applyMenu() {
+    await userEvent.click(screen.getByRole('button', {name: 'Apply Filter'}));
   }
 
   const props = {
@@ -51,7 +51,7 @@ describe('ProjectSelector', function () {
     menuFooter: () => {},
   };
 
-  it('should show empty message with no projects button, when no projects, and has no "project:write" access', function () {
+  it('should show empty message with no projects button, when no projects, and has no "project:write" access', async function () {
     render(
       <ProjectSelector
         {...props}
@@ -66,7 +66,7 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
     expect(screen.getByText('You have no projects')).toBeInTheDocument();
 
     // Should not have "Create Project" button
@@ -75,7 +75,7 @@ describe('ProjectSelector', function () {
     expect(createProject).toBeDisabled();
   });
 
-  it('should show empty message and create project button, when no projects and has "project:write" access', function () {
+  it('should show empty message and create project button, when no projects and has "project:write" access', async function () {
     render(
       <ProjectSelector
         {...props}
@@ -90,7 +90,7 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
     expect(screen.getByText('You have no projects')).toBeInTheDocument();
 
     // Should not have "Create Project" button
@@ -99,78 +99,78 @@ describe('ProjectSelector', function () {
     expect(createProject).toBeEnabled();
   });
 
-  it('does not open selector menu when disabled', function () {
+  it('does not open selector menu when disabled', async function () {
     render(<ProjectSelector {...props} disabled />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   });
 
-  it('lists projects and has filter', function () {
+  it('lists projects and has filter', async function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     expect(screen.getByText(testProject.slug)).toBeInTheDocument();
     expect(screen.getByText(anotherProject.slug)).toBeInTheDocument();
   });
 
-  it('can filter projects by project name', function () {
+  it('can filter projects by project name', async function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     screen.getByRole('textbox').focus();
-    userEvent.keyboard('TEST');
+    await userEvent.keyboard('TEST');
 
     const item = screen.getByTestId('badge-display-name');
     expect(item).toBeInTheDocument();
     expect(item).toHaveTextContent(testProject.slug);
   });
 
-  it('shows empty filter message when filtering has no results', function () {
+  it('shows empty filter message when filtering has no results', async function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     screen.getByRole('textbox').focus();
-    userEvent.keyboard('Foo');
+    await userEvent.keyboard('Foo');
 
     expect(screen.queryByTestId('badge-display-name')).not.toBeInTheDocument();
     expect(screen.getByText('No projects found')).toBeInTheDocument();
   });
 
-  it('does not close dropdown when input is clicked', function () {
+  it('does not close dropdown when input is clicked', async function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     // Dropdown is still open
     expect(screen.getByText(testProject.slug)).toBeInTheDocument();
   });
 
-  it('closes dropdown when project is selected', function () {
+  it('closes dropdown when project is selected', async function () {
     render(<ProjectSelector {...props} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
-    userEvent.click(screen.getByText(testProject.slug));
+    await userEvent.click(screen.getByText(testProject.slug));
 
     // Dropdown is closed
     expect(screen.queryByText(testProject.slug)).not.toBeInTheDocument();
   });
 
-  it('calls callback when project is selected', function () {
+  it('calls callback when project is selected', async function () {
     const onApplyChangeMock = jest.fn();
     render(<ProjectSelector {...props} onApplyChange={onApplyChangeMock} />, {
       context: routerContext,
     });
-    openMenu();
+    await openMenu();
 
     // Select first project
-    userEvent.click(screen.getByText(testProject.slug));
+    await userEvent.click(screen.getByText(testProject.slug));
 
     expect(onApplyChangeMock).toHaveBeenCalledWith([parseInt(testProject.id, 10)]);
   });
 
-  it('does not call `onUpdate` when using multi select', function () {
+  it('does not call `onUpdate` when using multi select', async function () {
     const onChangeMock = jest.fn();
     const onApplyChangeMock = jest.fn();
     render(
@@ -181,28 +181,28 @@ describe('ProjectSelector', function () {
       />,
       {context: routerContext}
     );
-    openMenu();
+    await openMenu();
 
     // Check the first project
-    userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
+    await userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
 
     expect(onChangeMock).toHaveBeenCalled();
     expect(onApplyChangeMock).not.toHaveBeenCalled();
   });
 
-  it('displays multi projects with non member projects', function () {
+  it('displays multi projects with non member projects', async function () {
     const nonMemberProject = TestStubs.Project({id: '2'});
 
     render(<ProjectSelector {...props} nonMemberProjects={[nonMemberProject]} />, {
       context: routerContext,
     });
-    openMenu();
+    await openMenu();
 
     expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(3);
   });
 
-  it('displays projects in alphabetical order partitioned by project membership', function () {
+  it('displays projects in alphabetical order partitioned by project membership', async function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectB = TestStubs.Project({id: '2', slug: 'b-project'});
     const projectANonM = TestStubs.Project({id: '3', slug: 'a-non-m-project'});
@@ -216,7 +216,7 @@ describe('ProjectSelector', function () {
     };
 
     render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     expect(screen.getByText("Projects I don't belong to")).toBeInTheDocument();
 
@@ -229,7 +229,7 @@ describe('ProjectSelector', function () {
     expect(projectLabels[3]).toHaveTextContent(projectBNonM.slug);
   });
 
-  it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', function () {
+  it('displays multi projects in sort order rules: selected, bookmarked, alphabetical', async function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectBBookmarked = TestStubs.Project({
       id: '2',
@@ -286,7 +286,7 @@ describe('ProjectSelector', function () {
     };
 
     render(<ProjectSelector {...multiProjectProps} />, {context: routerContext});
-    openMenu();
+    await openMenu();
 
     const projectLabels = screen.getAllByTestId('badge-display-name');
     expect(projectLabels).toHaveLength(11);
@@ -309,7 +309,7 @@ describe('ProjectSelector', function () {
     expect(projectLabels[10]).toHaveTextContent(projectL.slug);
   });
 
-  it('does not change sort order while selecting projects with the dropdown open', function () {
+  it('does not change sort order while selecting projects with the dropdown open', async function () {
     const projectA = TestStubs.Project({id: '1', slug: 'a-project'});
     const projectBBookmarked = TestStubs.Project({
       id: '2',
@@ -330,7 +330,7 @@ describe('ProjectSelector', function () {
       context: routerContext,
     });
 
-    openMenu();
+    await openMenu();
 
     const projectLabels = screen.getAllByTestId('badge-display-name');
     expect(projectLabels).toHaveLength(3);
@@ -341,7 +341,7 @@ describe('ProjectSelector', function () {
     expect(projectLabels[2]).toHaveTextContent(projectA.slug);
 
     // Unselect project D (re-render with the updated selection value)
-    userEvent.click(screen.getByRole('checkbox', {name: projectDSelected.slug}));
+    await userEvent.click(screen.getByRole('checkbox', {name: projectDSelected.slug}));
     rerender(<ProjectSelector {...multiProjectProps} value={[]} />, {
       context: routerContext,
     });
@@ -355,8 +355,8 @@ describe('ProjectSelector', function () {
     );
 
     // Open and close the menu
-    applyMenu();
-    openMenu();
+    await applyMenu();
+    await openMenu();
 
     const resortedProjectLabels = screen.getAllByTestId('badge-display-name');
 
@@ -366,7 +366,7 @@ describe('ProjectSelector', function () {
     expect(resortedProjectLabels[2]).toHaveTextContent(projectDSelected.slug);
   });
 
-  it('can select all projects when role=owner', function () {
+  it('can select all projects when role=owner', async function () {
     const mockOnApplyChange = jest.fn();
     render(
       <ProjectSelector
@@ -378,15 +378,15 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
 
-    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
 
     expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
     expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
   });
 
-  it('can select all projects when role=manager', function () {
+  it('can select all projects when role=manager', async function () {
     const mockOnApplyChange = jest.fn();
     render(
       <ProjectSelector
@@ -398,15 +398,15 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
 
-    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
 
     expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
     expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
   });
 
-  it('can select all projects when org has open membership', function () {
+  it('can select all projects when org has open membership', async function () {
     const mockOnApplyChange = jest.fn();
     render(
       <ProjectSelector
@@ -418,9 +418,9 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
 
-    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
 
     expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
     expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
@@ -438,15 +438,15 @@ describe('ProjectSelector', function () {
       {context: routerContext}
     );
 
-    openMenu();
+    await openMenu();
 
     // Check the first project
-    userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
+    await userEvent.click(screen.getByRole('checkbox', {name: testProject.slug}));
 
-    userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select All Projects'}));
 
     // Menu should close and all projects should be selected, not previously selected project
-    await waitForElementToBeRemoved(() => screen.getByRole('listbox'));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     expect(mockOnApplyChange).toHaveBeenCalledTimes(1);
     expect(mockOnApplyChange).toHaveBeenCalledWith([ALL_ACCESS_PROJECTS]);
   });

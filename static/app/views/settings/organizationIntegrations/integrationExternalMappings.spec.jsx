@@ -64,7 +64,7 @@ describe('IntegrationExternalMappings', function () {
     });
   };
 
-  it('renders empty if not mappings are provided or found', function () {
+  it('renders empty if not mappings are provided or found', async function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
       method: 'GET',
@@ -159,11 +159,11 @@ describe('IntegrationExternalMappings', function () {
     renderGlobalModal();
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('add-mapping-button'));
+    await userEvent.click(screen.getByTestId('add-mapping-button'));
     expect(onCreateMock).toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove user mapping'})[0]);
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove user mapping'})[0]);
+    await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });
 });

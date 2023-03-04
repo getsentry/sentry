@@ -51,7 +51,7 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('empty state', function () {
-    it('renders with no projects', function () {
+    it('renders with no projects', async function () {
       const noProjectTeams = [TestStubs.Team({isMember: false, projects: []})];
 
       render(
@@ -61,7 +61,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.getByRole('button', {name: 'Join a Team'})).toBeInTheDocument();
     });
 
-    it('renders with 1 project, with no first event', function () {
+    it('renders with 1 project, with no first event', async function () {
       const projects = [TestStubs.Project({teams, firstEvent: false})];
       ProjectsStore.loadInitialData(projects);
 
@@ -87,7 +87,7 @@ describe('ProjectsDashboard', function () {
   });
 
   describe('with projects', function () {
-    it('renders with two projects', function () {
+    it('renders with two projects', async function () {
       const teamA = TestStubs.Team({slug: 'team1', isMember: true});
       const projects = [
         TestStubs.Project({
@@ -119,7 +119,7 @@ describe('ProjectsDashboard', function () {
       expect(screen.getAllByTestId('badge-display-name')).toHaveLength(2);
     });
 
-    it('renders correct project with selected team', function () {
+    it('renders correct project with selected team', async function () {
       const teamC = TestStubs.Team({
         id: '1',
         slug: 'teamC',
@@ -233,7 +233,7 @@ describe('ProjectsDashboard', function () {
           params={{orgId: org.slug}}
         />
       );
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2',
         '{enter}'
@@ -244,7 +244,7 @@ describe('ProjectsDashboard', function () {
       });
     });
 
-    it('renders bookmarked projects first in team list', function () {
+    it('renders bookmarked projects first in team list', async function () {
       const teamA = TestStubs.Team({slug: 'team1', isMember: true});
       const projects = [
         TestStubs.Project({
@@ -452,7 +452,7 @@ describe('ProjectsDashboard', function () {
       expect(ProjectsStatsStore.getAll()).toEqual({});
     });
 
-    it('renders an error from withTeamsForUser', function () {
+    it('renders an error from withTeamsForUser', async function () {
       ProjectsStore.loadInitialData(projects);
 
       render(

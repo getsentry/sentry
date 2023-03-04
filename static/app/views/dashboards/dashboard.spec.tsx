@@ -113,7 +113,7 @@ describe('Dashboards > Dashboard', () => {
     });
   });
 
-  it('fetches tags', () => {
+  it('fetches tags', async () => {
     render(
       <Dashboard
         paramDashboardId="1"
@@ -199,7 +199,7 @@ describe('Dashboards > Dashboard', () => {
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
-  it('dashboard does not try to add new widget if no newWidget', () => {
+  it('dashboard does not try to add new widget if no newWidget', async () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(
@@ -268,7 +268,7 @@ describe('Dashboards > Dashboard', () => {
       };
       mount(mockDashboardWithIssueWidget, organization);
       expect(await screen.findByText('T')).toBeInTheDocument();
-      userEvent.hover(screen.getByText('T'));
+      await userEvent.hover(screen.getByText('T'));
       expect(await screen.findByText('Suggestion: test@sentry.io')).toBeInTheDocument();
       expect(screen.getByText('Matching Issue Owners Rule')).toBeInTheDocument();
     });
@@ -325,7 +325,7 @@ describe('Dashboards > Dashboard', () => {
       await act(async () => {
         const {rerender} = mount(dashboardWithOneWidget);
 
-        userEvent.click(screen.getByLabelText('Duplicate Widget'));
+        await userEvent.click(screen.getByLabelText('Duplicate Widget'));
         rerender();
         await tick();
       });
@@ -353,7 +353,7 @@ describe('Dashboards > Dashboard', () => {
         );
         await tick();
 
-        userEvent.click(screen.getByLabelText('Edit Widget'));
+        await userEvent.click(screen.getByLabelText('Edit Widget'));
       });
 
       expect(testData.router.push).toHaveBeenCalledWith(

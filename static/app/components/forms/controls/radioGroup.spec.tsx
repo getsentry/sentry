@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function () {
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <RadioGroup
         label="test"
@@ -19,7 +19,7 @@ describe('RadioGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders disabled', function () {
+  it('renders disabled', async function () {
     const {container} = render(
       <RadioGroup
         label="test"
@@ -53,13 +53,13 @@ describe('RadioGroup', function () {
     expect(screen.getByRole('radio', {name: 'Choice One'})).toBeEnabled();
     expect(screen.getByRole('radio', {name: 'Choice Two'})).toBeDisabled();
 
-    userEvent.hover(screen.getByRole('radio', {name: 'Choice Two'}));
+    await userEvent.hover(screen.getByRole('radio', {name: 'Choice Two'}));
     expect(
       await screen.findByText('Reason why choice two is disabled')
     ).toBeInTheDocument();
   });
 
-  it('can select a different item', function () {
+  it('can select a different item', async function () {
     const {container} = render(
       <RadioGroup
         label="test"
@@ -75,7 +75,7 @@ describe('RadioGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('calls onChange when clicked', function () {
+  it('calls onChange when clicked', async function () {
     const mock = jest.fn();
 
     render(
@@ -91,7 +91,7 @@ describe('RadioGroup', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('radio', {name: 'Choice Three'}));
+    await userEvent.click(screen.getByRole('radio', {name: 'Choice Three'}));
     expect(mock).toHaveBeenCalledTimes(1);
   });
 });

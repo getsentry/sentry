@@ -5,16 +5,17 @@ import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
 
 const selectNthAutocompleteItem = async index => {
-  userEvent.click(screen.getByTestId('smart-search-input'));
+  await userEvent.click(screen.getByTestId('smart-search-input'));
 
   const items = await screen.findAllByTestId('search-autocomplete-item');
-  userEvent.click(items.at(index));
+  await userEvent.click(items.at(index));
 };
 
-const setQuery = query => {
-  userEvent.click(screen.getByTestId('smart-search-input'));
-  userEvent.type(screen.getByTestId('smart-search-input'), query);
-};
+async function setQuery(query) {
+  const input = screen.getByTestId('smart-search-input');
+  await userEvent.click(input);
+  await userEvent.type(input, query);
+}
 
 describe('Events > SearchBar', function () {
   let options;
@@ -66,7 +67,7 @@ describe('Events > SearchBar', function () {
     });
     props.organization = initializationObj.organization;
     render(<SearchBar {...props} />, {context: options});
-    setQuery('fcp');
+    await setQuery('fcp');
 
     const autocomplete = await screen.findByTestId('search-autocomplete-item');
     expect(autocomplete).toBeInTheDocument();
@@ -77,7 +78,7 @@ describe('Events > SearchBar', function () {
     const initializationObj = initializeOrg();
     props.organization = initializationObj.organization;
     render(<SearchBar {...props} />, {context: options});
-    setQuery('release.');
+    await setQuery('release.');
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
     expect(autocomplete).toHaveLength(5);
@@ -87,7 +88,7 @@ describe('Events > SearchBar', function () {
 
   it('autocomplete has suggestions correctly', async function () {
     render(<SearchBar {...props} />, {context: options});
-    setQuery('has:');
+    await setQuery('has:');
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
 
@@ -104,7 +105,7 @@ describe('Events > SearchBar', function () {
 
   it('searches and selects an event field value', async function () {
     render(<SearchBar {...props} />, {context: options});
-    setQuery('gpu:');
+    await setQuery('gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
@@ -120,7 +121,7 @@ describe('Events > SearchBar', function () {
     expect(screen.getByTestId('smart-search-input')).toHaveValue('gpu:"Nvidia 1080ti" ');
   });
 
-  it('if `useFormWrapper` is false, pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
+  it('if `useFormWrapper` is false, async pressing enter when there are no dropdown items selected should blur and call `onSearch` callback', async function () {
     const onBlur = jest.fn();
     const onSearch = jest.fn();
     render(
@@ -128,7 +129,7 @@ describe('Events > SearchBar', function () {
       {context: options}
     );
 
-    setQuery('gpu:');
+    await setQuery('gpu:');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
@@ -141,7 +142,7 @@ describe('Events > SearchBar', function () {
     expect(autocomplete.at(2)).toHaveTextContent('Nvidia 1080ti');
     await selectNthAutocompleteItem(2);
 
-    userEvent.type(screen.getByTestId('smart-search-input'), '{enter}');
+    await userEvent.type(screen.getByTestId('smart-search-input'), '{enter}');
 
     expect(onSearch).toHaveBeenCalledTimes(1);
   });
@@ -149,7 +150,7 @@ describe('Events > SearchBar', function () {
   it('filters dropdown to accommodate for num characters left in query', async function () {
     render(<SearchBar {...props} maxQueryLength={5} />, {context: options});
 
-    setQuery('g');
+    await setQuery('g');
 
     const autocomplete = await screen.findAllByTestId('search-autocomplete-item');
     expect(autocomplete.at(0)).toHaveTextContent('g');
@@ -159,7 +160,7 @@ describe('Events > SearchBar', function () {
   it('returns zero dropdown suggestions if out of characters', async function () {
     render(<SearchBar {...props} maxQueryLength={2} />, {context: options});
 
-    setQuery('g');
+    await setQuery('g');
 
     expect(await screen.findByText('No items found')).toBeInTheDocument();
   });
@@ -169,13 +170,13 @@ describe('Events > SearchBar', function () {
     expect(screen.getByTestId('smart-search-input')).toHaveAttribute('maxLength', '10');
   });
 
-  it('does not requery for event field values if query does not change', function () {
+  it('does not requery for event field values if query does not change', async function () {
     render(<SearchBar {...props} />, {context: options});
 
-    setQuery('gpu:');
+    await setQuery('gpu:');
 
     // Click will fire "updateAutocompleteItems"
-    userEvent.click(screen.getByTestId('smart-search-input'));
+    await userEvent.click(screen.getByTestId('smart-search-input'));
 
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
   });
@@ -183,14 +184,14 @@ describe('Events > SearchBar', function () {
   it('removes highlight when query is empty', async function () {
     render(<SearchBar {...props} />, {context: options});
 
-    setQuery('gpu');
+    await setQuery('gpu');
 
     const autocomplete = await screen.findByTestId('search-autocomplete-item');
     expect(autocomplete).toBeInTheDocument();
     expect(autocomplete).toHaveTextContent('gpu');
 
     // Should have nothing highlighted
-    userEvent.clear(screen.getByTestId('smart-search-input'));
+    await userEvent.clear(screen.getByTestId('smart-search-input'));
 
     expect(await screen.findByText('Keys')).toBeInTheDocument();
   });
@@ -198,7 +199,7 @@ describe('Events > SearchBar', function () {
   it('ignores negation ("!") at the beginning of search term', async function () {
     render(<SearchBar {...props} />, {context: options});
 
-    setQuery('!gp');
+    await setQuery('!gp');
 
     const autocomplete = await screen.findByTestId('search-autocomplete-item');
     expect(autocomplete).toBeInTheDocument();
@@ -208,7 +209,7 @@ describe('Events > SearchBar', function () {
   it('ignores wildcard ("*") at the beginning of tag value query', async function () {
     render(<SearchBar {...props} />, {context: options});
 
-    setQuery('!gpu:*');
+    await setQuery('!gpu:*');
 
     expect(tagValuesMock).toHaveBeenCalledWith(
       '/organizations/org-slug/tags/gpu/values/',
@@ -229,21 +230,21 @@ describe('Events > SearchBar', function () {
     render(<SearchBar {...props} />, {context: options});
 
     // Do 3 searches, the first will find nothing, so no more requests should be made
-    setQuery('browser:Nothing');
+    await setQuery('browser:Nothing');
     expect(await screen.findByText('No items found')).toBeInTheDocument();
     expect(emptyTagValuesMock).toHaveBeenCalled();
     emptyTagValuesMock.mockClear();
 
     // Add E character
-    setQuery('E');
+    await setQuery('E');
 
-    setQuery('Els');
+    await setQuery('Els');
 
     // No Additional calls
     expect(emptyTagValuesMock).not.toHaveBeenCalled();
   });
 
-  it('continues searching after no values if query changes', function () {
+  it('continues searching after no values if query changes', async function () {
     const emptyTagValuesMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/browser/values/',
       body: [],
@@ -251,13 +252,13 @@ describe('Events > SearchBar', function () {
 
     render(<SearchBar {...props} />, {context: options});
 
-    setQuery('browser:Nothing');
+    await setQuery('browser:Nothing');
     expect(emptyTagValuesMock).toHaveBeenCalled();
 
     emptyTagValuesMock.mockClear();
-    userEvent.clear(screen.getByTestId('smart-search-input'));
+    await userEvent.clear(screen.getByTestId('smart-search-input'));
 
-    setQuery('browser:Something');
+    await setQuery('browser:Something');
 
     expect(emptyTagValuesMock).toHaveBeenCalled();
   });
@@ -280,7 +281,7 @@ describe('Events > SearchBar', function () {
         }}
       />
     );
-    userEvent.type(screen.getByRole('textbox'), 'custom');
+    await userEvent.type(screen.getByRole('textbox'), 'custom');
     expect(await screen.findByText('measurements')).toBeInTheDocument();
     expect(screen.getByText(/\.ratio/)).toBeInTheDocument();
   });

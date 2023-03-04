@@ -4,7 +4,7 @@ import {FrameRegisters} from 'sentry/components/events/interfaces/frame/frameReg
 import {FrameRegisterValue} from 'sentry/components/events/interfaces/frame/frameRegisters/value';
 
 describe('FrameRegisters', function () {
-  it('should render registers', function () {
+  it('should render registers', async function () {
     const registers = {
       r10: '0x00007fff9300bf70',
       r11: '0xffffffffffffffff',
@@ -15,7 +15,7 @@ describe('FrameRegisters', function () {
     expect(container).toSnapshot();
   });
 
-  it('should skip registers without a value', function () {
+  it('should skip registers without a value', async function () {
     const registers = {
       r10: '0x00007fff9300bf70',
       r11: null,
@@ -32,28 +32,28 @@ describe('FrameRegistersValue', function () {
   const numericValue = 10;
 
   describe('with string value', function () {
-    it('should display the hexadecimal value', function () {
+    it('should display the hexadecimal value', async function () {
       render(<FrameRegisterValue value={hexadecimalValue} />);
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={hexadecimalValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.queryByText(hexadecimalValue)).not.toBeInTheDocument();
       expect(screen.getByText(numericValue)).toBeInTheDocument();
     });
   });
 
   describe('with numeric value', function () {
-    it('should display the hexadecimal value', function () {
+    it('should display the hexadecimal value', async function () {
       render(<FrameRegisterValue value={numericValue} />);
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={numericValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.queryByText(hexadecimalValue)).not.toBeInTheDocument();
       expect(screen.getByText(numericValue)).toBeInTheDocument();
     });
@@ -62,14 +62,14 @@ describe('FrameRegistersValue', function () {
   describe('with unknown value', function () {
     const unknownValue = 'xyz';
 
-    it('should display the hexadecimal value', function () {
+    it('should display the hexadecimal value', async function () {
       render(<FrameRegisterValue value={unknownValue} />);
       expect(screen.getByText(unknownValue)).toBeInTheDocument();
     });
 
-    it('should display the numeric value', function () {
+    it('should display the numeric value', async function () {
       render(<FrameRegisterValue value={unknownValue} />);
-      userEvent.click(screen.getByLabelText('Toggle register value format'));
+      await userEvent.click(screen.getByLabelText('Toggle register value format'));
       expect(screen.getByText(unknownValue)).toBeInTheDocument();
     });
   });

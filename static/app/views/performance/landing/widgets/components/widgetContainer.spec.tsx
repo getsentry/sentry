@@ -111,7 +111,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     }
   });
 
-  it('Check requests when changing widget props', function () {
+  it('Check requests when changing widget props', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -164,7 +164,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
   });
 
-  it('Check requests when changing widget props for GenericDiscoverQuery based widget', function () {
+  it('Check requests when changing widget props for GenericDiscoverQuery based widget', async function () {
     const data = initializeData();
 
     wrapper = render(
@@ -993,8 +993,8 @@ describe('Performance > Widgets > WidgetContainer', function () {
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
     expect(setRowChartSettings).toHaveBeenCalledTimes(0);
 
-    userEvent.click(await screen.findByLabelText('More'));
-    userEvent.click(await screen.findByText('User Misery'));
+    await userEvent.click(await screen.findByLabelText('More'));
+    await userEvent.click(await screen.findByText('User Misery'));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'User Misery'
@@ -1025,12 +1025,12 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
 
     // Open context menu
-    userEvent.click(await screen.findByLabelText('More'));
+    await userEvent.click(await screen.findByLabelText('More'));
 
     // Check that the the "User Misery" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
     const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
-    userEvent.click(userMiseryOption);
+    await userEvent.click(userMiseryOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );

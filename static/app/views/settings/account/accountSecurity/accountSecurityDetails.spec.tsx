@@ -37,7 +37,7 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '15',
       };
@@ -117,11 +117,11 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
@@ -170,16 +170,16 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('can not remove last 2fa method when org requires 2fa', function () {
+    it('can not remove last 2fa method when org requires 2fa', async function () {
       MockApiClient.addMockResponse({
         url: ORG_ENDPOINT,
         body: TestStubs.Organizations({require2FA: true}),
@@ -251,7 +251,7 @@ describe('AccountSecurityDetails', function () {
       });
     });
 
-    it('has enrolled circle indicator', function () {
+    it('has enrolled circle indicator', async function () {
       const params = {
         authId: '16',
       };
@@ -330,7 +330,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
 
       renderGlobalModal();
 
@@ -340,12 +340,12 @@ describe('AccountSecurityDetails', function () {
         )
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
 
-    it('has copy, print and download buttons', function () {
+    it('has copy, print and download buttons', async function () {
       const params = {
         authId: '16',
       };

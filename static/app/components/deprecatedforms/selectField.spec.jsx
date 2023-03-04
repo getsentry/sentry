@@ -6,7 +6,7 @@ import Form from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 describe('SelectField', function () {
-  it('renders without form context', function () {
+  it('renders without form context', async function () {
     const {container} = render(
       <SelectField
         options={[
@@ -20,14 +20,14 @@ describe('SelectField', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with flat options', function () {
+  it('renders with flat options', async function () {
     const {container} = render(
       <SelectField choices={['a', 'b', 'c']} name="fieldName" />
     );
     expect(container).toSnapshot();
   });
 
-  it('renders with paired options', function () {
+  it('renders with paired options', async function () {
     const {container} = render(
       <SelectField
         options={[
@@ -56,7 +56,7 @@ describe('SelectField', function () {
       </Form>
     );
     await selectEvent.select(screen.getByText('Select...'), 'a');
-    userEvent.click(screen.getByText('submit'));
+    await userEvent.click(screen.getByText('submit'));
     expect(mock).toHaveBeenCalledWith(
       {fieldName: 'a'},
       expect.anything(),
@@ -106,7 +106,7 @@ describe('SelectField', function () {
         </Form>
       );
       await selectEvent.select(screen.getByText('Select...'), 'a');
-      userEvent.click(screen.getByText('submit'));
+      await userEvent.click(screen.getByText('submit'));
       expect(mock).toHaveBeenCalledWith(
         {fieldName: ['a']},
         expect.anything(),

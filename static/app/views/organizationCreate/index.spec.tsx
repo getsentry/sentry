@@ -14,19 +14,19 @@ describe('OrganizationCreate', function () {
     jest.resetAllMocks();
   });
 
-  it('renders without terms', function () {
+  it('renders without terms', async function () {
     const wrapper = render(<OrganizationCreate />);
     expect(wrapper.container).toSnapshot();
   });
 
-  it('renders with terms', function () {
+  it('renders with terms', async function () {
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     const wrapper = render(<OrganizationCreate />);
     expect(wrapper.container).toSnapshot();
   });
 
-  it('creates a new org', function () {
+  it('creates a new org', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -37,13 +37,13 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
-    userEvent.click(
+    await userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: 'I agree to the Terms of Service and the Privacy Policy',
       })
     );
-    userEvent.click(screen.getByText('Create Organization'));
+    await userEvent.click(screen.getByText('Create Organization'));
 
     expect(orgCreateMock).toHaveBeenCalledWith(
       '/organizations/',
@@ -57,7 +57,7 @@ describe('OrganizationCreate', function () {
     );
   });
 
-  it('creates a new org with customer domain feature', function () {
+  it('creates a new org with customer domain feature', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -70,13 +70,13 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
-    userEvent.click(
+    await userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: 'I agree to the Terms of Service and the Privacy Policy',
       })
     );
-    userEvent.click(screen.getByText('Create Organization'));
+    await userEvent.click(screen.getByText('Create Organization'));
 
     expect(orgCreateMock).toHaveBeenCalledWith(
       '/organizations/',

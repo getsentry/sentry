@@ -77,10 +77,10 @@ describe('RuleBuilder', function () {
 
     const addButton = screen.getByRole('button', {name: 'Add rule'});
 
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
     expect(handleAdd).not.toHaveBeenCalled();
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'some/path/*');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'some/path/*');
 
     expect(addButton).toBeDisabled();
 
@@ -90,7 +90,7 @@ describe('RuleBuilder', function () {
     );
 
     expect(addButton).toBeEnabled();
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
 
     expect(container).toSnapshot();
@@ -124,7 +124,7 @@ describe('RuleBuilder', function () {
     await selectEvent.select(ownerInput, 'Jane Bloggs');
 
     const candidates = screen.getAllByRole('button', {name: 'Path rule candidate'});
-    userEvent.click(candidates[0]);
+    await userEvent.click(candidates[0]);
 
     expect(screen.getByRole('textbox', {name: 'Rule pattern'})).toHaveValue('a/bar');
 
@@ -133,7 +133,7 @@ describe('RuleBuilder', function () {
 
     expect(container).toSnapshot();
 
-    userEvent.click(addButton);
+    await userEvent.click(addButton);
     expect(handleAdd).toHaveBeenCalled();
   });
 
@@ -143,13 +143,13 @@ describe('RuleBuilder', function () {
     );
 
     await selectEvent.select(screen.getByText('Path'), 'Tag');
-    userEvent.type(screen.getByPlaceholderText('tag-name'), 'mytag');
-    userEvent.type(screen.getByPlaceholderText('tag-value'), 'value');
+    await userEvent.type(screen.getByPlaceholderText('tag-name'), 'mytag');
+    await userEvent.type(screen.getByPlaceholderText('tag-value'), 'value');
     await selectEvent.select(
       screen.getByRole('textbox', {name: 'Rule owner'}),
       'Jane Bloggs'
     );
-    userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add rule'}));
 
     expect(handleAdd).toHaveBeenCalledWith('tags.mytag:value janebloggs@example.com');
   });

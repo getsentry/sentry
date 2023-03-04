@@ -51,10 +51,10 @@ describe('Add Modal', function () {
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
 
-    userEvent.hover(screen.getAllByTestId('more-information')[0]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[0]);
     expect(await screen.findByText('What to do')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
+    await userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
 
     Object.values(MethodType).forEach(method => {
       if (method === MethodType.MASK) {
@@ -66,14 +66,14 @@ describe('Add Modal', function () {
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
 
-    userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[1]);
     expect(
       await screen.findByText(
         'What to look for. Use an existing pattern or define your own using regular expressions.'
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
+    await userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
 
     Object.values(RuleType).forEach(rule => {
       if (rule === RuleType.CREDITCARD) {
@@ -90,7 +90,7 @@ describe('Add Modal', function () {
     // Source Field
     screen.getByRole('textbox', {name: 'Source'});
 
-    userEvent.hover(screen.getAllByTestId('more-information')[2]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[2]);
 
     expect(
       await screen.findByText(
@@ -99,7 +99,7 @@ describe('Add Modal', function () {
     ).toBeInTheDocument();
 
     // Close Modal
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(handleCloseModal).toHaveBeenCalled();
   });
@@ -123,15 +123,15 @@ describe('Add Modal', function () {
 
     expect(screen.queryByText('Custom Placeholder (Optional)')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
+    await userEvent.click(screen.getByText(getMethodLabel(MethodType.MASK).label));
 
-    userEvent.keyboard('{arrowdown}{arrowdown}{enter}');
+    await userEvent.keyboard('{arrowdown}{arrowdown}{enter}');
 
     expect(screen.getByText('Custom Placeholder (Optional)')).toBeInTheDocument();
 
     expect(screen.getByPlaceholderText('[Filtered]')).toBeInTheDocument();
 
-    userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[1]);
 
     expect(
       await screen.findByText('It will replace the default placeholder [Filtered]')
@@ -157,9 +157,9 @@ describe('Add Modal', function () {
 
     expect(screen.queryByText('Regex matches')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
+    await userEvent.click(screen.getByText(getRuleLabel(RuleType.CREDITCARD)));
 
-    userEvent.keyboard(
+    await userEvent.keyboard(
       '{arrowdown}{arrowdown}{arrowdown}{arrowdown}{arrowdown}{arrowdown}{enter}'
     );
 
@@ -167,7 +167,7 @@ describe('Add Modal', function () {
 
     expect(screen.getByPlaceholderText('[a-zA-Z0-9]+')).toBeInTheDocument();
 
-    userEvent.hover(screen.getAllByTestId('more-information')[2]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[2]);
 
     expect(
       await screen.findByText('Custom regular expression (see documentation)')
@@ -203,21 +203,21 @@ describe('Add Modal', function () {
       />
     );
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('button', {name: 'Use event ID for auto-completion'})
     );
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     expect(screen.getAllByRole('listitem')).toHaveLength(18);
 
     expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
 
-    userEvent.type(screen.getByPlaceholderText('XXXXXXXXXXXXXX'), `${eventId}{enter}`);
+    await userEvent.type(screen.getByPlaceholderText('XXXXXXXXXXXXXX'), `${eventId}{enter}`);
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.click(screen.getByRole('textbox', {name: 'Source'}));
 
     expect(screen.getAllByRole('listitem')).toHaveLength(3);
   });

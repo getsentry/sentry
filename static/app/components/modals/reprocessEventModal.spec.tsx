@@ -17,7 +17,7 @@ const group = TestStubs.Group({
 });
 
 describe('ReprocessEventModal', function () {
-  it('form fields & info', function () {
+  it('form fields & info', async function () {
     const {organization} = initializeOrg({
       ...initializeOrg(),
       organization: {
@@ -105,7 +105,7 @@ describe('ReprocessEventModal', function () {
       screen.getByRole('spinbutton', {name: 'Number of events to be reprocessed'})
     ).toHaveAttribute('placeholder', 'Reprocess all events');
 
-    userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reprocess Events'}));
 
     await waitFor(() => expect(window.location.reload).toHaveBeenCalled());
     expect(handleCloseModal).toHaveBeenCalled();

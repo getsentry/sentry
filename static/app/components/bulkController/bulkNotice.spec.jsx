@@ -14,12 +14,12 @@ const props = {
 };
 
 describe('BulkNotice', function () {
-  it('does not render if the whole page is not selected', function () {
+  it('does not render if the whole page is not selected', async function () {
     const wrapper = render(<BulkNotice {...props} />);
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('shows the right page summary', function () {
+  it('shows the right page summary', async function () {
     const wrapper = render(<BulkNotice {...props} isPageSelected />);
     expect(wrapper.container).toHaveTextContent(
       `${props.selectedRowsCount} items on this page selected. Select all ${props.allRowsCount} items.`
@@ -34,15 +34,15 @@ describe('BulkNotice', function () {
     expect(wrapper.container).toHaveTextContent('Select the first 1000 items.');
   });
 
-  it('can select all rows across all pages', function () {
+  it('can select all rows across all pages', async function () {
     const onSelectAllRows = jest.fn();
     render(<BulkNotice {...props} isPageSelected onSelectAllRows={onSelectAllRows} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Select all 64 items.'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Select all 64 items.'}));
     expect(onSelectAllRows).toHaveBeenCalled();
   });
 
-  it('can deselect all once everything is selected', function () {
+  it('can deselect all once everything is selected', async function () {
     const onUnselectAllRows = jest.fn();
     const wrapper = render(
       <BulkNotice
@@ -55,11 +55,11 @@ describe('BulkNotice', function () {
     expect(wrapper.container).toHaveTextContent(
       `Selected all ${props.allRowsCount} items. Cancel selection.`
     );
-    userEvent.click(screen.getByRole('button', {name: 'Cancel selection.'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel selection.'}));
     expect(onUnselectAllRows).toHaveBeenCalled();
   });
 
-  it('show the right selected all across all pages summary', function () {
+  it('show the right selected all across all pages summary', async function () {
     const wrapper = render(
       <BulkNotice
         {...props}

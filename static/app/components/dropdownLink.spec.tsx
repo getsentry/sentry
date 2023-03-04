@@ -26,7 +26,7 @@ describe('DropdownLink', function () {
   };
 
   describe('renders', function () {
-    it('and anchors to left by default', function () {
+    it('and anchors to left by default', async function () {
       const {container} = render(
         <DropdownLink {...INPUT_1}>
           <div>1</div>
@@ -37,7 +37,7 @@ describe('DropdownLink', function () {
       expect(container).toSnapshot();
     });
 
-    it('and anchors to right', function () {
+    it('and anchors to right', async function () {
       const {container} = render(
         <DropdownLink {...INPUT_1} anchorRight>
           <div>1</div>
@@ -51,7 +51,7 @@ describe('DropdownLink', function () {
 
   describe('Uncontrolled', function () {
     describe('While Closed', function () {
-      it('displays dropdown menu when dropdown actor button clicked', function () {
+      it('displays dropdown menu when dropdown actor button clicked', async function () {
         render(
           <DropdownLink alwaysRenderMenu={false} title="test">
             <li>hi</li>
@@ -61,7 +61,7 @@ describe('DropdownLink', function () {
         expect(screen.queryByText('hi')).not.toBeInTheDocument();
 
         // open
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         expect(screen.getByText('hi')).toBeInTheDocument();
       });
@@ -78,15 +78,15 @@ describe('DropdownLink', function () {
         );
 
         // Open menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         // Click outside
-        userEvent.click(screen.getByTestId('outside-element'));
+        await userEvent.click(screen.getByTestId('outside-element'));
 
         await waitForElementToBeRemoved(() => screen.getByText('hi'));
       });
 
-      it('closes when dropdown actor button is clicked', function () {
+      it('closes when dropdown actor button is clicked', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false}>
             <li>hi</li>
@@ -94,15 +94,15 @@ describe('DropdownLink', function () {
         );
 
         // Open menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         // Click again
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         expect(screen.queryByText('hi')).not.toBeInTheDocument();
       });
 
-      it('closes when dropdown menu item is clicked', function () {
+      it('closes when dropdown menu item is clicked', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false}>
             <li>hi</li>
@@ -110,14 +110,14 @@ describe('DropdownLink', function () {
         );
 
         // Open menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
-        userEvent.click(screen.getByText('hi'));
+        await userEvent.click(screen.getByText('hi'));
 
         expect(screen.queryByText('hi')).not.toBeInTheDocument();
       });
 
-      it('does not close when menu is clicked and `keepMenuOpen` is on', function () {
+      it('does not close when menu is clicked and `keepMenuOpen` is on', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false} keepMenuOpen>
             <li>hi</li>
@@ -125,10 +125,10 @@ describe('DropdownLink', function () {
         );
 
         // Open menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         // Click again
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         expect(screen.getByText('test')).toBeInTheDocument();
       });
@@ -137,7 +137,7 @@ describe('DropdownLink', function () {
 
   describe('Controlled', function () {
     describe('Opened', function () {
-      it('does not close when menu is clicked', function () {
+      it('does not close when menu is clicked', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false} isOpen>
             <li>hi</li>
@@ -145,13 +145,13 @@ describe('DropdownLink', function () {
         );
 
         // Click option
-        userEvent.click(screen.getByText('hi'));
+        await userEvent.click(screen.getByText('hi'));
 
         // Should still be open
         expect(screen.getByText('hi')).toBeInTheDocument();
       });
 
-      it('does not close when document is clicked', function () {
+      it('does not close when document is clicked', async function () {
         render(
           <div data-test-id="outside-element">
             <DropdownLink title="test" alwaysRenderMenu={false} isOpen>
@@ -161,13 +161,13 @@ describe('DropdownLink', function () {
         );
 
         // Click outside
-        userEvent.click(screen.getByTestId('outside-element'));
+        await userEvent.click(screen.getByTestId('outside-element'));
 
         // Should still be open
         expect(screen.getByText('hi')).toBeInTheDocument();
       });
 
-      it('does not close when dropdown actor is clicked', function () {
+      it('does not close when dropdown actor is clicked', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false} isOpen>
             <li>hi</li>
@@ -175,14 +175,14 @@ describe('DropdownLink', function () {
         );
 
         // Click menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         // Should still be open
         expect(screen.getByText('hi')).toBeInTheDocument();
       });
     });
     describe('Closed', function () {
-      it('does not open when dropdown actor is clicked', function () {
+      it('does not open when dropdown actor is clicked', async function () {
         render(
           <DropdownLink title="test" alwaysRenderMenu={false} isOpen={false}>
             <li>hi</li>
@@ -190,7 +190,7 @@ describe('DropdownLink', function () {
         );
 
         // Click menu
-        userEvent.click(screen.getByText('test'));
+        await userEvent.click(screen.getByText('test'));
 
         expect(screen.queryByText('hi')).not.toBeInTheDocument();
       });
@@ -215,14 +215,14 @@ describe('DropdownLink', function () {
       );
     };
 
-    it('closes when top-level actor is clicked', function () {
+    it('closes when top-level actor is clicked', async function () {
       render(<NestedDropdown />);
 
       // Open menu
-      userEvent.click(screen.getByText('parent'));
+      await userEvent.click(screen.getByText('parent'));
 
       // Close menu
-      userEvent.click(screen.getByText('parent'));
+      await userEvent.click(screen.getByText('parent'));
 
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
@@ -231,20 +231,20 @@ describe('DropdownLink', function () {
       render(<NestedDropdown />);
 
       // Open menu
-      userEvent.click(screen.getByText('parent'));
+      await userEvent.click(screen.getByText('parent'));
 
-      userEvent.hover(screen.getByText('nested'));
+      await userEvent.hover(screen.getByText('nested'));
 
       await screen.findByText('nested #2');
 
       // Leaving Nested Menu
-      userEvent.unhover(screen.getByText('nested'));
+      await userEvent.unhover(screen.getByText('nested'));
 
       // Nested menus have close delay
       jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
 
       // Re-entering nested menu will cancel close
-      userEvent.hover(screen.getByText('nested'));
+      await userEvent.hover(screen.getByText('nested'));
       jest.advanceTimersByTime(2);
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
@@ -252,11 +252,11 @@ describe('DropdownLink', function () {
       jest.advanceTimersByTime(MENU_CLOSE_DELAY - 1);
 
       jest.advanceTimersByTime(2);
-      userEvent.hover(screen.getByText('parent'));
+      await userEvent.hover(screen.getByText('parent'));
       expect(screen.getByText('nested #2')).toBeInTheDocument();
 
       // Leave menu
-      userEvent.unhover(screen.getByText('nested'));
+      await userEvent.unhover(screen.getByText('nested'));
       jest.runAllTimers();
       expect(screen.queryByText('nested #2')).not.toBeInTheDocument();
     });
@@ -265,15 +265,15 @@ describe('DropdownLink', function () {
       render(<NestedDropdown />);
 
       // Open menu
-      userEvent.click(screen.getByText('parent'));
+      await userEvent.click(screen.getByText('parent'));
 
-      userEvent.click(screen.getByText('nested'));
+      await userEvent.click(screen.getByText('nested'));
 
       expect(screen.getByRole('listbox')).toBeInTheDocument();
 
-      userEvent.hover(screen.getByText('nested'));
+      await userEvent.hover(screen.getByText('nested'));
 
-      userEvent.click(await screen.findByText('nested #2'));
+      await userEvent.click(await screen.findByText('nested #2'));
 
       expect(screen.getAllByRole('listbox')).toHaveLength(2);
     });
@@ -282,13 +282,13 @@ describe('DropdownLink', function () {
       render(<NestedDropdown />);
 
       // Open menu
-      userEvent.click(screen.getByText('parent'));
+      await userEvent.click(screen.getByText('parent'));
 
-      userEvent.hover(screen.getByText('nested'));
+      await userEvent.hover(screen.getByText('nested'));
 
-      userEvent.hover(await screen.findByText('nested #2'));
+      await userEvent.hover(await screen.findByText('nested #2'));
 
-      userEvent.click(await screen.findByText('Hello'));
+      await userEvent.click(await screen.findByText('Hello'));
 
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });

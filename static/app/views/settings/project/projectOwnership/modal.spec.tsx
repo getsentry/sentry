@@ -56,7 +56,7 @@ describe('Project Ownership', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders stacktrace suggestions', () => {
+  it('renders stacktrace suggestions', async () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
@@ -76,7 +76,7 @@ describe('Project Ownership', () => {
     expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
   });
 
-  it('renders streamline-targeting-context suggestions', () => {
+  it('renders streamline-targeting-context suggestions', async () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
@@ -105,7 +105,7 @@ describe('Project Ownership', () => {
     expect(screen.queryByLabelText('Rule pattern')).not.toBeInTheDocument();
   });
 
-  it('can cancel', () => {
+  it('can cancel', async () => {
     const onCancel = jest.fn();
     render(
       <ProjectOwnershipModal
@@ -118,7 +118,7 @@ describe('Project Ownership', () => {
     );
 
     // Cancel
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
   });
 });

@@ -26,25 +26,25 @@ function renderDropdown(props) {
 }
 
 describe('SidebarDropdown', function () {
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = renderDropdown();
     expect(container).toSnapshot();
   });
-  it('renders without org links', function () {
+  it('renders without org links', async function () {
     const {container} = renderDropdown({hideOrgLinks: true});
     expect(container).toSnapshot();
   });
-  it('renders open sidebar', function () {
+  it('renders open sidebar', async function () {
     const config = {...ConfigStore.get('config'), singleOrganization: false};
     renderDropdown({collapsed: false, config});
-    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.getByText('Switch organization')).toBeInTheDocument();
   });
-  it('sandbox/demo mode render open sidebar', function () {
+  it('sandbox/demo mode render open sidebar', async function () {
     ConfigStore.set('demoMode', true);
     const config = {...ConfigStore.get('config'), singleOrganization: false};
     renderDropdown({collapsed: false, config});
-    userEvent.click(screen.getByTestId('sidebar-dropdown'));
+    await userEvent.click(screen.getByTestId('sidebar-dropdown'));
     expect(screen.queryByText('Switch organization')).not.toBeInTheDocument();
   });
 });

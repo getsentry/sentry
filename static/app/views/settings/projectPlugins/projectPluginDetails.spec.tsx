@@ -44,7 +44,7 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {container} = render(
       <ProjectPluginDetailsContainer
         organization={organization}
@@ -85,7 +85,7 @@ describe('ProjectPluginDetails', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Reset Configuration'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Reset Configuration'}));
 
     await waitFor(() =>
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Plugin was reset')
@@ -112,7 +112,7 @@ describe('ProjectPluginDetails', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Enable Plugin'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Enable Plugin'}));
 
     await waitFor(() =>
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Plugin was enabled')

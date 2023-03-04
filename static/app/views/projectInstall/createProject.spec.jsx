@@ -33,7 +33,7 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams', function () {
+  it('should block if you have access to no teams', async function () {
     const wrapper = render(<CreateProject {...baseProps} />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
@@ -41,39 +41,39 @@ describe('CreateProject', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('can create a new team', function () {
+  it('can create a new team', async function () {
     render(<CreateProject {...baseProps} />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create a team'}));
     expect(openCreateTeamModal).toHaveBeenCalled();
   });
 
-  it('should fill in project name if its empty when platform is chosen', function () {
+  it('should fill in project name if its empty when platform is chosen', async function () {
     const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
       context: TestStubs.routerContext([
         {organization: {id: '1', slug: 'testOrg'}, location: {query: {}}},
       ]),
     });
 
-    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('apple-ios');
 
-    userEvent.click(screen.getByTestId('platform-ruby-rails'));
+    await userEvent.click(screen.getByTestId('platform-ruby-rails'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('ruby-rails');
 
     // but not replace it when project name is something else:
-    userEvent.clear(screen.getByPlaceholderText('project-name'));
-    userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
+    await userEvent.clear(screen.getByPlaceholderText('project-name'));
+    await userEvent.type(screen.getByPlaceholderText('project-name'), 'another');
 
-    userEvent.click(screen.getByTestId('platform-apple-ios'));
+    await userEvent.click(screen.getByTestId('platform-apple-ios'));
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('another');
 
     expect(wrapper.container).toSnapshot();
   });
 
-  it('should fill in platform name if its provided by url', function () {
+  it('should fill in platform name if its provided by url', async function () {
     const props = {
       ...baseProps,
       location: {query: {platform: 'ruby-rails'}},
@@ -88,7 +88,7 @@ describe('CreateProject', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('should fill in category name if its provided by url', function () {
+  it('should fill in category name if its provided by url', async function () {
     const props = {
       ...baseProps,
       location: {query: {category: 'mobile'}},
@@ -102,7 +102,7 @@ describe('CreateProject', function () {
     expect(screen.queryByTestId('platform-ruby-rails')).not.toBeInTheDocument();
   });
 
-  it('should deal with incorrect platform name if its provided by url', function () {
+  it('should deal with incorrect platform name if its provided by url', async function () {
     const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
       context: TestStubs.routerContext([
         {
@@ -133,7 +133,7 @@ describe('CreateProject', function () {
       MockApiClient.clearMockResponses();
     });
 
-    it('should enabled the submit button if and only if all the required information has been filled', () => {
+    it('should enabled the submit button if and only if all the required information has been filled', async () => {
       render(<CreateProject {...props} />, {
         context: TestStubs.routerContext([
           {
@@ -144,26 +144,26 @@ describe('CreateProject', function () {
 
       const createProjectButton = screen.getByTestId('create-project');
 
-      userEvent.click(screen.getByText(/When there are more than/));
+      await userEvent.click(screen.getByText(/When there are more than/));
       expect(createProjectButton).toBeDisabled();
 
-      userEvent.paste(screen.getByTestId('range-input'), '2', {skipClick: true});
+      await userEvent.type(screen.getByTestId('range-input'), '2');
       expect(screen.getByTestId('range-input')).toHaveValue(2);
       expect(createProjectButton).toBeDisabled();
 
-      userEvent.click(screen.getByTestId('platform-apple-ios'));
+      await userEvent.click(screen.getByTestId('platform-apple-ios'));
       expect(createProjectButton).toBeEnabled();
 
-      userEvent.clear(screen.getByTestId('range-input'));
+      await userEvent.clear(screen.getByTestId('range-input'));
       expect(createProjectButton).toBeEnabled();
 
-      userEvent.paste(screen.getByTestId('range-input'), '2712', {skipClick: true});
+      await userEvent.type(screen.getByTestId('range-input'), '2712');
       expect(createProjectButton).toBeEnabled();
 
       fireEvent.change(screen.getByTestId('range-input'), {target: {value: ''}});
       expect(createProjectButton).toBeDisabled();
 
-      userEvent.click(screen.getByText("I'll create my own alerts later"));
+      await userEvent.click(screen.getByText("I'll create my own alerts later"));
       expect(createProjectButton).toBeEnabled();
     });
   });

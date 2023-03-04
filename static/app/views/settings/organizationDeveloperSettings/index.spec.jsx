@@ -51,14 +51,14 @@ describe('Organization Developer Settings', function () {
       });
     });
 
-    it('internal integrations list is empty', () => {
+    it('internal integrations list is empty', async () => {
       render(<OrganizationDeveloperSettings organization={org} />, {organization: org});
       expect(
         screen.getByText('No internal integrations have been created yet.')
       ).toBeInTheDocument();
     });
 
-    it('public integrations list contains 1 item', () => {
+    it('public integrations list contains 1 item', async () => {
       render(
         <OrganizationDeveloperSettings
           organization={org}
@@ -86,16 +86,16 @@ describe('Organization Developer Settings', function () {
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
 
-      userEvent.click(deleteButton);
+      await userEvent.click(deleteButton);
       renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
 
       const input = await within(dialog).findByPlaceholderText('sample-app');
-      userEvent.paste(input, 'sample-app');
+      await userEvent.paste(input, 'sample-app');
       const confirmDeleteButton = await screen.findByRole('button', {name: 'Confirm'});
 
-      userEvent.click(confirmDeleteButton);
+      await userEvent.click(confirmDeleteButton);
 
       await screen.findByText('No public integrations have been created yet.');
     });
@@ -116,7 +116,7 @@ describe('Organization Developer Settings', function () {
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
       expect(publishButton).toHaveAttribute('aria-disabled', 'false');
-      userEvent.click(publishButton);
+      await userEvent.click(publishButton);
 
       const {waitForModalToHide} = renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
@@ -140,7 +140,7 @@ describe('Organization Developer Settings', function () {
 
       for (const {question, answer} of questionnaire) {
         const element = within(dialog).getByRole('textbox', {name: question});
-        userEvent.paste(element, answer);
+        await userEvent.paste(element, answer);
       }
 
       const requestPublishButton = await within(dialog).findByLabelText(
@@ -148,7 +148,7 @@ describe('Organization Developer Settings', function () {
       );
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
-      userEvent.click(requestPublishButton);
+      await userEvent.click(requestPublishButton);
 
       await waitForModalToHide();
 
@@ -169,7 +169,7 @@ describe('Organization Developer Settings', function () {
         body: [publishedSentryApp],
       });
     });
-    it('shows the published status', () => {
+    it('shows the published status', async () => {
       render(
         <OrganizationDeveloperSettings
           organization={org}
@@ -218,7 +218,7 @@ describe('Organization Developer Settings', function () {
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
     });
 
-    it('publish button does not exist', () => {
+    it('publish button does not exist', async () => {
       render(<OrganizationDeveloperSettings organization={org} />);
       expect(screen.queryByText('Publish')).not.toBeInTheDocument();
     });

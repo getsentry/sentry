@@ -26,7 +26,7 @@ describe('utils.projects', function () {
   });
 
   describe('with predefined list of slugs', function () {
-    it('gets projects that are in the ProjectsStore', function () {
+    it('gets projects that are in the ProjectsStore', async function () {
       createWrapper({slugs: ['foo', 'bar']});
 
       // This is initial state
@@ -235,7 +235,7 @@ describe('utils.projects', function () {
   });
 
   describe('with predefined list of project ids', function () {
-    it('gets project ids that are in the ProjectsStore', function () {
+    it('gets project ids that are in the ProjectsStore', async function () {
       createWrapper({projectIds: [1, 2]});
 
       // This is initial state
@@ -429,7 +429,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -484,7 +484,7 @@ describe('utils.projects', function () {
         ],
       });
 
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       expect(request).toHaveBeenCalledWith(
         expect.anything(),
@@ -525,7 +525,7 @@ describe('utils.projects', function () {
       );
 
       // Should not have duplicates
-      userEvent.type(screen.getByRole('textbox'), 'test');
+      await userEvent.type(screen.getByRole('textbox'), 'test');
 
       await waitFor(() =>
         expect(myRenderer).toHaveBeenLastCalledWith(

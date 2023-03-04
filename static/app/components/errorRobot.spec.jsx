@@ -33,16 +33,16 @@ describe('ErrorRobot', function () {
       );
     }
 
-    it('Renders a button for creating an event', function () {
+    it('Renders a button for creating an event', async function () {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeEnabled();
       expect(getIssues).toHaveBeenCalled();
     });
 
-    it('Renders installation instructions', function () {
+    it('Renders installation instructions', async function () {
       createWrapper();
-      userEvent.click(screen.getByText('Installation Instructions'));
+      await userEvent.click(screen.getByText('Installation Instructions'));
       expect(routerContext.context.router.push).toHaveBeenCalledWith(
         '/org-slug/project-slug/getting-started/'
       );
@@ -57,14 +57,14 @@ describe('ErrorRobot', function () {
       );
     }
 
-    it('Renders a disabled create event button', function () {
+    it('Renders a disabled create event button', async function () {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
-    it('does not display install instructions', function () {
+    it('does not display install instructions', async function () {
       createWrapper();
       expect(screen.queryByText('Installation Instructions')).not.toBeInTheDocument();
     });

@@ -16,13 +16,13 @@ describe('AccountEmails', function () {
     });
   });
 
-  it('renders with emails', function () {
+  it('renders with emails', async function () {
     const {container} = render(<AccountEmails />);
 
     expect(container).toSnapshot();
   });
 
-  it('can remove an email', function () {
+  it('can remove an email', async function () {
     const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'DELETE',
@@ -32,7 +32,7 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove email'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove email'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -45,7 +45,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can change a secondary email to primary an email', function () {
+  it('can change a secondary email to primary an email', async function () {
     const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -55,7 +55,7 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Set as primary'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Set as primary'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -68,7 +68,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can resend verification email', function () {
+  it('can resend verification email', async function () {
     const mock = Client.addMockResponse({
       url: `${ENDPOINT}confirm/`,
       method: 'POST',
@@ -78,7 +78,7 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Resend verification'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Resend verification'})[0]);
 
     expect(mock).toHaveBeenCalledWith(
       `${ENDPOINT}confirm/`,
@@ -91,7 +91,7 @@ describe('AccountEmails', function () {
     );
   });
 
-  it('can add a secondary email', function () {
+  it('can add a secondary email', async function () {
     const mock = Client.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
@@ -101,7 +101,7 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.type(screen.getByRole('textbox'), 'test@example.com{enter}');
+    await userEvent.type(screen.getByRole('textbox'), 'test@example.com{enter}');
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

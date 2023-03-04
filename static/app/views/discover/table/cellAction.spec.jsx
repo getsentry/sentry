@@ -68,40 +68,40 @@ describe('Discover -> CellAction', function () {
   };
   const view = EventView.fromLocation(location);
 
-  function hoverContainer() {
-    userEvent.hover(screen.getByText('some content'));
+  async function hoverContainer() {
+    await userEvent.hover(screen.getByText('some content'));
   }
 
-  function unhoverContainer() {
-    userEvent.unhover(screen.getByText('some content'));
+  async function unhoverContainer() {
+    await userEvent.unhover(screen.getByText('some content'));
   }
 
-  function openMenu() {
-    hoverContainer();
-    userEvent.click(screen.getByRole('button'));
+  async function openMenu() {
+    await hoverContainer();
+    await userEvent.click(screen.getByRole('button'));
   }
 
   describe('hover menu button', function () {
-    it('shows no menu by default', function () {
+    it('shows no menu by default', async function () {
       renderComponent(view);
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('shows a menu on hover, and hides again', function () {
+    it('shows a menu on hover, and hides again', async function () {
       renderComponent(view);
 
-      hoverContainer();
+      await hoverContainer();
       expect(screen.getByRole('button')).toBeInTheDocument();
 
-      unhoverContainer();
+      await unhoverContainer();
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
 
   describe('opening the menu', function () {
-    it('toggles the menu on click', function () {
+    it('toggles the menu on click', async function () {
       renderComponent(view);
-      openMenu();
+      await openMenu();
       expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
     });
   });
@@ -113,45 +113,45 @@ describe('Discover -> CellAction', function () {
       handleCellAction = jest.fn();
     });
 
-    it('add button appends condition', function () {
+    it('add button appends condition', async function () {
       renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 'best-transaction');
     });
 
-    it('exclude button adds condition', function () {
+    it('exclude button adds condition', async function () {
       renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('exclude button appends exclusions', function () {
+    it('exclude button appends exclusions', async function () {
       const excludeView = EventView.fromLocation({
         query: {...location.query, query: '!transaction:nope'},
       });
       renderComponent(excludeView, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Exclude from filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('exclude', 'best-transaction');
     });
 
-    it('go to summary button goes to transaction summary page', function () {
+    it('go to summary button goes to transaction summary page', async function () {
       renderComponent(view, handleCellAction);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Go to summary'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('transaction', 'best-transaction');
     });
 
-    it('go to release button goes to release health page', function () {
+    it('go to release button goes to release health page', async function () {
       renderComponent(view, handleCellAction, 3);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Go to release'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'release',
@@ -159,10 +159,12 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('greater than button adds condition', function () {
+    it('greater than button adds condition', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Show values greater than'}));
+      await openMenu();
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Show values greater than'})
+      );
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_greater_than',
@@ -170,10 +172,10 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('less than button adds condition', function () {
+    it('less than button adds condition', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Show values less than'}));
 
       expect(handleCellAction).toHaveBeenCalledWith(
         'show_less_than',
@@ -181,18 +183,18 @@ describe('Discover -> CellAction', function () {
       );
     });
 
-    it('error.handled with null adds condition', function () {
+    it('error.handled with null adds condition', async function () {
       renderComponent(view, handleCellAction, 7, defaultData);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', 1);
     });
 
-    it('error.type with array values adds condition', function () {
+    it('error.type with array values adds condition', async function () {
       renderComponent(view, handleCellAction, 8, defaultData);
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [
         'ServerException',
@@ -202,20 +204,20 @@ describe('Discover -> CellAction', function () {
       ]);
     });
 
-    it('error.handled with 0 adds condition', function () {
+    it('error.handled with 0 adds condition', async function () {
       renderComponent(view, handleCellAction, 7, {
         ...defaultData,
         'error.handled': [0],
       });
-      openMenu();
-      userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
+      await openMenu();
+      await userEvent.click(screen.getByRole('button', {name: 'Add to filter'}));
 
       expect(handleCellAction).toHaveBeenCalledWith('add', [0]);
     });
 
-    it('show appropriate actions for string cells', function () {
+    it('show appropriate actions for string cells', async function () {
       renderComponent(view, handleCellAction, 0);
-      openMenu();
+      await openMenu();
 
       expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
@@ -229,9 +231,9 @@ describe('Discover -> CellAction', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for string cells with null values', function () {
+    it('show appropriate actions for string cells with null values', async function () {
       renderComponent(view, handleCellAction, 4);
-      openMenu();
+      await openMenu();
 
       expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
@@ -239,9 +241,9 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for number cells', function () {
+    it('show appropriate actions for number cells', async function () {
       renderComponent(view, handleCellAction, 1);
-      openMenu();
+      await openMenu();
 
       expect(
         screen.queryByRole('button', {name: 'Add to filter'})
@@ -257,9 +259,9 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for date cells', function () {
+    it('show appropriate actions for date cells', async function () {
       renderComponent(view, handleCellAction, 2);
-      openMenu();
+      await openMenu();
 
       expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
@@ -273,25 +275,25 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for release cells', function () {
+    it('show appropriate actions for release cells', async function () {
       renderComponent(view, handleCellAction, 3);
-      openMenu();
+      await openMenu();
 
       expect(screen.getByRole('button', {name: 'Go to release'})).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty release cells', function () {
+    it('show appropriate actions for empty release cells', async function () {
       renderComponent(view, handleCellAction, 3, {...defaultData, release: null});
-      openMenu();
+      await openMenu();
 
       expect(
         screen.queryByRole('button', {name: 'Go to release'})
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for measurement cells', function () {
+    it('show appropriate actions for measurement cells', async function () {
       renderComponent(view, handleCellAction, 5);
-      openMenu();
+      await openMenu();
 
       expect(
         screen.queryByRole('button', {name: 'Add to filter'})
@@ -307,12 +309,12 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty measurement cells', function () {
+    it('show appropriate actions for empty measurement cells', async function () {
       renderComponent(view, handleCellAction, 5, {
         ...defaultData,
         'measurements.fcp': null,
       });
-      openMenu();
+      await openMenu();
 
       expect(screen.getByRole('button', {name: 'Add to filter'})).toBeInTheDocument();
       expect(
@@ -326,9 +328,9 @@ describe('Discover -> CellAction', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('show appropriate actions for numeric function cells', function () {
+    it('show appropriate actions for numeric function cells', async function () {
       renderComponent(view, handleCellAction, 6);
-      openMenu();
+      await openMenu();
 
       expect(
         screen.getByRole('button', {name: 'Show values greater than'})
@@ -338,12 +340,12 @@ describe('Discover -> CellAction', function () {
       ).toBeInTheDocument();
     });
 
-    it('show appropriate actions for empty numeric function cells', function () {
+    it('show appropriate actions for empty numeric function cells', async function () {
       renderComponent(view, handleCellAction, 6, {
         ...defaultData,
         'percentile(measurements.fcp, 0.5)': null,
       });
-      hoverContainer();
+      await hoverContainer();
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
   });
@@ -374,7 +376,7 @@ describe('updateQuery()', function () {
     width: -1,
   };
 
-  it('modifies the query with has/!has', function () {
+  it('modifies the query with has/!has', async function () {
     let results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
@@ -388,7 +390,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('!has:a');
   });
 
-  it('modifies the query with additions', function () {
+  it('modifies the query with additions', async function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
@@ -400,7 +402,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('b:1 a:2 a:1 a:3');
   });
 
-  it('modifies the query with exclusions', function () {
+  it('modifies the query with exclusions', async function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
     expect(results.formatString()).toEqual('!a:1');
@@ -412,7 +414,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('!b:1 !a:1 !a:2 !a:3');
   });
 
-  it('modifies the query with a mix of additions and exclusions', function () {
+  it('modifies the query with a mix of additions and exclusions', async function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
@@ -434,7 +436,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:5 b:6');
   });
 
-  it('modifies the query with greater/less than', function () {
+  it('modifies the query with greater/less than', async function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
     expect(results.formatString()).toEqual('a:>1');
@@ -446,7 +448,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:<4');
   });
 
-  it('modifies the query with greater/less than on duration fields', function () {
+  it('modifies the query with greater/less than on duration fields', async function () {
     const columnADuration = {...columnA, type: 'duration'};
 
     const results = new MutableSearch([]);
@@ -460,14 +462,14 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:<4.12ms');
   });
 
-  it('does not error for special actions', function () {
+  it('does not error for special actions', async function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.TRANSACTION, columnA, '');
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });
 
-  it('errors for unknown actions', function () {
+  it('errors for unknown actions', async function () {
     const results = new MutableSearch([]);
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });

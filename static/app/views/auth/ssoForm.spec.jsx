@@ -8,8 +8,8 @@ describe('SsoForm', function () {
   const api = new MockApiClient();
 
   function doSso(apiRequest) {
-    userEvent.type(screen.getByRole('textbox', {name: 'Organization ID'}), 'org123');
-    userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Organization ID'}), 'org123');
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
     expect(apiRequest).toHaveBeenCalledWith(
       '/auth/sso-locate/',
@@ -17,7 +17,7 @@ describe('SsoForm', function () {
     );
   }
 
-  it('renders', function () {
+  it('renders', async function () {
     const authConfig = {
       serverHostname: 'testserver',
     };

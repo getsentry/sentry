@@ -22,7 +22,7 @@ describe('IssueAlertOptions', function () {
     jest.clearAllMocks();
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on empty response:[]', () => {
+  it('should render only the `Default Rule` and `Create Later` option on empty response:[]', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: [],
@@ -32,7 +32,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on empty response:{}', () => {
+  it('should render only the `Default Rule` and `Create Later` option on empty response:{}', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: {},
@@ -42,7 +42,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', () => {
+  it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_INTERVALS,
@@ -52,7 +52,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render all(three) options on responses with different placeholder values', () => {
+  it('should render all(three) options on responses with different placeholder values', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
@@ -78,7 +78,7 @@ describe('IssueAlertOptions', function () {
     );
   });
 
-  it('should render all(three) options on a valid response', () => {
+  it('should render all(three) options on a valid response', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
@@ -105,7 +105,7 @@ describe('IssueAlertOptions', function () {
     );
   });
 
-  it('should not pre-fill threshold value after a valid server response', () => {
+  it('should not pre-fill threshold value after a valid server response', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
@@ -115,7 +115,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getByTestId('range-input')).toHaveValue(null);
   });
 
-  it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', () => {
+  it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
@@ -123,7 +123,7 @@ describe('IssueAlertOptions', function () {
     const org = {...organization, features: ['issue-alert-fallback-targeting']};
 
     render(<IssueAlertOptions {...props} organization={org} />);
-    userEvent.click(screen.getByLabelText(/When there are more than/i));
+    await userEvent.click(screen.getByLabelText(/When there are more than/i));
     expect(props.onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         actions: [

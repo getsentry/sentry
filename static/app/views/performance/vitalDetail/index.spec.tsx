@@ -251,7 +251,7 @@ describe('Performance > VitalDetail', function () {
     });
 
     // Fill out the search box, and submit it.
-    userEvent.type(
+    await userEvent.type(
       await screen.findByLabelText('Search events'),
       'user.email:uhoh*{enter}'
     );
@@ -296,7 +296,7 @@ describe('Performance > VitalDetail', function () {
       await screen.findByRole('heading', {name: 'Largest Contentful Paint'})
     ).toBeInTheDocument();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('See transaction summary of the transaction something')
     );
 
@@ -348,7 +348,7 @@ describe('Performance > VitalDetail', function () {
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('See transaction summary of the transaction something')
     );
 
@@ -375,7 +375,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('can switch vitals with dropdown menu', function () {
+  it('can switch vitals with dropdown menu', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -403,11 +403,11 @@ describe('Performance > VitalDetail', function () {
 
     const button = screen.getByRole('button', {name: /web vitals: lcp/i});
     expect(button).toBeInTheDocument();
-    userEvent.click(button);
+    await userEvent.click(button);
 
     const menuItem = screen.getByRole('menuitemradio', {name: /fcp/i});
     expect(menuItem).toBeInTheDocument();
-    userEvent.click(menuItem);
+    await userEvent.click(menuItem);
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -435,7 +435,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', function () {
+  it('correctly renders which browsers support LCP', async function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,
@@ -444,7 +444,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', function () {
+  it('correctly renders which browsers support CLS', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -463,7 +463,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', function () {
+  it('correctly renders which browsers support FCP', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -487,7 +487,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', function () {
+  it('correctly renders which browsers support FID', async function () {
     const newRouter = {
       ...router,
       location: {

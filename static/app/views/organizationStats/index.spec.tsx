@@ -62,7 +62,7 @@ describe('OrganizationStats', function () {
   /**
    * Features and Alerts
    */
-  it('renders header state without tabs', () => {
+  it('renders header state without tabs', async () => {
     const newOrg = initializeOrg();
     render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
       context: newOrg.routerContext,
@@ -70,7 +70,7 @@ describe('OrganizationStats', function () {
     expect(screen.getByText('Organization Usage Stats')).toBeInTheDocument();
   });
 
-  it('renders header state with tabs', () => {
+  it('renders header state with tabs', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
     expect(screen.getByText('Stats')).toBeInTheDocument();
     expect(screen.getByText('Usage')).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('OrganizationStats', function () {
   /**
    * Base + Error Handling
    */
-  it('renders the base view', () => {
+  it('renders the base view', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
     // Default to Errors category
@@ -138,7 +138,7 @@ describe('OrganizationStats', function () {
     }
   });
 
-  it('renders with an error on stats endpoint', () => {
+  it('renders with an error on stats endpoint', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -151,7 +151,7 @@ describe('OrganizationStats', function () {
     expect(screen.getByTestId('error-messages')).toBeInTheDocument();
   });
 
-  it('renders with an error when user has no projects', () => {
+  it('renders with an error when user has no projects', async () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: endpoint,
@@ -168,26 +168,26 @@ describe('OrganizationStats', function () {
   /**
    * Router Handling
    */
-  it('pushes state changes to the route', () => {
+  it('pushes state changes to the route', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    userEvent.click(screen.getByText('Category'));
-    userEvent.click(screen.getByText('Attachments'));
+    await userEvent.click(screen.getByText('Category'));
+    await userEvent.click(screen.getByText('Attachments'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
       })
     );
 
-    userEvent.click(screen.getByText('Periodic'));
-    userEvent.click(screen.getByText('Cumulative'));
+    await userEvent.click(screen.getByText('Periodic'));
+    await userEvent.click(screen.getByText('Cumulative'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
     const inputQuery = 'proj-1';
-    userEvent.type(
+    await userEvent.type(
       screen.getByPlaceholderText('Filter your projects'),
       `${inputQuery}{enter}`
     );
@@ -198,7 +198,7 @@ describe('OrganizationStats', function () {
     );
   });
 
-  it('does not leak query params onto next page links', () => {
+  it('does not leak query params onto next page links', async () => {
     const dummyLocation = PAGE_QUERY_PARAMS.reduce(
       (location, param) => {
         location.query[param] = '';
@@ -224,7 +224,7 @@ describe('OrganizationStats', function () {
   /**
    * Project Selection
    */
-  it('renders single project without global-views', () => {
+  it('renders single project without global-views', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'team-insights',
@@ -241,7 +241,7 @@ describe('OrganizationStats', function () {
     expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
   });
 
-  it('renders default projects with global-views', () => {
+  it('renders default projects with global-views', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -267,7 +267,7 @@ describe('OrganizationStats', function () {
     });
   });
 
-  it('renders with multiple projects selected', () => {
+  it('renders with multiple projects selected', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -310,7 +310,7 @@ describe('OrganizationStats', function () {
     );
   });
 
-  it('renders with a single project selected', () => {
+  it('renders with a single project selected', async () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -356,7 +356,7 @@ describe('OrganizationStats', function () {
   /**
    * Feature Flagging
    */
-  it('renders legacy organization stats without appropriate flags', () => {
+  it('renders legacy organization stats without appropriate flags', async () => {
     const selectedProject = [1];
     const newSelection = {
       ...defaultSelection,

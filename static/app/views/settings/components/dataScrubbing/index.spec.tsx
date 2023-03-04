@@ -20,7 +20,7 @@ describe('Data Scrubbing', function () {
     const additionalContext = 'These rules can be configured for each project.';
     const endpoint = `organization/${organization.slug}/`;
 
-    it('default render', function () {
+    it('default render', async function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -61,7 +61,7 @@ describe('Data Scrubbing', function () {
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
 
-    it('render empty state', function () {
+    it('render empty state', async function () {
       render(
         <DataScrubbing
           endpoint={endpoint}
@@ -74,7 +74,7 @@ describe('Data Scrubbing', function () {
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
     });
 
-    it('render disabled actions', function () {
+    it('render disabled actions', async function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -101,7 +101,7 @@ describe('Data Scrubbing', function () {
   });
 
   describe('Project level', function () {
-    it('default render', function () {
+    it('default render', async function () {
       const {organization, project} = initializeOrg();
 
       render(
@@ -120,7 +120,7 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('OrganizationRules has content', function () {
+    it('OrganizationRules has content', async function () {
       const {organization, project} = initializeOrg({
         ...initializeOrg(),
         organization: {
@@ -161,7 +161,7 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
 
       expect(
         await screen.findByText('Are you sure you wish to delete this rule?')
@@ -185,14 +185,14 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
 
       expect(
         await screen.findByText('Add an advanced data scrubbing rule')
       ).toBeInTheDocument();
     });
 
-    it('Open Edit Rule Modal', function () {
+    it('Open Edit Rule Modal', async function () {
       const {organization, router, project} = initializeOrg();
 
       render(
@@ -210,7 +210,7 @@ describe('Data Scrubbing', function () {
         {router}
       );
 
-      userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
 
       // Verify the router to open the modal was called
       expect(router.push).toHaveBeenCalledWith(

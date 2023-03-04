@@ -35,7 +35,7 @@ describe('OrganizationApiKeys', function () {
     });
   });
 
-  it('fetches api keys', function () {
+  it('fetches api keys', async function () {
     render(
       <OrganizationApiKeys
         location={TestStubs.location()}
@@ -48,7 +48,7 @@ describe('OrganizationApiKeys', function () {
     expect(getMock).toHaveBeenCalledTimes(1);
   });
 
-  it('can delete a key', function () {
+  it('can delete a key', async function () {
     render(
       <OrganizationApiKeys
         location={TestStubs.location()}
@@ -58,10 +58,10 @@ describe('OrganizationApiKeys', function () {
     );
 
     expect(deleteMock).toHaveBeenCalledTimes(0);
-    userEvent.click(screen.getByRole('link', {name: 'Remove API Key?'}));
+    await userEvent.click(screen.getByRole('link', {name: 'Remove API Key?'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();

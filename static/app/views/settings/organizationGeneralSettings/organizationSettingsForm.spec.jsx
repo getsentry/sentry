@@ -41,9 +41,9 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Display Name'});
 
-    userEvent.clear(input);
-    userEvent.type(input, 'New Name');
-    userEvent.tab();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New Name');
+    await userEvent.tab();
 
     expect(putMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/`,
@@ -79,8 +79,8 @@ describe('OrganizationSettingsForm', function () {
         putMock.mockReset();
 
         // Blurring the name field again should NOT trigger a save
-        userEvent.click(input);
-        userEvent.tab();
+        await userEvent.click(input);
+        await userEvent.tab();
 
         expect(putMock).not.toHaveBeenCalled();
         resolve();
@@ -88,7 +88,7 @@ describe('OrganizationSettingsForm', function () {
     });
   });
 
-  it('can change slug', function () {
+  it('can change slug', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -107,13 +107,13 @@ describe('OrganizationSettingsForm', function () {
 
     const input = screen.getByRole('textbox', {name: 'Organization Slug'});
 
-    userEvent.clear(input);
-    userEvent.type(input, 'NEW SLUG');
-    userEvent.tab();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'NEW SLUG');
+    await userEvent.tab();
 
     expect(putMock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',

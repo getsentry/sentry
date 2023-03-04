@@ -31,7 +31,7 @@ describe('RecoveryOptionsModal', function () {
     );
   }
 
-  it('can redirect to recovery codes if user skips backup phone setup', function () {
+  it('can redirect to recovery codes if user skips backup phone setup', async function () {
     renderComponent();
 
     expect(
@@ -39,7 +39,7 @@ describe('RecoveryOptionsModal', function () {
     ).not.toBeInTheDocument();
 
     // skip backup phone setup
-    userEvent.click(screen.getByRole('button', {name: 'Skip this step'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Skip this step'}));
 
     const getCodesbutton = screen.getByRole('button', {name: 'Get Recovery Codes'});
     expect(getCodesbutton).toBeInTheDocument();
@@ -49,11 +49,11 @@ describe('RecoveryOptionsModal', function () {
       `/settings/account/security/mfa/${mockId}/`
     );
 
-    userEvent.click(getCodesbutton);
+    await userEvent.click(getCodesbutton);
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('can redirect to backup phone setup', function () {
+  it('can redirect to backup phone setup', async function () {
     renderComponent();
 
     const backupPhoneButton = screen.getByRole('button', {name: 'Add a Phone Number'});
@@ -63,11 +63,11 @@ describe('RecoveryOptionsModal', function () {
       '/settings/account/security/mfa/sms/enroll/'
     );
 
-    userEvent.click(backupPhoneButton);
+    await userEvent.click(backupPhoneButton);
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', function () {
+  it('skips backup phone setup if text message authenticator unavailable', async function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',

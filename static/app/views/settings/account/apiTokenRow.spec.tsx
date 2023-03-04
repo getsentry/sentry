@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
-  it('renders', () => {
+  it('renders', async () => {
     const wrapper = render(
       <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
     );
@@ -12,11 +12,11 @@ describe('ApiTokenRow', () => {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('calls onRemove callback when trash can is clicked', () => {
+  it('calls onRemove callback when trash can is clicked', async () => {
     const cb = jest.fn();
     render(<ApiTokenRow onRemove={cb} token={TestStubs.ApiToken()} />);
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(cb).toHaveBeenCalled();
   });
 });

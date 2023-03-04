@@ -10,7 +10,7 @@ describe('ProviderItem', function () {
   });
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
-  it('renders', function () {
+  it('renders', async function () {
     render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       {context: routerContext}
@@ -21,17 +21,17 @@ describe('ProviderItem', function () {
     ).toBeInTheDocument();
   });
 
-  it('calls configure callback', function () {
+  it('calls configure callback', async function () {
     const mock = jest.fn();
     render(<ProviderItem organization={org} provider={provider} onConfigure={mock} />, {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Configure'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
     expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 
-  it('renders a disabled Tag when disabled', function () {
+  it('renders a disabled Tag when disabled', async function () {
     const noFeatureRouterContext = TestStubs.routerContext();
     render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,

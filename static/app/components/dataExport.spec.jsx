@@ -23,21 +23,21 @@ const mockRouterContext = mockOrganization =>
   ]);
 
 describe('DataExport', function () {
-  it('should not render anything for an unauthorized organization', function () {
+  it('should not render anything for an unauthorized organization', async function () {
     render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should render the button for an authorized organization', function () {
+  it('should render the button for an authorized organization', async function () {
     render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
-  it('should render custom children if provided', function () {
+  it('should render custom children if provided', async function () {
     render(
       <WrappedDataExport payload={mockPayload}>
         This is an example string
@@ -47,7 +47,7 @@ describe('DataExport', function () {
     expect(screen.getByText(/This is an example string/)).toBeInTheDocument();
   });
 
-  it('should respect the disabled prop and not be clickable', function () {
+  it('should respect the disabled prop and not be clickable', async function () {
     const postDataExport = MockApiClient.addMockResponse({
       url: `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
       method: 'POST',
@@ -58,7 +58,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(postDataExport).not.toHaveBeenCalled();
     expect(screen.getByRole('button')).toBeDisabled();
   });
@@ -73,7 +73,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     expect(postDataExport).toHaveBeenCalledWith(
       `/organizations/${mockAuthorizedOrg.slug}/data-export/`,
@@ -104,7 +104,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByText(/Export All to CSV/));
+    await userEvent.click(screen.getByText(/Export All to CSV/));
     await waitFor(() => {
       expect(screen.getByRole('button')).toBeDisabled();
     });
@@ -127,7 +127,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith(
@@ -152,7 +152,7 @@ describe('DataExport', function () {
       context: mockRouterContext(mockAuthorizedOrg),
     });
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(addErrorMessage).toHaveBeenCalledWith('uh oh');

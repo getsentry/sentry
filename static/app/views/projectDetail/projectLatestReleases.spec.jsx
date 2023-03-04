@@ -30,7 +30,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -101,13 +101,13 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       'https://docs.sentry.io/product/releases/'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
 
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('calls API with the right params', function () {
+  it('calls API with the right params', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -129,7 +129,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
   });
 
-  it('does not call API if project is not stabilized yet', function () {
+  it('does not call API if project is not stabilized yet', async function () {
     render(
       <ProjectLatestReleases
         organization={organization}
