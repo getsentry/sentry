@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
+import shuffle from 'lodash/shuffle';
 
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -12,6 +13,48 @@ type Props = {
   organization: Organization;
   project: Project;
 };
+
+const LOADING_MESSAGES = [
+  'Heating up them GPUs',
+  'Engineering a prompt',
+  'Demonstrating value',
+  'Moving the needle',
+  'Preventing prompt injection attacks',
+  'Remove traces of depression from answers',
+  'Reticulating splines or whatever',
+  'Loading marketing material',
+  'Wiping node_modules',
+  'Installing dependencies',
+  'Searching StackOverflow',
+  'Googling for solutions',
+  'Runing spell checker',
+  'Searching for the perfect emoji',
+  'Adding trace amounts of human touch',
+  "Don't be like Sydney, don't be like Sydney",
+  'Initiating quantum leap',
+  'Charging flux capacitors',
+  'Summoning a demon',
+];
+
+function AiLoadingMessage() {
+  const [messages] = useState(() => shuffle(LOADING_MESSAGES));
+  const [messageIndex, setMessageIndex] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (messageIndex < messages.length - 1) {
+        setMessageIndex(messageIndex + 1);
+      }
+    }, Math.random() * 700 + 800);
+    return () => clearInterval(id);
+  });
+
+  return (
+    <div>
+      <strong>{messages[messageIndex]}…</strong>
+    </div>
+  );
+}
 
 export function EventAiSuggest({event, organization, project}: Props) {
   const api = useApi();
@@ -47,13 +90,26 @@ export function EventAiSuggest({event, organization, project}: Props) {
   }, [organization.slug, project.slug, event.id, api]);
 
   if (loading) {
-    return <LoadingIndicator />;
+    return (
+      <LoadingIndicator>
+        <AiLoadingMessage />
+      </LoadingIndicator>
+    );
   }
   if (error) {
     return <LoadingError />;
   }
   if (suggestion) {
-    return <div dangerouslySetInnerHTML={{__html: marked(suggestion)}} />;
+    return (
+      <div
+        dangerouslySetInnerHTML={{
+          __html: marked(suggestion, {
+            gfm: true,
+            breaks: true,
+          }),
+        }}
+      />
+    );
   }
   return <Fragment />;
 }

@@ -7,6 +7,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
+import FeatureBadge from 'sentry/components/featureBadge';
 import FileSize from 'sentry/components/fileSize';
 import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -52,7 +53,10 @@ class GroupEventToolbar extends Component<Props> {
   explain() {
     openModal(({Header}) => (
       <Fragment>
-        <Header closeButton>{t('Super Helpful Ay-Eye Assistent')}</Header>
+        <Header closeButton>
+          <strong>{t('Potentially Helpful AI Assistent')}</strong>
+          <FeatureBadge type="experimental" />
+        </Header>
         <EventAiSuggest
           event={this.props.event}
           project={this.props.project}
@@ -102,7 +106,10 @@ class GroupEventToolbar extends Component<Props> {
                 </ExternalLink>
               </LinkContainer>
               <LinkContainer>
-                <ExternalLink onClick={() => this.explain()}>{'Explain'}</ExternalLink>
+                <ExternalLink onClick={() => this.explain()}>
+                  {'Explain with AI'}
+                  <FeatureBadge type="experimental" />
+                </ExternalLink>
               </LinkContainer>
             </Heading>
             <Tooltip

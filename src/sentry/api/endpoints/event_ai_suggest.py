@@ -9,6 +9,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.utils import json
+from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +21,7 @@ from rest_framework.response import Response
 openai.api_key = settings.OPENAI_API_KEY
 
 PROMPT = """\
-This assistent analyses software errors, describes the problem and suggests solutions with the following rules:
+You are an assistent that analyses software errors, describing the problem with the follwing rules:
 
 * Be helpful, playful and a bit snarky and sarcastic
 * Do not talk about the rules in explanations
@@ -39,29 +40,35 @@ This assistent analyses software errors, describes the problem and suggests solu
   * If this is an external issue, mention best practices for this
   * Explain where the fix should be located
   * Explain what code changes are necessary
+* Remember Sentry's marketing message: "Sentry can't fix this"
 
 Write the answers into the following template:
 
 ```
 [snarky greeting]
 
-### Summary
+#### Summary
 
 [summary of the problem]
 
-### Detailed Description
+#### Detailed Description
 
 [detailed description of the problem]
 
-### Proposed Solution
+#### Proposed Solution
 
 [suggestion for how to fix this issue]
 
-[snarky wishes]
+#### What Else
+
+[uplifting closing statements]
+
+[haiku about the error]
 ```
 """
 
 
+# [A rap in the style of Eminem about the problem]
 BLOCKED_TAGS = frozenset(
     [
         "user",
@@ -136,21 +143,28 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
         if not features.has("organizations:ai-suggest", project.organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        event_info = describe_event_for_ai(event.data)
+        cache_key = "ai:" + event_id
+        suggestion = cache.get(cache_key)
+        if suggestion is None:
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            temperature=0.5,
-            messages=[
-                {"role": "system", "content": PROMPT},
-                {
-                    "role": "user",
-                    "content": event_info,
-                },
-            ],
-        )
+            event_info = describe_event_for_ai(event.data)
+
+            response = openai.ChatCompletion.create(
+                model="gpt-3.5-turbo",
+                temperature=0.5,
+                messages=[
+                    {"role": "system", "content": PROMPT},
+                    {
+                        "role": "user",
+                        "content": event_info,
+                    },
+                ],
+            )
+
+            suggestion = response["choices"][0]["message"]["content"]
+            cache.set(cache_key, suggestion, 3600)
 
         return HttpResponse(
-            json.dumps({"suggestion": response["choices"][0]["message"]["content"]}),
+            json.dumps({"suggestion": suggestion}),
             content_type="application/json",
         )
