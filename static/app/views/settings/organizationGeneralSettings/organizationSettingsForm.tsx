@@ -53,6 +53,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
           type: 'boolean',
           label: t('Enable Code Coverage Insights - powered by Codecov'),
           help: t('Opt-in to connect your codecov account'),
+          disabled: !organization.features.includes('codecov-integration'),
         },
       ];
     }
