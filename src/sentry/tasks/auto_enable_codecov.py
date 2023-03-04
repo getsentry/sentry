@@ -1,9 +1,10 @@
 import logging
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.tasks.base import instrumented_task
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
@@ -56,6 +57,14 @@ def enable_for_organization(organization_id: int, dry_run=False) -> None:
 
         organization.flags.codecov_access = True
         organization.save()
+
+        create_system_audit_entry(
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            data={"codecov_access": "to True"},
+        )
+
     except Organization.DoesNotExist:
         logger.exception(
             "Organization does not exist.",
