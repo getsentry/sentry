@@ -69,13 +69,29 @@ Write the answers into the following template:
 """
 
 
-# [A rap in the style of Eminem about the problem]
+# Theset tags are removed because they are quite unstable between different events
+# of the same issue, and typically unrelated to something that the AI assistent
+# can answer.
 BLOCKED_TAGS = frozenset(
     [
         "user",
         "server_name",
         "release",
         "handled",
+        "client_os",
+        "client_os.name",
+        "browser",
+        "browser.name",
+        "environment",
+        "runtime",
+        "device",
+        "device.family",
+        "gpu",
+        "gpu.name",
+        "gpu.vendor",
+        "url",
+        "trace",
+        "otel",
     ]
 )
 
@@ -94,6 +110,13 @@ def describe_event_for_ai(event):
             content.append("")
         content.append(f"Exception #{idx + 1}: {exc['type']}")
         content.append(f"Exception Message: {exc['value']}")
+        mechanism = exc.get("mechanism") or {}
+        exc_meta = mechanism.get("meta")
+        if exc_meta:
+            content.append(f"Exception Data: {exc_meta}")
+        if mechanism.get("handled") is False:
+            content.append("Exception was not handled")
+
         content.append("")
 
         frames = exc.get("stacktrace", {}).get("frames")
