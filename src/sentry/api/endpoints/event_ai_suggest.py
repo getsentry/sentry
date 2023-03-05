@@ -1,4 +1,6 @@
 import logging
+import random
+from collections import OrderedDict
 
 import openai
 from django.conf import settings
@@ -18,8 +20,16 @@ logger = logging.getLogger(__name__)
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-# this is pretty ugly
+# XXX: this is pretty ugly
 openai.api_key = settings.OPENAI_API_KEY
+
+FUN_PROMPT_CHOICES = [
+    "[haiku about the error]",
+    "[hip hop rhyme about the error]",
+    "[4 line rhyme about the error]",
+    "[2 stanza rhyme about the error]",
+    "[anti joke about the error]",
+]
 
 PROMPT = """\
 You are an assistent that analyses software errors, describing the problem with the follwing rules:
@@ -64,10 +74,9 @@ Write the answers into the following template:
 
 [uplifting closing statements]
 
-[haiku about the error]
+___FUN_PROMPT___
 ```
 """
-
 
 # Theset tags are removed because they are quite unstable between different events
 # of the same issue, and typically unrelated to something that the AI assistent
@@ -97,54 +106,56 @@ BLOCKED_TAGS = frozenset(
 
 
 def describe_event_for_ai(event):
-    content = []
-    content.append("Tags:")
+    data = OrderedDict()
+    tags = data.setdefault("tags", OrderedDict())
     for tag_key, tag_value in sorted(event["tags"]):
         if tag_key not in BLOCKED_TAGS:
-            content.append(f"- {tag_key}: {tag_value}")
+            tags[tag_key] = tag_value
 
+    exceptions = data.setdefault("exceptions", [])
     for idx, exc in enumerate(reversed((event.get("exception") or {}).get("values") or ())):
-        content.append("")
+        exception = {}
         if idx > 0:
-            content.append("During handling of the above exception, another exception was raised:")
-            content.append("")
-        content.append(f"Exception #{idx + 1}: {exc['type']}")
-        content.append(f"Exception Message: {exc['value']}")
+            exception["raised_during_handling_of_previous_exception"] = True
+        exception["type"] = exc["type"]
+        exception["message"] = exc.get("value")
         mechanism = exc.get("mechanism") or {}
         exc_meta = mechanism.get("meta")
         if exc_meta:
-            content.append(f"Exception Data: {exc_meta}")
+            exception["meta"] = exc_meta
         if mechanism.get("handled") is False:
-            content.append("Exception was not handled")
-
-        content.append("")
+            exception["unhandled"] = True
 
         frames = exc.get("stacktrace", {}).get("frames")
         first_in_app = False
         if frames:
-            content.append("Stacktrace:")
+            stacktrace = []
+            # TODO: consider truncating the stack
             for frame in reversed(frames):
+                stack_frame = OrderedDict()
+                stack_frame["func"] = frame.get("function")
+                stack_frame["module"] = frame.get("module")
+                stack_frame["file"] = frame.get("filename")
+                stack_frame["line"] = frame.get("lineno")
+                if frame.get("in_app"):
+                    stack_frame["in_app"] = True
                 if frame["in_app"]:
-                    content.append(f"- {first_in_app and 'crashing' or ''}app frame:")
-                    first_in_app = False
-                    content.append(f"  function: {frame['function']}")
-                    content.append(f"  module: {frame.get('module') or 'N/A'}")
-                    content.append(f"  file: {frame.get('filename') or 'N/A'}")
-                    content.append(f"  line: {frame.get('lineno') or 'N/A'}")
-                    content.append(f"  source code: {(frame.get('context_line') or 'N/A').strip()}")
-                else:
-                    content.append("- third party library frame:")
-                    content.append(f"  function: {frame['function']}")
-                    content.append(f"  module: {frame.get('module') or 'N/A'}")
-                    content.append(f"  file: {frame.get('filename') or 'N/A'}")
-                content.append("")
+                    if first_in_app:
+                        stack_frame["crashed_here"] = True
+                        first_in_app = False
+                    line = (frame.get("context_line") or "").strip()
+                    if line:
+                        stack_frame["code"] = line
+                stacktrace.append(stack_frame)
+            if stacktrace:
+                exception["stacktrace"] = stacktrace
+        exceptions.append(exception)
 
     msg = event.get("message")
     if msg:
-        content.append("")
-        content.append(f"Message: {msg}")
+        data["message"] = msg
 
-    return "\n".join(content)
+    return data
 
 
 @region_silo_endpoint
@@ -182,16 +193,17 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
         suggestion = cache.get(cache_key)
         if suggestion is None:
 
+            prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
             event_info = describe_event_for_ai(event.data)
 
             response = openai.ChatCompletion.create(
                 model="gpt-3.5-turbo",
                 temperature=0.5,
                 messages=[
-                    {"role": "system", "content": PROMPT},
+                    {"role": "system", "content": prompt},
                     {
                         "role": "user",
-                        "content": event_info,
+                        "content": json.dumps(event_info),
                     },
                 ],
             )
