@@ -38,7 +38,7 @@ def _get_rules_of_enabled_biases(
         # the first place. Technically dynamic sampling it is still enabled but for our customers this detail is
         # not important.
         if rule_type in ALWAYS_ALLOWED_RULE_TYPES or (
-            rule_type.value in enabled_biases and base_sample_rate < 1.0
+            rule_type.value in enabled_biases and 0.0 < base_sample_rate < 1.0
         ):
             rules += bias.get_rules(BiasParams(project, base_sample_rate))
 
