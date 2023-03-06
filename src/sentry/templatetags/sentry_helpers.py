@@ -114,10 +114,10 @@ def org_url(organization, path, query=None, fragment=None) -> str:
 def loading_message():
     options = [
         "Please wait while we load an obnoxious amount of JavaScript.",
-        "Downloading a dizzying amount of JavaScript.",
-        "Acquiring more vespene gas.",
         "Escaping node_modules gravity well.",
         "Parallelizing webpack builders.",
+        "Awaiting solution to the halting problem.",
+        "Collapsing wavefunctions.",
     ]
     return random.choice(options)
 
