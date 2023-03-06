@@ -1,5 +1,3 @@
-from typing import Any, Dict, List
-
 from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -166,23 +164,25 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             )
 
     def add_owner_id_to_schema(self, ownership: ProjectOwnership, project: Project) -> None:
-        if ownership and (
-            not hasattr(ownership, "schema")
-            or "id" not in ownership.schema["rules"][0]["owners"][0].keys()
+        if not hasattr(ownership, "schema") or (
+            ownership.schema
+            and ownership.schema.get("rules")
+            and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
         ):
             ownership.schema = create_schema_from_issue_owners(ownership.raw, project.id, True)
             ownership.save()
 
-    def rename_schema_identifier_for_parsing(self, rules: List[Dict[str, Any]]) -> None:
+    def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
         """
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend
 
         `rules`: List of rules from the schema
         """
-        for rule in rules:
-            for rule_owner in rule["owners"]:
-                rule_owner["name"] = rule_owner.pop("identifier")
+        if hasattr(ownership, "schema") and ownership.schema and ownership.schema.get("rules"):
+            for rule in ownership.schema["rules"]:
+                for rule_owner in rule["owners"]:
+                    rule_owner["name"] = rule_owner.pop("identifier")
 
     def get(self, request: Request, project) -> Response:
         """
@@ -198,9 +198,9 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
             "organizations:streamline-targeting-context", project.organization
         )
 
-        if should_return_schema:
+        if should_return_schema and ownership:
             self.add_owner_id_to_schema(ownership, project)
-            self.rename_schema_identifier_for_parsing(ownership.schema["rules"])
+            self.rename_schema_identifier_for_parsing(ownership)
 
         return Response(
             serialize(ownership, request.user, should_return_schema=should_return_schema)

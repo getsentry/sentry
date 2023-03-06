@@ -132,7 +132,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         }
 
     def test_get(self):
-        resp_no_schema = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        resp_no_schema = self.client.get(self.path)
         assert "schema" not in resp_no_schema.data.keys()
 
         @with_feature("organizations:streamline-targeting-context")
@@ -167,6 +168,21 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             ]
 
         test_get_with_streamline_targeting(self)
+
+    @with_feature("organizations:streamline-targeting-context")
+    def test_get_empty_with_streamline_targeting(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp.data == {
+            "raw": None,
+            "fallthrough": True,
+            "autoAssignment": "Auto Assign to Issue Owner",
+            "isActive": True,
+            "dateCreated": None,
+            "lastUpdated": None,
+            "codeownersAutoSync": True,
+            "schema": None,
+        }
 
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
