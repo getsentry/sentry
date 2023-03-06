@@ -29,7 +29,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0352_add_org_role_to_team_model"),
+        ("sentry", "0371_monitor_make_org_slug_unique"),
     ]
 
     operations = [
