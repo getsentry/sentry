@@ -40,6 +40,7 @@ import {
 } from './types';
 import {
   boundsGenerator,
+  getMeasurements,
   getSpanOperation,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -399,7 +400,7 @@ class TraceViewHeader extends Component<PropType, State> {
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
-                  event={event}
+                  measurements={getMeasurements(event, this.generateBounds())}
                   generateBounds={this.generateBounds()}
                   dividerPosition={dividerPosition}
                 />
