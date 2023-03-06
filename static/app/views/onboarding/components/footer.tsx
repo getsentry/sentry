@@ -148,9 +148,10 @@ export function Footer({projectSlug, router, newOrg}: Props) {
       router,
       nextLocation: {
         ...router.location,
-        pathname: selectedProjectId
-          ? `/organizations/${organization.slug}/issues/?project=${selectedProjectId}&referrer=onboarding-first-event-footer-skip`
-          : `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`,
+        pathname:
+          `/organizations/${organization.slug}/issues/?` +
+          (selectedProjectId ? `project=${selectedProjectId}&` : '') +
+          `referrer=onboarding-first-event-footer-skip`,
       },
       setClientState,
       clientState,
