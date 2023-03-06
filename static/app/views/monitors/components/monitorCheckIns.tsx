@@ -38,7 +38,7 @@ const MonitorCheckIns = ({monitor, orgId}: Props) => {
     endpoints: [
       [
         'checkInList',
-        `/organizations/${orgId}/monitors/${monitor.id}/checkins/`,
+        `/organizations/${orgId}/monitors/${monitor.slug}/checkins/`,
         {query: {per_page: '10'}},
         {paginate: true},
       ],
@@ -46,7 +46,7 @@ const MonitorCheckIns = ({monitor, orgId}: Props) => {
   });
 
   const generateDownloadUrl = (checkin: CheckIn) =>
-    `/api/0/organizations/${orgId}/monitors/${monitor.id}/checkins/${checkin.id}/attachment/`;
+    `/api/0/organizations/${orgId}/monitors/${monitor.slug}/checkins/${checkin.id}/attachment/`;
 
   const renderedComponent = renderComponent(
     <React.Fragment>
