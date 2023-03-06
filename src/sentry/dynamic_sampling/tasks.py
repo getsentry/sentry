@@ -9,6 +9,8 @@ from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_tota
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
     fetch_transactions_with_total_volumes,
+    get_orgs_with_transactions,
+    transactions_zip,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.helpers.prioritize_transactions import (
@@ -23,6 +25,11 @@ from sentry.utils import metrics
 CHUNK_SIZE = 1000
 MAX_SECONDS = 60
 CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
+
+# TODO RaduW validate assumptions
+MAX_ORGS_PER_QUERY = 100
+MAX_PROJECTS_PER_QUERY = 5000
+MAX_TRANSACTIONS_PER_PROJECT = 20
 
 
 logger = logging.getLogger(__name__)
@@ -126,14 +133,28 @@ def prioritise_transactions() -> None:
     current_org: Optional[Organization] = None
     current_org_enabled = False
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_transactions", sample_rate=1.0):
-        for project_transactions in fetch_transactions_with_total_volumes():
-            if not current_org or current_org.id != project_transactions.org_id:
-                current_org = Organization.objects.get_from_cache(id=project_transactions.org_id)
-                current_org_enabled = features.has(
-                    "organizations:ds-prioritise-by-transaction-bias", current_org
-                )
-            if current_org_enabled:
-                process_transaction_biases.delay(project_transactions)
+        for orgs in get_orgs_with_transactions(MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY):
+            # get the low and high transactions
+            # TODO can we do this in one query rather than two
+            for project_transactions in transactions_zip(
+                fetch_transactions_with_total_volumes(
+                    orgs, True, MAX_TRANSACTIONS_PER_PROJECT // 2
+                ),
+                fetch_transactions_with_total_volumes(
+                    orgs, False, MAX_TRANSACTIONS_PER_PROJECT // 2
+                ),
+            ):
+
+                if not current_org or current_org.id != project_transactions.org_id:
+                    current_org = Organization.objects.get_from_cache(
+                        id=project_transactions.org_id
+                    )
+                    current_org_enabled = features.has(
+                        "organizations:ds-prioritise-by-transaction-bias", current_org
+                    )
+                if current_org_enabled:
+
+                    process_transaction_biases.delay(project_transactions)
 
 
 @instrumented_task(
