@@ -14,7 +14,7 @@ import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view' | 'xAxis'> &
+  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view'> &
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(
@@ -61,15 +61,6 @@ function isView(
   return value === 'top down' || value === 'bottom up';
 }
 
-function isXAxis(
-  value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
-): value is FlamegraphState['preferences']['xAxis'] {
-  if (typeof value !== 'string') {
-    return false;
-  }
-  return value === 'profile' || value === 'transaction' || value === 'standalone';
-}
-
 export function decodeFlamegraphStateFromQueryParams(
   query: qs.ParsedQuery
 ): DeepPartial<FlamegraphState> {
@@ -113,9 +104,6 @@ export function decodeFlamegraphStateFromQueryParams(
   if (isView(query.view)) {
     decoded.preferences.view = query.view;
   }
-  if (isXAxis(query.xAxis)) {
-    decoded.preferences.xAxis = query.xAxis;
-  }
   if (typeof query.query === 'string') {
     decoded.search.query = query.query;
   }
@@ -135,7 +123,6 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
     view: state.preferences.view,
-    xAxis: state.preferences.xAxis,
     query: state.search.query,
     ...highlightFrame,
     ...(state.position.view.isEmpty()

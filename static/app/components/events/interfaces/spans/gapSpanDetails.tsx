@@ -185,10 +185,10 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
   // we want to try to go straight to the same config view as the preview
   const query = canvasView?.configView
     ? {
+        // TODO: this assumes that profile start timestamp == transaction timestamp
         fov: Rect.encode(canvasView.configView),
         // the flamechart persists some preferences to local storage,
         // force these settings so the view is the same as the preview
-        xAxis: 'profile',
         view: 'top down',
         type: 'flamechart',
       }
