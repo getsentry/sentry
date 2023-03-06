@@ -1135,7 +1135,6 @@ class FetchFileByDebugIdTest(TestCase):
 
         fetcher.close()
 
-    # TODO: add test for failure of load.
     @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
     @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
     def test_fetch_by_debug_id_caching_with_size_bigger_than_max_cache_size(

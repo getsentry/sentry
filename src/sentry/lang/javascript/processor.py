@@ -747,6 +747,27 @@ class Fetcher:
             if isinstance(open_archive, ArtifactBundleArchive):
                 open_archive.close()
 
+    def _lookup_in_open_archives(self, debug_id, source_file_type):
+        """
+        Looks up in open archives if there is one that contains a matching file with debug_id and source_file_type.
+        """
+        for bundle_id, open_archive in self.open_archives.items():
+            if isinstance(open_archive, ArtifactBundleArchive):
+                try:
+                    open_archive.get_file_by_debug_id(debug_id, source_file_type)
+                    return open_archive
+                except Exception as exc:
+                    logger.debug(
+                        "Archive for bundle_id %s doesn't contain file with debug_id %s and source_file_type %s",
+                        bundle_id,
+                        debug_id,
+                        source_file_type,
+                        exc_info=exc,
+                    )
+                    continue
+
+        return None
+
     def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
         """
         Gets the DebugIdArtifactBundle entry that maps the debug_id and source_file_type to a specific ArtifactBundle.
@@ -810,8 +831,15 @@ class Fetcher:
         bundle_id = None
 
         try:
-            # We first have to run a query to determine the bundle_id that contains the tuple
-            # (debug_id, source_file_type).
+            # In order to avoid making a multi-join query, we first look if the file is existing in an already cached
+            # and opened archive.
+            # We do this under the assumption that the number of open archives for a single event is not very big,
+            # considering that most frames will be resolved with the data from within the same artifact bundle.
+            cached_open_archive = self._lookup_in_open_archives(debug_id, source_file_type)
+            if cached_open_archive:
+                return cached_open_archive
+
+            # We want to run a query to determine the bundle_id that contains the tuple (debug_id, source_file_type).
             artifact_bundle = self._get_debug_id_artifact_bundle_entry(
                 debug_id, source_file_type
             ).artifact_bundle
