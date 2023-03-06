@@ -38,6 +38,7 @@ class Threads(Interface):
                     "crashed": bool(thread.get("crashed")),
                     "current": bool(thread.get("current")),
                     "name": trim(thread.get("name"), 200),
+                    "state": trim(thread.get("state", None)),
                 }
             )
 
@@ -53,6 +54,7 @@ class Threads(Interface):
                 "current": data["current"],
                 "crashed": data["crashed"],
                 "name": data["name"],
+                "state": data.get("state"),
                 "stacktrace": None,
             }
             if data["stacktrace"]:
@@ -70,6 +72,7 @@ class Threads(Interface):
                 "current": data["current"],
                 "crashed": data["crashed"],
                 "name": data["name"],
+                "state": data.get("state"),
                 "stacktrace": None,
                 "rawStacktrace": None,
             }
