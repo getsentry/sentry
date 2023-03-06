@@ -837,7 +837,7 @@ class Fetcher:
                 exc_info=exc,
             )
             if bundle_id:
-                self.open_archives = INVALID_ARCHIVE
+                self.open_archives[bundle_id] = INVALID_ARCHIVE
 
             return None
         else:
@@ -857,7 +857,7 @@ class Fetcher:
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                 )
                 if bundle_id:
-                    self.open_archives = INVALID_ARCHIVE
+                    self.open_archives[bundle_id] = INVALID_ARCHIVE
 
                 return None
 
@@ -883,7 +883,7 @@ class Fetcher:
                 exc_info=exc,
             )
 
-            return None
+            result = None
         else:
             # We decided to reuse the existing function but without caching in order to reuse some logic but in reality
             # the code could be inlined and simplified.
@@ -896,7 +896,7 @@ class Fetcher:
                 compress_fn=compress,
             )
 
-            return result
+        return result
 
     def fetch_by_url(self, url):
         """
