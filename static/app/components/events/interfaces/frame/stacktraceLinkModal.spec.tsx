@@ -50,7 +50,7 @@ describe('StacktraceLinkModal', () => {
     jest.clearAllMocks();
   });
 
-  it('links to source code with one GitHub integration', async () => {
+  it('links to source code with one GitHub integration', () => {
     renderGlobalModal();
     act(() =>
       openModal(modalProps => (
@@ -99,7 +99,10 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    await userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), 'sourceUrl');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      'sourceUrl'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
@@ -199,7 +202,10 @@ describe('StacktraceLinkModal', () => {
     expect(screen.getByRole('dialog')).toSnapshot();
 
     // Paste and save suggestion
-    await userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), suggestion);
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      suggestion
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
