@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 from abc import abstractmethod
-from typing import Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar, cast
 
 import pydantic
 
@@ -11,11 +11,15 @@ from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, Inte
 from sentry.silo import SiloMode
 from sentry.types.region import Region
 
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.region import RegionResolution
+
 logger = logging.getLogger(__name__)
 
 _T = TypeVar("_T")
 
 _IS_RPC_METHOD_ATTR = "__is_rpc_method"
+_REGION_RESOLUTION_ATTR = "__region_resolution"
 
 
 class RpcServiceSetupException(Exception):
@@ -35,6 +39,7 @@ class RpcMethodSignature:
         self._base_service_cls = base_service_cls
         self._base_method = base_method
         self._model = self._create_pydantic_model()
+        self._validate_region_resolution()
 
     @property
     def service_name(self) -> str:
@@ -58,6 +63,26 @@ class RpcMethodSignature:
         field_definitions = {p.name: create_field(p) for p in parameters}
         return pydantic.create_model(name, **field_definitions)  # type: ignore
 
+    def _validate_region_resolution(self) -> None:
+        is_region_service = self._base_service_cls.local_mode == SiloMode.REGION
+        has_region_resolution = hasattr(self._base_method, _REGION_RESOLUTION_ATTR)
+
+        if not is_region_service and has_region_resolution:
+            raise RpcServiceSetupException(
+                "@regional_rpc_method should be used only on a service with "
+                "`local_mode = SiloMode.REGION`"
+                f" ({self.service_name} is {self._base_service_cls.local_mode})"
+            )
+
+        if is_region_service and not has_region_resolution:
+            # These methods still work perfectly fine if the server is running in
+            # monolith mode. All such methods will need region resolutions before
+            # RPCs are production-ready. At that point, convert this warning to an
+            # RpcServiceSetupException.
+            logger.warning(
+                f"Method {self.service_name}.{self.method_name} needs @regional_rpc_method"
+            )
+
     def serialize_arguments(self, raw_arguments: ArgumentDict) -> ArgumentDict:
         model_instance = self._model(**raw_arguments)
         return model_instance.dict()
@@ -69,7 +94,15 @@ class RpcMethodSignature:
         if self._base_service_cls.local_mode != SiloMode.REGION:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
-        raise NotImplementedError()  # TODO
+        region_resolution: RegionResolution | None = getattr(
+            self._base_method, _REGION_RESOLUTION_ATTR, None
+        )
+        if region_resolution is None:
+            raise RpcServiceSetupException(
+                f"No region resolution designated for {self.service_name}.{self.method_name}"
+            )
+
+        return region_resolution.resolve(arguments)
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -99,6 +132,16 @@ def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
         raise RpcServiceSetupException("`@rpc_method` may only decorate abstract methods")
     setattr(method, _IS_RPC_METHOD_ATTR, True)
     return method
+
+
+def regional_rpc_method(
+    resolve: RegionResolution,
+) -> Callable[[Callable[..., _T]], Callable[..., _T]]:
+    def decorator(method: Callable[..., _T]) -> Callable[..., _T]:
+        setattr(method, _REGION_RESOLUTION_ATTR, resolve)
+        return rpc_method(method)
+
+    return decorator
 
 
 _global_service_registry: Dict[str, DelegatingRpcService] = {}

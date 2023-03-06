@@ -12,7 +12,13 @@ from sentry.models.organization import OrganizationStatus
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
+from sentry.services.hybrid_cloud.region import (
+    ByOrganizationId,
+    ByOrganizationIdAttribute,
+    ByOrganizationObject,
+    ByOrganizationSlug,
+)
+from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
@@ -172,7 +178,7 @@ class OrganizationService(RpcService):
 
         return DatabaseBackedOrganizationService()
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationId("id"))
     @abstractmethod
     def get_organization_by_id(
         self, *, id: int, user_id: Optional[int] = None, slug: Optional[str] = None
@@ -186,7 +192,7 @@ class OrganizationService(RpcService):
 
     # TODO: This should return RpcOrganizationSummary objects, since we cannot realistically span out requests and
     #  capture full org objects / teams / permissions.  But we can gather basic summary data from the control silo.
-    @rpc_method
+    @rpc_method  # TODO: Apply regional_rpc_method
     @abstractmethod
     def get_organizations(
         self,
@@ -209,7 +215,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def check_membership_by_email(
         self, organization_id: int, email: str
@@ -219,7 +225,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def check_membership_by_id(
         self, organization_id: int, user_id: int
@@ -229,7 +235,7 @@ class OrganizationService(RpcService):
         """
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationSlug())
     @abstractmethod
     def check_organization_by_slug(self, *, slug: str, only_visible: bool) -> Optional[int]:
         """
@@ -249,7 +255,7 @@ class OrganizationService(RpcService):
 
         return self.get_organization_by_id(id=org_id, user_id=user_id)
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationObject())
     @abstractmethod
     def add_organization_member(
         self,
@@ -261,17 +267,17 @@ class OrganizationService(RpcService):
     ) -> RpcOrganizationMember:
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def update_membership_flags(self, *, organization_member: RpcOrganizationMember) -> None:
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationIdAttribute("organization_member"))
     @abstractmethod
     def get_all_org_roles(
         self,
@@ -280,7 +286,7 @@ class OrganizationService(RpcService):
     ) -> List[str]:
         pass
 
-    @rpc_method
+    @regional_rpc_method(resolve=ByOrganizationId())
     @abstractmethod
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
         pass
