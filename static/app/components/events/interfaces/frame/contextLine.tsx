@@ -121,7 +121,7 @@ const StyledLi = styled('li')`
 `;
 
 // TODO(scttcper): The parent component should be a grid, currently has too many other children
-// The minmax is to prevent the line content from overflowing the container
+// If the grid was higher up we wouldn't have to hardcode the line number width and could fit larger line numbers
 const lineNumberWidth = '58px';
 const LineContent = styled('div')`
   display: grid;
