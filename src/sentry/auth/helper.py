@@ -450,7 +450,7 @@ class AuthIdentityHandler:
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session.get("confirm_account_verification_key")
+            verification_key = self.request.session["confirm_account_verification_key"]
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
