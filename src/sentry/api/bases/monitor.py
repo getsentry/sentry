@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from rest_framework import status
 from rest_framework.request import Request
-from rest_framework.response import Response
 
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
@@ -56,10 +54,6 @@ class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
 
-    @staticmethod
-    def respond_invalid() -> Response:
-        return Response(status=status.HTTP_400_BAD_REQUEST, data={"details": "Invalid monitor"})
-
     def convert_args(
         self,
         request: Request,
@@ -103,6 +97,7 @@ class MonitorEndpoint(Endpoint):
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
+        # Validate that the authenticated project matches the monitor
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             raise ResourceDoesNotExist
 

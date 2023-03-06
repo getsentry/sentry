@@ -10,9 +10,10 @@ import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+import {MonitorStatus} from '../types';
+
 import MonitorHeaderActions from './monitorHeaderActions';
 import MonitorIcon from './monitorIcon';
-import {MonitorStatus} from './types';
 
 type Props = React.ComponentProps<typeof MonitorHeaderActions>;
 

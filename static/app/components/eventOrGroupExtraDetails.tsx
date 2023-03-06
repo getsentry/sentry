@@ -50,7 +50,7 @@ function EventOrGroupExtraDetails({
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') && projectSupportsReplay(project);
 
   return (
     <GroupExtra>
