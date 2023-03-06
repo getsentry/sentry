@@ -205,8 +205,8 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
-def get_artifact_bundle_cache_key(table_id):
-    return f"artifactbundle:v1:{table_id}"
+def get_artifact_bundle_cache_key(artifact_bundle_id):
+    return f"artifactbundle:v1:{artifact_bundle_id}"
 
 
 MAX_FETCH_ATTEMPTS = 3
@@ -830,7 +830,7 @@ class Fetcher:
         actual File object bound to a specific ArtifactBundle. memcached is persisted across processor runs as opposed
         to the local cache.
         """
-        bundle_id = None
+        artifact_bundle_id = None
 
         try:
             # In order to avoid making a multi-join query, we first look if the file is existing in an already cached
@@ -845,15 +845,10 @@ class Fetcher:
             artifact_bundle = self._get_debug_id_artifact_bundle_entry(
                 debug_id, source_file_type
             ).artifact_bundle
-            bundle_id = artifact_bundle.bundle_id
-            # If we have a debug_id entry we must have a bundle_id, otherwise we are in an inconsistent state.
-            # This check must be done because bundle_id can be null, the reason being that we would like the old
-            # tables to migrate to the new ones and the old system doesn't use debug ids.
-            if bundle_id is None:
-                return None
+            artifact_bundle_id = artifact_bundle.id
 
             # Given a bundle_id we check in the local cache if we have the archive already opened.
-            cached_open_archive = self.open_archives.get(bundle_id)
+            cached_open_archive = self.open_archives.get(artifact_bundle_id)
             if cached_open_archive is not None:
                 # In case we already tried to load an ArtifactBundle with this bundle_id, and we failed, we don't want
                 # to try and fetch again the bundle.
@@ -872,8 +867,8 @@ class Fetcher:
                 source_file_type,
                 exc_info=exc,
             )
-            if bundle_id:
-                self.open_archives[bundle_id] = INVALID_ARCHIVE
+            if artifact_bundle_id:
+                self.open_archives[artifact_bundle_id] = INVALID_ARCHIVE
 
             return None
         else:
@@ -883,7 +878,7 @@ class Fetcher:
                 # We load the entire bundle into an archive and cache it locally. It is very important that this opened
                 # archive is closed before the processing ends.
                 archive = ArtifactBundleArchive(artifact_bundle_file)
-                self.open_archives[bundle_id] = archive
+                self.open_archives[artifact_bundle_id] = archive
             except Exception as exc:
                 artifact_bundle_file.seek(0)
                 logger.error(
@@ -892,8 +887,8 @@ class Fetcher:
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                 )
-                if bundle_id:
-                    self.open_archives[bundle_id] = INVALID_ARCHIVE
+                if artifact_bundle_id:
+                    self.open_archives[artifact_bundle_id] = INVALID_ARCHIVE
 
             return archive
 
