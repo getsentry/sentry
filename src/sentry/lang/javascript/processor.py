@@ -205,8 +205,8 @@ def get_release_file_cache_key_meta(release_id, releasefile_ident):
     return "meta:%s" % get_release_file_cache_key(release_id, releasefile_ident)
 
 
-def get_artifact_bundle_cache_key(bundle_id):
-    return f"artifactbundle:v1:{bundle_id}"
+def get_artifact_bundle_cache_key(table_id):
+    return f"artifactbundle:v1:{table_id}"
 
 
 MAX_FETCH_ATTEMPTS = 3
@@ -793,7 +793,9 @@ class Fetcher:
         """
         # We try to load the bundle file from the cache. The file we are loading here is the entire bundle, not
         # the contents.
-        cache_key = get_artifact_bundle_cache_key(artifact_bundle.bundle_id)
+        # We want to index the cache by the id of the ArtifactBundle in the db which is different from the bundle_id
+        # UUID field.
+        cache_key = get_artifact_bundle_cache_key(artifact_bundle.id)
         result = cache.get(cache_key)
         if result:
             return BytesIO(result)
