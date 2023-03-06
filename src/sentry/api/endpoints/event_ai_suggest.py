@@ -117,6 +117,7 @@ def describe_event_for_ai(event):
         exception = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
+        exception["number"] = idx + 1
         exception["type"] = exc["type"]
         exception["message"] = exc.get("value")
         mechanism = exc.get("mechanism") or {}
