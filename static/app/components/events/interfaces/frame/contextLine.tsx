@@ -76,6 +76,7 @@ const StyledLi = styled('li')`
     text-align: right;
     padding-left: ${space(2)};
     padding-right: ${space(2)};
+    margin-right: ${space(1.5)};
     background: transparent;
     z-index: 1;
     min-width: 58px;
@@ -126,5 +127,4 @@ const lineNumberWidth = '58px';
 const LineContent = styled('div')`
   display: grid;
   grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${space(2)});
-  gap: ${space(0.5)};
 `;
