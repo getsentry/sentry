@@ -41,7 +41,6 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
                         }
                     ],
                 },
-                "active": True,
                 "id": bias_data["id"],
             }
         ]

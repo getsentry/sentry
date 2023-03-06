@@ -57,7 +57,6 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["1.0"]},
@@ -77,7 +76,6 @@ def test_generate_bias_rules_v2(data_provider, default_project):
             "type": "trace",
         },
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["2.0"]},

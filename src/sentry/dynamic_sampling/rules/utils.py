@@ -96,15 +96,11 @@ class Condition(TypedDict):
     inner: List[Union[EqCondition, GlobCondition]]
 
 
-class ActiveRule(TypedDict):
+class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
     condition: Condition
     id: int
-
-
-class Rule(ActiveRule):
-    active: bool
 
 
 class DecayingFn(TypedDict):
@@ -112,17 +108,10 @@ class DecayingFn(TypedDict):
     decayedValue: Optional[str]
 
 
-class ActiveDecayingRule(ActiveRule):
+class DecayingRule(Rule):
     timeRange: TimeRange
     decayingFn: DecayingFn
 
-
-class DecayingRule(ActiveDecayingRule):
-    active: bool
-
-
-#: This is the rule format that Relay expects
-PolymorphicActiveRule = Union[ActiveRule, ActiveDecayingRule]
 
 # Type defining the all the possible rules types that can exist.
 PolymorphicRule = Union[Rule, DecayingRule]
@@ -152,7 +141,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
             {
                 "id": rule["id"],
                 "type": rule["type"],
-                "active": rule["active"],
                 "condition": rule["condition"],
             }
         )

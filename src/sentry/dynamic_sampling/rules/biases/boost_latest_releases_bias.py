@@ -49,7 +49,6 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                         "value": bias_data["factor"],
                     },
                     "type": "trace",
-                    "active": True,
                     "condition": {
                         "op": "and",
                         "inner": [
