@@ -793,6 +793,7 @@ class Fetcher:
         """
         # We try to load the bundle file from the cache. The file we are loading here is the entire bundle, not
         # the contents.
+        #
         # We want to index the cache by the id of the ArtifactBundle in the db which is different from the bundle_id
         # UUID field.
         cache_key = get_artifact_bundle_cache_key(artifact_bundle.id)
@@ -825,7 +826,7 @@ class Fetcher:
 
         This function uses two levels of caching:
         1. self.open_archives is a local cache that persists for the Fetcher lifetime and contains all the opened
-        archives indexed by bundle_id.
+        archives indexed by artifact bundle id.
         2. self._fetch_artifact_bundle_file uses inside the default cache which is hosted on memcached and stores the
         actual File object bound to a specific ArtifactBundle. memcached is persisted across processor runs as opposed
         to the local cache.
@@ -841,16 +842,18 @@ class Fetcher:
             if cached_open_archive:
                 return cached_open_archive
 
-            # We want to run a query to determine the bundle_id that contains the tuple (debug_id, source_file_type).
+            # We want to run a query to determine the artifact bundle that contains the tuple
+            # (debug_id, source_file_type).
             artifact_bundle = self._get_debug_id_artifact_bundle_entry(
                 debug_id, source_file_type
             ).artifact_bundle
+
             artifact_bundle_id = artifact_bundle.id
 
-            # Given a bundle_id we check in the local cache if we have the archive already opened.
+            # Given an artifact bundle id we check in the local cache if we have the archive already opened.
             cached_open_archive = self.open_archives.get(artifact_bundle_id)
             if cached_open_archive is not None:
-                # In case we already tried to load an ArtifactBundle with this bundle_id, and we failed, we don't want
+                # In case we already tried to load an ArtifactBundle with this id, and we failed, we don't want
                 # to try and fetch again the bundle.
                 if cached_open_archive == INVALID_ARCHIVE:
                     return None
