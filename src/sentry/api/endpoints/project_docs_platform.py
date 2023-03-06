@@ -24,10 +24,6 @@ def replace_keys(html, project_key):
         "___RELAY_CDN_URL___",
         absolute_uri(reverse("sentry-js-sdk-loader", args=[project_key.public_key])),
     )
-    html = html.replace(
-        "___RELAY_DYNAMIC_CDN_URL___",
-        absolute_uri(reverse("sentry-js-sdk-dynamic-loader", args=[project_key.public_key])),
-    )
 
     # If we actually render this in the main UI we can also provide
     # extra information about the project (org slug and project slug)

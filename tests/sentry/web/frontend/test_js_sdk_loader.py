@@ -6,6 +6,7 @@ import pytest
 from django.conf import settings
 from django.urls import reverse
 
+from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption
 from sentry.testutils import TestCase
 
 
@@ -103,6 +104,86 @@ class JavaScriptSdkLoaderTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
         assert b"/8.3.15/bundle.es5.min.js" in resp.content
+
+    @mock.patch("sentry.loader.browsersdkversion.load_version_from_file", return_value=["7.37.0"])
+    @mock.patch(
+        "sentry.loader.browsersdkversion.get_selected_browser_sdk_version", return_value="latest"
+    )
+    def test_bundle_kind_modifiers(self, load_version_from_file, get_selected_browser_sdk_version):
+        settings.JS_SDK_LOADER_DEFAULT_SDK_URL = "https://browser.sentry-cdn.com/%s/bundle%s.min.js"
+        settings.JS_SDK_LOADER_SDK_VERSION = "7.32.0"
+
+        for data, expected in [
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.es5.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.es5.debug.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.replay.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.replay.debug.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.es5.debug.min.js",
+            ),
+            (
+                {
+                    "dynamicSdkLoaderOptions": {
+                        DynamicSdkLoaderOption.HAS_PERFORMANCE.value: True,
+                        DynamicSdkLoaderOption.HAS_DEBUG.value: True,
+                        DynamicSdkLoaderOption.HAS_REPLAY.value: True,
+                    }
+                },
+                b"/7.37.0/bundle.tracing.replay.debug.min.js",
+            ),
+        ]:
+            self.projectkey.data = data
+            self.projectkey.save()
+            resp = self.client.get(self.path)
+            assert resp.status_code == 200
+            self.assertTemplateUsed(resp, "sentry/js-sdk-loader.js.tmpl")
+            assert expected in resp.content
+            self.projectkey.data = {}
+            self.projectkey.save()
 
     @patch("sentry.loader.browsersdkversion.load_version_from_file")
     def test_headers(self, mock_load_version_from_file):

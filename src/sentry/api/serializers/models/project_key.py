@@ -31,7 +31,6 @@ class ProjectKeySerializer(Serializer):
                 "minidump": obj.minidump_endpoint,
                 "unreal": obj.unreal_endpoint,
                 "cdn": obj.js_sdk_loader_cdn_url,
-                "dynamicCdn": obj.js_sdk_dynamic_loader_cdn_url,
             },
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices()},
