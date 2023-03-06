@@ -13,7 +13,7 @@ const selectNthAutocompleteItem = async index => {
 
 async function setQuery(query) {
   const input = screen.getByTestId('smart-search-input');
-  await userEvent.click(input);
+  await userEvent.click(input, {delay: null});
   await userEvent.type(input, query);
 }
 
