@@ -229,6 +229,11 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
             assert len(debug_id_artifact_bundles) == 2
             assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
+            # We check if the bundle to which each debug id entry is connected has the correct bundle_id.
+            for entry in debug_id_artifact_bundles:
+                assert (
+                    str(entry.artifact_bundle.bundle_id) == "67429b2f-1d9e-43bb-a626-771a1e37555c"
+                )
             # We check also if the source file types are equal.
             for index, entry in enumerate(debug_id_artifact_bundles):
                 assert entry.source_file_type == expected_source_file_types[index].value

@@ -251,8 +251,19 @@ def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
         return None
 
 
-def _extract_debug_ids_from_manifest(manifest: dict) -> List[Tuple[SourceFileType, str]]:
+def _extract_debug_ids_from_manifest(
+    manifest: dict,
+) -> Tuple[str, List[Tuple[SourceFileType, str]]]:
     debug_ids_with_types = []
+
+    # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
+    # identify a specific ArtifactBundle in case for example of future deletion.
+    #
+    # If no id is found, it means that we must have an associated release to this ArtifactBundle, through the
+    # ReleaseArtifactBundle table.
+    bundle_id = manifest.get("debug_id", None)
+    if bundle_id is not None:
+        bundle_id = _normalize_debug_id(bundle_id)
 
     files = manifest.get("files", {})
     for file_path, info in files.items():
@@ -267,7 +278,7 @@ def _extract_debug_ids_from_manifest(manifest: dict) -> List[Tuple[SourceFileTyp
             ):
                 debug_ids_with_types.append((source_file_type, debug_id))
 
-    return debug_ids_with_types
+    return bundle_id, debug_ids_with_types
 
 
 def _create_artifact_bundle(
@@ -279,12 +290,12 @@ def _create_artifact_bundle(
     artifact_count: int,
 ) -> bool:
     with ReleaseArchive(archive_file.getfile()) as archive:
-        debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+        bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
         if len(debug_ids_with_types) > 0:
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=org_id,
-                bundle_id=uuid.uuid4().hex,
+                bundle_id=bundle_id,
                 file=archive_file,
                 artifact_count=artifact_count,
             )
@@ -318,10 +329,13 @@ def _create_artifact_bundle(
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
-def assemble_artifacts(org_id, project_ids, version, checksum, chunks, **kwargs):
+def assemble_artifacts(org_id, version, checksum, chunks, project_ids=None, **kwargs):
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
+    if project_ids is None:
+        project_ids = []
+
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
