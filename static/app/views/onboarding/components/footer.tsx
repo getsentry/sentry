@@ -8,7 +8,6 @@ import {Location} from 'history';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
-import Link from 'sentry/components/links/link';
 import {IconCheckmark, IconCircle, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
@@ -42,25 +41,38 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> 
   newOrg?: boolean;
 };
 
-async function openChangeRouteModal(
-  router: RouteComponentProps<{}, {}>['router'],
-  nextLocation: Location
-) {
+async function openChangeRouteModal({
+  clientState,
+  nextLocation,
+  router,
+  setClientState,
+}: {
+  clientState: ReturnType<typeof usePersistedOnboardingState>[0];
+  nextLocation: Location;
+  router: RouteComponentProps<{}, {}>['router'];
+  setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
+}) {
   const mod = await import('sentry/views/onboarding/components/changeRouteModal');
 
   const {ChangeRouteModal} = mod;
 
   openModal(deps => (
-    <ChangeRouteModal {...deps} router={router} nextLocation={nextLocation} />
+    <ChangeRouteModal
+      {...deps}
+      router={router}
+      nextLocation={nextLocation}
+      clientState={clientState}
+      setClientState={setClientState}
+    />
   ));
 }
 
-export function Footer({projectSlug, router, route, newOrg}: Props) {
+export function Footer({projectSlug, router, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
-  const [clientState, setClientState] = usePersistedOnboardingState();
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const onboarding_sessionStorage_key = `onboarding-${projectSlug}`;
 
@@ -107,11 +119,37 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
       organization,
     });
 
-    openChangeRouteModal(router, {
-      ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/`,
+    openChangeRouteModal({
+      router,
+      nextLocation: {
+        ...router.location,
+        pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
+      },
+      setClientState,
+      clientState,
     });
-  }, [router, organization, sessionStorage.status]);
+  }, [router, organization, sessionStorage.status, setClientState, clientState]);
+
+  const handleSkipOnboarding = useCallback(() => {
+    if (sessionStorage.status !== OnboardingStatus.WAITING) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
+      organization,
+      source: 'targeted_onboarding_first_event_footer',
+    });
+
+    openChangeRouteModal({
+      router,
+      nextLocation: {
+        ...router.location,
+        pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`,
+      },
+      setClientState,
+      clientState,
+    });
+  }, [router, organization, sessionStorage.status, setClientState, clientState]);
 
   useEffect(() => {
     if (!firstError) {
@@ -149,41 +187,6 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
     addSuccessMessage(t('First error processed'));
   }, [firstIssue, newOrg, organization, setSessionStorage, sessionStorage]);
 
-  useEffect(() => {
-    const onUnload = (nextLocation?: Location) => {
-      if (location.pathname.startsWith('onboarding')) {
-        return true;
-      }
-
-      // If the user has already sent an error, then we don't show the dialog
-      if (
-        sessionStorage.status === OnboardingStatus.PROCESSING ||
-        sessionStorage.status === OnboardingStatus.PROCESSED
-      ) {
-        return true;
-      }
-
-      // Next Location is always available when user clicks on a item with a new route
-      if (!nextLocation) {
-        return true;
-      }
-
-      if (nextLocation.query.setUpRemainingOnboardingTasksLater) {
-        return true;
-      }
-
-      // If users are in the onboarding of existing orgs &&
-      // have started the SDK instrumentation &&
-      // clicks elsewhere else to change the route,
-      // then we display the 'are you sure?' dialog.
-      openChangeRouteModal(router, nextLocation);
-
-      return false;
-    };
-
-    router.setRouteLeaveHook(route, onUnload);
-  }, [router, route, organization, sessionStorage.status]);
-
   const handleViewError = useCallback(() => {
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
@@ -198,28 +201,14 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
-      <div>
+      <Column>
         {sessionStorage.status === OnboardingStatus.WAITING && (
-          <SkipOnboardingLink
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('growth.onboarding_clicked_skip', {
-                organization,
-                source: 'targeted_onboarding_first_event_footer',
-              });
-              if (clientState) {
-                setClientState({
-                  ...clientState,
-                  state: 'skipped',
-                });
-              }
-            }}
-            to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-          >
+          <Button onClick={handleSkipOnboarding} priority="link">
             {t('Skip Onboarding')}
-          </SkipOnboardingLink>
+          </Button>
         )}
-      </div>
-      <Statuses>
+      </Column>
+      <StatusesColumn>
         {sessionStorage.status === OnboardingStatus.WAITING ? (
           <WaitingForErrorStatus>
             <IconCircle size="sm" />
@@ -236,8 +225,8 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
             {t('Processing error')}
           </ErrorProcessingStatus>
         )}
-      </Statuses>
-      <Actions>
+      </StatusesColumn>
+      <ActionsColumn>
         {sessionStorage.status === OnboardingStatus.PROCESSED ? (
           <Button priority="primary" onClick={handleViewError}>
             {t('View Error')}
@@ -256,7 +245,7 @@ export function Footer({projectSlug, router, route, newOrg}: Props) {
             {t('Explore Sentry')}
           </Button>
         )}
-      </Actions>
+      </ActionsColumn>
     </Wrapper>
   );
 }
@@ -294,17 +283,16 @@ const Wrapper = styled(GenericFooter, {
     `}
 `;
 
-const SkipOnboardingLink = styled(Link)`
-  border-radius: 0;
-  white-space: nowrap;
+const Column = styled('div')`
+  display: flex;
 `;
 
-const Statuses = styled('div')`
+const StatusesColumn = styled('div')`
   display: flex;
   justify-content: center;
 `;
 
-const Actions = styled('div')`
+const ActionsColumn = styled('div')`
   display: none;
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     display: flex;
