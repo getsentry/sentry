@@ -195,7 +195,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0361_monitor_environment"),
+        ("sentry", "0371_monitor_make_org_slug_unique"),
     ]
 
     operations = [

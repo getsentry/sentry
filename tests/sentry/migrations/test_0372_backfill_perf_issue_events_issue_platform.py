@@ -13,8 +13,8 @@ from tests.sentry.event_manager.test_event_manager import make_event
 
 
 class TestDefaultFlag(TestMigrations):
-    migrate_from = "0361_monitor_environment"
-    migrate_to = "0362_backfill_perf_issue_events_issue_platform"
+    migrate_from = "0371_monitor_make_org_slug_unique"
+    migrate_to = "0372_backfill_perf_issue_events_issue_platform"
     QUERY_START_DATE = datetime(2008, 5, 8)
     QUERY_END_DATE = datetime.now() + timedelta(days=1)
 
