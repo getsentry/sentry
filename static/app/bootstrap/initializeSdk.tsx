@@ -17,6 +17,10 @@ const SPA_MODE_ALLOW_URLS = [
   'webpack-internal://',
 ];
 
+// We check for `window.__initialData.user` property and only enable profiling
+// for Sentry employees. This is to prevent a Violation error being visible in
+// the browser console for our users.
+const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -74,7 +78,10 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
      */
-    dsn: SPA_DSN || sentryConfig?.dsn,
+    dsn:
+      'https://7fa19397baaf433f919fbe02228d5470@o1137848.ingest.sentry.io/6625302' ||
+      SPA_DSN ||
+      sentryConfig?.dsn,
     /**
      * Frontend can be built with a `SENTRY_RELEASE_VERSION` environment
      * variable for release string, useful if frontend is deployed separately
@@ -85,7 +92,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
     // @ts-ignore not part of browser SDK types yet
-    profilesSampleRate: 1,
+    profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
         return tracesSampleRate / 100;
