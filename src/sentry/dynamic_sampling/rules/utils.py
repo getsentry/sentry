@@ -74,22 +74,31 @@ class TimeRange(TypedDict):
     end: str
 
 
-class Inner(TypedDict):
-    op: str
+class EqConditionOptions(TypedDict):
+    ignoreCase: bool
+
+
+class EqCondition(TypedDict):
+    op: Literal["eq"]
     name: str
     value: List[str]
-    options: Dict[str, bool]
+    options: EqConditionOptions
+
+
+class GlobCondition(TypedDict):
+    op: Literal["glob"]
+    name: str
+    value: List[str]
 
 
 class Condition(TypedDict):
-    op: str
-    inner: List[Inner]
+    op: Literal["and", "or"]
+    inner: List[Union[EqCondition, GlobCondition]]
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    active: bool
     condition: Condition
     id: int
 
@@ -132,7 +141,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
             {
                 "id": rule["id"],
                 "type": rule["type"],
-                "active": rule["active"],
                 "condition": rule["condition"],
             }
         )

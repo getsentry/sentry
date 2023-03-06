@@ -51,7 +51,6 @@ class BoostKeyTransactionsRulesGenerator(BiasRulesGenerator):
                         }
                     ],
                 },
-                "active": True,
                 "id": bias_data["id"],
             }
         ]

@@ -20,13 +20,11 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     rules = BoostEnvironmentsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
                         "name": "trace.environment",
                         "op": "glob",
-                        "options": {"ignoreCase": True},
                         "value": ENVIRONMENT_GLOBS,
                     }
                 ],

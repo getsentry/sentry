@@ -19,13 +19,8 @@ config:
     excludeFields: []
     scrubData: true
     scrubDefaults: true
-    scrubIpAddresses: false
     sensitiveFields: []
-  eventRetention: null
-  features: []
   filterSettings:
-    browserExtensions:
-      isEnabled: false
     csp:
       disallowedSources:
       - about
@@ -85,12 +80,6 @@ config:
     errorMessages:
       patterns:
       - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
-    legacyBrowsers:
-      isEnabled: false
-    localhost:
-      isEnabled: false
-    webCrawlers:
-      isEnabled: false
   groupingConfig:
     enhancements: eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ
     id: newstyle:2019-10-29
@@ -142,7 +131,6 @@ config:
       - project:remove_ips_and_macs
     rules:
       organization:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:
@@ -150,14 +138,12 @@ config:
         - '@mac'
         type: multiple
       project:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:
         - '@ip'
         - '@mac'
         type: multiple
-  quotas: []
   spanAttributes:
   - exclusive-time
   trustedRelays: []

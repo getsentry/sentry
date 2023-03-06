@@ -57,7 +57,6 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["1.0"]},
@@ -68,14 +67,15 @@ def test_generate_bias_rules_v2(data_provider, default_project):
             "id": 1000,
             "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
-                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
-                "start": now.isoformat(" "),
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "start": now.isoformat().replace("+00:00", "Z"),
             },
             "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["2.0"]},
@@ -86,8 +86,10 @@ def test_generate_bias_rules_v2(data_provider, default_project):
             "id": 1001,
             "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
-                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
-                "start": now.isoformat(" "),
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "start": now.isoformat().replace("+00:00", "Z"),
             },
             "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
