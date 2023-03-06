@@ -1438,9 +1438,15 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return False
 
         if source_context is None:
-            # In this situation we didn't find the context in the source map, thus we need to load the original file.
-            # Here the logic for loading is either we load from the url or we try to fetch the file by debug id but only
-            # if it is a minified source.
+            # For the new_frame expansion if we have a debug_id and the source_context is None it means that
+            # 'sourcesContent' was not found in the sourcemap, thus we want to resolve the context by just looking at
+            # the minified file itself. If the minified file is not found by debug_id, we will look up by url but
+            # that shouldn't happen because if we can't find the minified file tied to this debug_id it means that
+            # the injection + upload of debug ids failed.
+            #
+            # For the raw_frame expansion we want to just load the file tied to the frame and if the frame has a
+            # debug_id the file must be a minified file, otherwise we can load either the minified or the original
+            # source via the url.
             source = (
                 source
                 or self.get_or_fetch_sourceview(
