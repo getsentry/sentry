@@ -70,7 +70,6 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
 
   Sentry.init({
     ...sentryConfig,
-    debug: true,
     /**
      * For SPA mode, we need a way to overwrite the default DSN from backend
      * as well as `whitelistUrls`
