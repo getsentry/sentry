@@ -198,6 +198,13 @@ if (
   }
 }
 
+/**
+ * For performance we don't want to try and compile everything in the
+ * node_modules, but some packages which use ES6 syntax only NEED to be
+ * transformed.
+ */
+const ESM_NODE_MODULES = [];
+
 const config: Config.InitialOptions = {
   verbose: false,
   collectCoverageFrom: [
@@ -240,6 +247,11 @@ const config: Config.InitialOptions = {
     '^.+\\.tsx?$': ['babel-jest', babelConfig as any],
     '^.+\\.pegjs?$': '<rootDir>/tests/js/jest-pegjs-transform.js',
   },
+  transformIgnorePatterns: [
+    ESM_NODE_MODULES.length
+      ? `/node_modules/(?!${ESM_NODE_MODULES.join('|')})`
+      : '/node_modules/',
+  ],
 
   moduleFileExtensions: ['js', 'ts', 'jsx', 'tsx'],
   globals: {},
