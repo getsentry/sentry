@@ -12,7 +12,7 @@ import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
-import {TraceError} from 'sentry/utils/performance/quickTrace/types';
+import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
@@ -515,7 +515,7 @@ type Measurements = {
   };
 };
 
-type VerticalMark = {
+export type VerticalMark = {
   failedThreshold: boolean;
   marks: Measurements;
 };
@@ -536,14 +536,15 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction,
+  event: EventTransaction | TraceFullDetailed,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
-  if (!event.measurements || !event.startTimestamp) {
+  const startTimestamp =
+    (event as EventTransaction).startTimestamp ||
+    (event as TraceFullDetailed).start_timestamp;
+  if (!event.measurements || !startTimestamp) {
     return new Map();
   }
-
-  const {startTimestamp} = event;
 
   // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
   const allowedVitals = new Set<string>([
