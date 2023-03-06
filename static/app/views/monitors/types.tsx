@@ -74,6 +74,7 @@ export interface Monitor {
   name: string;
   nextCheckIn: string;
   project: Project;
+  slug: string;
   status: MonitorStatus;
   type: MonitorType;
 }

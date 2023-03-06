@@ -23,12 +23,12 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
   const api = useApi();
 
   const handleDelete = async () => {
-    await deleteMonitor(api, orgId, monitor.id);
+    await deleteMonitor(api, orgId, monitor.slug);
     browserHistory.push(normalizeUrl(`/organizations/${orgId}/crons/`));
   };
 
   const handleUpdate = async (data: Partial<Monitor>) => {
-    const resp = await updateMonitor(api, orgId, monitor.id, data);
+    const resp = await updateMonitor(api, orgId, monitor.slug, data);
     onUpdate?.(resp);
   };
 
@@ -64,7 +64,7 @@ const MonitorHeaderActions = ({monitor, orgId, onUpdate}: Props) => {
         priority="primary"
         size="sm"
         icon={<IconEdit size="xs" />}
-        to={`/organizations/${orgId}/crons/${monitor.id}/edit/`}
+        to={`/organizations/${orgId}/crons/${monitor.slug}/edit/`}
       >
         {t('Edit')}
       </Button>

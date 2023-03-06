@@ -49,10 +49,10 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
           />
           {monitor.name}
         </Layout.Title>
-        <Clipboard value={monitor.id}>
-          <MonitorId>
-            {monitor.id} <IconCopy size="xs" />
-          </MonitorId>
+        <Clipboard value={monitor.slug}>
+          <MonitorSlug>
+            {monitor.slug} <IconCopy size="xs" />
+          </MonitorSlug>
         </Clipboard>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -73,7 +73,7 @@ const MonitorHeader = ({monitor, orgId, onUpdate}: Props) => {
   );
 };
 
-const MonitorId = styled('div')`
+const MonitorSlug = styled('div')`
   margin-top: ${space(1)};
   color: ${p => p.theme.subText};
   cursor: pointer;

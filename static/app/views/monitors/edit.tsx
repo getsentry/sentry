@@ -12,7 +12,7 @@ import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string}, {}> & {
+  RouteComponentProps<{monitorSlug: string}, {}> & {
     organization: Organization;
   };
 
@@ -27,14 +27,18 @@ class EditMonitor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
-    return [['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorId}/`]];
+    return [
+      ['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`],
+    ];
   }
 
   onUpdate = (data: Monitor) =>
     this.setState(state => ({monitor: {...state.monitor, ...data}}));
 
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.id}/`));
+    browserHistory.push(
+      normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.slug}/`)
+    );
 
   getTitle() {
     if (this.state.monitor) {
@@ -73,7 +77,7 @@ class EditMonitor extends AsyncView<Props, State> {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.id}/`}
+              apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.slug}/`}
               onSubmitSuccess={this.onSubmitSuccess}
             />
           </Layout.Main>

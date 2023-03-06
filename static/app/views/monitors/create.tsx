@@ -22,7 +22,7 @@ function CreateMonitor({}: Props) {
   const {slug: orgSlug} = useOrganization();
 
   function onSubmitSuccess(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${orgSlug}/crons/${data.id}/`);
+    const url = normalizeUrl(`/organizations/${orgSlug}/crons/${data.slug}/`);
     browserHistory.push(url);
   }
 
