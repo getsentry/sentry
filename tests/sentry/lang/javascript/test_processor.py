@@ -1202,9 +1202,7 @@ class FetchFileByDebugIdTest(TestCase):
 
             fetcher.close()
 
-    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
-    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
-    def test_fetch_by_debug_id_caching_with_failure(self, cache_get, cache_set):
+    def test_fetch_by_debug_id_caching_with_failure(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
         file = self.get_compressed_zip_file(
             "bundle.zip",
