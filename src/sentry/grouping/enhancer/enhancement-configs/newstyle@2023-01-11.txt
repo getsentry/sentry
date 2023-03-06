@@ -414,6 +414,9 @@ path:**/dist-packages/** -app
 path:**/node_modules/** -app
 module:unpkg/** -app
 path:**https://unpkg.com/** -app
+path:**https://cdnjs.cloudflare.com/** -app
+path:**https://cdn.jsdelivr.net/** -app
+path:**https://esm.run/** -app
 family:javascript function:reportError ^-app -app
 
 ### transpilers and polyfills are just noise, be more aggressive
