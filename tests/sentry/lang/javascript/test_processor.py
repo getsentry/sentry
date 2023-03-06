@@ -1202,63 +1202,82 @@ class FetchFileByDebugIdTest(TestCase):
 
             fetcher.close()
 
-        @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
-        @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
-        def test_fetch_by_debug_id_caching_with_failure(self, cache_get, cache_set):
-            debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
-            file = self.get_compressed_zip_file(
-                "bundle.zip",
-                {
-                    "index.js.map": {
-                        "url": "~/index.js.map",
-                        "type": "source_map",
-                        "content": b"foo",
-                        "headers": {
-                            "content-type": "application/json",
-                            "debug-id": debug_id,
-                        },
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_fetch_by_debug_id_caching_with_failure(self, cache_get, cache_set):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
                     },
-                    # We omitted the minified file for simplicity but in reality a bundle must have the original
-                    # files in order to the symbolication to properly happen.
                 },
+                # We omitted the minified file for simplicity but in reality a bundle must have the original
+                # files in order to the symbolication to properly happen.
+            },
+        )
+
+        bundle_id = uuid4()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=bundle_id,
+            file=file,
+            artifact_count=2,
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        with patch(
+            "sentry.lang.javascript.processor.Fetcher._get_debug_id_artifact_bundle_entry",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
+            assert result is None
+            # If _get_debug_id_artifact_bundle_entry fails we don't have a bundle_id, thus no archive can be found.
+            assert len(fetcher.open_archives) == 0
 
-            bundle_id = uuid4()
-            artifact_bundle = ArtifactBundle.objects.create(
-                organization_id=self.organization.id,
-                bundle_id=bundle_id,
-                file=file,
-                artifact_count=2,
+        with patch(
+            "sentry.lang.javascript.processor.Fetcher._fetch_artifact_bundle_file",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
+            assert result is None
+            # If _fetch_artifact_bundle_file fails we have a bundle_id, thus we should have an INVALID_ARCHIVE store in
+            # the local cache.
+            assert len(fetcher.open_archives) == 1
+            assert fetcher.open_archives[bundle_id] == "\x00"
 
-            DebugIdArtifactBundle.objects.create(
-                organization_id=self.organization.id,
-                debug_id=debug_id,
-                artifact_bundle=artifact_bundle,
-                source_file_type=SourceFileType.SOURCE_MAP.value,
+        with patch(
+            "sentry.lang.javascript.processor.ArtifactBundleArchive",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
+            assert result is None
+            # If the instantiation of ArtifactBundleArchive fails, we have a bundle_id, thus we should have an
+            # INVALID_ARCHIVE store in the local cache.
+            assert len(fetcher.open_archives) == 1
+            assert fetcher.open_archives[bundle_id] == "\x00"
 
-            fetcher = Fetcher(self.organization)
-
-            with patch(
-                "sentry.lang.javascript.processor.Fetcher._get_debug_id_artifact_bundle_entry",
-                side_effect=Exception(),
-            ):
-                # First call without cached result.
-                result = fetcher.fetch_by_debug_id(
-                    debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
-                )
-                assert result is None
-                # assert result.body == b"foo"
-                # # Archive cache.
-                # assert len(fetcher.open_archives) == 1
-                # # Bundle level cache.
-                # assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
-                # assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
-                # cache_get.reset_mock()
-                # cache_set.reset_mock()
-
-                fetcher.close()
+        fetcher.close()
 
 
 class BuildAbsPathDebugIdCacheTest(TestCase):

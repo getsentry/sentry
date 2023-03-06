@@ -744,7 +744,8 @@ class Fetcher:
         Closes all the open archives in cache.
         """
         for _, open_archive in self.open_archives.items():
-            open_archive.close()
+            if isinstance(open_archive, ArtifactBundleArchive):
+                open_archive.close()
 
     def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
         """
@@ -817,14 +818,14 @@ class Fetcher:
             bundle_id = artifact_bundle.bundle_id
 
             # Given a bundle_id we check in the local cache if we have the archive already opened.
-            cached_bundle = self.open_archives.get(bundle_id)
-            if cached_bundle is not None:
+            cached_open_archive = self.open_archives.get(bundle_id)
+            if cached_open_archive is not None:
                 # In case we already tried to load an ArtifactBundle with this bundle_id, and we failed, we don't want
                 # to try and fetch again the bundle.
-                if cached_bundle == INVALID_ARCHIVE:
+                if cached_open_archive == INVALID_ARCHIVE:
                     return None
 
-                return cached_bundle
+                return cached_open_archive
 
             # In case the local cache doesn't have the archive, we will try to load it from memcached and then directly
             # from the source.
@@ -841,13 +842,13 @@ class Fetcher:
 
             return None
         else:
+            archive = None
+
             try:
                 # We load the entire bundle into an archive and cache it locally. It is very important that this opened
                 # archive is closed before the processing ends.
                 archive = ArtifactBundleArchive(artifact_bundle_file)
                 self.open_archives[bundle_id] = archive
-
-                return archive
             except Exception as exc:
                 artifact_bundle_file.seek(0)
                 logger.error(
@@ -859,7 +860,7 @@ class Fetcher:
                 if bundle_id:
                     self.open_archives[bundle_id] = INVALID_ARCHIVE
 
-                return None
+            return archive
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
         """
