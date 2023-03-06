@@ -4,7 +4,7 @@ from typing import List
 
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import Throttled
+from rest_framework.exceptions import ParseError, Throttled
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +15,7 @@ from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
+from sentry.api.utils import get_date_range_from_params
 from sentry.api.validators import MonitorCheckInValidator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
@@ -68,7 +69,13 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             if project.organization.slug != organization_slug:
                 return self.respond_invalid()
 
-        queryset = MonitorCheckIn.objects.filter(monitor_id=monitor.id)
+        start, end = get_date_range_from_params(request.GET)
+        if start is None or end is None:
+            raise ParseError(detail="Invalid date range")
+
+        queryset = MonitorCheckIn.objects.filter(
+            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+        )
 
         return self.paginate(
             request=request,
@@ -111,10 +118,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
             return self.respond(status=404)
 
@@ -137,6 +140,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
+
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
@@ -155,7 +159,8 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 )
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
-                if not monitor.mark_failed(last_checkin=checkin.date_added):
+                monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
+                if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
                     return self.respond(serialize(checkin, request.user), status=200)

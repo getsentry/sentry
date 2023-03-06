@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import PROFILE_FILE_IO_ISSUE_TYPES, GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -217,46 +217,41 @@ def handle_owner_assignment(job):
                                 "reason": "issue_owners_exist",
                             },
                         )
+                        metrics.incr("sentry.tasks.post_process.handle_owner_assignment.debounce")
                         return
 
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.get_issue_owners"
-                ):
-
-                    if killswitch_matches_context(
-                        "post_process.get-autoassign-owners",
-                        {
-                            "project_id": project.id,
-                        },
+                with metrics.timer("post_process.process_owner_assignments.duration"):
+                    with sentry_sdk.start_span(
+                        op="post_process.handle_owner_assignment.get_issue_owners"
                     ):
-                        # see ProjectOwnership.get_issue_owners
-                        issue_owners = []
-                    else:
+                        if killswitch_matches_context(
+                            "post_process.get-autoassign-owners",
+                            {
+                                "project_id": project.id,
+                            },
+                        ):
+                            # see ProjectOwnership.get_issue_owners
+                            issue_owners = []
+                        else:
 
-                        issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
+                            issue_owners = ProjectOwnership.get_issue_owners(project.id, event.data)
 
-                        # Cache for 1 day after we calculated. We don't need to move that fast.
-                        cache.set(
-                            issue_owners_key,
-                            True,
-                            ISSUE_OWNERS_DEBOUNCE_DURATION,
-                        )
-
-                with sentry_sdk.start_span(
-                    op="post_process.handle_owner_assignment.handle_group_owners"
-                ):
-                    if issue_owners:
-                        try:
-                            handle_group_owners(project, group, issue_owners)
-                            logger.info(
-                                "handle_owner_assignment.success",
-                                extra={
-                                    **basic_logging_details,
-                                    "reason": "stored_issue_owners",
-                                },
+                            # Cache for 1 day after we calculated. We don't need to move that fast.
+                            cache.set(
+                                issue_owners_key,
+                                True,
+                                ISSUE_OWNERS_DEBOUNCE_DURATION,
                             )
-                        except Exception:
-                            logger.exception("Failed to store group owners")
+
+                    with sentry_sdk.start_span(
+                        op="post_process.handle_owner_assignment.handle_group_owners"
+                    ):
+                        if issue_owners:
+                            try:
+                                handle_group_owners(project, group, issue_owners)
+                            except Exception:
+                                logger.exception("Failed to store group owners")
+
         except Exception:
             logger.exception("Failed to handle owner assignments")
 
@@ -533,7 +528,9 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in PROFILE_FILE_IO_ISSUE_TYPES and not features.has(
+    if group_event.group.issue_type.type_id in get_group_types_by_category(
+        GroupCategory.PROFILE.value
+    ) and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return

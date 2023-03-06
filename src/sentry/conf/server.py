@@ -9,7 +9,7 @@ import socket
 import sys
 import tempfile
 from datetime import datetime, timedelta
-from typing import Any, Dict, Iterable, Mapping, Tuple
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, Tuple, Union, overload
 from urllib.parse import urlparse
 
 import sentry
@@ -25,7 +25,31 @@ def gettext_noop(s):
 socket.setdefaulttimeout(5)
 
 
-def env(key, default="", type=None):
+@overload
+def env(key: str, default: int, type: Optional[Callable[[Any], int]] = None) -> int:
+    ...
+
+
+@overload
+def env(key: str, default: float, type: Optional[Callable[[Any], float]] = None) -> float:
+    ...
+
+
+@overload
+def env(key: str, default: bool, type: Optional[Callable[[Any], bool]] = None) -> bool:
+    ...
+
+
+@overload
+def env(key: str, default: str, type: Optional[Callable[[Any], str]] = None) -> str:
+    ...
+
+
+def env(
+    key: str,
+    default: Union[str, int, float, bool, None] = "",
+    type: Optional[Callable[[Any], Any]] = None,
+) -> Any:
     """
     Extract an environment variable for use in configuration
 
@@ -677,6 +701,7 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
+    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -709,6 +734,7 @@ CELERY_QUEUES = [
         "dynamicsampling",
         routing_key="dynamicsampling",
     ),
+    Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
 ]
 
 for queue in CELERY_QUEUES:
@@ -986,12 +1012,16 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Enables the new artifact bundle uploads
+    "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
     # Enables V2 for codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration-v2": False,
+    # Enables the cron job to auto-enable codecov integrations.
+    "organizations:auto-enable-codecov": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
@@ -1038,14 +1068,10 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable performance spans in flamecharts
-    "organizations:profiling-flamechart-spans": False,
     # Enable flamegraph view for profiling
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling dashboard redesign
-    "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling aggregate flamegraph
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
@@ -2639,6 +2665,7 @@ KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
+KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
 
@@ -2687,6 +2714,7 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
+    KAFKA_INGEST_MONITORS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog

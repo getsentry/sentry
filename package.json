@@ -25,6 +25,7 @@
     "@popperjs/core": "^2.11.5",
     "@react-aria/button": "^3.3.4",
     "@react-aria/focus": "^3.5.0",
+    "@react-aria/gridlist": "^3.1.2",
     "@react-aria/interactions": "^3.7.0",
     "@react-aria/listbox": "^3.5.1",
     "@react-aria/menu": "^3.3.0",
@@ -159,6 +160,7 @@
     "typescript": "^4.9.4",
     "u2f-api": "1.0.10",
     "url-loader": "^4.1.0",
+    "util": "^0.12.5",
     "webpack": "5.75.0",
     "webpack-cli": "5.0.1",
     "webpack-remove-empty-scripts": "^1.0.1",
@@ -231,7 +233,7 @@
     "build-production": "NODE_ENV=production yarn webpack --mode production",
     "build": "NODE_OPTIONS=--max-old-space-size=4096 yarn webpack",
     "validate-api-examples": "cd api-docs && yarn openapi-examples-validator ../tests/apidocs/openapi-derefed.json --no-additional-properties",
-    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net && mkcert -install"
+    "mkcert-localhost": "mkcert -key-file config/localhost-key.pem -cert-file config/localhost.pem localhost 127.0.0.1 dev.getsentry.net *.dev.getsentry.net && mkcert -install"
   },
   "browserslist": {
     "production": [

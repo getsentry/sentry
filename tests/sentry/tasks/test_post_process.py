@@ -1332,6 +1332,9 @@ class PostProcessGroupPerformanceTest(
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
 
+    @patch("sentry.tasks.post_process.handle_owner_assignment")
+    @patch("sentry.tasks.post_process.handle_auto_assignment")
+    @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -1342,6 +1345,9 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_processor,
         run_post_process_job_mock,
+        mock_process_rules,
+        mock_handle_auto_assignment,
+        mock_handle_owner_assignment,
     ):
         min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
         event = self.store_transaction(
@@ -1361,6 +1367,12 @@ class PostProcessGroupPerformanceTest(
             is_regression=False,
             is_new_group_environment=True,
         )
+
+        call_order = []
+        mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
+        mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
+        mock_process_rules.side_effect = call_order.append(mock_process_rules)
+
         post_process_group(
             **group_state,
             cache_key=cache_key,
@@ -1372,6 +1384,11 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 2
+        assert call_order == [
+            mock_handle_owner_assignment,
+            mock_handle_auto_assignment,
+            mock_process_rules,
+        ]
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):

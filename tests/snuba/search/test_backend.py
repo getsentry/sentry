@@ -2419,7 +2419,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         with self.feature("organizations:issue-platform"):
             results = self.make_query(
-                search_filter_query="issue.type:profile_blocked_thread my_tag:1"
+                search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
 
@@ -2445,7 +2445,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         with self.feature("organizations:issue-platform"):
             results = self.make_query(
-                search_filter_query="issue.type:[profile_blocked_thread, error] my_tag:1"
+                search_filter_query="issue.type:[profile_file_io_main_thread, error] my_tag:1"
             )
         assert list(results) == [
             self.profile_group_1,

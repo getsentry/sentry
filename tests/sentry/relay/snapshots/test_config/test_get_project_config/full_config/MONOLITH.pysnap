@@ -1,5 +1,5 @@
 ---
-created: '2023-01-17T00:14:23.253438Z'
+created: '2023-03-03T12:37:18.832972Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -82,6 +82,9 @@ config:
       - hoholikik.club
       - smartlink.cool
       - promfflinkdev.com
+    errorMessages:
+      patterns:
+      - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
     legacyBrowsers:
       isEnabled: false
     localhost:
