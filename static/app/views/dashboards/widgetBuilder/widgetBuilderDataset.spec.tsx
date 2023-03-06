@@ -2,7 +2,13 @@ import selectEvent from 'react-select-event';
 import {urlEncode} from '@sentry/utils';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
 import {
@@ -371,15 +377,21 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      expect(screen.getByText('High to low')).toBeEnabled();
-      expect(screen.getByText('crash_free_rate(session)')).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('sort-by-step')).getByText('High to low')
+      ).toBeEnabled();
+      expect(
+        within(screen.getByTestId('sort-by-step')).getByText('crash_free_rate(session)')
+      ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByLabelText('Add a Column'));
+      await userEvent.click(screen.getByLabelText('Add a Column'), {delay: null});
       await selectEvent.select(screen.getByText('(Required)'), 'release');
 
-      await userEvent.click(screen.getByLabelText('Add a Column'));
+      await userEvent.click(screen.getByLabelText('Add a Column'), {delay: null});
       await selectEvent.select(screen.getByText('(Required)'), 'environment');
 
       expect(await screen.findByText('Sort by a column')).toBeInTheDocument();
@@ -388,7 +400,9 @@ describe('WidgetBuilder', function () {
       expect(screen.getByText('High to low')).toBeInTheDocument();
 
       // Selector "sortBy"
-      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1]);
+      await userEvent.click(screen.getAllByText('crash_free_rate(session)')[1], {
+        delay: null,
+      });
 
       // release exists in sort by selector
       expect(screen.getAllByText('release')).toHaveLength(3);
@@ -404,10 +418,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      await userEvent.click(screen.getByText('Table'));
-      await userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await waitFor(() =>
         expect(metricsDataMock).toHaveBeenLastCalledWith(
@@ -434,10 +450,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      await userEvent.click(screen.getByText('Table'));
-      await userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
 
@@ -470,10 +488,12 @@ describe('WidgetBuilder', function () {
         await screen.findByText('Releases (Sessions, Crash rates)')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}));
+      await userEvent.click(screen.getByRole('radio', {name: /Releases/i}), {
+        delay: null,
+      });
 
-      await userEvent.click(screen.getByText('Table'));
-      await userEvent.click(screen.getByText('Line Chart'));
+      await userEvent.click(screen.getByText('Table'), {delay: null});
+      await userEvent.click(screen.getByText('Line Chart'), {delay: null});
 
       await selectEvent.select(await screen.findByText('Select group'), 'session.status');
 
@@ -523,7 +543,9 @@ describe('WidgetBuilder', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       renderTestComponent();
 
-      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
+      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
+        delay: null,
+      });
 
       expect(metricsDataMock).toHaveBeenCalled();
       expect(screen.getByRole('radio', {name: /Releases/i})).toBeChecked();
@@ -619,7 +641,9 @@ describe('WidgetBuilder', function () {
       jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       renderTestComponent();
 
-      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'));
+      await userEvent.click(await screen.findByText('Releases (Sessions, Crash rates)'), {
+        delay: null,
+      });
 
       await selectEvent.select(screen.getByText('crash_free_rate(…)'), 'environment');
 
@@ -635,7 +659,9 @@ describe('WidgetBuilder', function () {
 
       renderTestComponent({onSave: handleSave});
 
-      await userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
       await userEvent.click(screen.getByLabelText('Add Widget'));
 
       await waitFor(() => {
@@ -687,21 +713,49 @@ describe('WidgetBuilder', function () {
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
-      await userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
-      expect(screen.getByText('issue')).toBeInTheDocument();
-      expect(screen.getByText('assignee')).toBeInTheDocument();
-      expect(screen.getByText('title')).toBeInTheDocument();
-      expect(screen.getAllByLabelText('Remove column')).toHaveLength(2);
-      expect(screen.getAllByLabelText('Drag to reorder')).toHaveLength(3);
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('issue')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('assignee')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('title')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getAllByLabelText(
+          'Remove column'
+        )
+      ).toHaveLength(2);
+      expect(
+        within(screen.getByTestId('choose-column-step')).getAllByLabelText(
+          'Drag to reorder'
+        )
+      ).toHaveLength(3);
 
       await userEvent.click(screen.getAllByLabelText('Remove column')[1]);
       await userEvent.click(screen.getAllByLabelText('Remove column')[0]);
 
-      expect(screen.getByText('issue')).toBeInTheDocument();
-      expect(screen.queryByText('assignee')).not.toBeInTheDocument();
-      expect(screen.queryByText('title')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Remove column')).not.toBeInTheDocument();
-      expect(screen.queryByLabelText('Drag to reorder')).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).getByText('issue')
+      ).toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByText('assignee')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByText('title')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByLabelText('Remove column')
+      ).not.toBeInTheDocument();
+      expect(
+        within(screen.getByTestId('choose-column-step')).queryByLabelText(
+          'Drag to reorder'
+        )
+      ).not.toBeInTheDocument();
     });
 
     it('issue query does not work on default search bar', async function () {
@@ -710,9 +764,7 @@ describe('WidgetBuilder', function () {
       const input = (await screen.findByPlaceholderText(
         'Search for events, users, tags, and more'
       )) as HTMLTextAreaElement;
-      await userEvent.paste(input, 'bookmarks', {
-        clipboardData: {getData: () => ''},
-      } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+      await userEvent.type(input, 'bookmarks');
       input.setSelectionRange(9, 9);
 
       expect(await screen.findByText('No items found')).toBeInTheDocument();
@@ -721,14 +773,14 @@ describe('WidgetBuilder', function () {
     it('renders with an issues search bar when selected in dataset selection', async function () {
       renderTestComponent();
 
-      await userEvent.click(await screen.findByText('Issues (States, Assignment, Time, etc.)'));
+      await userEvent.click(
+        await screen.findByText('Issues (States, Assignment, Time, etc.)')
+      );
 
       const input = (await screen.findByPlaceholderText(
         'Search for issues, status, assigned, and more'
       )) as HTMLTextAreaElement;
-      await userEvent.paste(input, 'is:', {
-        clipboardData: {getData: () => ''},
-      } as unknown as React.ClipboardEvent<HTMLTextAreaElement>);
+      await userEvent.type(input, 'is:');
       input.setSelectionRange(3, 3);
 
       expect(await screen.findByText('resolved')).toBeInTheDocument();
@@ -745,7 +797,7 @@ describe('WidgetBuilder', function () {
 
       await userEvent.click(screen.getByText('Issues (States, Assignment, Time, etc.)'));
 
-      await userEvent.paste(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
+      await userEvent.type(screen.getAllByPlaceholderText('Alias')[0], 'First Alias');
 
       await userEvent.click(screen.getByText('Add Widget'));
 
@@ -1269,8 +1321,12 @@ describe('WidgetBuilder', function () {
         expect(
           screen.queryByText('p99(measurements.custom.measurement)')
         ).not.toBeInTheDocument();
-        expect(screen.getAllByText('transaction').length).toEqual(1);
-        expect(screen.getAllByText('count()').length).toEqual(2);
+        expect(
+          within(screen.getByTestId('sort-by-step')).queryByText('transaction')
+        ).not.toBeInTheDocument();
+        expect(
+          within(screen.getByTestId('sort-by-step')).getByText('count()')
+        ).toBeInTheDocument();
       });
     });
   });
