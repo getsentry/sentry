@@ -138,6 +138,7 @@ default_manager.add("organizations:profiling-flamegraphs", OrganizationFeature, 
 default_manager.add("organizations:profiling-ui-frames", OrganizationFeature, True)
 default_manager.add("organizations:profiling-aggregate-flamegraph", OrganizationFeature, True)
 default_manager.add("organizations:profiling-previews", OrganizationFeature, True)
+default_manager.add("organizations:profiling-span-previews", OrganizationFeature, True)
 default_manager.add("organizations:profiling-using-transactions", OrganizationFeature, True)
 default_manager.add("organizations:project-event-date-limit", OrganizationFeature, True)
 default_manager.add("organizations:project-stats", OrganizationFeature, True)
