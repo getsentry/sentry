@@ -122,7 +122,8 @@ const StyledLi = styled('li')`
 `;
 
 // TODO(scttcper): The parent component should be a grid, currently has too many other children
+// The minmax is to prevent the line content from overflowing the container
 const LineContent = styled('div')`
   display: grid;
-  grid-template-columns: 58px 1fr;
+  grid-template-columns: 58px minmax(calc(100% - 58px - 6px), 0.8fr);
 `;
