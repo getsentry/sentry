@@ -1076,6 +1076,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the profiling span previews
+    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
