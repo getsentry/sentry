@@ -2,11 +2,11 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {
   AssigneeSelectorDropdown,
-  AssigneeSelectorDropdownProps,
+  OnAssignCallback,
   SuggestedAssignee,
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -22,7 +22,7 @@ import {IconChevron, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Committer, Group, Project} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -35,7 +35,7 @@ interface AssignedToProps {
   project: Project;
   disableDropdown?: boolean;
   event?: Event;
-  onAssign?: AssigneeSelectorDropdownProps['onAssign'];
+  onAssign?: OnAssignCallback;
 }
 type IssueOwner = {
   actor: Actor;
@@ -121,9 +121,10 @@ function getOwnerList(
   );
 
   // Convert to suggested assignee format
-  return filteredOwners.map(owner => ({
+  return filteredOwners.map<Omit<SuggestedAssignee, 'assignee'>>(owner => ({
     ...owner.actor,
-    suggestedReason: getSuggestedReason(owner),
+    suggestedReasonText: getSuggestedReason(owner),
+    suggestedReason: owner.source,
   }));
 }
 
@@ -140,7 +141,13 @@ export function getAssignedToDisplayName(group: Group) {
   return group.assignedTo?.name ?? t('No one');
 }
 
-function AssignedTo({group, project, event, disableDropdown = false}: AssignedToProps) {
+function AssignedTo({
+  group,
+  project,
+  event,
+  onAssign,
+  disableDropdown = false,
+}: AssignedToProps) {
   const organization = useOrganization();
   const api = useApi();
   const [eventOwners, setEventOwners] = useState<EventOwners | null>(null);
@@ -196,10 +203,15 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
       <StyledSidebarTitle>
         {t('Assigned To')}
         {hasStreamlineTargetingFeature && (
-          <Access access={['project:write']}>
+          <Access access={['project:read']}>
             <Button
               onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event!,
+                });
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconSettings />}
@@ -216,6 +228,7 @@ function AssignedTo({group, project, event, disableDropdown = false}: AssignedTo
           disabled={disableDropdown}
           id={group.id}
           assignedTo={group.assignedTo}
+          onAssign={onAssign}
         >
           {({loading, isOpen, getActorProps}) => (
             <DropdownButton data-test-id="assignee-selector" {...getActorProps({})}>

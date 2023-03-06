@@ -2,10 +2,12 @@ from functools import cached_property
 
 from sentry.incidents.models import IncidentActivity, IncidentActivityType
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 
+@region_silo_test(stable=True)
 class BaseIncidentCommentDetailsTest(APITestCase):
+    method = "put"
     endpoint = "sentry-api-0-organization-incident-comment-details"
 
     def setUp(self):
@@ -13,14 +15,14 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             user=self.user, organization=self.organization, role="owner", teams=[self.team]
         )
         self.login_as(self.user)
-        self.activity = self.create_incident_comment(self.incident, user=self.user)
+        self.activity = self.create_incident_comment(self.incident, user_id=self.user.id)
         self.detected_activity = self.create_incident_activity(
-            self.incident, user=self.user, type=IncidentActivityType.CREATED.value
+            self.incident, user_id=self.user.id, type=IncidentActivityType.CREATED.value
         )
 
         user2 = self.create_user()
         self.user2_activity = self.create_incident_comment(
-            incident=self.incident, user=user2, comment="hello from another user"
+            incident=self.incident, user_id=user2.id, comment="hello from another user"
         )
 
     @cached_property
@@ -62,7 +64,7 @@ class BaseIncidentCommentDetailsTest(APITestCase):
             )
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTest):
     method = "put"
 
@@ -78,7 +80,7 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
             )
         activity = IncidentActivity.objects.get(id=self.activity.id)
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
 
     def test_cannot_edit_others_comment(self):
@@ -93,7 +95,8 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
 
     def test_superuser_can_edit(self):
         self.user.is_superuser = True
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
 
         edited_comment = "this comment has been edited"
 
@@ -106,11 +109,11 @@ class OrganizationIncidentCommentUpdateEndpointTest(BaseIncidentCommentDetailsTe
                 status_code=200,
             )
         activity = IncidentActivity.objects.get(id=self.user2_activity.id)
-        assert activity.user != self.user
+        assert activity.user_id != self.user.id
         assert activity.comment == edited_comment
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTest):
     method = "delete"
 
@@ -132,7 +135,8 @@ class OrganizationIncidentCommentDeleteEndpointTest(BaseIncidentCommentDetailsTe
 
     def test_superuser_can_delete(self):
         self.user.is_superuser = True
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
 
         with self.feature("organizations:incidents"):
             self.get_success_response(

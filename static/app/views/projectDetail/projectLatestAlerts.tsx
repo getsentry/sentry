@@ -12,7 +12,7 @@ import TimeSince from 'sentry/components/timeSince';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconCheckmark, IconExclamation, IconFire, IconOpen} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 
 import {Incident, IncidentStatus} from '../alerts/types';
@@ -153,7 +153,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
         key={id}
       >
         <AlertBadgeWrapper {...statusProps} icon={Icon}>
-          <AlertBadge status={status} hideText />
+          <AlertBadge status={status} />
         </AlertBadgeWrapper>
         <AlertDetails>
           <AlertTitle>{title}</AlertTitle>

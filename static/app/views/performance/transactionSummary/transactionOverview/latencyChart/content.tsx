@@ -9,6 +9,7 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationSummary} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
+import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import Histogram from 'sentry/utils/performance/histogram';
 import HistogramQuery from 'sentry/utils/performance/histogram/histogramQuery';
 import {HistogramData} from 'sentry/utils/performance/histogram/types';
@@ -31,6 +32,7 @@ type Props = ViewProps & {
   location: Location;
   organization: OrganizationSummary;
   queryExtras?: Record<string, string>;
+  totalCount?: number | null;
 };
 
 /**
@@ -52,14 +54,26 @@ function Content({
   location,
   currentFilter,
   queryExtras,
+  totalCount,
 }: Props) {
   const [zoomError, setZoomError] = useState(false);
+  const displayCountAsPercentage = organization.features.includes(
+    'performance-metrics-backed-transaction-summary'
+  );
 
   function handleMouseOver() {
     // Hide the zoom error tooltip on the next hover.
     if (zoomError) {
       setZoomError(false);
     }
+  }
+
+  function parseHistogramData(data: HistogramData): HistogramData {
+    // display each bin's count as a % of total count
+    if (displayCountAsPercentage && totalCount) {
+      return data.map(({bin, count}) => ({bin, count: count / totalCount}));
+    }
+    return data;
   }
 
   function renderChart(data: HistogramData) {
@@ -86,8 +100,11 @@ function Content({
         if (!zoomError) {
           // Replicate the necessary logic from sentry/components/charts/components/tooltip.jsx
           contents = seriesData.map(item => {
-            const label = item.seriesName;
-            const value = item.value[1].toLocaleString();
+            const label = displayCountAsPercentage ? t('Transactions') : item.seriesName;
+            const value = displayCountAsPercentage
+              ? formatPercentage(item.value[1])
+              : item.value[1].toLocaleString();
+
             return [
               '<div class="tooltip-series">',
               `<div><span class="tooltip-label">${item.marker} <strong>${label}</strong></span> ${value}</div>`,
@@ -108,9 +125,11 @@ function Content({
       },
     };
 
+    const parsedData = parseHistogramData(data);
+
     const series = {
       seriesName: t('Count'),
-      data: formatHistogramData(data, {type: 'duration'}),
+      data: formatHistogramData(parsedData, {type: 'duration'}),
     };
 
     return (
@@ -127,7 +146,15 @@ function Content({
           <BarChart
             grid={{left: '10px', right: '10px', top: '40px', bottom: '0px'}}
             xAxis={xAxis}
-            yAxis={{type: 'value'}}
+            yAxis={{
+              type: 'value',
+              axisLabel: {
+                formatter: value =>
+                  displayCountAsPercentage
+                    ? formatPercentage(value, 0)
+                    : formatAbbreviatedNumber(value),
+              },
+            }}
             series={[series]}
             tooltip={tooltip}
             colors={colors}

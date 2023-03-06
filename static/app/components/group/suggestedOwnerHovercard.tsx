@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import Version from 'sentry/components/version';
 import {IconCommit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, Commit, Organization, Release} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';

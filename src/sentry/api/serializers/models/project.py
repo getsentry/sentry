@@ -23,7 +23,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
+from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -176,6 +176,7 @@ def format_options(attrs: defaultdict(dict)):
             "sentry:performance_issue_creation_rate"
         ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),

@@ -3,10 +3,9 @@ import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
-import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {handleRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import withApi from 'sentry/utils/withApi';
@@ -78,38 +77,20 @@ class GroupEvents extends Component<Props, State> {
     );
   };
 
-  renderSearchBar() {
-    // New issue actions moves the environment picker to the header
-    const hasIssueActionsV2 =
-      this.props.organization.features.includes('issue-actions-v2');
-
-    const searchBar = (
-      <EventSearchBar
-        organization={this.props.organization}
-        defaultQuery=""
-        onSearch={this.handleSearch}
-        excludedTags={excludedTags}
-        query={this.state.query}
-        hasRecentSearches={false}
-      />
-    );
-
-    if (hasIssueActionsV2) {
-      return searchBar;
-    }
-    return (
-      <FilterSection>
-        <EnvironmentPageFilter />
-        {searchBar}
-      </FilterSection>
-    );
-  }
-
   render() {
     return (
       <Layout.Body>
         <Layout.Main fullWidth>
-          <AllEventsFilters>{this.renderSearchBar()}</AllEventsFilters>
+          <AllEventsFilters>
+            <EventSearchBar
+              organization={this.props.organization}
+              defaultQuery=""
+              onSearch={this.handleSearch}
+              excludedTags={excludedTags}
+              query={this.state.query}
+              hasRecentSearches={false}
+            />
+          </AllEventsFilters>
           <AllEventsTable
             issueId={this.props.group.id}
             location={this.props.location}
@@ -122,12 +103,6 @@ class GroupEvents extends Component<Props, State> {
     );
   }
 }
-
-const FilterSection = styled('div')`
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: max-content 1fr;
-`;
 
 const AllEventsFilters = styled('div')`
   margin-bottom: ${space(2)};

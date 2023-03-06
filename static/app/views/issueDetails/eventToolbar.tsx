@@ -14,7 +14,7 @@ import NavigationButtonGroup from 'sentry/components/navigationButtonGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -89,6 +89,7 @@ class GroupEventToolbar extends Component<Props> {
             </Heading>
             <Tooltip
               title={<EventCreatedTooltip event={evt} />}
+              isHoverable
               showUnderline
               disableForVisualTest
             >

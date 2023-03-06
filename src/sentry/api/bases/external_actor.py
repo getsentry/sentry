@@ -17,7 +17,7 @@ from sentry.api.validators.external_actor import (
 from sentry.api.validators.integrations import validate_provider
 from sentry.models import ExternalActor, Organization, Team
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.types.integrations import ExternalProviders, get_provider_choices
 
 AVAILABLE_PROVIDERS = {
@@ -98,7 +98,7 @@ class ExternalUserSerializer(ExternalActorSerializerBase):
 
     user_id = serializers.IntegerField(required=True)
 
-    def validate_user_id(self, user_id: int) -> APIUser:
+    def validate_user_id(self, user_id: int) -> RpcUser:
         """Ensure that this user exists and that they belong to the organization."""
         if (
             organization_service.check_membership_by_id(

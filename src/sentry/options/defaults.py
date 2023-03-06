@@ -1,3 +1,5 @@
+import os
+
 from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
@@ -14,6 +16,7 @@ from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 # register('cache.backend', flags=FLAG_NOSTORE)
 # register('cache.options', type=Dict, flags=FLAG_NOSTORE)
 
+
 # System
 register("system.admin-email", flags=FLAG_REQUIRED)
 register("system.support-email", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -23,26 +26,42 @@ register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 register("system.rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.event-retention-days", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-# Absolute URL to the sentry root directory. Should not include a trailing slash.
-register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-register(
-    "system.organization-base-hostname",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-register(
-    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register(
-    "system.region-api-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
 register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
+
+# URL configuration
+# Absolute URL to the sentry root directory. Should not include a trailing slash.
+register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+# Base hostname that account domains are subdomains of.
+register(
+    "system.base-hostname",
+    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The template for organization subdomain hostnames.
+register(
+    "system.organization-base-hostname",
+    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for organization URL including protocol
+register(
+    "system.organization-url-template",
+    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for region based API URL
+register(
+    "system.region-api-url-template",
+    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The region that this instance is currently running in.
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
 # Redis
 register(
@@ -352,6 +371,9 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
+# Flag for enabling deobfuscation for ProGuard files in ingest consumer
+register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
+
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -418,11 +440,6 @@ register("relay.drop-transaction-metrics", default=[])
 
 # [Unused] Sample rate for opting in orgs into transaction metrics extraction.
 register("relay.transaction-metrics-org-sample-rate", default=0.0)
-
-# Sample rate for opting in orgs into the new transaction name handling.
-# old behavior: Treat transactions from old SDKs as high-cardinality.
-# new behavior: Treat transactions from old SDKs as low-cardinality, except for browser JS.
-register("relay.transaction-names-client-based", default=0.0)
 
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True)
@@ -588,6 +605,10 @@ register("performance.issues.render_blocking_assets.problem-creation", default=0
 register("performance.issues.render_blocking_assets.la-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ea-rollout", default=0.0)
 register("performance.issues.render_blocking_assets.ga-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.problem-creation", default=0.0)
+register("performance.issues.m_n_plus_one_db.la-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ea-rollout", default=0.0)
+register("performance.issues.m_n_plus_one_db.ga-rollout", default=0.0)
 
 
 # System-wide options for default performance detection settings for any org opted into the performance-issues-ingest feature. Meant for rollout.
@@ -604,6 +625,7 @@ register("dynamic-sampling:enabled-biases", default=True)
 # System-wide options that observes latest releases on transactions and caches these values to be used later in
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
+register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)

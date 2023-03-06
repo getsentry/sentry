@@ -14,7 +14,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -123,6 +123,9 @@ class Fixtures:
 
     def create_member(self, *args, **kwargs):
         return Factories.create_member(*args, **kwargs)
+
+    def create_api_key(self, *args, **kwargs):
+        return Factories.create_api_key(*args, **kwargs)
 
     def create_team_membership(self, *args, **kwargs):
         return Factories.create_team_membership(*args, **kwargs)
@@ -393,7 +396,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: APIUser = None,
+        user: RpcUser = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

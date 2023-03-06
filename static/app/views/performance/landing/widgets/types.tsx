@@ -22,7 +22,7 @@ export enum GenericPerformanceWidgetDataType {
   vitals = 'vitals',
   line_list = 'line_list',
   trends = 'trends',
-  stacked_bars = 'stacked_bars',
+  stacked_area = 'stacked_area',
 }
 
 export type PerformanceWidgetProps = {

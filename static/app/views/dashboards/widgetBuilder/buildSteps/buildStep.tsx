@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 
 import ListItem from 'sentry/components/list/listItem';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface Props {
   children: React.ReactNode;
-  description: string;
+  description: React.ReactNode;
   title: string;
   required?: boolean;
 }

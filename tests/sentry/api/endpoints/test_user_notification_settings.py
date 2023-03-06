@@ -260,10 +260,3 @@ class UserNotificationSettingsTest(UserNotificationSettingsTestBase):
             deploy={"user": {user2.id: {"email": "always", "slack": "always"}}},
             status_code=status.HTTP_400_BAD_REQUEST,
         )
-
-    def test_active_release(self):
-        self.get_success_response(
-            "me",
-            activeRelease={"user": {"me": {"email": "always", "slack": "always"}}},
-            status_code=status.HTTP_204_NO_CONTENT,
-        )

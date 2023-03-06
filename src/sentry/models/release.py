@@ -8,7 +8,7 @@ from time import time
 from typing import List, Mapping, Optional, Sequence, Union
 
 import sentry_sdk
-from django.db import IntegrityError, models, router, transaction
+from django.db import IntegrityError, models, router
 from django.db.models import Case, F, Func, Q, Subquery, Sum, Value, When
 from django.db.models.signals import pre_save
 from django.utils import timezone
@@ -29,6 +29,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.exceptions import InvalidSearchQuery
 from sentry.locks import locks
 from sentry.models import (
@@ -82,9 +83,7 @@ class ReleaseProjectModelManager(BaseManager):
             and options.get("dynamic-sampling:enabled-biases")
             and project_boosted_releases.has_boosted_releases
         ):
-            transaction.on_commit(
-                lambda: schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
-            )
+            schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     def post_save(self, instance, **kwargs):
         self._on_post(project=instance.project, trigger="releaseproject.post_save")
@@ -487,7 +486,7 @@ class Release(Model):
     # Deprecated, we no longer write to this field
     new_groups = BoundedPositiveIntegerField(default=0)
     # generally the release manager, or the person initiating the process
-    owner = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
+    owner_id = HybridCloudForeignKey("sentry.User", on_delete="SET_NULL", null=True, blank=True)
 
     # materialized stats
     commit_count = BoundedPositiveIntegerField(null=True, default=0)
@@ -806,7 +805,7 @@ class Release(Model):
             if COMMIT_RANGE_DELIMITER in ref["commit"]:
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
-    def set_refs(self, refs, user, fetch=False):
+    def set_refs(self, refs, user_id, fetch=False):
         with sentry_sdk.start_span(op="set_refs"):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models import Commit, ReleaseHeadCommit, Repository
@@ -853,7 +852,7 @@ class Release(Model):
                 fetch_commits.apply_async(
                     kwargs={
                         "release_id": self.id,
-                        "user_id": user.id,
+                        "user_id": user_id,
                         "refs": refs,
                         "prev_release_id": prev_release and prev_release.id,
                     }

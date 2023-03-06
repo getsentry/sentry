@@ -4,7 +4,7 @@ import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import ShortId, {StyledAutoSelectText} from 'sentry/components/shortId';
 import {IconUser} from 'sentry/icons/iconUser';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 // Styled components used to render discover result sets.
 

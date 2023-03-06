@@ -1,5 +1,5 @@
 ---
-created: '2023-01-17T00:14:25.449555Z'
+created: '2023-02-28T14:42:11.964248Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -21,9 +21,9 @@ metricConditionalTagging:
     op: and
   tagValue: frustrated
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner:
@@ -33,18 +33,18 @@ metricConditionalTagging:
     op: and
   tagValue: tolerated
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner: []
     op: and
   tagValue: satisfied
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner:
@@ -903,8 +903,8 @@ metricConditionalTagging:
   tagValue: inlier
   targetMetrics:
   - d:transactions/duration@millisecond
-  - d:transactions/measurements.lcp@millisecond
   - d:transactions/measurements.fcp@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner: []
@@ -912,17 +912,21 @@ metricConditionalTagging:
   tagValue: outlier
   targetMetrics:
   - d:transactions/duration@millisecond
-  - d:transactions/measurements.lcp@millisecond
   - d:transactions/measurements.fcp@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 transactionMetrics:
-  acceptTransactionNames: strict
+  acceptTransactionNames: clientBased
   customMeasurements:
     limit: 10
   extractCustomTags: []
   extractMetrics:
+  - d:transactions/breakdowns.span_ops.ops.browser@millisecond
+  - d:transactions/breakdowns.span_ops.ops.db@millisecond
+  - d:transactions/breakdowns.span_ops.ops.http@millisecond
+  - d:transactions/breakdowns.span_ops.ops.resource@millisecond
+  - d:transactions/breakdowns.span_ops.ops.ui@millisecond
   - d:transactions/duration@millisecond
-  - s:transactions/user@none
   - d:transactions/measurements.app_start_cold@millisecond
   - d:transactions/measurements.app_start_warm@millisecond
   - d:transactions/measurements.cls@none
@@ -942,9 +946,5 @@ transactionMetrics:
   - d:transactions/measurements.stall_total_time@millisecond
   - d:transactions/measurements.ttfb.requesttime@millisecond
   - d:transactions/measurements.ttfb@millisecond
-  - d:transactions/breakdowns.span_ops.ops.http@millisecond
-  - d:transactions/breakdowns.span_ops.ops.db@millisecond
-  - d:transactions/breakdowns.span_ops.ops.browser@millisecond
-  - d:transactions/breakdowns.span_ops.ops.resource@millisecond
-  - d:transactions/breakdowns.span_ops.ops.ui@millisecond
+  - s:transactions/user@none
   version: 1

@@ -1,42 +1,77 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {
+  CompactSelect,
+  MultipleSelectProps,
+  SelectOption,
+  SingleSelectProps,
+} from 'sentry/components/compactSelect';
 import FeatureBadge from 'sentry/components/featureBadge';
 import Truncate from 'sentry/components/truncate';
-import {SelectValue} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
-type BaseProps = React.ComponentProps<typeof CompactSelect> & {
-  options: SelectValue<string>[];
+type BaseProps = {
   title: string;
   featureType?: 'alpha' | 'beta' | 'new';
 };
 
-interface SingleProps extends Omit<BaseProps, 'onChange'> {
+interface SingleProps
+  extends Omit<SingleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+    BaseProps {
   onChange: (value: string) => void;
   selected: string;
-}
-interface MultipleProps extends Omit<BaseProps, 'onChange'> {
-  onChange: (value: string[]) => void;
-  selected: string[];
+  defaultValue?: string;
+  multiple?: false;
 }
 
-function OptionSelector<MultipleType extends boolean>({
+interface MultipleProps
+  extends Omit<MultipleSelectProps<string>, 'onChange' | 'defaultValue' | 'multiple'>,
+    BaseProps {
+  multiple: true;
+  onChange: (value: string[]) => void;
+  selected: string[];
+  defaultValue?: string[];
+}
+
+function OptionSelector({
   options,
   onChange,
   selected,
   title,
   featureType,
   multiple,
+  defaultValue,
   ...rest
-}: MultipleType extends true ? MultipleProps : SingleProps) {
+}: SingleProps | MultipleProps) {
   const mappedOptions = useMemo(() => {
     return options.map(opt => ({
       ...opt,
+      textValue: String(opt.label),
       label: <Truncate value={String(opt.label)} maxLength={60} expandDirection="left" />,
     }));
   }, [options]);
+
+  const selectProps = useMemo(() => {
+    // Use an if statement to help TS separate MultipleProps and SingleProps
+    if (multiple) {
+      return {
+        multiple,
+        value: selected,
+        defaultValue,
+        onChange: (sel: SelectOption<string>[]) => {
+          onChange?.(sel.map(o => o.value));
+        },
+      };
+    }
+
+    return {
+      multiple,
+      value: selected,
+      defaultValue,
+      onChange: opt => onChange?.(opt.value),
+    };
+  }, [multiple, selected, defaultValue, onChange]);
 
   function isOptionDisabled(option) {
     return (
@@ -51,14 +86,12 @@ function OptionSelector<MultipleType extends boolean>({
 
   return (
     <CompactSelect
+      {...rest}
+      {...selectProps}
       size="sm"
       options={mappedOptions}
-      value={selected}
-      onChange={option => {
-        onChange(multiple ? option.map(o => o.value) : option.value);
-      }}
       isOptionDisabled={isOptionDisabled}
-      multiple={multiple}
+      position="bottom-end"
       triggerProps={{
         borderless: true,
         prefix: (
@@ -68,8 +101,6 @@ function OptionSelector<MultipleType extends boolean>({
           </Fragment>
         ),
       }}
-      position="bottom-end"
-      {...rest}
     />
   );
 }

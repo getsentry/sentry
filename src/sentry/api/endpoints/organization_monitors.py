@@ -9,7 +9,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import Monitor, MonitorStatus, MonitorType, Project
+from sentry.models import Monitor, MonitorStatus, MonitorType, Organization, Project
 from sentry.search.utils import tokenize_query
 from sentry.signals import first_cron_monitor_created
 
@@ -29,8 +29,8 @@ from rest_framework.response import Response
 DEFAULT_ORDERING = [
     MonitorStatus.ERROR,
     MonitorStatus.MISSED_CHECKIN,
-    MonitorStatus.ACTIVE,
     MonitorStatus.OK,
+    MonitorStatus.ACTIVE,
     MonitorStatus.DISABLED,
 ]
 
@@ -44,7 +44,7 @@ DEFAULT_ORDERING_CASE = Case(
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationMonitorPermission,)
 
-    def get(self, request: Request, organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response:
         """
         Retrieve monitors for an organization
         `````````````````````````````````````
@@ -97,7 +97,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("status_order", "-name"),
+            order_by=("status_order", "-last_checkin"),
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )
@@ -122,6 +122,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             project_id=result["project"].id,
             organization_id=organization.id,
             name=result["name"],
+            slug=result.get("slug"),
             status=result["status"],
             type=result["type"],
             config=result["config"],

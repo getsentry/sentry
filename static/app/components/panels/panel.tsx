@@ -2,7 +2,7 @@ import {forwardRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 interface PanelProps extends React.HTMLAttributes<HTMLDivElement> {

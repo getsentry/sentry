@@ -15,7 +15,7 @@ from sentry.models import (
 )
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -124,7 +124,7 @@ def record_first_event(project, event, **kwargs):
     )
 
     try:
-        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -139,6 +139,7 @@ def record_first_event(project, event, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=event.platform,
+        project_platform=project.platform,
         url=dict(event.tags).get("url", None),
         has_minified_stack_trace=has_event_minified_stack_trace(event),
     )
@@ -151,6 +152,7 @@ def record_first_event(project, event, **kwargs):
             organization_id=project.organization_id,
             project_id=project.id,
             platform=event.platform,
+            project_platform=project.platform,
         )
         return
 
@@ -315,7 +317,7 @@ def record_release_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record release received for organization (%s) due to missing owners",
@@ -352,7 +354,7 @@ def record_user_context_received(project, event, **kwargs):
         )
         if success:
             try:
-                user: APIUser = Organization.objects.get(
+                user: RpcUser = Organization.objects.get(
                     id=project.organization_id
                 ).get_default_owner()
             except IndexError:
@@ -377,7 +379,7 @@ event_processed.connect(record_user_context_received, weak=False)
 @first_event_with_minified_stack_trace_received.connect(weak=False)
 def record_event_with_first_minified_stack_trace_for_project(project, event, **kwargs):
     try:
-        user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+        user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
     except IndexError:
         logger.warning(
             "Cannot record first event for organization (%s) due to missing owners",
@@ -405,6 +407,7 @@ def record_event_with_first_minified_stack_trace_for_project(project, event, **k
                 organization_id=project.organization_id,
                 project_id=project.id,
                 platform=event.platform,
+                project_platform=project.platform,
                 url=dict(event.tags).get("url", None),
             )
 
@@ -425,7 +428,7 @@ def record_sourcemaps_received(project, event, **kwargs):
     )
     if success:
         try:
-            user: APIUser = Organization.objects.get(id=project.organization_id).get_default_owner()
+            user: RpcUser = Organization.objects.get(id=project.organization_id).get_default_owner()
         except IndexError:
             logger.warning(
                 "Cannot record sourcemaps received for organization (%s) due to missing owners",
@@ -477,7 +480,7 @@ def record_alert_rule_created(user, project, rule, rule_type, **kwargs):
         task=task,
         values={
             "status": OnboardingTaskStatus.COMPLETE,
-            "user": user,
+            "user_id": user.id if user else None,
             "project_id": project.id,
             "date_completed": timezone.now(),
         },

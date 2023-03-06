@@ -2,6 +2,7 @@ import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 
 import {
@@ -24,7 +25,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {usingCustomerDomain} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -397,7 +398,15 @@ class DashboardDetail extends Component<Props, State> {
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
-    if (!isEqual(activeFilters, dashboard.filters)) {
+    if (
+      !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
+        // This is to handle the case where dashboard filters has release:[] and the new filter is release:""
+        if (a.length === 0 && b.length === 0) {
+          return a === b;
+        }
+        return undefined;
+      })
+    ) {
       browserHistory.push({
         ...location,
         query: {
@@ -738,7 +747,7 @@ class DashboardDetail extends Component<Props, State> {
       dashboardState !== DashboardState.CREATE &&
       hasUnsavedFilterChanges(dashboard, location);
 
-    const eventView = generatePerformanceEventView(location, projects);
+    const eventView = generatePerformanceEventView(location, projects, {}, organization);
 
     const isDashboardUsingTransaction = dashboard.widgets.some(
       isWidgetUsingTransactionName

@@ -10,7 +10,7 @@ from sentry.models import (
     RepositoryProjectPathConfig,
     ScheduledDeletion,
 )
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -33,7 +33,8 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase):
             run_deletion(deletion.id)
 
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
-        assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
+        # TODO: When external issue -> organization is a hybrid cloud foreign key, test this is deleted via that route.
+        assert ExternalIssue.objects.filter(id=external_issue.id).exists()
 
     def test_skip_on_undelete(self):
         org = self.create_organization()
@@ -74,7 +75,8 @@ class DeleteOrganizationIntegrationTest(TransactionTestCase):
         assert Integration.objects.filter(id=integration.id).exists()
         assert Project.objects.filter(id=project.id).exists()
         assert not OrganizationIntegration.objects.filter(id=organization_integration.id).exists()
-        assert not ExternalIssue.objects.filter(id=external_issue.id).exists()
+        # TODO: When external issue -> organization is a hybrid cloud foreign key, test this is deleted via that route.
+        assert ExternalIssue.objects.filter(id=external_issue.id).exists()
         assert not Identity.objects.filter(id=identity.id).exists()
 
         repo = Repository.objects.get(id=repository.id)

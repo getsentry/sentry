@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import OptionSelector from 'sentry/components/charts/optionSelector';
@@ -6,11 +7,8 @@ import {
   ChartContainer,
   ChartControls,
   InlineContainer,
-  SectionHeading,
-  SectionValue,
 } from 'sentry/components/charts/styles';
 import {Panel} from 'sentry/components/panels';
-import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {Organization, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -72,12 +70,12 @@ type Props = {
   eventView: EventView;
   location: Location;
   organization: Organization;
-  totalValues: number | null;
+  totalValue: number | null;
   withoutZerofill: boolean;
 };
 
 function TransactionSummaryCharts({
-  totalValues,
+  totalValue,
   eventView,
   organization,
   location,
@@ -176,7 +174,7 @@ function TransactionSummaryCharts({
             end={eventView.end}
             statsPeriod={eventView.statsPeriod}
             currentFilter={currentFilter}
-            queryExtras={queryExtras}
+            totalCount={totalValue}
           />
         )}
         {display === DisplayModes.DURATION && (
@@ -252,17 +250,7 @@ function TransactionSummaryCharts({
         )}
       </ChartContainer>
 
-      <ChartControls>
-        <InlineContainer>
-          <SectionHeading key="total-heading">{t('Total Transactions')}</SectionHeading>
-          <SectionValue key="total-value">
-            {totalValues === null ? (
-              <Placeholder height="24px" />
-            ) : (
-              totalValues.toLocaleString()
-            )}
-          </SectionValue>
-        </InlineContainer>
+      <ReversedChartControls>
         <InlineContainer>
           {display === DisplayModes.TREND && (
             <OptionSelector
@@ -290,9 +278,13 @@ function TransactionSummaryCharts({
             onChange={handleDisplayChange}
           />
         </InlineContainer>
-      </ChartControls>
+      </ReversedChartControls>
     </Panel>
   );
 }
+
+const ReversedChartControls = styled(ChartControls)`
+  flex-direction: row-reverse;
+`;
 
 export default TransactionSummaryCharts;

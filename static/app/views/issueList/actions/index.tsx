@@ -10,7 +10,7 @@ import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';

@@ -4,7 +4,7 @@ import functools
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Callable, Dict, Mapping, Optional, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence
 
 from django.db.models import Q, QuerySet
 from django.utils import timezone
@@ -13,6 +13,7 @@ from django.utils.functional import SimpleLazyObject
 from sentry import quotas
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_types_by_category
 from sentry.models import (
     Environment,
     Group,
@@ -39,7 +40,6 @@ from sentry.search.snuba.executors import (
     CdcPostgresSnubaQueryExecutor,
     PostgresSnubaQueryExecutor,
 )
-from sentry.types.issues import PERFORMANCE_TYPES, GroupType
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -53,27 +53,28 @@ def assigned_to_filter(
     for actor in actors:
         if actor is None:
             include_none = True
-        types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
-            actor
-        )
+        types_to_actors[
+            (actor and actor.class_name()) if not isinstance(actor, SimpleLazyObject) else "User"
+        ].append(actor)
 
     query = Q()
 
-    if Team in types_to_actors:
+    if "Team" in types_to_actors:
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    team__in=types_to_actors[Team], project_id__in=[p.id for p in projects]
+                    team__in=types_to_actors["Team"], project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
 
-    if User in types_to_actors:
-        users = types_to_actors[User]
+    if "User" in types_to_actors:
+        users = types_to_actors["User"]
+        user_ids: List[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    user__in=users, project_id__in=[p.id for p in projects]
+                    user_id__in=user_ids, project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
@@ -85,7 +86,8 @@ def assigned_to_filter(
                         Team.objects.filter(
                             id__in=OrganizationMemberTeam.objects.filter(
                                 organizationmember__in=OrganizationMember.objects.filter(
-                                    user__in=users, organization_id=projects[0].organization_id
+                                    user_id__in=user_ids,
+                                    organization_id=projects[0].organization_id,
                                 ),
                                 is_active=True,
                             ).values_list("team_id", flat=True)
@@ -198,14 +200,14 @@ def assigned_or_suggested_filter(
     for owner in owners:
         if owner is None:
             include_none = True
-        types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
-            owner
-        )
+        types_to_owners[
+            (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
+        ].append(owner)
 
     query = Q()
 
-    if Team in types_to_owners:
-        teams = types_to_owners[Team]
+    if "Team" in types_to_owners:
+        teams = types_to_owners["Team"]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
@@ -219,13 +221,14 @@ def assigned_or_suggested_filter(
             }
         ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
-    if User in types_to_owners:
-        users = types_to_owners[User]
+    if "User" in types_to_owners:
+        users = types_to_owners["User"]
+        user_ids: List[int] = [u.id for u in users if u is not None]
         team_ids = list(
             Team.objects.filter(
                 id__in=OrganizationMemberTeam.objects.filter(
                     organizationmember__in=OrganizationMember.objects.filter(
-                        user__in=users, organization_id=organization_id
+                        user_id__in=user_ids, organization_id=organization_id
                     ),
                     is_active=True,
                 ).values("team")
@@ -234,7 +237,7 @@ def assigned_or_suggested_filter(
         owned_by_me = Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
-                    Q(user__in=users) | Q(team_id__in=team_ids),
+                    Q(user_id__in=user_ids) | Q(team_id__in=team_ids),
                     group__assignee_set__isnull=True,
                     project_id__in=[p.id for p in projects],
                     organization_id=organization_id,
@@ -358,6 +361,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 
@@ -411,6 +416,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
             max_hits=max_hits,
+            referrer=referrer,
+            actor=actor,
         )
 
     def _build_group_queryset(
@@ -502,7 +509,10 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         queryset_conditions: Dict[str, Condition] = {
             "status": QCallbackCondition(lambda statuses: Q(status__in=statuses)),
             "bookmarked_by": QCallbackCondition(
-                lambda users: Q(bookmark_set__project__in=projects, bookmark_set__user__in=users)
+                lambda users: Q(
+                    bookmark_set__project__in=projects,
+                    bookmark_set__user_id__in=[u.id for u in users if u],
+                )
             ),
             "assigned_to": QCallbackCondition(
                 functools.partial(assigned_to_filter, projects=projects)
@@ -514,7 +524,7 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
             "subscribed_by": QCallbackCondition(
                 lambda users: Q(
                     id__in=GroupSubscription.objects.filter(
-                        project__in=projects, user__in=users, is_active=True
+                        project__in=projects, user_id__in=[u.id for u in users if u], is_active=True
                     ).values_list("group")
                 )
             ),
@@ -533,12 +543,15 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
         if message_filter:
 
             def _perf_issue_message_condition(query: str) -> Q:
-                return Q(type__in=PERFORMANCE_TYPES, message__icontains=query)
+                return Q(
+                    type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
+                    message__icontains=query,
+                )
 
             queryset_conditions.update(
                 {
                     "message": QCallbackCondition(
-                        lambda query: Q(type=GroupType.ERROR.value)
+                        lambda query: Q(type=ErrorGroupType.type_id)
                         | _perf_issue_message_condition(query)
                     )
                     # negation should only apply on the message search icontains, we have to include the
