@@ -26,6 +26,7 @@ export const sourceMapSdkDocsMap: Record<string, string> = {
   'sentry.javascript.node': 'node',
   'sentry.javascript.react': 'react',
   'sentry.javascript.angular': 'angular',
+  'sentry.javascript.angular-ivy': 'angular',
   'sentry.javascript.ember': 'ember',
   'sentry.javascript.gatsby': 'gatsby',
   'sentry.javascript.vue': 'vue',
