@@ -49,7 +49,7 @@ def _get_rules_of_enabled_biases(
 
 def generate_rules(project: Project) -> List[PolymorphicRule]:
     try:
-        return _get_rules_of_enabled_biases(
+        rules = _get_rules_of_enabled_biases(
             project,
             get_guarded_blended_sample_rate(project),
             get_enabled_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
@@ -63,3 +63,5 @@ def generate_rules(project: Project) -> List[PolymorphicRule]:
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return []
+    else:
+        return rules
