@@ -2,7 +2,8 @@ from unittest.mock import patch
 
 import responses
 
-from sentry import options
+from sentry import audit_log, options
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.tasks.auto_enable_codecov import auto_enable_codecov, enable_for_organization
 from sentry.testutils import TestCase
@@ -40,6 +41,7 @@ class AutoEnableCodecovTest(TestCase):
         return_value=["testgit/abc"],
     )
     def test_has_codecov_integration(self, mock_get_repositories):
+        AuditLogEntry.objects.all().delete()
         assert not self.org_1.flags.codecov_access.is_set
         enable_for_organization(self.org_1.id)
 
@@ -47,6 +49,11 @@ class AutoEnableCodecovTest(TestCase):
 
         org = Organization.objects.get(id=self.org_1.id)
         assert org.flags.codecov_access
+
+        audit = AuditLogEntry.objects.filter(
+            organization=org, event=audit_log.get_event_id("ORG_EDIT")
+        )
+        assert audit.exists()
 
     @responses.activate
     @patch(

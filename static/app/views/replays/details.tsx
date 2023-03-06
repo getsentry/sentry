@@ -37,7 +37,7 @@ function ReplayDetails({
   params: {replaySlug},
 }: Props) {
   useReplayPageview('replay.details-time-spent');
-  const orgSlug = useOrganization().slug;
+  const {slug: orgSlug} = useOrganization();
 
   const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,

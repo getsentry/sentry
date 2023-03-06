@@ -30,7 +30,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
-import CronsFeedbackButton from './cronsFeedbackButton';
+import CronsFeedbackButton from './components/cronsFeedbackButton';
 import {MonitorRow} from './row';
 import {Monitor} from './types';
 
