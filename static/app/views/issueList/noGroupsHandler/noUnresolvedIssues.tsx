@@ -25,7 +25,7 @@ type Props = {
 
 const NoUnresolvedIssues = ({title, subtitle}: Props) => (
   <Wrapper>
-    <img src={zeroInboxIssuesImg} alt="No issues found hero image" />
+    <img src={zeroInboxIssuesImg} alt="No issues found spot illustration" />
     <Message title={title} subtitle={subtitle} />
   </Wrapper>
 );
