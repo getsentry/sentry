@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from freezegun import freeze_time
-from sentry_relay.processing import validate_sampling_configuration
+from sentry_relay.processing import validate_project_config
 
 from sentry.discover.models import TeamKeyTransaction
 from sentry.dynamic_sampling import (
@@ -38,6 +38,23 @@ def latest_release_only(default_project):
     )
 
 
+def _validate_rules(project):
+    rules = generate_rules(project)
+
+    # Generate boilerplate around minimal project config:
+    project_config = {
+        "allowedDomains": ["*"],
+        "piiConfig": None,
+        "trustedRelays": [],
+        "dynamicSampling": {
+            "rules": [],
+            "rulesV2": rules,
+            "mode": "total",
+        },
+    }
+    validate_project_config(json.dumps(project_config), strict=True)
+
+
 @patch("sentry.dynamic_sampling.rules.base.sentry_sdk")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
@@ -49,10 +66,8 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # Therefore no rules should be set.
     assert generate_rules(fake_project) == []
     get_blended_sample_rate.assert_called_with(fake_project)
-    sentry_sdk.capture_exception.assert_called()
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(fake_project)})
-    )
+    assert sentry_sdk.capture_exception.call_count == 1
+    _validate_rules(fake_project)
 
 
 @pytest.mark.django_db
@@ -73,7 +88,6 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
@@ -81,9 +95,7 @@ def test_generate_rules_return_only_uniform_if_sample_rate_is_100_and_other_rule
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -97,7 +109,6 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_blended_sample_rate.return_value = 0.1
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -107,9 +118,7 @@ def test_generate_rules_return_uniform_rules_with_rate(
     get_enabled_user_biases.assert_called_with(
         default_project.get_option("sentry:dynamic_sampling_biases", None)
     )
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -129,11 +138,9 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                         "op": "glob",
                         "name": "event.transaction",
                         "value": HEALTH_CHECK_GLOBS,
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
-            "active": True,
             "id": 1002,
         },
         {
@@ -146,15 +153,12 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
                         "op": "glob",
                         "name": "trace.environment",
                         "value": ENVIRONMENT_GLOBS,
-                        "options": {"ignoreCase": True},
                     }
                 ],
             },
-            "active": True,
             "id": 1001,
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -162,9 +166,7 @@ def test_generate_rules_return_uniform_rules_and_env_rule(get_blended_sample_rat
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -194,7 +196,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
     )
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -211,7 +212,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -219,9 +219,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -260,7 +258,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
     )
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -277,7 +274,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -285,9 +281,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_dups(
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -320,7 +314,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
@@ -337,7 +330,6 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
             "type": "transaction",
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
@@ -345,9 +337,7 @@ def test_generate_rules_return_uniform_rules_and_key_transaction_rule_with_many_
         },
     ]
     get_blended_sample_rate.assert_called_with(default_project)
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -367,19 +357,17 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     )
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+
+    _validate_rules(default_project)
 
 
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 @pytest.mark.django_db
@@ -388,8 +376,8 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_env_rule(
     [
         (version, platform, end)
         for version, platform, end in [
-            ("1.0", "python", "2022-10-21 20:03:03+00:00"),
-            ("2.0", None, "2022-10-21 19:50:25+00:00"),
+            ("1.0", "python", "2022-10-21T20:03:03Z"),
+            ("2.0", None, "2022-10-21T19:50:25Z"),
         ]
     ],
 )
@@ -421,7 +409,6 @@ def test_generate_rules_with_different_project_platforms(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -435,26 +422,23 @@ def test_generate_rules_with_different_project_platforms(
             },
             "id": 1500,
             "timeRange": {
-                "start": "2022-10-21 18:50:25+00:00",
+                "start": "2022-10-21T18:50:25Z",
                 "end": end,
             },
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_return_uniform_rules_and_latest_release_rule(
@@ -483,7 +467,6 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -492,13 +475,12 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1500,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -507,13 +489,12 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1501,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -522,24 +503,21 @@ def test_generate_rules_return_uniform_rules_and_latest_release_rule(
                 ],
             },
             "id": 1502,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
-@freeze_time("2022-10-21 18:50:25+00:00")
+@freeze_time("2022-10-21T18:50:25Z")
 @patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
 @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
 def test_generate_rules_does_not_return_rule_with_deleted_release(
@@ -571,7 +549,6 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
         {
             "samplingValue": {"type": "factor", "value": LATEST_RELEASES_BOOST_FACTOR},
             "type": "trace",
-            "active": True,
             "condition": {
                 "op": "and",
                 "inner": [
@@ -580,20 +557,17 @@ def test_generate_rules_does_not_return_rule_with_deleted_release(
                 ],
             },
             "id": 1500,
-            "timeRange": {"start": "2022-10-21 18:50:25+00:00", "end": "2022-10-21 20:03:03+00:00"},
+            "timeRange": {"start": "2022-10-21T18:50:25Z", "end": "2022-10-21T20:03:03Z"},
             "decayingFn": {"type": "linear", "decayedValue": LATEST_RELEASES_BOOST_DECAYED_FACTOR},
         },
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 0.1},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -607,16 +581,13 @@ def test_generate_rules_return_uniform_rule_with_100_rate_and_without_latest_rel
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
-    )
+    _validate_rules(default_project)
 
 
 @pytest.mark.django_db
@@ -632,13 +603,36 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
 
     assert generate_rules(default_project) == [
         {
-            "active": True,
             "condition": {"inner": [], "op": "and"},
             "id": 1000,
             "samplingValue": {"type": "sampleRate", "value": 1.0},
             "type": "trace",
         },
     ]
-    validate_sampling_configuration(
-        json.dumps({"rules": [], "rulesV2": generate_rules(default_project)})
+    _validate_rules(default_project)
+
+
+@pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_project):
+    get_blended_sample_rate.return_value = 0.0
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
     )
+
+    assert generate_rules(default_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
+            "type": "trace",
+        },
+    ]
+    get_blended_sample_rate.assert_called_with(default_project)
+    _validate_rules(default_project)

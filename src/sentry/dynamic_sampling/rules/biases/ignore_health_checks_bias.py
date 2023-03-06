@@ -49,11 +49,9 @@ class IgnoreHealthChecksRulesGenerator(BiasRulesGenerator):
                             "op": "glob",
                             "name": "event.transaction",
                             "value": bias_data["healthCheckGlobs"],
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": bias_data["id"],
             }
         ]
