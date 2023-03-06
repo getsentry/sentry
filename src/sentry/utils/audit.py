@@ -47,6 +47,7 @@ def create_audit_entry_from_user(
     **kwargs: Any,
 ) -> AuditLogEntry:
     if organization:
+        assert organization_id is None
         organization_id = organization.id
 
     entry = AuditLogEntry(
@@ -168,6 +169,7 @@ def create_system_audit_entry(
     systems and do not have an associated Sentry user as the "actor".
     """
     if organization:
+        assert organization_id is None
         organization_id = organization.id
 
     entry = AuditLogEntry(actor_label="Sentry", organization_id=organization_id, **kwargs)
