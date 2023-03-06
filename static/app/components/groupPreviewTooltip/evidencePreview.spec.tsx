@@ -38,7 +38,7 @@ describe('EvidencePreview', () => {
       </EvidencePreview>
     );
 
-    await userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe('EvidencePreview', () => {
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 
-    await userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalled();
@@ -67,7 +67,7 @@ describe('EvidencePreview', () => {
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 
-    await userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await screen.findByText('Failed to load preview');
   });
@@ -90,7 +90,7 @@ describe('EvidencePreview', () => {
 
     render(<EvidencePreview groupId="group-id">Hover me</EvidencePreview>);
 
-    await userEvent.hover(screen.getByText('Hover me'));
+    await userEvent.hover(screen.getByText('Hover me'), {delay: null});
 
     await screen.findByTestId('evidence-preview-body');
 
