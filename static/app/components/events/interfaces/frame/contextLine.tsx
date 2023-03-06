@@ -125,6 +125,6 @@ const StyledLi = styled('li')`
 const lineNumberWidth = '58px';
 const LineContent = styled('div')`
   display: grid;
-  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${space(1)});
+  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${space(2)});
   gap: ${space(1)};
 `;
