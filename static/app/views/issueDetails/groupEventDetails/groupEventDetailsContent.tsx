@@ -29,6 +29,8 @@ import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
+import {EventAiSuggest} from '../eventAiSuggest';
+
 type GroupEventDetailsContentProps = {
   group: Group;
   project: Project;
@@ -118,6 +120,9 @@ const GroupEventDetailsContent = ({
           projectSlug={project.slug}
         />
       )}
+
+      <EventAiSuggest event={event} project={project} organization={organization} />
+
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.CSP} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXPECTCT} {...eventEntryProps} />
@@ -145,7 +150,6 @@ const GroupEventDetailsContent = ({
           }
         />
       )}
-
       {!hasReplay && (
         <EventRRWebIntegration
           event={event}

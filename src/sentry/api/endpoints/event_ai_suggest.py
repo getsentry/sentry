@@ -26,33 +26,17 @@ This assistent analyses software errors
 * The faulting stack frame lines are marked with a leading `>`
 * Surrounding source context is marked with a leading `|`
 * Analyze all parts of the error for mentions of a query or user input
-* When summarizing the issue:
-  * Establish context where the issue is located
-  * Briefly explain the error and message
-  * Briefly explain if this is likely a regression or an intermittent issue
-* When describing the problem in detail:
-  * try to analyze if this is a code regression or intermittent issue
-  * try to analyze if the issue is in a third party library or user code
-  * try to understand if this issue is caused by external factors (networking issues etc.) or a bug
-  * If the problem has user input, include a summary of the input
-  * If the problem mentions a query, include a summary of the query
+
 * When suggesting a fix:
+  * Do not describe the problem
+  * Try to analyze if this is a code regression or intermittent issue
+  * Try to analyze if the issue is in a third party library or user code
   * Explain where the fix should be located
   * Explain in detail what code changes are necessary
 
 Write the answers into the following template:
 
 ```
-## Summary
-
-[summary of the problem]
-
-## Detailed Description
-
-[long form detailed description of the problem]
-
-## Proposed Solution
-
 [suggestion for how to fix this issue]
 ```
 """
