@@ -6,6 +6,7 @@ import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {t} from 'sentry/locale';
 import {Event, ExceptionType, Thread} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
 import filterThreadInfo from './filterThreadInfo';
@@ -32,11 +33,13 @@ const ThreadSelector = ({
   onChange,
   fullWidth = false,
 }: Props) => {
+  const hasThreadStates = threads.some(thread => defined(thread.state));
+
   const getDropDownItem = (thread: Thread) => {
     const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
-    const threadInfo = {label, filename};
+    const threadInfo = {label, filename, state: thread.state};
     return {
-      value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
+      value: `#${thread.id}: ${thread.name} ${label} ${filename} (${thread.state})`,
       threadInfo,
       thread,
       label: (
@@ -46,6 +49,8 @@ const ThreadSelector = ({
           name={thread.name}
           crashed={thread.crashed}
           crashedInfo={crashedInfo}
+          state={thread.state}
+          hasThreadStates={hasThreadStates}
         />
       ),
     };
@@ -76,7 +81,7 @@ const ThreadSelector = ({
           searchPlaceholder={t('Filter Threads')}
           emptyMessage={t('You have no threads')}
           noResultsMessage={t('No threads found')}
-          menuHeader={<Header />}
+          menuHeader={<Header hasThreadStates={hasThreadStates} />}
           rootClassName={
             fullWidth
               ? css`
