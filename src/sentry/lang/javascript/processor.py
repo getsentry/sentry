@@ -816,6 +816,11 @@ class Fetcher:
                 debug_id, source_file_type
             ).artifact_bundle
             bundle_id = artifact_bundle.bundle_id
+            # If we have a debug_id entry we must have a bundle_id, otherwise we are in an inconsistent state.
+            # This check must be done because bundle_id can be null, the reason being that we would like the old
+            # tables to migrate to the new ones and the old system doesn't use debug ids.
+            if bundle_id is None:
+                return None
 
             # Given a bundle_id we check in the local cache if we have the archive already opened.
             cached_open_archive = self.open_archives.get(bundle_id)
@@ -905,7 +910,7 @@ class Fetcher:
 
         Attempts to fetch from the database first (assuming there's a release on the
         event), then the internet. Caches the result of each of those two attempts
-        separately, whether or not those attempts are successful. Used for both
+        separately, whether those attempts are successful. Used for both
         source files and source maps.
         """
         # If our url has been truncated, it'd be impossible to fetch
@@ -916,6 +921,8 @@ class Fetcher:
             )
 
         # if we've got a release to look on, try that first (incl associated cache)
+        # TODO(iambriccardo): we want to implement the fetching of data from the ReleaseArtifactBundle table in order
+        #   to allow for uploads with new tables but old release association.
         if self.release:
             with sentry_sdk.start_span(op="Fetcher.fetch_by_url.fetch_release_artifact"):
                 result = fetch_release_artifact(url, self.release, self.dist)
