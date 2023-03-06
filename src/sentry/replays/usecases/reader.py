@@ -252,7 +252,7 @@ def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
     cache_key = make_filename(segment)
 
     # Attempt to read from cache.
-    cache_value = replay_cache.get(cache_key, raw=True)
+    cache_value: bytes | None = replay_cache.get(cache_key, raw=True)
     if cache_value:
         return cache_value
 
