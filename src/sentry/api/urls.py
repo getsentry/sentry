@@ -197,6 +197,9 @@ from .endpoints.organization_access_request_details import OrganizationAccessReq
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from .endpoints.organization_artifactbundle_assemble import (
+    OrganizationArtifactBundleAssembleEndpoint,
+)
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import (
@@ -1102,6 +1105,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/avatar/$",
                     OrganizationAvatarEndpoint.as_view(),
                     name="sentry-api-0-organization-avatar",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/artifactbundle/assemble/$",
+                    OrganizationArtifactBundleAssembleEndpoint.as_view(),
+                    name="sentry-api-0-organization-artifactbundle-assemble",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/config/integrations/$",

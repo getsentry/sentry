@@ -1,14 +1,23 @@
 import hashlib
 import logging
 from os import path
+from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, router
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import options
 from sentry.api.serializers import serialize
 from sentry.cache import default_cache
 from sentry.db.models.fields import uuid
-from sentry.models import File, Organization, Release, ReleaseFile
+from sentry.models import Distribution, File, Organization, Release, ReleaseFile
+from sentry.models.artifactbundle import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    ProjectArtifactBundle,
+    ReleaseArtifactBundle,
+    SourceFileType,
+)
 from sentry.models.releasefile import ReleaseArchive, update_artifact_index
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
@@ -153,7 +162,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         )
     finally:
         if delete_file:
-            file.delete()
+            file.delete()  # type:ignore
 
 
 class AssembleArtifactsError(Exception):
@@ -231,10 +240,87 @@ def _store_single_files(archive: ReleaseArchive, meta: dict, count_as_artifacts:
             _upsert_release_file(file, None, _simple_update, kwargs, extra_fields)
 
 
+def _normalize_headers(headers: dict) -> dict:
+    return {k.lower(): v for k, v in headers.items()}
+
+
+def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    try:
+        return normalize_debug_id(debug_id)
+    except SymbolicError:
+        return None
+
+
+def _extract_debug_ids_from_manifest(manifest: dict) -> List[Tuple[SourceFileType, str]]:
+    debug_ids_with_types = []
+
+    files = manifest.get("files", {})
+    for file_path, info in files.items():
+        headers = _normalize_headers(info.get("headers", {}))
+        if (debug_id := headers.get("debug-id", None)) is not None:
+            debug_id = _normalize_debug_id(debug_id)
+            file_type = info.get("type", None)
+            if (
+                debug_id is not None
+                and file_type is not None
+                and (source_file_type := SourceFileType.from_lowercase_key(file_type)) is not None
+            ):
+                debug_ids_with_types.append((source_file_type, debug_id))
+
+    return debug_ids_with_types
+
+
+def _create_artifact_bundle(
+    release: Optional[Release],
+    dist: Optional[Distribution],
+    org_id: int,
+    project_ids: List[int],
+    archive_file: File,
+    artifact_count: int,
+) -> bool:
+    with ReleaseArchive(archive_file.getfile()) as archive:
+        debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
+
+        if len(debug_ids_with_types) > 0:
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=org_id,
+                bundle_id=uuid.uuid4().hex,
+                file=archive_file,
+                artifact_count=artifact_count,
+            )
+
+            if release:
+                ReleaseArtifactBundle.objects.create(
+                    organization_id=org_id,
+                    release_name=release.version if release else None,
+                    dist_id=dist.id if dist else None,
+                    artifact_bundle=artifact_bundle,
+                )
+
+            for project_id in project_ids:
+                ProjectArtifactBundle.objects.create(
+                    organization_id=org_id,
+                    project_id=project_id,
+                    artifact_bundle=artifact_bundle,
+                )
+
+            for source_file_type, debug_id in debug_ids_with_types:
+                DebugIdArtifactBundle.objects.create(
+                    organization_id=org_id,
+                    debug_id=debug_id,
+                    artifact_bundle=artifact_bundle,
+                    source_file_type=source_file_type.value,
+                )
+
+            return True
+
+    return False
+
+
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
-def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
+def assemble_artifacts(org_id, project_ids, version, checksum, chunks, **kwargs):
     """
-    Creates release files from an uploaded artifact bundle.
+    Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
@@ -251,7 +337,8 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
             archive_filename,
             checksum,
             chunks,
-            file_type="release.bundle",
+            # If we have a veraion we are going to create a release bundle otherwise an artifact bundle.
+            file_type="release.bundle" if version else "artifact.bundle",
         )
 
         # If not file has been created this means that the file failed to
@@ -275,42 +362,52 @@ def assemble_artifacts(org_id, version, checksum, chunks, **kwargs):
                 raise AssembleArtifactsError("organization does not match uploaded bundle")
 
             release_name = manifest.get("release")
-            if release_name != version:
+            if version and release_name != version:
                 raise AssembleArtifactsError("release does not match uploaded bundle")
 
-            try:
-                release = Release.objects.get(organization_id=organization.id, version=release_name)
-            except Release.DoesNotExist:
-                raise AssembleArtifactsError("release does not exist")
+            release = None
+            if version:
+                try:
+                    release = Release.objects.get(
+                        organization_id=organization.id, version=release_name
+                    )
+                except Release.DoesNotExist:
+                    raise AssembleArtifactsError("release does not exist")
 
             dist_name = manifest.get("dist")
             dist = None
-            if dist_name:
+            if release and dist_name:
                 dist = release.add_dist(dist_name)
 
-            num_files = len(manifest.get("files", {}))
-
-            meta = {  # Required for release file creation
-                "organization_id": organization.id,
-                "release_id": release.id,
-                "dist_id": dist.id if dist else dist,
-            }
-
+            artifact_count = len(manifest.get("files", {}))
+            min_artifact_count = options.get("processing.release-archive-min-files")
             saved_as_archive = False
-            min_size = options.get("processing.release-archive-min-files")
-            if num_files >= min_size:
+
+            # If we receive a version, it means that we want to create a ReleaseFile, otherwise we will create
+            # an ArtifactBundle.
+            if version and artifact_count >= min_artifact_count:
+                if release is None:
+                    raise AssembleArtifactsError("release does not exist")
+
                 try:
                     update_artifact_index(release, dist, bundle)
                     saved_as_archive = True
                 except Exception as exc:
                     logger.error("Unable to update artifact index", exc_info=exc)
+            elif version is None:
+                _create_artifact_bundle(release, dist, org_id, project_ids, bundle, artifact_count)
+                saved_as_archive = True
 
             if not saved_as_archive:
+                meta = {
+                    "organization_id": organization.id,
+                    "release_id": release.id,
+                    "dist_id": dist.id if dist else dist,
+                }
                 _store_single_files(archive, meta, True)
 
             # Count files extracted, to compare them to release files endpoint
-            metrics.incr("tasks.assemble.extracted_files", amount=num_files)
-
+            metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
     except AssembleArtifactsError as e:
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)

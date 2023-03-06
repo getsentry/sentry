@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import List, Optional, Tuple
 
 from django.db import models
 from django.utils import timezone
@@ -19,8 +20,16 @@ class SourceFileType(Enum):
     INDEXED_RAM_BUNDLE = 4
 
     @classmethod
-    def choices(cls):
+    def choices(cls) -> List[Tuple[int, str]]:
         return [(key.value, key.name) for key in cls]
+
+    @classmethod
+    def from_lowercase_key(cls, lowercase_key: str) -> Optional["SourceFileType"]:
+        for key in cls:
+            if key.name.lower() == lowercase_key:
+                return SourceFileType(key.value)
+
+        return None
 
 
 @region_silo_only_model
