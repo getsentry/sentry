@@ -248,7 +248,7 @@ function SummaryContent({
   const fields = [...transactionsListEventView.fields];
 
   if (
-    organization.features.includes('session-replay-ui') &&
+    organization.features.includes('session-replay') &&
     project &&
     projectSupportsReplay(project)
   ) {

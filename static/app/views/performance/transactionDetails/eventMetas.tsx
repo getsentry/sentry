@@ -93,7 +93,7 @@ class EventMetas extends Component<Props, State> {
     // Replay preview gets rendered as part of the breadcrumb section. We need
     // to check for presence of both to show the replay link button here.
     const hasReplay =
-      organization.features.includes('session-replay-ui') &&
+      organization.features.includes('session-replay') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
       Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 

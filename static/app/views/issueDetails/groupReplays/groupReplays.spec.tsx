@@ -21,9 +21,7 @@ type InitializeOrgProps = {
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
-function init({
-  organizationProps = {features: ['session-replay-ui']},
-}: InitializeOrgProps) {
+function init({organizationProps = {features: ['session-replay']}}: InitializeOrgProps) {
   const mockProject = TestStubs.Project();
   const {router, organization, routerContext} = initializeOrg({
     organization: {

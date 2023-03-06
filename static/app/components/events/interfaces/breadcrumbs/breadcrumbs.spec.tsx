@@ -219,7 +219,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -244,7 +244,7 @@ describe('Breadcrumbs', () => {
             tags: [],
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -273,7 +273,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );

@@ -242,7 +242,7 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay-ui']} organization={organization}>
+    <Feature features={['session-replay']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}
