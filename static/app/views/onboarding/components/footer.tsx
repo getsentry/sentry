@@ -17,6 +17,7 @@ import {Group, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 import {usePersistedOnboardingState} from '../utils';
@@ -73,6 +74,7 @@ export function Footer({projectSlug, router, newOrg}: Props) {
   const [firstError, setFirstError] = useState<string | null>(null);
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const {projects} = useProjects();
 
   const onboarding_sessionStorage_key = `onboarding-${projectSlug}`;
 
@@ -140,16 +142,28 @@ export function Footer({projectSlug, router, newOrg}: Props) {
       source: 'targeted_onboarding_first_event_footer',
     });
 
+    const selectedProjectId = projects.find(project => project.slug === projectSlug)?.id;
+
     openChangeRouteModal({
       router,
       nextLocation: {
         ...router.location,
-        pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`,
+        pathname: selectedProjectId
+          ? `/organizations/${organization.slug}/issues/?project=${selectedProjectId}&referrer=onboarding-first-event-footer-skip`
+          : `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`,
       },
       setClientState,
       clientState,
     });
-  }, [router, organization, sessionStorage.status, setClientState, clientState]);
+  }, [
+    router,
+    organization,
+    sessionStorage.status,
+    setClientState,
+    clientState,
+    projects,
+    projectSlug,
+  ]);
 
   useEffect(() => {
     if (!firstError) {
@@ -202,7 +216,7 @@ export function Footer({projectSlug, router, newOrg}: Props) {
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
       <Column>
-        {sessionStorage.status === OnboardingStatus.WAITING && (
+        {sessionStorage.status === OnboardingStatus.WAITING && newOrg && (
           <Button onClick={handleSkipOnboarding} priority="link">
             {t('Skip Onboarding')}
           </Button>
