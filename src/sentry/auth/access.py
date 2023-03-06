@@ -825,7 +825,7 @@ class SystemAccess(OrganizationlessAccess):
     def __init__(self) -> None:
         super().__init__(
             auth_state=RpcAuthState(
-                sso_state=RpcMemberSsoState(False, False),
+                sso_state=RpcMemberSsoState(is_required=False, is_valid=False),
                 permissions=[],
             ),
         )

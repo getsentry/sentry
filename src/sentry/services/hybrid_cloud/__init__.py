@@ -34,6 +34,8 @@ from sentry.utils.pagination_factory import (
 
 logger = logging.getLogger(__name__)
 
+import pydantic
+
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -41,11 +43,17 @@ if TYPE_CHECKING:
 T = TypeVar("T")
 C = TypeVar("C", bound="PatchableMixin[Any]")
 
+ArgumentDict = Mapping[str, Any]
+
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
     def close(self) -> None:
         pass
+
+
+class RpcModel(pydantic.BaseModel):
+    pass
 
 
 ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
@@ -267,7 +275,7 @@ class RpcPaginationResult:
 # Need a non-null default value so that we can
 # detect attributes being set to null. We're using
 # a class for this to get a reasonable repr in debugging.
-class UnsetType:
+class UnsetType(RpcModel):
     def __repr__(self) -> str:
         return "Unset"
 

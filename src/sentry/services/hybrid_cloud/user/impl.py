@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import fields
 from typing import Any, Callable, FrozenSet, Iterable, List, Optional
 
 from django.db.models import QuerySet
@@ -158,17 +157,18 @@ class DatabaseBackedUserService(
 
 def serialize_rpc_user(user: User) -> RpcUser:
     args = {
-        field.name: getattr(user, field.name)
-        for field in fields(RpcUser)
-        if hasattr(user, field.name)
+        field_name: getattr(user, field_name)
+        for field_name in RpcUser.__fields__
+        if hasattr(user, field_name)
     }
     args["pk"] = user.pk
     args["display_name"] = user.get_display_name()
     args["label"] = user.get_label()
     args["is_superuser"] = user.is_superuser
-    args["is_sentry_app"] = user.is_sentry_app
+    args["is_sentry_app"] = user.is_sentry_app or False
     args["password_usable"] = user.has_usable_password()
     args["emails"] = frozenset([email.email for email in user.get_verified_emails()])
+    args["session_nonce"] = user.session_nonce or ""
 
     # And process the _base_query special data additions
     permissions: FrozenSet[str] = frozenset({})
