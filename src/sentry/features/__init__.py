@@ -228,6 +228,7 @@ default_manager.add("organizations:codecov-stacktrace-integration", Organization
 default_manager.add("organizations:codecov-stacktrace-integration-v2", OrganizationFeature, True)
 default_manager.add("organizations:auto-enable-codecov", OrganizationFeature)
 default_manager.add("organizations:codecov-commit-sha-from-git-blame", OrganizationFeature, True)
+default_manager.add("organizations:artifact-bundles", OrganizationFeature, True)
 
 # Project scoped features
 default_manager.add("projects:alert-filters", ProjectFeature)

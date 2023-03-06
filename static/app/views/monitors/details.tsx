@@ -5,8 +5,6 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {Panel, PanelHeader} from 'sentry/components/panels';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withRouteAnalytics, {
@@ -92,11 +90,7 @@ class MonitorDetails extends AsyncView<Props, State> {
 
                 <MonitorIssues monitor={monitor} orgId={this.orgSlug} />
 
-                <Panel>
-                  <PanelHeader>{t('Recent Check-ins')}</PanelHeader>
-
-                  <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
-                </Panel>
+                <MonitorCheckIns monitor={monitor} orgId={this.orgSlug} />
               </Fragment>
             )}
           </Layout.Main>
