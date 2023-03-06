@@ -1,11 +1,6 @@
 import type {ComponentProps} from 'react';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 
@@ -29,7 +24,7 @@ describe('dropdownMenuDeprecated', function () {
     );
   };
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(<DeprecatedDropdownImplementation />);
     expect(container).toSnapshot();
   });
@@ -59,7 +54,7 @@ describe('dropdownMenuDeprecated', function () {
     await userEvent.click(screen.getByRole('button'));
     await userEvent.click(screen.getByTestId('outside-element'));
 
-    await waitForElementToBeRemoved(() => screen.queryByRole('listbox'));
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('closes dropdown when pressing escape', async function () {
