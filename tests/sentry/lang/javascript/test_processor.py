@@ -1220,10 +1220,9 @@ class FetchFileByDebugIdTest(TestCase):
             },
         )
 
-        bundle_id = uuid4()
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id,
-            bundle_id=bundle_id,
+            bundle_id=uuid4(),
             file=file,
             artifact_count=2,
         )
@@ -1245,7 +1244,8 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is None
-            # If _get_debug_id_artifact_bundle_entry fails we don't have a bundle_id, thus no archive can be found.
+            # If _get_debug_id_artifact_bundle_entry fails we don't have an artifact bundle id,
+            # thus no archive can be found.
             assert len(fetcher.open_archives) == 0
 
         with patch(
@@ -1256,10 +1256,10 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is None
-            # If _fetch_artifact_bundle_file fails we have a bundle_id, thus we should have an INVALID_ARCHIVE store in
-            # the local cache.
+            # If _fetch_artifact_bundle_file fails we have an artifact bundle id, thus we should have an
+            # INVALID_ARCHIVE store in the local cache.
             assert len(fetcher.open_archives) == 1
-            assert fetcher.open_archives[bundle_id] == "\x00"
+            assert fetcher.open_archives[artifact_bundle.id] == "\x00"
 
         with patch(
             "sentry.lang.javascript.processor.ArtifactBundleArchive",
@@ -1269,10 +1269,10 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is None
-            # If the instantiation of ArtifactBundleArchive fails, we have a bundle_id, thus we should have an
+            # If the instantiation of ArtifactBundleArchive fails, we have an artifact bundle id, thus we should have an
             # INVALID_ARCHIVE store in the local cache.
             assert len(fetcher.open_archives) == 1
-            assert fetcher.open_archives[bundle_id] == "\x00"
+            assert fetcher.open_archives[artifact_bundle.id] == "\x00"
 
         fetcher.close()
 
