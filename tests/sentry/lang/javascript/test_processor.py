@@ -1112,6 +1112,7 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
+        assert result.body == b"foo"
         # Archive cache.
         assert len(fetcher.open_archives) == 1
         # Bundle level cache.
@@ -1125,6 +1126,7 @@ class FetchFileByDebugIdTest(TestCase):
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
         assert result is not None
+        assert result.body == b"foo"
         # Archive cache.
         assert len(fetcher.open_archives) == 1
         # Bundle level cache.
@@ -1176,6 +1178,7 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
+            assert result.body == b"foo"
             # Archive cache.
             assert len(fetcher.open_archives) == 1
             # Bundle level cache.
@@ -1189,6 +1192,7 @@ class FetchFileByDebugIdTest(TestCase):
                 debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
             )
             assert result is not None
+            assert result.body == b"foo"
             # Archive cache.
             assert len(fetcher.open_archives) == 1
             # Bundle level cache.

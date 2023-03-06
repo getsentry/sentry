@@ -232,7 +232,11 @@ def fetch_and_cache_artifact(result_url, fetch_fn, cache_key, cache_key_meta, he
 
     def fetch_release_body():
         with fetch_fn() as fp:
-            if z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE:
+            # We want to avoid performing compression in case we have None cache keys or the size of the compressed body
+            # is more than the limit.
+            if (cache_key is None and cache_key_meta is None) or (
+                z_body_size and z_body_size > CACHE_MAX_VALUE_SIZE
+            ):
                 return None, fp.read()
             else:
                 with sentry_sdk.start_span(
@@ -729,15 +733,27 @@ class Fetcher:
         self.open_archives = {}
 
     def bind_release(self, release=None, dist=None):
-        """Updates the fetcher with a release and dist."""
+        """
+        Updates the fetcher with a release and dist.
+        """
         self.release = release
         self.dist = dist
 
     def close(self):
+        """
+        Closes all the open archives in cache.
+        """
         for _, open_archive in self.open_archives.items():
             open_archive.close()
 
     def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
+        """
+        Gets the DebugIdArtifactBundle entry that maps the debug_id and source_file_type to a specific ArtifactBundle.
+
+        This query might return multiple entries, since a debug_id can point to multiple bundles. In this case we
+        decided to take the first element from the result set, but we could use a stronger heuristic like taking the
+        newest entry.
+        """
         # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
         #  we have permissions on not all the bundles.
         return DebugIdArtifactBundle.objects.filter(
@@ -748,6 +764,11 @@ class Fetcher:
 
     @staticmethod
     def _fetch_artifact_bundle_file(artifact_bundle):
+        """
+        Fetches the File object bound to an ArtifactBundle.
+
+        The File object represents the actual .zip bundle file which contains all the required artifacts.
+        """
         # We try to load the bundle file from the cache. The file we are loading here is the entire bundle, not
         # the contents.
         cache_key = get_artifact_bundle_cache_key(artifact_bundle.bundle_id)
@@ -763,10 +784,10 @@ class Fetcher:
         if CACHE_MAX_VALUE_SIZE is not None and artifact_bundle_file.size > CACHE_MAX_VALUE_SIZE:
             return artifact_bundle_file
 
-        with sentry_sdk.start_span(op="fetch_artifact_bundle.read_for_caching") as span:
+        with sentry_sdk.start_span(op="_fetch_artifact_bundle_file.read_for_caching") as span:
             span.set_data("file_size", artifact_bundle_file.size)
             contents = artifact_bundle_file.read()
-        with sentry_sdk.start_span(op="fetch_artifact_bundle.write_to_cache") as span:
+        with sentry_sdk.start_span(op="_fetch_artifact_bundle_file.write_to_cache") as span:
             span.set_data("file_size", len(contents))
             cache.set(cache_key, contents, 3600)
 
@@ -774,32 +795,55 @@ class Fetcher:
         return artifact_bundle_file
 
     def _open_artifact_bundle_archive(self, debug_id, source_file_type):
+        """
+        Opens an ArtifactBundle as a .zip file and returns an ArtifactBundleArchive object that allows the caller
+        to read index individual files within the archive.
+
+        This function uses two levels of caching:
+        1. self.open_archives is a local cache that persists for the Fetcher lifetime and contains all the opened
+        archives indexed by bundle_id.
+        2. self._fetch_artifact_bundle_file uses inside the default cache which is hosted on memcached and stores the
+        actual File object bound to a specific ArtifactBundle. memcached is persisted across processor runs as opposed
+        to the local cache.
+        """
+        bundle_id = None
+
         try:
+            # We first have to run a query to determine the bundle_id that contains the tuple
+            # (debug_id, source_file_type).
             artifact_bundle = self._get_debug_id_artifact_bundle_entry(
                 debug_id, source_file_type
             ).artifact_bundle
             bundle_id = artifact_bundle.bundle_id
 
-            # We check in the local cache first.
+            # Given a bundle_id we check in the local cache if we have the archive already opened.
             cached_bundle = self.open_archives.get(bundle_id)
             if cached_bundle is not None:
+                # In case we already tried to load an ArtifactBundle with this bundle_id, and we failed, we don't want
+                # to try and fetch again the bundle.
                 if cached_bundle == INVALID_ARCHIVE:
                     return None
 
                 return cached_bundle
 
+            # In case the local cache doesn't have the archive, we will try to load it from memcached and then directly
+            # from the source.
             artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
         except Exception as exc:
             logger.error(
-                "Failed to load the artifact bundle for debug_id %s",
+                "Failed to load the artifact bundle for debug_id %s and source_file_type %s",
                 debug_id,
+                source_file_type,
                 exc_info=exc,
             )
+            if bundle_id:
+                self.open_archives = INVALID_ARCHIVE
 
             return None
         else:
             try:
-                # We load the entire bundle into an archive and cache it locally.
+                # We load the entire bundle into an archive and cache it locally. It is very important that this opened
+                # archive is closed before the processing ends.
                 archive = ArtifactBundleArchive(artifact_bundle_file)
                 self.open_archives[bundle_id] = archive
 
@@ -812,15 +856,24 @@ class Fetcher:
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                 )
+                if bundle_id:
+                    self.open_archives = INVALID_ARCHIVE
 
                 return None
 
     def fetch_by_debug_id(self, debug_id, source_file_type):
-        archive = self._open_artifact_bundle_archive(debug_id, source_file_type)
-        if archive is None:
-            return None
+        """
+        Pulls down the file indexed by debug_id and source_file_type from an ArtifactBundle and returns a UrlResult
+        object that "falsely" emulates an HTTP response connected to an HTTP request for fetching the file.
+        """
+        with sentry_sdk.start_span(op="Fetcher.fetch_by_debug_id._open_artifact_bundle_archive"):
+            # We first try to open the entire .zip artifact bundle given the debug_id and the source_file_type.
+            archive = self._open_artifact_bundle_archive(debug_id, source_file_type)
+            if archive is None:
+                return None
 
         try:
+            # Now we actually read the wanted file.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
             logger.error(
@@ -832,6 +885,8 @@ class Fetcher:
 
             return None
         else:
+            # We decided to reuse the existing function but without caching in order to reuse some logic but in reality
+            # the code could be inlined and simplified.
             result = fetch_and_cache_artifact(
                 debug_id_urlify(debug_id),
                 lambda: fp,
@@ -861,9 +916,7 @@ class Fetcher:
 
         # if we've got a release to look on, try that first (incl associated cache)
         if self.release:
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_file.fetch_release_artifact"
-            ):
+            with sentry_sdk.start_span(op="Fetcher.fetch_by_url.fetch_release_artifact"):
                 result = fetch_release_artifact(url, self.release, self.dist)
         else:
             result = None
@@ -907,9 +960,7 @@ class Fetcher:
             with metrics.timer("sourcemaps.fetch"):
                 with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
                     result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
-                with sentry_sdk.start_span(
-                    op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
-                ):
+                with sentry_sdk.start_span(op="Fetcher.fetch_by_url.compress_for_cache"):
                     z_body = zlib.compress(result.body)
                 cache.set(
                     cache_key,
@@ -1658,6 +1709,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
     def close(self):
         StacktraceProcessor.close(self)
+        # We want to close all the open archives inside the local Fetcher cache.
         self.fetcher.close()
         if self.sourcemaps_touched:
             metrics.incr(
