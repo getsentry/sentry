@@ -1,6 +1,6 @@
 import {css, Theme} from '@emotion/react';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 /**
  * Prism (code highlighting) styles. Added to <GlobalStyles />, so no need to import
@@ -12,12 +12,13 @@ export const prismStyles = (theme: Theme) => css`
   }
 
   /* Use dark Prism theme for code snippets imported from Sentry Docs */
-  .gatsby-highlight {
+  .gatsby-highlight,
+  .prism-dark {
     ${theme.prismDarkVariables};
   }
 
   pre[class*='language-'] {
-    overflow-x: scroll;
+    overflow-x: auto;
     padding: ${space(1)} ${space(2)};
     border-radius: ${theme.borderRadius};
     box-shadow: none;

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ExternalLink from 'sentry/components/links/externalLink';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryAppComponent} from 'sentry/types';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
 import {recordInteraction} from 'sentry/utils/recordSentryAppInteraction';
@@ -53,7 +53,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
 export {OpenInContextLine};
 
-export const OpenInContainer = styled('div')<{columnQuantity: number}>`
+const OpenInContainer = styled('div')<{columnQuantity: number}>`
   position: relative;
   z-index: 1;
   display: grid;

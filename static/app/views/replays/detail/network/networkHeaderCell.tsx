@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
@@ -28,20 +28,22 @@ const COLUMNS: {
 
 export const COLUMN_COUNT = COLUMNS.length;
 
-function NetworkHeaderCell({handleSort, index, sortConfig, style}: Props) {
-  const {field, label} = COLUMNS[index];
-  return (
-    <HeaderButton style={style} onClick={() => handleSort(field)}>
-      {label}
-      <IconArrow
-        color="gray300"
-        size="xs"
-        direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
-        style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
-      />
-    </HeaderButton>
-  );
-}
+const NetworkHeaderCell = forwardRef<HTMLButtonElement, Props>(
+  ({handleSort, index, sortConfig, style}: Props, ref) => {
+    const {field, label} = COLUMNS[index];
+    return (
+      <HeaderButton style={style} onClick={() => handleSort(field)} ref={ref}>
+        {label}
+        <IconArrow
+          color="gray300"
+          size="xs"
+          direction={sortConfig.by === field && !sortConfig.asc ? 'down' : 'up'}
+          style={{visibility: sortConfig.by === field ? 'visible' : 'hidden'}}
+        />
+      </HeaderButton>
+    );
+  }
+);
 
 const HeaderButton = styled('button')`
   border: 0;
@@ -66,4 +68,4 @@ const HeaderButton = styled('button')`
   }
 `;
 
-export default forwardRef<HTMLButtonElement, Props>(NetworkHeaderCell);
+export default NetworkHeaderCell;

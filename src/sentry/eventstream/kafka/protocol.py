@@ -39,6 +39,7 @@ def basic_protocol_handler(
             "project_id": event_data["project_id"],
             "group_id": event_data["group_id"],
             "primary_hash": event_data["primary_hash"],
+            "occurrence_id": event_data.get("occurrence_id"),
         }
 
         for name in ("is_new", "is_regression", "is_new_group_environment"):
@@ -184,6 +185,7 @@ def get_task_kwargs_for_message_from_headers(
                 "group_id": group_id,
                 "project_id": project_id,
                 "primary_hash": primary_hash,
+                "occurrence_id": decode_optional_str(header_data.get("occurrence_id")),
             }
 
             skip_consume = decode_bool(cast(bytes, header_data["skip_consume"]))

@@ -1,5 +1,6 @@
 from croniter import croniter
 from django.core.exceptions import ValidationError
+from django.utils.timezone import pytz
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -8,16 +9,16 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
 
-SCHEDULE_TYPES = {
-    "crontab": ScheduleType.CRONTAB,
-    "interval": ScheduleType.INTERVAL,
-}
-
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
 MONITOR_STATUSES = {
     "active": MonitorStatus.ACTIVE,
     "disabled": MonitorStatus.DISABLED,
+}
+
+SCHEDULE_TYPES = {
+    "crontab": ScheduleType.CRONTAB,
+    "interval": ScheduleType.INTERVAL,
 }
 
 INTERVAL_NAMES = ("year", "month", "week", "day", "hour", "minute")
@@ -46,6 +47,7 @@ class CronJobValidator(serializers.Serializer):
     schedule = ObjectField()
     checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
     max_runtime = EmptyIntegerField(required=False, allow_null=True, default=None)
+    timezone = serializers.ChoiceField(choices=pytz.all_timezones, required=False)
 
     def validate_schedule_type(self, value):
         if value:
@@ -87,6 +89,7 @@ class CronJobValidator(serializers.Serializer):
 class MonitorValidator(serializers.Serializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField()
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False)
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())), default="active"
     )
@@ -143,3 +146,4 @@ class MonitorCheckInValidator(serializers.Serializer):
         )
     )
     duration = EmptyIntegerField(required=False, allow_null=True)
+    environment = serializers.CharField(required=False, allow_null=True)

@@ -1,3 +1,5 @@
+import {Flamegraph} from '../../../flamegraph';
+
 export type FlamegraphColorCodings = [
   'by symbol name',
   'by system frame',
@@ -7,21 +9,19 @@ export type FlamegraphColorCodings = [
   'by frequency'
 ];
 
-export type FlamegraphSorting = 'left heavy' | 'call order';
+export type FlamegraphSorting = Flamegraph['sort'];
 export type FlamegraphViewOptions = 'top down' | 'bottom up';
-export type FlamegraphAxisOptions = 'profile' | 'transaction';
 
 export interface FlamegraphPreferences {
   colorCoding: FlamegraphColorCodings[number];
   layout: 'table right' | 'table bottom' | 'table left';
-  sorting: FlamegraphSorting[number];
+  sorting: FlamegraphSorting;
   timelines: {
     minimap: boolean;
     transaction_spans: boolean;
     ui_frames: boolean;
   };
   view: FlamegraphViewOptions[number];
-  xAxis: FlamegraphAxisOptions[number];
 }
 
 type FlamegraphPreferencesAction =
@@ -32,11 +32,7 @@ type FlamegraphPreferencesAction =
   | {payload: FlamegraphPreferences['colorCoding']; type: 'set color coding'}
   | {payload: FlamegraphPreferences['sorting']; type: 'set sorting'}
   | {payload: FlamegraphPreferences['view']; type: 'set view'}
-  | {payload: FlamegraphPreferences['layout']; type: 'set layout'}
-  | {
-      payload: FlamegraphPreferences['xAxis'];
-      type: 'set xAxis';
-    };
+  | {payload: FlamegraphPreferences['layout']; type: 'set layout'};
 
 export function flamegraphPreferencesReducer(
   state: FlamegraphPreferences,
@@ -66,9 +62,6 @@ export function flamegraphPreferencesReducer(
         ...state,
         view: action.payload,
       };
-    }
-    case 'set xAxis': {
-      return {...state, xAxis: action.payload};
     }
     case 'toggle timeline': {
       return {

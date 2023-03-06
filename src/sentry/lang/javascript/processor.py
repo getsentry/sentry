@@ -1,4 +1,5 @@
 import base64
+import binascii
 import errno
 import logging
 import re
@@ -18,6 +19,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 from requests.utils import get_encoding_from_headers
 from symbolic import SourceMapCache as SmCache
+from symbolic import SourceView
 
 from sentry import features, http, options
 from sentry.event_manager import set_tag
@@ -33,11 +35,10 @@ from sentry.utils.cache import cache
 from sentry.utils.files import compress_file
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import is_valid_origin
+from sentry.utils.javascript import find_sourcemap
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
-
-from .cache import SourceCache, SourceMapCache
 
 __all__ = ["JavaScriptStacktraceProcessor"]
 
@@ -69,7 +70,6 @@ NODE_MODULES_RE = re.compile(r"\bnode_modules/")
 # Default Webpack output path using multiple namespace - https://webpack.js.org/configuration/output/#outputdevtoolmodulefilenametemplate
 # eg. webpack://myproject/./src/lib/hellothere.js
 WEBPACK_NAMESPACE_RE = re.compile(r"^webpack://[a-zA-Z0-9_\-@\.]+/\./")
-SOURCE_MAPPING_URL_RE = re.compile(b"//# sourceMappingURL=(.*)$")
 CACHE_CONTROL_RE = re.compile(r"max-age=(\d+)")
 CACHE_CONTROL_MAX = 7200
 CACHE_CONTROL_MIN = 60
@@ -163,65 +163,31 @@ def discover_sourcemap(result):
     """
     Given a UrlResult object, attempt to discover a sourcemap URL.
     """
+    # There might be a scenario where `abs_path` of the frame points to the page
+    # route itself, like https://sentry.io/something (eg. when inlined script throws).
+    # In this case, we would normally skip mapping this frame, as there's no way to
+    # do that in the first place. However some developers, have their tools configured,
+    # so that inlined script end up with `sourceMappingURL` pragma at the end of their
+    # HTML page. When this happen, we'll detect it as a valid sourcemap, and assign
+    # malformed url like https://sentry.io/assets/vendor.42.js.map</script></body></html>
+    # as the discovered sourcemap url. This check tries to prevent that from happening.
+    if is_html_response(result):
+        return None
+
     # When coercing the headers returned by urllib to a dict
     # all keys become lowercase so they're normalized
-    sourcemap = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
+    sourcemap_header = result.headers.get("sourcemap", result.headers.get("x-sourcemap"))
 
     # Force the header value to bytes since we'll be manipulating bytes here
-    sourcemap = force_bytes(sourcemap) if sourcemap is not None else None
+    sourcemap_header = force_bytes(sourcemap_header) if sourcemap_header is not None else None
+    sourcemap_url = find_sourcemap(sourcemap_header, result.body)
+    sourcemap_url = (
+        force_text(non_standard_url_join(result.url, force_text(sourcemap_url)))
+        if sourcemap_url is not None
+        else None
+    )
 
-    if not sourcemap:
-        parsed_body = result.body.split(b"\n")
-        # Source maps are only going to exist at either the top or bottom of the document.
-        # Technically, there isn't anything indicating *where* it should exist, so we
-        # are generous and assume it's somewhere either in the first or last 5 lines.
-        # If it's somewhere else in the document, you're probably doing it wrong.
-        if len(parsed_body) > 10:
-            possibilities = parsed_body[:5] + parsed_body[-5:]
-        else:
-            possibilities = parsed_body
-
-        # We want to scan each line sequentially, and the last one found wins
-        # This behavior is undocumented, but matches what Chrome and Firefox do.
-        for line in possibilities:
-            if line[:21] in (b"//# sourceMappingURL=", b"//@ sourceMappingURL="):
-                # We want everything AFTER the indicator, which is 21 chars long
-                sourcemap = line[21:].rstrip()
-
-        # If we still haven't found anything, check end of last line AFTER source code.
-        # This is not the literal interpretation of the spec, but browsers support it.
-        # e.g. {code}//# sourceMappingURL={url}
-        if not sourcemap:
-            # Only look at last 300 characters to keep search space reasonable (minified
-            # JS on a single line could be tens of thousands of chars). This is a totally
-            # arbitrary number / best guess; most sourceMappingURLs are relative and
-            # not very long.
-            search_space = possibilities[-1][-300:].rstrip()
-            match = SOURCE_MAPPING_URL_RE.search(search_space)
-            if match:
-                sourcemap = match.group(1)
-
-    if sourcemap:
-        # react-native shoves a comment at the end of the
-        # sourceMappingURL line.
-        # For example:
-        #  sourceMappingURL=app.js.map/*ascii:...*/
-        # This comment is completely out of spec and no browser
-        # would support this, but we need to strip it to make
-        # people happy.
-        if b"/*" in sourcemap and sourcemap[-2:] == b"*/":
-            index = sourcemap.index(b"/*")
-            # comment definitely shouldn't be the first character,
-            # so let's just make sure of that.
-            if index == 0:
-                raise AssertionError(
-                    "react-native comment found at bad location: %d, %r" % (index, sourcemap)
-                )
-            sourcemap = sourcemap[:index]
-        # fix url so its absolute
-        sourcemap = non_standard_url_join(result.url, force_text(sourcemap))
-
-    return force_text(sourcemap) if sourcemap is not None else None
+    return sourcemap_url
 
 
 def get_release_file_cache_key(release_id, releasefile_ident):
@@ -610,134 +576,16 @@ def fetch_release_artifact(url, release, dist):
     return result
 
 
-def fetch_file(url, project=None, release=None, dist=None, allow_scraping=True):
-    """
-    Pull down a URL, returning a UrlResult object.
+def is_html_response(result):
+    # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
+    # This cannot parse as valid JS/JSON.
+    # NOTE: not relying on Content-Type header because apps often don't set this correctly
+    # Discard leading whitespace (often found before doctype)
+    body_start = result.body[:20].lstrip()
 
-    Attempts to fetch from the database first (assuming there's a release on the
-    event), then the internet. Caches the result of each of those two attempts
-    separately, whether or not those attempts are successful. Used for both
-    source files and source maps.
-    """
-    # If our url has been truncated, it'd be impossible to fetch
-    # so we check for this early and bail
-    if url[-3:] == "...":
-        raise http.CannotFetch({"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)})
-
-    # if we've got a release to look on, try that first (incl associated cache)
-    if release:
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.fetch_file.fetch_release_artifact"
-        ):
-            result = fetch_release_artifact(url, release, dist)
-    else:
-        result = None
-
-    # otherwise, try the web-scraping cache and then the web itself
-
-    cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
-
-    if result is None:
-        if not allow_scraping or not url.startswith(("http:", "https:")):
-            error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
-            raise http.CannotFetch(error)
-
-        logger.debug("Checking cache for url %r", url)
-        result = cache.get(cache_key)
-        if result is not None:
-            # Previous caches would be a 3-tuple instead of a 4-tuple,
-            # so this is being maintained for backwards compatibility
-            try:
-                encoding = result[4]
-            except IndexError:
-                encoding = None
-            # We got a cache hit, but the body is compressed, so we
-            # need to decompress it before handing it off
-            result = http.UrlResult(
-                result[0], result[1], zlib.decompress(result[2]), result[3], encoding
-            )
-
-    if result is None:
-        headers = {}
-        verify_ssl = False
-        if project and is_valid_origin(url, project=project):
-            verify_ssl = bool(project.get_option("sentry:verify_ssl", False))
-            token = project.get_option("sentry:token")
-            if token:
-                token_header = project.get_option("sentry:token_header") or "X-Sentry-Token"
-                headers[token_header] = token
-
-        with metrics.timer("sourcemaps.fetch"):
-            with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
-                result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
-            with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
-            ):
-                z_body = zlib.compress(result.body)
-            cache.set(
-                cache_key,
-                (url, result.headers, z_body, result.status, result.encoding),
-                get_max_age(result.headers),
-            )
-
-            # since the cache.set above can fail we can end up in a situation
-            # where the file is too large for the cache. In that case we abort
-            # the fetch and cache a failure and lock the domain for future
-            # http fetches.
-            if cache.get(cache_key) is None:
-                error = {
-                    "type": EventError.TOO_LARGE_FOR_CACHE,
-                    "url": http.expose_url(url),
-                }
-                http.lock_domain(url, error=error)
-                raise http.CannotFetch(error)
-
-    # If we did not get a 200 OK we just raise a cannot fetch here.
-    if result.status != 200:
-        raise http.CannotFetch(
-            {
-                "type": EventError.FETCH_INVALID_HTTP_CODE,
-                "value": result.status,
-                "url": http.expose_url(url),
-            }
-        )
-
-    # Make sure the file we're getting back is bytes. The only
-    # reason it'd not be binary would be from old cached blobs, so
-    # for compatibility with current cached files, let's coerce back to
-    # binary and say utf8 encoding.
-    if not isinstance(result.body, bytes):
-        try:
-            result = http.UrlResult(
-                result.url,
-                result.headers,
-                result.body.encode("utf8"),
-                result.status,
-                result.encoding,
-            )
-        except UnicodeEncodeError:
-            error = {
-                "type": EventError.FETCH_INVALID_ENCODING,
-                "value": "utf8",
-                "url": http.expose_url(url),
-            }
-            raise http.CannotFetch(error)
-
-    # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
-    # NOTE: possible to have JS files that don't actually end w/ ".js", but
-    # this should catch 99% of cases
-    if urlsplit(url).path.endswith(".js"):
-        # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
-        # This cannot parse as valid JS/JSON.
-        # NOTE: not relying on Content-Type header because apps often don't set this correctly
-        # Discard leading whitespace (often found before doctype)
-        body_start = result.body[:20].lstrip()
-
-        if body_start[:1] == b"<":
-            error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
-            raise http.CannotFetch(error)
-
-    return result
+    if body_start[:1] == b"<":
+        return True
+    return False
 
 
 def get_max_age(headers):
@@ -749,41 +597,6 @@ def get_max_age(headers):
         if match:
             max_age = max(CACHE_CONTROL_MIN, int(match.group(1)))
     return min(max_age, CACHE_CONTROL_MAX)
-
-
-def fetch_sourcemap(url, source=b"", project=None, release=None, dist=None, allow_scraping=True):
-    if is_data_uri(url):
-        try:
-            body = base64.b64decode(
-                force_bytes(url[BASE64_PREAMBLE_LENGTH:])
-                + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
-            )
-        except TypeError as e:
-            raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
-    else:
-        # look in the database and, if not found, optionally try to scrape the web
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.fetch_sourcemap.fetch_file"
-        ) as span:
-            span.set_data("url", url)
-            result = fetch_file(
-                url,
-                project=project,
-                release=release,
-                dist=dist,
-                allow_scraping=allow_scraping,
-            )
-        body = result.body
-    try:
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.fetch_sourcemap.SmCache.from_bytes"
-        ):
-            return SmCache.from_bytes(source, body)
-
-    except Exception as exc:
-        # This is in debug because the product shows an error already.
-        logger.debug(str(exc), exc_info=True)
-        raise UnparseableSourcemap({"url": http.expose_url(url)})
 
 
 def is_data_uri(url):
@@ -882,6 +695,159 @@ def fold_function_name(function_name):
     return f'{".".join(map(format_groups, grouped))}.{tail}'
 
 
+class Fetcher:
+    """
+    Components responsible for fetching files either by url or debug_id that aims at hiding the complexity involved
+    in file fetching.
+    """
+
+    def __init__(self, project=None, release=None, dist=None, allow_scraping=True):
+        self.project = project
+        self.release = release
+        self.dist = dist
+        self.allow_scraping = allow_scraping
+
+    def bind_release(self, release=None, dist=None):
+        """Updates the fetcher with a release and dist."""
+        self.release = release
+        self.dist = dist
+
+    def fetch_by_debug_id(self, debug_id, source_file_type):
+        # TODO: implement debug id lookup.
+        return None
+
+    def fetch_by_url(self, url):
+        """
+        Pull down a URL, returning a UrlResult object.
+
+        Attempts to fetch from the database first (assuming there's a release on the
+        event), then the internet. Caches the result of each of those two attempts
+        separately, whether or not those attempts are successful. Used for both
+        source files and source maps.
+        """
+        # If our url has been truncated, it'd be impossible to fetch
+        # so we check for this early and bail
+        if url[-3:] == "...":
+            raise http.CannotFetch(
+                {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+            )
+
+        # if we've got a release to look on, try that first (incl associated cache)
+        if self.release:
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_file.fetch_release_artifact"
+            ):
+                # TODO: move this method internally in the class.
+                result = fetch_release_artifact(url, self.release, self.dist)
+        else:
+            result = None
+
+        # otherwise, try the web-scraping cache and then the web itself
+
+        cache_key = f"source:cache:v4:{md5_text(url).hexdigest()}"
+
+        if result is None:
+            if not self.allow_scraping or not url.startswith(("http:", "https:")):
+                error = {"type": EventError.JS_MISSING_SOURCE, "url": http.expose_url(url)}
+                raise http.CannotFetch(error)
+
+            logger.debug("Checking cache for url %r", url)
+            result = cache.get(cache_key)
+            if result is not None:
+                # Previous caches would be a 3-tuple instead of a 4-tuple,
+                # so this is being maintained for backwards compatibility
+                try:
+                    encoding = result[4]
+                except IndexError:
+                    encoding = None
+                # We got a cache hit, but the body is compressed, so we
+                # need to decompress it before handing it off
+                result = http.UrlResult(
+                    result[0], result[1], zlib.decompress(result[2]), result[3], encoding
+                )
+
+        if result is None:
+            headers = {}
+            verify_ssl = False
+            if self.project and is_valid_origin(url, project=self.project):
+                verify_ssl = bool(self.project.get_option("sentry:verify_ssl", False))
+                token = self.project.get_option("sentry:token")
+                if token:
+                    token_header = (
+                        self.project.get_option("sentry:token_header") or "X-Sentry-Token"
+                    )
+                    headers[token_header] = token
+
+            with metrics.timer("sourcemaps.fetch"):
+                with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.fetch_file.http"):
+                    result = http.fetch_file(url, headers=headers, verify_ssl=verify_ssl)
+                with sentry_sdk.start_span(
+                    op="JavaScriptStacktraceProcessor.fetch_file.compress_for_cache"
+                ):
+                    z_body = zlib.compress(result.body)
+                cache.set(
+                    cache_key,
+                    (url, result.headers, z_body, result.status, result.encoding),
+                    get_max_age(result.headers),
+                )
+
+                # since the cache.set above can fail we can end up in a situation
+                # where the file is too large for the cache. In that case we abort
+                # the fetch and cache a failure and lock the domain for future
+                # http fetches.
+                if cache.get(cache_key) is None:
+                    error = {
+                        "type": EventError.TOO_LARGE_FOR_CACHE,
+                        "url": http.expose_url(url),
+                    }
+                    http.lock_domain(url, error=error)
+                    raise http.CannotFetch(error)
+
+        # If we did not get a 200 OK we just raise a cannot fetch here.
+        if result.status != 200:
+            raise http.CannotFetch(
+                {
+                    "type": EventError.FETCH_INVALID_HTTP_CODE,
+                    "value": result.status,
+                    "url": http.expose_url(url),
+                }
+            )
+
+        # Make sure the file we're getting back is bytes. The only
+        # reason it'd not be binary would be from old cached blobs, so
+        # for compatibility with current cached files, let's coerce back to
+        # binary and say utf8 encoding.
+        if not isinstance(result.body, bytes):
+            try:
+                result = http.UrlResult(
+                    result.url,
+                    result.headers,
+                    result.body.encode("utf8"),
+                    result.status,
+                    result.encoding,
+                )
+            except UnicodeEncodeError:
+                error = {
+                    "type": EventError.FETCH_INVALID_ENCODING,
+                    "value": "utf8",
+                    "url": http.expose_url(url),
+                }
+                raise http.CannotFetch(error)
+
+        # For JavaScript files, check if content is something other than JavaScript/JSON (i.e. HTML)
+        # NOTE: possible to have JS files that don't actually end w/ ".js", but
+        # this should catch 99% of cases
+        if urlsplit(url).path.endswith(".js") and is_html_response(result):
+            error = {"type": EventError.JS_INVALID_CONTENT, "url": url}
+            raise http.CannotFetch(error)
+
+        return result
+
+    def _fetch_sourcemap_by_debug_id(self):
+        # TODO: implement debug id lookup.
+        return None
+
+
 class JavaScriptStacktraceProcessor(StacktraceProcessor):
     """
     Modern SourceMap processor using symbolic-sourcemapcache.
@@ -909,22 +875,35 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         self.organization = organization
         self.max_fetches = MAX_RESOURCE_FETCHES
-        self.allow_scraping = organization.get_option(
-            "sentry:scrape_javascript", True
-        ) is not False and self.project.get_option("sentry:scrape_javascript", True)
 
         self.fetch_count = 0
         self.sourcemaps_touched = set()
 
-        # cache holding mangled code, original code, and errors associated with
-        # each abs_path in the stacktrace
-        self.cache = SourceCache()
+        # All the following dictionaries have been defined top level for simplicity reasons. Because this code will
+        # be ported to Symbolicator we wanted to keep it as simple and explicit as possible. This comment also
+        # applies to the many repetitions across the code.
 
-        # cache holding source URLs, corresponding source map URLs, and source map contents
-        self.sourcemaps = SourceMapCache()
+        # Cache holding the results of the fetching by url.
+        self.fetch_by_url_sourceviews = {}
+        self.fetch_by_url_errors = {}
 
-        self.release = None
-        self.dist = None
+        # Cache holding the results of the fetching by debug id.
+        self.fetch_by_debug_id_sourceviews = {}
+
+        # Cache holding the sourcemaps views indexed by either debug id or sourcemap url.
+        self.debug_id_sourcemap_cache = {}
+        self.sourcemap_url_sourcemap_cache = {}
+
+        # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
+        # which is discovered by looking at the minified source.
+        self.minified_source_url_to_sourcemap_url = {}
+
+        # Component responsible for fetching the files.
+        self.fetcher = Fetcher(
+            project=self.project,
+            allow_scraping=organization.get_option("sentry:scrape_javascript", True) is not False
+            and self.project.get_option("sentry:scrape_javascript", True),
+        )
 
     def get_valid_frames(self):
         # build list of frames that we can actually grab source for
@@ -942,12 +921,17 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             )
             return False
 
+        release = None
+        dist = None
+
         with sentry_sdk.start_span(op="JavaScriptStacktraceProcessor.preprocess_step.get_release"):
-            self.release = self.get_release(create=True)
-            if self.data.get("dist") and self.release:
+            release = self.get_release(create=True)
+            if self.data.get("dist") and release:
                 timestamp = self.data.get("timestamp")
                 date = timestamp and datetime.fromtimestamp(timestamp).replace(tzinfo=timezone.utc)
-                self.dist = self.release.add_dist(self.data["dist"], date)
+                dist = release.add_dist(self.data["dist"], date)
+
+        self.fetcher.bind_release(release=release, dist=dist)
 
         with sentry_sdk.start_span(
             op="JavaScriptStacktraceProcessor.preprocess_step.populate_source_cache"
@@ -970,10 +954,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         Attempt to demangle the given frame.
         """
         frame = processable_frame.frame
-        token = None
 
-        cache = self.cache
-        sourcemaps = self.sourcemaps
         all_errors = []
         sourcemap_applied = False
 
@@ -989,22 +970,28 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         ):
             return
 
-        errors = cache.get_errors(frame["abs_path"])
-        if errors:
+        # The 'sourceview' is used for pre/post and 'context_line' frame expansion.
+        # Here it's pointing to the minified source, however the variable can be shadowed with the original sourceview
+        # (or 'None' if the token doesnt provide us with the 'context_line') down the road.
+        # TODO: add support for debug ids.
+        sourceview = self.get_or_fetch_sourceview(url=frame["abs_path"])
+        sourcemap_cache = self.get_or_fetch_sourcemap_cache(url=frame["abs_path"])
+
+        # We check for errors once both the minified file and the corresponding sourcemaps are loaded. In case errors
+        # happen in one of the two we will detect them and add them to 'all_errors'.
+        errors = self.fetch_by_url_errors.get(frame["abs_path"])
+        if errors is not None:
             all_errors.extend(errors)
 
-        # `source` is used for pre/post and `context_line` frame expansion.
-        # Here it's pointing to minified source, however the variable can be shadowed with the original sourceview
-        # (or `None` if the token doesnt provide us with the `context_line`) down the road.
-        source = self.get_sourceview(frame["abs_path"])
+        # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
+        sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
+        self.sourcemaps_touched.add(sourcemap_url)
+
         source_context = None
 
         in_app = None
         new_frame = dict(frame)
         raw_frame = dict(frame)
-
-        sourcemap_url, sourcemap_cache = sourcemaps.get_link(frame["abs_path"])
-        self.sourcemaps_touched.add(sourcemap_url)
 
         if sourcemap_cache and frame.get("colno") is None:
             all_errors.append(
@@ -1052,13 +1039,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     "Mapping compressed source %r to mapping in %r", frame["abs_path"], abs_path
                 )
 
+                # This 'if' should always evaluate to True when debug_id is used.
                 if token.context_line is not None:
                     source_context = token.pre_context, token.context_line, token.post_context
                 else:
-                    source = self.get_sourceview(abs_path)
+                    sourceview = self.get_or_fetch_sourceview(url=abs_path)
 
-                if source is None:
-                    errors = cache.get_errors(abs_path)
+                if sourceview is None:
+                    errors = self.fetch_by_url_errors.get(abs_path)
                     if errors:
                         all_errors.extend(errors)
                     else:
@@ -1130,11 +1118,13 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 new_frame.get("data") or {}, sourcemap=http.expose_url(sourcemap_url)
             )
 
-        changed_frame = self.expand_frame(new_frame, source_context=source_context, source=source)
+        changed_frame = self.expand_frame(
+            new_frame, source_context=source_context, source=sourceview
+        )
 
         # If we did not manage to match but we do have a line or column
         # we want to report an error here.
-        if not new_frame.get("context_line") and source and new_frame.get("colno") is not None:
+        if not new_frame.get("context_line") and sourceview and new_frame.get("colno") is not None:
             all_errors.append(
                 {
                     "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
@@ -1170,6 +1160,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     self.tag_suspected_console_errors(new_frames)
             except Exception as exc:
                 logger.exception("Failed to tag suspected console errors", exc_info=exc)
+
             return new_frames, raw_frames, all_errors
 
     def tag_suspected_console_errors(self, new_frames):
@@ -1209,7 +1200,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             return False
 
         if source_context is None:
-            source = source or self.get_sourceview(frame["abs_path"])
+            # TODO: add lookup by debug id in case abs_path has it.
+            source = source or self.get_or_fetch_sourceview(url=frame["abs_path"])
             if source is None:
                 logger.debug("No source found for %s", frame["abs_path"])
                 return False
@@ -1227,74 +1219,157 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         return True
 
-    def get_sourceview(self, filename):
-        if filename not in self.cache:
-            self.cache_source(filename)
-        return self.cache.get(filename)
-
-    def cache_source(self, filename):
+    def get_or_fetch_sourceview(self, url=None, debug_id=None, source_file_type=None):
         """
-        Look for and (if found) cache a source file and its associated source
-        map (if any).
+        Gets from the cache or fetches the file at 'url' or 'debug_id'.
+
+        Returns None when a file with either 'url' or 'debug_id' cannot be found.
         """
+        # We require that artifact bundles with debug ids used embedded source in the source map.
+        # TODO: use enum for source file type when available.
+        if debug_id is not None and source_file_type == "source":
+            return None
 
-        sourcemaps = self.sourcemaps
-        cache = self.cache
+        rv = self._get_cached_sourceview(url, debug_id, source_file_type)
+        if rv is not None:
+            return rv
 
+        return self._fetch_and_cache_sourceview(url, debug_id, source_file_type)
+
+    def _get_cached_sourceview(self, url=None, debug_id=None, source_file_type=None):
+        if debug_id is not None:
+            sourceview = self.fetch_by_debug_id_sourceviews.get((debug_id, source_file_type))
+            if sourceview is not None:
+                return sourceview
+
+        if url is not None:
+            sourceview = self.fetch_by_url_sourceviews.get(url)
+            if sourceview is not None:
+                return sourceview
+
+        return None
+
+    def _fetch_and_cache_sourceview(self, url, debug_id, source_file_type):
         self.fetch_count += 1
 
+        # TODO: this branch should only apply to http fetches.
         if self.fetch_count > self.max_fetches:
-            cache.add_error(filename, {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES})
-            return
+            self.fetch_by_url_errors.setdefault(url, []).append(
+                {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
+            )
+            return None
 
-        # TODO: respect cache-control/max-age headers to some extent
-        logger.debug("Attempting to cache source %r", filename)
-        try:
-            # this both looks in the database and tries to scrape the internet
+        if debug_id is not None:
+            logger.debug("Attempting to cache source with debug id %r", debug_id)
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.cache_source.fetch_file"
+                op="JavaScriptStacktraceProcessor.fetch_and_cache_sourceview.fetch_by_debug_id"
             ) as span:
-                span.set_data("filename", filename)
-                result = fetch_file(
-                    filename,
-                    project=self.project,
-                    release=self.release,
-                    dist=self.dist,
-                    allow_scraping=self.allow_scraping,
-                )
+                span.set_data("debug_id", debug_id)
+                result = self.fetcher.fetch_by_debug_id(debug_id, source_file_type)
+                if result is not None:
+                    sourceview = SourceView.from_bytes(result.body)
+                    self.fetch_by_debug_id_sourceviews[debug_id, source_file_type] = sourceview
+                    return sourceview
+
+        try:
+            logger.debug("Attempting to cache source with url %r", url)
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_and_cache_sourceview.fetch_by_url"
+            ) as span:
+                span.set_data("url", url)
+                result = self.fetcher.fetch_by_url(url)
         except http.BadSource as exc:
-            if not fetch_error_should_be_silienced(exc.data, filename):
-                cache.add_error(filename, exc.data)
+            if not fetch_error_should_be_silienced(exc.data, url):
+                self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
             # either way, there's no more for us to do here, since we don't have
             # a valid file to cache
-            return
-        cache.add(filename, result.body, result.encoding)
-        cache.alias(result.url, filename)
+            return None
+        else:
+            sourceview = SourceView.from_bytes(result.body)
+            self.fetch_by_url_sourceviews[url] = sourceview
 
-        sourcemap_url = discover_sourcemap(result)
-        if not sourcemap_url:
-            return
+            sourcemap_url = discover_sourcemap(result)
+            if sourcemap_url:
+                self.minified_source_url_to_sourcemap_url[url] = sourcemap_url
 
-        logger.debug(
-            "Found sourcemap URL %r for minified script %r", sourcemap_url[:256], result.url
-        )
-        sourcemaps.link(filename, sourcemap_url)
-        if sourcemap_url in sourcemaps:
-            return
+            return sourceview
 
-        # pull down sourcemap
+    def get_or_fetch_sourcemap_cache(self, url=None, debug_id=None):
+        """
+        Gets from the cache or fetches the SmCache of the file at 'url' or 'debug_id'.
+
+        Returns None when a sourcemap corresponding to the file at 'url' is not found.
+        """
+        rv = self._get_cached_sourcemap_cache(url, debug_id)
+        if rv is not None:
+            return rv
+
+        return self._fetch_and_cache_sourcemap_cache(url, debug_id)
+
+    def _get_cached_sourcemap_cache(self, url, debug_id):
+        if debug_id is not None:
+            rv = self.debug_id_sourcemap_cache.get(debug_id)
+            if rv is not None:
+                return rv
+
+        if url is not None:
+            # We get the url of the sourcemap from the url of the minified file.
+            sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
+            rv = self.sourcemap_url_sourcemap_cache.get(sourcemap_url)
+            if rv is not None:
+                return rv
+
+        return None
+
+    def _fetch_and_cache_sourcemap_cache(self, url, debug_id):
+        if debug_id is not None:
+            sourcemap_view = self._handle_debug_id_sourcemap_lookup(debug_id)
+            if sourcemap_view is not None:
+                return sourcemap_view
+
+        if url is not None:
+            sourcemap_view = self._handle_url_sourcemap_lookup(url)
+            if sourcemap_view is not None:
+                return sourcemap_view
+
+        return None
+
+    def _handle_debug_id_sourcemap_lookup(self, debug_id):
+        minified_sourceview = self.fetch_by_debug_id_sourceviews.get(debug_id)
+        if minified_sourceview is None:
+            return None
+
+        # TODO: use enum for source file type when available.
+        result = self.fetcher.fetch_by_debug_id(debug_id, "sourcemap")
+        if result is not None:
+            sourcemap_view = SmCache.from_bytes(
+                minified_sourceview.get_source().encode("utf-8"), result.body
+            )
+            self.debug_id_sourcemap_cache[debug_id] = sourcemap_view
+            return sourcemap_view
+
+    def _handle_url_sourcemap_lookup(self, url):
+        # In case there are any fetching errors tied to the url of the minified file, we don't want to attempt the
+        # construction of the sourcemap cache.
+        if url in self.fetch_by_url_errors:
+            return None
+
+        minified_sourceview = self.fetch_by_url_sourceviews.get(url)
+        if minified_sourceview is None:
+            return None
+
+        sourcemap_url = self.minified_source_url_to_sourcemap_url.get(url)
+        if sourcemap_url is None:
+            return None
+
         try:
             with sentry_sdk.start_span(
-                op="JavaScriptStacktraceProcessor.cache_source.fetch_sourcemap"
+                op="JavaScriptStacktraceProcessor.handle_url_sourcemap_lookup.fetch_sourcemap_view_by_url"
             ) as span:
+                span.set_data("url", url)
                 span.set_data("sourcemap_url", sourcemap_url)
-                sourcemap_view = fetch_sourcemap(
-                    sourcemap_url,
-                    source=result.body,
-                    project=self.project,
-                    release=self.release,
-                    dist=self.dist,
-                    allow_scraping=self.allow_scraping,
+                sourcemap_cache = self._fetch_sourcemap_cache_by_url(
+                    sourcemap_url, source=minified_sourceview.get_source().encode()
                 )
         except http.BadSource as exc:
             # we don't perform the same check here as above, because if someone has
@@ -1303,13 +1378,41 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             # working, if that's the case). If they're not looking for it to be
             # mapped, then they shouldn't be uploading the source file in the
             # first place.
-            cache.add_error(filename, exc.data)
-            return
+            self.fetch_by_url_errors.setdefault(url, []).append(exc.data)
+            return None
+        else:
+            self.sourcemap_url_sourcemap_cache[sourcemap_url] = sourcemap_cache
+            return sourcemap_cache
 
-        with sentry_sdk.start_span(
-            op="JavaScriptStacktraceProcessor.cache_source.cache_sourcemap_view"
-        ) as span:
-            sourcemaps.add(sourcemap_url, sourcemap_view)
+    def _fetch_sourcemap_cache_by_url(self, url, source=b""):
+        if is_data_uri(url):
+            try:
+                body = base64.b64decode(
+                    force_bytes(url[BASE64_PREAMBLE_LENGTH:])
+                    + (b"=" * (-(len(url) - BASE64_PREAMBLE_LENGTH) % 4))
+                )
+            except binascii.Error as e:
+                raise UnparseableSourcemap({"url": "<base64>", "reason": str(e)})
+        else:
+            # look in the database and, if not found, optionally try to scrape the web
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.fetch_by_url"
+            ) as span:
+                span.set_data("url", url)
+                result = self.fetcher.fetch_by_url(url)
+
+            body = result.body
+
+        try:
+            with sentry_sdk.start_span(
+                op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_url.SmCache.from_bytes"
+            ):
+                # This is an expensive operation that should be executed as few times as possible.
+                return SmCache.from_bytes(source, body)
+        except Exception as exc:
+            # This is in debug because the product shows an error already.
+            logger.debug(str(exc), exc_info=True)
+            raise UnparseableSourcemap({"url": http.expose_url(url)})
 
     def populate_source_cache(self, frames):
         """
@@ -1337,7 +1440,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 op="JavaScriptStacktraceProcessor.populate_source_cache.cache_source"
             ) as span:
                 span.set_data("filename", filename)
-                self.cache_source(filename=filename)
+                # TODO: we want to implement the construction of the abs_path -> debug_id table.
+                # We first want to fetch the sourceview of the file but not the sourcemaps.
+                self.get_or_fetch_sourceview(url=filename)
 
     def close(self):
         StacktraceProcessor.close(self)

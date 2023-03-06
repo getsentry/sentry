@@ -4,21 +4,26 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log
+from sentry import audit_log, features, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.decorators import sudo_required
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer as ModelTeamSerializer
+from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.models import ScheduledDeletion, Team, TeamStatus
 
 
-class TeamSerializer(serializers.ModelSerializer):
+class TeamSerializer(CamelSnakeModelSerializer):
     slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50)
+    org_role = serializers.ChoiceField(
+        choices=tuple(list(roles.get_choices()) + [("")]),
+        default="",
+    )
 
     class Meta:
         model = Team
-        fields = ("name", "slug")
+        fields = ("name", "slug", "org_role")
 
     def validate_slug(self, value):
         qs = Team.objects.filter(slug=value, organization=self.instance.organization).exclude(
@@ -26,6 +31,11 @@ class TeamSerializer(serializers.ModelSerializer):
         )
         if qs.exists():
             raise serializers.ValidationError(f'The slug "{value}" is already in use.')
+        return value
+
+    def validate_org_role(self, value):
+        if value == "":
+            return None
         return value
 
 
@@ -74,18 +84,46 @@ class TeamDetailsEndpoint(TeamEndpoint):
         :param string name: the new name for the team.
         :param string slug: a new slug for the team.  It has to be unique
                             and available.
+        :param string orgRole: an organization role for the team. Only
+                               owners can set this value.
         :auth: required
         """
+        team_org_role = team.org_role
+        if team_org_role != request.data.get("orgRole"):
+            if not features.has("organizations:org-roles-for-teams", team.organization, actor=None):
+                # remove the org role, but other fields can still be set
+                del request.data["orgRole"]
+
+            if team.idp_provisioned:
+                return Response(
+                    {
+                        "detail": "This team is managed through your organization's identity provider."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+            # users should not be able to set the role of a team to something higher than themselves
+            # only allow the top dog to do this so they can set the org_role to any role in the org
+            elif not request.access.has_scope("org:admin"):
+                return Response(
+                    {
+                        "detail": f"You must have the role of {roles.get_top_dog().id} to perform this action."
+                    },
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
         serializer = TeamSerializer(team, data=request.data, partial=True)
         if serializer.is_valid():
             team = serializer.save()
 
+            data = team.get_audit_log_data()
+            data["old_org_role"] = team_org_role
             self.create_audit_entry(
                 request=request,
                 organization=team.organization,
                 target_object=team.id,
                 event=audit_log.get_event_id("TEAM_EDIT"),
-                data=team.get_audit_log_data(),
+                data=data,
             )
 
             return Response(serialize(team, request.user))

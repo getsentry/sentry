@@ -1,7 +1,6 @@
-import {Fragment, useCallback} from 'react';
+import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 
@@ -18,42 +17,40 @@ function FlamegraphViewSelectMenu({
   sorting,
   onSortingChange,
 }: FlamegraphViewSelectMenuProps): React.ReactElement {
-  const onCallOrderClick = useCallback(() => {
-    onSortingChange('call order');
-  }, [onSortingChange]);
-
-  const onLeftHeavyClick = useCallback(() => {
-    onSortingChange('left heavy');
-  }, [onSortingChange]);
-
-  const onBottomUpClick = useCallback(() => {
-    onViewChange('bottom up');
-  }, [onViewChange]);
-
-  const onTopDownClick = useCallback(() => {
-    onViewChange('top down');
-  }, [onViewChange]);
-
   return (
-    <Fragment>
-      <ButtonBar merged active={sorting}>
-        <Button barId="call order" size="xs" onClick={onCallOrderClick}>
-          {t('Call Order')}
-        </Button>
-        <Button barId="left heavy" size="xs" onClick={onLeftHeavyClick}>
-          {t('Left Heavy')}
-        </Button>
-      </ButtonBar>
-      <ButtonBar merged active={view}>
-        <Button barId="bottom up" size="xs" onClick={onBottomUpClick}>
-          {t('Bottom Up')}
-        </Button>
-        <Button barId="top down" size="xs" onClick={onTopDownClick}>
-          {t('Top Down')}
-        </Button>
-      </ButtonBar>
-    </Fragment>
+    <FlamegraphViewSelectMenuWrap>
+      <SegmentedControl
+        aria-label="Sorting"
+        size="xs"
+        value={sorting}
+        priority="primary"
+        onChange={onSortingChange}
+      >
+        <SegmentedControl.Item key="call order">{t('Call Order')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="alphabetical">
+          {t('Alphabetical')}
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
+      </SegmentedControl>
+      <SegmentedControl
+        aria-label="View"
+        size="xs"
+        value={view}
+        onChange={onViewChange}
+        priority="primary"
+      >
+        <SegmentedControl.Item key="bottom up">{t('Bottom Up')}</SegmentedControl.Item>
+        <SegmentedControl.Item key="top down">{t('Top Down')}</SegmentedControl.Item>
+      </SegmentedControl>
+    </FlamegraphViewSelectMenuWrap>
   );
 }
 
 export {FlamegraphViewSelectMenu};
+
+const FlamegraphViewSelectMenuWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: inherit;
+  min-width: max-content;
+`;

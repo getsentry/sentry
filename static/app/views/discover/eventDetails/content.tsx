@@ -22,7 +22,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event, EventTag} from 'sentry/types/event';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -37,10 +37,15 @@ import TraceMetaQuery, {
   TraceMetaQueryChildrenProps,
 } from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import {QuickTraceQueryChildrenProps} from 'sentry/utils/performance/quickTrace/types';
-import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
+import {
+  getTraceTimeRangeFromEvent,
+  isTransaction,
+} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import EventMetas from 'sentry/views/performance/transactionDetails/eventMetas';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
+import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import DiscoverBreadcrumb from '../breadcrumb';
 import {generateTitle, getExpandedResults} from '../utils';
@@ -147,6 +152,10 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
     const eventJsonUrl = `/api/0/projects/${organization.slug}/${this.projectId}/events/${event.eventID}/json/`;
 
     const hasProfilingFeature = organization.features.includes('profiling');
+    const hasProfilingPreviewsFeature =
+      hasProfilingFeature && organization.features.includes('profiling-previews');
+
+    const profileId = isTransaction(event) ? event.contexts?.profile?.profile_id : null;
 
     const renderContent = (
       results?: QuickTraceQueryChildrenProps,
@@ -242,13 +251,41 @@ class EventDetailsContent extends AsyncComponent<Props, State> {
                     }}
                   >
                     <QuickTraceContext.Provider value={results}>
-                      <BorderlessEventEntries
-                        organization={organization}
-                        event={event}
-                        project={projects[0] as Project}
-                        location={location}
-                        showTagSummary={false}
-                      />
+                      {hasProfilingPreviewsFeature ? (
+                        <ProfilesProvider
+                          orgSlug={organization.slug}
+                          projectSlug={this.projectId}
+                          profileId={profileId || ''}
+                        >
+                          <ProfileContext.Consumer>
+                            {profiles => (
+                              <ProfileGroupProvider
+                                type="flamechart"
+                                input={
+                                  profiles?.type === 'resolved' ? profiles.data : null
+                                }
+                                traceID={profileId || ''}
+                              >
+                                <BorderlessEventEntries
+                                  organization={organization}
+                                  event={event}
+                                  project={projects[0] as Project}
+                                  location={location}
+                                  showTagSummary={false}
+                                />
+                              </ProfileGroupProvider>
+                            )}
+                          </ProfileContext.Consumer>
+                        </ProfilesProvider>
+                      ) : (
+                        <BorderlessEventEntries
+                          organization={organization}
+                          event={event}
+                          project={projects[0] as Project}
+                          location={location}
+                          showTagSummary={false}
+                        />
+                      )}
                     </QuickTraceContext.Provider>
                   </SpanEntryContext.Provider>
                 ) : (

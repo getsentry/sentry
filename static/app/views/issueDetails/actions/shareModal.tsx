@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import copy from 'copy-text-to-clipboard';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -12,7 +13,7 @@ import {IconCopy, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Group, Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
 
@@ -130,8 +131,8 @@ function ShareIssueModal({
                 borderless
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(shareUrl);
                   urlRef.current?.selectText();
+                  copy(shareUrl);
                 }}
                 icon={<IconCopy />}
                 aria-label={t('Copy to clipboard')}
@@ -154,7 +155,8 @@ function ShareIssueModal({
           <Button
             priority="primary"
             onClick={() => {
-              navigator.clipboard.writeText(shareUrl);
+              urlRef.current?.selectText();
+              copy(shareUrl);
               closeModal();
             }}
           >

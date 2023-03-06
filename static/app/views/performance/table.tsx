@@ -23,14 +23,11 @@ import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  EventData,
-  isFieldSortable,
-  MetaType,
-} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
@@ -46,28 +43,10 @@ import {
 import {COLUMN_TITLES} from './data';
 import {
   createUnnamedTransactionsDiscoverTarget,
+  getProjectID,
   getSelectedProjectPlatforms,
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
-
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
 
 type Props = {
   eventView: EventView;
@@ -446,24 +425,31 @@ class _Table extends Component<Props, State> {
                 >
                   {({pageLinks, isLoading, tableData}) => (
                     <Fragment>
-                      <GridEditable
-                        isLoading={isLoading}
-                        data={tableData ? tableData.data : []}
-                        columnOrder={columnOrder}
-                        columnSortBy={columnSortBy}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          renderPrependColumns: this.renderPrependCellWithData(
-                            tableData
-                          ) as any,
-                          prependColumnWidths,
-                        }}
-                        location={location}
-                      />
+                      <VisuallyCompleteWithData
+                        id="PerformanceTable"
+                        hasData={
+                          !isLoading && !!tableData?.data && tableData.data.length > 0
+                        }
+                      >
+                        <GridEditable
+                          isLoading={isLoading}
+                          data={tableData ? tableData.data : []}
+                          columnOrder={columnOrder}
+                          columnSortBy={columnSortBy}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
+                            prependColumnWidths,
+                          }}
+                          location={location}
+                        />
+                      </VisuallyCompleteWithData>
                       <Pagination
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}

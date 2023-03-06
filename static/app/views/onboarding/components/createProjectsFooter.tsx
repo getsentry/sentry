@@ -15,7 +15,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
@@ -140,14 +140,30 @@ export default function CreateProjectsFooter({
         ) : null}
       </SelectionWrapper>
       <ButtonWrapper>
-        <Button
-          priority="primary"
-          onClick={createProjects}
-          disabled={platforms.length === 0}
-          data-test-id="platform-select-next"
-        >
-          {tn('Create Project', 'Create Projects', platforms.length)}
-        </Button>
+        {singleSelectPlatform ? (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+            title={
+              platforms.length === 0
+                ? t('Select the platform you want to monitor')
+                : undefined
+            }
+          >
+            {t('Create Project')}
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+          >
+            {tn('Create Project', 'Create Projects', platforms.length)}
+          </Button>
+        )}
       </ButtonWrapper>
     </GenericFooter>
   );

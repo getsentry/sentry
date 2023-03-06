@@ -212,12 +212,8 @@ describe('ThreadsV2', function () {
         expect(screen.getByRole('heading', {name: 'Stack Trace'})).toBeInTheDocument();
 
         // Actions
-        expect(
-          screen.getByRole('button', {name: 'Full Stack Trace'})
-        ).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -237,15 +233,11 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
+        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -870,12 +862,8 @@ describe('ThreadsV2', function () {
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
 
         // Actions
-        expect(
-          screen.getByRole('button', {name: 'Full Stack Trace'})
-        ).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
         expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
 
         // Stack Trace
@@ -897,15 +885,11 @@ describe('ThreadsV2', function () {
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).not.toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('button', {name: 'Full Stack Trace'}));
+        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
-        expect(screen.getByRole('button', {name: 'Full Stack Trace'})).toHaveClass(
-          'active'
-        );
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
@@ -926,9 +910,10 @@ describe('ThreadsV2', function () {
         expect(screen.getByText('Oldest')).toBeInTheDocument();
 
         // Recent first is checked by default
-        expect(
-          within(screen.getByTestId('recent-first')).getByTestId('icon-check-mark')
-        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'Newest'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
 
         // Click on recent last
         userEvent.click(screen.getByText('Oldest'));
@@ -1024,7 +1009,7 @@ describe('ThreadsV2', function () {
 
         // Full stack trace toggler is not displayed
         expect(
-          screen.queryByRole('button', {name: 'Full Stack Trace'})
+          screen.queryByRole('radio', {name: 'Full Stack Trace'})
         ).not.toBeInTheDocument();
 
         // Raw content is displayed
@@ -1032,6 +1017,9 @@ describe('ThreadsV2', function () {
 
         // Raw content and the Raw stack trace option
         expect(screen.getAllByTestId('raw-stack-trace')).toHaveLength(2);
+
+        // Raw stack trace option
+        expect(screen.getByRole('option', {name: 'Raw stack trace'})).toBeInTheDocument();
       });
     });
   });

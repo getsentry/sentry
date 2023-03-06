@@ -18,15 +18,15 @@ import categoryList, {
 import platforms from 'sentry/data/platforms';
 import {IconClose, IconProject} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PlatformIntegration} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 const PLATFORM_CATEGORIES = [{id: 'all', name: t('All')}, ...categoryList] as const;
 
 // Category needs the all option while CategoryObj does not
-type Category = typeof PLATFORM_CATEGORIES[number]['id'];
-type CategoryObj = typeof categoryList[number];
+type Category = (typeof PLATFORM_CATEGORIES)[number]['id'];
+type CategoryObj = (typeof categoryList)[number];
 type Platform = CategoryObj['platforms'][number];
 
 // create a lookup table for each platform
@@ -52,7 +52,7 @@ const getIndexOfPlatformInCategory = (
 
 const isPopular = (platform: PlatformIntegration) =>
   popularPlatformCategories.includes(
-    platform.id as typeof popularPlatformCategories[number]
+    platform.id as (typeof popularPlatformCategories)[number]
   );
 
 const popularIndex = (platform: PlatformIntegration) =>

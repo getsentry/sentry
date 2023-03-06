@@ -6,7 +6,7 @@ import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
-import {Button, ButtonLabel} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
 import GroupList from 'sentry/components/issues/groupList';
@@ -14,10 +14,11 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import QueryCount from 'sentry/components/queryCount';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -59,8 +60,8 @@ type Props = {
 function ProjectIssues({organization, location, projectId, query, api}: Props) {
   const [pageLinks, setPageLinks] = useState<string | undefined>();
   const [onCursor, setOnCursor] = useState<(() => void) | undefined>();
-  const [issuesType, setIssuesType] = useState<IssuesType | string>(
-    (location.query.issuesType as string) || IssuesType.UNHANDLED
+  const [issuesType, setIssuesType] = useState<IssuesType>(
+    (location.query.issuesType as IssuesType) || IssuesType.UNHANDLED
   );
   const [issuesCount, setIssuesCount] = useState<Count>({
     all: 0,
@@ -241,20 +242,19 @@ function ProjectIssues({organization, location, projectId, query, api}: Props) {
   return (
     <Fragment>
       <ControlsWrapper>
-        <StyledButtonBar active={issuesType} merged>
+        <SegmentedControl
+          aria-label={t('Issue type')}
+          value={issuesType}
+          onChange={value => handleIssuesTypeSelection(value)}
+          size="xs"
+        >
           {issuesTypes.map(({value, label, issueCount}) => (
-            <Button
-              key={value}
-              barId={value}
-              size="xs"
-              onClick={() => handleIssuesTypeSelection(value)}
-              data-test-id={`filter-${value}`}
-            >
-              {label}
+            <SegmentedControl.Item key={value} textValue={label}>
+              {label}&nbsp;
               <QueryCount count={issueCount} max={99} hideParens hideIfEmpty={false} />
-            </Button>
+            </SegmentedControl.Item>
           ))}
-        </StyledButtonBar>
+        </SegmentedControl>
         <OpenInButtonBar gap={1}>
           <Button
             data-test-id="issues-open"
@@ -297,31 +297,14 @@ const ControlsWrapper = styled('div')`
   justify-content: space-between;
   margin-bottom: ${space(1)};
   flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: block;
-  }
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(4, 1fr);
-  ${ButtonLabel} {
-    white-space: nowrap;
-    gap: ${space(0.5)};
-    span:last-child {
-      color: ${p => p.theme.buttonCount};
-    }
-  }
-  .active {
-    ${ButtonLabel} {
-      span:last-child {
-        color: ${p => p.theme.buttonCountActive};
-      }
-    }
-  }
 `;
 
 const OpenInButtonBar = styled(ButtonBar)`
   margin-top: ${space(1)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    width: 100%;
+  }
 `;
 
 const StyledPagination = styled(Pagination)`

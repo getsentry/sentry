@@ -30,15 +30,15 @@ logger = logging.getLogger(__name__)
 
 def get_before_event_condition(event):
     return [
-        [TIMESTAMP, "<=", event.timestamp],
-        [[TIMESTAMP, "<", event.timestamp], [EVENT_ID, "<", event.event_id]],
+        [TIMESTAMP, "<=", event.datetime],
+        [[TIMESTAMP, "<", event.datetime], [EVENT_ID, "<", event.event_id]],
     ]
 
 
 def get_after_event_condition(event):
     return [
-        [TIMESTAMP, ">=", event.timestamp],
-        [[TIMESTAMP, ">", event.timestamp], [EVENT_ID, ">", event.event_id]],
+        [TIMESTAMP, ">=", event.datetime],
+        [[TIMESTAMP, ">", event.datetime], [EVENT_ID, ">", event.event_id]],
     ]
 
 
@@ -196,7 +196,7 @@ class SnubaEventStorage(EventStorage):
         if len(event.data) == 0:
             return None
 
-        if group_id is not None:
+        if group_id is not None and event.get_event_type() != "generic":
             # Set passed group_id if not a transaction
             if event.get_event_type() == "transaction":
                 logger.warning("eventstore.passed-group-id-for-transaction")
@@ -220,7 +220,7 @@ class SnubaEventStorage(EventStorage):
             try:
                 result = snuba.raw_query(
                     dataset=dataset,
-                    selected_columns=["group_id"],
+                    selected_columns=self.__get_columns(dataset),
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},
@@ -251,8 +251,18 @@ class SnubaEventStorage(EventStorage):
                 return None
 
             event.group_id = result["data"][0]["group_id"]
+            # Inject the snuba data here to make sure any snuba columns are available
+            event._snuba_data = result["data"][0]
 
         return event
+
+    def _get_dataset_for_event(self, event):
+        if event.get_event_type() == "transaction":
+            return snuba.Dataset.Transactions
+        elif event.get_event_type() == "generic":
+            return snuba.Dataset.IssuePlatform
+        else:
+            return snuba.Dataset.Discover
 
     def get_next_event_id(self, event, filter):
         """
@@ -268,13 +278,7 @@ class SnubaEventStorage(EventStorage):
         filter.conditions = filter.conditions or []
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
-
+        dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
 
     def get_prev_event_id(self, event, filter):
@@ -293,13 +297,7 @@ class SnubaEventStorage(EventStorage):
         # the previous event can have the same timestamp, add 1 second
         # to the end condition since it uses a less than condition
         filter.end = event.datetime + timedelta(seconds=1)
-
-        dataset = (
-            snuba.Dataset.Transactions
-            if event.get_event_type() == "transaction"
-            else snuba.Dataset.Discover
-        )
-
+        dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(
             filter=filter, orderby=DESC_ORDERING, dataset=dataset
         )

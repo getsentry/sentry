@@ -630,6 +630,9 @@ export const TRACING_FIELDS = [
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 ];
 
+// This list contains fields/functions that are available with profiling feature.
+export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
+
 export const MEASUREMENT_PATTERN = /^measurements\.([a-zA-Z0-9-_.]+)$/;
 export const SPAN_OP_BREAKDOWN_PATTERN = /^spans\.([a-zA-Z0-9-_.]+)$/;
 
@@ -701,7 +704,7 @@ export function parseArguments(functionText: string, columnText: string): string
   let i: number = 0;
   let j: number = 0;
 
-  while (j < columnText.length) {
+  while (j < columnText?.length) {
     if (i === j && columnText[j] === '"') {
       // when we see a quote at the beginning of
       // an argument, then this is a quoted string

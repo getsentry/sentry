@@ -38,6 +38,26 @@ class MonitorTestCase(TestCase):
             2019, 1, 1, 1, 15, tzinfo=timezone.utc
         )
 
+    def test_next_run_crontab_explicit_timezone(self):
+        monitor = Monitor(
+            last_checkin=datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc),
+            config={
+                "schedule": "0 12 * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "timezone": "UTC",
+            },
+        )
+        assert monitor.get_next_scheduled_checkin() == datetime(
+            2019, 1, 1, 12, 00, tzinfo=timezone.utc
+        )
+
+        # Europe/Berlin == UTC+01:00.
+        # the run should be represented 1 hours earlier in UTC time
+        monitor.config["timezone"] = "Europe/Berlin"
+        assert monitor.get_next_scheduled_checkin() == datetime(
+            2019, 1, 1, 11, 00, tzinfo=timezone.utc
+        )
+
     def test_next_run_interval(self):
         monitor = Monitor(
             last_checkin=datetime(2019, 1, 1, 1, 10, 20, tzinfo=timezone.utc),
@@ -160,3 +180,30 @@ class MonitorTestCase(TestCase):
                 "type": "default",
             },
         ) == dict(event)
+
+    def test_save_defaults_slug_to_guid(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        assert str(monitor.guid) == monitor.slug
+
+    def test_save_defaults_slug_to_guid_only_on_create(self):
+        monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={"schedule": [1, "month"], "schedule_type": ScheduleType.INTERVAL},
+        )
+
+        original_monitor_guid = monitor.guid
+
+        # Simulate existing monitors entries that don't have a slug set
+        monitor.slug = ""
+        monitor.name = "New name"
+        monitor.save()
+
+        assert monitor.guid == original_monitor_guid

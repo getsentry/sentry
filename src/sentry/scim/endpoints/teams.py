@@ -29,6 +29,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, SCIM_PARAMS
 from sentry.models import OrganizationMember, OrganizationMemberTeam, Team, TeamStatus
+from sentry.utils import json
 from sentry.utils.cursors import SCIMCursor
 
 from .constants import (
@@ -42,6 +43,7 @@ from .constants import (
 )
 from .utils import (
     OrganizationSCIMTeamPermission,
+    SCIMApiError,
     SCIMEndpoint,
     SCIMFilterError,
     SCIMQueryParamSerializer,
@@ -53,10 +55,17 @@ delete_logger = logging.getLogger("sentry.deletions.api")
 
 
 class SCIMTeamPatchOperationSerializer(serializers.Serializer):
-    op = serializers.ChoiceField(choices=("replace", "remove", "add"), required=True)
+    op = serializers.CharField(required=True)
     value = serializers.ListField(serializers.DictField(), allow_empty=True)
+    path = serializers.CharField(required=False)
     # TODO: define exact schema for value
     # TODO: actually use these in the patch request for validation
+
+    def validate_op(self, value: str) -> str:
+        value = value.lower()
+        if value in [TeamPatchOps.REPLACE, TeamPatchOps.REMOVE, TeamPatchOps.ADD]:
+            return value
+        raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
 class SCIMTeamPatchRequestSerializer(serializers.Serializer):
@@ -156,7 +165,7 @@ class OrganizationSCIMTeamIndex(SCIMEndpoint, OrganizationTeamsEndpoint):
         operation_id="Provision a New Team",
         parameters=[GLOBAL_PARAMS.ORG_SLUG],
         request=inline_serializer(
-            "SCIMTeamRequestBody",
+            name="SCIMTeamRequestBody",
             fields={
                 "schemas": serializers.ListField(serializers.CharField()),
                 "displayName": serializers.CharField(),
@@ -387,7 +396,14 @@ class OrganizationSCIMTeamDetails(SCIMEndpoint, TeamDetailsEndpoint):
         }
         ```
         """
+
+        serializer = SCIMTeamPatchRequestSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            raise SCIMApiError(detail=json.dumps(serializer.errors))
+
         operations = request.data.get("Operations", [])
+
         if len(operations) > 100:
             return Response(SCIM_400_TOO_MANY_PATCH_OPS_ERROR, status=400)
         try:

@@ -49,6 +49,7 @@ def load_dist(results):
 class ReleaseFilesMixin:
     def get_releasefiles(self, request: Request, release, organization_id):
         query = request.GET.getlist("query")
+        checksums = request.GET.getlist("checksum")
 
         data_sources = []
 
@@ -67,6 +68,13 @@ class ReleaseFilesMixin:
                 condition |= Q(name__icontains=name)
             file_list = file_list.filter(condition)
 
+        if checksums:
+            if not isinstance(checksums, list):
+                checksums = [checksums]
+
+            condition = Q(file__checksum__in=checksums)
+            file_list = file_list.filter(condition)
+
         data_sources.append(file_list.order_by("name"))
 
         # Get contents of release archive as well:
@@ -81,7 +89,7 @@ class ReleaseFilesMixin:
 
             if artifact_index is not None:
                 files = artifact_index.get("files", {})
-                source = ArtifactSource(dist, files, query)
+                source = ArtifactSource(dist, files, query, checksums)
                 data_sources.append(source)
 
         def on_results(r):
@@ -166,19 +174,24 @@ class ReleaseFilesMixin:
 class ArtifactSource:
     """Provides artifact data to ChainPaginator on-demand"""
 
-    def __init__(self, dist: Optional[Distribution], files: dict, query: List[str]):
+    def __init__(
+        self, dist: Optional[Distribution], files: dict, query: List[str], checksums: List[str]
+    ):
         self._dist = dist
         self._files = files
         self._query = query
+        self._checksums = checksums
 
     @cached_property
     def sorted_and_filtered_files(self) -> List[Tuple[str, dict]]:
         query = self._query
+        checksums = self._checksums
         files = [
             # Mimic "or" operation applied for real querysets:
             (url, info)
             for url, info in self._files.items()
-            if not query or any(search_string.lower() in url.lower() for search_string in query)
+            if (not query or any(search_string.lower() in url.lower() for search_string in query))
+            and (not checksums or any(checksum in info["sha1"] for checksum in checksums))
         ]
         files.sort(key=lambda item: item[0])
 
@@ -227,7 +240,8 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         :pparam string project_slug: the slug of the project to list the
                                      release files of.
         :pparam string version: the version identifier of the release.
-        :qparam string query: If set, this parameter is used to search files.
+        :qparam string query: If set, only files with these partial names will be returned.
+        :qparam string checksum: If set, only files with these exact checksums will be returned.
         :auth: required
         """
         try:

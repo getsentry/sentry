@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {DeviceContext, Event} from 'sentry/types/event';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {
   deviceKnownDataValues,
@@ -25,7 +25,7 @@ export function DeviceEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<DeviceContext, keyof typeof deviceKnownDataValues>({
+        data={getKnownData<DeviceContext, keyof typeof deviceKnownDataValues>({
           data: inferredData,
           meta,
           knownDataTypes: deviceKnownDataValues,

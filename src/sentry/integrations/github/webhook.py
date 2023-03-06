@@ -17,6 +17,7 @@ from rest_framework.request import Request
 
 from sentry import options
 from sentry.constants import ObjectStatus
+from sentry.integrations.utils.cleanup import clear_tags_and_context
 from sentry.models import (
     Commit,
     CommitAuthor,
@@ -456,6 +457,7 @@ class GitHubWebhookBase(View):  # type: ignore
         raise NotImplementedError
 
     def handle(self, request: Request) -> HttpResponse:
+        clear_tags_and_context()
         secret = self.get_secret()
 
         if secret is None:

@@ -248,7 +248,6 @@ _SENTRY_RULES = (
     "sentry.rules.actions.notify_event.NotifyEventAction",
     "sentry.rules.actions.notify_event_service.NotifyEventServiceAction",
     "sentry.rules.actions.sentry_apps.notify_event.NotifyEventSentryAppAction",
-    "sentry.rules.conditions.active_release.ActiveReleaseEventCondition",
     "sentry.rules.conditions.every_event.EveryEventCondition",
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
@@ -576,16 +575,6 @@ class ExportQueryType:
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
-
-# A mapping of OrganizationOption keys to frontend features, and functions to apply the feature.
-# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
-# the OrganizationOption.
-# If the function is None, the feature will be added regardless of the option value (if present)
-ORGANIZATION_OPTIONS_AS_FEATURES = {
-    "sentry:project-rate-limit": ("legacy-rate-limits", None),
-    "sentry:account-rate-limit": ("legacy-rate-limits", None),
-    "quotas:new-spike-protection": ("spike-projections", lambda opt: bool(opt.value)),
-}
 
 
 # We need to limit the range of valid timestamps of an event because that

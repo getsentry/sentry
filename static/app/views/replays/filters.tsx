@@ -5,14 +5,12 @@ import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import ReplaySearchBar from 'sentry/views/replays/replaySearchBar';
-
-const DEFAULT_QUERY = 'duration:>=5';
 
 function ReplaysFilters() {
   const {selection} = usePageFilters();
@@ -29,8 +27,8 @@ function ReplaysFilters() {
       <ReplaySearchBar
         organization={organization}
         pageFilters={selection}
-        defaultQuery={decodeScalar(query?.query ?? DEFAULT_QUERY, '')}
-        query={decodeScalar(query.query ?? DEFAULT_QUERY, '')}
+        defaultQuery=""
+        query={decodeScalar(query.query, '')}
         onSearch={searchQuery => {
           browserHistory.push({
             pathname,

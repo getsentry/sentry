@@ -23,11 +23,14 @@ import {
   PanelItem,
 } from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
-import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
+import filterGroups, {
+  customFilterFields,
+  getOptionsData,
+} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
@@ -200,7 +203,7 @@ type Props = {
 };
 
 type State = {
-  hooksDisabled: ReturnType<typeof HookStore['get']>;
+  hooksDisabled: ReturnType<(typeof HookStore)['get']>;
 } & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {
@@ -359,6 +362,31 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                     </PanelItem>
                   );
                 })}
+                <PanelItem noPadding>
+                  <NestedForm
+                    apiMethod="PUT"
+                    apiEndpoint={projectEndpoint}
+                    initialData={{
+                      'filters:react-hydration-errors':
+                        project.options?.['filters:react-hydration-errors'],
+                    }}
+                    saveOnBlur
+                    onSubmitSuccess={this.handleSubmit}
+                  >
+                    <FieldFromConfig
+                      getData={getOptionsData}
+                      field={{
+                        type: 'boolean',
+                        name: 'filters:react-hydration-errors',
+                        label: t('Filter out hydration errors'),
+                        help: t(
+                          'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                        ),
+                        disabled: !hasAccess,
+                      }}
+                    />
+                  </NestedForm>
+                </PanelItem>
               </PanelBody>
             </Panel>
 

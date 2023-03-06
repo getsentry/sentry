@@ -1,16 +1,17 @@
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
   children: React.ReactChildren;
-  organization: Organization;
 };
 
-function ProfilingContainer({organization, children}: Props) {
+function ProfilingContainer({children}: Props) {
+  const organization = useOrganization();
+
   return (
     <Feature
       hookName="feature-disabled:profiling-page"
@@ -22,9 +23,9 @@ function ProfilingContainer({organization, children}: Props) {
         </Layout.Page>
       )}
     >
-      {children}
+      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </Feature>
   );
 }
 
-export default withOrganization(ProfilingContainer);
+export default ProfilingContainer;

@@ -1,23 +1,21 @@
 import * as GroupActionCreators from 'sentry/actionCreators/group';
-import {Client} from 'sentry/api';
 import GroupingStore from 'sentry/stores/groupingStore';
 
 describe('Grouping Store', function () {
   let trigger;
 
   beforeAll(function () {
-    Client.mockAsync = true;
+    MockApiClient.asyncDelay = 1;
   });
 
   afterAll(function () {
-    Client.mockAsync = false;
+    MockApiClient.asyncDelay = null;
   });
 
   beforeEach(function () {
     GroupingStore.init();
     trigger = jest.spyOn(GroupingStore, 'trigger');
-    Client.clearMockResponses();
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/issues/groupId/hashes/',
       body: [
         {
@@ -57,7 +55,7 @@ describe('Grouping Store', function () {
         },
       ],
     });
-    Client.addMockResponse({
+    MockApiClient.addMockResponse({
       url: '/issues/groupId/similar/',
       body: [
         [
@@ -101,7 +99,9 @@ describe('Grouping Store', function () {
   });
 
   afterEach(function () {
-    trigger.mockReset();
+    MockApiClient.clearMockResponses();
+    jest.resetAllMocks();
+    jest.restoreAllMocks();
   });
 
   describe('onFetch()', function () {
@@ -175,8 +175,8 @@ describe('Grouping Store', function () {
     });
 
     it('unsuccessfully fetches list of similar items', function () {
-      Client.clearMockResponses();
-      Client.addMockResponse({
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
         url: '/issues/groupId/similar/',
         statusCode: 500,
         body: {message: 'failed'},
@@ -242,8 +242,8 @@ describe('Grouping Store', function () {
     });
 
     it('unsuccessfully fetches list of hashes items', function () {
-      Client.clearMockResponses();
-      Client.addMockResponse({
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
         url: '/issues/groupId/hashes/',
         statusCode: 500,
         body: {message: 'failed'},
@@ -321,8 +321,8 @@ describe('Grouping Store', function () {
 
     describe('onMerge', function () {
       beforeEach(function () {
-        Client.clearMockResponses();
-        Client.addMockResponse({
+        MockApiClient.clearMockResponses();
+        MockApiClient.addMockResponse({
           method: 'PUT',
           url: '/projects/orgId/projectId/issues/',
         });
@@ -434,8 +434,8 @@ describe('Grouping Store', function () {
       });
 
       it('resets busy state and has same items checked after error when trying to merge', async function () {
-        Client.clearMockResponses();
-        Client.addMockResponse({
+        MockApiClient.clearMockResponses();
+        MockApiClient.addMockResponse({
           method: 'PUT',
           url: '/projects/orgId/projectId/issues/',
           statusCode: 500,
@@ -587,8 +587,8 @@ describe('Grouping Store', function () {
     // add a beforeEach(() => GroupingStore.init())
     describe('onUnmerge', function () {
       beforeEach(function () {
-        Client.clearMockResponses();
-        Client.addMockResponse({
+        MockApiClient.clearMockResponses();
+        MockApiClient.addMockResponse({
           method: 'DELETE',
           url: '/issues/groupId/hashes/',
         });
@@ -686,8 +686,8 @@ describe('Grouping Store', function () {
       });
 
       it('resets busy state and has same items checked after error when trying to merge', async function () {
-        Client.clearMockResponses();
-        Client.addMockResponse({
+        MockApiClient.clearMockResponses();
+        MockApiClient.addMockResponse({
           method: 'DELETE',
           url: '/issues/groupId/hashes/',
           statusCode: 500,

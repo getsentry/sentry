@@ -1,18 +1,25 @@
-import {AnchorHTMLAttributes, cloneElement, createContext, useState} from 'react';
+import {
+  AnchorHTMLAttributes,
+  cloneElement,
+  createContext,
+  useCallback,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
-import {isNativePlatform} from 'sentry/utils/platform';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -91,6 +98,181 @@ export function TraceEventDataSection({
     display: [],
   });
 
+  const isMobile = isMobilePlatform(platform);
+
+  const handleFilterFramesChange = useCallback(
+    (val: 'full' | 'relevant') => {
+      const isFullOptionClicked = val === 'full';
+
+      trackAdvancedAnalyticsEvent(
+        isFullOptionClicked
+          ? 'stack-trace.full_stack_trace_clicked'
+          : 'stack-trace.most_relevant_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+        }
+      );
+
+      setState(currentState => ({...currentState, fullStackTrace: isFullOptionClicked}));
+    },
+    [organization, platform, projectSlug, isMobile]
+  );
+
+  const handleSortByChange = useCallback(
+    (val: keyof typeof sortByOptions) => {
+      const isRecentFirst = val === 'recent-first';
+
+      trackAdvancedAnalyticsEvent(
+        isRecentFirst
+          ? 'stack-trace.sort_option_recent_first_clicked'
+          : 'stack-trace.sort_option_recent_last_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+        }
+      );
+
+      setState(currentState => ({...currentState, sortBy: val}));
+    },
+    [organization, platform, projectSlug, isMobile]
+  );
+
+  const handleDisplayChange = useCallback(
+    (vals: (keyof typeof displayOptions)[]) => {
+      if (vals.includes('raw-stack-trace')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_raw_stack_trace_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('raw-stack-trace')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_raw_stack_trace_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('absolute-addresses')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_addresses_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('absolute-addresses')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_addresses_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('absolute-file-paths')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_file_paths_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('absolute-file-paths')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_file_paths_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('minified')) {
+        trackAdvancedAnalyticsEvent(
+          platform.startsWith('javascript')
+            ? 'stack-trace.display_option_minified_clicked'
+            : 'stack-trace.display_option_unsymbolicated_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('minified')) {
+        trackAdvancedAnalyticsEvent(
+          platform.startsWith('javascript')
+            ? 'stack-trace.display_option_minified_clicked'
+            : 'stack-trace.display_option_unsymbolicated_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('verbose-function-names')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_verbose_function_names_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('verbose-function-names')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_verbose_function_names_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      setState(currentState => ({...currentState, display: vals}));
+    },
+    [organization, platform, projectSlug, isMobile, state]
+  );
+
   function getDisplayOptions(): {
     label: string;
     value: keyof typeof displayOptions;
@@ -151,6 +333,22 @@ export function TraceEventDataSection({
       ];
     }
 
+    // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
+    if (platform.startsWith('javascript')) {
+      return [
+        {
+          label: t('Minified'),
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        },
+        {
+          label: displayOptions['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
     return [
       {
         label: displayOptions.minified,
@@ -196,34 +394,19 @@ export function TraceEventDataSection({
                 title={t('Only full version available')}
                 disabled={hasAppOnlyFrames}
               >
-                <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                  <Button
-                    size="xs"
-                    barId="relevant"
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: false,
-                      })
-                    }
-                    disabled={!hasAppOnlyFrames}
-                  >
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter frames')}
+                  value={state.fullStackTrace ? 'full' : 'relevant'}
+                  onChange={handleFilterFramesChange}
+                >
+                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
                     {t('Most Relevant')}
-                  </Button>
-                  <Button
-                    size="xs"
-                    barId="full"
-                    priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                    onClick={() =>
-                      setState({
-                        ...state,
-                        fullStackTrace: true,
-                      })
-                    }
-                  >
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="full">
                     {t('Full Stack Trace')}
-                  </Button>
-                </ButtonBar>
+                  </SegmentedControl.Item>
+                </SegmentedControl>
               </Tooltip>
             )}
             {state.display.includes('raw-stack-trace') && nativePlatform && (
@@ -231,6 +414,14 @@ export function TraceEventDataSection({
                 size="xs"
                 href={rawStackTraceDownloadLink}
                 title={t('Download raw stack trace file')}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent('stack-trace.download_clicked', {
+                    organization,
+                    project_slug: projectSlug,
+                    platform,
+                    is_mobile: isMobile,
+                  });
+                }}
               >
                 {t('Download')}
               </Button>
@@ -241,10 +432,10 @@ export function TraceEventDataSection({
                 size: 'xs',
                 title: sortByTooltip,
               }}
-              isDisabled={!!sortByTooltip}
+              disabled={!!sortByTooltip}
               position="bottom-end"
               onChange={selectedOption => {
-                setState({...state, sortBy: selectedOption.value});
+                handleSortByChange(selectedOption.value);
               }}
               value={state.sortBy}
               options={Object.entries(sortByOptions).map(([value, label]) => ({
@@ -252,28 +443,19 @@ export function TraceEventDataSection({
                 value: value as keyof typeof sortByOptions,
               }))}
             />
-            <CompositeSelect
+            <CompactSelect
               triggerProps={{
                 icon: <IconEllipsis size="xs" />,
                 size: 'xs',
                 showChevron: false,
                 'aria-label': t('Options'),
               }}
+              multiple
               triggerLabel=""
               position="bottom-end"
-              sections={[
-                {
-                  label: t('Display'),
-                  value: 'display',
-                  defaultValue: state.display,
-                  multiple: true,
-                  options: getDisplayOptions().map(option => ({
-                    ...option,
-                    value: String(option.value),
-                  })),
-                  onChange: display => setState({...state, display}),
-                },
-              ]}
+              value={state.display}
+              onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+              options={[{label: t('Display'), options: getDisplayOptions()}]}
             />
           </ButtonBar>
         )

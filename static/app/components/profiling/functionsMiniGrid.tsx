@@ -1,12 +1,12 @@
 import {CSSProperties, Fragment, SyntheticEvent} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {SuspectFunction} from 'sentry/types/profiling/core';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
@@ -37,12 +37,12 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
   return (
     <FunctionsMiniGridContainer>
       <FunctionsMiniGridHeader>{t('Slowest app functions')}</FunctionsMiniGridHeader>
-      <FunctionsMiniGridHeader align="right">{t('P99')}</FunctionsMiniGridHeader>
+      <FunctionsMiniGridHeader align="right">{t('P95')}</FunctionsMiniGridHeader>
       <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
 
       {functions &&
         functions.map((f, idx) => {
-          const [exampleProfileIdRaw] = f.examples;
+          const exampleProfileIdRaw = f.worst;
           const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
           return (
             <Fragment key={idx}>
@@ -57,7 +57,7 @@ export function FunctionsMiniGrid(props: FunctionsMiniGridProps) {
                 </FunctionNameTextTruncate>
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
-                <PerformanceDuration nanoseconds={f.p99} abbreviation />
+                <PerformanceDuration nanoseconds={f.p95} abbreviation />
               </FunctionsMiniGridCell>
               <FunctionsMiniGridCell align="right">
                 <NumberContainer>{f.count}</NumberContainer>

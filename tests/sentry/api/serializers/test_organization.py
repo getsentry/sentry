@@ -10,8 +10,8 @@ from sentry.api.serializers import (
     OnboardingTasksSerializer,
     serialize,
 )
+from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
-from sentry.constants import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.features.base import OrganizationFeature
 from sentry.models import OrganizationOnboardingTask
 from sentry.models.options.organization_option import OrganizationOption
@@ -20,10 +20,22 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 mock_options_as_features = {
-    "sentry:set_no_func": ("frontend-flag-one", None),
-    "sentry:unset_no_func": ("frontend-flag-two", None),
-    "sentry:set_with_func_pass": ("frontend-flag-three", lambda opt: bool(opt.value)),
-    "sentry:set_with_func_fail": ("frontend-flag-four", lambda opt: bool(opt.value)),
+    "sentry:set_no_value": [
+        ("frontend-flag-1-1", lambda opt: True),
+        ("frontend-flag-1-2", lambda opt: True),
+    ],
+    "sentry:unset_no_value": [
+        ("frontend-flag-2-1", lambda opt: True),
+        ("frontend-flag-2-2", lambda opt: True),
+    ],
+    "sentry:set_with_func_pass": [
+        ("frontend-flag-3-1", lambda opt: bool(opt.value)),
+        ("frontend-flag-3-2", lambda opt: bool(opt.value)),
+    ],
+    "sentry:set_with_func_fail": [
+        ("frontend-flag-4-1", lambda opt: bool(opt.value)),
+        ("frontend-flag-4-2", lambda opt: bool(opt.value)),
+    ],
 }
 
 
@@ -59,7 +71,6 @@ class OrganizationSerializerTest(TestCase):
             "integrations-ticket-rules",
             "invite-members",
             "invite-members-rate-limits",
-            "issue-actions-v2",
             "minute-resolution-sessions",
             "open-membership",
             "relay",
@@ -68,6 +79,7 @@ class OrganizationSerializerTest(TestCase):
             "sso-saml2",
             "symbol-sources",
             "team-insights",
+            "performance-issues-search",
         }
 
     @mock.patch("sentry.features.batch_has")
@@ -93,20 +105,24 @@ class OrganizationSerializerTest(TestCase):
         user = self.create_user()
         organization = self.create_organization(owner=user)
 
-        OrganizationOption.objects.set_value(organization, "sentry:set_no_func", {})
+        OrganizationOption.objects.set_value(organization, "sentry:set_no_value", {})
         OrganizationOption.objects.set_value(organization, "sentry:set_with_func_pass", 1)
         OrganizationOption.objects.set_value(organization, "sentry:set_with_func_fail", 0)
 
         features = serialize(organization, user)["features"]
 
         # Setting a flag with no function checks for option, regardless of value
-        assert mock_options_as_features["sentry:set_no_func"][0] in features
+        for feature, _func in mock_options_as_features["sentry:set_no_value"]:
+            assert feature in features
         # If the option isn't set, it doesn't appear in features
-        assert mock_options_as_features["sentry:unset_no_func"][0] not in features
+        for feature, _func in mock_options_as_features["sentry:unset_no_value"]:
+            assert feature not in features
         # With a function, run it against the value
-        assert mock_options_as_features["sentry:set_with_func_pass"][0] in features
+        for feature, _func in mock_options_as_features["sentry:set_with_func_pass"]:
+            assert feature in features
         # If it returns False, it doesn't appear in features
-        assert mock_options_as_features["sentry:set_with_func_fail"][0] not in features
+        for feature, _func in mock_options_as_features["sentry:set_with_func_fail"]:
+            assert feature not in features
 
 
 @region_silo_test

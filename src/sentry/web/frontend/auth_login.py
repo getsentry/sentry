@@ -145,9 +145,10 @@ class AuthLoginView(BaseView):
             ]
             # Only redirect if the URL is not register or login paths.
             if request.path_info not in urls:
-                url = urls[0]
                 url_prefix = generate_organization_url(request.subdomain)
-                url = absolute_uri(url, url_prefix=url_prefix)
+                url = absolute_uri(urls[0], url_prefix=url_prefix)
+                if request.GET:
+                    url = f"{url}?{request.GET.urlencode()}"
                 return HttpResponseRedirect(url)
 
         can_register = self.can_register(request)

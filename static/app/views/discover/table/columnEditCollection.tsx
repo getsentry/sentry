@@ -11,7 +11,7 @@ import Input from 'sentry/components/input';
 import {getOffsetOfElement} from 'sentry/components/performance/waterfall/utils';
 import {IconAdd, IconDelete, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
@@ -564,6 +564,10 @@ class ColumnEditCollection extends Component<Props, State> {
               }
               const operation =
                 AGGREGATIONS[col.function[0]] ?? SESSIONS_OPERATIONS[col.function[0]];
+              if (!operation || !operation.parameters) {
+                // Operation should be in the look-up table, but not all operations are (eg. private). This should be changed at some point.
+                return 3;
+              }
               return operation.parameters.length === 2 ? 3 : 2;
             })
           );

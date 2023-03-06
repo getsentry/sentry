@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {Tag, TagCollection} from 'sentry/types';
+import {IssueCategory, IssueType, Organization, Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
@@ -15,8 +15,8 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 }, {});
 
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getIssueAttributes(): TagCollection;
-  getIssueTags(): TagCollection;
+  getIssueAttributes(org: Organization): TagCollection;
+  getIssueTags(org: Organization): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -28,14 +28,13 @@ const storeConfig: TagStoreDefinition = {
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
-
     this.state = {};
   },
 
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes() {
+  getIssueAttributes(org: Organization) {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -81,16 +80,30 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: ['error', 'performance'],
+        values: [
+          IssueCategory.ERROR,
+          IssueCategory.PERFORMANCE,
+          ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
+        ],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
         key: FieldKey.ISSUE_TYPE,
         name: 'Issue Type',
         values: [
-          'performance_n_plus_one_db_queries',
-          'performance_n_plus_one_api_calls',
-          'performance_consecutive_db_queries',
+          IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+          IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+          IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+          IssueType.PERFORMANCE_SLOW_DB_QUERY,
+          IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+          IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+          ...(org.features.includes('issue-platform')
+            ? [
+                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+              ]
+            : []),
         ],
         predefined: true,
       },
@@ -149,14 +162,14 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Get all tags including builtin issue tags and issue attributes
    */
-  getIssueTags() {
+  getIssueTags(org: Organization) {
     return {
       ...BUILTIN_TAGS,
       ...SEMVER_TAGS,
       // State tags should overwrite built ins.
       ...this.state,
       // We want issue attributes to overwrite any built in and state tags
-      ...this.getIssueAttributes(),
+      ...this.getIssueAttributes(org),
     };
   },
 
@@ -170,17 +183,48 @@ const storeConfig: TagStoreDefinition = {
   },
 
   loadTagsSuccess(data) {
-    const newTags = data.reduce<TagCollection>((acc, tag) => {
-      acc[tag.key] = {
+    // Note: We could probably stop cloning the data here and just
+    // assign to this.state directly, but there is a change someone may
+    // be relying on referential equality somewhere in the codebase and
+    // we dont want to risk breaking that.
+    const newState = {};
+
+    for (let i = 0; i < data.length; i++) {
+      const tag = data[i];
+      newState[tag.key] = {
         values: [],
         ...tag,
       };
+    }
 
-      return acc;
-    }, {});
+    // We will iterate through the previous tags in reverse so that previously
+    // added tags are carried over first. We rely on browser implementation
+    // of Object.keys() to return keys in insertion order.
+    const previousTagKeys = Object.keys(this.state);
 
-    this.state = {...this.state, ...newTags};
-    this.trigger(this.state);
+    const MAX_STORE_SIZE = 2000;
+    // We will carry over the previous tags until we reach the max store size
+    const toCarryOver = Math.max(0, MAX_STORE_SIZE - data.length);
+
+    let carriedOver = 0;
+    while (previousTagKeys.length > 0 && carriedOver < toCarryOver) {
+      const tagKey = previousTagKeys.pop();
+      if (tagKey === undefined) {
+        // Should be unreachable, but just in case
+        break;
+      }
+      // If the new state already has a previous tag then we will not carry it over
+      // and use the latest tag in the store instead.
+      if (newState[tagKey]) {
+        continue;
+      }
+      // Else override the tag with the previous tag
+      newState[tagKey] = this.state[tagKey];
+      carriedOver++;
+    }
+
+    this.state = newState;
+    this.trigger(newState);
   },
 };
 

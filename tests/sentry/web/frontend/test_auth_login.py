@@ -474,6 +474,17 @@ class AuthLoginCustomerDomainTest(TestCase):
         assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
         self.assertTemplateUsed("sentry/organization-login.html")
 
+    def test_renders_correct_template_existent_org_preserve_querystring(self):
+        resp = self.client.get(
+            f"{self.path}?one=two",
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/?one=two", 302)]
+        self.assertTemplateUsed("sentry/organization-login.html")
+
     def test_renders_correct_template_nonexistent_org(self):
         resp = self.client.get(
             self.path,
@@ -588,6 +599,25 @@ class AuthLoginCustomerDomainTest(TestCase):
     def test_login_valid_credentials_orgless(self):
         user = self.create_user()
         self.create_organization(name="albertos-apples")
+        with override_settings(MIDDLEWARE=tuple(provision_middleware())):
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": user.username, "password": "admin", "op": "login"},
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+            ]
+
+    def test_login_valid_credentials_org_does_not_exist(self):
+        user = self.create_user()
         with override_settings(MIDDLEWARE=tuple(provision_middleware())):
             # load it once for test cookie
             self.client.get(self.path)

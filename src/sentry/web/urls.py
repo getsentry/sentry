@@ -359,7 +359,7 @@ urlpatterns += [
     url(
         r"^accept/(?P<organization_slug>[^/]+)/(?P<member_id>\d+)/(?P<token>\w+)/$",
         GenericReactPageView.as_view(auth_required=False),
-        name="sentry-accept-invite-with-org",
+        name="sentry-organization-accept-invite",
     ),
     # User settings use generic_react_page_view, while any view acting on
     # behalf of an organization should use react_page_view
@@ -481,6 +481,16 @@ urlpatterns += [
                     name="sentry-customer-domain-developer-settings-settings",
                 ),
                 url(
+                    r"^document-integrations/",
+                    react_page_view,
+                    name="sentry-customer-domain-document-integrations-settings",
+                ),
+                url(
+                    r"^sentry-apps/",
+                    react_page_view,
+                    name="sentry-customer-domain-sentry-apps-settings",
+                ),
+                url(
                     r"^billing/",
                     react_page_view,
                     name="sentry-customer-domain-billing-settings",
@@ -535,6 +545,11 @@ urlpatterns += [
         name="integration-installation",
     ),
     # Issues
+    url(
+        r"^issues/(?P<project_slug>[\w_-]+)/(?P<group_id>\d+)/tags/(?P<key>[^\/]+)/export/$",
+        GroupTagExportView.as_view(),
+        name="sentry-customer-domain-sentry-group-tag-export",
+    ),
     url(r"^issues/", react_page_view, name="issues"),
     # Alerts
     url(r"^alerts/", react_page_view, name="alerts"),
@@ -544,6 +559,7 @@ urlpatterns += [
     url(r"^profiling/", react_page_view, name="profiling"),
     # Projects
     url(r"^projects/", react_page_view, name="projects"),
+    url(r"^projects/(?P<project_slug>[\w_-]+)/", react_page_view, name="project-details"),
     # Dashboards
     url(r"^dashboard/", react_page_view, name="dashboard"),
     url(r"^dashboards/", react_page_view, name="dashboards"),
@@ -557,8 +573,8 @@ urlpatterns += [
     url(r"^stats/", react_page_view, name="stats"),
     # Replays
     url(r"^replays/", react_page_view, name="replays"),
-    # Monitors
-    url(r"^monitors/", react_page_view, name="monitors"),
+    # Crons
+    url(r"^crons/", react_page_view, name="crons"),
     # Releases
     url(r"^releases/", react_page_view, name="releases"),
     # User Feedback
@@ -570,6 +586,12 @@ urlpatterns += [
         r"^disabled-member/",
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
+    ),
+    # Restore organization
+    url(
+        r"^restore/",
+        RestoreOrganizationView.as_view(),
+        name="sentry-customer-domain-restore-organization",
     ),
     # Project on-boarding
     # We map /:orgid/:projectid/getting-started/* to /getting-started/:projectid/*
@@ -624,6 +646,11 @@ urlpatterns += [
                     r"^(?P<organization_slug>[\w_-]+)/issues/(?P<group_id>\d+)/events/(?P<event_id_or_latest>[\w-]+)/json/$",
                     GroupEventJsonView.as_view(),
                     name="sentry-group-event-json",
+                ),
+                url(
+                    r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/$",
+                    react_page_view,
+                    name="sentry-organization-project-details",
                 ),
                 url(
                     r"^(?P<organization_slug>[\w_-]+)/projects/(?P<project_slug>[\w_-]+)/events/(?P<client_event_id>[\w_-]+)/$",

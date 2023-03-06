@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types/event';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getGPUKnownDataDetails} from './getGPUKnownDataDetails';
 import {GPUData, GPUKnownDataType} from './types';
@@ -17,7 +17,7 @@ export const gpuKnownDataValues = [
   GPUKnownDataType.NAME,
   GPUKnownDataType.VERSION,
   GPUKnownDataType.VENDOR_NAME,
-  GPUKnownDataType.MEMORY,
+  GPUKnownDataType.MEMORY_SIZE,
   GPUKnownDataType.NPOT_SUPPORT,
   GPUKnownDataType.MULTI_THREAD_RENDERING,
   GPUKnownDataType.API_TYPE,
@@ -41,7 +41,7 @@ export function GPUEventContext({event, data}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<GPUData, GPUKnownDataType>({
+        data={getKnownData<GPUData, GPUKnownDataType>({
           data,
           meta,
           knownDataTypes: gpuValues,

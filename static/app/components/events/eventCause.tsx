@@ -7,10 +7,11 @@ import {CommitRowProps} from 'sentry/components/commitRow';
 import {CauseHeader, DataSection} from 'sentry/components/events/styles';
 import {Panel} from 'sentry/components/panels';
 import {IconAdd, IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {AvatarProject, Commit, Group, IssueCategory, IssueType} from 'sentry/types';
+import {t, tn} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {AvatarProject, Commit, Group} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useCommitters from 'sentry/utils/useCommitters';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -57,9 +58,7 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
     trackAdvancedAnalyticsEvent('issue_details.suspect_commits.pull_request_clicked', {
       organization,
       project_id: parseInt(project.id as string, 10),
-      group_id: parseInt(group?.id as string, 10),
-      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
-      issue_type: group?.issueType ?? IssueType.ERROR,
+      ...getAnalyticsDataForGroup(group),
     });
   };
 
@@ -67,22 +66,24 @@ export function EventCause({group, eventId, project, commitRow: CommitRow}: Prop
     trackAdvancedAnalyticsEvent('issue_details.suspect_commits.commit_clicked', {
       organization,
       project_id: parseInt(project.id as string, 10),
-      group_id: parseInt(group?.id as string, 10),
-      issue_category: group?.issueCategory ?? IssueCategory.ERROR,
-      issue_type: group?.issueType ?? IssueType.ERROR,
       has_pull_request: commit.pullRequest?.id !== undefined,
+      ...getAnalyticsDataForGroup(group),
     });
   };
 
   const commits = getUniqueCommitsWithAuthors();
+
+  const commitHeading = tn('Suspect Commit', 'Suspect Commits (%s)', commits.length);
+
   return (
     <DataSection>
       <CauseHeader>
-        <h3 data-test-id="event-cause">
-          {t('Suspect Commits')} ({commits.length})
-        </h3>
+        <h3 data-test-id="event-cause">{commitHeading}</h3>
         {commits.length > 1 && (
-          <ExpandButton onClick={() => setIsExpanded(!isExpanded)}>
+          <ExpandButton
+            onClick={() => setIsExpanded(!isExpanded)}
+            data-test-id="expand-commit-list"
+          >
             {isExpanded ? (
               <Fragment>
                 {t('Show less')} <IconSubtract isCircled size="md" />

@@ -7,11 +7,12 @@ from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
 from sentry.db.models.fields import PickledObjectField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import OptionManager, Value
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 option_scope_error = "this is not a supported use case, scope to project OR organization"
 
@@ -19,15 +20,17 @@ option_scope_error = "this is not a supported use case, scope to project OR orga
 class UserOptionManager(OptionManager["User"]):
     def _make_key(
         self,
-        user: User | APIUser | int,
-        project: Project | None = None,
-        organization: Organization | None = None,
+        user: User | RpcUser | int,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
     ) -> str:
         uid = user.id if user and not isinstance(user, int) else user
+        org_id: int | None = organization.id if isinstance(organization, Model) else organization
+        proj_id: int | None = project.id if isinstance(project, Model) else project
         if project:
-            metakey = f"{uid}:{project.id}:project"
+            metakey = f"{uid}:{proj_id}:project"
         elif organization:
-            metakey = f"{uid}:{organization.id}:organization"
+            metakey = f"{uid}:{org_id}:organization"
         else:
             metakey = f"{uid}:user"
 
@@ -36,7 +39,7 @@ class UserOptionManager(OptionManager["User"]):
         return key
 
     def get_value(
-        self, user: User | APIUser, key: str, default: Value | None = None, **kwargs: Any
+        self, user: User | RpcUser, key: str, default: Value | None = None, **kwargs: Any
     ) -> Value:
         project = kwargs.get("project")
         organization = kwargs.get("organization")
@@ -95,9 +98,9 @@ class UserOptionManager(OptionManager["User"]):
 
     def get_all_values(
         self,
-        user: User | APIUser | int,
-        project: Project | None = None,
-        organization: Organization | None = None,
+        user: User | RpcUser | int,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
         force_reload: bool = False,
     ) -> Mapping[str, Value]:
         if organization and project:
@@ -105,11 +108,17 @@ class UserOptionManager(OptionManager["User"]):
 
         uid = user.id if user and not isinstance(user, int) else user
         metakey = self._make_key(user, project=project, organization=organization)
+        project_id: int | None = project.id if isinstance(project, Model) else project
+        organization_id: int | None = (
+            organization.id if isinstance(organization, Model) else organization
+        )
 
         if metakey not in self._option_cache or force_reload:
             result = {
                 i.key: i.value
-                for i in self.filter(user_id=uid, project=project, organization=organization)
+                for i in self.filter(
+                    user_id=uid, project_id=project_id, organization_id=organization_id
+                )
             }
             self._option_cache[metakey] = result
 
@@ -119,12 +128,12 @@ class UserOptionManager(OptionManager["User"]):
 
     def post_save(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
-            instance.user, instance.project, instance.organization, force_reload=True
+            instance.user, instance.project_id, instance.organization_id, force_reload=True
         )
 
     def post_delete(self, instance: UserOption, **kwargs: Any) -> None:
         self.get_all_values(
-            instance.user, instance.project, instance.organization, force_reload=True
+            instance.user, instance.project_id, instance.organization_id, force_reload=True
         )
 
 
@@ -183,8 +192,8 @@ class UserOption(Model):  # type: ignore
     __include_in_export__ = True
 
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
-    project = FlexibleForeignKey("sentry.Project", null=True)
-    organization = FlexibleForeignKey("sentry.Organization", null=True)
+    project_id = HybridCloudForeignKey("sentry.Project", null=True, on_delete="CASCADE")
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     key = models.CharField(max_length=64)
     value = PickledObjectField()
 
@@ -193,6 +202,6 @@ class UserOption(Model):  # type: ignore
     class Meta:
         app_label = "sentry"
         db_table = "sentry_useroption"
-        unique_together = (("user", "project", "key"), ("user", "organization", "key"))
+        unique_together = (("user", "project_id", "key"), ("user", "organization_id", "key"))
 
     __repr__ = sane_repr("user_id", "project_id", "organization_id", "key", "value")

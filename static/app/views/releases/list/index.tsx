@@ -29,7 +29,7 @@ import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   PageFilters,
@@ -638,6 +638,9 @@ const SortAndFilterWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(3, 1fr);
+    & > div {
+      width: auto;
+    }
   }
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);

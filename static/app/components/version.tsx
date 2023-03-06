@@ -6,7 +6,7 @@ import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconCopy} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import theme from 'sentry/utils/theme';

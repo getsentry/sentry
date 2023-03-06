@@ -3,7 +3,7 @@ import scrollToElement from 'scroll-to-element';
 
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame} from 'sentry/types';
 
 import DebugImage from '../../debugMeta/debugImage';
@@ -55,6 +55,7 @@ function Native({
   leadsToApp,
   onMouseDown,
   onClick,
+  event,
   ...props
 }: Props) {
   const {instructionAddr, trust, addrMode, symbolicatorStatus} = frame ?? {};
@@ -85,8 +86,8 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
-    event.stopPropagation(); // to prevent collapsing if collapsible
+  function scrollToImage(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
       DebugMetaStore.updateFilter(makeFilter(instructionAddr));
@@ -112,6 +113,7 @@ function Native({
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
         <PackageInfo>
           <LeadHint
+            event={event}
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}

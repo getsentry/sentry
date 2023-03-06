@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -69,6 +70,7 @@ export enum FieldKey {
   OS_KERNEL_VERSION = 'os.kernel_version',
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
+  PROFILE_ID = 'profile.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -101,12 +103,14 @@ export enum FieldKey {
   TRANSACTION_DURATION = 'transaction.duration',
   TRANSACTION_OP = 'transaction.op',
   TRANSACTION_STATUS = 'transaction.status',
+  UNREAL_CRASH_TYPE = 'unreal.crash_type',
   USER = 'user',
   USER_DISPLAY = 'user.display',
   USER_EMAIL = 'user.email',
   USER_ID = 'user.id',
   USER_IP = 'user.ip',
   USER_USERNAME = 'user.username',
+  APP_IN_FOREGROUND = 'app.in_foreground',
 }
 
 export enum FieldValueType {
@@ -655,7 +659,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
-    desc: t('The issue identification code'),
+    desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -712,6 +716,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
   [FieldKey.PLATFORM_NAME]: {
     desc: t('Name of the platform'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [FieldKey.PROFILE_ID]: {
+    desc: t('The ID of an associated profile'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -890,6 +899,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [FieldKey.UNREAL_CRASH_TYPE]: {
+    desc: t('Crash type of an Unreal event'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.USER]: {
     desc: t('User identification value'),
     kind: FieldKind.FIELD,
@@ -919,6 +933,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Username of the user'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [FieldKey.APP_IN_FOREGROUND]: {
+    desc: t('Indicates if the app is in the foreground or background'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -955,6 +974,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
@@ -981,10 +1001,12 @@ export const ISSUE_FIELDS = [
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  FieldKey.APP_IN_FOREGROUND,
 ];
 
 /**
@@ -1012,6 +1034,7 @@ export const DISCOVER_FIELDS = [
   // tags.key and tags.value are omitted on purpose as well.
 
   FieldKey.TRANSACTION,
+  FieldKey.UNREAL_CRASH_TYPE,
   FieldKey.USER,
   FieldKey.USER_ID,
   FieldKey.USER_EMAIL,
@@ -1061,6 +1084,9 @@ export const DISCOVER_FIELDS = [
   FieldKey.STACK_STACK_LEVEL,
   // contexts.key and contexts.value omitted on purpose.
 
+  // App context fields
+  FieldKey.APP_IN_FOREGROUND,
+
   // Transaction event fields.
   FieldKey.TRANSACTION_DURATION,
   FieldKey.TRANSACTION_OP,
@@ -1069,6 +1095,8 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE,
   FieldKey.TRACE_SPAN,
   FieldKey.TRACE_PARENT_SPAN,
+
+  FieldKey.PROFILE_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
@@ -1139,19 +1167,17 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1215,3 +1241,16 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}

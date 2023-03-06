@@ -100,20 +100,20 @@ class SentryPermission(ScopedPermission):
         if request.user and request.user.is_authenticated and request.auth:
             request.access = access.from_request_org_and_scopes(
                 request=request,
-                api_user_org_context=org_context,
+                rpc_user_org_context=org_context,
                 scopes=request.auth.get_scopes(),
             )
             return
 
         if request.auth:
-            request.access = access.from_api_auth(
-                auth=request.auth, api_user_org_context=org_context
+            request.access = access.from_rpc_auth(
+                auth=request.auth, rpc_user_org_context=org_context
             )
             return
 
         request.access = access.from_request_org_and_scopes(
             request=request,
-            api_user_org_context=org_context,
+            rpc_user_org_context=org_context,
         )
 
         extra = {"organization_id": organization.id, "user_id": request.user.id}

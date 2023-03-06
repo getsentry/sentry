@@ -34,5 +34,7 @@ class SearchBackend(Service):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         raise NotImplementedError

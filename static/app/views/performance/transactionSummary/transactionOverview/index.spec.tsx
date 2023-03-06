@@ -251,6 +251,54 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
+    // Events Mock unfiltered totals for percentage calculations
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'tpm()': 'number',
+          },
+        },
+        data: [
+          {
+            'tpm()': 1,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return (
+            options.query?.field?.includes('tpm()') &&
+            !options.query?.field?.includes('p95()')
+          );
+        },
+      ],
+    });
+    // Events Mock count totals for histogram percentage calculations
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        meta: {
+          fields: {
+            'count()': 'number',
+          },
+        },
+        data: [
+          {
+            'count()': 2,
+          },
+        ],
+      },
+      match: [
+        (_url, options) => {
+          return (
+            options.query?.field?.includes('count()') &&
+            !options.query?.field?.includes('p95()')
+          );
+        },
+      ],
+    });
     // Events Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -410,6 +458,10 @@ describe('Performance > TransactionSummary', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/project-slug/profiling/functions/`,
+      body: {functions: []},
+    });
 
     jest.spyOn(MEPSetting, 'get').mockImplementation(() => MEPState.auto);
   });
@@ -418,10 +470,7 @@ describe('Performance > TransactionSummary', function () {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
     jest.clearAllMocks();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
   });
 
   describe('with discover', function () {
@@ -530,7 +579,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders TPM widget
       expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
     it('fetches transaction threshold', function () {
@@ -794,17 +843,17 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'user, id:100, 100% of all events. View events with this tag value.'
         )
       );
@@ -941,7 +990,7 @@ describe('Performance > TransactionSummary', function () {
 
       // Renders TPM widget
       expect(screen.getByRole('heading', {name: 'TPM'})).toBeInTheDocument();
-      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('1 tpm');
+      expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
     it('fetches transaction threshold', function () {
@@ -1207,12 +1256,12 @@ describe('Performance > TransactionSummary', function () {
       await screen.findByText('Tag Summary');
 
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'environment, dev, 100% of all events. View events with this tag value.'
         )
       );
       userEvent.click(
-        screen.getByLabelText(
+        await screen.findByLabelText(
           'foo, bar, 100% of all events. View events with this tag value.'
         )
       );

@@ -9,17 +9,17 @@ import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/uti
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
 import SearchBar from 'sentry/components/searchBar';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, Organization, Outcome, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {DataCategoryInfo, Organization, Outcome, Project} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
 
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
 
 type Props = {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
 
@@ -275,7 +275,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     const {performance, projectDetail, settings} = getNextLocations(project);
 
     if (
-      dataCategory === DataCategory.TRANSACTIONS &&
+      dataCategory === DATA_CATEGORY_INFO.transaction.plural &&
       organization.features.includes('performance-view')
     ) {
       return {

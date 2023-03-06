@@ -7,7 +7,7 @@ import {ExportQueryType} from 'sentry/components/dataExport';
 import DateTime from 'sentry/components/dateTime';
 import {IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import Layout from 'sentry/views/auth/layout';

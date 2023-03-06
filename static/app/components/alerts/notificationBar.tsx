@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
 import {IconInfo} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-export const StyledNotificationBarIconInfo = styled(IconInfo)`
+const StyledNotificationBarIconInfo = styled(IconInfo)`
   margin-right: ${space(1)};
   color: ${p => p.theme.alert.info.iconColor};
 `;

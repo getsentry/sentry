@@ -9,7 +9,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import HighlightCornerContainer from 'sentry/components/highlightCornerModal';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {extraQueryParameter, urlAttachQueryParams} from 'sentry/utils/demoMode';
 

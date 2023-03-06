@@ -7,7 +7,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import withRouteAnalytics, {
   WithRouteAnalyticsProps,
@@ -15,11 +15,11 @@ import withRouteAnalytics, {
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import MonitorCheckIns from './monitorCheckIns';
-import MonitorHeader from './monitorHeader';
-import MonitorIssues from './monitorIssues';
-import MonitorStats from './monitorStats';
-import MonitorOnboarding from './onboarding';
+import MonitorCheckIns from './components/monitorCheckIns';
+import MonitorHeader from './components/monitorHeader';
+import MonitorIssues from './components/monitorIssues';
+import MonitorStats from './components/monitorStats';
+import MonitorOnboarding from './components/onboarding';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &

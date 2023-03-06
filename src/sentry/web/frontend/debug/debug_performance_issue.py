@@ -7,18 +7,17 @@ from sentry.notifications.utils import (
     get_performance_issue_alert_subtitle,
     get_transaction_data,
 )
-from sentry.types.issues import GROUP_TYPE_TO_TEXT
 from sentry.utils import json
 
 from .mail import COMMIT_EXAMPLE, MailPreview, get_shared_context, make_performance_event
 
 
 class DebugPerformanceIssueEmailView(View):
-    def get(self, request):
+    def get(self, request, sample_name="transaction-n-plus-one"):
         project = Project.objects.first()
         org = project.organization
         project.update_option("sentry:performance_issue_creation_rate", 1.0)
-        perf_event = make_performance_event(project)
+        perf_event = make_performance_event(project, sample_name)
         if request.GET.get("is_test", False):
             perf_event.group.id = 1
         perf_group = perf_event.group
@@ -37,7 +36,7 @@ class DebugPerformanceIssueEmailView(View):
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
                 "transaction_data": [("Span Evidence", mark_safe(transaction_data), None)],
-                "issue_type": GROUP_TYPE_TO_TEXT.get(perf_group.issue_type, "Issue"),
+                "issue_type": perf_group.issue_type.description,
                 "subtitle": get_performance_issue_alert_subtitle(perf_event),
             },
         ).render(request)

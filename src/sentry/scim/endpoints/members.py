@@ -68,22 +68,34 @@ class OperationValue(Field):
             return value
         elif isinstance(value, dict):
             return value
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(value, str):
+            value = resolve_maybe_bool_value(value)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
     def to_internal_value(self, data) -> Union[Dict, bool]:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
             return data
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(data, str):
+            value = resolve_maybe_bool_value(data)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
 
 class SCIMPatchOperationSerializer(serializers.Serializer):
-    op = serializers.ChoiceField(choices=("replace",), required=True)
+    op = serializers.CharField(required=True)
     value = OperationValue()
     path = serializers.CharField(required=False)
+
+    def validate_op(self, value: str) -> str:
+        value = value.lower()
+        if value in [MemberPatchOps.REPLACE]:
+            return value
+        raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
 class SCIMPatchRequestSerializer(serializers.Serializer):
@@ -108,6 +120,19 @@ def _scim_member_serializer_with_expansion(organization):
     if auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:
         expand = []
     return OrganizationMemberSCIMSerializer(expand=expand)
+
+
+def resolve_maybe_bool_value(value):
+    if isinstance(value, str):
+        value = value.lower()
+        # Some IdP vendors such as Azure send boolean values as actual strings.
+        if value == "true":
+            return True
+        elif value == "false":
+            return False
+    if isinstance(value, bool):
+        return value
+    return None
 
 
 @region_silo_endpoint
@@ -137,11 +162,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if operation.get("op").lower() == MemberPatchOps.REPLACE:
             if (
                 isinstance(operation.get("value"), dict)
-                and operation.get("value").get("active") is False
+                and resolve_maybe_bool_value(operation.get("value").get("active")) is False
             ):
                 # how okta sets active to false
                 return True
-            elif operation.get("path") == "active" and operation.get("value") is False:
+            elif (
+                operation.get("path") == "active"
+                and resolve_maybe_bool_value(operation.get("value")) is False
+            ):
                 # how other idps set active to false
                 return True
         return False
@@ -167,6 +195,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "active": True,
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "member",
                 },
                 status_codes=["200"],
             ),
@@ -251,6 +280,89 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         self._delete_member(request, organization, member)
         return Response(status=204)
 
+    @extend_schema(
+        operation_id="Update an Organization Member's Attributes",
+        parameters=[GLOBAL_PARAMS.ORG_SLUG, SCIM_PARAMS.MEMBER_ID],
+        request=inline_serializer(
+            "SCIMMemberProvision", fields={"sentryOrgRole": serializers.CharField()}
+        ),
+        responses={
+            201: OrganizationMemberSCIMSerializer,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOTFOUND,
+        },
+        examples=[  # TODO: see if this can go on serializer object instead
+            OpenApiExample(
+                "Update a user",
+                response_only=True,
+                value={
+                    "schemas": ["urn:ietf:params:scim:schemas:core:2.0:User"],
+                    "id": "242",
+                    "userName": "test.user@okta.local",
+                    "emails": [{"primary": True, "value": "test.user@okta.local", "type": "work"}],
+                    "active": True,
+                    "name": {"familyName": "N/A", "givenName": "N/A"},
+                    "meta": {"resourceType": "User"},
+                },
+                status_codes=["201"],
+            ),
+        ],
+    )
+    def put(self, request: Request, organization, member):
+        """
+        Update an organization member
+
+        Currently only updates organization role
+        """
+        if features.has("organizations:scim-orgmember-roles", organization, actor=None):
+            if request.data.get("sentryOrgRole"):
+                # Don't update if the org role is the same
+                if (
+                    member.flags["idp:role-restricted"]
+                    and member.role.lower() == request.data["sentryOrgRole"].lower()
+                ):
+                    context = serialize(
+                        member, serializer=_scim_member_serializer_with_expansion(organization)
+                    )
+                    return Response(context, status=200)
+
+                # Update if the org role is changing and lock the role
+                requested_role = request.data["sentryOrgRole"].lower()
+                idp_role_restricted = True
+
+            # if sentryOrgRole is blank
+            else:
+                # Don't change the role if the user isn't idp:role-restricted,
+                # and they don't have the default role.
+                if (
+                    member.role != organization.default_role
+                    and not member.flags["idp:role-restricted"]
+                ):
+                    context = serialize(
+                        member, serializer=_scim_member_serializer_with_expansion(organization)
+                    )
+                    return Response(context, status=200)
+
+                # Remove role-restricted flag since org role is blank
+                idp_role_restricted = False
+                requested_role = organization.default_role
+
+            # Allow any role as long as it doesn't have `org:admin` permissions
+            allowed_roles = {role.id for role in roles.get_all() if not role.has_scope("org:admin")}
+            if requested_role not in allowed_roles:
+                raise SCIMApiError(detail=SCIM_400_INVALID_ORGROLE)
+
+            member.role = requested_role
+            member.flags["idp:role-restricted"] = idp_role_restricted
+            member.save()
+
+        context = serialize(
+            member,
+            serializer=_scim_member_serializer_with_expansion(organization),
+        )
+        return Response(context, status=200)
+
 
 @region_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
@@ -288,6 +400,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                             "name": {"familyName": "N/A", "givenName": "N/A"},
                             "active": True,
                             "meta": {"resourceType": "User"},
+                            "sentryOrgRole": "member",
                         }
                     ],
                 },
@@ -342,7 +455,11 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         operation_id="Provision a New Organization Member",
         parameters=[GLOBAL_PARAMS.ORG_SLUG],
         request=inline_serializer(
-            "SCIMMemberProvision", fields={"userName": serializers.EmailField()}
+            name="SCIMMemberProvision",
+            fields={
+                "userName": serializers.EmailField(),
+                "sentryOrgRole": serializers.CharField(required=False),
+            },
         ),
         responses={
             201: OrganizationMemberSCIMSerializer,
@@ -362,6 +479,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                     "active": True,
                     "name": {"familyName": "N/A", "givenName": "N/A"},
                     "meta": {"resourceType": "User"},
+                    "sentryOrgRole": "member",
                 },
                 status_codes=["201"],
             ),
@@ -371,6 +489,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
         """
         Create a new Organization Member via a SCIM Users POST Request.
         - `userName` should be set to the SAML field used for email, and active should be set to `true`.
+        - `sentryOrgRole` can only be `admin`, `manager`, `billing`, or `member`.
         - Sentry's SCIM API doesn't currently support setting users to inactive,
         and the member will be deleted if active is set to `false`.
         - The API also does not support setting secondary emails.

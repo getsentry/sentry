@@ -10,7 +10,7 @@ import {TableType} from 'sentry/components/forms/types';
 import Input from 'sentry/components/input';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import {singleLineRenderer} from 'sentry/utils/marked';
 

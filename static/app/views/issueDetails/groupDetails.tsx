@@ -12,25 +12,18 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
-import space from 'sentry/styles/space';
-import {
-  AvatarProject,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  Project,
-} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {AvatarProject, Group, IssueCategory, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
-  getAnalyicsDataForEvent,
-  getAnalyicsDataForGroup,
+  getAnalyticsDataForEvent,
+  getAnalyticsDataForGroup,
   getMessage,
   getTitle,
 } from 'sentry/utils/events';
@@ -53,7 +46,7 @@ import {
   ReprocessingStatus,
 } from './utils';
 
-type Error = typeof ERROR_TYPES[keyof typeof ERROR_TYPES] | null;
+type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 type Props = {
   api: Client;
@@ -156,12 +149,13 @@ class GroupDetails extends Component<Props, State> {
   trackView(project: Project) {
     const {group, event} = this.state;
     const {location, organization, router} = this.props;
-    const {alert_date, alert_rule_id, alert_type} = location.query;
+    // Remove ref_fallback with IssueAlertFallbackExperiment
+    const {alert_date, alert_rule_id, alert_type, ref_fallback} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
-      ...getAnalyicsDataForGroup(group),
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForGroup(group),
+      ...getAnalyticsDataForEvent(event),
       ...getAnalyicsDataForProject(project),
       // Alert properties track if the user came from email/slack alerts
       alert_date:
@@ -173,6 +167,9 @@ class GroupDetails extends Component<Props, State> {
         router.location.query.project,
         event
       ),
+      ref_fallback,
+      // Will be updated by StacktraceLink if there is a stacktrace link
+      stacktrace_link_viewed: false,
     });
   }
 
@@ -434,7 +431,12 @@ class GroupDetails extends Component<Props, State> {
       const project = this.props.projects.find(p => p.id === data.project.id);
 
       if (!project) {
-        Sentry.withScope(() => {
+        Sentry.withScope(scope => {
+          const projectIds = this.props.projects.map(item => item.id);
+          scope.setContext('missingProject', {
+            projectId: data.project.id,
+            availableProjects: projectIds,
+          });
           Sentry.captureException(new Error('Project not found'));
         });
       } else {
@@ -530,11 +532,9 @@ class GroupDetails extends Component<Props, State> {
 
     trackAdvancedAnalyticsEvent('issue_details.tab_changed', {
       organization,
-      group_id: parseInt(group.id, 10),
-      issue_category: group.issueCategory,
-      issue_type: group.issueType ?? IssueType.ERROR,
       project_id: parseInt(project.id, 10),
       tab,
+      ...getAnalyticsDataForGroup(group),
     });
 
     if (group.issueCategory !== IssueCategory.ERROR) {
@@ -629,9 +629,9 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
         />
         <GroupTabPanels>
-          <Item key={currentTab}>
+          <TabPanels.Item key={currentTab}>
             {isValidElement(children) ? cloneElement(children, childProps) : children}
-          </Item>
+          </TabPanels.Item>
         </GroupTabPanels>
       </Tabs>
     );

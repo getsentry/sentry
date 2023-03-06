@@ -10,36 +10,72 @@ import {CollectionBase, ItemProps, Node} from '@react-types/shared';
 import {LayoutGroup, motion} from 'framer-motion';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InternalTooltipProps, Tooltip} from 'sentry/components/tooltip';
+import space from 'sentry/styles/space';
+import {defined} from 'sentry/utils';
 import {FormSize} from 'sentry/utils/theme';
 
-export interface SegmentedControlItemProps extends ItemProps<any> {
-  key: React.Key;
+export interface SegmentedControlItemProps<Value extends string>
+  extends Omit<ItemProps<any>, 'children'> {
+  key: Value;
+  children?: React.ReactNode;
   disabled?: boolean;
+  /**
+   * Optional icon to be rendered to the left of the segment label. Use this prop to
+   * ensure proper vertical alignment.
+   *
+   * NOTE: if the segment contains only an icon and no text label (i.e. `children` is
+   * not defined), then an `aria-label` must be provided for screen reader support.
+   */
+  icon?: React.ReactNode;
+  /**
+   * Optional tooltip that appears when the use hovers over the segment. Avoid using
+   * tooltips if there are other, more visible ways to display the same information.
+   */
+  tooltip?: React.ReactNode;
+  /**
+   * Additional props to be passed into <Tooltip />.
+   */
+  tooltipOptions?: Omit<InternalTooltipProps, 'children' | 'title' | 'className'>;
 }
 
 type Priority = 'default' | 'primary';
-export interface SegmentedControlProps extends AriaRadioGroupProps, CollectionBase<any> {
+export interface SegmentedControlProps<Value extends string>
+  extends Omit<AriaRadioGroupProps, 'value' | 'defaultValue' | 'onChange'>,
+    CollectionBase<any> {
+  defaultValue?: Value;
   disabled?: AriaRadioGroupProps['isDisabled'];
+  onChange?: (value: Value) => void;
   priority?: Priority;
   size?: FormSize;
+  value?: Value;
 }
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
-export function SegmentedControl({
+export function SegmentedControl<Value extends string>({
+  value,
+  defaultValue,
+  onChange,
   size = 'md',
   priority = 'default',
   disabled,
   ...props
-}: SegmentedControlProps) {
+}: SegmentedControlProps<Value>) {
   const ref = useRef<HTMLDivElement>(null);
 
   const collection = useCollection(props, collectionFactory);
   const ariaProps: AriaRadioGroupProps = {
     ...props,
+    // Cast value/defaultValue as string to comply with AriaRadioGroupProps. This is safe
+    // as value and defaultValue are already strings (their type, Value, extends string)
+    value: value as string,
+    defaultValue: defaultValue as string,
+    onChange: onChange && (val => onChange(val as Value)),
     orientation: 'horizontal',
     isDisabled: disabled,
   };
+
   const state = useRadioGroupState(ariaProps);
   const {radioGroupProps} = useRadioGroup(ariaProps, state);
 
@@ -48,7 +84,7 @@ export function SegmentedControl({
   return (
     <GroupWrap {...radioGroupProps} size={size} priority={priority} ref={ref}>
       <LayoutGroup id={radioGroupProps.id}>
-        {[...collectionList].map(option => (
+        {collectionList.map(option => (
           <Segment
             {...option.props}
             key={option.key}
@@ -69,9 +105,13 @@ export function SegmentedControl({
   );
 }
 
-SegmentedControl.Item = Item as (props: SegmentedControlItemProps) => JSX.Element;
+SegmentedControl.Item = Item as <Value extends string>(
+  props: SegmentedControlItemProps<Value>
+) => JSX.Element;
 
-interface SegmentProps extends AriaRadioProps {
+interface SegmentProps<Value extends string>
+  extends SegmentedControlItemProps<Value>,
+    AriaRadioProps {
   lastKey: string;
   layoutGroupId: string;
   priority: Priority;
@@ -81,28 +121,36 @@ interface SegmentProps extends AriaRadioProps {
   prevKey?: string;
 }
 
-function Segment({
+function Segment<Value extends string>({
   state,
   nextKey,
   prevKey,
   size,
   priority,
   layoutGroupId,
+  tooltip,
+  tooltipOptions = {},
+  icon,
   ...props
-}: SegmentProps) {
+}: SegmentProps<Value>) {
   const ref = useRef<HTMLInputElement>(null);
 
-  const {inputProps} = useRadio({...props}, state, ref);
+  const {inputProps} = useRadio(props, state, ref);
 
-  const prevOptionIsSelected = state.selectedValue === prevKey;
-  const nextOptionIsSelected = state.selectedValue === nextKey;
+  const prevOptionIsSelected = defined(prevKey) && state.selectedValue === prevKey;
+  const nextOptionIsSelected = defined(nextKey) && state.selectedValue === nextKey;
 
   const isSelected = state.selectedValue === props.value;
   const showDivider = !isSelected && !nextOptionIsSelected;
 
   const {isDisabled} = props;
-  return (
-    <SegmentWrap size={size} isSelected={isSelected} isDisabled={isDisabled}>
+  const content = (
+    <SegmentWrap
+      size={size}
+      isSelected={isSelected}
+      isDisabled={isDisabled}
+      data-test-id={props.value}
+    >
       <SegmentInput {...inputProps} ref={ref} />
       {!isDisabled && (
         <SegmentInteractionStateLayer
@@ -113,7 +161,7 @@ function Segment({
       {isSelected && (
         <SegmentSelectionIndicator
           layoutId={layoutGroupId}
-          transition={{type: 'tween', ease: 'circOut', duration: 0.2}}
+          transition={{type: 'tween', ease: 'easeOut', duration: 0.2}}
           priority={priority}
           aria-hidden
         />
@@ -121,23 +169,48 @@ function Segment({
 
       <Divider visible={showDivider} role="separator" aria-hidden />
 
-      {/* Once an item is selected, it gets a heavier font weight and becomes slightly
-      wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that will
-      always have normal weight to take up constant space; and a visible, absolutely
-      positioned container (VisibleLabel) that doesn't affect the layout. */}
-      <LabelWrap>
-        <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
-        <VisibleLabel isSelected={isSelected} isDisabled={isDisabled} priority={priority}>
-          {props.children}
-        </VisibleLabel>
+      <LabelWrap size={size} role="presentation">
+        {icon}
+        {/* Once an item is selected, it gets a heavier font weight and becomes slightly
+        wider. To prevent layout shifts, we need a hidden container (HiddenLabel) that
+        will always have normal weight to take up constant space; and a visible,
+        absolutely positioned container (VisibleLabel) that doesn't affect the layout. */}
+        {props.children && (
+          <InnerLabelWrap role="presentation">
+            <HiddenLabel aria-hidden>{props.children}</HiddenLabel>
+            <VisibleLabel
+              isSelected={isSelected}
+              isDisabled={isDisabled}
+              priority={priority}
+              role="presentation"
+            >
+              {props.children}
+            </VisibleLabel>
+          </InnerLabelWrap>
+        )}
       </LabelWrap>
     </SegmentWrap>
   );
+
+  if (tooltip) {
+    return (
+      <Tooltip
+        skipWrapper
+        title={tooltip}
+        {...{delay: 500, position: 'bottom', ...tooltipOptions}}
+      >
+        {content}
+      </Tooltip>
+    );
+  }
+
+  return content;
 }
 
 const GroupWrap = styled('div')<{priority: Priority; size: FormSize}>`
   position: relative;
-  display: inline-flex;
+  display: inline-grid;
+  grid-auto-flow: column;
   background: ${p =>
     p.priority === 'primary' ? p.theme.background : p.theme.backgroundTertiary};
   border: solid 1px ${p => p.theme.border};
@@ -153,25 +226,30 @@ const SegmentWrap = styled('label')<{
   isDisabled?: boolean;
 }>`
   position: relative;
-  display: block;
+  display: flex;
+  align-items: center;
   margin: 0;
   border-radius: calc(${p => p.theme.borderRadius} - 1px);
   cursor: ${p => (p.isDisabled ? 'default' : 'pointer')};
+  min-height: 0;
   min-width: 0;
 
   ${p => p.theme.buttonPadding[p.size]}
   font-weight: 400;
 
-  &:hover {
-    background-color: inherit;
+  ${p =>
+    !p.isDisabled &&
+    `
+    &:hover {
+      background-color: inherit;
 
-    [role='separator'] {
-      opacity: 0;
+      [role='separator'] {
+        opacity: 0;
+      }
     }
-  }
+  `}
 
   ${p => p.isSelected && `z-index: 1;`}
-  ${p => p.isDisabled && `pointer-events: none;`}
 `;
 
 const SegmentInput = styled('input')`
@@ -223,48 +301,55 @@ const SegmentSelectionIndicator = styled(motion.div)<{priority: Priority}>`
   bottom: 0;
   left: 0;
   right: 0;
-  background: ${p =>
-    p.priority === 'primary' ? p.theme.active : p.theme.backgroundElevated};
-  border-radius: ${p =>
-    p.priority === 'primary'
-      ? p.theme.borderRadius
-      : `calc(${p.theme.borderRadius} - 1px)`};
-  box-shadow: 0 0 2px rgba(43, 34, 51, 0.16);
-
-  input.focus-visible ~ & {
-    box-shadow: ${p =>
-      p.priority === 'primary'
-        ? `0 0 0 3px ${p.theme.focus}`
-        : `0 0 0 2px ${p.theme.focusBorder}`};
-  }
 
   ${p =>
-    p.priority === 'primary' &&
-    `
+    p.priority === 'primary'
+      ? `
+    background: ${p.theme.active};
+    border-radius: ${p.theme.borderRadius};
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 3px ${p.theme.focus};
+    }
+
     top: -1px;
     bottom: -1px;
-
     label:first-child > & {
       left: -1px;
     }
     label:last-child > & {
       right: -1px;
     }
+  `
+      : `
+    background: ${p.theme.backgroundElevated};
+    border-radius: calc(${p.theme.borderRadius} - 1px);
+    box-shadow: 0 0 2px rgba(43, 34, 51, 0.32);
+    input.focus-visible ~ & {
+      box-shadow: 0 0 0 2px ${p.theme.focusBorder};
+    }
   `}
 `;
 
-const LabelWrap = styled('span')`
+const LabelWrap = styled('span')<{size: FormSize}>`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${p => (p.size === 'xs' ? space(0.5) : space(0.75))};
+  z-index: 1;
+`;
+
+const InnerLabelWrap = styled('span')`
   position: relative;
   display: flex;
   line-height: 1;
+  min-width: 0;
 `;
 
 const HiddenLabel = styled('span')`
-  display: inline-block;
+  ${p => p.theme.overflowEllipsis}
   margin: 0 2px;
   visibility: hidden;
   user-select: none;
-  ${p => p.theme.overflowEllipsis}
 `;
 
 function getTextColor({
@@ -296,10 +381,11 @@ const VisibleLabel = styled('span')<{
   priority: Priority;
   isDisabled?: boolean;
 }>`
+  ${p => p.theme.overflowEllipsis}
+
   position: absolute;
   top: 50%;
   left: 50%;
-  width: max-content;
   transform: translate(-50%, -50%);
   transition: color 0.25s ease-out;
 
@@ -307,8 +393,8 @@ const VisibleLabel = styled('span')<{
   font-weight: ${p => (p.isSelected ? 600 : 400)};
   letter-spacing: ${p => (p.isSelected ? '-0.015em' : 'inherit')};
   text-align: center;
+  line-height: ${p => p.theme.text.lineHeightBody};
   ${getTextColor}
-  ${p => p.theme.overflowEllipsis}
 `;
 
 const Divider = styled('div')<{visible: boolean}>`

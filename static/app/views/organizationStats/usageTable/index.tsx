@@ -10,15 +10,15 @@ import {Panel} from 'sentry/components/panels';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {DataCategoryInfo, Project} from 'sentry/types';
 
-import {formatUsageWithUnits} from '../utils';
+import {formatUsageWithUnits, getFormatUsageOptions} from '../utils';
 
 const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restricting-access';
 
 type Props = {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
   headers: React.ReactNode[];
   usageStats: TableStat[];
   errors?: Record<string, Error>;
@@ -40,15 +40,6 @@ export type TableStat = {
 };
 
 class UsageTable extends Component<Props> {
-  get formatUsageOptions() {
-    const {dataCategory} = this.props;
-
-    return {
-      isAbbreviated: dataCategory !== DataCategory.ATTACHMENTS,
-      useUnitScaling: dataCategory === DataCategory.ATTACHMENTS,
-    };
-  }
-
   getErrorMessage = errorMessage => {
     if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
       return (
@@ -86,16 +77,24 @@ class UsageTable extends Component<Props> {
         </SettingsIconLink>
       </CellProject>,
       <CellStat key={1}>
-        {formatUsageWithUnits(total, dataCategory, this.formatUsageOptions)}
+        {formatUsageWithUnits(total, dataCategory, getFormatUsageOptions(dataCategory))}
       </CellStat>,
       <CellStat key={2}>
-        {formatUsageWithUnits(accepted, dataCategory, this.formatUsageOptions)}
+        {formatUsageWithUnits(
+          accepted,
+          dataCategory,
+          getFormatUsageOptions(dataCategory)
+        )}
       </CellStat>,
       <CellStat key={3}>
-        {formatUsageWithUnits(filtered, dataCategory, this.formatUsageOptions)}
+        {formatUsageWithUnits(
+          filtered,
+          dataCategory,
+          getFormatUsageOptions(dataCategory)
+        )}
       </CellStat>,
       <CellStat key={4}>
-        {formatUsageWithUnits(dropped, dataCategory, this.formatUsageOptions)}
+        {formatUsageWithUnits(dropped, dataCategory, getFormatUsageOptions(dataCategory))}
       </CellStat>,
     ];
   }

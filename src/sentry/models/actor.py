@@ -6,7 +6,7 @@ from django.db.models.signals import pre_save
 from rest_framework import serializers
 
 from sentry.db.models import Model, region_silo_only_model
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
     from sentry.models import Team
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 ACTOR_TYPES = {"team": 0, "user": 1}
 
 
-def actor_type_to_class(type: int) -> Type[Union["Team", "APIUser"]]:
+def actor_type_to_class(type: int) -> Type[Union["Team", "RpcUser"]]:
     # type will be 0 or 1 and we want to get Team or User
     from sentry.models import Team, User
 
@@ -23,14 +23,14 @@ def actor_type_to_class(type: int) -> Type[Union["Team", "APIUser"]]:
     return ACTOR_TYPE_TO_CLASS[type]
 
 
-def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "APIUser"]:
+def fetch_actor_by_actor_id(cls, actor_id: int) -> Union["Team", "RpcUser"]:
     results = fetch_actors_by_actor_ids(cls, [actor_id])
     if len(results) == 0:
         raise cls.DoesNotExist()
     return results[0]
 
 
-def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], List["APIUser"]]:
+def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], List["RpcUser"]]:
     from sentry.models import Team, User
 
     if cls is User:
@@ -41,7 +41,7 @@ def fetch_actors_by_actor_ids(cls, actor_ids: List[int]) -> Union[List["Team"], 
     raise ValueError(f"Cls {cls} is not a valid actor type.")
 
 
-def fetch_actor_by_id(cls, id: int) -> Union["Team", "APIUser"]:
+def fetch_actor_by_id(cls, id: int) -> Union["Team", "RpcUser"]:
     from sentry.models import Team, User
 
     if cls is Team:
@@ -78,7 +78,7 @@ class Actor(Model):
         app_label = "sentry"
         db_table = "sentry_actor"
 
-    def resolve(self) -> Union["Team", "APIUser"]:
+    def resolve(self) -> Union["Team", "RpcUser"]:
         # Returns User/Team model object
         return fetch_actor_by_actor_id(actor_type_to_class(self.type), self.id)
 
@@ -144,14 +144,14 @@ class ActorTuple(namedtuple("Actor", "id type")):
         except IndexError as e:
             raise serializers.ValidationError(f"Unable to resolve actor identifier: {e}")
 
-    def resolve(self) -> Union["Team", "APIUser"]:
+    def resolve(self) -> Union["Team", "RpcUser"]:
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
         return Actor.objects.get(id=self.resolve().actor_id)
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "APIUser"]]:
+    def resolve_many(cls, actors: Sequence["ActorTuple"]) -> Sequence[Union["Team", "RpcUser"]]:
         """
         Resolve multiple actors at the same time. Returns the result in the same order
         as the input, minus any actors we couldn't resolve.
@@ -170,7 +170,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
         results = {}
         for type, _actors in actors_by_type.items():
             if type == User:
-                for instance in user_service.get_many([a.id for a in _actors]):
+                for instance in user_service.get_many(filter={"user_ids": [a.id for a in _actors]}):
                     results[(type, instance.id)] = instance
             else:
                 for instance in type.objects.filter(id__in=[a.id for a in _actors]):

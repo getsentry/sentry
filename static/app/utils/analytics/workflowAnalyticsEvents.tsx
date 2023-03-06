@@ -1,4 +1,5 @@
-import type {IssueCategory, IssueType, ResolutionStatus} from 'sentry/types';
+import type {ResolutionStatus} from 'sentry/types';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
@@ -6,10 +7,7 @@ type RuleViewed = {
   project_id: string;
 };
 
-type IssueDetailsWithAlert = {
-  group_id: number;
-  issue_category: IssueCategory;
-  issue_type: IssueType;
+interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
@@ -17,7 +15,7 @@ type IssueDetailsWithAlert = {
   alert_rule_id?: string;
   /**  The type of alert notification - email/slack */
   alert_type?: string;
-};
+}
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
@@ -29,8 +27,12 @@ export type BaseEventAnalyticsParams = {
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  error_has_replay?: boolean;
+  event_errors?: string;
   event_platform?: string;
   event_type?: string;
+  has_otel?: boolean;
+  release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
 };
@@ -72,12 +74,12 @@ export type TeamInsightsEventParameters = {
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
+    assigned_type?: string;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};
   'issue_details.attachment_tab.screenshot_modal_opened': {};
   'issue_details.attachment_tab.screenshot_title_clicked': {};
-  'issue_details.codecov_link_clicked': {};
   'issue_details.event_json_clicked': {group_id: number};
   'issue_details.event_navigation_clicked': {button: string; project_id: number};
   'issue_details.issue_tab.screenshot_dropdown_deleted': {};
@@ -157,5 +159,4 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
   'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
   'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
-  'issue_details.codecov_link_clicked': 'Issue Details: Codecov Link Clicked',
 };

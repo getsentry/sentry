@@ -7,7 +7,6 @@ import isEqual from 'lodash/isEqual';
 import {fetchSentryAppComponents} from 'sentry/actionCreators/sentryAppComponents';
 import {Client} from 'sentry/api';
 import GroupEventDetailsLoadingError from 'sentry/components/errors/groupEventDetailsLoadingError';
-import {EventEntries} from 'sentry/components/events/eventEntries';
 import {withMeta} from 'sentry/components/events/meta/metaProxy';
 import GroupSidebar from 'sentry/components/group/sidebar';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -16,7 +15,7 @@ import MutedBox from 'sentry/components/mutedBox';
 import {TransactionProfileIdProvider} from 'sentry/components/profiling/transactionProfileIdProvider';
 import ReprocessedBox from 'sentry/components/reprocessedBox';
 import ResolutionBox from 'sentry/components/resolutionBox';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroupStatusReprocessing,
   Environment,
@@ -30,6 +29,7 @@ import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallation
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 
 import GroupEventToolbar from '../eventToolbar';
 import ReprocessingProgress from '../reprocessingProgress';
@@ -140,16 +140,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
   };
 
   renderContent(eventWithMeta?: Event) {
-    const {
-      group,
-      project,
-      organization,
-      environments,
-      location,
-      loadingEvent,
-      onRetry,
-      eventError,
-    } = this.props;
+    const {group, project, environments, loadingEvent, onRetry, eventError} = this.props;
 
     if (loadingEvent) {
       return <LoadingIndicator />;
@@ -162,13 +153,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     }
 
     return (
-      <EventEntries
-        group={group}
-        event={eventWithMeta}
-        organization={organization}
-        project={project}
-        location={location}
-      />
+      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
     );
   }
 
@@ -239,6 +224,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const {activity: activities} = group;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
 
+    const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+
     return (
       <TransactionProfileIdProvider
         projectId={event?.projectID}
@@ -274,6 +261,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                             organization={organization}
                             location={location}
                             project={project}
+                            hasReplay={hasReplay}
                           />
                         )}
                         {this.renderReprocessedBox(

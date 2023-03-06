@@ -26,11 +26,15 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
+  const formatOptions = {local: !utc};
+
+  const timeFormat = showTimeInTooltip
+    ? getTimeFormat({displaySeconds: addSecondsToTimeFormat})
+    : '';
+
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${
-      showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
-    }`.trim();
-    return getFormattedDate(value, format, {local: !utc});
+    const format = `MMM D, YYYY ${timeFormat} z`.trim();
+    return getFormattedDate(value, format, formatOptions);
   }
 
   const now = moment();
@@ -40,16 +44,16 @@ export function defaultFormatAxisLabel(
   const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
   const showEndDate = bucketStart.date() !== bucketEnd.date();
 
-  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${
-    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
-  }`.trim();
-  const formatEnd = `${showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : ''}${
-    showTimeInTooltip ? getTimeFormat({displaySeconds: addSecondsToTimeFormat}) : ''
-  }`.trim();
+  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${timeFormat}`.trim();
 
-  return `${getFormattedDate(bucketStart, formatStart, {
-    local: !utc,
-  })} — ${getFormattedDate(bucketEnd, formatEnd, {local: !utc})}`;
+  const formatEndDate = showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : '';
+  const formatEnd = `${formatEndDate} ${timeFormat}`.trim();
+
+  const start = getFormattedDate(bucketStart, formatStart, formatOptions);
+  const end = getFormattedDate(bucketEnd, formatEnd, formatOptions);
+  const timezone = getFormattedDate(bucketEnd, 'z', formatOptions);
+
+  return `${start} — ${end} (${timezone})`;
 }
 
 function defaultValueFormatter(value: string | number) {
@@ -291,7 +295,7 @@ type Props = ChartProps['tooltip'] &
     chartId?: string;
   };
 
-export default function Tooltip({
+export function ChartTooltip({
   filter,
   isGroupedByDate,
   showTimeInTooltip,

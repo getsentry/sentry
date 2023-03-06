@@ -28,27 +28,27 @@ def silo_from_user(
     scopes=None,
     is_superuser=False,
 ) -> Access:
-    api_user_org_context = None
+    rpc_user_org_context = None
     if organization:
-        api_user_org_context = organization_service.get_organization_by_id(
+        rpc_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=user.id
         )
-    return access.from_user_and_api_user_org_context(
+    return access.from_user_and_rpc_user_org_context(
         user=user,
-        api_user_org_context=api_user_org_context,
+        rpc_user_org_context=rpc_user_org_context,
         is_superuser=is_superuser,
         scopes=scopes,
     )
 
 
 def silo_from_request(request, organization: Organization = None, scopes=None) -> Access:
-    api_user_org_context = None
+    rpc_user_org_context = None
     if organization:
-        api_user_org_context = organization_service.get_organization_by_id(
+        rpc_user_org_context = organization_service.get_organization_by_id(
             id=organization.id, user_id=request.user.id
         )
     return access.from_request_org_and_scopes(
-        request=request, api_user_org_context=api_user_org_context, scopes=scopes
+        request=request, rpc_user_org_context=rpc_user_org_context, scopes=scopes
     )
 
 
@@ -284,11 +284,40 @@ class FromUserTest(AccessFactoryTestCase):
             assert result.has_team_scope(team, "team:admin")
             assert result.has_project_scope(project, "team:admin")
 
+    def test_get_organization_roles_from_teams(self):
+        user = self.create_user()
+        organization = self.create_organization()
+        owner_team = self.create_team(organization=organization, org_role="owner")
+        admin_team = self.create_team(organization=organization, org_role="admin")
+        self.create_member(organization=organization, user=user, teams=[owner_team, admin_team])
+
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert "owner" in result.roles
+            assert "member" in result.roles
+            assert "admin" in result.roles
+
     def test_unlinked_sso(self):
         user = self.create_user()
         organization = self.create_organization(owner=user)
         self.create_team(organization=organization)
         ap = self.create_auth_provider(organization=organization, provider="dummy")
+        self.create_auth_identity(auth_provider=ap, user=user)
+        request = self.make_request(user=user)
+        results = [self.from_user(user, organization), self.from_request(request, organization)]
+
+        for result in results:
+            assert not result.sso_is_valid
+            assert result.requires_sso
+
+    def test_unlinked_sso_with_owner_from_team(self):
+        organization = self.create_organization()
+        ap = self.create_auth_provider(organization=organization, provider="dummy")
+        user = self.create_user()
+        owner_team = self.create_team(organization=organization)
+        self.create_member(organization=organization, user=user, teams=[owner_team])
         self.create_auth_identity(auth_provider=ap, user=user)
         request = self.make_request(user=user)
         results = [self.from_user(user, organization), self.from_request(request, organization)]
