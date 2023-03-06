@@ -192,9 +192,9 @@ export default function TraceView({
               generation,
             }}
             measurements={
-              traces.length > 0
+              traces && traces.length > 0
                 ? getMeasurements(traces[0], generateBounds(traceInfo))
-                : null
+                : undefined
             }
             generateBounds={generateBounds(traceInfo)}
             continuingDepths={continuingDepths}
