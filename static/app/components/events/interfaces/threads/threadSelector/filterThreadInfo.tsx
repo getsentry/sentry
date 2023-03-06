@@ -17,7 +17,7 @@ type ThreadInfo = {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;
-  state?: string | null;
+  state?: Thread['state'];
 };
 
 function filterThreadInfo(

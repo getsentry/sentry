@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Thread} from 'sentry/types';
 
 type Props = {
   details: ThreadInfo;
@@ -12,7 +13,7 @@ type Props = {
 type ThreadInfo = {
   filename?: string;
   label?: string;
-  state?: string | null;
+  state?: Thread['state'];
 };
 
 function getThreadLabel(details: ThreadInfo) {
