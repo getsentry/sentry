@@ -27,6 +27,7 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
@@ -76,6 +77,7 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
@@ -119,6 +121,7 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
