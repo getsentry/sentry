@@ -8,7 +8,7 @@ describe('NoteInput', function () {
       group: {project: {}, id: 'groupId'},
     };
 
-    it('renders', async function () {
+    it('renders', function () {
       render(<NoteInput {...props} />);
     });
 
@@ -16,7 +16,7 @@ describe('NoteInput', function () {
       const onCreate = jest.fn();
       render(<NoteInput {...props} onCreate={onCreate} />);
 
-      await userEvent.type(screen.getByRole('textbox'), 'something{meta}{enter}');
+      await userEvent.type(screen.getByRole('textbox'), 'something{Meta>}{Enter}');
       expect(onCreate).toHaveBeenCalled();
     });
 
@@ -24,7 +24,7 @@ describe('NoteInput', function () {
       const onCreate = jest.fn();
       render(<NoteInput {...props} onCreate={onCreate} />);
 
-      await userEvent.type(screen.getByRole('textbox'), 'something{Control}{enter}');
+      await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{Enter}');
       expect(onCreate).toHaveBeenCalled();
     });
 
@@ -41,11 +41,11 @@ describe('NoteInput', function () {
       const errorJSON = {detail: {message: 'Note is bad', code: 401, extra: ''}};
       render(<NoteInput {...props} error={!!errorJSON} errorJSON={errorJSON} />);
 
-      await userEvent.type(screen.getByRole('textbox'), 'something{Control}{enter}');
+      await userEvent.type(screen.getByRole('textbox'), 'something{Control>}{enter}');
       expect(screen.getByText('Note is bad')).toBeInTheDocument();
     });
 
-    it('has a disabled submit button when no text is entered', async function () {
+    it('has a disabled submit button when no text is entered', function () {
       render(<NoteInput {...props} />);
 
       expect(screen.getByRole('button', {name: 'Post Comment'})).toBeDisabled();
@@ -81,7 +81,7 @@ describe('NoteInput', function () {
       expect(screen.getByRole('textbox')).toHaveTextContent('an existing item');
 
       // Can edit text
-      await userEvent.type(screen.getByRole('textbox'), ' new content{Control}{enter}');
+      await userEvent.type(screen.getByRole('textbox'), ' new content{Control>}{Enter}');
 
       expect(onUpdate).toHaveBeenCalledWith({
         text: 'an existing item new content',
