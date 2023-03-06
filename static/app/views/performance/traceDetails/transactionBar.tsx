@@ -8,6 +8,8 @@ import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scr
 import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
 import {
   getMeasurementBounds,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
   transactionTargetHash,
   VerticalMark,
 } from 'sentry/components/events/interfaces/spans/utils';
@@ -149,6 +151,9 @@ class TransactionBar extends Component<Props, State> {
 
   renderMeasurements() {
     const {measurements, generateBounds} = this.props;
+    if (!measurements) {
+      return null;
+    }
 
     return (
       <Fragment>
@@ -472,7 +477,7 @@ class TransactionBar extends Component<Props, State> {
     dividerHandlerChildrenProps: DividerHandlerManager.DividerHandlerManagerChildrenProps;
     scrollbarManagerChildrenProps: ScrollbarManager.ScrollbarManagerChildrenProps;
   }) {
-    const {hasGuideAnchor, index, measurements} = this.props;
+    const {hasGuideAnchor, index} = this.props;
     const {showDetail} = this.state;
     const {dividerPosition} = dividerHandlerChildrenProps;
 
@@ -510,7 +515,7 @@ class TransactionBar extends Component<Props, State> {
         >
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
             {this.renderRectangle()}
-            {measurements ? this.renderMeasurements() : null}
+            {this.renderMeasurements()}
           </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}

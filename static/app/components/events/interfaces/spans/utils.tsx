@@ -8,7 +8,7 @@ import set from 'lodash/set';
 import moment from 'moment';
 
 import {Organization} from 'sentry/types';
-import {EntrySpans, EntryType, EventTransaction, Measurement} from 'sentry/types/event';
+import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {WebVital} from 'sentry/utils/fields';
@@ -536,34 +536,16 @@ function hasFailedThreshold(marks: Measurements): boolean {
 }
 
 export function getMeasurements(
-  event: EventTransaction,
+  event: EventTransaction | TraceFullDetailed,
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
 ): Map<number, VerticalMark> {
-  if (!event.measurements || !event.startTimestamp) {
+  const startTimestamp =
+    (event as EventTransaction).startTimestamp ||
+    (event as TraceFullDetailed).start_timestamp;
+  if (!event.measurements || !startTimestamp) {
     return new Map();
   }
 
-  const {startTimestamp} = event;
-  return _getMeasurements(event.measurements, startTimestamp, generateBounds);
-}
-
-export function getTraceMeasurements(
-  trace: TraceFullDetailed,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): Map<number, VerticalMark> {
-  if (!trace.measurements || !trace.start_timestamp) {
-    return new Map();
-  }
-
-  const {start_timestamp} = trace;
-  return _getMeasurements(trace.measurements, start_timestamp, generateBounds);
-}
-
-function _getMeasurements(
-  eventMeasurements: Record<string, Measurement>,
-  startTimestamp: number,
-  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType
-): Map<number, VerticalMark> {
   // Note: CLS and INP should not be included here, since they are not timeline-based measurements.
   const allowedVitals = new Set<string>([
     WebVital.FCP,
@@ -573,10 +555,10 @@ function _getMeasurements(
     WebVital.TTFB,
   ]);
 
-  const measurements = Object.keys(eventMeasurements)
+  const measurements = Object.keys(event.measurements)
     .filter(name => allowedVitals.has(`measurements.${name}`))
     .map(name => {
-      const associatedMeasurement = eventMeasurements![name];
+      const associatedMeasurement = event.measurements![name];
       return {
         name,
         // Time timestamp is in seconds, but the measurement value is given in ms so convert it here

@@ -7,7 +7,7 @@ import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measure
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
 import {
   boundsGenerator,
-  getTraceMeasurements,
+  getMeasurements,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
@@ -191,7 +191,11 @@ export default function TraceView({
               ...transaction,
               generation,
             }}
-            measurements={getTraceMeasurements(traces[0], generateBounds(traceInfo))}
+            measurements={
+              traces.length > 0
+                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                : null
+            }
             generateBounds={generateBounds(traceInfo)}
             continuingDepths={continuingDepths}
             isOrphan={isOrphan}
@@ -268,8 +272,8 @@ export default function TraceView({
   const bounds = generateBounds(traceInfo);
   const measurements =
     Object.keys(traces[0].measurements ?? {}).length > 0
-      ? getTraceMeasurements(traces[0], bounds)
-      : null;
+      ? getMeasurements(traces[0], bounds)
+      : undefined;
 
   const traceView = (
     <TraceDetailBody>

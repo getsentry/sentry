@@ -5,7 +5,11 @@ import {
   ScrollbarManagerChildrenProps,
   withScrollbarManager,
 } from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {VerticalMark} from 'sentry/components/events/interfaces/spans/utils';
+import {
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {Organization} from 'sentry/types';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 
