@@ -1,4 +1,5 @@
-from sentry.models import Monitor, MonitorStatus, ScheduledDeletion, ScheduleType
+from sentry.models import ScheduledDeletion
+from sentry.monitors.models import Monitor, MonitorStatus, ScheduleType
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 

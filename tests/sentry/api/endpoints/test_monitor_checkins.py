@@ -8,7 +8,7 @@ from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
-from sentry.models import (
+from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
