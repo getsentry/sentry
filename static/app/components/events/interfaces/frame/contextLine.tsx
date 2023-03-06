@@ -76,7 +76,6 @@ const StyledLi = styled('li')`
     text-align: right;
     padding-left: ${space(2)};
     padding-right: ${space(2)};
-    margin-right: ${space(1.5)};
     background: transparent;
     z-index: 1;
     min-width: 58px;
@@ -123,7 +122,9 @@ const StyledLi = styled('li')`
 
 // TODO(scttcper): The parent component should be a grid, currently has too many other children
 // The minmax is to prevent the line content from overflowing the container
+const lineNumberWidth = '58px';
 const LineContent = styled('div')`
   display: grid;
-  grid-template-columns: 58px minmax(calc(100% - 58px - 6px), 0.8fr);
+  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${space(1)});
+  gap: ${space(1)};
 `;
