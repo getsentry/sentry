@@ -1012,6 +1012,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Enables the new artifact bundle uploads
+    "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.

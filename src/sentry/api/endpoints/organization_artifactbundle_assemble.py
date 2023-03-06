@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationReleasesBaseEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
-from sentry.models import Release
+from sentry.models import Project, ProjectStatus
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,
@@ -16,33 +16,22 @@ from sentry.utils import json
 
 
 @region_silo_endpoint
-class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
-    def post(self, request: Request, organization, version) -> Response:
+class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    def post(self, request: Request, organization) -> Response:
         """
-        Handle an artifact bundle and merge it into the release
-        ```````````````````````````````````````````````````````
-
-        :auth: required
+        Assembles an artifact bundle and stores the debug ids in the database.
         """
-
-        try:
-            release = Release.objects.get(organization_id=organization.id, version=version)
-        except Release.DoesNotExist:
-            raise ResourceDoesNotExist
-
-        if not self.has_release_permission(request, organization, release):
-            raise ResourceDoesNotExist
-
         schema = {
             "type": "object",
             "properties": {
+                "projects": {"type": "array", "items": {"type": "string"}},
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
                     "type": "array",
                     "items": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 },
             },
-            "required": ["checksum", "chunks"],
+            "required": ["checksum", "chunks", "projects"],
             "additionalProperties": False,
         }
 
@@ -54,7 +43,20 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        checksum = data.get("checksum", None)
+        projects = set(data.get("projects", []))
+        if len(projects) == 0:
+            return Response({"error": "You need to specify at least one project"}, status=400)
+
+        project_ids = Project.objects.filter(
+            organization=organization, status=ProjectStatus.VISIBLE, slug__in=projects
+        ).values_list("id", flat=True)
+        if len(project_ids) != len(projects):
+            return Response({"error": "One or more projects are invalid"}, status=400)
+
+        if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
+            raise ResourceDoesNotExist
+
+        checksum = data.get("checksum")
         chunks = data.get("chunks", [])
 
         state, detail = get_assemble_status(AssembleTask.ARTIFACTS, organization.id, checksum)
@@ -78,8 +80,8 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
-                "project_ids": [],
-                "version": version,
+                "project_ids": list(project_ids),
+                "version": None,
                 "checksum": checksum,
                 "chunks": chunks,
             }
