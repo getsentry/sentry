@@ -297,7 +297,7 @@ export class Results extends Component<Props, State> {
 
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
-    const isReplayEnabled = organization.features.includes('session-replay-ui');
+    const isReplayEnabled = organization.features.includes('session-replay');
     const defaultEventView = Object.assign({}, DEFAULT_EVENT_VIEW, {
       fields: isReplayEnabled
         ? DEFAULT_EVENT_VIEW.fields.concat(['replayId'])

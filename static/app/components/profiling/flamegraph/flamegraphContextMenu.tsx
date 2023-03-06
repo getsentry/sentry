@@ -14,7 +14,6 @@ import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {
-  FlamegraphAxisOptions,
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
@@ -38,7 +37,6 @@ const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
 ];
 const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
 const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = ['left heavy', 'call order'];
-const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions[] = ['profile', 'transaction'];
 
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
@@ -233,21 +231,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               checked={preferences.sorting === sorting}
             >
               {sorting}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
-        </ProfilingContextMenuGroup>
-        <ProfilingContextMenuGroup>
-          <ProfilingContextMenuHeading>{t('X Axis')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_AXIS_OPTIONS.map((axis, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set xAxis', payload: axis}),
-              })}
-              onClick={() => dispatch({type: 'set xAxis', payload: axis})}
-              checked={preferences.xAxis === axis}
-            >
-              {axis}
             </ProfilingContextMenuItemCheckbox>
           ))}
         </ProfilingContextMenuGroup>
