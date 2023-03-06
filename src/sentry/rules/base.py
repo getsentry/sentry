@@ -50,7 +50,7 @@ CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
 
 
 class RuleBase(abc.ABC):
-    form_cls: Type[forms.Form] = None  # type: ignore
+    form_cls: Type[forms.Form]
 
     logger = logging.getLogger("sentry.rules")
 
