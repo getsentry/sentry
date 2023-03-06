@@ -134,6 +134,7 @@ describe('Threads', () => {
       expect(screen.getAllByTestId('line')).toHaveLength(22);
     });
   });
+
   describe('Thread selector', () => {
     it('renders thread selector with state', () => {
       const threadsEntry = entries[1];
