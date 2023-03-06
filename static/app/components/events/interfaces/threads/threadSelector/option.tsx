@@ -4,17 +4,19 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {EntryData} from 'sentry/types';
+import {EntryData, Thread} from 'sentry/types';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';
 
 type Props = {
   details: ThreadInfo;
+  hasThreadStates: boolean;
   id: number;
   crashed?: boolean;
   crashedInfo?: EntryData;
   name?: string | null;
+  state?: Thread['state'];
 };
 
 type ThreadInfo = {
@@ -22,12 +24,20 @@ type ThreadInfo = {
   label?: string;
 };
 
-const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
+const Option = ({
+  id,
+  details,
+  name,
+  crashed,
+  crashedInfo,
+  state,
+  hasThreadStates,
+}: Props) => {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
   return (
-    <Grid>
+    <Grid hasThreadStates={hasThreadStates}>
       <GridCell>
         {crashed && (
           <InnerCell isCentered>
@@ -69,6 +79,15 @@ const Option = ({id, details, name, crashed, crashedInfo}: Props) => {
           </Tooltip>
         </InnerCell>
       </GridCell>
+      {hasThreadStates && (
+        <GridCell>
+          <InnerCell>
+            <Tooltip title={state} position="top">
+              <TextOverflow>{state}</TextOverflow>
+            </Tooltip>
+          </InnerCell>
+        </GridCell>
+      )}
     </Grid>
   );
 };

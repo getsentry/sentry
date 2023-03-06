@@ -9,7 +9,7 @@ import {
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
-import {MonitorStatus} from './types';
+import {MonitorStatus} from '../types';
 
 interface MonitorBadgeProps {
   status: MonitorStatus;

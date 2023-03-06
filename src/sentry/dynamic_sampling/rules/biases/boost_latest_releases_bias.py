@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import List, cast
 
-from pytz import UTC
-
 from sentry.dynamic_sampling.rules.biases.base import (
     Bias,
     BiasData,
@@ -36,6 +34,9 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
 
 
 class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
+
+    datetime_format = "%Y-%m-%dT%H:%M:%SZ"
+
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
 
@@ -48,7 +49,6 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                         "value": bias_data["factor"],
                     },
                     "type": "trace",
-                    "active": True,
                     "condition": {
                         "op": "and",
                         "inner": [
@@ -69,15 +69,12 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                     },
                     "id": bias_data["id"] + idx,
                     "timeRange": {
-                        "start": str(
-                            datetime.utcfromtimestamp(boosted_release.timestamp).replace(tzinfo=UTC)
+                        "start": datetime.utcfromtimestamp(boosted_release.timestamp).strftime(
+                            self.datetime_format
                         ),
-                        "end": str(
-                            datetime.utcfromtimestamp(
-                                boosted_release.timestamp
-                                + boosted_release.platform.time_to_adoption
-                            ).replace(tzinfo=UTC)
-                        ),
+                        "end": datetime.utcfromtimestamp(
+                            boosted_release.timestamp + boosted_release.platform.time_to_adoption
+                        ).strftime(self.datetime_format),
                     },
                     "decayingFn": {
                         "type": "linear",
