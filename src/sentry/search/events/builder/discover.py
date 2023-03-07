@@ -1440,6 +1440,9 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids={"organization_id": self.params.organization.id}
+            if self.params.organization
+            else None,
         )
 
     @classmethod
@@ -1611,6 +1614,9 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
                 granularity=self.granularity,
                 limit=self.limit,
             ),
+            tenant_ids={"organization_id": self.params.organization.id}
+            if self.params.organization
+            else None,
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
