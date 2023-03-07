@@ -28,7 +28,7 @@ class MonitorEnvironment(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_monitorenvironment"
-        indexes = [models.Index(fields=["monitor", "environment"])]
+        unique_together = (("monitor", "environment"),)
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 

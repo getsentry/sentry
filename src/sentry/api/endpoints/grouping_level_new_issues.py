@@ -195,14 +195,13 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
     if limit is not None:
         query = query.set_limit(limit)
 
-    referrer = "api.group_hashes_levels.get_level_new_issues"
     request = SnubaRequest(
         dataset="events",
         app_id="grouping",
         query=query,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    return snuba.raw_snql_query(request, referrer)["data"]
+    return snuba.raw_snql_query(request, "api.group_hashes_levels.get_level_new_issues")["data"]
 
 
 def _process_snuba_results(query_res, group: Group, id: int, user):
