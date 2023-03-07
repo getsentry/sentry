@@ -120,19 +120,15 @@ function OverviewContentWrapper(props: ChildProps) {
     referrer: 'api.performance.transaction-summary',
   });
 
-  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location
-  );
+  // Unfiltered count has to be total indexed events count because it's only used
+  // in indexed events contexts
   const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location, ['tpm']),
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
-    queryExtras: unfilteredQueryExtras,
   });
 
   const {data: tableData, isLoading, error} = queryData;

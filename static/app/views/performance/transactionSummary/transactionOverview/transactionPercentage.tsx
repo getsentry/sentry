@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import clamp from 'lodash/clamp';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
@@ -31,8 +32,21 @@ export function TransactionPercentage({
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
       if (unfilteredTotalValues) {
+        // clamp handles rare cases when % > 1
+        const volumeRatio = clamp(
+          // handles 0 case to avoid diving by 0
+          unfilteredTotalValues[field] > 0
+            ? totalValues[field] / unfilteredTotalValues[field]
+            : 0,
+          0,
+          1
+        );
+        const formattedPercentage =
+          volumeRatio > 0 && volumeRatio < 0.0001
+            ? '<0.01%'
+            : formatPercentage(volumeRatio);
         return tct('[tpm]', {
-          tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
+          tpm: formattedPercentage,
         });
       }
       return tct('[tpm] tpm', {
@@ -51,7 +65,7 @@ export function TransactionPercentage({
         data-test-id="tpm-summary-value"
         isLoading={isLoading}
         error={error}
-        value={getValueFromTotals('tpm()', totals, unfilteredTotals)}
+        value={getValueFromTotals('count()', totals, unfilteredTotals)}
       />
       <SidebarSpacer />
     </Fragment>
