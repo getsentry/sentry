@@ -746,7 +746,7 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             orderby="-times_seen",
             referrer=referrer,
-            tenant_ids={"organization_id": organization_id, "referrer": referrer},
+            tenant_ids={"organization_id": organization_id},
         )
 
         values = []

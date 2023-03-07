@@ -132,7 +132,7 @@ def get_levels_overview(group: Group):
         dataset="events",
         app_id="grouping",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": group.project.organization_id},
+        tenant_ids={"organization_id": group.project.organization_id},
     )
     res = snuba.raw_snql_query(request, referrer)
 

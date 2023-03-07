@@ -1011,7 +1011,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         referrer = "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
         org_id = item_list[0].project.organization_id if item_list else None
         tenant_ids = {"organization_id": org_id} if org_id else dict()
-        tenant_ids["referrer"] = referrer
 
         return aliased_query(
             dataset=Dataset.Events,

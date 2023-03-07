@@ -200,7 +200,7 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
         dataset="events",
         app_id="grouping",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": group.project.organization_id},
+        tenant_ids={"organization_id": group.project.organization_id},
     )
     return snuba.raw_snql_query(request, referrer)["data"]
 

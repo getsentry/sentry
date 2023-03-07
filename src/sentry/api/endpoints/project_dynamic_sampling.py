@@ -117,7 +117,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 dataset=Dataset.Discover.value,
                 app_id="default",
                 query=snuba_query,
-                tenant_ids={"referrer": referrer, "organization_id": org_id},
+                tenant_ids={"organization_id": org_id},
             ),
             referrer,
         )
@@ -277,7 +277,7 @@ class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
                 dataset=Dataset.Discover.value,
                 app_id="default",
                 query=snuba_query,
-                tenant_ids={"referrer": referrer, "organization_id": project.organization_id},
+                tenant_ids={"organization_id": project.organization_id},
             ),
             referrer,
         )["data"]

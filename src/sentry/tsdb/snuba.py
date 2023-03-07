@@ -444,7 +444,6 @@ class SnubaTSDB(BaseTSDB):
 
             referrer = f"tsdb-modelid:{model.value}"
             tenant_ids = tenant_ids or dict()
-            tenant_ids["referrer"] = referrer
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -591,7 +590,6 @@ class SnubaTSDB(BaseTSDB):
         if keys:
             referrer = f"tsdb-modelid:{model.value}"
             tenant_ids = tenant_ids or dict()
-            tenant_ids["referrer"] = referrer
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
                 dataset=model_dataset,

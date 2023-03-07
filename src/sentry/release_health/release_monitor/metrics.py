@@ -152,7 +152,7 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     dataset=Dataset.Metrics.value,
                     app_id="release_health",
                     query=query,
-                    tenant_ids={"referrer": referrer, "organization_id": org_id},
+                    tenant_ids={"organization_id": org_id},
                 )
                 with metrics.timer("release_monitor.fetch_project_release_health_totals.query"):
                     data = raw_snql_query(request, referrer)["data"]

@@ -40,7 +40,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type
             )
             referrer = "api.organization-events-span-ops"
             snql_query = builder.get_snql_query()
-            snql_query.tenant_ids = {"referrer": referrer, "organization_id": organization.id}
+            snql_query.tenant_ids = {"organization_id": organization.id}
             results = raw_snql_query(snql_query, referrer)
             return [SpanOp(op=row["spans_op"], count=row["count"]) for row in results["data"]]
 

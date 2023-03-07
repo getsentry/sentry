@@ -164,7 +164,7 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[
         dataset="events",
         app_id="grouping",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": group.project.organization_id},
+        tenant_ids={"organization_id": group.project.organization_id},
     )
     data = snuba.raw_snql_query(request, referrer)["data"]
     if not data:
@@ -395,10 +395,7 @@ def _render_trees(group: Group, user):
         dataset="events",
         app_id="grouping",
         query=query,
-        tenant_ids={
-            "referrer": referrer,
-            "organization_id": group.project.organization_id,
-        },
+        tenant_ids={"organization_id": group.project.organization_id},
     )
     for row in snuba.raw_snql_query(request, referrer)["data"]:
         if len(row["hash_slice"]) == 0:

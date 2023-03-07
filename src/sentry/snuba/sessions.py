@@ -160,7 +160,7 @@ def _check_releases_have_health_data(
         dataset="sessions",
         app_id="default",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": organization_id},
+        tenant_ids={"organization_id": organization_id},
     )
     data = snuba.raw_snql_query(request, referrer)["data"]
     return {row["release"] for row in data}
@@ -274,7 +274,7 @@ def _get_project_releases_count(
         dataset="sessions",
         app_id="default",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": organization_id},
+        tenant_ids={"organization_id": organization_id},
     )
     data = snuba.raw_snql_query(request, referrer)["data"]
     return data[0]["count"] if data else 0
