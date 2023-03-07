@@ -20,6 +20,7 @@ from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_excep
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    INVALID_ARCHIVE,
     Fetcher,
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
@@ -1259,7 +1260,7 @@ class FetchFileByDebugIdTest(TestCase):
             # If _fetch_artifact_bundle_file fails we have an artifact bundle id, thus we should have an
             # INVALID_ARCHIVE store in the local cache.
             assert len(fetcher.open_archives) == 1
-            assert fetcher.open_archives[artifact_bundle.id] == "\x00"
+            assert fetcher.open_archives[artifact_bundle.id] is INVALID_ARCHIVE
 
         with patch(
             "sentry.lang.javascript.processor.ArtifactBundleArchive",
@@ -1272,7 +1273,7 @@ class FetchFileByDebugIdTest(TestCase):
             # If the instantiation of ArtifactBundleArchive fails, we have an artifact bundle id, thus we should have an
             # INVALID_ARCHIVE store in the local cache.
             assert len(fetcher.open_archives) == 1
-            assert fetcher.open_archives[artifact_bundle.id] == "\x00"
+            assert fetcher.open_archives[artifact_bundle.id] is INVALID_ARCHIVE
 
         fetcher.close()
 
