@@ -363,7 +363,6 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
-    "sentry.monitors",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",

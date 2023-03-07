@@ -10,8 +10,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
-from sentry.models import Project
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus
+from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import json
 from sentry.utils.dates import to_datetime

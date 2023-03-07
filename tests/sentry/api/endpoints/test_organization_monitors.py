@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
+from sentry.models import Monitor, MonitorStatus, MonitorType, ScheduleType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 

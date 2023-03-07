@@ -25,13 +25,15 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Environment, Project, ProjectKey
-from sentry.monitors.models import (
+from sentry.models import (
     CheckInStatus,
+    Environment,
     Monitor,
     MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
+    Project,
+    ProjectKey,
 )
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics

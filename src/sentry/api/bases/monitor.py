@@ -9,8 +9,14 @@ from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.models import Organization, Project, ProjectStatus
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
+from sentry.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    Organization,
+    Project,
+    ProjectStatus,
+)
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
 
