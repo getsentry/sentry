@@ -41,6 +41,8 @@ def assert_status_code(response, minimum: int, maximum: Optional[int] = None):
 
 def org_audit_log_exists(**kwargs):
     assert kwargs
+    if "organization" in kwargs:
+        kwargs["organization_id"] = kwargs.pop("organization").id
     return AuditLogEntry.objects.filter(**kwargs).exists()
 
 

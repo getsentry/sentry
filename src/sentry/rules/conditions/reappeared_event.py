@@ -26,7 +26,7 @@ class ReappearedEventCondition(EventCondition):
                 datetime__gte=start,
                 datetime__lt=end,
                 type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
+                user_id=None,
             )
             .order_by("-datetime")[:limit]
             .values_list("group", "datetime", "data")

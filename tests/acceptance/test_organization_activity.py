@@ -25,7 +25,7 @@ class OrganizationActivityTest(AcceptanceTestCase):
             group=self.group,
             project=self.group.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={"text": "hello world"},
         )
 

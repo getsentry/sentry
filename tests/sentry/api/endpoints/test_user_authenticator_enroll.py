@@ -304,7 +304,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.email is None
 
         AuditLogEntry.objects.get(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=om.id,
             target_user=self.user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),

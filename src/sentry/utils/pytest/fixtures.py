@@ -257,7 +257,7 @@ def default_activity(default_group, default_project, default_user):
         group=default_group,
         project=default_project,
         type=ActivityType.NOTE.value,
-        user=default_user,
+        user_id=default_user.id,
         data={},
     )
 

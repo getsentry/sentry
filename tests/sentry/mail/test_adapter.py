@@ -1214,7 +1214,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
@@ -1240,7 +1240,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
 
@@ -1267,7 +1267,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.NOTE.value,
-            user=user_foo,
+            user_id=user_foo.id,
             data={"text": "sup guise"},
         )
 

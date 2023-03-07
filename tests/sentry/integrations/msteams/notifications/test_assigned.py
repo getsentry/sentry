@@ -20,7 +20,7 @@ class MSTeamsAssignedNotificationTest(MSTeamsActivityNotificationTest):
             Activity(
                 project=self.project,
                 group=self.group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.ASSIGNED,
                 data={"assignee": self.user.id},
             )

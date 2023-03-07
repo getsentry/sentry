@@ -840,7 +840,7 @@ class AuthHelper(Pipeline):
         )
 
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             actor=request.user,
             ip_address=request.META["REMOTE_ADDR"],
             target_object=self.provider_model.id,

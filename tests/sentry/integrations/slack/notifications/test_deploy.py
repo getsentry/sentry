@@ -39,7 +39,7 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         notification = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )

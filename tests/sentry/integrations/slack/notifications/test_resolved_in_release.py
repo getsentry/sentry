@@ -18,7 +18,7 @@ class SlackResolvedInReleaseNotificationTest(
             Activity(
                 project=self.project,
                 group=group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.SET_RESOLVED_IN_RELEASE,
                 data={"version": "meow"},
             )

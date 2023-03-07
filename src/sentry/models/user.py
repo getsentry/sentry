@@ -384,7 +384,7 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        Activity.objects.filter(user=from_user).update(user=to_user)
+        Activity.objects.filter(user_id=from_user.id).update(user_id=to_user.id)
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)

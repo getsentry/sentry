@@ -314,7 +314,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "owner"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -344,7 +344,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -374,7 +374,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "owner"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -404,7 +404,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
 
         assert not AuditLogEntry.objects.filter(
-            organization=organization, event=audit_log.get_event_id("SSO_EDIT")
+            organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
         ).exists()
 
     def test_edit_sso_settings__scim(self):

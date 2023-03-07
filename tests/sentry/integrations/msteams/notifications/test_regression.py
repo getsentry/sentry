@@ -20,7 +20,7 @@ class MSTeamsRegressionNotificationTest(MSTeamsActivityNotificationTest):
             Activity(
                 project=self.project,
                 group=self.group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.SET_REGRESSION,
                 data={},
             )

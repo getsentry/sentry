@@ -273,7 +273,7 @@ class IssueTrackingPlugin2(Plugin):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
 
@@ -340,7 +340,7 @@ class IssueTrackingPlugin2(Plugin):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
         return Response(

@@ -230,7 +230,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             ).exists()
 
         assert AuditLogEntry.objects.filter(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=auth_identity.id,
             event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
             data=auth_identity.get_audit_log_data(),

@@ -16,7 +16,7 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
             Activity(
                 project=self.project,
                 group=group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NOTE,
                 data={"text": "text", "mentions": []},
             )

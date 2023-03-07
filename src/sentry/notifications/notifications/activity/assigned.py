@@ -67,10 +67,10 @@ class AssignedActivityNotification(GroupActivityNotification):
     ) -> str:
         assignee = self.get_assignee()
 
-        if not self.activity.user:
+        if not self.user:
             return f"Issue automatically assigned to {assignee}"
 
-        author = self.activity.user.get_display_name()
+        author = self.user.get_display_name()
         if assignee == "themselves":
             author, assignee = assignee, author
 

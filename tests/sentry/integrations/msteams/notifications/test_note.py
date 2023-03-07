@@ -20,7 +20,7 @@ class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
             Activity(
                 project=self.project,
                 group=self.group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NOTE,
                 data={"text": "text", "mentions": []},
             )
