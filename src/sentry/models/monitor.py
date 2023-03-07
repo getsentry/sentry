@@ -10,16 +10,14 @@ from django.utils import timezone
 
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
-    BaseManager,
-    BoundedBigIntegerField,
     BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    JSONField,
     Model,
     UUIDField,
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.jsonfield import JSONField
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -81,36 +79,6 @@ class MonitorStatus(ObjectStatus):
             (cls.OK, "ok"),
             (cls.ERROR, "error"),
             (cls.MISSED_CHECKIN, "missed_checkin"),
-        )
-
-
-class CheckInStatus:
-    UNKNOWN = 0
-    """No status was passed"""
-
-    OK = 1
-    """Checkin had no issues during execution"""
-
-    ERROR = 2
-    """Checkin failed or otherwise had some issues"""
-
-    IN_PROGRESS = 3
-    """Checkin is expected to complete"""
-
-    MISSED = 4
-    """Monitor did not check in on time"""
-
-    FINISHED_VALUES = (OK, ERROR)
-    """Sentient values used to indicate a monitor is finished running"""
-
-    @classmethod
-    def as_choices(cls):
-        return (
-            (cls.UNKNOWN, "unknown"),
-            (cls.OK, "ok"),
-            (cls.ERROR, "error"),
-            (cls.IN_PROGRESS, "in_progress"),
-            (cls.MISSED, "missed"),
         )
 
 
@@ -251,110 +219,4 @@ class Monitor(Model):
         data = event_manager.get_data()
         insert_data_to_database_legacy(data)
         monitor_failed.send(monitor=self, sender=type(self))
-        return True
-
-
-@region_silo_only_model
-class MonitorCheckIn(Model):
-    __include_in_export__ = False
-
-    guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
-    monitor = FlexibleForeignKey("sentry.Monitor")
-    monitor_environment = FlexibleForeignKey("sentry.MonitorEnvironment", null=True)
-    location = FlexibleForeignKey("sentry.MonitorLocation", null=True)
-    status = BoundedPositiveIntegerField(
-        default=CheckInStatus.UNKNOWN, choices=CheckInStatus.as_choices(), db_index=True
-    )
-    config = JSONField(default=dict)
-    duration = BoundedPositiveIntegerField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-    date_updated = models.DateTimeField(default=timezone.now)
-    attachment_id = BoundedBigIntegerField(null=True)
-
-    objects = BaseManager(cache_fields=("guid",))
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_monitorcheckin"
-        indexes = [
-            models.Index(fields=["monitor", "date_added", "status"]),
-        ]
-
-    __repr__ = sane_repr("guid", "project_id", "status")
-
-    def save(self, *args, **kwargs):
-        if not self.date_added:
-            self.date_added = timezone.now()
-        if not self.date_updated:
-            self.date_updated = self.date_added
-        return super().save(*args, **kwargs)
-
-    # XXX(dcramer): BaseModel is trying to automatically set date_updated which is not
-    # what we want to happen, so kill it here
-    def _update_timestamps(self):
-        pass
-
-
-@region_silo_only_model
-class MonitorLocation(Model):
-    __include_in_export__ = True
-
-    guid = UUIDField(unique=True, auto_add=True)
-    name = models.CharField(max_length=128)
-    date_added = models.DateTimeField(default=timezone.now)
-    objects = BaseManager(cache_fields=("guid",))
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_monitorlocation"
-
-    __repr__ = sane_repr("guid", "name")
-
-
-@region_silo_only_model
-class MonitorEnvironment(Model):
-    __include_in_export__ = True
-
-    monitor = FlexibleForeignKey("sentry.Monitor")
-    environment = FlexibleForeignKey("sentry.Environment")
-    status = BoundedPositiveIntegerField(
-        default=MonitorStatus.ACTIVE, choices=MonitorStatus.as_choices()
-    )
-    next_checkin = models.DateTimeField(null=True)
-    last_checkin = models.DateTimeField(null=True)
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_monitorenvironment"
-        unique_together = (("monitor", "environment"),)
-
-    __repr__ = sane_repr("monitor_id", "environment_id")
-
-    def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):
-        if last_checkin is None:
-            next_checkin_base = timezone.now()
-            last_checkin = self.last_checkin or timezone.now()
-        else:
-            next_checkin_base = last_checkin
-
-        new_status = MonitorStatus.ERROR
-        if reason == MonitorFailure.MISSED_CHECKIN:
-            new_status = MonitorStatus.MISSED_CHECKIN
-
-        affected = (
-            type(self)
-            .objects.filter(
-                Q(last_checkin__lte=last_checkin) | Q(last_checkin__isnull=True), id=self.id
-            )
-            .update(
-                next_checkin=self.monitor.get_next_scheduled_checkin(next_checkin_base),
-                status=new_status,
-                last_checkin=last_checkin,
-            )
-        )
-        if not affected:
-            return False
-
         return True

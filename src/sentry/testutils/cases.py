@@ -99,16 +99,18 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
+    Monitor,
+    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
+    ScheduleType,
     UserEmail,
     UserOption,
 )
-from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment

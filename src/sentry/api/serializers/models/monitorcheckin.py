@@ -3,7 +3,7 @@ from datetime import datetime
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.monitors.models import MonitorCheckIn
+from sentry.models import MonitorCheckIn
 
 
 @register(MonitorCheckIn)

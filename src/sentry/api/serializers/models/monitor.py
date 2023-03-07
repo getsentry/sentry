@@ -4,8 +4,7 @@ from typing import Any
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register, serialize
-from sentry.models import Project
-from sentry.monitors.models import Monitor
+from sentry.models import Monitor, Project
 
 from .project import ProjectSerializerResponse
 

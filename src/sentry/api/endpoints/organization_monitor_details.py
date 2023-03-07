@@ -21,8 +21,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus
+from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
 
 
 @region_silo_endpoint
