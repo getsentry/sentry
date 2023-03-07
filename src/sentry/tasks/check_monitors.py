@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import (
+from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
