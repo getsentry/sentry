@@ -167,6 +167,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
+                monitor_environment=monitor_environment,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
