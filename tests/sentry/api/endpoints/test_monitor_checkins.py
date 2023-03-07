@@ -8,7 +8,14 @@ from django.utils import timezone
 from django.utils.http import urlquote
 from freezegun import freeze_time
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
+from sentry.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    MonitorType,
+)
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -83,6 +90,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
+
         self.project.refresh_from_db()
         assert self.project.flags.has_cron_checkins
 
@@ -112,6 +126,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
 
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.ERROR
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
+
     def test_disabled(self):
         self.login_as(self.user)
 
@@ -136,6 +157,13 @@ class CreateMonitorCheckInTest(MonitorTestCase):
             assert monitor.status == MonitorStatus.DISABLED
             assert monitor.last_checkin == checkin.date_added
             assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+            monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+            assert monitor_environment.status == MonitorStatus.DISABLED
+            assert monitor_environment.last_checkin == checkin.date_added
+            assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+                checkin.date_added
+            )
 
     def test_pending_deletion(self):
         self.login_as(self.user)
