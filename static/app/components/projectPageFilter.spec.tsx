@@ -83,7 +83,7 @@ describe('ProjectPageFilter', function () {
 
     // Click the pin button
     const pinButton = screen.getByRole('button', {name: 'Lock filter'});
-    await userEvent.click(pinButton, undefined, {skipHover: true});
+    await userEvent.click(pinButton, {skipHover: true});
 
     await screen.findByRole('button', {name: 'Lock filter', pressed: true});
 

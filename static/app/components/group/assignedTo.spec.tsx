@@ -70,18 +70,18 @@ describe('Group > AssignedTo', () => {
   });
 
   const openMenu = async () => {
-    await userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+    await userEvent.click(await screen.findByTestId('assignee-selector'), {
       // Skip hover to prevent tooltip from rendering
       skipHover: true,
     });
   };
 
-  it('renders unassigned', async () => {
+  it('renders unassigned', () => {
     render(<AssignedTo project={project} group={GROUP_1} />, {organization});
     expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
-  it('does not render chevron when disableDropdown prop is passed', async () => {
+  it('does not render chevron when disableDropdown prop is passed', () => {
     render(
       <AssignedTo disableDropdown project={project} group={GROUP_1} event={event} />,
       {
