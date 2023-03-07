@@ -130,6 +130,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
                 tag_name,
                 metric_names,
                 use_case_id=get_use_case_id(request.GET.get("useCase", "release-health")),
+                tenant_ids={"organization_id": organization.id},
             )
         except (InvalidParams, DerivedMetricParseException) as exc:
             msg = str(exc)

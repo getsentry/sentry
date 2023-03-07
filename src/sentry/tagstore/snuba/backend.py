@@ -356,7 +356,7 @@ class SnubaTagStorage(TagStorage):
             results.add(ctor(**params))
         return results
 
-    def __get_tag_value(self, project_id, group_id, environment_id, key, value):
+    def __get_tag_value(self, project_id, group_id, environment_id, key, value, tenant_ids=None):
         tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
         if environment_id:
@@ -376,6 +376,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.__get_tag_value",
+            tenant_ids=tenant_ids,
         )
         if not data["times_seen"] > 0:
             raise TagValueNotFound if group_id is None else GroupTagValueNotFound
@@ -451,12 +452,20 @@ class SnubaTagStorage(TagStorage):
             **optimize_kwargs,
         )
 
-    def get_tag_value(self, project_id, environment_id, key, value):
-        return self.__get_tag_value(project_id, None, environment_id, key, value)
+    def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
+        return self.__get_tag_value(
+            project_id, None, environment_id, key, value, tenant_ids=tenant_ids
+        )
 
-    def get_tag_values(self, project_id, environment_id, key):
+    def get_tag_values(self, project_id, environment_id, key, tenant_ids=None):
         key = self.__get_tag_key_and_top_values(
-            project_id, None, environment_id, key, limit=None, raise_on_empty=False
+            project_id,
+            None,
+            environment_id,
+            key,
+            limit=None,
+            raise_on_empty=False,
+            tenant_ids=tenant_ids,
         )
         return set(key.top_values)
 

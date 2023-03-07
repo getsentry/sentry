@@ -152,13 +152,13 @@ class TagStorage(Service):
         raise NotImplementedError
 
     @raises([TagValueNotFound])
-    def get_tag_value(self, project_id, environment_id, key, value):
+    def get_tag_value(self, project_id, environment_id, key, value, tenant_ids=None):
         """
         >>> get_tag_value(1, 2, "key1", "value1")
         """
         raise NotImplementedError
 
-    def get_tag_values(self, project_id, environment_id, key):
+    def get_tag_values(self, project_id, environment_id, key, tenant_ids=None):
         """
         >>> get_tag_values(1, 2, "key1")
         """
