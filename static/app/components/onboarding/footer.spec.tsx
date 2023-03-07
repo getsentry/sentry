@@ -56,7 +56,7 @@ describe('Onboarding Footer', function () {
     renderGlobalModal();
 
     // Skip onboarding link
-    userEvent.click(screen.getByRole('button', {name: 'Skip Onboarding'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Skip Onboarding'}));
 
     // Display are you sure modal
     expect(await screen.findByText('Are you sure?')).toBeInTheDocument();
