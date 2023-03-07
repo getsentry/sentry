@@ -18,6 +18,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
@@ -29,6 +30,7 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -67,11 +69,9 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
-  // const isAggregateFlamegraphEnabled = organization.features.includes(
-  //   'profiling-aggregate-flamegraph'
-  // );
-
-  const isAggregateFlamegraphEnabled = true;
+  const isAggregateFlamegraphEnabled = organization.features.includes(
+    'profiling-aggregate-flamegraph'
+  );
 
   return (
     <Fragment>
