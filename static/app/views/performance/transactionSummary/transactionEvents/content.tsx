@@ -98,7 +98,7 @@ function EventsContent(props: Props) {
   }
 
   if (
-    organization.features.includes('session-replay-ui') &&
+    organization.features.includes('session-replay') &&
     project &&
     projectSupportsReplay(project)
   ) {

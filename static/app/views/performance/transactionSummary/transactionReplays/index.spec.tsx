@@ -35,7 +35,7 @@ let mockRouterContext: {
 
 const getComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay-ui']},
+  organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps) => {
   const {router, organization, routerContext} = initializeOrg({
     organization: {
