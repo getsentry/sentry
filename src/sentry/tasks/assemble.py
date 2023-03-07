@@ -293,7 +293,7 @@ def _create_artifact_bundle(
                 ReleaseArtifactBundle.objects.create(
                     organization_id=org_id,
                     release_name=release.version if release else None,
-                    dist_id=dist.name if dist else None,
+                    dist_name=dist.name if dist else None,
                     artifact_bundle=artifact_bundle,
                 )
 
