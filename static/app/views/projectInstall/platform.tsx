@@ -11,6 +11,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NotFound from 'sentry/components/errors/notFound';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
@@ -112,8 +113,6 @@ class ProjectInstallPlatform extends Component<Props, State> {
     const heartbeatFooter = !!organization?.features.includes(
       'onboarding-heartbeat-footer'
     );
-
-    console.log({platform});
 
     return (
       <Fragment>
@@ -236,33 +235,6 @@ class ProjectInstallPlatform extends Component<Props, State> {
     );
   }
 }
-
-const DocumentationWrapper = styled('div')`
-  line-height: 1.5;
-
-  .gatsby-highlight {
-    margin-bottom: ${space(3)};
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  .alert {
-    margin-bottom: ${space(3)};
-    border-radius: ${p => p.theme.borderRadius};
-  }
-
-  blockquote {
-    padding: ${space(1)};
-    margin-left: 0;
-    background: ${p => p.theme.alert.info.backgroundLight};
-    border-left: 2px solid ${p => p.theme.alert.info.border};
-  }
-  blockquote > *:last-child {
-    margin-bottom: 0;
-  }
-`;
 
 const StyledButtonBar = styled(ButtonBar)`
   margin-top: ${space(3)};
