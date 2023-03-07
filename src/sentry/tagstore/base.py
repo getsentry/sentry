@@ -165,7 +165,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     @raises([GroupTagKeyNotFound])
-    def get_group_tag_key(self, group, environment_id, key):
+    def get_group_tag_key(self, group, environment_id, key, tenant_ids=None):
         """
         >>> get_group_tag_key(group, 3, "key1")
         """
@@ -178,13 +178,15 @@ class TagStorage(Service):
         raise NotImplementedError
 
     @raises([GroupTagValueNotFound])
-    def get_group_tag_value(self, project_id, group_id, environment_id, key, value):
+    def get_group_tag_value(
+        self, project_id, group_id, environment_id, key, value, tenant_ids=None
+    ):
         """
         >>> get_group_tag_value(1, 2, 3, "key1", "value1")
         """
         raise NotImplementedError
 
-    def get_group_tag_values(self, group, environment_id, key):
+    def get_group_tag_values(self, group, environment_id, key, tenant_ids=None):
         """
         >>> get_group_tag_values(group, 3, "key1")
         """
@@ -208,7 +210,9 @@ class TagStorage(Service):
     ):
         raise NotImplementedError
 
-    def get_group_event_filter(self, project_id, group_id, environment_ids, tags, start, end):
+    def get_group_event_filter(
+        self, project_id, group_id, environment_ids, tags, start, end, tenant_ids=None
+    ):
         """
         >>> get_group_event_filter(1, 2, 3, {'key1': 'value1', 'key2': 'value2'})
         """

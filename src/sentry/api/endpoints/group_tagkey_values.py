@@ -29,7 +29,12 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         try:
-            tagstore.get_group_tag_key(group, None, lookup_key)
+            tagstore.get_group_tag_key(
+                group,
+                None,
+                lookup_key,
+                tenant_ids={"organization_id": group.project.organization_id},
+            )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
         sort = request.GET.get("sort")
