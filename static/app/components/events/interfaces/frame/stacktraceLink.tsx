@@ -107,7 +107,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
   );
 }
 
-function shouldshowCodecovFeatures(
+function shouldShowCodecovFeatures(
   organization: Organization,
   match: StacktraceLinkResult
 ) {
@@ -119,6 +119,17 @@ function shouldshowCodecovFeatures(
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return enabled && validStatus && match.config?.provider.key === 'github';
+}
+
+function shouldShowCodecovPrompt(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-stacktrace-integration-v2') &&
+    !organization.codecovAccess;
+
+  return enabled && match.config?.provider.key === 'github';
 }
 
 interface CodecovLinkProps {
@@ -160,6 +171,26 @@ function CodecovLink({
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
       <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       {t('Open in Codecov')}
+    </OpenInLink>
+  );
+}
+
+function CodecovPrompt({organization}: {organization: Organization}) {
+  const onOpenCodecovLink = () => {
+    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_PROMPT_CLICKED, {
+      view: 'stacktrace_link',
+      organization,
+    });
+  };
+
+  return (
+    <OpenInLink
+      href="https://about.codecov.io/sign-up-sentry-codecov/"
+      openInNewTab
+      onClick={onOpenCodecovLink}
+    >
+      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      {t('Add Codecov test coverage')}
     </OpenInLink>
   );
 }
@@ -267,14 +298,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {shouldshowCodecovFeatures(organization, match) && (
+        {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
             coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
             status={match.codecov?.status}
             organization={organization}
             event={event}
           />
-        )}
+        ) : shouldShowCodecovPrompt(organization, match) ? (
+          <CodecovPrompt organization={organization} />
+        ) : null}
       </StacktraceLinkWrapper>
     );
   }
