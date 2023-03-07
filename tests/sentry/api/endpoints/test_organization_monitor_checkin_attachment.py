@@ -165,3 +165,22 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == "Check-in already has an attachment"
+
+    def test_invalid_file_upload(self):
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {"file": "invalid_file"},
+            format="multipart",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Please upload a valid file object"

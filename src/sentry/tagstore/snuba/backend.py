@@ -699,7 +699,7 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             orderby="-count",
             limitby=[value_limit, "tags_key"],
-            referrer="tagstore.__get_tag_keys_and_top_values",
+            referrer="tagstore._get_tag_keys_and_top_values",
         )
 
         # Then supplement the key objects with the top values for each.
@@ -745,6 +745,7 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             orderby="-times_seen",
             referrer="tagstore.get_release_tags",
+            tenant_ids={"organization_id": organization_id},
         )
 
         values = []

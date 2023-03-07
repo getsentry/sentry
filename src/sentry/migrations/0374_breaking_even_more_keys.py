@@ -168,7 +168,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0371_monitor_make_org_slug_unique"),
+        ("sentry", "0373_dist_id_to_name"),
     ]
 
     operations = (
