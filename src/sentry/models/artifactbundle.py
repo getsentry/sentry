@@ -55,7 +55,6 @@ class ReleaseArtifactBundle(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
-    dist_id = BoundedBigIntegerField(null=True)
     dist_name = models.CharField(max_length=64, null=True)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
