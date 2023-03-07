@@ -199,12 +199,12 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_perf_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value
+        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
         raise NotImplementedError
 
     def get_generic_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value
+        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
         raise NotImplementedError
 
@@ -272,12 +272,12 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_perf_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None
+        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
     ):
         raise NotImplementedError
 
     def get_generic_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None
+        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
     ):
         raise NotImplementedError
 

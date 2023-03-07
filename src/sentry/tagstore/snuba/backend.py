@@ -549,7 +549,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_perf_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value
+        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
         filters = {"project_id": project_ids}
         if environment_ids:
@@ -570,6 +570,7 @@ class SnubaTagStorage(TagStorage):
                 ["max", SEEN_COLUMN, "last_seen"],
             ],
             referrer="tagstore.get_perf_group_list_tag_value",
+            tenant_ids=tenant_ids,
         )
 
         return {
@@ -578,7 +579,7 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_generic_group_list_tag_value(
-        self, project_ids, group_id_list, environment_ids, key, value
+        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
     ):
         translated_params = _translate_filter_keys(project_ids, group_id_list, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
@@ -613,6 +614,7 @@ class SnubaTagStorage(TagStorage):
                 where=where_conditions,
                 groupby=[Column("group_id")],
             ),
+            tenant_ids=tenant_ids,
         )
         result_snql = raw_snql_query(
             snuba_request, referrer="tagstore.get_generic_group_list_tag_value", use_cache=True
@@ -914,7 +916,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_perf_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None
+        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
     ):
         filters_keys = {"project_id": project_ids}
         if environment_ids:
@@ -932,6 +934,7 @@ class SnubaTagStorage(TagStorage):
             ],
             groupby=["group_id"],
             referrer="tagstore.get_perf_groups_user_counts",
+            tenant_ids=tenant_ids,
         )
 
         return defaultdict(
@@ -944,7 +947,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_generic_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None
+        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
     ):
         translated_params = _translate_filter_keys(project_ids, group_ids, environment_ids)
         organization_id = get_organization_id_from_project_ids(project_ids)
@@ -978,6 +981,7 @@ class SnubaTagStorage(TagStorage):
                 groupby=[Column("group_id")],
                 orderby=[OrderBy(Column("count"), Direction.DESC)],
             ),
+            tenant_ids=tenant_ids,
         )
 
         result_snql = raw_snql_query(
