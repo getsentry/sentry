@@ -8,10 +8,6 @@ from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 BATCH_SIZE = 100
 DEFAULT_ENVIRONMENT_NAME = "production"
 
-CREATE_MONITORENV_QUERY = """
-
-"""
-
 UPDATE_QUERY = """
     UPDATE sentry_monitorcheckin
     SET monitor_environment_id = data.monitor_environment_id
