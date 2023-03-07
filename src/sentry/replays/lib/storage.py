@@ -108,8 +108,8 @@ class StorageBlob(Blob):
             result = blob.read()
             blob.close()
         except Exception:
-            # Return a default value if the storage does not exist.
-            return b"[]"
+            logger.exception("Storage GET error.")
+            return b"[]"  # Return a default value if the storage does not exist.
         else:
             return result
 
