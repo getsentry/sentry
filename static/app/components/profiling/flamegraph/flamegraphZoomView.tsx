@@ -69,6 +69,8 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disablePanX?: boolean;
+  disableZoom?: boolean;
 }
 
 function FlamegraphZoomView({
@@ -82,6 +84,8 @@ function FlamegraphZoomView({
   flamegraphView,
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
+  disablePanX = false,
+  disableZoom = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -506,12 +510,14 @@ function FlamegraphZoomView({
   const onWheelCenterZoom = useWheelCenterZoom(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager
+    canvasPoolManager,
+    disableZoom
   );
   const onCanvasScroll = useCanvasScroll(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager
+    canvasPoolManager,
+    disablePanX
   );
 
   useCanvasZoomOrScroll({
@@ -657,6 +663,7 @@ const CanvasContainer = styled('div')`
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   position: relative;
 `;
 

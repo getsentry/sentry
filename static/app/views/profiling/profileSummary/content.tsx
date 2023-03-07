@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
+import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFlamegraphPanel';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
@@ -66,10 +67,23 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
+  // const isAggregateFlamegraphEnabled = organization.features.includes(
+  //   'profiling-aggregate-flamegraph'
+  // );
+
+  const isAggregateFlamegraphEnabled = true;
+
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts query={props.query} hideCount />
+        <ProfileCharts
+          query={props.query}
+          hideCount
+          compact={isAggregateFlamegraphEnabled}
+        />
+        {isAggregateFlamegraphEnabled && (
+          <AggregateFlamegraphPanel transaction={props.transaction} />
+        )}
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
