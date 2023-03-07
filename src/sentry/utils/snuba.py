@@ -717,6 +717,7 @@ def raw_query(
     """
 
     if referrer:
+        kwargs = kwargs or dict()
         kwargs["tenant_ids"] = kwargs["tenant_ids"] if "tenant_ids" in kwargs else dict()
         kwargs["tenant_ids"]["referrer"] = referrer
 
