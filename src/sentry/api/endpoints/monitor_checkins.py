@@ -155,15 +155,14 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
 
             environment = Environment.get_or_create(project=project, name=environment_name)
 
-            monitor_environment, created = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment
-            )
-
-            if created:
-                monitor_environment.status = monitor.status
-                monitor_environment.next_checkin = monitor.next_checkin
-                monitor_environment.last_checkin = monitor.last_checkin
-                monitor_environment.save()
+            monitorenvironment_defaults = {
+                "status": monitor.status,
+                "next_checkin": monitor.next_checkin,
+                "last_checkin": monitor.last_checkin,
+            }
+            monitor_environment = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            )[0]
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
