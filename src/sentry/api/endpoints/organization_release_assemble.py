@@ -82,6 +82,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
                 "version": version,
                 "checksum": checksum,
                 "chunks": chunks,
+                "upload_as_artifact_bundle": False,
             }
         )
 

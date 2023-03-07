@@ -24,6 +24,8 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         schema = {
             "type": "object",
             "properties": {
+                # The version pattern has been extracted from the url definition of OrganizationReleaseAssembleEndpoint.
+                "version": {"type": "string", "pattern": "^[^/]+$)"},
                 "projects": {"type": "array", "items": {"type": "string"}},
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
@@ -81,9 +83,12 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             kwargs={
                 "org_id": organization.id,
                 "project_ids": list(project_ids),
-                "version": None,
+                # We don't perform any validation of the version, since the user might bind a bundle to a specific
+                # release version without actually having created the release object itself.
+                "version": data.get("version", None),
                 "checksum": checksum,
                 "chunks": chunks,
+                "upload_as_artifact_bundle": True,
             }
         )
 

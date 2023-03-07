@@ -197,7 +197,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
         super().setUp()
 
-    def test_artifacts_with_debug_ids(self):
+    def test_artifacts_with_debug_ids_and_no_version(self):
         bundle_file = self.create_artifact_bundle(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -213,6 +213,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             version=None,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
         )
 
         assert self.release.count_artifacts() == 0
@@ -248,6 +249,59 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
             assert len(project_artifact_bundles) == 1
 
+    def test_artifacts_with_debug_ids_and_version(self):
+        version = "1.0"
+        bundle_file = self.create_artifact_bundle(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id, release=version
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        expected_source_file_types = [SourceFileType.MINIFIED_SOURCE, SourceFileType.SOURCE_MAP]
+        expected_debug_ids = ["eb6e60f1-65ff-4f6f-adff-f1bbeded627b"]
+
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=version,
+            checksum=total_checksum,
+            chunks=[blob1.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
+        assert self.release.count_artifacts() == 0
+
+        status, details = get_assemble_status(
+            AssembleTask.ARTIFACTS, self.organization.id, total_checksum
+        )
+        assert status == ChunkFileState.OK
+        assert details is None
+
+        for debug_id in expected_debug_ids:
+            debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
+                organization_id=self.organization.id, debug_id=debug_id
+            )
+            assert len(debug_id_artifact_bundles) == 2
+            assert debug_id_artifact_bundles[0].artifact_bundle.file.size == len(bundle_file)
+            # We check if the bundle to which each debug id entry is connected has the correct bundle_id.
+            for entry in debug_id_artifact_bundles:
+                assert (
+                    str(entry.artifact_bundle.bundle_id) == "67429b2f-1d9e-43bb-a626-771a1e37555c"
+                )
+            # We check also if the source file types are equal.
+            for index, entry in enumerate(debug_id_artifact_bundles):
+                assert entry.source_file_type == expected_source_file_types[index].value
+
+            release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
+                organization_id=self.organization.id
+            )
+            assert len(release_artifact_bundle) == 1
+
+            project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+                project_id=self.project.id
+            )
+            assert len(project_artifact_bundles) == 1
+
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -266,10 +320,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
                 assemble_artifacts(
                     org_id=self.organization.id,
-                    project_ids=[],
                     version=self.release.version,
                     checksum=total_checksum,
                     chunks=[blob1.checksum],
+                    upload_as_artifact_bundle=False,
                 )
 
                 assert self.release.count_artifacts() == 2
@@ -306,10 +360,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
@@ -324,10 +378,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
@@ -342,10 +396,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
         )
 
         status, details = get_assemble_status(
@@ -367,10 +421,10 @@ class AssembleArtifactsTest(BaseAssembleTest):
         ):
             assemble_artifacts(
                 org_id=self.organization.id,
-                project_ids=[],
                 version=self.release.version,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
+                upload_as_artifact_bundle=False,
             )
 
             # Status is still OK:

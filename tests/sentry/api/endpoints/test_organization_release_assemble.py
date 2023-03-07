@@ -86,10 +86,10 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
         )
 
         response = self.client.post(
@@ -108,10 +108,10 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
         assemble_artifacts(
             org_id=self.organization.id,
-            project_ids=[],
             version=self.release.version,
             checksum=total_checksum,
             chunks=[blob1.checksum],
+            upload_as_artifact_bundle=False,
         )
 
         response = self.client.post(
