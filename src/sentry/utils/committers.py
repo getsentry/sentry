@@ -25,9 +25,16 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
-from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
+from sentry.models import (
+    Commit,
+    CommitFileChange,
+    Group,
+    Integration,
+    Project,
+    Release,
+    ReleaseCommit,
+)
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
-from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
