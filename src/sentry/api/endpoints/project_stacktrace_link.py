@@ -269,7 +269,6 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
                     codecov_data, err = fetch_codecov_data(
-                        organization=project.organization,
                         sha=ctx.get("commit_id"),
                         config=current_config,
                     )
