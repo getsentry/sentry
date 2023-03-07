@@ -5,7 +5,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import TeamStore from 'sentry/stores/teamStore';
@@ -53,7 +52,7 @@ describe('ProjectTeams', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <ProjectTeams
         params={{projectId: project.slug}}
@@ -105,8 +104,8 @@ describe('ProjectTeams', function () {
       })
     );
 
-    // Wait for row to be removed
-    await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
+    // Row should be removed
+    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
@@ -178,7 +177,7 @@ describe('ProjectTeams', function () {
       })
     );
 
-    await waitForElementToBeRemoved(() => screen.queryByText('#team-slug'));
+    expect(screen.queryByText('#team-slug')).not.toBeInTheDocument();
 
     // Remove second team
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
