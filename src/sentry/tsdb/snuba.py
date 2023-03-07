@@ -588,7 +588,6 @@ class SnubaTSDB(BaseTSDB):
             orderby.append(model_group)
 
         if keys:
-            referrer = f"tsdb-modelid:{model.value}"
             tenant_ids = tenant_ids or dict()
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
@@ -602,7 +601,7 @@ class SnubaTSDB(BaseTSDB):
                 rollup=rollup,
                 limit=limit,
                 orderby=orderby,
-                referrer=referrer,
+                referrer=f"tsdb-modelid:{model.value}",
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 use_cache=use_cache,
                 tenant_ids=tenant_ids,
