@@ -76,6 +76,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
                 "version": self.release.version,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
+                "upload_as_artifact_bundle": False,
             }
         )
 

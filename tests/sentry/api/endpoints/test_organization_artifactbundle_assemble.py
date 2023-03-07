@@ -103,6 +103,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
 
+        # We test the endpoint without the release version.
         response = self.client.post(
             self.url,
             data={
@@ -124,6 +125,37 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "version": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
+                "upload_as_artifact_bundle": True,
+            }
+        )
+
+        # We also want to test the endpoint with the release version.
+        # We don't create an actual release because the release version passed in the body is a weak reference of
+        # an existing or future release.
+        version = "1.0"
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+                "version": version,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
+        assert set(response.data["missingChunks"]) == set()
+
+        mock_assemble_artifacts.apply_async.assert_called_once_with(
+            kwargs={
+                "org_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "version": version,
+                "chunks": [blob1.checksum],
+                "checksum": total_checksum,
+                "upload_as_artifact_bundle": True,
             }
         )
 
