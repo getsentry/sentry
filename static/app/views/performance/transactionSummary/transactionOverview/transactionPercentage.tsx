@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import clamp from 'lodash/clamp';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Placeholder from 'sentry/components/placeholder';
@@ -31,11 +32,15 @@ export function TransactionPercentage({
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
       if (unfilteredTotalValues) {
-        // Need to handle 0 case to avoid diving by 0
-        const volumeRatio =
+        // clamp handles rare cases when % > 1
+        const volumeRatio = clamp(
+          // handles 0 case to avoid diving by 0
           unfilteredTotalValues[field] > 0
             ? totalValues[field] / unfilteredTotalValues[field]
-            : 0;
+            : 0,
+          0,
+          1
+        );
         const formattedPercentage =
           volumeRatio > 0 && volumeRatio < 0.0001
             ? '<0.01%'
