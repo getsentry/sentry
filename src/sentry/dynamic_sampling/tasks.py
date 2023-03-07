@@ -2,7 +2,8 @@ import logging
 from typing import Sequence, Tuple
 
 from sentry import features, quotas
-from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel, DSElement
+from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
+from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds

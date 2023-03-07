@@ -21,7 +21,7 @@ class AdjustedModel:
             return self.projects
 
         # Step 1: sort projects by count per root project
-        sorted_projects = list(sorted(self.projects, key=lambda x: (x.count, -x.id)))
+        sorted_projects = list(sorted(self.projects, key=lambda x: (x.count, x.id)))
 
         # For now, we have only blended sample rate per org, but we fetch per project
         blended_sample_rate = sorted_projects[0].sample_rate
