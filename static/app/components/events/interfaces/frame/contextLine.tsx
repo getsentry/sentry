@@ -124,7 +124,8 @@ const StyledLi = styled('li')`
 // TODO(scttcper): The parent component should be a grid, currently has too many other children
 // If the grid was higher up we wouldn't have to hardcode the line number width and could fit larger line numbers
 const lineNumberWidth = '58px';
+const padding = space(2);
 const LineContent = styled('div')`
   display: grid;
-  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${space(2)});
+  grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${padding});
 `;
