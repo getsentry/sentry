@@ -24,3 +24,12 @@ class SCIMMemberDetailsDocs(APIDocsTestCase, SCIMTestCase):
         response = self.client.delete(self.url)
         request = RequestFactory().delete(self.url)
         self.validate_schema(request, response)
+
+    def test_get_invalid(self):
+        url = reverse(
+            "sentry-api-0-organization-scim-member-details",
+            kwargs={"organization_slug": self.organization.slug, "member_id": 321},
+        )
+        response = self.client.get(url)
+        assert response.status_code == 404
+        assert response.data["schemas"] == ["urn:ietf:params:scim:api:messages:2.0:Error"]

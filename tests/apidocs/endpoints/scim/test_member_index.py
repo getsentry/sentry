@@ -2,6 +2,7 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 
 from fixtures.apidocs_test_case import APIDocsTestCase
+from sentry.models.organizationmember import OrganizationMember
 from sentry.testutils import SCIMTestCase
 
 
@@ -36,6 +37,10 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
         response = self.client.post(self.url, post_data)
         request = RequestFactory().post(self.url, post_data)
         self.validate_schema(request, response)
+
+        member = OrganizationMember.objects.get(email="test.user@okta.local")
+        assert member.data["givenName"] == "Test"
+        assert member.data["familyName"] == "User"
 
     def test_post_member_exists_but_not_accepted(self):
         self.create_member(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Union
 
 import sentry_sdk
@@ -20,6 +22,7 @@ from sentry import audit_log, features, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import (
@@ -139,6 +142,25 @@ def resolve_maybe_bool_value(value):
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str,
+        member_id: str = "me",
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
+        try:
+            args, kwargs = super().convert_args(
+                request, organization_slug, member_id, *args, **kwargs
+            )
+            return args, kwargs
+        except ResourceDoesNotExist:
+            raise SCIMApiError(
+                status_code=ResourceDoesNotExist.status_code,
+                detail=ResourceDoesNotExist.default_detail,
+            )
 
     def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
@@ -562,6 +584,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
                         email=result["email"],
                         role=result["role"],
                         inviter=request.user,
+                        data=request.data.get("name"),
                     )
 
                     # TODO: are invite tokens needed for SAML orgs?
