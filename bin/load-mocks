@@ -28,7 +28,6 @@ from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     Broadcast,
-    CheckInStatus,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -39,10 +38,6 @@ from sentry.models import (
     Group,
     GroupRelease,
     GroupTombstone,
-    Monitor,
-    MonitorCheckIn,
-    MonitorStatus,
-    MonitorType,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -56,6 +51,13 @@ from sentry.models import (
     Team,
     User,
     UserReport,
+)
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    MonitorType,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
