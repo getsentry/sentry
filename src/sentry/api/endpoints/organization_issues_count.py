@@ -51,6 +51,8 @@ class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
 
             query_kwargs["max_hits"] = ISSUES_COUNT_MAX_HITS_LIMIT
 
+            query_kwargs["actor"] = request.user
+
             result = search.query(**query_kwargs)
             return result.hits
 

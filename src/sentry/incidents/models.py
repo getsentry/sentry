@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team
 from sentry.services.hybrid_cloud.user import user_service
@@ -43,13 +44,13 @@ class IncidentSeen(Model):
     __include_in_export__ = False
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, db_index=False)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", db_index=False)
     last_seen = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentseen"
-        unique_together = (("user", "incident"),)
+        unique_together = (("user_id", "incident"),)
 
 
 class IncidentManager(BaseManager):
@@ -251,7 +252,7 @@ class IncidentActivity(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     type = models.IntegerField()
     value = models.TextField(null=True)
     previous_value = models.TextField(null=True)
@@ -268,13 +269,13 @@ class IncidentSubscription(Model):
     __include_in_export__ = True
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE")
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_incidentsubscription"
-        unique_together = (("incident", "user"),)
+        unique_together = (("incident", "user_id"),)
 
     __repr__ = sane_repr("incident_id", "user_id")
 
@@ -658,7 +659,7 @@ class AlertRuleActivity(Model):
     previous_alert_rule = FlexibleForeignKey(
         "sentry.AlertRule", null=True, related_name="previous_alert_rule"
     )
-    user = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     type = models.IntegerField()
     date_added = models.DateTimeField(default=timezone.now)
 

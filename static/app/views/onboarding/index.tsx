@@ -10,11 +10,13 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
@@ -149,7 +151,7 @@ function Onboarding(props: Props) {
     browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
   };
 
-  const handleGoBack = () => {
+  const handleGoBack = async () => {
     if (!stepObj) {
       return;
     }
@@ -170,14 +172,35 @@ function Onboarding(props: Props) {
         .map(platform => platformToProjectIdMap[platform])
         .filter((slug): slug is string => slug !== undefined);
 
-      removeProject(api, organization.slug, selectedProjectSlugs[0]);
+      try {
+        await removeProject(api, organization.slug, selectedProjectSlugs[0]);
+        if (clientState) {
+          setClientState({
+            url: 'setup-docs/',
+            state: 'projects_selected',
+            selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
+            platformToProjectIdMap: Object.keys(platformToProjectIdMap).reduce(
+              (acc, value) => {
+                if (value !== selectedProjectSlugs[0] && !acc[value]) {
+                  acc[value] = value;
+                }
+                return acc;
+              },
+              {}
+            ),
+          });
+        }
+      } catch (error) {
+        handleXhrErrorResponse(t('Unable to delete project'))(error);
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
     }
 
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('heartbeat.onboarding_back_button_clicked', {
+    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,

@@ -48,10 +48,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Retrieves details for a monitor.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
@@ -75,10 +71,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Update a monitor.
         """
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         validator = MonitorValidator(
             data=request.data,
             partial=True,
@@ -99,6 +91,8 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         params = {}
         if "name" in result:
             params["name"] = result["name"]
+        if "slug" in result:
+            params["slug"] = result["slug"]
         if "status" in result:
             if result["status"] == MonitorStatus.ACTIVE:
                 if monitor.status not in (MonitorStatus.OK, MonitorStatus.ERROR):
@@ -142,11 +136,6 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Delete a monitor.
         """
-
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         with transaction.atomic():
             affected = (
                 Monitor.objects.filter(id=monitor.id)

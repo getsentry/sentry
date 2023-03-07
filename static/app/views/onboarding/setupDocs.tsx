@@ -20,7 +20,7 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
-import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
+import {Footer} from 'sentry/views/onboarding/components/footer';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -298,7 +298,7 @@ function SetupDocs({
 
       {project &&
         (heartbeatFooter ? (
-          <HeartbeatFooter
+          <Footer
             projectSlug={project.slug}
             route={route}
             router={router}

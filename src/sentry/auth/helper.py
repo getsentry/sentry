@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Collection, Dict, Mapping, Sequence, Tuple, cast
+from typing import TYPE_CHECKING, Any, Collection, Dict, Mapping, Sequence, Tuple, cast
 from uuid import uuid4
 
 import sentry_sdk
@@ -56,6 +56,9 @@ from sentry.web.helpers import render_to_response
 
 from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
+
+if TYPE_CHECKING:
+    from django.utils.functional import _StrPromise  # fake type added by django-stubs
 
 logger = logging.getLogger("sentry.auth")
 
@@ -447,7 +450,7 @@ class AuthIdentityHandler:
         # we don't trust all IDP email verification, so users can also confirm via one time email link
         is_account_verified = False
         if self.request.session.get("confirm_account_verification_key"):
-            verification_key = self.request.session.get("confirm_account_verification_key")
+            verification_key = self.request.session["confirm_account_verification_key"]
             verification_value = get_verification_value_from_key(verification_key)
             if verification_value:
                 is_account_verified = self.has_verified_account(verification_value)
@@ -856,7 +859,7 @@ class AuthHelper(Pipeline):
         )
         return HttpResponseRedirect(next_uri)
 
-    def error(self, message: str) -> HttpResponseRedirect:
+    def error(self, message: str | _StrPromise) -> HttpResponseRedirect:
         redirect_uri = "/"
 
         if self.state.flow == self.FLOW_LOGIN:

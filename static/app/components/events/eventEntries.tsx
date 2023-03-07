@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {CommitRow} from 'sentry/components/commitRow';
+import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {
@@ -101,6 +102,7 @@ const EventEntries = ({
           isShare={isShare}
         />
       )}
+      <EventEvidence event={event} projectSlug={project.slug} />
       <Entries
         definedEvent={event}
         projectSlug={projectSlug}

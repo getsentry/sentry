@@ -14,10 +14,7 @@ import {DEFAULT_FLAMEGRAPH_STATE, FlamegraphState} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | (Pick<
-      FlamegraphState['preferences'],
-      'colorCoding' | 'sorting' | 'type' | 'view' | 'xAxis'
-    > &
+  | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view'> &
       Pick<FlamegraphState['search'], 'query'>);
 
 function isColorCoding(
@@ -55,15 +52,6 @@ function isSorting(
   return value === 'left heavy' || value === 'call order';
 }
 
-function isType(
-  value: PossibleQuery['type'] | FlamegraphState['preferences']['type']
-): value is FlamegraphState['preferences']['type'] {
-  if (typeof value !== 'string') {
-    return false;
-  }
-  return value === 'flamegraph' || value === 'flamechart';
-}
-
 function isView(
   value: PossibleQuery['view'] | FlamegraphState['preferences']['view']
 ): value is FlamegraphState['preferences']['view'] {
@@ -71,15 +59,6 @@ function isView(
     return false;
   }
   return value === 'top down' || value === 'bottom up';
-}
-
-function isXAxis(
-  value: PossibleQuery['xAxis'] | FlamegraphState['preferences']['xAxis']
-): value is FlamegraphState['preferences']['xAxis'] {
-  if (typeof value !== 'string') {
-    return false;
-  }
-  return value === 'profile' || value === 'transaction' || value === 'standalone';
 }
 
 export function decodeFlamegraphStateFromQueryParams(
@@ -122,14 +101,8 @@ export function decodeFlamegraphStateFromQueryParams(
     decoded.preferences.sorting = query.sorting;
   }
 
-  if (isType(query.type)) {
-    decoded.preferences.type = query.type;
-  }
   if (isView(query.view)) {
     decoded.preferences.view = query.view;
-  }
-  if (isXAxis(query.xAxis)) {
-    decoded.preferences.xAxis = query.xAxis;
   }
   if (typeof query.query === 'string') {
     decoded.search.query = query.query;
@@ -150,9 +123,7 @@ export function encodeFlamegraphStateToQueryParams(state: FlamegraphState) {
     colorCoding: state.preferences.colorCoding,
     sorting: state.preferences.sorting,
     view: state.preferences.view,
-    xAxis: state.preferences.xAxis,
     query: state.search.query,
-    type: state.preferences.type,
     ...highlightFrame,
     ...(state.position.view.isEmpty()
       ? {fov: undefined}
@@ -197,7 +168,6 @@ export function FlamegraphStateLocalStorageSync() {
     FLAMEGRAPH_LOCALSTORAGE_PREFERENCES_KEY,
     {
       preferences: {
-        type: DEFAULT_FLAMEGRAPH_STATE.preferences.type,
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
@@ -208,7 +178,6 @@ export function FlamegraphStateLocalStorageSync() {
   useEffect(() => {
     setState({
       preferences: {
-        type: state.preferences.type,
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
         view: state.preferences.view,
