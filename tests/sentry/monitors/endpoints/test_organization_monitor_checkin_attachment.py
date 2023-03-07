@@ -100,7 +100,7 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
         assert resp.data["detail"] == "Check-in has no attachment"
 
     @mock.patch(
-        "sentry.api.endpoints.organization_monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
+        "sentry.monitors.endpoints.organization_monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
     )
     def test_upload_file_too_big(self):
         monitor = self._create_monitor()
