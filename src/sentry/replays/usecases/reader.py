@@ -230,7 +230,7 @@ def _fetch_segments_from_snuba(
             replay_id=replay_id,
             segment_id=item["segment_id"],
             retention_days=item["retention_days"],
-            date_added=item["timestamp"],
+            date_added=datetime.fromisoformat(item["timestamp"]),
             file_id=None,
         )
         for item in response["data"]

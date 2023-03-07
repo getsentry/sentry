@@ -34,7 +34,7 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
                         "replayId": segment.replay_id,
                         "segmentId": segment.segment_id,
                         "projectId": str(segment.project_id),
-                        "dateAdded": segment.date_added,
+                        "dateAdded": segment.date_added.replace(microsecond=0).isoformat(),
                     }
                 }
             )
