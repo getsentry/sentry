@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Any, Mapping, Sequence, Tuple
 
 from django.db import migrations
+from django.db.models import Count
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
@@ -38,10 +39,11 @@ def backfill_eventstream(apps, schema_editor):
     # TODO: need to make sure event_type is correct in eventstream.send()
 
     Group = apps.get_model("sentry", "Group")
-    GroupHash = apps.get("sentry", "GroupHash")
+    GroupHash = apps.get_model("sentry", "GroupHash")
 
     project_perf_issues = (
-        Group.objects.filter(
+        Group.objects.all()
+        .filter(
             type__in=(
                 PerformanceSlowDBQueryGroupType.type_id,
                 PerformanceRenderBlockingAssetSpanGroupType.type_id,
@@ -53,13 +55,19 @@ def backfill_eventstream(apps, schema_editor):
                 PerformanceUncompressedAssetsGroupType.type_id,
             )
         )
-        .order_by("project_id", "id")
-        .values_list("id", "project_id")
+        .values("id", "project_id")
+        .annotate(issue_counts=Count("id"))
+        .order_by("project_id")
     )
 
+    for project_perf_issue in project_perf_issues:
+        backfill_by_project(project_perf_issue["project_id"], Group, GroupHash)
+
+
+def backfill_by_project(project_id: int, Group: Any, GroupHash: Any):
     # retrieve rows
     rows = _query_performance_issue_events(
-        project_ids=[tupe[1] for tupe in project_perf_issues],
+        project_ids=[project_id],
         start=datetime(2008, 5, 8),
         end=datetime.now(),
     )
@@ -85,15 +93,15 @@ def backfill_eventstream(apps, schema_editor):
                 id=uuid.uuid4().hex,  # TODO: need to generate this
                 project_id=project_id,
                 event_id=event_id,
-                fingerprint=group_hash,
+                fingerprint=[group_hash.hash],
                 issue_title="",
                 subtitle="",
                 resource_id=None,
-                evidence_data="",
-                evidence_display="",
-                type="",  # TODO: this might need to be mapped from the Group.type field into GroupType.type_id
-                detection_time="",
-                level="",
+                evidence_data={},
+                evidence_display=[],
+                type=PerformanceSlowDBQueryGroupType.type_id,  # TODO: this might need to be mapped from the Group.type field into GroupType.type_id
+                detection_time=datetime.now().timestamp(),
+                level=None,
             )
 
             occurrence, group_info = _save_issue_occurrence(occurrence_data, event, group)
@@ -148,13 +156,14 @@ def _query_performance_issue_events(
                 Condition(Column("finish_ts"), Op.GTE, start),
                 Condition(Column("finish_ts"), Op.LT, end),
             ],
+            groupby=[Column("group_id"), Column("project_id"), Column("event_id")],
         ),
     )
     from sentry.utils.snuba import raw_snql_query
 
     result_snql = raw_snql_query(
         snuba_request,
-        referrer="0362_backfill_perf_issue_events_issue_platform._query_performance_issue_events",
+        referrer="0372_backfill_perf_issue_events_issue_platform._query_performance_issue_events",
         use_cache=False,
     )
 
@@ -202,6 +211,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_eventstream,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["sentry_grouphash", "sentry_groupedmessage"]},
+            hints={"tables": ["sentry_groupedmessage", "sentry_grouphash"]},
         )
     ]
