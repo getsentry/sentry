@@ -2,7 +2,7 @@ import logging
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Generator, List, Optional, Tuple, cast
+from typing import Iterator, List, Optional, Tuple, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -37,9 +37,7 @@ class ProjectTransactions:
     transaction_counts: List[Tuple[str, int]]
 
 
-def get_orgs_with_transactions(
-    max_orgs: int, max_projects: int
-) -> Generator[List[int], None, None]:
+def get_orgs_with_transactions(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
@@ -111,7 +109,7 @@ def get_orgs_with_transactions(
 
 def fetch_transactions_with_total_volumes(
     org_ids: List[int], large_transactions: bool, max_transactions: int
-) -> Generator[ProjectTransactions, None, None]:
+) -> Iterator[ProjectTransactions]:
     """
     Fetch transactions for all orgs and all projects  with pagination orgs and projects with count per root project
 
@@ -244,9 +242,9 @@ def merge_transactions(
 
 
 def transactions_zip(
-    left: Generator[ProjectTransactions, None, None],
-    right: Generator[ProjectTransactions, None, None],
-) -> Generator[ProjectTransactions, None, None]:
+    left: Iterator[ProjectTransactions],
+    right: Iterator[ProjectTransactions],
+) -> Iterator[ProjectTransactions]:
     """
     returns a generator that zips left and right (when they match) and when not it re-aligns the sequence
     """
