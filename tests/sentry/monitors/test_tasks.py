@@ -9,7 +9,7 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.tasks.check_monitors import check_monitors
+from sentry.monitors.tasks import check_monitors
 from sentry.testutils import TestCase
 
 
