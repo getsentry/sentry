@@ -342,67 +342,64 @@ def get_with_manifest_fallback(value, manifest_key, manifest, throw=True):
     return value
 
 
-def handle_assemble_for_release_file(bundle, archive, organization, version):
-    with archive:
-        manifest = archive.manifest
+def handle_assemble_for_release_file(bundle, archive, manifest, organization, version):
+    org_slug = manifest.get("org")
+    if organization.slug != org_slug:
+        raise AssembleArtifactsError("organization does not match uploaded bundle")
 
-        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
-        # contents.
-        release_name = get_with_manifest_fallback(version, "release", manifest)
-        # We want to maintain the old logic in which the dist is directly fetched from the manifest.
-        dist_name = get_with_manifest_fallback(None, "dist", manifest, throw=False)
+    release_name = manifest.get("release")
+    if release_name != version:
+        raise AssembleArtifactsError("release does not match uploaded bundle")
 
-        try:
-            release = Release.objects.get(organization_id=organization.id, version=release_name)
-        except Release.DoesNotExist:
+    try:
+        release = Release.objects.get(organization_id=organization.id, version=release_name)
+    except Release.DoesNotExist:
+        raise AssembleArtifactsError("release does not exist")
+
+    dist_name = manifest.get("dist")
+    dist = None
+    if release and dist_name:
+        dist = release.add_dist(dist_name)
+
+    artifact_count = len(manifest.get("files", {}))
+    min_artifact_count = options.get("processing.release-archive-min-files")
+    saved_as_archive = False
+
+    if artifact_count >= min_artifact_count:
+        if release is None:
             raise AssembleArtifactsError("release does not exist")
 
-        dist = None
-        if release and dist_name:
-            dist = release.add_dist(dist_name)
+        try:
+            update_artifact_index(release, dist, bundle)
+            saved_as_archive = True
+        except Exception as exc:
+            logger.error("Unable to update artifact index", exc_info=exc)
 
-        artifact_count = len(manifest.get("files", {}))
-        min_artifact_count = options.get("processing.release-archive-min-files")
-        saved_as_archive = False
+    if not saved_as_archive:
+        meta = {
+            "organization_id": organization.id,
+            "release_id": release.id,
+            "dist_id": dist.id if dist else dist,
+        }
+        _store_single_files(archive, meta, True)
 
-        if artifact_count >= min_artifact_count:
-            if release is None:
-                raise AssembleArtifactsError("release does not exist")
-
-            try:
-                update_artifact_index(release, dist, bundle)
-                saved_as_archive = True
-            except Exception as exc:
-                logger.error("Unable to update artifact index", exc_info=exc)
-
-        if not saved_as_archive:
-            meta = {
-                "organization_id": organization.id,
-                "release_id": release.id,
-                "dist_id": dist.id if dist else dist,
-            }
-            _store_single_files(archive, meta, True)
-
-        return artifact_count
+    return artifact_count
 
 
-def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, project_ids, dist):
-    with archive:
-        manifest = archive.manifest
+def handle_assemble_for_artifact_bundle(bundle, manifest, organization, version, project_ids, dist):
+    # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
+    # contents.
+    release_name = get_with_manifest_fallback(version, "release", manifest, throw=False)
+    # dist is optional, thus if we don't find it, it's fine.
+    dist_name = get_with_manifest_fallback(dist, "dist", manifest, throw=False)
 
-        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
-        # contents.
-        release_name = get_with_manifest_fallback(version, "release", manifest)
-        # dist is optional, thus if we don't find it, it's fine.
-        dist_name = get_with_manifest_fallback(dist, "dist", manifest, throw=False)
+    artifact_count = len(manifest.get("files", {}))
 
-        artifact_count = len(manifest.get("files", {}))
+    _create_artifact_bundle(
+        release_name, dist_name, organization.id, project_ids, bundle, artifact_count
+    )
 
-        _create_artifact_bundle(
-            release_name, dist_name, organization.id, project_ids, bundle, artifact_count
-        )
-
-        return artifact_count
+    return artifact_count
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -457,14 +454,16 @@ def assemble_artifacts(
         except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
 
-        if upload_as_artifact_bundle:
-            artifact_count = handle_assemble_for_artifact_bundle(
-                bundle, archive, organization, version, project_ids, dist
-            )
-        else:
-            artifact_count = handle_assemble_for_release_file(
-                bundle, archive, organization, version
-            )
+        with archive:
+            manifest = archive.manifest
+            if upload_as_artifact_bundle:
+                artifact_count = handle_assemble_for_artifact_bundle(
+                    bundle, manifest, organization, version, project_ids, dist
+                )
+            else:
+                artifact_count = handle_assemble_for_release_file(
+                    bundle, archive, manifest, organization, version
+                )
 
         # Count files extracted, to compare them to release files endpoint
         metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)

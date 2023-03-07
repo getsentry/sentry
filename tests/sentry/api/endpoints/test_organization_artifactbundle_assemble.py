@@ -73,7 +73,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
     def test_assemble_with_invalid_projects(self):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -97,7 +99,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble(self, mock_assemble_artifacts):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -123,6 +127,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "org_id": self.organization.id,
                 "project_ids": [self.project.id],
                 "version": None,
+                "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
                 "upload_as_artifact_bundle": True,
@@ -153,6 +158,37 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
                 "org_id": self.organization.id,
                 "project_ids": [self.project.id],
                 "version": version,
+                "dist": None,
+                "chunks": [blob1.checksum],
+                "checksum": total_checksum,
+                "upload_as_artifact_bundle": True,
+            }
+        )
+
+        version = "1.0"
+        dist = "android"
+        response = self.client.post(
+            self.url,
+            data={
+                "checksum": total_checksum,
+                "chunks": [blob1.checksum],
+                "projects": [self.project.slug],
+                "version": version,
+                "dist": dist,
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["state"] == ChunkFileState.CREATED
+        assert set(response.data["missingChunks"]) == set()
+
+        mock_assemble_artifacts.apply_async.assert_called_once_with(
+            kwargs={
+                "org_id": self.organization.id,
+                "project_ids": [self.project.id],
+                "version": version,
+                "dist": dist,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
                 "upload_as_artifact_bundle": True,
@@ -160,7 +196,9 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     def test_assemble_response(self):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
 

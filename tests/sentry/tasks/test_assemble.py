@@ -254,7 +254,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         version = "1.0"
         dist = "android"
         bundle_file = self.create_artifact_bundle(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id, release=version
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
@@ -306,7 +306,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             assert len(project_artifact_bundles) == 1
 
     def test_artifacts_without_debug_ids(self):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -357,7 +359,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 
     def test_artifacts_invalid_org(self):
-        bundle_file = self.create_artifact_bundle(org="invalid")
+        bundle_file = self.create_artifact_bundle(org="invalid", release=self.release.version)
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -375,7 +377,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert status == ChunkFileState.ERROR
 
     def test_artifacts_invalid_release(self):
-        bundle_file = self.create_artifact_bundle(release="invalid")
+        bundle_file = self.create_artifact_bundle(org=self.organization.slug, release="invalid")
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -412,7 +414,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     @patch("sentry.tasks.assemble.update_artifact_index", side_effect=RuntimeError("foo"))
     def test_failing_update(self, _):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 

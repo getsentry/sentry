@@ -53,7 +53,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble(self, mock_assemble_artifacts):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         total_checksum = sha1(bundle_file).hexdigest()
 
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -81,7 +83,9 @@ class OrganizationReleaseAssembleTest(APITestCase):
         )
 
     def test_assemble_response(self):
-        bundle_file = self.create_artifact_bundle()
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
         total_checksum = sha1(bundle_file).hexdigest()
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
 
