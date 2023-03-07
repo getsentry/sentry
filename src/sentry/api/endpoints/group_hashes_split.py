@@ -159,14 +159,14 @@ def _get_full_hierarchical_hashes(group: Group, hash: str) -> Optional[Sequence[
             ]
         )
     )
-    referrer = "group_split.get_full_hierarchical_hashes"
+
     request = SnubaRequest(
         dataset="events",
         app_id="grouping",
         query=query,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    data = snuba.raw_snql_query(request, referrer)["data"]
+    data = snuba.raw_snql_query(request, "group_split.get_full_hierarchical_hashes")["data"]
     if not data:
         return None
 
@@ -390,14 +390,13 @@ def _render_trees(group: Group, user):
     )
 
     rv = []
-    referrer = "api.group_split.render_grouping_tree"
     request = SnubaRequest(
         dataset="events",
         app_id="grouping",
         query=query,
         tenant_ids={"organization_id": group.project.organization_id},
     )
-    for row in snuba.raw_snql_query(request, referrer)["data"]:
+    for row in snuba.raw_snql_query(request, "api.group_split.render_grouping_tree")["data"]:
         if len(row["hash_slice"]) == 0:
             hash = row["primary_hash"]
             parent_hash = child_hash = None

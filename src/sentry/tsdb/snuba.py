@@ -443,7 +443,6 @@ class SnubaTSDB(BaseTSDB):
                     ]
 
             referrer = f"tsdb-modelid:{model.value}"
-            tenant_ids = tenant_ids or dict()
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -456,7 +455,7 @@ class SnubaTSDB(BaseTSDB):
                     granularity=Granularity(rollup),
                     limit=Limit(limit),
                 ),
-                tenant_ids=tenant_ids,
+                tenant_ids=tenant_ids or dict(),
             )
             query_result = raw_snql_query(snql_request, referrer=referrer, use_cache=use_cache)
             if manual_group_on_time:
@@ -588,7 +587,6 @@ class SnubaTSDB(BaseTSDB):
             orderby.append(model_group)
 
         if keys:
-            tenant_ids = tenant_ids or dict()
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
                 dataset=model_dataset,
@@ -604,7 +602,7 @@ class SnubaTSDB(BaseTSDB):
                 referrer=f"tsdb-modelid:{model.value}",
                 is_grouprelease=(model == TSDBModel.frequent_releases_by_group),
                 use_cache=use_cache,
-                tenant_ids=tenant_ids,
+                tenant_ids=tenant_ids or dict(),
             )
             if model_query_settings.selected_columns:
                 result = query_func_without_selected_columns(

@@ -1008,7 +1008,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        referrer = "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
         org_id = item_list[0].project.organization_id if item_list else None
         tenant_ids = {"organization_id": org_id} if org_id else dict()
 
@@ -1020,7 +1019,7 @@ class GroupSerializerSnuba(GroupSerializerBase):
             conditions=conditions,
             filter_keys=filters,
             aggregations=aggregations,
-            referrer=referrer,
+            referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
             tenant_ids=tenant_ids,
         )
 

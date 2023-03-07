@@ -147,7 +147,6 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     .set_limit(self.CHUNK_SIZE + 1)
                     .set_offset(offset)
                 )
-                referrer = "release_monitor.fetch_project_release_health_totals"
                 request = Request(
                     dataset=Dataset.Metrics.value,
                     app_id="release_health",
@@ -155,7 +154,9 @@ class MetricReleaseMonitorBackend(BaseReleaseMonitorBackend):
                     tenant_ids={"organization_id": org_id},
                 )
                 with metrics.timer("release_monitor.fetch_project_release_health_totals.query"):
-                    data = raw_snql_query(request, referrer)["data"]
+                    data = raw_snql_query(
+                        request, "release_monitor.fetch_project_release_health_totals"
+                    )["data"]
                     count = len(data)
                     more_results = count > self.CHUNK_SIZE
                     offset += self.CHUNK_SIZE

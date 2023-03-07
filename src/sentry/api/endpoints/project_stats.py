@@ -64,8 +64,8 @@ class ProjectStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
         data = tsdb.get_range(
             model=stat_model,
             keys=[project.id],
-            tenant_ids={"organization_id": project.organization_id},
             **self._parse_args(request, **query_kwargs),
+            tenant_ids={"organization_id": project.organization_id},
         )[project.id]
 
         return Response(data)
