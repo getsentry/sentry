@@ -89,7 +89,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(newIssuesSegment).not.toBeChecked();
 
     await userEvent.click(newIssuesSegment);
-    waitFor(() => expect(newIssuesSegment).toBeChecked());
+    await waitFor(() => expect(newIssuesSegment).toBeChecked());
 
     expect(newIssuesEndpointMock).toHaveBeenCalled();
   });
