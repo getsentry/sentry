@@ -538,7 +538,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -1101,7 +1100,10 @@ class IssueListOverview extends Component<Props, State> {
     }
 
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
+    this.setState(({queryCount}) => ({
+      actionTaken: true,
+      queryCount: queryCount - itemIds.length,
+    }));
     this.fetchData(true);
   };
 
@@ -1223,9 +1225,13 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading
+                  ? tct('Showing [displayCount] issues', {
+                      displayCount,
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
