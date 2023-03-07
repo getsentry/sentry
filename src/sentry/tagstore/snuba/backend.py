@@ -136,7 +136,15 @@ class SnubaTagStorage(TagStorage):
                 return GroupTagKey(group_id=group_id, **data)
 
     def __get_tag_key_and_top_values(
-        self, project_id, group, environment_id, key, limit=3, raise_on_empty=True, **kwargs
+        self,
+        project_id,
+        group,
+        environment_id,
+        key,
+        limit=3,
+        raise_on_empty=True,
+        tenant_ids=None,
+        **kwargs,
     ):
         tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(project_id)}
@@ -168,6 +176,7 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             totals=True,
             referrer="tagstore.__get_tag_key_and_top_values",
+            tenant_ids=tenant_ids,
         )
 
         if raise_on_empty and (not result or totals.get("count", 0) == 0):
@@ -375,9 +384,19 @@ class SnubaTagStorage(TagStorage):
             else:
                 return GroupTagValue(group_id=group_id, **fix_tag_value_data(data))
 
-    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, **kwargs):
+    def get_tag_key(
+        self,
+        project_id,
+        environment_id,
+        key,
+        status=TagKeyStatus.VISIBLE,
+        tenant_ids=None,
+        **kwargs,
+    ):
         assert status is TagKeyStatus.VISIBLE
-        return self.__get_tag_key_and_top_values(project_id, None, environment_id, key, **kwargs)
+        return self.__get_tag_key_and_top_values(
+            project_id, None, environment_id, key, tenant_ids=tenant_ids, **kwargs
+        )
 
     def get_tag_keys(
         self,
@@ -401,6 +420,7 @@ class SnubaTagStorage(TagStorage):
         status=TagKeyStatus.VISIBLE,
         use_cache=False,
         include_transactions=False,
+        tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
         # We want to disable FINAL in the snuba query to reduce load.
@@ -420,6 +440,7 @@ class SnubaTagStorage(TagStorage):
             include_values_seen=False,
             use_cache=use_cache,
             include_transactions=include_transactions,
+            tenant_ids=tenant_ids,
             **optimize_kwargs,
         )
 

@@ -36,7 +36,12 @@ class ProjectTagKeyValuesEndpoint(ProjectEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            tagkey = tagstore.get_tag_key(project.id, environment_id, lookup_key)
+            tagkey = tagstore.get_tag_key(
+                project.id,
+                environment_id,
+                lookup_key,
+                tenant_ids={"organization_id": project.organization_id},
+            )
         except tagstore.TagKeyNotFound:
             raise ResourceDoesNotExist
 

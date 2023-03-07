@@ -122,7 +122,9 @@ class TagStorage(Service):
         return label
 
     @raises([TagKeyNotFound])
-    def get_tag_key(self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE):
+    def get_tag_key(
+        self, project_id, environment_id, key, status=TagKeyStatus.VISIBLE, tenant_ids=None
+    ):
         """
         >>> get_tag_key(1, 2, "key1")
         """
@@ -137,7 +139,7 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys_for_projects(
-        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE
+        self, projects, environments, start, end, status=TagKeyStatus.VISIBLE, tenant_ids=None
     ):
         """
         >>> get_tag_key([1], [2])
