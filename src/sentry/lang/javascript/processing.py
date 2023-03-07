@@ -87,6 +87,7 @@ def sourcemap_images_from_data(data):
 
 def process_payload(data):
     # We cannot symbolicate JS stacktraces without a release.
+    # TODO: Won't be the case with DebugIDs and Artifact Bundles
     if data.get("release") is None:
         return
 

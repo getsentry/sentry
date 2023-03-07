@@ -321,8 +321,8 @@ register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, defaul
 register("symbolicator.minidump-refactor-projects-opt-out", type=Sequence, default=[])  # unused
 register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unused
 
-# Enable use of Symbolicator Source Maps processing for internal projects.
-register("symbolicator.sourcemaps-processing-internal-projects", default=False)
+# Enable use of Symbolicator Source Maps processing for specific projects.
+register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
 # Enable use of Symbolicator Source Maps processing for fraction of projects.
 register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 

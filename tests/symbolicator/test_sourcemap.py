@@ -1,8 +1,6 @@
 import os.path
-from unittest.mock import patch
 
 import pytest
-from django.conf import settings
 
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
@@ -24,21 +22,18 @@ def get_fixture_path(name):
 class SymbolicatorSourceMapIntegrationTest(RelayStoreHelper, TransactionTestCase):
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
-        self.debug = True
-
-        new_options = settings.SENTRY_OPTIONS.copy()
-
-        new_options["system.url-prefix"] = live_server.url
-        new_options["system.internal-url-prefix"] = live_server.url
-        new_options["symbolicator.sourcemaps-processing-internal-projects"] = True
-        new_options["symbolicator.sourcemaps-processing-sample-rate"] = 1.0
-
-        with patch("sentry.auth.system.is_internal_ip", return_value=True), self.settings(
-            SENTRY_OPTIONS=new_options
+        with self.options(
+            {
+                "system.internal-url-prefix": live_server.url,
+                "symbolicator.sourcemaps-processing-sample-rate": 1,
+            }
         ):
             # Run test case:
             yield
 
+    @pytest.mark.skip(
+        reason="Used for development only until Symbolicator with SourceMaps support is deployed."
+    )
     def test_symbolicator_roundtrip(self):
         project = self.project
         release_id = "abc"
