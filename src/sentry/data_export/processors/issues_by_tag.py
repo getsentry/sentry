@@ -112,6 +112,7 @@ class IssuesByTagProcessor:
             callbacks=self.callbacks,
             limit=limit,
             offset=offset,
+            tenant_ids={"organization_id": self.project.organization_id},
         )
 
     def get_serialized_data(self, limit=1000, offset=0):

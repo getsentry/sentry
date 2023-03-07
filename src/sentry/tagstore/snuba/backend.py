@@ -1025,6 +1025,7 @@ class SnubaTagStorage(TagStorage):
         end=None,
         query=None,
         order_by="-last_seen",
+        tenant_ids=None,
     ):
         return self.get_tag_value_paginator_for_projects(
             get_project_list(project_id),
@@ -1034,6 +1035,7 @@ class SnubaTagStorage(TagStorage):
             end=end,
             query=query,
             order_by=order_by,
+            tenant_ids=tenant_ids,
         )
 
     def _get_semver_versions_for_package(self, projects, organization_id, package):
@@ -1240,6 +1242,7 @@ class SnubaTagStorage(TagStorage):
         include_transactions=False,
         include_sessions=False,
         include_replays=False,
+        tenant_ids=None,
     ):
         from sentry.api.paginator import SequencePaginator
 
@@ -1423,6 +1426,7 @@ class SnubaTagStorage(TagStorage):
                 sample=1_000_000,
                 arrayjoin=snuba.get_arrayjoin(snuba_key),
                 referrer="tagstore.get_tag_value_paginator_for_projects",
+                tenant_ids=tenant_ids,
             )
 
         if include_transactions:
@@ -1464,7 +1468,7 @@ class SnubaTagStorage(TagStorage):
         )
 
     def get_group_tag_value_iter(
-        self, group, environment_ids, key, callbacks=(), limit=1000, offset=0
+        self, group, environment_ids, key, callbacks=(), limit=1000, offset=0, tenant_ids=None
     ):
         filters = {
             "project_id": get_project_list(group.project_id),
@@ -1488,6 +1492,7 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             referrer="tagstore.get_group_tag_value_iter",
             offset=offset,
+            tenant_ids=tenant_ids,
         )
 
         group_tag_values = [
@@ -1500,7 +1505,9 @@ class SnubaTagStorage(TagStorage):
 
         return group_tag_values
 
-    def get_group_tag_value_paginator(self, group, environment_ids, key, order_by="-id"):
+    def get_group_tag_value_paginator(
+        self, group, environment_ids, key, order_by="-id", tenant_ids=None
+    ):
         from sentry.api.paginator import SequencePaginator
 
         if order_by in ("-last_seen", "-first_seen", "-times_seen"):
@@ -1511,7 +1518,9 @@ class SnubaTagStorage(TagStorage):
         else:
             raise ValueError("Unsupported order_by: %s" % order_by)
 
-        group_tag_values = self.get_group_tag_value_iter(group, environment_ids, key)
+        group_tag_values = self.get_group_tag_value_iter(
+            group, environment_ids, key, tenant_ids=tenant_ids
+        )
 
         desc = order_by.startswith("-")
         score_field = order_by.lstrip("-")
