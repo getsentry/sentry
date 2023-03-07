@@ -1103,10 +1103,10 @@ class IssueListOverview extends Component<Props, State> {
 
     GroupStore.remove(itemIds);
     const queryCount = this.state.queryCount - itemIds.length;
-    this.setState(() => ({
+    this.setState({
       actionTaken: true,
       queryCount,
-    }));
+    });
 
     if (GroupStore.getAllItemIds().length === 0) {
       // If we run out of issues on the last page, navigate back a page to
