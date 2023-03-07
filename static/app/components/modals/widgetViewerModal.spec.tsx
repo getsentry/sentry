@@ -346,7 +346,9 @@ describe('Modals -> WidgetViewerModal', function () {
             queries: [{...mockQuery, name: ''}, additionalMockQuery],
           },
         });
-        await userEvent.click(screen.getByText('/organizations/:orgId/performance/summary/'));
+        await userEvent.click(
+          screen.getByText('/organizations/:orgId/performance/summary/')
+        );
         expect(container).toSnapshot();
       });
 
@@ -1282,6 +1284,7 @@ describe('Modals -> WidgetViewerModal', function () {
       widgetType: WidgetType.RELEASE,
     };
     beforeEach(function () {
+      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       metricsMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/metrics/data/',
         body: TestStubs.MetricsTotalCountByReleaseIn24h(),
@@ -1292,8 +1295,11 @@ describe('Modals -> WidgetViewerModal', function () {
         },
       });
     });
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     it('does a sessions query', async function () {
-      jest.useFakeTimers().setSystemTime(new Date('2022-08-02'));
       await renderModal({initialData, widget: mockWidget});
       expect(metricsMock).toHaveBeenCalled();
     });
@@ -1311,7 +1317,7 @@ describe('Modals -> WidgetViewerModal', function () {
 
     it('Open in Releases button redirects browser', async function () {
       await renderModal({initialData, widget: mockWidget});
-      await userEvent.click(screen.getByText('Open in Releases'));
+      await userEvent.click(screen.getByText('Open in Releases'), {delay: null});
       expect(initialData.router.push).toHaveBeenCalledWith(
         '/organizations/org-slug/releases/?environment=prod&environment=dev&project=1&project=2&statsPeriod=24h'
       );
@@ -1357,7 +1363,7 @@ describe('Modals -> WidgetViewerModal', function () {
         seriesData: [],
       });
       expect(metricsMock).toHaveBeenCalledTimes(1);
-      await userEvent.click(screen.getByText(`sum(session)`));
+      await userEvent.click(screen.getByText(`sum(session)`), {delay: null});
       expect(initialData.router.push).toHaveBeenCalledWith({
         query: {sort: '-sum(session)'},
       });
