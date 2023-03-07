@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -73,9 +73,7 @@ describe('SettingsSearch', function () {
 
   it.only('can focus when hotkey is pressed', async function () {
     render(<SettingsSearch />);
-    await userEvent.keyboard('/', {
-      keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}],
-    });
+    fireEvent.keyDown(document.body, {key: 'Slash', code: 'Slash', keyCode: 191});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
