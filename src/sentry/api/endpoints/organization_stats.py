@@ -91,8 +91,8 @@ class OrganizationStatsEndpoint(OrganizationEndpoint, EnvironmentMixin, StatsMix
         data = tsdb.get_range(
             model=stat_model,
             keys=keys,
-            tenant_ids={"organization_id": organization.id},
             **self._parse_args(request, **query_kwargs),
+            tenant_ids={"organization_id": organization.id},
         )
 
         if group == "organization":
