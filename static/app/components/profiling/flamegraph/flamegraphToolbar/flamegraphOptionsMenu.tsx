@@ -17,7 +17,7 @@ interface FlamegraphOptionsMenuProps {
 function FlamegraphOptionsMenu({
   canvasPoolManager,
 }: FlamegraphOptionsMenuProps): React.ReactElement {
-  const {colorCoding, xAxis} = useFlamegraphPreferences();
+  const {colorCoding} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
   return (
@@ -35,19 +35,6 @@ function FlamegraphOptionsMenu({
         closeOnSelect={false}
       >
         <CompositeSelect.Region
-          label={t('X Axis')}
-          value={xAxis}
-          options={xAxisOptions.map(opt => ({
-            ...opt,
-          }))}
-          onChange={opt =>
-            dispatch({
-              type: 'set xAxis',
-              payload: opt.value,
-            })
-          }
-        />
-        <CompositeSelect.Region
           label={t('Color Coding')}
           value={colorCoding}
           options={colorCodingOptions}
@@ -62,11 +49,6 @@ function FlamegraphOptionsMenu({
     </Fragment>
   );
 }
-
-const xAxisOptions: SelectOption<FlamegraphPreferences['xAxis']>[] = [
-  {value: 'transaction', label: t('Transaction')},
-  {value: 'profile', label: t('Profile')},
-];
 
 const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
   {value: 'by symbol name', label: t('By Symbol Name')},

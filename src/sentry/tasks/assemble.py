@@ -419,6 +419,9 @@ def assemble_artifacts(
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
+    if project_ids is None:
+        project_ids = []
+
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
