@@ -217,6 +217,7 @@ class SnubaTagStorage(TagStorage):
         include_values_seen=True,
         include_transactions=False,
         denylist=None,
+        tenant_ids=None,
         **kwargs,
     ):
         return self.__get_tag_keys_for_projects(
@@ -230,6 +231,7 @@ class SnubaTagStorage(TagStorage):
             include_values_seen=include_values_seen,
             include_transactions=include_transactions,
             denylist=denylist,
+            tenant_ids=tenant_ids,
         )
 
     def __get_tag_keys_for_projects(
@@ -405,10 +407,15 @@ class SnubaTagStorage(TagStorage):
         status=TagKeyStatus.VISIBLE,
         include_values_seen=False,
         denylist=None,
+        tenant_ids=None,
     ):
         assert status is TagKeyStatus.VISIBLE
         return self.__get_tag_keys(
-            project_id, None, environment_id and [environment_id], denylist=denylist
+            project_id,
+            None,
+            environment_id and [environment_id],
+            denylist=denylist,
+            tenant_ids=tenant_ids,
         )
 
     def get_tag_keys_for_projects(
@@ -458,7 +465,9 @@ class SnubaTagStorage(TagStorage):
             group.project_id, group, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT
         )
 
-    def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None, **kwargs):
+    def get_group_tag_keys(
+        self, group, environment_ids, limit=None, keys=None, tenant_ids=None, **kwargs
+    ):
         """Get tag keys for a specific group"""
         return self.__get_tag_keys(
             group.project_id,
@@ -468,6 +477,7 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             keys=keys,
             include_values_seen=False,
+            tenant_ids=tenant_ids,
             **kwargs,
         )
 
@@ -682,6 +692,7 @@ class SnubaTagStorage(TagStorage):
         environment_ids: Sequence[int],
         keys: Optional[Sequence[str]] = None,
         value_limit: int = TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids=None,
         **kwargs,
     ):
         # Similar to __get_tag_key_and_top_values except we get the top values
@@ -690,7 +701,9 @@ class SnubaTagStorage(TagStorage):
         # num_keys * limit.
 
         # First get totals and unique counts by key.
-        keys_with_counts = self.get_group_tag_keys(group, environment_ids, keys=keys)
+        keys_with_counts = self.get_group_tag_keys(
+            group, environment_ids, keys=keys, tenant_ids=tenant_ids
+        )
 
         # Then get the top values with first_seen/last_seen/count for each
         filters = {"project_id": get_project_list(group.project_id)}
@@ -721,6 +734,7 @@ class SnubaTagStorage(TagStorage):
             orderby="-count",
             limitby=[value_limit, "tags_key"],
             referrer="tagstore._get_tag_keys_and_top_values",
+            tenant_ids=tenant_ids,
         )
 
         # Then supplement the key objects with the top values for each.
@@ -1506,6 +1520,10 @@ class SnubaTagStorage(TagStorage):
 
         event_id_set = {row["event_id"] for row in result["data"]}
 
+        if not event_id_set:
+            return None
+
+        return {"event_id__in": event_id_set}
         if not event_id_set:
             return None
 

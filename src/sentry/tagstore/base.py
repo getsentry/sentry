@@ -131,7 +131,12 @@ class TagStorage(Service):
         raise NotImplementedError
 
     def get_tag_keys(
-        self, project_id, environment_id, status=TagKeyStatus.VISIBLE, include_values_seen=False
+        self,
+        project_id,
+        environment_id,
+        status=TagKeyStatus.VISIBLE,
+        include_values_seen=False,
+        tenant_ids=None,
     ):
         """
         >>> get_tag_keys(1, 2)
@@ -166,7 +171,7 @@ class TagStorage(Service):
         """
         raise NotImplementedError
 
-    def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None):
+    def get_group_tag_keys(self, group, environment_ids, limit=None, keys=None, tenant_ids=None):
         """
         >>> get_group_tag_key(group, 2, [3])
         """
@@ -320,6 +325,7 @@ class TagStorage(Service):
         environment_ids,
         keys=None,
         value_limit=TOP_VALUES_DEFAULT_LIMIT,
+        tenant_ids=None,
         **kwargs,
     ):
 
@@ -328,7 +334,7 @@ class TagStorage(Service):
             environment_ids = environment_ids[:1]
 
         # If keys is unspecified, we will grab all tag keys for this group.
-        tag_keys = self.get_group_tag_keys(group, environment_ids, keys=keys)
+        tag_keys = self.get_group_tag_keys(group, environment_ids, keys=keys, tenant_ids=tenant_ids)
 
         environment_id = environment_ids[0] if environment_ids else None
         for tk in tag_keys:
