@@ -145,12 +145,6 @@ class ConsecutiveDbDetectorTest(TestCase):
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
             ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
-            ),
         ]
 
         spans = [
@@ -158,9 +152,11 @@ class ConsecutiveDbDetectorTest(TestCase):
         ]  # ensure spans don't overlap
         assert len(self.find_problems(create_event(spans))) == 1
 
-        spans[2] = modify_span_start(
-            create_span("http.client", span_duration, "GET /_next/static/css/hash123.css", "hash3"),
-            4000,
+        spans[0] = modify_span_start(
+            create_span(
+                "http.client", span_duration, "GET /_next/static/css/file-hash-abc.css", "hash4"
+            ),
+            0,
         )
 
-        assert self.find_problems(create_event(spans)) == 0
+        assert self.find_problems(create_event(spans)) == []
