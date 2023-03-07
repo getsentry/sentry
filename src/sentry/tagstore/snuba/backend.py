@@ -503,6 +503,7 @@ class SnubaTagStorage(TagStorage):
         extra_conditions,
         extra_aggregations,
         referrer,
+        tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_id_list}
         if environment_ids:
@@ -521,6 +522,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             referrer=referrer,
+            tenant_ids=tenant_ids,
         )
 
         return {
@@ -530,7 +532,9 @@ class SnubaTagStorage(TagStorage):
             for group_id, data in result.items()
         }
 
-    def get_group_list_tag_value(self, project_ids, group_id_list, environment_ids, key, value):
+    def get_group_list_tag_value(
+        self, project_ids, group_id_list, environment_ids, key, value, tenant_ids=None
+    ):
         return self.__get_group_list_tag_value(
             project_ids,
             group_id_list,
@@ -541,6 +545,7 @@ class SnubaTagStorage(TagStorage):
             [DEFAULT_TYPE_CONDITION],
             [],
             "tagstore.get_group_list_tag_value",
+            tenant_ids=tenant_ids,
         )
 
     def get_perf_group_list_tag_value(
