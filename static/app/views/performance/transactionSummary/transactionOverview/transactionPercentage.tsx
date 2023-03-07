@@ -30,7 +30,7 @@ export function TransactionPercentage({
 
   function getValueFromTotals(field, totalValues, unfilteredTotalValues) {
     if (totalValues) {
-      if (unfilteredTotalValues) {
+      if (unfilteredTotalValues?.[field]) {
         return tct('[tpm]', {
           tpm: formatPercentage(totalValues[field] / unfilteredTotalValues[field]),
         });
