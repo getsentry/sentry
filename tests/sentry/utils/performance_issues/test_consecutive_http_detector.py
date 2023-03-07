@@ -132,3 +132,35 @@ class ConsecutiveDbDetectorTest(TestCase):
                 ],
             )
         ]
+
+    def test_does_not_detect_nextjs_asset(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        assert len(self.find_problems(create_event(spans))) == 1
+
+        spans[2] = modify_span_start(
+            create_span("http.client", span_duration, "GET /_next/static/css/hash123.css", "hash3"),
+            4000,
+        )
+
+        assert self.find_problems(create_event(spans)) == 0
