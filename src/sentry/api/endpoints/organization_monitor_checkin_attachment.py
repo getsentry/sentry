@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from django.core.files.uploadedfile import UploadedFile
 from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -50,6 +51,9 @@ class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
             return Response({"detail": "Check-in already has an attachment"}, status=400)
 
         fileobj = request.data["file"]
+        if not isinstance(fileobj, UploadedFile):
+            return Response({"detail": "Please upload a valid file object"}, status=400)
+
         if fileobj.size > MAX_ATTACHMENT_SIZE:
             return Response({"detail": "Please keep uploads below 100kb"}, status=400)
 
