@@ -656,7 +656,7 @@ class SnubaTagStorage(TagStorage):
         }
 
     def get_group_seen_values_for_environments(
-        self, project_ids, group_id_list, environment_ids, start=None, end=None
+        self, project_ids, group_id_list, environment_ids, start=None, end=None, tenant_ids=None
     ):
         # Get the total times seen, first seen, and last seen across multiple environments
         filters = {"project_id": project_ids, "group_id": group_id_list}
@@ -678,6 +678,7 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_seen_values_for_environments",
+            tenant_ids=tenant_ids,
         )
 
         return {issue: fix_tag_value_data(data) for issue, data in result.items()}
@@ -694,7 +695,7 @@ class SnubaTagStorage(TagStorage):
                     dataset = Dataset.IssuePlatform
         return dataset, conditions, filters
 
-    def get_group_tag_value_count(self, group, environment_id, key):
+    def get_group_tag_value_count(self, group, environment_id, key, tenant_ids=None):
         tag = f"tags[{key}]"
         filters = {"project_id": get_project_list(group.project_id)}
         if environment_id:
@@ -711,10 +712,15 @@ class SnubaTagStorage(TagStorage):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="tagstore.get_group_tag_value_count",
+            tenant_ids=tenant_ids,
         )
 
-    def get_top_group_tag_values(self, group, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT):
-        tag = self.__get_tag_key_and_top_values(group.project_id, group, environment_id, key, limit)
+    def get_top_group_tag_values(
+        self, group, environment_id, key, limit=TOP_VALUES_DEFAULT_LIMIT, tenant_ids=None
+    ):
+        tag = self.__get_tag_key_and_top_values(
+            group.project_id, group, environment_id, key, limit, tenant_ids=tenant_ids
+        )
         return tag.top_values
 
     def get_group_tag_keys_and_top_values(
@@ -837,7 +843,7 @@ class SnubaTagStorage(TagStorage):
 
         return None
 
-    def get_group_ids_for_users(self, project_ids, event_users, limit=100):
+    def get_group_ids_for_users(self, project_ids, event_users, limit=100, tenant_ids=None):
         filters = {"project_id": project_ids}
         conditions = [
             ["tags[sentry:user]", "IN", [_f for _f in [eu.tag_value for eu in event_users] if _f]]
@@ -853,10 +859,11 @@ class SnubaTagStorage(TagStorage):
             limit=limit,
             orderby="-last_seen",
             referrer="tagstore.get_group_ids_for_users",
+            tenant_ids=tenant_ids,
         )
         return set(result.keys())
 
-    def get_group_tag_values_for_users(self, event_users, limit=100):
+    def get_group_tag_values_for_users(self, event_users, limit=100, tenant_ids=None):
         """While not specific to a group_id, this is currently only used in issues, so the Events dataset is used"""
         filters = {"project_id": [eu.project_id for eu in event_users]}
         conditions = [
@@ -877,6 +884,7 @@ class SnubaTagStorage(TagStorage):
             orderby="-last_seen",
             limit=limit,
             referrer="tagstore.get_group_tag_values_for_users",
+            tenant_ids=tenant_ids,
         )
 
         values = []
