@@ -5,16 +5,16 @@ import SearchBar from 'sentry/components/events/searchBar';
 import TagStore from 'sentry/stores/tagStore';
 
 const selectNthAutocompleteItem = async index => {
-  await userEvent.click(screen.getByTestId('smart-search-input'));
+  await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
 
   const items = await screen.findAllByTestId('search-autocomplete-item');
-  await userEvent.click(items.at(index));
+  await userEvent.click(items.at(index), {delay: null});
 };
 
 async function setQuery(query) {
   const input = screen.getByTestId('smart-search-input');
   await userEvent.click(input, {delay: null});
-  await userEvent.type(input, query);
+  await userEvent.type(input, query, {delay: null});
 }
 
 describe('Events > SearchBar', function () {
@@ -176,7 +176,7 @@ describe('Events > SearchBar', function () {
     await setQuery('gpu:');
 
     // Click will fire "updateAutocompleteItems"
-    await userEvent.click(screen.getByTestId('smart-search-input'));
+    await userEvent.click(screen.getByTestId('smart-search-input'), {delay: null});
 
     expect(tagValuesMock).toHaveBeenCalledTimes(1);
   });
