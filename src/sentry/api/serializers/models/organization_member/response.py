@@ -81,7 +81,6 @@ class OrganizationMemberResponse(OrganizationMemberResponseOptional):
     dateCreated: datetime
     inviteStatus: str
     inviterName: Optional[str]
-    allOrgRoles: List[RoleSerializerResponse]
 
 
 class OrganizationMemberWithTeamsResponse(OrganizationMemberResponse):
