@@ -283,16 +283,18 @@ def _extract_debug_ids_from_manifest(
 
 def _create_artifact_bundle(
     version: Optional[str],
-    dist: Optional[int],
+    dist: Optional[str],
     org_id: int,
-    project_ids: List[int],
+    project_ids: Optional[List[int]],
     archive_file: File,
     artifact_count: int,
-) -> bool:
+):
     with ReleaseArchive(archive_file.getfile()) as archive:
         bundle_id, debug_ids_with_types = _extract_debug_ids_from_manifest(archive.manifest)
 
-        if len(debug_ids_with_types) > 0:
+        # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
+        # a release for the upload.
+        if len(debug_ids_with_types) > 0 or version is not None:
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=org_id,
                 bundle_id=bundle_id,
@@ -305,11 +307,11 @@ def _create_artifact_bundle(
                 ReleaseArtifactBundle.objects.create(
                     organization_id=org_id,
                     release_name=version,
-                    dist_id=dist,
+                    dist_name=dist,
                     artifact_bundle=artifact_bundle,
                 )
 
-            for project_id in project_ids:
+            for project_id in project_ids or ():
                 ProjectArtifactBundle.objects.create(
                     organization_id=org_id,
                     project_id=project_id,
@@ -323,22 +325,100 @@ def _create_artifact_bundle(
                     artifact_bundle=artifact_bundle,
                     source_file_type=source_file_type.value,
                 )
+        else:
+            raise AssembleArtifactsError(
+                "uploading a bundle without debug ids or release is prohibited"
+            )
 
-            return True
 
-    return False
+def get_with_manifest_fallback(value, manifest_key, manifest, throw=True):
+    if value is None:
+        manifest_value = manifest.get(manifest_key)
+        if manifest_value is None and throw:
+            raise AssembleArtifactsError(f"failed to load {manifest_key} from the manifest")
+
+        return manifest_value
+
+    return value
+
+
+def handle_assemble_for_release_file(bundle, archive, organization, version):
+    with archive:
+        manifest = archive.manifest
+
+        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
+        # contents.
+        release_name = get_with_manifest_fallback(version, "release", manifest)
+        # We want to maintain the old logic in which the dist is directly fetched from the manifest.
+        dist_name = get_with_manifest_fallback(None, "dist", manifest, throw=False)
+
+        try:
+            release = Release.objects.get(organization_id=organization.id, version=release_name)
+        except Release.DoesNotExist:
+            raise AssembleArtifactsError("release does not exist")
+
+        dist = None
+        if release and dist_name:
+            dist = release.add_dist(dist_name)
+
+        artifact_count = len(manifest.get("files", {}))
+        min_artifact_count = options.get("processing.release-archive-min-files")
+        saved_as_archive = False
+
+        if artifact_count >= min_artifact_count:
+            if release is None:
+                raise AssembleArtifactsError("release does not exist")
+
+            try:
+                update_artifact_index(release, dist, bundle)
+                saved_as_archive = True
+            except Exception as exc:
+                logger.error("Unable to update artifact index", exc_info=exc)
+
+        if not saved_as_archive:
+            meta = {
+                "organization_id": organization.id,
+                "release_id": release.id,
+                "dist_id": dist.id if dist else dist,
+            }
+            _store_single_files(archive, meta, True)
+
+        return artifact_count
+
+
+def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, project_ids, dist):
+    with archive:
+        manifest = archive.manifest
+
+        # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
+        # contents.
+        release_name = get_with_manifest_fallback(version, "release", manifest)
+        # dist is optional, thus if we don't find it, it's fine.
+        dist_name = get_with_manifest_fallback(dist, "dist", manifest, throw=False)
+
+        artifact_count = len(manifest.get("files", {}))
+
+        _create_artifact_bundle(
+            release_name, dist_name, organization.id, project_ids, bundle, artifact_count
+        )
+
+        return artifact_count
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
 def assemble_artifacts(
-    org_id, version, checksum, chunks, project_ids=None, upload_as_artifact_bundle=False, **kwargs
+    org_id,
+    version,
+    checksum,
+    chunks,
+    project_ids=None,
+    dist=None,
+    upload_as_artifact_bundle=False,
+    **kwargs,
 ):
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
-    if project_ids is None:
-        project_ids = []
-
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
@@ -368,65 +448,23 @@ def assemble_artifacts(
         bundle, temp_file = rv
 
         try:
+            # TODO(iambriccardo): Once the new lookup PR is merged it would be better if we generalize the archive
+            #  handling class.
             archive = ReleaseArchive(temp_file)
         except Exception:
             raise AssembleArtifactsError("failed to open release manifest")
 
-        with archive:
-            manifest = archive.manifest
+        if upload_as_artifact_bundle:
+            artifact_count = handle_assemble_for_artifact_bundle(
+                bundle, archive, organization, version, project_ids, dist
+            )
+        else:
+            artifact_count = handle_assemble_for_release_file(
+                bundle, archive, organization, version
+            )
 
-            org_slug = manifest.get("org")
-            if organization.slug != org_slug:
-                raise AssembleArtifactsError("organization does not match uploaded bundle")
-
-            # TODO: check if this check should be performed when a version is specified.
-            release_name = manifest.get("release")
-            if version and release_name != version:
-                raise AssembleArtifactsError("release does not match uploaded bundle")
-
-            release = None
-            if not upload_as_artifact_bundle:
-                try:
-                    release = Release.objects.get(
-                        organization_id=organization.id, version=release_name
-                    )
-                except Release.DoesNotExist:
-                    raise AssembleArtifactsError("release does not exist")
-
-            dist_name = manifest.get("dist")
-            dist = None
-            if release and dist_name:
-                dist = release.add_dist(dist_name)
-
-            artifact_count = len(manifest.get("files", {}))
-            min_artifact_count = options.get("processing.release-archive-min-files")
-            saved_as_archive = False
-
-            # If we want to upload an artifact bundle we are going through the new code, otherwise we fall back to the
-            # old set of tables.
-            if upload_as_artifact_bundle:
-                _create_artifact_bundle(version, dist, org_id, project_ids, bundle, artifact_count)
-                saved_as_archive = True
-            elif artifact_count >= min_artifact_count:
-                if release is None:
-                    raise AssembleArtifactsError("release does not exist")
-
-                try:
-                    update_artifact_index(release, dist, bundle)
-                    saved_as_archive = True
-                except Exception as exc:
-                    logger.error("Unable to update artifact index", exc_info=exc)
-
-            if not saved_as_archive:
-                meta = {
-                    "organization_id": organization.id,
-                    "release_id": release.id,
-                    "dist_id": dist.id if dist else dist,
-                }
-                _store_single_files(archive, meta, True)
-
-            # Count files extracted, to compare them to release files endpoint
-            metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
+        # Count files extracted, to compare them to release files endpoint
+        metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
     except AssembleArtifactsError as e:
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)

@@ -26,6 +26,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             "properties": {
                 # The version pattern has been extracted from the url definition of OrganizationReleaseAssembleEndpoint.
                 "version": {"type": "string", "pattern": "^[^/]+$)"},
+                "dist": {"type": "string", "pattern": "^[^/]+$)"},
                 "projects": {"type": "array", "items": {"type": "string"}},
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {

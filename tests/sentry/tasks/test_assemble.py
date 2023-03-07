@@ -197,7 +197,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
     def setUp(self):
         super().setUp()
 
-    def test_artifacts_with_debug_ids_and_no_version(self):
+    def test_artifacts_with_debug_ids_no_version_and_no_dist(self):
         bundle_file = self.create_artifact_bundle(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
@@ -211,6 +211,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             version=None,
+            dist=None,
             checksum=total_checksum,
             chunks=[blob1.checksum],
             upload_as_artifact_bundle=True,
@@ -249,8 +250,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             )
             assert len(project_artifact_bundles) == 1
 
-    def test_artifacts_with_debug_ids_and_version(self):
+    def test_artifacts_with_debug_ids_version_and_dist(self):
         version = "1.0"
+        dist = "android"
         bundle_file = self.create_artifact_bundle(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id, release=version
         )
@@ -264,6 +266,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             org_id=self.organization.id,
             project_ids=[self.project.id],
             version=version,
+            dist=dist,
             checksum=total_checksum,
             chunks=[blob1.checksum],
             upload_as_artifact_bundle=True,
