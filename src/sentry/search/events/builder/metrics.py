@@ -732,6 +732,9 @@ class MetricsQueryBuilder(QueryBuilder):
                     app_id="default",
                     query=query,
                     flags=Flags(turbo=self.turbo),
+                    tenant_ids={"organization_id": self.params.organization.id}
+                    if self.params.organization
+                    else None,
                 )
                 current_result = raw_snql_query(
                     request,

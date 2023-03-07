@@ -674,6 +674,8 @@ def get_series(
 ) -> dict:
     """Get time series for the given query"""
 
+    organization_id = projects[0].organization_id if projects else None
+
     if metrics_query.interval is not None:
         interval = metrics_query.interval
     else:
@@ -767,7 +769,10 @@ def get_series(
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
             request = Request(
-                dataset=Dataset.Metrics.value, app_id="default", query=initial_snuba_query
+                dataset=Dataset.Metrics.value,
+                app_id="default",
+                query=initial_snuba_query,
+                tenant_ids={"organization_id": organization_id} if organization_id else None,
             )
             initial_query_results = raw_snql_query(
                 request, use_cache=False, referrer="api.metrics.totals.initial_query"
