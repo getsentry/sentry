@@ -34,6 +34,7 @@ class EventError:
     JS_INVALID_SOURCEMAP_LOCATION = "js_invalid_sourcemap_location"
     JS_TOO_LARGE = "js_too_large"  # deprecated in favor of FETCH_TOO_LARGE
     JS_FETCH_TIMEOUT = "js_fetch_timeout"  # deprecated in favor of FETCH_TIMEOUT
+    JS_MISSING_SOURCES_CONTENT = "js_missing_sources_content"
 
     # Processing: Native
     NATIVE_NO_CRASHED_THREAD = "native_no_crashed_thread"
