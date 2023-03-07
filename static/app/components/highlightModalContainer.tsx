@@ -44,7 +44,7 @@ const PositionBottomLeft = styled('img')<{roundCorner: boolean; width: string}>`
   bottom: 0;
   left: 0;
   pointer-events: none;
-  border-radius: ${p => (p.roundCorner ? '0 0 0 8px' : '0')};
+  border-radius: ${p => (p.roundCorner ? '0 8px 0 8px' : '0')};
 `;
 
 HighlightModalContainer.defaultProps = {
