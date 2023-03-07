@@ -102,7 +102,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
             status=team.status,
             organization_id=team.organization_id,
             slug=team.slug,
-            org_role=team.org_role,
+            org_role=team.org_role or "",
         )
 
     @classmethod
