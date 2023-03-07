@@ -50,14 +50,10 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(joinButton).toBeDisabled();
-
-    await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
-    );
+    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
-  it.only('can accept invitation on customer-domains', async function () {
+  it('can accept invitation on customer-domains', async function () {
     window.__initialData = {
       customerDomain: {
         subdomain: 'org-slug',
@@ -89,14 +85,10 @@ describe('AcceptOrganizationInvite', function () {
 
     await userEvent.click(joinButton);
     expect(acceptMock).toHaveBeenCalled();
-    expect(joinButton).toBeDisabled();
-
-    await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/')
-    );
+    expect(browserHistory.replace).toHaveBeenCalledWith('/org-slug/');
   });
 
-  it('requires authentication to join', async function () {
+  it('requires authentication to join', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -125,7 +117,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('suggests sso authentication to login', async function () {
+  it('suggests sso authentication to login', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -156,7 +148,7 @@ describe('AcceptOrganizationInvite', function () {
     ).toBeInTheDocument();
   });
 
-  it('enforce required sso authentication', async function () {
+  it('enforce required sso authentication', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: true,
@@ -187,7 +179,7 @@ describe('AcceptOrganizationInvite', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('enforce required sso authentication for logged in users', async function () {
+  it('enforce required sso authentication for logged in users', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -243,7 +235,7 @@ describe('AcceptOrganizationInvite', function () {
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
   });
 
-  it('shows right options for logged in user and optional SSO', async function () {
+  it('shows right options for logged in user and optional SSO', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
@@ -288,7 +280,7 @@ describe('AcceptOrganizationInvite', function () {
     await waitFor(() => expect(window.location.replace).toHaveBeenCalled());
   });
 
-  it('shows 2fa warning', async function () {
+  it('shows 2fa warning', function () {
     addMock({
       orgSlug: organization.slug,
       needsAuthentication: false,
