@@ -39,6 +39,7 @@ describe('NoteInputWithStorage', function () {
   it('saves draft when input changes', async function () {
     render(<NoteInputWithStorage {...defaultProps} />);
 
+    await userEvent.clear(screen.getByRole('textbox'));
     await changeReactMentionsInput('WIP COMMENT');
 
     expect(localStorage.setItem).toHaveBeenLastCalledWith(
@@ -54,10 +55,8 @@ describe('NoteInputWithStorage', function () {
 
     render(<NoteInputWithStorage {...defaultProps} />);
 
-    await userEvent.clear(screen.getByRole('textbox'));
-    await userEvent.type(screen.getByRole('textbox'), 'new comment');
-
-    await userEvent.type(screen.getByRole('textbox'), '{Control}{enter}{Control>}');
+    await changeReactMentionsInput('new comment');
+    await userEvent.type(screen.getByRole('textbox'), '{Control>}{enter}{/Control}');
 
     expect(localStorage.setItem).toHaveBeenLastCalledWith(
       'storage',

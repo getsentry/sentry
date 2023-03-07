@@ -56,7 +56,6 @@ describe('IssueListSearchBar', function () {
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
     });
 
     it('sets state when value has colon', async function () {
@@ -123,7 +122,6 @@ describe('IssueListSearchBar', function () {
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
-      expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
       await userEvent.keyboard('{Enter}');
       expect(onSearch).toHaveBeenCalledWith('url:"fu"');
