@@ -7,9 +7,10 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.monitor import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
+
+from .base import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
 
 MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
