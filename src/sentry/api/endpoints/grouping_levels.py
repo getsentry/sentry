@@ -127,14 +127,13 @@ def get_levels_overview(group: Group):
         .set_where(_get_group_filters(group))
         .set_groupby([Column("primary_hash")])
     )
-    referrer = "api.group_hashes_levels.get_levels_overview"
     request = SnubaRequest(
         dataset="events",
         app_id="grouping",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": group.project.organization_id},
+        tenant_ids={"organization_id": group.project.organization_id},
     )
-    res = snuba.raw_snql_query(request, referrer)
+    res = snuba.raw_snql_query(request, "api.group_hashes_levels.get_levels_overview")
 
     if not res["data"]:
         raise NoEvents()

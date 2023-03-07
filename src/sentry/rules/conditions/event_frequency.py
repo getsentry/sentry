@@ -258,6 +258,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             environment_id=environment_id,
             use_cache=True,
             jitter_value=event.group_id,
+            tenant_ids={"organization_id": event.group.project.organization_id},
         )
         return totals[event.group_id]
 

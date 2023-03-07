@@ -12,7 +12,6 @@ def fetch_unique_transaction_names(
     project: Project, time_range: Tuple[datetime, datetime], limit: int
 ) -> Iterable[str]:
     then, now = time_range
-    referrer = "src.sentry.ingest.transaction_clusterer"
     snuba_request = Request(
         "transactions",
         app_id="transactions",
@@ -28,8 +27,8 @@ def fetch_unique_transaction_names(
             groupby=[Column("transaction")],
             limit=Limit(limit),
         ),
-        tenant_ids={"referrer": referrer, "organization_id": project.organization_id},
+        tenant_ids={"organization_id": project.organization_id},
     )
-    snuba_response = raw_snql_query(snuba_request, referrer)
+    snuba_response = raw_snql_query(snuba_request, "src.sentry.ingest.transaction_clusterer")
 
     return (row["transaction"] for row in snuba_response["data"])
