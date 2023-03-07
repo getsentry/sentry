@@ -342,7 +342,7 @@ function SpanDetail(props: Props) {
   function renderProfileMessage() {
     const {organization, span, event} = props;
 
-    if (!organization.features.includes('profiling-previews') || isGapSpan(span)) {
+    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
       return null;
     }
 
