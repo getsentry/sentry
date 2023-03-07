@@ -2,8 +2,7 @@ import logging
 from typing import Sequence, Tuple
 
 from sentry import features, quotas
-from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.adjustment_models import DSProject as DSProject
+from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel, DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
 from sentry.dynamic_sampling.rules.utils import OrganizationId, ProjectId, get_redis_client_for_ds
@@ -73,10 +72,10 @@ def adjust_sample_rates(
         if sample_rate is None:
             continue
         projects.append(
-            DSProject(
+            DSElement(
                 id=project.id,
-                count_per_root=project_ids_with_counts[project.id],
-                blended_sample_rate=sample_rate,
+                count=project_ids_with_counts[project.id],
+                sample_rate=sample_rate,
             )
         )
 
