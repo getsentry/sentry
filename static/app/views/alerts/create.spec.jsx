@@ -136,7 +136,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
@@ -158,7 +158,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -175,7 +175,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add a trigger and remove it
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
@@ -209,7 +209,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -226,7 +226,7 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
@@ -248,7 +248,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -284,7 +284,7 @@ describe('ProjectAlertsCreate', function () {
         await selectEvent.select(allDropdowns[1], ['any']);
 
         // Change name of alert rule
-        await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
         await userEvent.click(screen.getByText('Save Rule'));
 
@@ -299,7 +299,7 @@ describe('ProjectAlertsCreate', function () {
               filters: [],
               environment: 'production',
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -317,15 +317,21 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname', {
+          delay: null,
+        });
 
         // Add another condition
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           "The event's tags match {key} {match} {value}",
         ]);
         // Edit new Condition
-        await userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
-        await userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
+        await userEvent.type(screen.getByPlaceholderText('key'), 'conditionKey', {
+          delay: null,
+        });
+        await userEvent.type(screen.getByPlaceholderText('value'), 'conditionValue', {
+          delay: null,
+        });
         await selectEvent.select(screen.getByText('contains'), ['does not equal']);
 
         await userEvent.click(screen.getByText('Save Rule'));
@@ -347,7 +353,7 @@ describe('ProjectAlertsCreate', function () {
                 },
               ],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -365,13 +371,13 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           'The issue is older or newer than...',
         ]);
-        await userEvent.paste(screen.getByPlaceholderText('10'), '12');
+        await userEvent.type(screen.getByPlaceholderText('10'), '12');
 
         await userEvent.click(screen.getByText('Save Rule'));
 
@@ -392,7 +398,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               conditions: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -410,7 +416,7 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
@@ -434,7 +440,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: '60',
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -591,7 +597,7 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      await userEvent.paste(screen.getByPlaceholderText('10'), '10');
+      await userEvent.type(screen.getByPlaceholderText('10'), '10');
       await userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [

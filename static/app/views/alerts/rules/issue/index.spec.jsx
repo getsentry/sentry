@@ -157,7 +157,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule name', async function () {
+    it('gets correct rule name', function () {
       const rule = TestStubs.ProjectAlertRule();
       mock = MockApiClient.addMockResponse({
         url: endpoint,
@@ -324,7 +324,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -347,7 +347,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -369,7 +369,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      await userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -393,7 +393,7 @@ describe('IssueRuleEditor', function () {
       });
     });
 
-    it('gets correct rule to duplicate and renders fields correctly', async function () {
+    it('gets correct rule to duplicate and renders fields correctly', function () {
       createWrapper({
         organization: {
           access: ['alerts:write'],

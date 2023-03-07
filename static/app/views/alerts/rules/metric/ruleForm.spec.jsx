@@ -104,7 +104,10 @@ describe('Incident Rules Form', () => {
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
       // Enter in name so we can submit
-      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'Incident Rule');
+      await userEvent.type(
+        screen.getByPlaceholderText('Enter Alert Name'),
+        'Incident Rule'
+      );
 
       // Set thresholdPeriod
       await selectEvent.select(screen.getAllByText('For 1 minute')[0], 'For 10 minutes');
@@ -231,7 +234,7 @@ describe('Incident Rules Form', () => {
       // Clear field
       await userEvent.clear(screen.getByPlaceholderText('Enter Alert Name'));
 
-      await userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'new name');
 
       await userEvent.click(screen.getByLabelText('Save Rule'));
 
@@ -337,11 +340,12 @@ describe('Incident Rules Form', () => {
         onSubmitSuccess,
       });
 
-      await userEvent.paste(
+      await userEvent.type(
         screen.getByPlaceholderText('Enter Alert Name'),
-        'Slack Alert Rule'
+        'Slack Alert Rule',
+        {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
 
       expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
 
@@ -360,7 +364,7 @@ describe('Incident Rules Form', () => {
       );
     });
 
-    it('pending status keeps loading true', async () => {
+    it('pending status keeps loading true', () => {
       const alertRule = TestStubs.MetricRule({name: 'Slack Alert Rule'});
       MockApiClient.addMockResponse({
         url: `/projects/org-slug/project-slug/alert-rules/${alertRule.id}/`,
@@ -408,11 +412,12 @@ describe('Incident Rules Form', () => {
         rule: alertRule,
         onSubmitSuccess,
       });
-      await userEvent.paste(
+      await userEvent.type(
         screen.getByPlaceholderText('Enter Alert Name'),
-        'Slack Alert Rule'
+        'Slack Alert Rule',
+        {delay: null}
       );
-      await userEvent.click(screen.getByLabelText('Save Rule'));
+      await userEvent.click(screen.getByLabelText('Save Rule'), {delay: null});
 
       act(jest.runAllTimers);
       await waitFor(
