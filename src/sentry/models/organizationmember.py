@@ -22,6 +22,7 @@ from sentry import features, roles
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
+    JSONField,
     Model,
     region_silo_only_model,
     sane_repr,
@@ -183,6 +184,8 @@ class OrganizationMember(Model):
         default=InviteStatus.APPROVED.value,
         null=True,
     )
+    # for SCIM compliance
+    data = JSONField(null=True)
 
     # Deprecated -- no longer used
     type = BoundedPositiveIntegerField(default=50, blank=True)
