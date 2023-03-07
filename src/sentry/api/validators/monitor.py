@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
+from sentry.monitors.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 

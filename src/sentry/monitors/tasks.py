@@ -3,7 +3,10 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.monitors.models import (
+from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
+
+from .models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -11,8 +14,6 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry")
 
@@ -32,7 +33,7 @@ MONITOR_LIMIT = 10_000
 CHECKINS_LIMIT = 10_000
 
 
-@instrumented_task(name="sentry.tasks.check_monitors", time_limit=15, soft_time_limit=10)
+@instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
 def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
