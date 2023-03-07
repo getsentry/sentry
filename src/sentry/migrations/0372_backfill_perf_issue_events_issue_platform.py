@@ -23,7 +23,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.issues.occurrence_consumer import lookup_event
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 
 
 def backfill_eventstream(apps, schema_editor):
@@ -35,8 +34,6 @@ def backfill_eventstream(apps, schema_editor):
     2. Prepare and format each transaction to be submitted through the eventstream.
     3. Send it through the eventstream.
     """
-
-    # TODO: need to make sure event_type is correct in eventstream.send()
 
     Group = apps.get_model("sentry", "Group")
     GroupHash = apps.get_model("sentry", "GroupHash")
@@ -77,7 +74,6 @@ def backfill_by_project(project_id: int, Group: Any, GroupHash: Any):
             # don't need to store in node_store since it should be there already
             # create issue occurrence
             # save issue occurrence
-            # event, occurrence_data, group_id = _map_performance_issue_row_to_params(row)
             project_id = row["project_id"]
             group_id = row["group_id"]
             event_id = row["event_id"]
@@ -87,52 +83,80 @@ def backfill_by_project(project_id: int, Group: Any, GroupHash: Any):
 
             event: Event = lookup_event(project_id=project_id, event_id=event_id)
 
+            from sentry import eventtypes
+
+            et = eventtypes.get(group.data.get("type", "default"))()
+            issue_title = et.get_title(group.data["metadata"])
+            assert issue_title
             # need to map the base raw data to an issue occurrence
             # make sure this is consistent with how we plan to ingest performance issue occurrences
             occurrence_data: IssueOccurrenceData = IssueOccurrenceData(
-                id=uuid.uuid4().hex,  # TODO: need to generate this
+                id=uuid.uuid4().hex,
                 project_id=project_id,
                 event_id=event_id,
                 fingerprint=[group_hash.hash],
-                issue_title="",
-                subtitle="",
+                issue_title=issue_title,  # TODO: verify
+                subtitle=group.culprit,  # TODO: verify
                 resource_id=None,
-                evidence_data={},
-                evidence_display=[],
-                type=PerformanceSlowDBQueryGroupType.type_id,  # TODO: this might need to be mapped from the Group.type field into GroupType.type_id
+                evidence_data={},  # TODO: verify
+                evidence_display=[],  # TODO: verify
+                type=group.type,
                 detection_time=datetime.now().timestamp(),
                 level=None,
             )
 
-            occurrence, group_info = _save_issue_occurrence(occurrence_data, event, group)
+            occurrence, group_info = __save_issue_occurrence(occurrence_data, event, group)
 
-            send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+            send_issue_occurrence_to_eventstream(event, occurrence, group_info, skip_consume=True)
         except Exception:
             print("Failed to process row")  # noqa: S002
 
 
-def _retrieve_fingerprints(event_id: str, project_id: int) -> Sequence[str]:
-    from sentry import eventstore
+def __save_issue_occurrence(
+    occurrence_data: IssueOccurrenceData, event: Event, group
+) -> Tuple[IssueOccurrence, GroupInfo]:
+    process_occurrence_data(occurrence_data)
+    # Convert occurrence data to `IssueOccurrence`
+    occurrence = IssueOccurrence.from_dict(occurrence_data)
+    if occurrence.event_id != event.event_id:
+        raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
+    # Note: For now we trust the project id passed along with the event. Later on we should make
+    # sure that this is somehow validated.
+    occurrence.save()
 
-    event = eventstore.get_event_by_id(project_id, event_id)
-    if event is None:
-        raise ValueError(f"no event found in eventstore({project_id}, {event_id})")
+    # don't need to create releases or environments since they should be created already
 
-    # We always fetch the stored hashes here.  The reason for this is
-    # that we want to show in the UI if the forced grouping algorithm
-    # produced hashes that would normally also appear in the event.
-    hashes = event.get_hashes()
+    # synthesize a 'fake' group_info based off of existing data in postgres
+    group_info: GroupInfo = GroupInfo(group=group, is_new=False, is_regression=False)
 
-    # Transactions events are grouped using performance detection. They
-    # are not subject to grouping configs, and the only relevant
-    # grouping variant is `PerformanceProblemVariant`.
+    return occurrence, group_info
 
-    problems = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes.hashes])
-    # TODO: not sure how this can work
-    # a transaction can have N number of issues created, resulting in N groups created
-    # we might have to do a GroupHash lookup here to find the fingerprint since we cant map them
-    # neatly from just the event
-    return [problem.problem.fingerprint for problem in problems or ()]
+
+# def __send_issue_occurrence_to_eventstream(
+#     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
+# ) -> None:
+#     from sentry import eventstream
+#
+#     group_event = event.for_group(group_info.group)
+#     group_event.occurrence = occurrence
+#
+#     eventstream.insert(
+#         event=group_event,
+#         is_new=group_info.is_new,
+#         is_regression=group_info.is_regression,
+#         is_new_group_environment=group_info.is_new_group_environment,
+#         primary_hash=occurrence.fingerprint[0],
+#         received_timestamp=group_event.data.get("received") or group_event.datetime,
+#         skip_consume=True,
+#         group_states=[
+#             {
+#                 "id": group_info.group.id,
+#                 "is_new": group_info.is_new,
+#                 "is_regression": group_info.is_regression,
+#                 "is_new_group_environment": group_info.is_new_group_environment,
+#             }
+#         ],
+#     )
 
 
 def _query_performance_issue_events(
@@ -168,26 +192,6 @@ def _query_performance_issue_events(
     )
 
     return result_snql["data"]
-
-
-def _save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event, group
-) -> Tuple[IssueOccurrence, GroupInfo]:
-    process_occurrence_data(occurrence_data)
-    # Convert occurrence data to `IssueOccurrence`
-    occurrence = IssueOccurrence.from_dict(occurrence_data)
-    if occurrence.event_id != event.event_id:
-        raise ValueError("IssueOccurrence must have the same event_id as the passed Event")
-    # Note: For now we trust the project id passed along with the event. Later on we should make
-    # sure that this is somehow validated.
-    occurrence.save()
-
-    # don't need to create releases or environments since they should be created already
-
-    # synthesize a 'fake' group_info based off of existing data in postgres
-    group_info: GroupInfo = GroupInfo(group=group, is_new=False, is_regression=False)
-
-    return occurrence, group_info
 
 
 class Migration(CheckedMigration):

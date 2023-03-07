@@ -85,7 +85,7 @@ class TestDefaultFlag(TestMigrations):
 
                     eventstream.insert(
                         event=event,
-                        is_new=is_new,
+                        is_new=True,
                         is_regression=False,
                         is_new_group_environment=False,
                         primary_hash=perf_problem.fingerprint,
@@ -99,7 +99,7 @@ class TestDefaultFlag(TestMigrations):
                         group_states=[
                             {
                                 "id": group.id,
-                                "is_new": is_new,
+                                "is_new": True,
                                 "is_regression": False,
                                 "is_new_group_environment": False,
                             }
@@ -128,11 +128,16 @@ class TestDefaultFlag(TestMigrations):
         assert GroupHash.objects.all().count() == 2
 
         event_keys = {key["event_id"] for key in self.keys}
+        # XXX: hack to make sure snuba processes all events
+        from time import sleep
+
+        sleep(0.5)
         search_issues = self._query_search_issues(
             [self.project.id], self.QUERY_START_DATE, self.QUERY_END_DATE
         )
         search_issue_event_keys = {search_issue["event_id"] for search_issue in search_issues}
 
+        assert len(event_keys) == len(search_issue_event_keys)
         assert event_keys == search_issue_event_keys
 
     def _query_search_issues(self, project_ids, start, end):

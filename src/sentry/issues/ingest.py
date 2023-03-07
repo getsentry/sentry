@@ -208,7 +208,7 @@ def save_issue_from_occurrence(
 
 
 def send_issue_occurrence_to_eventstream(
-    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
+    event: Event, occurrence: IssueOccurrence, group_info: GroupInfo, skip_consume: bool = False
 ) -> None:
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
@@ -220,7 +220,7 @@ def send_issue_occurrence_to_eventstream(
         is_new_group_environment=group_info.is_new_group_environment,
         primary_hash=occurrence.fingerprint[0],
         received_timestamp=group_event.data.get("received") or group_event.datetime,
-        skip_consume=False,
+        skip_consume=skip_consume,
         group_states=[
             {
                 "id": group_info.group.id,
