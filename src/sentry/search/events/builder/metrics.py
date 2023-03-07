@@ -460,7 +460,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids=self.tenant_ids,
         )
 
     def get_snql_query(self) -> Request:
@@ -512,7 +512,7 @@ class MetricsQueryBuilder(QueryBuilder):
                 granularity=self.granularity,
             ),
             flags=Flags(turbo=self.turbo),
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids=self.tenant_ids,
         )
 
     def _create_query_framework(self) -> Tuple[str, Dict[str, QueryFramework]]:
@@ -732,9 +732,7 @@ class MetricsQueryBuilder(QueryBuilder):
                     app_id="default",
                     query=query,
                     flags=Flags(turbo=self.turbo),
-                    tenant_ids={"organization_id": self.params.organization.id}
-                    if self.params.organization
-                    else None,
+                    tenant_ids=self.tenant_ids,
                 )
                 current_result = raw_snql_query(
                     request,
@@ -961,8 +959,6 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         This is because different functions will use different entities
         """
 
-        tenant_ids = {"organization_id": self.organization_id}
-
         # No need for primary from the query framework since there's no orderby to worry about
         if self.use_metrics_layer:
             prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
@@ -988,7 +984,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                         orderby=[],
                         granularity=self.granularity,
                     ),
-                    tenant_ids=tenant_ids,
+                    tenant_ids=self.tenant_ids,
                 )
             ]
         _, query_framework = self._create_query_framework()
@@ -1010,7 +1006,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                             granularity=self.granularity,
                             limit=self.limit,
                         ),
-                        tenant_ids=tenant_ids,
+                        tenant_ids=self.tenant_ids,
                     )
                 )
 
