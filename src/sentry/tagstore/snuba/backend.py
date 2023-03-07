@@ -745,6 +745,7 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             orderby="-times_seen",
             referrer="tagstore.get_release_tags",
+            tenant_ids={"organization_id": organization_id},
         )
 
         values = []
