@@ -79,6 +79,8 @@ function ProjectDocs(props: {
     );
   };
 
+  console.log({platform: props.platform});
+
   const docs = props.platformDocs !== null && (
     <DocsWrapper key={props.platformDocs.html}>
       <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />

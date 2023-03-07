@@ -113,6 +113,8 @@ class ProjectInstallPlatform extends Component<Props, State> {
       'onboarding-heartbeat-footer'
     );
 
+    console.log({platform});
+
     return (
       <Fragment>
         <StyledPageHeader>
