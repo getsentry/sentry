@@ -241,6 +241,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
         configure_metrics(MetricsWrapper(metrics.backend, name="eventstream"))
 
         cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+        commit_log_cluster_name = settings.KAFKA_TOPICS[commit_log_topic]["cluster"]
 
         consumer = KafkaConsumer(
             build_kafka_consumer_configuration(
@@ -253,7 +254,7 @@ class KafkaEventStream(SnubaProtocolEventStream):
 
         commit_log_consumer = KafkaConsumer(
             build_kafka_consumer_configuration(
-                get_kafka_consumer_cluster_options(cluster_name),
+                get_kafka_consumer_cluster_options(commit_log_cluster_name),
                 group_id=f"ppf-commit-log-{uuid.uuid1().hex}",
                 auto_offset_reset="earliest",
             )
