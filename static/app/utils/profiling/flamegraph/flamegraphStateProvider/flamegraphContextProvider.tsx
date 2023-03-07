@@ -56,8 +56,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         initialState?.preferences?.sorting ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis:
-        initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,

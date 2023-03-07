@@ -8,9 +8,13 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {} from 'sentry/components/text';
 import {t} from 'sentry/locale';
 
+import {usePersistedOnboardingState} from '../utils';
+
 type Props = {
+  clientState: ReturnType<typeof usePersistedOnboardingState>[0];
   nextLocation: Location;
   router: RouteComponentProps<{}, {}>['router'];
+  setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 } & ModalRenderProps;
 
 export function ChangeRouteModal({
@@ -20,17 +24,24 @@ export function ChangeRouteModal({
   router,
   nextLocation,
   closeModal,
+  clientState,
+  setClientState,
 }: Props) {
   const handleSetUpLater = useCallback(() => {
     closeModal();
+
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'skipped',
+      });
+    }
+
     router.push({
       ...nextLocation,
-      query: {
-        ...nextLocation.query,
-        setUpRemainingOnboardingTasksLater: true,
-      },
+      query: nextLocation.query,
     });
-  }, [router, nextLocation, closeModal]);
+  }, [router, nextLocation, closeModal, clientState, setClientState]);
 
   return (
     <Fragment>

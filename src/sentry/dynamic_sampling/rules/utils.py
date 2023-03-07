@@ -75,22 +75,31 @@ class TimeRange(TypedDict):
     end: str
 
 
-class Inner(TypedDict):
-    op: str
+class EqConditionOptions(TypedDict):
+    ignoreCase: bool
+
+
+class EqCondition(TypedDict):
+    op: Literal["eq"]
     name: str
     value: List[str]
-    options: Dict[str, bool]
+    options: EqConditionOptions
+
+
+class GlobCondition(TypedDict):
+    op: Literal["glob"]
+    name: str
+    value: List[str]
 
 
 class Condition(TypedDict):
-    op: str
-    inner: List[Inner]
+    op: Literal["and", "or"]
+    inner: List[Union[EqCondition, GlobCondition]]
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    active: bool
     condition: Condition
     id: int
 
@@ -133,7 +142,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
             {
                 "id": rule["id"],
                 "type": rule["type"],
-                "active": rule["active"],
                 "condition": rule["condition"],
             }
         )
@@ -184,9 +192,12 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
     because multiplication will exceed 1 very quickly in case we don't reduce the factor.
     """
-    if base_sample_rate <= 0.0 or base_sample_rate > 1.0:
+    if x == 0:
+        raise Exception("A dynamic factor of 0 cannot be set.")
+
+    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
         raise Exception(
-            "The dynamic factor function requires a sample rate in the interval [0.x, 1.0] with x > 0."
+            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
         )
 
     return float(x / x**base_sample_rate)
