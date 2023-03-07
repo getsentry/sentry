@@ -142,7 +142,7 @@ describe('CreateProject', function () {
         ]),
       });
 
-      const createProjectButton = screen.getByTestId('create-project');
+      const createProjectButton = screen.getByRole('button', {name: 'Create Project'});
 
       await userEvent.click(screen.getByText(/When there are more than/));
       expect(createProjectButton).toBeDisabled();
@@ -155,7 +155,7 @@ describe('CreateProject', function () {
       expect(createProjectButton).toBeEnabled();
 
       await userEvent.clear(screen.getByTestId('range-input'));
-      expect(createProjectButton).toBeEnabled();
+      expect(createProjectButton).toBeDisabled();
 
       await userEvent.type(screen.getByTestId('range-input'), '2712');
       expect(createProjectButton).toBeEnabled();
