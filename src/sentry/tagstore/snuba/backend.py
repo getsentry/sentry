@@ -1582,7 +1582,3 @@ class SnubaTagStorage(TagStorage):
             return None
 
         return {"event_id__in": event_id_set}
-        if not event_id_set:
-            return None
-
-        return {"event_id__in": event_id_set}
