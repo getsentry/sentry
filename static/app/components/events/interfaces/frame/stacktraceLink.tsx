@@ -126,6 +126,7 @@ function shouldShowCodecovPrompt(
   match: StacktraceLinkResult
 ) {
   const enabled =
+    organization.features.includes('codecov-integration') &&
     organization.features.includes('codecov-stacktrace-integration-v2') &&
     !organization.codecovAccess;
 

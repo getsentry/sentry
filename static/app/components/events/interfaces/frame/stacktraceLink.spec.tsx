@@ -259,7 +259,7 @@ describe('StacktraceLink', function () {
   it('renders the codecov prompt', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration-v2'],
+      features: ['codecov-integration', 'codecov-stacktrace-integration-v2'],
       codecovAccess: false,
     };
     MockApiClient.addMockResponse({
