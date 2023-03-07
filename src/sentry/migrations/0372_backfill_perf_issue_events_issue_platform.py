@@ -132,33 +132,6 @@ def __save_issue_occurrence(
     return occurrence, group_info
 
 
-# def __send_issue_occurrence_to_eventstream(
-#     event: Event, occurrence: IssueOccurrence, group_info: GroupInfo
-# ) -> None:
-#     from sentry import eventstream
-#
-#     group_event = event.for_group(group_info.group)
-#     group_event.occurrence = occurrence
-#
-#     eventstream.insert(
-#         event=group_event,
-#         is_new=group_info.is_new,
-#         is_regression=group_info.is_regression,
-#         is_new_group_environment=group_info.is_new_group_environment,
-#         primary_hash=occurrence.fingerprint[0],
-#         received_timestamp=group_event.data.get("received") or group_event.datetime,
-#         skip_consume=True,
-#         group_states=[
-#             {
-#                 "id": group_info.group.id,
-#                 "is_new": group_info.is_new,
-#                 "is_regression": group_info.is_regression,
-#                 "is_new_group_environment": group_info.is_new_group_environment,
-#             }
-#         ],
-#     )
-
-
 def _query_performance_issue_events(
     project_ids: Sequence[int], start: datetime, end: datetime
 ) -> Sequence[Mapping[str, Any]]:
