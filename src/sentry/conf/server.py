@@ -640,6 +640,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.tasks.auto_enable_codecov",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -877,11 +878,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
+    "auto-enable-codecov": {
+        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "schedule": timedelta(hours=24),
+        "options": {"expires": 3600},
+    },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
         # Run job every 1 hour
         "schedule": crontab(minute=0),
-        "options": {"expires": 3600},
     },
 }
 
@@ -1022,6 +1027,8 @@ SENTRY_FEATURES = {
     "organizations:codecov-stacktrace-integration-v2": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # The overall flag for codecov integration, gated by plans.
+    "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
@@ -1076,6 +1083,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the profiling span previews
+    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
@@ -1247,8 +1256,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable experimental session replay UI
-    "organizations:session-replay-ui": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature

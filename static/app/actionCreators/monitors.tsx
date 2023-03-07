@@ -8,11 +8,11 @@ import {t} from 'sentry/locale';
 import {logException} from 'sentry/utils/logging';
 import {Monitor} from 'sentry/views/monitors/types';
 
-export async function deleteMonitor(api: Client, orgId: string, monitorId: string) {
+export async function deleteMonitor(api: Client, orgId: string, monitorSlug: string) {
   addLoadingMessage(t('Deleting Monitor...'));
 
   try {
-    await api.requestPromise(`/organizations/${orgId}/monitors/${monitorId}/`, {
+    await api.requestPromise(`/organizations/${orgId}/monitors/${monitorSlug}/`, {
       method: 'DELETE',
     });
     clearIndicators();
@@ -24,14 +24,14 @@ export async function deleteMonitor(api: Client, orgId: string, monitorId: strin
 export async function updateMonitor(
   api: Client,
   orgId: string,
-  monitorId: string,
+  monitorSlug: string,
   data: Partial<Monitor>
 ) {
   addLoadingMessage();
 
   try {
     const resp = await api.requestPromise(
-      `/organizations/${orgId}/monitors/${monitorId}/`,
+      `/organizations/${orgId}/monitors/${monitorSlug}/`,
       {method: 'PUT', data}
     );
     clearIndicators();
