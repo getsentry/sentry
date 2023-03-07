@@ -619,6 +619,7 @@ def is_data_uri(url):
 
 
 def debug_id_urlify(debug_id):
+    # TODO(iambriccardo): This function should also take the original filename and concatenate them.
     return f"debug-id:{debug_id}"
 
 
@@ -715,7 +716,7 @@ def fold_function_name(function_name):
 
 
 # Sentinel value used to represent the failure of loading an archive.
-INVALID_ARCHIVE = "\x00"
+INVALID_ARCHIVE = type("INVALID_ARCHIVE", (), {})()
 
 
 class Fetcher:
@@ -744,7 +745,7 @@ class Fetcher:
         Closes all the open archives in cache.
         """
         for _, open_archive in self.open_archives.items():
-            if isinstance(open_archive, ArtifactBundleArchive):
+            if open_archive is not INVALID_ARCHIVE:
                 open_archive.close()
 
     def _lookup_in_open_archives(self, debug_id, source_file_type):
@@ -752,19 +753,20 @@ class Fetcher:
         Looks up in open archives if there is one that contains a matching file with debug_id and source_file_type.
         """
         for bundle_id, open_archive in self.open_archives.items():
-            if isinstance(open_archive, ArtifactBundleArchive):
-                try:
-                    open_archive.get_file_by_debug_id(debug_id, source_file_type)
-                    return open_archive
-                except Exception as exc:
-                    logger.debug(
-                        "Archive for bundle_id %s doesn't contain file with debug_id %s and source_file_type %s",
-                        bundle_id,
-                        debug_id,
-                        source_file_type,
-                        exc_info=exc,
-                    )
-                    continue
+            if open_archive is INVALID_ARCHIVE:
+                continue
+            try:
+                open_archive.get_file_by_debug_id(debug_id, source_file_type)
+                return open_archive
+            except Exception as exc:
+                logger.debug(
+                    "Archive for bundle_id %s doesn't contain file with debug_id %s and source_file_type %s",
+                    bundle_id,
+                    debug_id,
+                    source_file_type,
+                    exc_info=exc,
+                )
+                continue
 
         return None
 
@@ -855,7 +857,7 @@ class Fetcher:
             if cached_open_archive is not None:
                 # In case we already tried to load an ArtifactBundle with this id, and we failed, we don't want
                 # to try and fetch again the bundle.
-                if cached_open_archive == INVALID_ARCHIVE:
+                if cached_open_archive is INVALID_ARCHIVE:
                     return None
 
                 return cached_open_archive
@@ -908,6 +910,7 @@ class Fetcher:
 
         try:
             # Now we actually read the wanted file.
+            # TODO(iambriccardo): Return matched file url from this call.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
             logger.error(
@@ -1127,15 +1130,14 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         return frames
 
     def build_abs_path_debug_id_cache(self):
-        images = self.data.get("debug_meta", {}).get("images", [])
+        images = get_path(self.data, "debug_meta", "images", filter=True, default=())
 
         for image in images:
-            if image is not None:
-                code_file = image.get("code_file", None)
-                debug_id = image.get("debug_id", None)
+            code_file = image.get("code_file", None)
+            debug_id = image.get("debug_id", None)
 
-                if code_file is not None and debug_id is not None:
-                    self.abs_path_debug_id[code_file] = debug_id
+            if code_file is not None and debug_id is not None:
+                self.abs_path_debug_id[code_file] = debug_id
 
     def preprocess_step(self, processing_task):
         frames = self.get_valid_frames()
@@ -1194,7 +1196,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # also can't demangle node's internal modules
         # therefore we only process user-land frames (starting with /)
         # or those created by bundle/webpack internals
-        if self.data.get("platform") == "node" and not frame.get("abs_path").startswith(
+        if self.data.get("platform") == "node" and not frame["abs_path"].startswith(
             ("/", "app:", "webpack:")
         ):
             return
@@ -1230,7 +1232,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         sourcemap_url = (
             self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
             if not resolved_smc_with_debug_id
-            else debug_id_urlify(debug_id)
+            else debug_id_urlify(debug_id)  # TODO(iambricardo): debug-id://12334/mysourcemap.json
         )
         self.sourcemaps_touched.add(sourcemap_url)
 
