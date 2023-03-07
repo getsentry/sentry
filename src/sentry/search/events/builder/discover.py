@@ -1440,6 +1440,7 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids={"organization_id": self.params.organization.id},
         )
 
     @classmethod
