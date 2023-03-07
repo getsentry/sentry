@@ -196,7 +196,7 @@ describe('RuleNode', () => {
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, '721');
   });
 
-  it('sets some number fields by default', async () => {
+  it('sets some number fields by default', () => {
     const fieldName = 'exampleNumberField';
     const label = `Here is a number field {${fieldName}}`;
     renderRuleNode(formNode(label), {
@@ -216,7 +216,8 @@ describe('RuleNode', () => {
     const input = screen.getByPlaceholderText('placeholder');
     expect(input).toBeInTheDocument();
 
-    await userEvent.paste(input, 'some text');
+    await userEvent.click(input);
+    await userEvent.paste('some text');
     expect(onPropertyChange).toHaveBeenCalledWith(index, fieldName, 'some text');
   });
 

@@ -43,7 +43,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      await userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:"fu"');
 
       expect(tagValuesMock).toHaveBeenLastCalledWith(
         expect.anything(),
@@ -109,7 +110,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      await userEvent.type(screen.getByRole('textbox'), 'url:"fu"');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:"fu"');
 
       expect(tagValuesMock).toHaveBeenLastCalledWith(
         expect.anything(),

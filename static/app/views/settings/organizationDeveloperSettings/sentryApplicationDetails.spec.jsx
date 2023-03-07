@@ -67,20 +67,21 @@ describe('Sentry Application Details', function () {
     it('saves', async function () {
       renderComponent();
 
-      await userEvent.paste(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      await userEvent.paste(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
 
-      await userEvent.paste(
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Webhook URL'}),
         'https://webhook.com'
       );
 
-      await userEvent.paste(
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Redirect URL'}),
         'https://webhook.com/setup'
       );
 
-      await userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}), '');
+      await userEvent.paste('{}');
       await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
@@ -405,12 +406,13 @@ describe('Sentry Application Details', function () {
       renderComponent();
 
       await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
-      await userEvent.paste(
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Redirect URL'}),
         'https://hello.com/'
       );
 
-      await userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
+      await userEvent.paste('{}');
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
@@ -433,7 +435,8 @@ describe('Sentry Application Details', function () {
 
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      await userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
+      await userEvent.paste('{}');
 
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Issue & Event'}),

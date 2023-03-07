@@ -7,8 +7,11 @@ import SsoForm from 'sentry/views/auth/ssoForm';
 describe('SsoForm', function () {
   const api = new MockApiClient();
 
-  function doSso(apiRequest) {
-    await userEvent.type(screen.getByRole('textbox', {name: 'Organization ID'}), 'org123');
+  async function doSso(apiRequest) {
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Organization ID'}),
+      'org123'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
     expect(apiRequest).toHaveBeenCalledWith(
@@ -17,7 +20,7 @@ describe('SsoForm', function () {
     );
   }
 
-  it('renders', async function () {
+  it('renders', function () {
     const authConfig = {
       serverHostname: 'testserver',
     };
@@ -40,7 +43,7 @@ describe('SsoForm', function () {
     const authConfig = {};
 
     render(<SsoForm api={api} authConfig={authConfig} />);
-    doSso(mockRequest);
+    await doSso(mockRequest);
 
     expect(await screen.findByText('Invalid org name')).toBeInTheDocument();
   });
@@ -57,7 +60,7 @@ describe('SsoForm', function () {
 
     const authConfig = {};
     render(<SsoForm api={api} authConfig={authConfig} />);
-    doSso(mockRequest);
+    await doSso(mockRequest);
 
     await waitFor(() =>
       expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'})

@@ -213,7 +213,10 @@ describe('Add Modal', function () {
 
     expect(screen.getByText('Event ID (Optional)')).toBeInTheDocument();
 
-    await userEvent.type(screen.getByPlaceholderText('XXXXXXXXXXXXXX'), `${eventId}{enter}`);
+    await userEvent.type(
+      screen.getByPlaceholderText('XXXXXXXXXXXXXX'),
+      `${eventId}{enter}`
+    );
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
 

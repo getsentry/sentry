@@ -7,7 +7,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -330,7 +329,9 @@ describe('OrganizationMembersList', function () {
       ['has2fa', '2FA'],
       ['ssoLinked', 'SSO Linked'],
     ]) {
-      await userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+      );
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/members/',
@@ -350,7 +351,9 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      await userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+      );
     }
   });
 
@@ -424,7 +427,7 @@ describe('OrganizationMembersList', function () {
       renderGlobalModal();
       await userEvent.click(screen.getByTestId('confirm-button'));
 
-      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
+      expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
         'invite_request.approved',
@@ -461,7 +464,7 @@ describe('OrganizationMembersList', function () {
 
       await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
 
-      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
+      expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('invite_request.denied', {
         invite_status: joinRequest.inviteStatus,

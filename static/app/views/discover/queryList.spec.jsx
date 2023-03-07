@@ -88,7 +88,7 @@ describe('Discover > QueryList', function () {
     wrapper = null;
   });
 
-  it('renders an empty list', async function () {
+  it('renders an empty list', function () {
     render(
       <QueryList
         organization={organization}
@@ -103,7 +103,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByText('No saved queries match that filter')).toBeInTheDocument();
   });
 
-  it('renders pre-built queries and saved ones', async function () {
+  it('renders pre-built queries and saved ones', function () {
     render(
       <QueryList
         organization={organization}
@@ -365,7 +365,7 @@ describe('Discover > QueryList', function () {
 
       await userEvent.click(addToDashboardMenuItem);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {
@@ -428,7 +428,7 @@ describe('Discover > QueryList', function () {
 
       await userEvent.click(addToDashboardMenuItem);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {
