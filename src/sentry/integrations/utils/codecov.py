@@ -128,10 +128,7 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     return line_coverage, codecov_url
 
 
-def fetch_codecov_data(
-    sha: str | None,
-    config: Any,
-) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     try:
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
