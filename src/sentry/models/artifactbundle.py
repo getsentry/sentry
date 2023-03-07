@@ -55,7 +55,7 @@ class ReleaseArtifactBundle(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
-    dist_id = BoundedBigIntegerField(null=True)
+    dist_name = BoundedBigIntegerField(max_length=64)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -63,7 +63,7 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        unique_together = (("organization_id", "release_name", "dist_id", "artifact_bundle"),)
+        unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
