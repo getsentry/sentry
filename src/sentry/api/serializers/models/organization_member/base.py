@@ -89,10 +89,15 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
-            "allOrgRoles": serialize(
-                obj.get_all_org_roles_sorted(),
-                serializer=OrganizationRoleSerializer(organization=obj.organization),
-            ),
+            "orgRolesFromTeams": [
+                {
+                    "slug": slug,
+                    "role": serialize(
+                        role, serializer=OrganizationRoleSerializer(organization=obj.organization)
+                    ),
+                }
+                for slug, role in obj.get_org_roles_from_teams_by_source()
+            ],
         }
 
         if "externalUsers" in self.expand:
