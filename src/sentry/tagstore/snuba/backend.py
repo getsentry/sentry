@@ -868,6 +868,7 @@ class SnubaTagStorage(TagStorage):
         dataset=Dataset.Events,
         extra_aggregations=None,
         referrer="tagstore.__get_groups_user_counts",
+        tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}
         if environment_ids:
@@ -887,11 +888,14 @@ class SnubaTagStorage(TagStorage):
             aggregations=aggregations,
             orderby="-count",
             referrer=referrer,
+            tenant_ids=tenant_ids,
         )
 
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
-    def get_groups_user_counts(self, project_ids, group_ids, environment_ids, start=None, end=None):
+    def get_groups_user_counts(
+        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+    ):
         return self.__get_groups_user_counts(
             project_ids,
             group_ids,
@@ -901,6 +905,7 @@ class SnubaTagStorage(TagStorage):
             Dataset.Events,
             [],
             "tagstore.get_groups_user_counts",
+            tenant_ids=tenant_ids,
         )
 
     def get_perf_groups_user_counts(
