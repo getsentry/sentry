@@ -25,7 +25,16 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, Project, ProjectKey
+from sentry.models import (
+    CheckInStatus,
+    Environment,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+    Project,
+    ProjectKey,
+)
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
@@ -140,10 +149,25 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         result = serializer.validated_data
 
         with transaction.atomic():
+            environment_name = result.get("environment")
+            if not environment_name:
+                environment_name = "production"
+
+            environment = Environment.get_or_create(project=project, name=environment_name)
+
+            monitorenvironment_defaults = {
+                "status": monitor.status,
+                "next_checkin": monitor.next_checkin,
+                "last_checkin": monitor.last_checkin,
+            }
+            monitor_environment = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+            )[0]
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
                 monitor_id=monitor.id,
+                monitor_environment=monitor_environment,
                 duration=result.get("duration"),
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
@@ -160,6 +184,7 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
+                monitor_environment.mark_failed(last_checkin=checkin.date_added)
                 if not monitor_failed:
                     if isinstance(request.auth, ProjectKey):
                         return self.respond(status=200)
@@ -172,6 +197,9 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
                 if checkin.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
                     monitor_params["status"] = MonitorStatus.OK
                 Monitor.objects.filter(id=monitor.id).exclude(
+                    last_checkin__gt=checkin.date_added
+                ).update(**monitor_params)
+                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
                     last_checkin__gt=checkin.date_added
                 ).update(**monitor_params)
 
