@@ -136,7 +136,7 @@ describe('Threads', () => {
   });
 
   describe('Thread selector', () => {
-    it('renders thread selector with state', () => {
+    it('renders thread selector with state', async () => {
       const threadsEntry = entries[1];
       render(
         <Threads
@@ -149,7 +149,9 @@ describe('Threads', () => {
       expect(
         screen.getByText('ViewController.captureNSException (RUNNABLE)')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByText('ViewController.captureNSException (RUNNABLE)'));
+      await userEvent.click(
+        screen.getByText('ViewController.captureNSException (RUNNABLE)')
+      );
       expect(screen.getByText('State')).toBeInTheDocument();
     });
 
