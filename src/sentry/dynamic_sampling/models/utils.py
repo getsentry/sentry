@@ -9,8 +9,6 @@ from sentry.dynamic_sampling.rules.utils import ProjectId, TransactionName
 class DSElement:
     id: Union[ProjectId, TransactionName]
     count: float
-    new_count: float = 0.0
-    sample_rate: float = 0.0
     new_sample_rate: float = 0.0
 
 
@@ -46,17 +44,15 @@ def adjust_sample_rates(elements: List[DSElement], rate: float) -> List[DSElemen
             new_sample_rate = 1.0
             total_budget -= count
         else:
-            # we have enough elements in current the class
+            # we have enough elements in the current class
             # we want to only keep budget_per_elements
             new_sample_rate = budget_per_element_type / count
             total_budget -= budget_per_element_type
         ret_val.append(
             DSElement(
                 id=name,
-                sample_rate=element.sample_rate,
                 new_sample_rate=new_sample_rate,
                 count=count,
-                new_count=(new_sample_rate / element.sample_rate) * count,
             )
         )
     return ret_val
