@@ -51,11 +51,18 @@ class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
                         "stacktrace": {
                             "frames": [
                                 {
+                                    "abs_path": "http://example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 6,
+                                    "colno": 7,
+                                    "function": "produceStack",
+                                },
+                                {
                                     "abs_path": "http://example.com/test.min.js",
                                     "filename": "test.min.js",
                                     "lineno": 1,
-                                    "colno": 64,
-                                    "function": "e",
+                                    "colno": 183,
+                                    "function": "i",
                                 },
                                 {
                                     "abs_path": "http://example.com/test.min.js",
@@ -68,15 +75,8 @@ class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
                                     "abs_path": "http://example.com/test.min.js",
                                     "filename": "test.min.js",
                                     "lineno": 1,
-                                    "colno": 183,
-                                    "function": "i",
-                                },
-                                {
-                                    "abs_path": "http://example.com/index.html",
-                                    "filename": "index.html",
-                                    "lineno": 6,
-                                    "colno": 7,
-                                    "function": "produceStack",
+                                    "colno": 64,
+                                    "function": "e",
                                 },
                             ]
                         },
