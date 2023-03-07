@@ -1,5 +1,6 @@
 import functools
 import os.path
+import random
 from collections import namedtuple
 from datetime import datetime, timedelta
 from random import randint
@@ -107,6 +108,18 @@ def org_url(organization, path, query=None, fragment=None) -> str:
     if not hasattr(organization, "absolute_url"):
         raise RuntimeError("organization parameter is not an Organization instance")
     return organization.absolute_url(path, query=query, fragment=fragment)
+
+
+@register.simple_tag
+def loading_message():
+    options = [
+        "Please wait while we load an obnoxious amount of JavaScript.",
+        "Escaping node_modules gravity well.",
+        "Parallelizing webpack builders.",
+        "Awaiting solution to the halting problem.",
+        "Collapsing wavefunctions.",
+    ]
+    return random.choice(options)
 
 
 @register.simple_tag
