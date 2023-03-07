@@ -4,11 +4,10 @@ import responses
 
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.utils import json
 
 
 def get_fixture_path(name):
-    return os.path.join(os.path.dirname(__file__), "example-project", name)
+    return os.path.join(os.path.dirname(__file__), "fixtures", name)
 
 
 def load_fixture(name):
@@ -22,19 +21,19 @@ class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
         responses.add(
             responses.GET,
             "http://example.com/test.js",
-            body=load_fixture("test.js"),
+            body=load_fixture("example/test.js"),
             content_type="application/javascript",
         )
         responses.add(
             responses.GET,
             "http://example.com/test.min.js",
-            body=load_fixture("test.min.js"),
+            body=load_fixture("example/test.min.js"),
             content_type="application/javascript",
         )
         responses.add(
             responses.GET,
-            "http://example.com/test.map",
-            body=load_fixture("test.map"),
+            "http://example.com/test.min.js.map",
+            body=load_fixture("example/test.min.js.map"),
             content_type="application/json",
         )
         responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
@@ -50,7 +49,36 @@ class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
                     {
                         "type": "Error",
                         "stacktrace": {
-                            "frames": json.loads(load_fixture("minifiedError.json"))[::-1]
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/index.html",
+                                    "filename": "index.html",
+                                    "lineno": 6,
+                                    "colno": 7,
+                                    "function": "produceStack",
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.min.js",
+                                    "lineno": 1,
+                                    "colno": 183,
+                                    "function": "i",
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.min.js",
+                                    "lineno": 1,
+                                    "colno": 136,
+                                    "function": "r",
+                                },
+                                {
+                                    "abs_path": "http://example.com/test.min.js",
+                                    "filename": "test.min.js",
+                                    "lineno": 1,
+                                    "colno": 64,
+                                    "function": "e",
+                                },
+                            ]
                         },
                     }
                 ]
