@@ -73,6 +73,8 @@ class ProjectCodeOwnersSerializer(Serializer):
 
         if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:
             self.rename_schema_identifier_for_parsing(obj.schema)
+
+        if "addSchema" in self.expand:
             data["schema"] = obj.schema
 
         return data

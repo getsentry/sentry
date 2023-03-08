@@ -327,8 +327,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"type": "codeowners", "pattern": "docs/*"},
                     "owners": [
-                        {"type": "user", "id": self.user.id, "name": "admin@sentry.io"},
-                        {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                        {"type": "user", "id": self.user.id, "identifier": "admin@sentry.io"},
+                        {"type": "team", "id": self.team.id, "identifier": "tiger-team"},
                     ],
                 }
             ],
@@ -357,7 +357,11 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                         {
                             "matcher": {"type": "codeowners", "pattern": "docs/*"},
                             "owners": [
-                                {"type": "user", "id": self.user.id, "name": "admin@sentry.io"},
+                                {
+                                    "type": "user",
+                                    "id": self.user.id,
+                                    "name": "admin@sentry.io",
+                                },
                                 {"type": "team", "id": self.team.id, "name": "tiger-team"},
                             ],
                         }

@@ -64,6 +64,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
             for codeowner in codeowners:
                 self.add_owner_id_to_schema(codeowner, project)
             expand.append("renameIdentifier")
+            expand.append("addSchema")
 
         return Response(
             serialize(
@@ -108,7 +109,7 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
                 "organizations:streamline-targeting-context", project.organization
             )
             if should_return_schema:
-                expand.append("renameIdentifier")
+                expand.append("addSchema")
 
             return Response(
                 serialize(
