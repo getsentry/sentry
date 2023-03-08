@@ -23,6 +23,24 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "additionalProperties": {"type": ["string", "null"], "minLength": 1},
             },
         },
+        "debug_meta": {
+            "type": ["object", "null"],
+            "properties": {
+                "sdk_info": {"type": "object"},
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "minLength": 1},
+                        },
+                        "required": ["type"],
+                        "additionalProperties": {"type": ["string", "integer"]},
+                    },
+                },
+            },
+            "required": ["images"],
+        },
         "dist": {
             "type": ["object", "null"],
             "properties": {
