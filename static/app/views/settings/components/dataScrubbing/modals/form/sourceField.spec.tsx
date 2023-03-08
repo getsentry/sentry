@@ -8,7 +8,7 @@ import {
 } from 'sentry/views/settings/components/dataScrubbing/utils';
 
 describe('Source', function () {
-  it('default render', async function () {
+  it('default render', function () {
     render(
       <SourceField
         isRegExMatchesSelected={false}
@@ -206,14 +206,14 @@ describe('Source', function () {
     const suggestions = screen.getAllByRole('listitem');
     expect(suggestions).toHaveLength(2);
 
-    await userEvent.keyboard('{arrowdown}{enter}');
+    await userEvent.keyboard('{ArrowDown}{Enter}');
     expect(handleOnChange).toHaveBeenNthCalledWith(1, 'foo ||');
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), ' ');
 
     expect(handleOnChange).toHaveBeenNthCalledWith(2, 'foo  ');
 
-    await userEvent.keyboard('{arrowdown}{arrowup}{enter}');
+    await userEvent.keyboard('{ArrowDown}{ArrowUp}{Enter}');
 
     expect(handleOnChange).toHaveBeenNthCalledWith(3, 'foo &&');
   });
