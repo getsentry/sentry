@@ -5,6 +5,8 @@ from typing import TYPE_CHECKING, Any, Callable, Generic, List, Optional, TypeVa
 
 from django.db.models import QuerySet
 
+from sentry.services.hybrid_cloud.rpc import rpc_method
+
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
@@ -35,6 +37,7 @@ OpaqueSerializedResponse = Any
 #      ], InterfaceWithLifecycle):
 #         ...
 class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], abc.ABC):
+    @rpc_method
     @abc.abstractmethod
     def serialize_many(
         self,
@@ -46,6 +49,7 @@ class FilterQueryInterface(Generic[FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], 
     ) -> List[OpaqueSerializedResponse]:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def get_many(self, *, filter: FILTER_ARGS) -> List[RPC_RESPONSE]:
         pass
