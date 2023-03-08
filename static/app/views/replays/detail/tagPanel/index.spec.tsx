@@ -5,16 +5,16 @@ import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
-  replayRecord: {
-    tags: {
-      'browser.name': ['Chrome'],
-      'sdk.version': ['7.13.0', '7.13.2'],
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({
+    browser: {
+      name: 'Chrome',
+      version: '110.0.0',
     },
-  },
+  }),
+  errors: [],
+  attachments: [],
 });
-
-const mockReplay = ReplayReader.factory(replayReaderParams);
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
@@ -41,9 +41,9 @@ describe('TagPanel', () => {
   it('should show the tags correctly inside ReplayTagsTableRow component with multiple items array', () => {
     renderComponent(mockReplay);
 
-    expect(screen.getByText('sdk.version')).toBeInTheDocument();
-    expect(screen.getByText('7.13.0')).toBeInTheDocument();
-    expect(screen.getByText('7.13.2')).toBeInTheDocument();
+    expect(screen.getByText('releases')).toBeInTheDocument();
+    expect(screen.getByText('1.0.0')).toBeInTheDocument();
+    expect(screen.getByText('2.0.0')).toBeInTheDocument();
   });
 
   it('should snaptshot empty state', async () => {
