@@ -32,9 +32,6 @@ class IntegrationManager(BaseManager):
 class Integration(DefaultFieldsModel):
     __include_in_export__ = False
 
-    organizations = models.ManyToManyField(
-        "sentry.Organization", related_name="integrations", through=OrganizationIntegration
-    )
     provider = models.CharField(max_length=64)
     external_id = models.CharField(max_length=64)
     name = models.CharField(max_length=200)

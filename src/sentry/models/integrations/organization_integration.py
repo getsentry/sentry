@@ -7,6 +7,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     control_silo_only_model,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 
 
@@ -14,7 +15,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 class OrganizationIntegration(DefaultFieldsModel):
     __include_in_export__ = False
 
-    organization = FlexibleForeignKey("sentry.Organization")
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
     integration = FlexibleForeignKey("sentry.Integration")
     config = JSONField(default=dict)
 
@@ -28,4 +29,4 @@ class OrganizationIntegration(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organizationintegration"
-        unique_together = (("organization", "integration"),)
+        unique_together = (("organization_id", "integration"),)
