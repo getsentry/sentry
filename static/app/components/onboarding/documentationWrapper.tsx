@@ -9,19 +9,15 @@ const getAlertSelector = (type: AlertType) =>
   type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
 
 export const DocumentationWrapper = styled('div')`
-  padding-top: ${space(1)};
-
   /* Size of the new footer + 16px */
   padding-bottom: calc(72px + ${space(2)});
 
-  hr {
-    font-size: 1em;
-    margin-top: 1em;
-    margin-bottom: 1em;
+  h2 {
+    font-size: 1.375rem;
   }
 
-  ul {
-    margin-bottom: 0;
+  h3 {
+    font-size: 1.25rem;
   }
 
   h1,
@@ -29,36 +25,38 @@ export const DocumentationWrapper = styled('div')`
   h3,
   h4,
   h5,
-  h6 {
-    margin-bottom: 0.25em;
-  }
-
-  p {
+  h6,
+  p,
+  ul,
+  ol,
+  li {
+    margin-top: 0.5em;
     margin-bottom: 0.5em;
   }
 
-  .gatsby-highlight {
+  blockquote,
+  hr,
+  pre,
+  div[data-language] {
     margin-top: 1em;
     margin-bottom: 1em;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
   }
-
-  line-height: 1.5;
 
   blockquote {
     padding: ${space(1.5)} ${space(2)};
     ${p => alertStyles({theme: p.theme, type: 'info'})}
   }
 
-  blockquote > *:last-child {
+  blockquote > * {
+    margin: 0;
+  }
+
+  .gatsby-highlight:last-child {
     margin-bottom: 0;
   }
 
-  div[data-language] {
-    margin-bottom: ${space(2)};
+  hr {
+    border-color: ${p => p.theme.border};
   }
 
   code {
@@ -66,13 +64,12 @@ export const DocumentationWrapper = styled('div')`
   }
 
   .alert {
-    margin-bottom: ${space(3)};
     border-radius: ${p => p.theme.borderRadius};
   }
 
   /**
-   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
-   */
+ * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
+ */
   .content-flush-bottom *:last-child {
     margin-bottom: 0;
   }
