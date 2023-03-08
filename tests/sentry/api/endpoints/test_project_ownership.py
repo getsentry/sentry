@@ -132,16 +132,13 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         }
 
     def test_get(self):
+        # Test put + get without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         resp_no_schema = self.client.get(self.path)
         assert "schema" not in resp_no_schema.data.keys()
 
-        @with_feature("organizations:streamline-targeting-context")
-        def test_get_with_streamline_targeting(self):
-            """
-            Test that the get response includes the modified schema for parsing and
-            the "identifier" field in the ownership schema is not re-named
-            """
+        # Test get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
@@ -156,6 +153,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 ],
             }
 
+            # Assert that "identifier" is not renamed to "name" in the backend
             ownership = ProjectOwnership.objects.get(project=self.project)
             assert ownership.schema["rules"] == [
                 {
@@ -166,8 +164,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                     ],
                 }
             ]
-
-        test_get_with_streamline_targeting(self)
 
     @with_feature("organizations:streamline-targeting-context")
     def test_get_empty_with_streamline_targeting(self):
