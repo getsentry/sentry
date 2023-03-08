@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import EnvironmentProject, ProjectKey
+from sentry.models import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, MonitorStatus
 
 from .base import MonitorCheckInEndpoint
@@ -115,16 +115,7 @@ class MonitorCheckInDetailsEndpoint(MonitorCheckInEndpoint):
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
 
-        environment_name = result.get("environment")
-        if not environment_name:
-            environment_name = "production"
-
-        environment = EnvironmentProject.objects.get(
-            environment__name=environment_name, project=project
-        ).environment
-        monitor_environment = MonitorEnvironment.objects.get(
-            monitor=monitor, environment=environment
-        )
+        monitor_environment = checkin.monitor_environment
 
         with transaction.atomic():
             checkin.update(**params)
