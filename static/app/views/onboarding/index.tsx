@@ -94,7 +94,7 @@ function Onboarding(props: Props) {
   const selectedProject = props.projects.find(p => p.slug === selectedProjectSlug);
 
   const [sessionStorage] = useSessionStorage<Partial<OnboardingState>>(
-    `onboarding-${selectedProject?.slug}`,
+    `onboarding-${selectedProject?.id}`,
     {}
   );
 
