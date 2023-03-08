@@ -29,22 +29,6 @@ class FlexibleIntEnum(IntEnum):
         return invert_choices[name]
 
 
-class ActionTriggerType(FlexibleIntEnum):
-    """
-    The possible sources of action notifications
-    """
-
-    SPIKE_PROTECTION = 0  # Handlers registered in getsentry
-    SPEND_ALLOCATIONS = 1  # Handlers registered in getsentry
-
-    @classmethod
-    def as_choices(cls) -> Iterable[Tuple[int, str]]:
-        return (
-            (cls.SPIKE_PROTECTION, "spike-protection"),
-            (cls.SPEND_ALLOCATIONS, "spend-allocations"),
-        )
-
-
 class ActionServiceType(FlexibleIntEnum):
     """
     The available services to fire action notifications
@@ -102,8 +86,6 @@ class AbstractNotificationAction(Model):
     integration = FlexibleForeignKey("sentry.Integration", null=True)
     sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
 
-    # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
-    trigger_type = BoundedIntegerField(choices=ActionTriggerType.as_choices())
     # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
     type = BoundedIntegerField(choices=ActionServiceType.as_choices())
     # The type of target which the service uses for routing (e.g. user, team)
@@ -124,6 +106,22 @@ class AbstractNotificationAction(Model):
         abstract = True
 
 
+class ActionTriggerType(FlexibleIntEnum):
+    """
+    The possible sources of action notifications
+    """
+
+    SPIKE_PROTECTION = 0  # Handlers registered in getsentry
+    SPEND_ALLOCATIONS = 1  # Handlers registered in getsentry
+
+    @classmethod
+    def as_choices(cls) -> Iterable[Tuple[int, str]]:
+        return (
+            (cls.SPIKE_PROTECTION, "spike-protection"),
+            (cls.SPEND_ALLOCATIONS, "spend-allocations"),
+        )
+
+
 @region_silo_only_model
 class NotificationAction(AbstractNotificationAction):
     """
@@ -138,6 +136,8 @@ class NotificationAction(AbstractNotificationAction):
     ] = defaultdict(dict)
 
     project = FlexibleForeignKey("sentry.Project")
+    # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
+    trigger_type = BoundedIntegerField(choices=ActionTriggerType.as_choices())
 
     class Meta:
         app_label = "sentry"

@@ -535,9 +535,6 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     typically some sort of notification.
     """
 
-    # Overwrites AbstractNotificationAction.trigger_type since this model only holds one trigger_type
-    trigger_type = None
-
     # Aliases from NotificationAction introduction
     Type = ActionServiceType
     TargetType = ActionTargetType
