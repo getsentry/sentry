@@ -341,8 +341,9 @@ const ErrorProcessingStatus = styled(WaitingForErrorStatus)`
 `;
 
 const ErrorProcessedStatus = styled(WaitingForErrorStatus)`
-  background: ${p => p.theme.gray500};
-  color: ${p => p.theme.white};
+  border-radius: 44px;
+  background: ${p => p.theme.inverted.background};
+  color: ${p => p.theme.inverted.textColor};
 `;
 
 const RefreshIcon = styled(IconRefresh)`
