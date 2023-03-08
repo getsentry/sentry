@@ -134,12 +134,9 @@ export function AggregateFlamegraph(): ReactElement {
     if (!flamegraphCanvasRef) {
       return null;
     }
-    const yOrigin =
-      flamegraph.profile.type === 'flamegraph'
-        ? 0
-        : flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio;
+    const yOrigin = flamegraphTheme.SIZES.TIMELINE_HEIGHT * devicePixelRatio;
     return new FlamegraphCanvas(flamegraphCanvasRef, vec2.fromValues(0, yOrigin));
-  }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme, flamegraph.profile.type]);
+  }, [devicePixelRatio, flamegraphCanvasRef, flamegraphTheme]);
 
   const flamegraphView = useMemoWithPrevious<CanvasView<FlamegraphModel> | null>(
     previousView => {
