@@ -8,7 +8,7 @@ from typing import Callable, Iterable, Tuple
 from django.db import models
 from pyparsing import MutableMapping
 
-from sentry.db.models import BoundedIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 
 logger = logging.getLogger(__name__)
@@ -20,13 +20,13 @@ class FlexibleIntEnum(IntEnum):
         raise NotImplementedError
 
     @classmethod
-    def get_name(cls, value: int) -> str:
-        return dict(cls.as_choices())[value]
+    def get_name(cls, value: int) -> str | None:
+        return dict(cls.as_choices()).get(value)
 
     @classmethod
-    def get_value(cls, name: str) -> int:
+    def get_value(cls, name: str) -> int | None:
         invert_choices = {v: k for k, v in dict(cls.as_choices()).items()}
-        return invert_choices[name]
+        return invert_choices.get(name)
 
 
 class ActionServiceType(FlexibleIntEnum):
@@ -87,9 +87,9 @@ class AbstractNotificationAction(Model):
     sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
 
     # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
-    type = BoundedIntegerField(choices=ActionServiceType.as_choices())
+    type = models.SmallIntegerField(choices=ActionServiceType.as_choices())
     # The type of target which the service uses for routing (e.g. user, team)
-    target_type = BoundedIntegerField(choices=ActionTargetType.as_choices())
+    target_type = models.SmallIntegerField(choices=ActionTargetType.as_choices())
     # Identifier of the target for the given service (e.g. slack channel id, pagerdutyservice id)
     target_identifier = models.TextField(null=True)
     # User-friendly name of the target (e.g. #slack-channel, pagerduty-service-name)
@@ -135,9 +135,11 @@ class NotificationAction(AbstractNotificationAction):
         ActionTriggerType, MutableMapping[ActionTargetType, Callable]
     ] = defaultdict(dict)
 
-    project = FlexibleForeignKey("sentry.Project")
+    organization = FlexibleForeignKey("sentry.Organization")
+    project = FlexibleForeignKey("sentry.Project", null=True)
+
     # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
-    trigger_type = BoundedIntegerField(choices=ActionTriggerType.as_choices())
+    trigger_type = models.SmallIntegerField(choices=ActionTriggerType.as_choices())
 
     class Meta:
         app_label = "sentry"
