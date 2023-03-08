@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -31,7 +32,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_spans(self, span_duration=2000):
+    def create_issue_spans(self, span_duration=2000) -> List[Span]:
         spans = [
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
@@ -47,6 +48,8 @@ class ConsecutiveDbDetectorTest(TestCase):
             modify_span_start(span, span_duration * spans.index(span)) for span in spans
         ]  # ensure spans don't overlap
 
+        return spans
+
     def create_issue_event(self, span_duration=2000):
         spans = self.create_issue_spans(span_duration)
         return create_event(spans)
@@ -57,15 +60,13 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-e3d915e5dd423874d4bee287a277fafeb6e3245d",
+                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=[
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
@@ -92,15 +93,13 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-e3d915e5dd423874d4bee287a277fafeb6e3245d",
+                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=[],
                 offender_span_ids=[
-                    "bbbbbbbbbbbbbbbb",
-                    "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
