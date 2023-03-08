@@ -190,7 +190,6 @@ export type InterfaceChromeHooks = {
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:item-override': SidebarItemOverrideHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
@@ -461,14 +460,6 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
-  id?: string;
-}>;
-
-type SidebarItemOverrideHook = () => React.ComponentType<{
-  /**
-   * The item label being wrapped
-   */
-  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
   id?: string;
 }>;
 
