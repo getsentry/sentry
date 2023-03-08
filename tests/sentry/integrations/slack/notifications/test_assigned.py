@@ -18,7 +18,7 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             Activity(
                 project=self.project,
                 group=group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.ASSIGNED,
                 data={"assignee": self.user.id},
             )

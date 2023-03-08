@@ -14,6 +14,7 @@ export type IntegrationView = {
     | 'plugin_details'
     | 'integrations_directory'
     | 'integrations_directory_integration_detail'
+    | 'stacktrace_link'
     | 'stacktrace_issue_details'
     | 'integration_configuration_detail'
     | 'onboarding'

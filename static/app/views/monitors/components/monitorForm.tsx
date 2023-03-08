@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -15,10 +15,10 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
-import {PageFilters, Project, SelectValue} from 'sentry/types';
+import {SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
-import withPageFilters from 'sentry/utils/withPageFilters';
-import withProjects from 'sentry/utils/withProjects';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 
 import {
   IntervalConfig,
@@ -48,8 +48,6 @@ type Props = {
   apiEndpoint: string;
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
-  projects: Project[];
-  selection: PageFilters;
   monitor?: Monitor;
   submitLabel?: string;
 };
@@ -90,10 +88,18 @@ function transformData(_data: Record<string, any>, model: FormModel) {
   }, {});
 }
 
-class MonitorForm extends Component<Props> {
-  form = new FormModel({transformData});
+function MonitorForm({
+  monitor,
+  submitLabel,
+  apiEndpoint,
+  apiMethod,
+  onSubmitSuccess,
+}: Props) {
+  const form = useRef(new FormModel({transformData}));
+  const {projects} = useProjects();
+  const {selection} = usePageFilters();
 
-  formDataFromConfig(type: MonitorType, config: MonitorConfig) {
+  function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
     switch (type) {
       case 'cron_job':
@@ -117,190 +123,196 @@ class MonitorForm extends Component<Props> {
     return rv;
   }
 
-  render() {
-    const {monitor, submitLabel} = this.props;
-    const selectedProjectId = this.props.selection.projects[0];
-    const selectedProject = selectedProjectId
-      ? this.props.projects.find(p => p.id === selectedProjectId + '')
-      : null;
-    return (
-      <Form
-        allowUndo
-        requireChanges
-        apiEndpoint={this.props.apiEndpoint}
-        apiMethod={this.props.apiMethod}
-        model={this.form}
-        initialData={
-          monitor
-            ? {
-                name: monitor.name,
-                type: monitor.type ?? DEFAULT_MONITOR_TYPE,
-                project: monitor.project.slug,
-                ...this.formDataFromConfig(monitor.type, monitor.config),
-              }
-            : {
-                project: selectedProject ? selectedProject.slug : null,
-                type: DEFAULT_MONITOR_TYPE,
-              }
-        }
-        onSubmitSuccess={this.props.onSubmitSuccess}
-        submitLabel={submitLabel}
-      >
-        <Panel>
-          <PanelHeader>{t('Details')}</PanelHeader>
+  const selectedProjectId = selection.projects[0];
+  const selectedProject = selectedProjectId
+    ? projects.find(p => p.id === selectedProjectId + '')
+    : null;
 
-          <PanelBody>
-            {monitor && (
-              <FieldGroup label={t('ID')}>
-                <div className="controls">
-                  <TextCopyInput>{monitor.id}</TextCopyInput>
-                </div>
-              </FieldGroup>
-            )}
-            <SentryProjectSelectorField
-              name="project"
-              label={t('Project')}
-              projects={this.props.projects.filter(project => project.isMember)}
-              disabled={!!monitor}
-              disabledReason={t('Existing monitors cannot be moved between projects')}
-              valueIsSlug
-              help={t(
-                "Select the project which contains the recurring job you'd like to monitor."
-              )}
-              required
-            />
-            <TextField
-              name="name"
-              placeholder={t('My Cron Job')}
-              label={t('Name your cron monitor')}
-              required
-            />
-          </PanelBody>
-        </Panel>
-        <Panel>
-          <PanelHeader>{t('Config')}</PanelHeader>
+  return (
+    <Form
+      allowUndo
+      requireChanges
+      apiEndpoint={apiEndpoint}
+      apiMethod={apiMethod}
+      model={form.current}
+      initialData={
+        monitor
+          ? {
+              name: monitor.name,
+              type: monitor.type ?? DEFAULT_MONITOR_TYPE,
+              project: monitor.project.slug,
+              ...formDataFromConfig(monitor.type, monitor.config),
+            }
+          : {
+              project: selectedProject ? selectedProject.slug : null,
+              type: DEFAULT_MONITOR_TYPE,
+            }
+      }
+      onSubmitSuccess={onSubmitSuccess}
+      submitLabel={submitLabel}
+    >
+      <Panel>
+        <PanelHeader>{t('Details')}</PanelHeader>
 
-          <PanelBody>
-            {monitor !== undefined && monitor.nextCheckIn && (
-              <PanelAlert type="info">
-                {tct(
-                  'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
-                  {
-                    nextCheckin: (
-                      <strong>
-                        <TimeSince date={monitor.nextCheckIn} />
-                      </strong>
-                    ),
-                  }
-                )}
-              </PanelAlert>
+        <PanelBody>
+          <SentryProjectSelectorField
+            name="project"
+            label={t('Project')}
+            projects={projects.filter(project => project.isMember)}
+            disabled={!!monitor}
+            disabledReason={t('Existing monitors cannot be moved between projects')}
+            valueIsSlug
+            help={t(
+              "Select the project which contains the recurring job you'd like to monitor."
             )}
-            <NumberField
-              name="config.max_runtime"
-              label={t('Max Runtime')}
+            required
+          />
+          {monitor && (
+            <FieldGroup
+              label={t('Monitor Slug')}
+              flexibleControlStateSize
               help={t(
-                "Set the number of minutes a recurring job is allowed to run before it's considered failed"
+                'The monitor slug is the organization-wide unique identifier for your monitor.'
               )}
-              placeholder="e.g. 30"
-            />
-            <SelectField
-              name="config.schedule_type"
-              label={t('Schedule Type')}
-              options={SCHEDULE_TYPES}
-              defaultValue={ScheduleType.CRONTAB}
-              required
-            />
-            <Observer>
-              {() => {
-                switch (this.form.getValue('config.schedule_type')) {
-                  case 'crontab':
-                    return (
-                      <Fragment>
-                        <TextField
-                          name="config.schedule"
-                          label={t('Schedule')}
-                          placeholder="*/5 * * * *"
-                          required
-                          help={tct(
-                            'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
-                            {
-                              link: (
-                                <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
-                              ),
-                            }
-                          )}
-                          css={{input: {fontFamily: commonTheme.text.familyMono}}}
-                        />
-                        <SelectField
-                          name="config.timezone"
-                          label={t('Timezone')}
-                          defaultValue="UTC"
-                          options={timezoneOptions}
-                          help={tct(
-                            "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
-                            {code: <code />}
-                          )}
-                        />
-                        <NumberField
-                          name="config.checkin_margin"
-                          label={t('Check-in Margin')}
-                          help={t(
-                            "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                          )}
-                          placeholder="e.g. 30"
-                        />
-                      </Fragment>
-                    );
-                  case 'interval':
-                    return (
-                      <Fragment>
-                        <CombinedField>
-                          <FieldGroup
-                            label={t('Frequency')}
-                            help={t(
-                              'The amount of time between each job execution. Example, every 5 hours.'
-                            )}
-                            stacked
-                            required
-                          />
-                          <StyledNumberField
-                            name="config.schedule.frequency"
-                            label={t('Frequency')}
-                            placeholder="e.g. 1"
-                            hideLabel
-                            required
-                          />
-                          <StyledSelectField
-                            name="config.schedule.interval"
-                            label={t('Interval')}
-                            options={getIntervals(
-                              Number(this.form.getValue('config.schedule.frequency') ?? 1)
-                            )}
-                            hideLabel
-                            required
-                          />
-                        </CombinedField>
-                        <NumberField
-                          name="config.checkin_margin"
-                          label={t('Check-in Margin')}
-                          help={t(
-                            "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
-                          )}
-                          placeholder="e.g. 30"
-                        />
-                      </Fragment>
-                    );
-                  default:
-                    return null;
+            >
+              <TextCopyInput>{monitor.slug}</TextCopyInput>
+            </FieldGroup>
+          )}
+          <TextField
+            name="name"
+            placeholder={t('My Cron Job')}
+            label={t('Name your cron monitor')}
+            required
+          />
+        </PanelBody>
+      </Panel>
+      <Panel>
+        <PanelHeader>{t('Config')}</PanelHeader>
+
+        <PanelBody>
+          {monitor !== undefined && monitor.nextCheckIn && (
+            <PanelAlert type="info">
+              {tct(
+                'Any changes you make to the execution schedule will only be applied after the next expected check-in [nextCheckin].',
+                {
+                  nextCheckin: (
+                    <strong>
+                      <TimeSince date={monitor.nextCheckIn} />
+                    </strong>
+                  ),
                 }
-              }}
-            </Observer>
-          </PanelBody>
-        </Panel>
-      </Form>
-    );
-  }
+              )}
+            </PanelAlert>
+          )}
+          <NumberField
+            name="config.max_runtime"
+            label={t('Max Runtime')}
+            help={t(
+              "Set the number of minutes a recurring job is allowed to run before it's considered failed."
+            )}
+            placeholder="e.g. 30"
+          />
+          <SelectField
+            name="config.schedule_type"
+            label={t('Schedule Type')}
+            options={SCHEDULE_TYPES}
+            defaultValue={ScheduleType.CRONTAB}
+            required
+          />
+          <Observer>
+            {() => {
+              switch (form.current.getValue('config.schedule_type')) {
+                case 'crontab':
+                  return (
+                    <Fragment>
+                      <TextField
+                        name="config.schedule"
+                        label={t('Schedule')}
+                        placeholder="*/5 * * * *"
+                        required
+                        help={tct(
+                          'Any schedule changes will be applied to the next check-in. See [link:Wikipedia] for crontab syntax.',
+                          {
+                            link: (
+                              <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />
+                            ),
+                          }
+                        )}
+                        css={{input: {fontFamily: commonTheme.text.familyMono}}}
+                      />
+                      <SelectField
+                        name="config.timezone"
+                        label={t('Timezone')}
+                        defaultValue="UTC"
+                        options={timezoneOptions}
+                        help={tct(
+                          "The timezone of your execution environment. Be sure to set this correctly, otherwise the schedule may be mismatched and check-ins will be marked as missed! Use [code:timedatectl] or similar to determine your machine's timezone.",
+                          {code: <code />}
+                        )}
+                      />
+                      <NumberField
+                        name="config.checkin_margin"
+                        label={t('Check-in Margin')}
+                        help={t(
+                          "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
+                        )}
+                        placeholder="e.g. 30"
+                      />
+                    </Fragment>
+                  );
+                case 'interval':
+                  return (
+                    <Fragment>
+                      <CombinedField>
+                        <FieldGroup
+                          label={t('Frequency')}
+                          help={t(
+                            'The amount of time between each job execution. Example, every 5 hours.'
+                          )}
+                          stacked
+                          required
+                        />
+                        <StyledNumberField
+                          name="config.schedule.frequency"
+                          label={t('Frequency')}
+                          placeholder="e.g. 1"
+                          hideLabel
+                          required
+                        />
+                        <StyledSelectField
+                          name="config.schedule.interval"
+                          label={t('Interval')}
+                          options={getIntervals(
+                            Number(
+                              form.current.getValue('config.schedule.frequency') ?? 1
+                            )
+                          )}
+                          hideLabel
+                          required
+                        />
+                      </CombinedField>
+                      <NumberField
+                        name="config.checkin_margin"
+                        label={t('Check-in Margin')}
+                        help={t(
+                          "The max error margin (in minutes) before a check-in is considered missed. If you don't expect your job to start immediately at the scheduled time, expand this margin to account for delays."
+                        )}
+                        placeholder="e.g. 30"
+                      />
+                    </Fragment>
+                  );
+                default:
+                  return null;
+              }
+            }}
+          </Observer>
+        </PanelBody>
+      </Panel>
+    </Form>
+  );
 }
+
+export default MonitorForm;
 
 const CombinedField = styled('div')`
   display: grid;
@@ -317,5 +329,3 @@ const StyledNumberField = styled(NumberField)`
 const StyledSelectField = styled(SelectField)`
   padding-left: 0;
 `;
-
-export default withPageFilters(withProjects(MonitorForm));

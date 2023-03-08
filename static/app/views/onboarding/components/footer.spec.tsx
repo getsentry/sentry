@@ -27,17 +27,12 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
         organization,
       }
-    );
-
-    // Skip onboarding link
-    expect(screen.getByRole('link', {name: 'Skip Onboarding'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/issues/?referrer=onboarding-first-event-footer-skip'
     );
 
     // Error status
@@ -52,6 +47,14 @@ describe('Onboarding Footer', function () {
     await waitFor(() => {
       expect(screen.getAllByText('Waiting for error')).toHaveLength(2);
     });
+
+    renderGlobalModal();
+
+    // Skip onboarding link
+    userEvent.click(screen.getByRole('button', {name: 'Skip Onboarding'}));
+
+    // Display are you sure modal
+    expect(await screen.findByText('Are you sure?')).toBeInTheDocument();
   });
 
   it('processing error ui', async function () {
@@ -74,6 +77,7 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
@@ -82,7 +86,9 @@ describe('Onboarding Footer', function () {
     );
 
     // Skip onboarding link is gone
-    expect(screen.queryByRole('link', {name: 'Skip Onboarding'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Skip Onboarding'})
+    ).not.toBeInTheDocument();
 
     // Error status
     expect(screen.getByText('Processing error')).toBeInTheDocument();
@@ -115,6 +121,7 @@ describe('Onboarding Footer', function () {
           location={router.location}
           route={route}
           router={router}
+          newOrg
         />
       </PersistedStoreProvider>,
       {
@@ -123,7 +130,9 @@ describe('Onboarding Footer', function () {
     );
 
     // Skip onboarding link is gone
-    expect(screen.queryByRole('link', {name: 'Skip Onboarding'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Skip Onboarding'})
+    ).not.toBeInTheDocument();
 
     // Error status
     expect(screen.getByText('Error Processed!')).toBeInTheDocument();
