@@ -2,8 +2,14 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus, MonitorType
-from sentry.tasks.check_monitors import check_monitors
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    MonitorType,
+)
+from sentry.monitors.tasks import check_monitors
 from sentry.testutils import TestCase
 
 

@@ -7,7 +7,6 @@ from rest_framework.response import Response
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitor import MonitorSerializerResponse
@@ -21,7 +20,10 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Monitor, MonitorStatus, ScheduledDeletion
+from sentry.models import ScheduledDeletion
+from sentry.monitors.models import Monitor, MonitorStatus
+
+from .base import MonitorEndpoint
 
 
 @region_silo_endpoint

@@ -3,7 +3,10 @@ from datetime import timedelta
 
 from django.utils import timezone
 
-from sentry.models import (
+from sentry.tasks.base import instrumented_task
+from sentry.utils import metrics
+
+from .models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
@@ -11,8 +14,6 @@ from sentry.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry")
 
@@ -32,7 +33,7 @@ MONITOR_LIMIT = 10_000
 CHECKINS_LIMIT = 10_000
 
 
-@instrumented_task(name="sentry.tasks.check_monitors", time_limit=15, soft_time_limit=10)
+@instrumented_task(name="sentry.monitors.tasks.check_monitors", time_limit=15, soft_time_limit=10)
 def check_monitors(current_datetime=None):
     if current_datetime is None:
         current_datetime = timezone.now()
@@ -48,7 +49,7 @@ def check_monitors(current_datetime=None):
     )[
         :MONITOR_LIMIT
     ]
-    metrics.gauge("sentry.tasks.check_monitors.missing_count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
     for monitor in qs:
         logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
         # add missed checkin
@@ -62,7 +63,7 @@ def check_monitors(current_datetime=None):
     qs = MonitorCheckIn.objects.filter(status=CheckInStatus.IN_PROGRESS).select_related("monitor")[
         :CHECKINS_LIMIT
     ]
-    metrics.gauge("sentry.tasks.check_monitors.timeout_count", qs.count())
+    metrics.gauge("sentry.monitors.tasks.check_monitors.timeout_count", qs.count())
     # check for any monitors which are still running and have exceeded their maximum runtime
     for checkin in qs:
         timeout = timedelta(minutes=(checkin.monitor.config or {}).get("max_runtime") or TIMEOUT)

@@ -8,7 +8,6 @@ from rest_framework.response import Response
 
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.monitor import MonitorCheckInEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
 from sentry.api.validators import MonitorCheckInValidator
@@ -21,7 +20,10 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import CheckInStatus, Monitor, MonitorStatus, ProjectKey
+from sentry.models import ProjectKey
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus
+
+from .base import MonitorCheckInEndpoint
 
 
 @region_silo_endpoint

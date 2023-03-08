@@ -3,15 +3,17 @@ from django.db.models import Case, IntegerField, Q, Value, When
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.monitor import OrganizationMonitorPermission
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.validators import MonitorValidator
 from sentry.db.models.query import in_iexact
-from sentry.models import Monitor, MonitorStatus, MonitorType, Organization, Project
+from sentry.models import Organization, Project
+from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
 from sentry.search.utils import tokenize_query
 from sentry.signals import first_cron_monitor_created
+
+from .base import OrganizationMonitorPermission
 
 
 def map_value_to_constant(constant, value):

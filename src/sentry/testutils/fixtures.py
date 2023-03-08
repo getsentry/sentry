@@ -100,7 +100,7 @@ class Fixtures:
             group=self.group,
             project=self.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={},
         )
 

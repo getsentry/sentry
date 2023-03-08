@@ -5,7 +5,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
 
-from sentry.models import CheckInStatus, File, Monitor, MonitorCheckIn, MonitorType
+from sentry.models import File
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorType
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -99,7 +100,7 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
         assert resp.data["detail"] == "Check-in has no attachment"
 
     @mock.patch(
-        "sentry.api.endpoints.organization_monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
+        "sentry.monitors.endpoints.organization_monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
     )
     def test_upload_file_too_big(self):
         monitor = self._create_monitor()
@@ -165,3 +166,22 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == "Check-in already has an attachment"
+
+    def test_invalid_file_upload(self):
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added,
+            status=CheckInStatus.IN_PROGRESS,
+        )
+
+        path = self._path_func(monitor, checkin)
+        resp = self.client.post(
+            path,
+            {"file": "invalid_file"},
+            format="multipart",
+        )
+
+        assert resp.status_code == 400
+        assert resp.data["detail"] == "Please upload a valid file object"

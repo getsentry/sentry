@@ -455,7 +455,7 @@ class Factories:
             type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
-            user=user,
+            user_id=user.id if user else None,
             data={"version": version},
         )
 
@@ -1364,7 +1364,7 @@ class Factories:
             project=project,
             group=issue,
             type=ActivityType.NOTE.value,
-            user=user,
+            user_id=user.id,
             data=data,
         )
 
