@@ -417,7 +417,5 @@ class OrganizationMemberTest(TestCase):
 
         roles = member.get_org_roles_from_teams_by_source()
         assert roles[0][1].id == "owner"
-        assert roles[-2][0] == manager_team.slug
-        assert roles[-2][1].id == "manager"
-        assert roles[-1][0] is None
-        assert roles[-1][1].id == "member"
+        assert roles[-1][0] == manager_team.slug
+        assert roles[-1][1].id == "manager"
