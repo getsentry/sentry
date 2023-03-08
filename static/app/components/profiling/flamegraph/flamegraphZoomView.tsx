@@ -69,6 +69,7 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disableGrid?: boolean;
   disablePanX?: boolean;
   disableZoom?: boolean;
 }
@@ -86,6 +87,7 @@ function FlamegraphZoomView({
   setFlamegraphOverlayCanvasRef,
   disablePanX = false,
   disableZoom = false,
+  disableGrid = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -116,7 +118,7 @@ function FlamegraphZoomView({
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
-    if (!flamegraphOverlayCanvasRef) {
+    if (!flamegraphOverlayCanvasRef || disableGrid) {
       return null;
     }
     return new GridRenderer(
@@ -124,7 +126,7 @@ function FlamegraphZoomView({
       flamegraphTheme,
       flamegraph.formatter
     );
-  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
   const sampleTickRenderer: SampleTickRenderer | null = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
