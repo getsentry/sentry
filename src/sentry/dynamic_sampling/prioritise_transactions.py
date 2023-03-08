@@ -1,8 +1,7 @@
 import logging
 import time
-from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Iterator, List, Optional, Tuple, cast
+from typing import Iterator, List, Optional, Tuple, TypedDict, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -30,8 +29,7 @@ MAX_SECONDS = 60
 CHUNK_SIZE = 1000
 
 
-@dataclass(frozen=True)
-class ProjectTransactions:
+class ProjectTransactions(TypedDict, total=True):
     project_id: int
     org_id: int
     transaction_counts: List[Tuple[str, int]]
@@ -189,22 +187,22 @@ def fetch_transactions_with_total_volumes(
             num_transactions = row["num_transactions"]
             if current_proj_id != proj_id or current_org_id != org_id:
                 if len(transaction_counts) > 0:
-                    yield ProjectTransactions(
-                        project_id=cast(int, current_proj_id),
-                        org_id=cast(int, current_org_id),
-                        transaction_counts=transaction_counts,
-                    )
+                    yield {
+                        "project_id": cast(int, current_proj_id),
+                        "org_id": cast(int, current_org_id),
+                        "transaction_counts": transaction_counts,
+                    }
                 transaction_counts = []
                 current_org_id = org_id
                 current_proj_id = proj_id
             transaction_counts.append((transaction_name, num_transactions))
         if not more_results:
             if len(transaction_counts) > 0:
-                yield ProjectTransactions(
-                    project_id=cast(int, current_proj_id),
-                    org_id=cast(int, current_org_id),
-                    transaction_counts=transaction_counts,
-                )
+                yield {
+                    "project_id": cast(int, current_proj_id),
+                    "org_id": cast(int, current_org_id),
+                    "transaction_counts": transaction_counts,
+                }
             break
     else:
         logger.error(
@@ -218,26 +216,32 @@ def fetch_transactions_with_total_volumes(
 def merge_transactions(
     left: ProjectTransactions, right: ProjectTransactions
 ) -> ProjectTransactions:
-    if left.org_id != right.org_id:
-        raise ValueError("missmatched orgs while merging transactions", left.org_id, right.org_id)
-    if left.project_id != right.project_id:
+    if left["org_id"] != right["org_id"]:
         raise ValueError(
-            "missmatched projects while merging transactions", left.project_id, right.project_id
+            "missmatched orgs while merging transactions", left["org_id"], right["org_id"]
+        )
+    if left["project_id"] != right["project_id"]:
+        raise ValueError(
+            "missmatched projects while merging transactions",
+            left["project_id"],
+            right["project_id"],
         )
 
     transactions = set()
-    merged_transactions = [*left.transaction_counts]
+    merged_transactions = [*left["transaction_counts"]]
     for transaction_name, _ in merged_transactions:
         transactions.add(transaction_name)
 
-    for transaction_name, count in right.transaction_counts:
+    for transaction_name, count in right["transaction_counts"]:
         if transaction_name not in transactions:
             # not already in left, add it
             merged_transactions.append((transaction_name, count))
 
-    return ProjectTransactions(
-        org_id=left.org_id, project_id=left.project_id, transaction_counts=merged_transactions
-    )
+    return {
+        "org_id": left["org_id"],
+        "project_id": left["project_id"],
+        "transaction_counts": merged_transactions,
+    }
 
 
 def transactions_zip(
@@ -268,24 +272,27 @@ def transactions_zip(
 
         if right_elm is not None and left_elm is not None:
             # we have both right and left try to merge them if they point to the same entity
-            if left_elm.org_id == right_elm.org_id and left_elm.project_id == right_elm.project_id:
+            if (
+                left_elm["org_id"] == right_elm["org_id"]
+                and left_elm["project_id"] == right_elm["project_id"]
+            ):
                 yield merge_transactions(left_elm, right_elm)
                 left_elm = None
                 right_elm = None
             else:
                 # the two elements do not match see which one is "smaller" and return it, keep the other
                 # for the next iteration
-                if left_elm.org_id < right_elm.org_id:
+                if left_elm["org_id"] < right_elm["org_id"]:
                     yield left_elm
                     left_elm = None
-                elif left_elm.org_id > right_elm.org_id:
+                elif left_elm["org_id"] > right_elm["org_id"]:
                     yield right_elm
                     right_elm = None
                 # orgs are the sam try projects
-                elif left_elm.project_id < right_elm.project_id:
+                elif left_elm["project_id"] < right_elm["project_id"]:
                     yield left_elm
                     left_elm = None
-                else:  # right_elm.project_id > left_elm.project_id
+                else:  # right_elm["project_id"] > left_elm["project_id"]
                     yield right_elm
                     right_elm = None
         else:

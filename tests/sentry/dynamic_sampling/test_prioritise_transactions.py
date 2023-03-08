@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_transactions import (
-    ProjectTransactions,
     fetch_transactions_with_total_volumes,
     get_orgs_with_transactions,
     merge_transactions,
@@ -88,8 +87,8 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         expected_names = {"tm3", "tl5", "tl4"}
         for idx, p_tran in enumerate(fetch_transactions_with_total_volumes(orgs, True, 3)):
             if p_tran is not None:
-                assert len(p_tran.transaction_counts) == 3
-                for name, count in p_tran.transaction_counts:
+                assert len(p_tran["transaction_counts"]) == 3
+                for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
@@ -104,24 +103,24 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         expected_names = {"ts1", "ts2"}
         for idx, p_tran in enumerate(fetch_transactions_with_total_volumes(orgs, False, 2)):
-            assert len(p_tran.transaction_counts) == 2
+            assert len(p_tran["transaction_counts"]) == 2
             if p_tran is not None:
-                for name, count in p_tran.transaction_counts:
+                for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
 
 
 def test_merge_transactions():
-    t1 = ProjectTransactions(project_id=1, org_id=2, transaction_counts=[("ts1", 10), ("tm2", 100)])
-    t2 = ProjectTransactions(
-        project_id=1, org_id=2, transaction_counts=[("tm2", 100), ("tl3", 1000)]
-    )
+    t1 = {"project_id": 1, "org_id": 2, "transaction_counts": [("ts1", 10), ("tm2", 100)]}
+    t2 = {"project_id": 1, "org_id": 2, "transaction_counts": [("tm2", 100), ("tl3", 1000)]}
 
     actual = merge_transactions(t1, t2)
 
-    expected = ProjectTransactions(
-        project_id=1, org_id=2, transaction_counts=[("ts1", 10), ("tm2", 100), ("tl3", 1000)]
-    )
+    expected = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
+    }
 
     assert actual == expected
 
@@ -138,11 +137,11 @@ def test_transactions_zip():
             transaction_counts = [("ts1", 10), ("tm2", 100)]
         else:
             transaction_counts = [("ts1", 10), ("tm2", 100), ("tl3", 1000)]
-        return ProjectTransactions(
-            project_id=proj_id,
-            org_id=org_id,
-            transaction_counts=transaction_counts,  # not relevant in zipping
-        )
+        return {
+            "project_id": proj_id,
+            "org_id": org_id,
+            "transaction_counts": transaction_counts,  # not relevant in zipping
+        }
 
     trans_low = [pt(1, 1, low), pt(1, 2, low), pt(2, 1, low), pt(2, 3, low), pt(3, 2, low)]
     trans_high = [pt(2, 1, high), (pt(2, 2, high)), pt(3, 1, high), pt(3, 2, high), pt(3, 3, high)]

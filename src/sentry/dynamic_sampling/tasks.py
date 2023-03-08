@@ -145,9 +145,9 @@ def prioritise_transactions() -> None:
                 ),
             ):
 
-                if not current_org or current_org.id != project_transactions.org_id:
+                if not current_org or current_org.id != project_transactions["org_id"]:
                     current_org = Organization.objects.get_from_cache(
-                        id=project_transactions.org_id
+                        id=project_transactions["org_id"]
                     )
                     current_org_enabled = features.has(
                         "organizations:ds-prioritise-by-transaction-bias", current_org
@@ -169,12 +169,10 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     A task that given a project relative transaction counts calculates rebalancing
     sampling rates based on the overall desired project sampling rate.
     """
-    # TODO RaduW Do we want this to be configurable, is 10 OK ?
-    MAX_EXPLICIT_TRANSACTIONS = 10
 
-    org_id = project_transactions.org_id
-    project_id = project_transactions.project_id
-    transactions = project_transactions.transaction_counts
+    org_id = project_transactions["org_id"]
+    project_id = project_transactions["project_id"]
+    transactions = project_transactions["transaction_counts"]
     project = Project.objects.get_from_cache(id=project_id)
     sample_rate = quotas.get_blended_sample_rate(project)
 
@@ -185,7 +183,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     named_rates, global_rate = adjust_sample_rate(
         transactions=transactions,
         rate=sample_rate,
-        max_explicit_transactions=MAX_EXPLICIT_TRANSACTIONS,
+        max_explicit_transactions=MAX_TRANSACTIONS_PER_PROJECT,
     )
 
     set_transactions_resampling_rates(
