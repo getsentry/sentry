@@ -509,7 +509,7 @@ describe('Custom Repositories', function () {
         await screen.findByText('App Store Connect credentials')
       ).toBeInTheDocument();
 
-      await userEvent.click(screen.getByText('Update'));
+      await userEvent.click(screen.getByText('Update'), {delay: null});
 
       await waitFor(() => expect(updateMockSucceeds).toHaveBeenCalledTimes(1));
       expect(updateCredentialsMockSucceeds).toHaveBeenCalledTimes(1);
@@ -518,9 +518,8 @@ describe('Custom Repositories', function () {
         'Successfully updated custom repository'
       );
 
-      act(() => {
-        jest.runAllTimers();
-      });
+      act(() => jest.runAllTimers());
+      jest.useRealTimers();
     });
 
     it('credentials not authorized for the application', async function () {
