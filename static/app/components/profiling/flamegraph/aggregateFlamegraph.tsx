@@ -199,7 +199,7 @@ export function AggregateFlamegraph(): ReactElement {
   );
 
   useEffect(() => {
-    const canvasHeight = flamegraphCanvasRef?.getBoundingClientRect().height;
+    const canvasHeight = flamegraphCanvas?.logicalSpace.height;
     if (!canvasHeight) {
       return;
     }
@@ -215,7 +215,10 @@ export function AggregateFlamegraph(): ReactElement {
         theme.SIZES.BAR_FONT_SIZE * Math.max(minReadableRatio, fitToRatio);
       return theme;
     });
-  }, [flamegraph, flamegraphCanvasRef, setFlamegraphThemeMutation]);
+
+    // We skip `flamegraphCanvas` as it causes an infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [flamegraph, setFlamegraphThemeMutation]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -388,6 +391,7 @@ export function AggregateFlamegraph(): ReactElement {
         setFlamegraphOverlayCanvasRef={setFlamegraphOverlayCanvasRef}
         disablePanX
         disableZoom
+        disableGrid
       />
       <AggregateFlamegraphToolbar>
         <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>
