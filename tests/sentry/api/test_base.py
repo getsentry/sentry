@@ -66,7 +66,7 @@ _dummy_streaming_endpoint = DummyPaginationStreamingEndpoint.as_view()
 class EndpointTest(APITestCase):
     def test_basic_cors(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization=org, allowed_origins="*")
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         request = self.make_request(method="GET")
         request.META["HTTP_ORIGIN"] = "http://example.com"

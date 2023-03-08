@@ -65,7 +65,7 @@ class AccessFactoryTestCase(TestCase):
 
     @exempt_from_silo_limits()
     def create_api_key(self, organization: Organization, **kwds):
-        return ApiKey.objects.create(organization=organization, **kwds)
+        return ApiKey.objects.create(organization_id=organization.id, **kwds)
 
     @exempt_from_silo_limits()
     def create_auth_provider(self, organization: Organization, **kwds):

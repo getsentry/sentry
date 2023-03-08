@@ -203,7 +203,7 @@ class RatelimitMiddlewareTest(TestCase):
 
         # Test for apikey
         api_key = ApiKey.objects.create(
-            organization=self.organization, scope_list=["project:write"]
+            organization_id=self.organization.id, scope_list=["project:write"]
         )
         request.user = AnonymousUser()
         request.auth = api_key

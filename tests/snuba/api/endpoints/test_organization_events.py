@@ -108,7 +108,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
 
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
         query = {"field": ["project.name", "environment"], "project": [self.project.id]}
 
         url = self.reverse_url()
@@ -4301,7 +4303,9 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         mock.return_value = {}
         # Project ID cannot be inferred when using an org API key, so that must
         # be passed in the parameters
-        api_key = ApiKey.objects.create(organization=self.organization, scope_list=["org:read"])
+        api_key = ApiKey.objects.create(
+            organization_id=self.organization.id, scope_list=["org:read"]
+        )
 
         query = {
             "field": ["project.name", "environment"],

@@ -36,7 +36,7 @@ class CreateAuditEntryTest(TestCase):
 
     def test_audit_entry_api(self):
         org = self.create_organization()
-        apikey = ApiKey.objects.create(organization=org, allowed_origins="*")
+        apikey = ApiKey.objects.create(organization_id=org.id, allowed_origins="*")
 
         req = FakeHttpRequest(AnonymousUser())
         req.auth = apikey

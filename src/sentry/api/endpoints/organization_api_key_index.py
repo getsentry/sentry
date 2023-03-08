@@ -23,7 +23,9 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        queryset = sorted(ApiKey.objects.filter(organization=organization), key=lambda x: x.label)
+        queryset = sorted(
+            ApiKey.objects.filter(organization_id=organization.id), key=lambda x: x.label
+        )
 
         return Response(serialize(queryset, request.user))
 
@@ -35,7 +37,7 @@ class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
         :pparam string organization_slug: the organization short name
         :auth: required
         """
-        key = ApiKey.objects.create(organization=organization, scope_list=DEFAULT_SCOPES)
+        key = ApiKey.objects.create(organization_id=organization.id, scope_list=DEFAULT_SCOPES)
 
         self.create_audit_entry(
             request,

@@ -69,29 +69,29 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
 
     def test_api_key_with_org_access(self):
         with exempt_from_silo_limits():
-            key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_org_access(self):
         with exempt_from_silo_limits():
             key = ApiKey.objects.create(
-                organization=self.create_organization(), scope_list=["org:read"]
+                organization_id=self.create_organization().id, scope_list=["org:read"]
             )
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_without_access(self):
         with exempt_from_silo_limits():
-            key = ApiKey.objects.create(organization=self.org)
+            key = ApiKey.objects.create(organization_id=self.org.id)
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access(self):
         with exempt_from_silo_limits():
-            key = ApiKey.objects.create(organization=self.org, scope_list=["team:read"])
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.org, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
         with exempt_from_silo_limits():
-            key = ApiKey.objects.create(organization=self.org, scope_list=["org:read"])
+            key = ApiKey.objects.create(organization_id=self.org.id, scope_list=["org:read"])
         assert not self.has_object_perm("PUT", self.org, auth=key)
 
     def test_org_requires_2fa_with_superuser(self):

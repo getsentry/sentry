@@ -306,7 +306,7 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
     def issue_state_change(self, group, identity, data):
         event_write_key = ApiKey(
-            organization=group.project.organization, scope_list=["event:write"]
+            organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
         # undoing the enum structure of ACTION_TYPE to

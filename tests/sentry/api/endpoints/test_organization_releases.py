@@ -1627,7 +1627,7 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # test right org, wrong permissions level
         with exempt_from_silo_limits():
-            bad_api_key = ApiKey.objects.create(organization=org, scope_list=["project:read"])
+            bad_api_key = ApiKey.objects.create(organization_id=org.id, scope_list=["project:read"])
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1638,7 +1638,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         # test wrong org, right permissions level
         with exempt_from_silo_limits():
             wrong_org_api_key = ApiKey.objects.create(
-                organization=org2, scope_list=["project:write"]
+                organization_id=org2.id, scope_list=["project:write"]
             )
         response = self.client.post(
             url,
@@ -1649,7 +1649,9 @@ class OrganizationReleaseCreateTest(APITestCase):
 
         # test right org, right permissions level
         with exempt_from_silo_limits():
-            good_api_key = ApiKey.objects.create(organization=org, scope_list=["project:write"])
+            good_api_key = ApiKey.objects.create(
+                organization_id=org.id, scope_list=["project:write"]
+            )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
