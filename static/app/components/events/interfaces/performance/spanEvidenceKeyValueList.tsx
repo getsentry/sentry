@@ -21,7 +21,7 @@ import {
 } from 'sentry/types';
 import {formatBytesBase2} from 'sentry/utils';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {getPerformanceDuration} from 'sentry/views/performance/utils';
 
 import KeyValueList from '../keyValueList';
@@ -258,13 +258,12 @@ const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
 );
 
 const makeTransactionNameRow = (event: Event, orgSlug: string) => {
-  const to = {
-    pathname: normalizeUrl(`/organizations/${orgSlug}/performance/summary/`),
-    query: {
-      project: event.projectID,
-      transaction: event.title,
-    },
-  };
+  const to = transactionSummaryRouteWithQuery({
+    orgSlug,
+    projectID: event.projectID,
+    transaction: event.title,
+    query: {},
+  });
   return makeRow(
     t('Transaction'),
     <pre>
