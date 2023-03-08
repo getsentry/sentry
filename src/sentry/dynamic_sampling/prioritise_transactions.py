@@ -27,7 +27,7 @@ from sentry.utils.snuba import raw_snql_query
 
 logger = logging.getLogger(__name__)
 MAX_SECONDS = 60
-CHUNK_SIZE = 1000
+CHUNK_SIZE = 10000
 
 
 class ProjectTransactions(TypedDict, total=True):
