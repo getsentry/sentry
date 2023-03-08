@@ -154,10 +154,9 @@ def get_span_duration(span: Span) -> timedelta:
 
 
 def get_duration_between_spans(first_span: Span, second_span: Span):
-    first_span_ends = timedelta(seconds=first_span.get("timestamp", 0))
-    second_span_begins = timedelta(seconds=second_span.get("start_timestamp", 0))
-
-    return second_span_begins - first_span_ends
+    first_span_ends = first_span.get("timestamp", 0)
+    second_span_begins = second_span.get("start_timestamp", 0)
+    return timedelta(seconds=second_span_begins - first_span_ends).total_seconds() * 1000
 
 
 def get_url_from_span(span: Span) -> str:
