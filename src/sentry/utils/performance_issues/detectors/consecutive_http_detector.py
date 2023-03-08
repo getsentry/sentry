@@ -26,7 +26,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if not span_id or not self._is_eligible_http_span(span):
             return
 
-        if self._overlaps_last_span(span):
+        if self._overlaps_last_span(span) or self._matches_previous_span_hash(span):
             self._validate_and_store_performance_problem()
             self._reset_variables()
 
@@ -81,6 +81,16 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         last_span_ends = timedelta(seconds=last_span.get("timestamp", 0))
         current_span_begins = timedelta(seconds=span.get("start_timestamp", 0))
         return last_span_ends > current_span_begins
+
+    def _matches_previous_span_hash(self, span: Span) -> bool:
+        if len(self.consecutive_http_spans) == 0:
+            return False
+
+        last_span = self.consecutive_http_spans[-1]
+        last_span_hash = last_span.get("hash", None)
+        hash = span.get("hash", None)
+
+        return last_span_hash == hash
 
     def _reset_variables(self) -> None:
         self.consecutive_http_spans = []
