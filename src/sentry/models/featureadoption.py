@@ -1,5 +1,4 @@
 import logging
-from contextlib import contextmanager
 from typing import cast
 
 from django.conf import settings
@@ -16,7 +15,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.utils.redis import redis_clusters
+from sentry.utils.redis import get_dynamic_cluster_from_options
 from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
@@ -121,52 +120,31 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 class FeatureAdoptionRedisBackend:
     def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options):
         self.key_tpl = key_tpl
-        # is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
-        #     "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
-        # )
+        self.is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
+            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+        )
 
-        is_redis_cluster, self.cluster = redis_clusters.get("default")
-
-        if is_redis_cluster:
-
-            @contextmanager
-            def ctx_client():
-                yield self.cluster
-
-            self.ctx_client = ctx_client
+    def get_client(self, key):
+        # WARN: Carefuly as this works only for single key operations.
+        if self.is_redis_cluster:
+            return self.cluster
         else:
-            # TODO: Remove with all redis blaster usages
-            self.ctx_client = self.cluster.map
+            return self.cluster.get_local_client_for_key(key)
 
     def in_cache(self, organization_id, feature_id):
         org_key = self.key_tpl.format(organization_id)
-        feature_matches = []
-        with self.ctx_client() as client:
-            feature_matches.append(client.sismember(org_key, feature_id))
-
-        return any([p.value for p in feature_matches])
-
-    def set_cache(self, organization_id, feature_id):
-        org_key = self.key_tpl.format(organization_id)
-        with self.ctx_client() as client:
-            client.sadd(org_key, feature_id)
-        return True
+        return self.get_client(org_key).sismember(org_key, feature_id)
 
     def get_all_cache(self, organization_id):
-        result = []
         org_key = self.key_tpl.format(organization_id)
-        with self.ctx_client() as client:
-            result.append(client.smembers(org_key))
-
-        return {int(x) for x in set.union(*(p.value for p in result))}
+        return {int(v) for v in self.get_client(org_key).smembers(org_key)}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
             return False
 
         org_key = self.key_tpl.format(organization_id)
-        with self.ctx_client() as client:
-            client.sadd(org_key, *args)
+        self.get_client(org_key).sadd(org_key, *args)
         return True
 
 
@@ -181,7 +159,7 @@ class FeatureAdoptionManager(BaseManager):
         return self.cache_backend.in_cache(organization_id, feature_id)
 
     def set_cache(self, organization_id, feature_id):
-        return self.cache_backend.set_cache(organization_id, feature_id)
+        return self.bulk_set_cache(organization_id, feature_id)
 
     def get_all_cache(self, organization_id):
         return self.cache_backend.get_all_cache(organization_id)
