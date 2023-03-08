@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
@@ -313,7 +315,9 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     return _format_rows(result["data"], query)
 
 
-def run_outcomes_query_timeseries(query: QueryDefinition, tenant_ids=None) -> ResultSet:
+def run_outcomes_query_timeseries(
+    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
