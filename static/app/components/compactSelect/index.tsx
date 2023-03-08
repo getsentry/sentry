@@ -78,7 +78,10 @@ function CompactSelect<Value extends React.Key>({
     () =>
       options.map((item, i) => ({
         ...item,
-        key: 'options' in item ? item.key ?? i : item.value,
+        // options key has to be unique to the current list of options,
+        // else we risk of a duplicate key error and end up confusing react
+        // which ultimately fails to call the correct item handlers
+        key: 'options' in item ? item.key ?? `options-${i}` : item.value,
       })),
     [options]
   );
