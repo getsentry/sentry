@@ -363,6 +363,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.monitors",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -589,6 +590,7 @@ CELERY_IMPORTS = (
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
+    "sentry.monitors.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -596,7 +598,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
-    "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
@@ -640,6 +641,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.tasks.auto_enable_codecov",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -701,6 +703,7 @@ CELERY_QUEUES = [
     Queue("post_process_errors", routing_key="post_process_errors"),
     Queue("post_process_issue_platform", routing_key="post_process_issue_platform"),
     Queue("post_process_transactions", routing_key="post_process_transactions"),
+    Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
     Queue("reports.deliver", routing_key="reports.deliver"),
@@ -781,7 +784,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 30},
     },
     "check-monitors": {
-        "task": "sentry.tasks.check_monitors",
+        "task": "sentry.monitors.tasks.check_monitors",
         "schedule": timedelta(minutes=1),
         "options": {"expires": 60},
     },
@@ -876,11 +879,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
+    "auto-enable-codecov": {
+        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "schedule": timedelta(hours=24),
+        "options": {"expires": 3600},
+    },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
         # Run job every 1 hour
         "schedule": crontab(minute=0),
-        "options": {"expires": 3600},
     },
 }
 
@@ -1011,6 +1018,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap3"
 SENTRY_FEATURES = {
     # Enables user registration.
     "auth:register": True,
+    # Enables the new artifact bundle uploads
+    "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
@@ -1019,6 +1028,8 @@ SENTRY_FEATURES = {
     "organizations:codecov-stacktrace-integration-v2": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
+    # The overall flag for codecov integration, gated by plans.
+    "organizations:codecov-integration": False,
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
@@ -1065,18 +1076,16 @@ SENTRY_FEATURES = {
     "organizations:performance-view": True,
     # Enable profiling
     "organizations:profiling": False,
-    # Enable performance spans in flamecharts
-    "organizations:profiling-flamechart-spans": False,
     # Enable flamegraph view for profiling
     "organizations:profiling-flamegraphs": False,
     # Enable ui frames in flamecharts
     "organizations:profiling-ui-frames": False,
-    # Enable the profiling dashboard redesign
-    "organizations:profiling-dashboard-redesign": False,
     # Enable the profiling aggregate flamegraph
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the profiling span previews
+    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
@@ -1248,8 +1257,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable experimental session replay UI
-    "organizations:session-replay-ui": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
@@ -2598,8 +2605,6 @@ GEOIP_PATH_MMDB = None
 JS_SDK_LOADER_CDN_URL = ""
 # Version of the SDK - Used in header Surrogate-Key sdk/JS_SDK_LOADER_SDK_VERSION
 JS_SDK_LOADER_SDK_VERSION = ""
-# Version of the Dynamic Loader - Used in header Surrogate-Key sdk/JS_SDK_DYNAMIC_LOADER_SDK_VERSION
-JS_SDK_DYNAMIC_LOADER_SDK_VERSION = ""
 # This should be the url pointing to the JS SDK. It may contain up to two "%s".
 # The first "%s" will be replaced with the SDK version, the second one is used
 # to inject a bundle modifier in the JS SDK CDN loader. e.g:
@@ -2644,7 +2649,9 @@ KAFKA_CLUSTERS = {
 #     pick up the change.
 
 KAFKA_EVENTS = "events"
+KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
 KAFKA_TRANSACTIONS = "transactions"
+KAFKA_TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2666,8 +2673,10 @@ KAFKA_SNUBA_GENERIC_METRICS = "snuba-generic-metrics"
 KAFKA_INGEST_REPLAY_EVENTS = "ingest-replay-events"
 KAFKA_INGEST_REPLAYS_RECORDINGS = "ingest-replay-recordings"
 KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
+KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
+KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2686,7 +2695,9 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 # Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
+    KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2714,11 +2725,13 @@ KAFKA_TOPICS = {
     KAFKA_INGEST_REPLAY_EVENTS: {"cluster": "default"},
     KAFKA_INGEST_REPLAYS_RECORDINGS: {"cluster": "default"},
     KAFKA_INGEST_OCCURRENCES: {"cluster": "default"},
+    KAFKA_INGEST_MONITORS: {"cluster": "default"},
     # Metrics Testing Topics
     KAFKA_SNUBA_GENERICS_METRICS_CS: {"cluster": "default"},
     # Region to Control Silo messaging - eg UserIp and AuditLog
     KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
+    KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
 }
 
 

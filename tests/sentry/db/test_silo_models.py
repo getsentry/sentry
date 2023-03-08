@@ -1,25 +1,18 @@
 from sentry.api.serializers.base import registry
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
-    Activity,
     Actor,
     ApiApplication,
     ApiKey,
-    AuditLogEntry,
     AuthProvider,
     AuthProviderDefaultTeams,
-    Dashboard,
-    MonitorCheckIn,
-    MonitorLocation,
     NotificationSetting,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
     OrganizationOnboardingTask,
-    Project,
     ProjectBookmark,
     PromptsActivity,
-    RecentSearch,
     RuleActivity,
     SentryApp,
     SentryAppInstallation,
@@ -27,7 +20,6 @@ from sentry.models import (
     ServiceHook,
     Team,
     User,
-    UserOption,
 )
 from sentry.models.integrations import (
     ExternalActor,
@@ -45,13 +37,10 @@ from sentry.testutils.silo import (
 
 decorator_exemptions = set()
 fk_emeptions = {
-    (Activity, User),
     (ApiKey, Organization),
-    (AuditLogEntry, Organization),
     (OrganizationMember, User),
     (AuthProviderDefaultTeams, Team),
     (AuthProvider, Organization),
-    (User, Dashboard),
     (Integration, AlertRuleTriggerAction),
     (Integration, ExternalActor),
     (Integration, ExternalIssue),
@@ -61,15 +50,11 @@ fk_emeptions = {
     (SentryApp, Organization),
     (SentryAppInstallation, Organization),
     (SentryAppInstallationForProvider, Organization),
-    (MonitorCheckIn, MonitorLocation),
     (NotificationSetting, Actor),
-    (UserOption, Project),
-    (UserOption, Organization),
     (OrganizationAccessRequest, User),
     (OrganizationOnboardingTask, User),
     (ProjectBookmark, User),
     (PromptsActivity, User),
-    (RecentSearch, User),
     (RuleActivity, User),
     (ServiceHook, ApiApplication),
     (User, Actor),

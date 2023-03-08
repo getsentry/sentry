@@ -336,10 +336,15 @@ describe('groupEventDetails', () => {
     const props = makeDefaultMockData();
     const group: Group = TestStubs.Group({
       issueCategory: IssueCategory.PROFILE,
-      issueType: IssueType.PROFILE_BLOCKED_THREAD,
+      issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     });
     const transaction = TestStubs.Event({
       entries: [],
+      occurrence: {
+        evidenceDisplay: [],
+        evidenceData: {},
+        type: 2000,
+      },
     });
 
     mockGroupApis(

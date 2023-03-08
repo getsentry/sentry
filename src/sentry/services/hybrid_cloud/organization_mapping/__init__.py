@@ -1,21 +1,18 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
+from typing import Optional, TypedDict
 
 from django.utils import timezone
 
+from sentry.models import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import (
-    InterfaceWithLifecycle,
-    PatchableMixin,
-    Unset,
-    UnsetVal,
-    silo_mode_delegation,
-    stubbed,
-)
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 
@@ -30,15 +27,26 @@ class RpcOrganizationMapping:
     customer_id: Optional[str] = None
 
 
-@dataclass
-class RpcOrganizationMappingUpdate(PatchableMixin["Organization"]):
-    organization_id: int = -1
-    name: Unset[str] = UnsetVal
-    customer_id: Unset[str] = UnsetVal
+class RpcOrganizationMappingUpdate(TypedDict):
+    """A set of values to be updated on an OrganizationMapping.
 
-    @classmethod
-    def from_instance(cls, inst: Organization) -> RpcOrganizationMappingUpdate:
-        return cls(**cls.params_from_instance(inst), organization_id=inst.id)
+    An absent key indicates that the attribute should not be updated. (Compare to a
+    `"customer_id": None` entry, which indicates that `customer_id` should be
+    overwritten with a null value.)
+    """
+
+    name: str
+    customer_id: Optional[str]
+
+
+def update_organization_mapping_from_instance(
+    organization: Organization,
+) -> RpcOrganizationMappingUpdate:
+    attributes = {
+        attr_name: getattr(organization, attr_name)
+        for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
+    }
+    return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):
@@ -74,7 +82,7 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update(self, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @abstractmethod
@@ -101,5 +109,3 @@ organization_mapping_service: OrganizationMappingService = silo_mode_delegation(
         SiloMode.CONTROL: impl_with_db,
     }
 )
-
-from sentry.models import Organization

@@ -26,7 +26,7 @@ require() {
 configure-sentry-cli() {
     if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
         if ! require sentry-cli; then
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.0.4 bash
+            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
         fi
     fi
 }
@@ -220,7 +220,7 @@ clean() {
 
 drop-db() {
     echo "--> Dropping existing 'sentry' database"
-    docker exec sentry_postgres dropdb -h 127.0.0.1 -U postgres sentry || true
+    docker exec sentry_postgres dropdb --if-exists -h 127.0.0.1 -U postgres sentry
 }
 
 reset-db() {

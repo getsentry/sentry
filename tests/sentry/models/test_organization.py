@@ -2,8 +2,9 @@ import copy
 from unittest import mock
 from uuid import uuid4
 
+import pytest
 from django.core import mail
-from django.db import models
+from django.db import ProgrammingError, models, transaction
 
 from sentry import audit_log
 from sentry.api.base import ONE_DAY
@@ -33,9 +34,12 @@ from sentry.models import (
     ReleaseFile,
     Team,
     User,
+    UserOption,
 )
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.audit import create_system_audit_entry
 
@@ -351,7 +355,9 @@ class Require2fa(TestCase):
         assert mail.outbox[0].to == [non_compliant_user.email]
 
         audit_logs = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         )
         assert audit_logs.count() == 1
         assert audit_logs[0].data["email"] == non_compliant_user.email
@@ -371,7 +377,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
 
     def test_handle_2fa_required__non_compliant_members(self):
@@ -388,7 +396,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == len(non_compliant)
         assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
@@ -402,7 +412,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
@@ -459,7 +471,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=None,
                 actor_key=api_key,
             ).count()
@@ -480,7 +492,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=self.owner,
                 actor_key=None,
                 ip_address=None,
@@ -529,3 +541,32 @@ class Require2fa(TestCase):
 
         url = org.absolute_url("/organizations/acme/issues/", query="?project=123", fragment="#ref")
         assert url == "http://acme.testserver/issues/?project=123#ref"
+
+
+@region_silo_test
+class OrganizationDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        org = self.create_organization()
+        assert Organization.objects.exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Organization.objects.filter(id=org.id).delete()
+        assert Organization.objects.exists()
+
+    def test_hybrid_cloud_deletion(self):
+        org = self.create_organization()
+        user = self.create_user()
+        UserOption.objects.set_value(user, "cool_key", "Hello!", organization_id=org.id)
+        org_id = org.id
+
+        with outbox_runner():
+            org.delete()
+
+        assert not Organization.objects.filter(id=org_id).exists()
+
+        # cascade is asynchronous, ensure there is still related search,
+        assert UserOption.objects.filter(organization_id=org_id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Ensure they are all now gone.
+        assert not UserOption.objects.filter(organization_id=org_id).exists()

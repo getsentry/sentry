@@ -12,12 +12,6 @@ from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEV_METRICS_INDEXER_ARGS = [
-    # We don't want to burn laptop CPU while idle, but do want for
-    # metrics to be ingested with lowest latency possible.
-    "--max-batch-time-ms",
-    "10000",
-    "--max-batch-size",
-    "1",
     # We don't really need more than 1 process.
     "--processes",
     "1",
@@ -27,6 +21,9 @@ _DEV_METRICS_INDEXER_ARGS = [
     "--no-strict-offset-reset",
 ]
 
+# NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
+# in `devserver()` like so:
+#     daemons += [_get_daemon("my_new_daemon")]
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -96,6 +93,7 @@ _DEFAULT_DAEMONS = {
     ],
     "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
     "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 
@@ -195,12 +193,18 @@ and run `sentry devservices up kafka zookeeper`.
     # for this magic constant
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
+    # Configure URL prefixes for customer-domains.
+    os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
+    os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{port}"
+
     from django.conf import settings
 
     from sentry import options
     from sentry.services.http import SentryHTTPServer
 
-    url_prefix = options.get("system.url-prefix", "")
+    url_prefix = options.get("system.url-prefix")
     parsed_url = urlparse(url_prefix)
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
@@ -324,7 +328,7 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
