@@ -10,8 +10,14 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
-from sentry.models import Project
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorStatus
+from sentry.models import Environment, Project
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorEnvironment,
+    MonitorStatus,
+)
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
@@ -37,6 +43,15 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 logger.debug("monitor does not exist: %s", params["monitor_id"])
                 return
 
+            environment_name = params.get("environment")
+            if not environment_name:
+                environment_name = "production"
+            environment = Environment.get_or_create(project=monitor.project, name=environment_name)
+
+            monitor_environment = MonitorEnvironment.objects.get(
+                monitor=monitor, environment=environment
+            )
+
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
                 int(params["duration"] * 1000) if params.get("duration") is not None else None
@@ -46,7 +61,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 check_in = MonitorCheckIn.objects.select_for_update().get(
                     guid=params["check_in_id"],
                     project_id=project_id,
-                    monitor=monitor,
+                    monitor_environment=monitor_environment,
                 )
 
                 if duration is None:
@@ -64,6 +79,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
                     monitor=monitor,
+                    monitor_environment=monitor_environment,
                     guid=params["check_in_id"],
                     duration=duration,
                     status=status,
@@ -85,6 +101,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor.mark_failed(start_time)
+                monitor_environment.mark_failed(start_time)
                 return
 
             monitor_params = {
@@ -98,6 +115,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
             Monitor.objects.filter(id=monitor.id).exclude(last_checkin__gt=start_time).update(
                 **monitor_params
             )
+            MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
+                last_checkin__gt=start_time
+            ).update(**monitor_params)
     except Exception:
         # Skip this message and continue processing in the consumer.
         logger.exception("Failed to process check-in", exc_info=True)

@@ -3,10 +3,12 @@ from datetime import timedelta
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.models import Environment
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvironment,
     MonitorStatus,
     MonitorType,
 )
@@ -46,11 +48,26 @@ class UpdateMonitorCheckInTest(APITestCase):
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
+    def _create_monitor_environment(self, monitor):
+        environment = Environment.get_or_create(project=self.project, name="production")
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        return MonitorEnvironment.objects.get_or_create(
+            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+        )[0]
+
     def test_noop_in_progress(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
                 status=CheckInStatus.IN_PROGRESS,
@@ -67,8 +84,12 @@ class UpdateMonitorCheckInTest(APITestCase):
     def test_passing(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
             )
 
             path = path_func(monitor.guid, checkin.guid)
@@ -83,11 +104,20 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor.status == MonitorStatus.OK
             assert monitor.last_checkin > checkin.date_added
 
+            monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+            assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin > checkin.date_added
+
     def test_failing(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
-                monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
+                monitor=monitor,
+                monitor_environment=monitor_environment,
+                project_id=self.project.id,
+                date_added=monitor.date_added,
             )
 
             path = path_func(monitor.guid, checkin.guid)
@@ -102,23 +132,32 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor.status == MonitorStatus.ERROR
             assert monitor.last_checkin > checkin.date_added
 
+            monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+            assert monitor_environment.next_checkin > checkin.date_added
+            assert monitor_environment.status == MonitorStatus.ERROR
+            assert monitor_environment.last_checkin > checkin.date_added
+
     def test_latest_returns_last_unfinished(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added - timedelta(minutes=2),
                 status=CheckInStatus.IN_PROGRESS,
             )
             checkin2 = MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added - timedelta(minutes=1),
                 status=CheckInStatus.IN_PROGRESS,
             )
             checkin3 = MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
                 status=CheckInStatus.OK,
@@ -142,11 +181,18 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor.status == MonitorStatus.OK
             assert monitor.last_checkin > checkin2.date_added
 
+            monitor_environment = MonitorEnvironment.objects.get(id=monitor_environment.id)
+            assert monitor_environment.next_checkin > checkin2.date_added
+            assert monitor_environment.status == MonitorStatus.OK
+            assert monitor_environment.last_checkin > checkin2.date_added
+
     def test_latest_with_no_unfinished_checkin(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
                 status=CheckInStatus.OK,
@@ -159,8 +205,10 @@ class UpdateMonitorCheckInTest(APITestCase):
     def test_invalid_checkin_id(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
+            monitor_environment = self._create_monitor_environment(monitor)
             MonitorCheckIn.objects.create(
                 monitor=monitor,
+                monitor_environment=monitor_environment,
                 project_id=self.project.id,
                 date_added=monitor.date_added,
                 status=CheckInStatus.OK,
