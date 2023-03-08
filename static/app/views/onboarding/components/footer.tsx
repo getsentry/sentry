@@ -30,7 +30,7 @@ export enum OnboardingStatus {
   PROCESSED = 'processed',
 }
 
-type OnboardingState = {
+export type OnboardingState = {
   status: OnboardingStatus;
   firstIssueId?: string;
 };
