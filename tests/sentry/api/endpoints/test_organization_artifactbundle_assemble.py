@@ -98,7 +98,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.data["error"] == "One or more projects are invalid"
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
-    def test_assemble(self, mock_assemble_artifacts):
+    def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle(
             org=self.organization.slug, release=self.release.version
         )
@@ -117,7 +117,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
@@ -134,21 +133,27 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             }
         )
 
-        # We also want to test the endpoint with the release version.
-        # We don't create an actual release because the release version passed in the body is a weak reference of
-        # an existing or future release.
-        version = "1.0"
+    @patch("sentry.tasks.assemble.assemble_artifacts")
+    def test_assemble_with_version_and_no_dist(self, mock_assemble_artifacts):
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+        # We test the endpoint without the release version.
         response = self.client.post(
             self.url,
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
                 "projects": [self.project.slug],
-                "version": version,
+                "version": self.release.version,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
@@ -157,7 +162,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             kwargs={
                 "org_id": self.organization.id,
                 "project_ids": [self.project.id],
-                "version": version,
+                "version": self.release.version,
                 "dist": None,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,
@@ -165,20 +170,29 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             }
         )
 
-        version = "1.0"
+    @patch("sentry.tasks.assemble.assemble_artifacts")
+    def test_assemble_with_version_and_dist(self, mock_assemble_artifacts):
         dist = "android"
+        bundle_file = self.create_artifact_bundle(
+            org=self.organization.slug, release=self.release.version
+        )
+        total_checksum = sha1(bundle_file).hexdigest()
+
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        FileBlobOwner.objects.get_or_create(organization_id=self.organization.id, blob=blob1)
+
+        # We test the endpoint without the release version.
         response = self.client.post(
             self.url,
             data={
                 "checksum": total_checksum,
                 "chunks": [blob1.checksum],
                 "projects": [self.project.slug],
-                "version": version,
+                "version": self.release.version,
                 "dist": dist,
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
-
         assert response.status_code == 200, response.content
         assert response.data["state"] == ChunkFileState.CREATED
         assert set(response.data["missingChunks"]) == set()
@@ -187,7 +201,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
             kwargs={
                 "org_id": self.organization.id,
                 "project_ids": [self.project.id],
-                "version": version,
+                "version": self.release.version,
                 "dist": dist,
                 "chunks": [blob1.checksum],
                 "checksum": total_checksum,

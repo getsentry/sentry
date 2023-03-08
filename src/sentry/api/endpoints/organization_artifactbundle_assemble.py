@@ -94,8 +94,8 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
                 "project_ids": list(project_ids),
                 # We don't perform any validation of the version, since the user might bind a bundle to a specific
                 # release version without actually having created the release object itself.
-                "version": data.get("version"),
-                "dist": data.get("dist"),
+                "version": version,
+                "dist": dist,
                 "checksum": checksum,
                 "chunks": chunks,
                 "upload_as_artifact_bundle": True,

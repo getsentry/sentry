@@ -78,7 +78,6 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
-                "project_ids": [],
                 "version": version,
                 "checksum": checksum,
                 "chunks": chunks,

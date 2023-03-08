@@ -408,6 +408,7 @@ def assemble_artifacts(
     version,
     checksum,
     chunks,
+    # These params have been added for supporting artifact bundles assembling.
     project_ids=None,
     dist=None,
     upload_as_artifact_bundle=False,
