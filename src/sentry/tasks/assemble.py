@@ -307,6 +307,7 @@ def _create_artifact_bundle(
                 ReleaseArtifactBundle.objects.create(
                     organization_id=org_id,
                     release_name=version,
+                    # dist_name can be nullable, so no check is required.
                     dist_name=dist,
                     artifact_bundle=artifact_bundle,
                 )
@@ -390,7 +391,6 @@ def handle_assemble_for_artifact_bundle(bundle, manifest, organization, version,
     # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
     # contents.
     release_name = get_with_manifest_fallback(version, "release", manifest, throw=False)
-    # dist is optional, thus if we don't find it, it's fine.
     dist_name = get_with_manifest_fallback(dist, "dist", manifest, throw=False)
 
     artifact_count = len(manifest.get("files", {}))
@@ -456,6 +456,7 @@ def assemble_artifacts(
 
         with archive:
             manifest = archive.manifest
+
             if upload_as_artifact_bundle:
                 artifact_count = handle_assemble_for_artifact_bundle(
                     bundle, manifest, organization, version, project_ids, dist

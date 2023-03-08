@@ -80,7 +80,14 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
 
         from sentry.tasks.assemble import assemble_artifacts
 
-        # TODO: do we want to allow dist only if release is set?
+        version = data.get("version")
+        dist = data.get("dist")
+
+        if version is None and dist is not None:
+            return Response(
+                {"error": "You need to specify a version together with a dist"}, status=400
+            )
+
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
