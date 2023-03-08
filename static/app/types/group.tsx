@@ -178,6 +178,11 @@ export type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
+export interface ParsedOwnershipRule {
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
+}
+
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -189,6 +194,7 @@ export type IssueOwnership = {
   isActive: boolean;
   lastUpdated: string | null;
   raw: string | null;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export enum GroupActivityType {
