@@ -636,6 +636,7 @@ class MetricsQueryBuilder(QueryBuilder):
                         if self.is_performance
                         else UseCaseKey.RELEASE_HEALTH,
                         include_meta=True,
+                        tenant_ids=self.tenant_ids,
                     )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
@@ -1033,6 +1034,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                         if self.is_performance
                         else UseCaseKey.RELEASE_HEALTH,
                         include_meta=True,
+                        tenant_ids=self.tenant_ids,
                     )
             except Exception as err:
                 raise IncompatibleMetricsQuery(err)
