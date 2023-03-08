@@ -20,6 +20,11 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager import BaseManager
 from sentry.models import Team
+from sentry.models.notificationaction import (
+    AbstractNotificationAction,
+    ActionServiceType,
+    ActionTargetType,
+)
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics
@@ -524,36 +529,24 @@ class AlertRuleTriggerExclusion(Model):
 
 
 @region_silo_only_model
-class AlertRuleTriggerAction(Model):
+class AlertRuleTriggerAction(AbstractNotificationAction):
     """
     This model represents an action that occurs when a trigger is fired. This is
     typically some sort of notification.
     """
 
+    # Overwrites AbstractNotificationAction.trigger_type since this model only holds one trigger_type
+    trigger_type = None
+
+    # Aliases from NotificationAction introduction
+    Type = ActionServiceType
+    TargetType = ActionTargetType
+
     __include_in_export__ = True
 
     _type_registrations = {}
 
-    # Which sort of action to take
-    class Type(Enum):
-        EMAIL = 0
-        PAGERDUTY = 1
-        SLACK = 2
-        MSTEAMS = 3
-        SENTRY_APP = 4
-
     INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
-
-    class TargetType(Enum):
-        # A direct reference, like an email address, Slack channel, or PagerDuty service
-        SPECIFIC = 0
-        # A specific user. This could be used to grab the user's email address.
-        USER = 1
-        # A specific team. This could be used to send an email to everyone associated
-        # with a team.
-        TEAM = 2
-        # A Sentry App instead of any of the above.
-        SENTRY_APP = 3
 
     TypeRegistration = namedtuple(
         "TypeRegistration",
@@ -561,14 +554,7 @@ class AlertRuleTriggerAction(Model):
     )
 
     alert_rule_trigger = FlexibleForeignKey("sentry.AlertRuleTrigger")
-    integration = FlexibleForeignKey("sentry.Integration", null=True)
-    sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
-    type = models.SmallIntegerField()
-    target_type = models.SmallIntegerField()
-    # Identifier used to perform the action on a given target
-    target_identifier = models.TextField(null=True)
-    # Human readable name to display in the UI
-    target_display = models.TextField(null=True)
+
     date_added = models.DateTimeField(default=timezone.now)
     sentry_app_config = JSONField(null=True)
 
