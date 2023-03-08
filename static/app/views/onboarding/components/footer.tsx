@@ -38,6 +38,7 @@ type OnboardingState = {
 const DEFAULT_POLL_INTERVAL = 5000;
 
 type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
+  projectId: Project['id'];
   projectSlug: Project['slug'];
   newOrg?: boolean;
 };
@@ -68,7 +69,7 @@ async function openChangeRouteModal({
   ));
 }
 
-export function Footer({projectSlug, router, newOrg}: Props) {
+export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export function Footer({projectSlug, router, newOrg}: Props) {
   const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
 
-  const onboarding_sessionStorage_key = `onboarding-${projectSlug}`;
+  const onboarding_sessionStorage_key = `onboarding-${projectId}`;
 
   const [sessionStorage, setSessionStorage] = useSessionStorage<OnboardingState>(
     onboarding_sessionStorage_key,

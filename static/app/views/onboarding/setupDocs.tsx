@@ -300,6 +300,7 @@ function SetupDocs({
         (heartbeatFooter ? (
           <Footer
             projectSlug={project.slug}
+            projectId={project.id}
             route={route}
             router={router}
             location={location}
