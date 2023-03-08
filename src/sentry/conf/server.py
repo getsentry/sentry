@@ -706,7 +706,6 @@ CELERY_QUEUES = [
     Queue("process_owner_assignments", routing_key="process_owner_assignments"),
     Queue("relay_config", routing_key="relay_config"),
     Queue("relay_config_bulk", routing_key="relay_config_bulk"),
-    Queue("reports.deliver", routing_key="reports.deliver"),
     Queue("reports.prepare", routing_key="reports.prepare"),
     Queue("search", routing_key="search"),
     Queue("sentry_metrics.indexer", routing_key="sentry_metrics.indexer"),
