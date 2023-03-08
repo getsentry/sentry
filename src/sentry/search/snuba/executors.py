@@ -1007,6 +1007,8 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             op = Op.GTE if cursor.is_prev else Op.LTE
             having.append(Condition(sort_func, op, cursor.value))
 
+        tenant_ids = {"organization_id": projects[0].organization_id} if projects else None
+
         query = Query(
             match=Join([Relationship(e_event, "grouped", e_group)]),
             select=[
@@ -1019,7 +1021,12 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             orderby=[OrderBy(sort_func, direction=Direction.DESC)],
             limit=Limit(limit + 1),
         )
-        request = Request(dataset="events", app_id="cdc", query=query)
+        request = Request(
+            dataset="events",
+            app_id="cdc",
+            query=query,
+            tenant_ids=tenant_ids,
+        )
         data = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.query")["data"]
 
         hits_query = Query(
@@ -1031,7 +1038,9 @@ class CdcPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         )
         hits = None
         if count_hits:
-            request = Request(dataset="events", app_id="cdc", query=hits_query)
+            request = Request(
+                dataset="events", app_id="cdc", query=hits_query, tenant_ids=tenant_ids
+            )
             hits = snuba.raw_snql_query(request, referrer="search.snuba.cdc_search.hits")["data"][
                 0
             ]["count"]
