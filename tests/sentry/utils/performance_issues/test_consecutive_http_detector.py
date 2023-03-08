@@ -31,7 +31,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_event(self, span_duration=2000):
+    def create_issue_spans(self, span_duration=2000):
         spans = [
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
@@ -42,17 +42,13 @@ class ConsecutiveDbDetectorTest(TestCase):
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
             ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
-            ),
         ]
         spans = [
             modify_span_start(span, span_duration * spans.index(span)) for span in spans
         ]  # ensure spans don't overlap
 
+    def create_issue_event(self, span_duration=2000):
+        spans = self.create_issue_spans(span_duration)
         return create_event(spans)
 
     def test_detects_consecutive_http_issue(self):
@@ -77,35 +73,14 @@ class ConsecutiveDbDetectorTest(TestCase):
             )
         ]
 
-    def test_does_not_detect_conseucitve_http_issue_with_low_duration(self):
+    def test_does_not_detect_consecutive_http_issue_with_low_duration(self):
         event = self.create_issue_event(100)
         problems = self.find_problems(event)
 
         assert problems == []
 
     def test_detects_consecutive_with_non_http_between_http_spans(self):
-        span_duration = 2000
-        spans = [
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
-            ),
-        ]
-
-        spans = [
-            modify_span_start(span, span_duration * spans.index(span)) for span in spans
-        ]  # ensure spans don't overlap
+        spans = self.create_issue_spans()
 
         spans.insert(
             1, modify_span_start(create_span("resource.script", 500, "/static/js/bundle.js"), 2000)
@@ -134,28 +109,11 @@ class ConsecutiveDbDetectorTest(TestCase):
         ]
 
     def test_does_not_detect_nextjs_asset(self):
-        span_duration = 2000
-        spans = [
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
-            ),
-        ]
-
-        spans = [
-            modify_span_start(span, span_duration * spans.index(span)) for span in spans
-        ]  # ensure spans don't overlap
+        spans = self.create_issue_spans()
         assert len(self.find_problems(create_event(spans))) == 1
 
         spans[0] = modify_span_start(
-            create_span(
-                "http.client", span_duration, "GET /_next/static/css/file-hash-abc.css", "hash4"
-            ),
+            create_span("http.client", 2000, "GET /_next/static/css/file-hash-abc.css", "hash4"),
             0,
         )
 
