@@ -11,7 +11,6 @@ from rest_framework.response import Response
 from sentry import ratelimits
 from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
@@ -35,6 +34,8 @@ from sentry.monitors.models import (
 )
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
+
+from .base import MonitorEndpoint
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60

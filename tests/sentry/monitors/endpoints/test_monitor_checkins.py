@@ -257,7 +257,7 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
             path = path_func(monitor.guid)
 
-            with mock.patch("sentry.api.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
+            with mock.patch("sentry.monitors.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
                 resp = self.client.post(path, {"status": "ok"})
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"})

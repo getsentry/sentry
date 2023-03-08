@@ -59,12 +59,12 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
         }
         return RpcOrganizationMapping(**args)
 
-    def update(self, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         with transaction.atomic():
             (
-                OrganizationMapping.objects.filter(organization_id=update.organization_id)
+                OrganizationMapping.objects.filter(organization_id=organization_id)
                 .select_for_update()
-                .update(**update.as_update())
+                .update(**update)
             )
 
     def verify_mappings(self, organization_id: int, slug: str) -> None:
