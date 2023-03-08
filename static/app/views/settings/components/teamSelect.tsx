@@ -92,38 +92,29 @@ function TeamSelect({
   const {teams, onSearch, fetching} = useTeams();
   const {orgRoleList, teamRoleList} = organization;
 
-  const slugsToFilter =
+  const slugsToFilter: string[] =
     selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
 
   // determine if adding a team changes the minimum team role
-  const getTopOrgRole = () => {
+  const getTopOrgRole = (): string | undefined => {
     const teamsWithOrgRole = teams.filter(
-      team => slugsToFilter.some(slug => slug === team.slug) && team.orgRole !== null
+      team => slugsToFilter.includes(team.slug) && team.orgRole !== null
     );
     // get teams with org roles, if any
-    const teamOrgRoles =
+    const allOrgRoles =
       teamsWithOrgRole.length > 0
         ? teamsWithOrgRole.map(team => team.orgRole ?? undefined)
         : [];
     // sort them and to get the highest priority role
     // highest prio role may change minimum team role
-    teamOrgRoles.sort((a, b) =>
-      orgRoleList.findIndex(r => r.id === a) > orgRoleList.findIndex(r => r.id === b)
+    allOrgRoles.push(selectedOrgRole);
+    allOrgRoles.sort((a, b) =>
+      orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
         ? 1
         : -1
     );
 
-    if (teamOrgRoles.length === 0) {
-      return selectedOrgRole;
-    }
-    if (
-      teamOrgRoles &&
-      orgRoleList.findIndex(r => r.id === teamOrgRoles[0]) >
-        orgRoleList.findIndex(r => r.id === selectedOrgRole)
-    ) {
-      return teamOrgRoles[0];
-    }
-    return selectedOrgRole;
+    return allOrgRoles[0];
   };
   const topOrgRole = getTopOrgRole();
 

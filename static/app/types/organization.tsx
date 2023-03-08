@@ -109,7 +109,6 @@ export interface TeamRole extends MemberRole {
  * Returned from /organizations/org/users/
  */
 export interface Member {
-  allOrgRoles: OrgRole[];
   dateCreated: string;
   email: string;
   expired: boolean;
@@ -128,6 +127,7 @@ export interface Member {
   name: string;
   orgRole: OrgRole['id'];
   orgRoleList: OrgRole[]; // TODO: Move to global store
+  orgRolesFromTeams: {role: OrgRole; slug: string}[];
   pending: boolean | undefined;
   projects: string[];
 

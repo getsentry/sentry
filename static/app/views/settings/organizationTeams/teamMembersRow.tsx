@@ -73,19 +73,20 @@ const TeamRoleSelect = (props: {
 
   // determine the team role, including if the current team has an org role
   // and if adding the user to the team changes their minimum team role
-  const {allOrgRoles: memberOrgRoles} = member;
-  const teamOrgRoleIndex = orgRoleList.findIndex(r => r.id === teamOrgRole) ?? -1;
-  const teamOrgRoleValue = teamOrgRoleIndex >= 0 ? orgRoleList[teamOrgRoleIndex] : null;
+  const {orgRolesFromTeams: orgRolesFromTeams} = member;
 
-  // fall back to member's org role
-  const topMemberRole = memberOrgRoles
-    ? memberOrgRoles[0]
-    : orgRoleList.find(r => r.id === member.orgRole);
-  const topOrgRole =
-    topMemberRole &&
-    teamOrgRoleIndex > orgRoleList.findIndex(r => r.id === topMemberRole.id)
-      ? teamOrgRoleValue
-      : topMemberRole;
+  const memberOrgRoles = [member.orgRole, teamOrgRole];
+  if (orgRolesFromTeams.length > 0) {
+    memberOrgRoles.push(orgRolesFromTeams[0].role.id);
+  }
+  // sort by ascending index
+  memberOrgRoles.sort((a, b) =>
+    orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
+      ? 1
+      : -1
+  );
+
+  const topOrgRole = orgRoleList.find(r => r.id === memberOrgRoles[0]);
 
   const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
