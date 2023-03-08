@@ -313,7 +313,7 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
     return _format_rows(result["data"], query)
 
 
-def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
+def run_outcomes_query_timeseries(query: QueryDefinition, tenant_ids=None) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -324,7 +324,9 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         granularity=Granularity(query.rollup),
     )
     request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
-    result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
+    result_timeseries = raw_snql_query(
+        request, referrer="outcomes.timeseries", tenant_ids=tenant_ids
+    )
     return _format_rows(result_timeseries["data"], query)
 
 

@@ -183,7 +183,9 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
-                    else run_outcomes_query_timeseries(query)
+                    else run_outcomes_query_timeseries(
+                        query, tenant_ids={"organization_id": organization.id}
+                    )
                 )
             with sentry_sdk.start_span(
                 op="outcomes.endpoint", description="massage_outcomes_result"
