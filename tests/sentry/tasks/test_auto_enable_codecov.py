@@ -51,7 +51,7 @@ class AutoEnableCodecovTest(TestCase):
         assert org.flags.codecov_access
 
         audit = AuditLogEntry.objects.filter(
-            organization=org, event=audit_log.get_event_id("ORG_EDIT")
+            organization_id=org.id, event=audit_log.get_event_id("ORG_EDIT")
         )
         assert audit.exists()
 

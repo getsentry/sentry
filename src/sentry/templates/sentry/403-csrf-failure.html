@@ -18,6 +18,7 @@
           <li>{% trans "Clear cookies (at least for Sentry's domain)." %}</li>
           <li>{% trans "Reload the page you're trying to submit (don't re-submit data)." %}</li>
           <li>{% trans "Re-enter the information, and submit the form again." %}</li>
+          <li>{% trans "Ensure the URL does not contain an extra 	&quot;/&quot; anywhere (eg: https://foo//saml -> https://foo/saml)." %}</li>
         </ol>
 
         {% if no_referer %}

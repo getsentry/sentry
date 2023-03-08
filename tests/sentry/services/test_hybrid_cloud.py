@@ -2,7 +2,6 @@ from collections import deque
 
 from sentry.services.hybrid_cloud import (
     RpcModel,
-    UnsetType,
     app,
     auth,
     identity,
@@ -49,7 +48,6 @@ class RpcModelTest(TestCase):
             organization.RpcTeamMember,
             organization.RpcUserOrganizationContext,
             organization_mapping.RpcOrganizationMapping,
-            organization_mapping.RpcOrganizationMappingUpdate,
             tombstone.RpcTombstone,
             user.RpcAuthenticator,
             user.RpcAvatar,
@@ -74,6 +72,6 @@ class RpcModelTest(TestCase):
                 subclasses.add(next_class)
                 stack += next_class.__subclasses__()
 
-        subclasses.difference_update({RpcModel, UnsetType})
+        subclasses.remove(RpcModel)
         uncovered = subclasses.difference(self.INTERFACE_CLASSES)
         assert uncovered == set(), "RpcModel subclasses exist that are not tested"

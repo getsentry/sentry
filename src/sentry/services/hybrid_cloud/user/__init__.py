@@ -8,6 +8,8 @@ from abc import abstractmethod
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
 
+from pydantic.fields import Field
+
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -63,8 +65,8 @@ class RpcUser(RpcModel):
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[RpcAvatar] = None
-    useremails: FrozenSet[RpcUserEmail] = frozenset()
-    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
+    useremails: List[RpcUserEmail] = Field(default_factory=list)
+    authenticators: List[RpcAuthenticator] = Field(default_factory=list)
 
     def has_usable_password(self) -> bool:
         return self.password_usable

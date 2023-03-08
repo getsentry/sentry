@@ -5,13 +5,13 @@
 
 from abc import abstractmethod
 from datetime import datetime
-from typing import Optional, cast
+from typing import Optional, TypedDict, cast
 
 from django.utils import timezone
 
 from sentry.models import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import PatchableMixin, RpcModel, Unset, UnsetVal
+from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
@@ -26,14 +26,26 @@ class RpcOrganizationMapping(RpcModel):
     customer_id: Optional[str] = None
 
 
-class RpcOrganizationMappingUpdate(RpcModel, PatchableMixin["Organization"]):
-    organization_id: int = -1
-    name: Unset[str] = UnsetVal
-    customer_id: Unset[str] = UnsetVal
+class RpcOrganizationMappingUpdate(TypedDict):
+    """A set of values to be updated on an OrganizationMapping.
 
-    @classmethod
-    def from_instance(cls, inst: Organization) -> "RpcOrganizationMappingUpdate":
-        return cls(**cls.params_from_instance(inst), organization_id=inst.id)
+    An absent key indicates that the attribute should not be updated. (Compare to a
+    `"customer_id": None` entry, which indicates that `customer_id` should be
+    overwritten with a null value.)
+    """
+
+    name: str
+    customer_id: Optional[str]
+
+
+def update_organization_mapping_from_instance(
+    organization: Organization,
+) -> RpcOrganizationMappingUpdate:
+    attributes = {
+        attr_name: getattr(organization, attr_name)
+        for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
+    }
+    return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
 
 
 class OrganizationMappingService(RpcService):
@@ -82,7 +94,7 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update(self, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @rpc_method
