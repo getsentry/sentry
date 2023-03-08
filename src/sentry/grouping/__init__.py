@@ -15,7 +15,7 @@ can however generate more than one hash the sum of which will be added to a
 group.  In the database this is represented in the `GroupHash` model.
 
 Grouping hashes can be created from different methods.  These are called
-variants and are implemented in in `sentry.grouping.variants`.  The
+variants and are implemented in `sentry.grouping.variants`.  The
 `get_grouping_variants_for_event` function of the grouping API evaluates all
 variants that would be available for the event and returns them.
 
