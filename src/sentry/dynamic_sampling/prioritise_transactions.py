@@ -35,7 +35,7 @@ class ProjectTransactions(TypedDict, total=True):
     transaction_counts: List[Tuple[str, int]]
 
 
-def get_orgs_with_transactions(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
+def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements

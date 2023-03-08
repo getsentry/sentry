@@ -9,7 +9,7 @@ from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_tota
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
     fetch_transactions_with_total_volumes,
-    get_orgs_with_transactions,
+    get_orgs_with_project_counts,
     transactions_zip,
 )
 from sentry.dynamic_sampling.rules.helpers.prioritise_project import _generate_cache_key
@@ -30,7 +30,6 @@ CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 MAX_ORGS_PER_QUERY = 100
 MAX_PROJECTS_PER_QUERY = 5000
 MAX_TRANSACTIONS_PER_PROJECT = 20
-
 
 logger = logging.getLogger(__name__)
 
@@ -137,15 +136,19 @@ def prioritise_transactions() -> None:
     current_org: Optional[Organization] = None
     current_org_enabled = False
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_transactions", sample_rate=1.0):
-        for orgs in get_orgs_with_transactions(MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY):
+        for orgs in get_orgs_with_project_counts(MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY):
             # get the low and high transactions
             # TODO can we do this in one query rather than two
             for project_transactions in transactions_zip(
                 fetch_transactions_with_total_volumes(
-                    orgs, True, MAX_TRANSACTIONS_PER_PROJECT // 2
+                    orgs,
+                    large_transactions=True,
+                    max_transactions=MAX_TRANSACTIONS_PER_PROJECT // 2,
                 ),
                 fetch_transactions_with_total_volumes(
-                    orgs, False, MAX_TRANSACTIONS_PER_PROJECT // 2
+                    orgs,
+                    large_transactions=False,
+                    max_transactions=MAX_TRANSACTIONS_PER_PROJECT // 2,
                 ),
             ):
 

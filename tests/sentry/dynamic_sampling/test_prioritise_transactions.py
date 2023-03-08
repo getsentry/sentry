@@ -4,7 +4,7 @@ from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_transactions import (
     fetch_transactions_with_total_volumes,
-    get_orgs_with_transactions,
+    get_orgs_with_project_counts,
     merge_transactions,
     transactions_zip,
 )
@@ -61,14 +61,14 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         return idx + counts[name]
 
     def test_get_orgs_with_transactions_respects_max_orgs(self):
-        actual = list(get_orgs_with_transactions(2, 20))
+        actual = list(get_orgs_with_project_counts(2, 20))
 
         orgs = self.org_ids
         # we should return groups of 2 orgs at a time
         assert actual == [[orgs[0], orgs[1]], [orgs[2]]]
 
     def test_get_orgs_with_transactions_respects_max_projs(self):
-        actual = list(get_orgs_with_transactions(10, 5))
+        actual = list(get_orgs_with_project_counts(10, 5))
 
         orgs = [org["org_id"] for org in self.orgs_info]
         # since each org has 3 projects and we have a limit of 5 proj
