@@ -290,7 +290,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             conditions,
             actor,
         )
-        snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
+        if snuba_query_params is not None:
+            snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
         return snuba_query_params
 
     def snuba_search(
