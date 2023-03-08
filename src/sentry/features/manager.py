@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-__all__ = ["FeatureManager"]
+__all__ = ["FeatureManager", "FeatureHandlerStrategy"]
 
 import abc
 from collections import defaultdict
