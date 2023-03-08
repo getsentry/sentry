@@ -64,8 +64,10 @@ function findLongestMatchingFrame(
       longestFrame = frame;
     }
 
-    for (let i = 0; i < frame.children.length; i++) {
-      frames.push(frame.children[i]);
+    if (longestFrame && longestFrame.node.totalWeight < frame.node.totalWeight) {
+      for (let i = 0; i < frame.children.length; i++) {
+        frames.push(frame.children[i]);
+      }
     }
   }
 
