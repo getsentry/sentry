@@ -68,8 +68,8 @@ export const DocumentationWrapper = styled('div')`
   }
 
   /**
- * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
- */
+   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
+  */
   .content-flush-bottom *:last-child {
     margin-bottom: 0;
   }
