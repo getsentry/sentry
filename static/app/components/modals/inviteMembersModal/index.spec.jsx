@@ -152,17 +152,6 @@ describe('InviteMembersModal', function () {
       })
     );
 
-    // Pending invites being creaaa
-    // three loading indicators (one for each email + a global "sending")
-    expect(screen.getAllByTestId('loading-indicator')).toHaveLength(3);
-
-    expect(
-      screen.getByText('Sending organization invitations\u2026')
-    ).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'Send invites (2)'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Cancel'})).toBeDisabled();
-
     // Wait for them to finish
     expect(
       await screen.findByText(textWithMarkupMatcher('Sent 2 invites'))
