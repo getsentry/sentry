@@ -10,6 +10,7 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
@@ -37,6 +38,8 @@ export const displayOptions = {
   'raw-stack-trace': t('Raw stack trace'),
   'verbose-function-names': t('Verbose function names'),
 };
+
+const HookCodecovCTA = HookOrDefault({hookName: 'component:codecov-integration-cta'});
 
 type State = {
   display: Array<keyof typeof displayOptions>;
@@ -464,6 +467,7 @@ export function TraceEventDataSection({
       wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
+        <HookCodecovCTA />
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
     </EventDataSection>
