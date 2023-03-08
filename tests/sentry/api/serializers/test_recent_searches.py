@@ -8,7 +8,7 @@ class RecentSearchSerializerTest(TestCase):
     def test_simple(self):
         search = RecentSearch.objects.create(
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.ISSUE.value,
             query="some query",
         )

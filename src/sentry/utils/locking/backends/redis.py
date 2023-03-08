@@ -7,18 +7,41 @@ from sentry.utils.locking.backends import LockBackend
 delete_lock = redis.load_script("utils/locking/delete_lock.lua")
 
 
-class RedisLockBackend(LockBackend):
+class BaseRedisLockBackend(LockBackend):
     def __init__(self, cluster, prefix="l:", uuid=None):
         if uuid is None:
             uuid = uuid4().hex
+        self.prefix = prefix
+        self.uuid = uuid
 
+    def get_client(self, key, routing_key=None):
+        raise NotImplementedError
+
+    def prefix_key(self, key):
+        return f"{self.prefix}{key}"
+
+    def acquire(self, key: str, duration: int, routing_key: Optional[str] = None) -> None:
+        client = self.get_client(key, routing_key)
+        full_key = self.prefix_key(key)
+        if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
+            raise Exception(f"Could not set key: {full_key!r}")
+
+    def release(self, key, routing_key=None):
+        client = self.get_client(key, routing_key)
+        delete_lock(client, (self.prefix_key(key),), (self.uuid,))
+
+    def locked(self, key, routing_key=None):
+        client = self.get_client(key, routing_key)
+        return client.get(self.prefix_key(key)) is not None
+
+
+class RedisBlasterLockBackend(BaseRedisLockBackend):
+    def __init__(self, cluster, prefix="l:", uuid=None):
+        super().__init__(cluster, prefix=prefix, uuid=uuid)
         if isinstance(cluster, str):
             self.cluster = redis.clusters.get(cluster)
         else:
             self.cluster = cluster
-
-        self.prefix = prefix
-        self.uuid = uuid
 
     def get_client(self, key, routing_key=None):
         # This is a bit of an abstraction leak, but if an integer is provided
@@ -42,19 +65,17 @@ class RedisLockBackend(LockBackend):
 
         return self.cluster.get_local_client_for_key(key)
 
-    def prefix_key(self, key):
-        return f"{self.prefix}{key}"
 
-    def acquire(self, key: str, duration: int, routing_key: Optional[str] = None) -> None:
-        client = self.get_client(key, routing_key)
-        full_key = self.prefix_key(key)
-        if client.set(full_key, self.uuid, ex=duration, nx=True) is not True:
-            raise Exception(f"Could not set key: {full_key!r}")
+class RedisClusterLockBackend(BaseRedisLockBackend):
+    def __init__(self, cluster, prefix="l:", uuid=None):
+        super().__init__(cluster, prefix=prefix, uuid=uuid)
+        if isinstance(cluster, str):
+            self.cluster = redis.redis_clusters.get(cluster)
+        else:
+            self.cluster = cluster
 
-    def release(self, key, routing_key=None):
-        client = self.get_client(key, routing_key)
-        delete_lock(client, (self.prefix_key(key),), (self.uuid,))
+    def get_client(self, key, routing_key=None):
+        return self.cluster
 
-    def locked(self, key, routing_key=None):
-        client = self.get_client(key, routing_key)
-        return client.get(self.prefix_key(key)) is not None
+
+RedisLockBackend = RedisBlasterLockBackend

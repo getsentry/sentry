@@ -293,7 +293,7 @@ def _create_artifact_bundle(
                 ReleaseArtifactBundle.objects.create(
                     organization_id=org_id,
                     release_name=release.version if release else None,
-                    dist_id=dist.id if dist else None,
+                    dist_name=dist.name if dist else None,
                     artifact_bundle=artifact_bundle,
                 )
 
@@ -318,10 +318,13 @@ def _create_artifact_bundle(
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
-def assemble_artifacts(org_id, project_ids, version, checksum, chunks, **kwargs):
+def assemble_artifacts(org_id, version, checksum, chunks, project_ids=None, **kwargs):
     """
     Creates a release file or artifact bundle from an uploaded bundle given the checksums of its chunks.
     """
+    if project_ids is None:
+        project_ids = []
+
     try:
         organization = Organization.objects.get_from_cache(pk=org_id)
         bind_organization_context(organization)
