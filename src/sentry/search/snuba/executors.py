@@ -278,7 +278,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         )
 
         strategy = SEARCH_STRATEGIES.get(group_category, _query_params_for_generic)
-        return strategy(
+        snuba_query_params = strategy(
             pinned_query_partial,
             selected_columns,
             aggregations,
@@ -290,6 +290,8 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
             conditions,
             actor,
         )
+        snuba_query_params.kwargs["tenant_ids"] = {"organization_id": organization_id}
+        return snuba_query_params
 
     def snuba_search(
         self,
