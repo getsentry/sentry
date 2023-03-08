@@ -16,7 +16,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.utils.redis import get_dynamic_cluster_from_options
+from sentry.utils.redis import redis_clusters
 from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
@@ -121,9 +121,11 @@ manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=
 class FeatureAdoptionRedisBackend:
     def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options):
         self.key_tpl = key_tpl
-        is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
-            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
-        )
+        # is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
+        #     "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+        # )
+
+        is_redis_cluster, self.cluster = redis_clusters.get("default")
 
         if is_redis_cluster:
 
