@@ -22,7 +22,7 @@ from typing import (
 import sentry_sdk
 from django.conf import settings
 
-from .base import Feature
+from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
@@ -144,7 +144,12 @@ class FeatureManager(RegisteredFeatureManager):
         """
         return {k: v for k, v in self._feature_registry.items() if v == feature_type}
 
-    def add(self, name: str, cls: Type[Feature] = Feature, entity_feature: bool = False) -> None:
+    def add(
+        self,
+        name: str,
+        cls: Type[Feature] = Feature,
+        entity_feature_strategy: FeatureHandlerStrategy | bool = FeatureHandlerStrategy.STATIC,
+    ) -> None:
         """
         Register a feature.
 
@@ -153,9 +158,16 @@ class FeatureManager(RegisteredFeatureManager):
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
-        if entity_feature:
+        # temporarily allow boolean values for entity_feature_strategy
+        # so flags set via getsentry are backwards compatible
+        if entity_feature_strategy is True:
+            entity_feature_strategy = FeatureHandlerStrategy.MANAGED
+        elif entity_feature_strategy is False:
+            entity_feature_strategy = FeatureHandlerStrategy.STATIC
+
+        if entity_feature_strategy == FeatureHandlerStrategy.MANAGED:
             if name.startswith("users:"):
-                raise NotImplementedError("User flags not allowed with entity_feature=True")
+                raise NotImplementedError("User flags not allowed with a managed feature handler")
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 

@@ -9,6 +9,7 @@ __all__ = [
 ]
 
 import abc
+from enum import Enum
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -62,3 +63,14 @@ class UserFeature(Feature):
 
     def get_subject(self) -> User:
         return self.user
+
+
+class FeatureHandlerStrategy(Enum):
+    """
+    This controls whether the feature flag is evaulated statically,
+    or if it's managed by a feature flag service.
+    See https://develop.sentry.dev/feature-flags/
+    """
+
+    STATIC = 1
+    MANAGED = 2
