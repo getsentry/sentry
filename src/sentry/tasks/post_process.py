@@ -680,7 +680,7 @@ def process_snoozes(job: PostProcessJob) -> None:
                 project=group.project,
                 group=group,
                 type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
+                user_id=None,
                 data={"event_id": job["event"].event_id},
             )
 
@@ -688,7 +688,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             group.update(status=GroupStatus.UNRESOLVED)
             issue_unignored.send_robust(
                 project=group.project,
-                user=None,
+                user_id=None,
                 group=group,
                 transition_type="automatic",
                 sender="process_snoozes",

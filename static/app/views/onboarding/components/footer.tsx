@@ -30,7 +30,7 @@ export enum OnboardingStatus {
   PROCESSED = 'processed',
 }
 
-type OnboardingState = {
+export type OnboardingState = {
   status: OnboardingStatus;
   firstIssueId?: string;
 };
@@ -40,6 +40,7 @@ const DEFAULT_POLL_INTERVAL = 5000;
 type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
   projectSlug: Project['slug'];
   newOrg?: boolean;
+  projectId?: Project['id'];
 };
 
 async function openChangeRouteModal({
@@ -68,7 +69,7 @@ async function openChangeRouteModal({
   ));
 }
 
-export function Footer({projectSlug, router, newOrg}: Props) {
+export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const organization = useOrganization();
   const preferences = useLegacyStore(PreferencesStore);
   const [firstError, setFirstError] = useState<string | null>(null);
@@ -76,7 +77,7 @@ export function Footer({projectSlug, router, newOrg}: Props) {
   const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
 
-  const onboarding_sessionStorage_key = `onboarding-${projectSlug}`;
+  const onboarding_sessionStorage_key = `onboarding-${projectId}`;
 
   const [sessionStorage, setSessionStorage] = useSessionStorage<OnboardingState>(
     onboarding_sessionStorage_key,
@@ -340,8 +341,9 @@ const ErrorProcessingStatus = styled(WaitingForErrorStatus)`
 `;
 
 const ErrorProcessedStatus = styled(WaitingForErrorStatus)`
-  background: ${p => p.theme.gray500};
-  color: ${p => p.theme.white};
+  border-radius: 44px;
+  background: ${p => p.theme.inverted.background};
+  color: ${p => p.theme.inverted.textColor};
 `;
 
 const RefreshIcon = styled(IconRefresh)`

@@ -442,7 +442,6 @@ class SnubaTSDB(BaseTSDB):
                         Condition(Column(time_column), Op.LT, end),
                     ]
 
-            referrer = f"tsdb-modelid:{model.value}"
             snql_request = Request(
                 dataset=model_dataset.value,
                 app_id="tsdb.get_data",
@@ -457,7 +456,9 @@ class SnubaTSDB(BaseTSDB):
                 ),
                 tenant_ids=tenant_ids or dict(),
             )
-            query_result = raw_snql_query(snql_request, referrer=referrer, use_cache=use_cache)
+            query_result = raw_snql_query(
+                snql_request, f"tsdb-modelid:{model.value}", use_cache=use_cache
+            )
             if manual_group_on_time:
                 translated_results = {"data": query_result["data"]}
             else:

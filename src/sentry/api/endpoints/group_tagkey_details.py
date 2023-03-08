@@ -23,7 +23,7 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
         :auth: required
         """
         lookup_key = tagstore.prefix_reserved_key(key)
-
+        tenant_ids = {"organization_id": group.project.organization_id}
         try:
             environment_id = self._get_environment_id_from_request(
                 request, group.project.organization_id
@@ -33,18 +33,23 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
             raise ResourceDoesNotExist
 
         try:
-            group_tag_key = tagstore.get_group_tag_key(group, environment_id, lookup_key)
+            group_tag_key = tagstore.get_group_tag_key(
+                group,
+                environment_id,
+                lookup_key,
+                tenant_ids=tenant_ids,
+            )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
 
         if group_tag_key.count is None:
             group_tag_key.count = tagstore.get_group_tag_value_count(
-                group.project_id, group.id, environment_id, lookup_key
+                group.project_id, group.id, environment_id, lookup_key, tenant_ids=tenant_ids
             )
 
         if group_tag_key.top_values is None:
             group_tag_key.top_values = tagstore.get_top_group_tag_values(
-                group, environment_id, lookup_key
+                group, environment_id, lookup_key, tenant_ids=tenant_ids
             )
 
         return Response(serialize(group_tag_key, request.user))

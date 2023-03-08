@@ -64,7 +64,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
         # We do `select_related` here to make the unions less heavy. This way we only join these
         # table for the rows we actually want.
         queryset = Activity.objects.filter(id__in=union_qs[: paginator.max_limit]).select_related(
-            "project", "group", "user"
+            "project", "group"
         )
 
         return self.paginate(
