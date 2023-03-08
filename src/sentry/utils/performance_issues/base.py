@@ -124,6 +124,7 @@ class PerformanceDetector(ABC):
         raise NotImplementedError
 
     def is_creation_allowed_for_system(self) -> bool:
+        return True
         system_option = DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION.get(self.__class__.type, None)
 
         if not system_option:

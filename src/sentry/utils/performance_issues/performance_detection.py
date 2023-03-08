@@ -117,7 +117,7 @@ class EventPerformanceProblem:
 def detect_performance_problems(data: Event, project: Project) -> List[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
-        if rate and rate > random.random():
+        if True:
             # Add an experimental tag to be able to find these spans in production while developing. Should be removed later.
             sentry_sdk.set_tag("_did_analyze_performance_issue", "true")
             with metrics.timer(
@@ -874,9 +874,10 @@ class FileIOMainThreadDetector(PerformanceDetector):
         return data.get("blocked_main_thread", False) is True
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-file-io-main-thread-detector", organization, actor=None
-        )
+        return True
+        # return features.has(
+        #     "organizations:performance-file-io-main-thread-detector", organization, actor=None
+        # )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return True

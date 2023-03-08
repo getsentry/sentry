@@ -1,0 +1,111 @@
+#!/usr/bin/env python
+from sentry.runner import configure
+
+configure()
+
+
+import time
+from uuid import uuid4
+
+import click
+import requests
+
+from sentry.models import Organization, Project, ProjectKey
+from sentry.testutils.performance_issues.event_generators import get_event
+from sentry.utils import json
+
+
+def send_event(event, project, project_key, event_type, event_id):
+    if event_type == "event":
+        envelope = ["{}", '{"content_type":"application/json","type":"event"}', json.dumps(event)]
+    else:
+        envelope = [
+            json.dumps({"event_id": f"{event_id}"}),
+            '{"type":"transaction"}',
+            json.dumps(event),
+        ]
+    payload = "\n".join(envelope)
+
+    host = "http://127.0.0.1:3001"
+
+    url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
+    headers = {
+        "content-type": "application/json",
+    }
+    response = requests.post(url, payload, headers=headers)
+    return response
+
+
+@click.command()
+@click.option(
+    "--project", type=str, help="Project slug to insert data into", default="sentry-android"
+)
+@click.option("--org", type=str, help="Organization slug to insert data into", default="sentry")
+@click.option(
+    "--release", type=str, help="Release name. Defaults to the most recent release in the project."
+)
+@click.option("--env", type=str, help="Environment to generate sessions for", default="dev")
+@click.option("--days", type=int, help="Number of days to generate data for", default=5)
+def main(project, org, env, days, release=None):
+    click.echo(f"Mocking anrs for {project} in {org}")
+    try:
+        organization = Organization.objects.get(slug=org)
+    except Organization.DoesNotExist:
+        raise RuntimeError("! Organization does not exist")
+    try:
+        project = Project.objects.get(slug=project, organization=organization)
+    except Project.DoesNotExist:
+        raise RuntimeError("! Project does not exist")
+
+    project_key = ProjectKey.objects.filter(project=project)[0]
+
+    transaction = get_event("transaction")
+    timestamp_now = time.time()
+    start_timestamp = timestamp_now - 1
+
+    event_id = str(uuid4().hex)
+
+    transaction["event_id"] = event_id
+    transaction["timestamp"] = timestamp_now
+    transaction["start_timestamp"] = start_timestamp
+
+    trace_id = str(uuid4().hex)
+
+    transaction["contexts"]["trace"]["trace_id"] = trace_id
+
+    span = transaction["spans"][0]
+    span["start_timestamp"] = start_timestamp
+    span["timestamp"] = timestamp_now
+    span["trace_id"] = trace_id
+    transaction["spans"][0] = span
+
+    response = send_event(transaction, project, project_key, "transaction", event_id)
+    click.echo(f"response: {response}")
+    click.echo(f"> Complete! generated file io txn with id {event_id}")
+
+    anr_event = get_event("anr-android")
+
+    timestamp_now = time.time()
+
+    anr_event_id = str(uuid4().hex)
+
+    anr_event["timestamp"] = timestamp_now
+    anr_event["event_id"] = anr_event_id
+    anr_event["contexts"]["trace"]["trace_id"] = trace_id
+
+    anr_response = send_event(anr_event, project, project_key, "event", anr_event_id)
+    click.echo(f"response: {anr_response}")
+    click.echo(f"> Complete! generated anr event with id {anr_event_id}")
+
+    # file_io_response = send_event(file_io_event, project, project_key, "transaction")
+    # click.echo(f"response: {file_io_response}")
+    # # response = send_event(anr_event, project, project_key)
+    # # if file_io_response.status_code != 200 or response.status_code != 200:
+    # #     click.echo(f"Response failed {file_io_response}")
+    # #     click.echo(f"Response failed {response}")
+
+    # click.echo(f"> Complete! generated event with id {file_io_event}")
+
+
+if __name__ == "__main__":
+    main()

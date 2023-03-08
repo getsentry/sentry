@@ -168,7 +168,7 @@ class ProjectKey(Model):
         return "{}://{}@{}/{}".format(
             urlparts.scheme,
             key,
-            urlparts.netloc + urlparts.path,
+            "127.0.0.1:3001" + urlparts.path,
             self.project_id,
         )
 

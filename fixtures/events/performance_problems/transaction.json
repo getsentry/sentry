@@ -1,0 +1,62 @@
+{
+    "contexts": {
+      "organization": {
+        "id": "1",
+        "slug": "sentry"
+      },
+      "trace": {
+        "op": "navigation",
+        "span_id": "b0e6f15b45c36b12",
+        "tags": {
+          "routing.instrumentation": "react-router-v3"
+        },
+        "trace_id": "46ec0c614be344118754b632eb55a548"
+      }
+    },
+    "spans": [
+      {
+        "description": "<LoadingIndicator>",
+        "op": "ui.react.mount",
+        "parent_span_id": "b0e6f15b45c36b12",
+        "span_id": "89930aab9a0314d4",
+        "start_timestamp": 1678217861.3521001,
+        "timestamp": 1678217862.3639002,
+        "trace_id": "46ec0c614be344118754b632eb55a548",
+        "data": {
+            "blocked_main_thread": true,
+            "call_stack": [
+              {
+                "function": "onClick",
+                "in_app": true,
+                "lineno": 2,
+                "module": "io.sentry.samples.android.MainActivity$$ExternalSyntheticLambda6",
+                "native": false
+              },
+              {
+                "filename": "MainActivity.java",
+                "function": "lambda$onCreate$5$io-sentry-samples-android-MainActivity",
+                "in_app": true,
+                "lineno": 93,
+                "module": "io.sentry.samples.android.MainActivity",
+                "native": false
+              }
+            ],
+            "file.path": "/data/user/0/io.sentry.samples.android/files/1669031858711_file.txt",
+            "file.size": 4010
+          }
+      }
+    ],
+    "timestamp": 1678217862.3639002,
+    "start_timestamp": 1678217861.2949002,
+    "platform": "javascript",
+    "event_id": "3754438f13574cee9cd92d9b7cfb272a",
+    "environment": "development",
+    "transaction": "MainActivity.add_attachment",
+    "release": "frontend@23.3.0.dev0+5ed27a28f601090613a2934c285bcbabc14bbd03",
+    "user": {
+      "ip_address": "127.0.0.1",
+      "email": "admin@admin.com",
+      "id": 1,
+      "isStaff": true
+    }
+}
