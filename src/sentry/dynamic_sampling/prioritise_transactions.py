@@ -83,7 +83,6 @@ def get_orgs_with_transactions(max_orgs: int, max_projects: int) -> Iterator[Lis
         count = len(data)
         more_results = count > CHUNK_SIZE
         offset += CHUNK_SIZE
-        last_result += data
         if more_results:
             data = data[:-1]
         for row in data:
@@ -160,7 +159,7 @@ def fetch_transactions_with_total_volumes(
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
                     OrderBy(Column("project_id"), Direction.ASC),
-                    OrderBy(Column(transaction_tag), transaction_ordering),
+                    OrderBy(Column("num_transactions"), transaction_ordering),
                 ],
             )
             .set_limitby(
@@ -227,7 +226,7 @@ def merge_transactions(
         )
 
     transactions = set()
-    merged_transactions = [left.transaction_counts]
+    merged_transactions = [*left.transaction_counts]
     for transaction_name, _ in merged_transactions:
         transactions.add(transaction_name)
 
@@ -264,7 +263,7 @@ def transactions_zip(
             try:
                 left_elm = next(left)
             except StopIteration:
-                more_left = None
+                more_left = False
                 left_elm = None
 
         if right_elm is not None and left_elm is not None:
@@ -289,3 +288,10 @@ def transactions_zip(
                 else:  # right_elm.project_id > left_elm.project_id
                     yield right_elm
                     right_elm = None
+        else:
+            if left_elm is not None:
+                yield left_elm
+                left_elm = None
+            if right_elm is not None:
+                yield right_elm
+                right_elm = None

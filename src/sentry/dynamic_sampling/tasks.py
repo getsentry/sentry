@@ -153,7 +153,6 @@ def prioritise_transactions() -> None:
                         "organizations:ds-prioritise-by-transaction-bias", current_org
                     )
                 if current_org_enabled:
-
                     process_transaction_biases.delay(project_transactions)
 
 
