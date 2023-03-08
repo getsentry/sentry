@@ -3115,3 +3115,8 @@ SENTRY_SIGNUP_URL = None
 # Temporary allowlist for specially configured organizations to use the direct-storage
 # driver.
 SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
+
+SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
+    "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
+    "options": {"cluster": "default"},
+}
