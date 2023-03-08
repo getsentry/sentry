@@ -12,6 +12,7 @@ export function useInternalFlamegraphDebugMode() {
       const isCtrlOrMeta = evt.ctrlKey || evt.metaKey;
 
       if (isCtrlOrMeta && evt.shiftKey && evt.code === 'KeyI') {
+        evt.preventDefault();
         setIsEnabled(val => {
           const next = !val;
           if (next) {
