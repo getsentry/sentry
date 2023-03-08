@@ -85,13 +85,15 @@ export function OwnershipRulesTable({
       >
         {chunkedRules[page]?.map((rule, index) => {
           let name: string | undefined = 'unknown';
-          if (rule.owners[0]?.type === 'team') {
-            const team = TeamStore.getById(rule.owners[0].id);
+          // ID might not be a string, so we need to convert it
+          const owners = rule.owners.map(owner => ({...owner, id: `${owner.id}`}));
+          if (owners[0]?.type === 'team') {
+            const team = TeamStore.getById(owners[0].id);
             if (team?.slug) {
               name = `#${team.slug}`;
             }
-          } else if (rule.owners[0]?.type === 'user') {
-            const user = MemberListStore.getById(rule.owners[0].id);
+          } else if (owners[0]?.type === 'user') {
+            const user = MemberListStore.getById(owners[0].id);
             name = user?.name;
           }
 
@@ -102,16 +104,16 @@ export function OwnershipRulesTable({
               </RowItem>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <RowItem>
-                <AvatarContainer numAvatars={Math.min(rule.owners.length, 3)}>
+                <AvatarContainer numAvatars={Math.min(owners.length, 3)}>
                   <SuggestedAvatarStack
-                    owners={rule.owners}
+                    owners={owners}
                     suggested={false}
                     reverse={false}
                   />
                 </AvatarContainer>
                 {name}
-                {rule.owners.length > 1 &&
-                  tn(' and %s other', ' and %s others', rule.owners.length - 1)}
+                {owners.length > 1 &&
+                  tn(' and %s other', ' and %s others', owners.length - 1)}
               </RowItem>
             </Fragment>
           );
@@ -172,6 +174,7 @@ const PaginationWrapper = styled('div')`
 const RowItem = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(1)};
 `;
 
 const RowRule = styled(RowItem)`
@@ -180,5 +183,5 @@ const RowRule = styled(RowItem)`
 `;
 
 const AvatarContainer = styled('div')<{numAvatars: number}>`
-  max-width: ${p => 24 + (p.numAvatars - 1) * (24 * 0.6)}px;
+  max-width: ${p => 24 + (p.numAvatars - 1) * (24 * 0.5)}px;
 `;
