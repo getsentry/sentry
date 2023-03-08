@@ -1,4 +1,4 @@
-import {css, Theme} from '@emotion/react';
+import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert, alertStyles} from 'sentry/components/alert';
@@ -10,7 +10,7 @@ const getAlertSelector = (type: AlertType) =>
   type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
 
 const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
-  css`
+  `
     ${getAlertSelector(type)} {
       ${alertStyles({theme: p.theme, type})};
       display: block;
