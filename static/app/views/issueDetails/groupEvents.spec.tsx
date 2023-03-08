@@ -116,7 +116,7 @@ describe('groupEvents', () => {
     jest.clearAllMocks();
   });
 
-  it('renders', async () => {
+  it('renders', () => {
     const wrapper = render(
       <GroupEvents
         {...baseProps}
@@ -150,7 +150,8 @@ describe('groupEvents', () => {
 
     for (const item of list) {
       await userEvent.clear(input);
-      await userEvent.type(input, `${item.searchTerm}{enter}`);
+      await userEvent.paste(`${item.searchTerm}`);
+      await userEvent.keyboard('[Enter>]');
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -160,7 +161,7 @@ describe('groupEvents', () => {
     }
   });
 
-  it('handles environment filtering', async () => {
+  it('handles environment filtering', () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -177,7 +178,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('renders events table for performance issue', async () => {
+  it('renders events table for performance issue', () => {
     const group = TestStubs.Group();
     group.issueCategory = 'performance';
 
@@ -342,7 +343,7 @@ describe('groupEvents', () => {
     expect(requests.attachments).toHaveBeenCalled();
   });
 
-  it('renders events table for error', async () => {
+  it('renders events table for error', () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -365,7 +366,7 @@ describe('groupEvents', () => {
     expect(perfEventsColumn).toBeInTheDocument();
   });
 
-  it('removes sort if unsupported by the events table', async () => {
+  it('removes sort if unsupported by the events table', () => {
     render(
       <GroupEvents
         {...baseProps}
@@ -380,7 +381,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('only request for a single projectId', async () => {
+  it('only request for a single projectId', () => {
     const group = TestStubs.Group();
 
     render(
