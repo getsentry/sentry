@@ -253,7 +253,7 @@ def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
 
 def _extract_debug_ids_from_manifest(
     manifest: dict,
-) -> Tuple[str, List[Tuple[SourceFileType, str]]]:
+) -> Tuple[Optional[str], List[Tuple[SourceFileType, str]]]:
     debug_ids_with_types = []
 
     # We also want to extract the bundle_id which is also known as the bundle debug_id. This id is used to uniquely
