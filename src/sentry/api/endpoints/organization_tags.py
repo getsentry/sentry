@@ -28,6 +28,7 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
                     use_cache=request.GET.get("use_cache", "0") == "1",
                     # Defaults to True, because the frontend caches these tags globally
                     include_transactions=request.GET.get("include_transactions", "1") == "1",
+                    tenant_ids={"organization_id": organization.id},
                 )
                 if not features.has(
                     "organizations:javascript-console-error-tag",

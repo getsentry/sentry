@@ -811,8 +811,12 @@ class GroupSerializer(GroupSerializerBase):
 
         project_id = issue_list[0].project_id
         item_ids = [g.id for g in issue_list]
+        tenant_ids = {"organization_id": issue_list[0].project.organization_id}
         user_counts: Mapping[int, int] = user_counts_func(
-            [project_id], item_ids, environment_ids=environment and [environment.id]
+            [project_id],
+            item_ids,
+            environment_ids=environment and [environment.id],
+            tenant_ids=tenant_ids,
         )
         first_seen: MutableMapping[int, datetime] = {}
         last_seen: MutableMapping[int, datetime] = {}
@@ -820,7 +824,12 @@ class GroupSerializer(GroupSerializerBase):
 
         if environment is not None:
             environment_seen_stats = environment_seen_stats_func(
-                [project_id], item_ids, [environment.id], "environment", environment.name
+                [project_id],
+                item_ids,
+                [environment.id],
+                "environment",
+                environment.name,
+                tenant_ids=tenant_ids,
             )
             for item_id, value in environment_seen_stats.items():
                 first_seen[item_id] = value.first_seen

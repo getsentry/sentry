@@ -26,7 +26,12 @@ class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
                 kwargs.update(denylist=DS_DENYLIST)
 
             tag_keys = sorted(
-                tagstore.get_tag_keys(project.id, environment_id, **kwargs),
+                tagstore.get_tag_keys(
+                    project.id,
+                    environment_id,
+                    tenant_ids={"organization_id": project.organization_id},
+                    **kwargs,
+                ),
                 key=lambda x: x.key,
             )
 

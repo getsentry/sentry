@@ -31,7 +31,11 @@ class GroupTagExportView(ProjectView, CsvMixin, EnvironmentMixin):
 
         try:
             processor = IssuesByTagProcessor(
-                project_id=project.id, group_id=group_id, key=key, environment_id=environment_id
+                project_id=project.id,
+                group_id=group_id,
+                key=key,
+                environment_id=environment_id,
+                tenant_ids={"organization_id": project.organization_id},
             )
         except ExportError:
             raise Http404

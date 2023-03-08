@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from sentry import tagstore
 from sentry.models import EventUser, Group, Project, get_group_with_redirect
 
@@ -9,7 +11,14 @@ class IssuesByTagProcessor:
     Processor for exports of issues data based on a provided tag
     """
 
-    def __init__(self, project_id, group_id, key, environment_id):
+    def __init__(
+        self,
+        project_id,
+        group_id,
+        key,
+        environment_id,
+        tenant_ids: dict[str, str | int] | None = None,
+    ):
         self.project = self.get_project(project_id)
         self.group = self.get_group(group_id, self.project)
         self.key = key
@@ -18,7 +27,9 @@ class IssuesByTagProcessor:
         self.lookup_key = self.get_lookup_key(self.key)
         # Ensure the tag key exists, as it may have been deleted
         try:
-            tagstore.get_tag_key(self.project.id, environment_id, self.lookup_key)
+            tagstore.get_tag_key(
+                self.project.id, environment_id, self.lookup_key, tenant_ids=tenant_ids
+            )
         except tagstore.TagKeyNotFound:
             raise ExportError("Requested key does not exist")
         self.callbacks = self.get_callbacks(self.key, self.group.project_id)
@@ -101,6 +112,7 @@ class IssuesByTagProcessor:
             callbacks=self.callbacks,
             limit=limit,
             offset=offset,
+            tenant_ids={"organization_id": self.project.organization_id},
         )
 
     def get_serialized_data(self, limit=1000, offset=0):

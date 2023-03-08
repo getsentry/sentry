@@ -717,7 +717,7 @@ def raw_query(
     """
 
     if referrer:
-        kwargs["tenant_ids"] = kwargs["tenant_ids"] if "tenant_ids" in kwargs else dict()
+        kwargs["tenant_ids"] = kwargs.get("tenant_ids") or dict()
         kwargs["tenant_ids"]["referrer"] = referrer
 
     snuba_params = SnubaQueryParams(
