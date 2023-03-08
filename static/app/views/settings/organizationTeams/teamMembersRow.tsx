@@ -76,7 +76,7 @@ const TeamRoleSelect = (props: {
   const {orgRolesFromTeams: orgRolesFromTeams} = member;
 
   const memberOrgRoles = [member.orgRole, teamOrgRole];
-  if (orgRolesFromTeams.length > 0) {
+  if (orgRolesFromTeams && orgRolesFromTeams.length > 0) {
     memberOrgRoles.push(orgRolesFromTeams[0].role.id);
   }
   // sort by ascending index
