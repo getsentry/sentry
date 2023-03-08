@@ -363,6 +363,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.monitors",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -589,6 +590,7 @@ CELERY_IMPORTS = (
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
+    "sentry.monitors.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -596,7 +598,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
-    "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
@@ -640,6 +641,7 @@ CELERY_IMPORTS = (
     "sentry.utils.suspect_resolutions_releases.get_suspect_resolutions_releases",
     "sentry.tasks.derive_code_mappings",
     "sentry.ingest.transaction_clusterer.tasks",
+    "sentry.tasks.auto_enable_codecov",
 )
 CELERY_QUEUES = [
     Queue("activity.notify", routing_key="activity.notify"),
@@ -782,7 +784,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 30},
     },
     "check-monitors": {
-        "task": "sentry.tasks.check_monitors",
+        "task": "sentry.monitors.tasks.check_monitors",
         "schedule": timedelta(minutes=1),
         "options": {"expires": 60},
     },
@@ -877,11 +879,15 @@ CELERYBEAT_SCHEDULE = {
         "schedule": timedelta(hours=1),
         "options": {"expires": 3600},
     },
+    "auto-enable-codecov": {
+        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "schedule": timedelta(hours=24),
+        "options": {"expires": 3600},
+    },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
         # Run job every 1 hour
         "schedule": crontab(minute=0),
-        "options": {"expires": 3600},
     },
 }
 
@@ -1078,6 +1084,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-aggregate-flamegraph": False,
     # Enable the profiling previews
     "organizations:profiling-previews": False,
+    # Enable the profiling span previews
+    "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
     # Whether to enable ingest for profile blocked main thread issues
@@ -1249,8 +1257,6 @@ SENTRY_FEATURES = {
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
-    # Enable experimental session replay UI
-    "organizations:session-replay-ui": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature

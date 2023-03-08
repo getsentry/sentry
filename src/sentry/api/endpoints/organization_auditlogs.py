@@ -30,7 +30,9 @@ class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationAuditPermission,)
 
     def get(self, request: Request, organization) -> Response:
-        queryset = AuditLogEntry.objects.filter(organization=organization).select_related("actor")
+        queryset = AuditLogEntry.objects.filter(organization_id=organization.id).select_related(
+            "actor"
+        )
 
         serializer = AuditLogQueryParamSerializer(data=request.GET)
 
