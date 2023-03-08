@@ -125,7 +125,7 @@ class FeatureAdoptionRedisBackend:
         )
 
     def get_client(self, key):
-        # WARN: Carefuly as this works only for single key operations.
+        # WARN: Carefully as this works only for single key operations.
         if self.is_redis_cluster:
             return self.cluster
         else:
