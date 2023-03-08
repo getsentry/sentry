@@ -18,6 +18,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry import options
 from sentry.sentry_metrics import indexer
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
@@ -46,6 +47,7 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
     start_time = time.time()
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     offset = 0
+    load_rate = int(options.get("dynamic-sampling.prioritise_transactions.load_rate") * 100)
     last_result: List[Tuple[int, int]] = []
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
@@ -59,6 +61,7 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
                     Column("org_id"),
                 ],
                 where=[
+                    Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate),
                     Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),

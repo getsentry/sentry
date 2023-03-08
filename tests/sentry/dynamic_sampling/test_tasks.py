@@ -130,14 +130,14 @@ class TestPrioritiseTransactionsTask(BaseMetricsLayerTestCase, TestCase, SnubaTe
         return idx + counts[name]
 
     @patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
-    def test_prioritise_projects_simple(self, get_blended_sample_rate):
+    def test_prioritise_transactions_simple(self, get_blended_sample_rate):
         """
         Create orgs projects & transactions and then check that the task creates rebalancing data
         in Redis
         """
         get_blended_sample_rate.return_value = 0.25
 
-        with self.options({"dynamic-sampling.prioritise_projects.sample_rate": 1.0}):
+        with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
             with self.feature({"organizations:ds-prioritise-by-transaction-bias": True}):
                 with self.tasks():
                     prioritise_transactions()
