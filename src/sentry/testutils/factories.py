@@ -325,9 +325,7 @@ class Factories:
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
 
-        env = Environment.objects.create(
-            organization_id=organization_id, project_id=project.id, name=name
-        )
+        env = Environment.objects.create(organization_id=organization_id, name=name)
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
 
@@ -455,7 +453,7 @@ class Factories:
             type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
-            user=user,
+            user_id=user.id if user else None,
             data={"version": version},
         )
 
@@ -502,11 +500,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(org, release, project=None, extra_files=None):
+    def create_artifact_bundle(
+        org, release, project=None, extra_files=None, fixture_path="artifact_bundle"
+    ):
         import zipfile
 
         bundle = io.BytesIO()
-        bundle_dir = get_fixture_path("artifact_bundle")
+        bundle_dir = get_fixture_path(fixture_path)
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
             for path, content in (extra_files or {}).items():
                 zipfile.writestr(path, content)
@@ -1141,14 +1141,16 @@ class Factories:
             IncidentProject.objects.create(incident=incident, project=project)
         if seen_by:
             for user in seen_by:
-                IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
+                IncidentSeen.objects.create(
+                    incident=incident, user_id=user.id, last_seen=timezone.now()
+                )
         return incident
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_incident_activity(incident, type, comment=None, user=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user=user
+            incident=incident, type=type, comment=comment, user_id=user_id
         )
 
     @staticmethod
@@ -1360,7 +1362,7 @@ class Factories:
             project=project,
             group=issue,
             type=ActivityType.NOTE.value,
-            user=user,
+            user_id=user.id,
             data=data,
         )
 

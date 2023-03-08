@@ -104,7 +104,7 @@ class OrganizationIncidentUpdateStatusTest(BaseIncidentDetailsTest, APITestCase)
         activity = IncidentActivity.objects.filter(incident=incident).order_by("-id")[:1].get()
         assert activity.value == str(status)
         assert activity.comment == comment
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
 
     def test_invalid_status(self):
         incident = self.create_incident()

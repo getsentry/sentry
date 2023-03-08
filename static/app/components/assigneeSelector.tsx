@@ -40,8 +40,8 @@ function AssigneeAvatar({
         <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
       ),
     }),
-    releaseCommit: '',
     ownershipRule: t('Matching Issue Owners Rule'),
+    projectOwnership: t('Matching Issue Owners Rule'),
     codeowners: t('Matching Codeowners Rule'),
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);

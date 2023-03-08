@@ -11,6 +11,7 @@ import GridEditable, {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -132,7 +133,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
   const columnType = props.meta.fields[key];
   const columnUnit = props.meta.units[key];
 
-  if (key === 'id') {
+  if (key === 'id' || key === 'profile.id') {
     const project = getProjectForRow(props.baggage, props.dataRow);
 
     if (!defined(project)) {
@@ -200,6 +201,19 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     }
   }
 
+  if (key === 'user_misery()') {
+    return (
+      <UserMisery
+        bars={10}
+        barHeight={20}
+        miserableUsers={undefined}
+        miseryLimit={undefined}
+        totalUsers={undefined}
+        userMisery={value || 0}
+      />
+    );
+  }
+
   switch (columnType) {
     case 'integer':
     case 'number':
@@ -248,9 +262,11 @@ function getProjectForRow<F extends FieldType>(
 
 const FIELDS = [
   'id',
+  'profile.id',
   'trace.transaction',
   'trace',
   'transaction',
+  'transaction.duration',
   'profile.duration',
   'project',
   'project.id',
@@ -272,11 +288,13 @@ const FIELDS = [
   'p95()',
   'p99()',
   'count()',
+  'user_misery()',
 ] as const;
 
 type FieldType = (typeof FIELDS)[number];
 
 const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
+  'transaction.duration',
   'profile.duration',
   'p75()',
   'p95()',
@@ -288,6 +306,11 @@ const RIGHT_ALIGNED_FIELDS = new Set<FieldType>([
 const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   id: {
     key: 'id',
+    name: t('Profile ID'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'profile.id': {
+    key: 'profile.id',
     name: t('Profile ID'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -304,6 +327,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
   transaction: {
     key: 'transaction',
     name: t('Transaction'),
+    width: COL_WIDTH_UNDEFINED,
+  },
+  'transaction.duration': {
+    key: 'transaction.duration',
+    name: t('Duration'),
     width: COL_WIDTH_UNDEFINED,
   },
   'profile.duration': {
@@ -410,6 +438,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     key: 'count()',
     name: t('Count()'),
     width: COL_WIDTH_UNDEFINED,
+  },
+  'user_misery()': {
+    key: 'user_misery()',
+    name: t('User Misery'),
+    width: 110,
   },
 };
 

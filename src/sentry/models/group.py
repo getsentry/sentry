@@ -32,7 +32,6 @@ from sentry.db.models import (
 )
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.grouptype import ErrorGroupType, GroupCategory, get_group_type_by_type_id
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.query import apply_performance_conditions
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.snuba.dataset import Dataset
@@ -217,16 +216,7 @@ def get_oldest_or_latest_event_for_environments(
     )
 
     if events:
-        group_event = events[0].for_group(group)
-        occurrence_id = group_event.occurrence_id
-        if occurrence_id:
-            group_event.occurrence = IssueOccurrence.fetch(occurrence_id, group.project_id)
-            if group_event.occurrence is None:
-                logger.error(
-                    "Failed to fetch occurrence for event",
-                    extra={"group_id", group.id, "occurrence_id", occurrence_id},
-                )
-        return group_event
+        return events[0].for_group(group)
 
     return None
 
@@ -637,7 +627,11 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+            [self.project_id],
+            [self.id],
+            environment_ids=None,
+            start=self.first_seen,
+            tenant_ids={"organization_id": self.project.organization_id},
         )[self.id]
 
     @classmethod

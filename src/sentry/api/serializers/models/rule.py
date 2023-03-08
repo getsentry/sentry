@@ -1,6 +1,7 @@
 from collections import defaultdict
+from typing import List
 
-from django.db.models import Max
+from django.db.models import Max, prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
 from sentry.models import (
@@ -12,9 +13,8 @@ from sentry.models import (
     RuleFireHistory,
     actor_type_to_class,
     actor_type_to_string,
+    fetch_actors_by_actor_ids,
 )
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import user_service
 
 
 def _generate_rule_label(project, rule, data):
@@ -42,6 +42,10 @@ class RuleSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
+        from sentry.services.hybrid_cloud.app import app_service
+
+        prefetch_related_objects(item_list, "project")
+
         environments = Environment.objects.in_bulk(
             [_f for _f in [i.environment_id for i in item_list] if _f]
         )
@@ -65,15 +69,18 @@ class RuleSerializer(Serializer):
         resolved_actors = {}
         owners_by_type = defaultdict(list)
 
-        sentry_app_uuids = {
+        sentry_app_uuids = [
             action.get("sentryAppInstallationUuid")
             for rule in rules.values()
             for action in rule.data.get("actions", [])
-        }
+        ]
 
+        sentry_app_ids: List[int] = [
+            i.sentry_app.id for i in app_service.get_many(filter=dict(uuids=sentry_app_uuids))
+        ]
         sentry_app_installations_by_uuid = app_service.get_related_sentry_app_components(
-            organization_ids={rule.project.organization_id for rule in rules.values()},
-            sentry_app_uuids=sentry_app_uuids,
+            organization_ids=[rule.project.organization_id for rule in rules.values()],
+            sentry_app_ids=sentry_app_ids,
             type="alert-rule-action",
             group_by="uuid",
         )
@@ -83,18 +90,10 @@ class RuleSerializer(Serializer):
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
         for k, v in ACTOR_TYPES.items():
-            if k == "user":
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in user_service.get_many(filter={"actor_ids": owners_by_type[k]})
-                }
-            elif k == "team":
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
-                }
-            else:
-                assert False, "Unhandled actor type in alert rule serializer"
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
+            }
 
         for rule in rules.values():
             if rule.owner_id:

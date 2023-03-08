@@ -17,7 +17,7 @@ class TestTestUtilsFeatureHelper(TestCase):
     def test_with_feature(self):
         assert features.has("organizations:global-views", self.org)
 
-    def test_feature_with_api_organization(self):
+    def test_feature_with_rpc_organization(self):
 
         with self.feature({"organizations:customer-domains": False}):
             org_context = organization_service.get_organization_by_slug(

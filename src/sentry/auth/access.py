@@ -4,10 +4,10 @@ __all__ = [
     "from_user",
     "from_member",
     "DEFAULT",
-    "from_user_and_api_user_org_context",
-    "from_api_member",
     "from_user_and_rpc_user_org_context",
+    "from_user_and_api_user_org_context",
     "from_rpc_member",
+    "from_api_member",
 ]
 
 import abc
@@ -36,7 +36,6 @@ from sentry.models import (
 )
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.app import app_service
 from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState, auth_service
 from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
@@ -389,19 +388,19 @@ class DbAccess(Access):
 
 
 @dataclass
-class SingularApiAccessOrgOptimization:
-    access: ApiBackedAccess
+class SingularRpcAccessOrgOptimization:
+    access: RpcBackedAccess
 
 
 def maybe_singular_rpc_access_org_context(
     access: Access, org_ids: Set[int]
-) -> SingularApiAccessOrgOptimization | None:
+) -> SingularRpcAccessOrgOptimization | None:
     if (
-        isinstance(access, ApiBackedAccess)
+        isinstance(access, RpcBackedAccess)
         and len(org_ids) == 1
         and access.rpc_user_organization_context.organization.id in org_ids
     ):
-        return SingularApiAccessOrgOptimization(access)
+        return SingularRpcAccessOrgOptimization(access)
     return None
 
 
@@ -409,11 +408,12 @@ maybe_singular_api_access_org_context = maybe_singular_rpc_access_org_context
 
 
 @dataclass
-class ApiBackedAccess(Access):
+class RpcBackedAccess(Access):
     rpc_user_organization_context: RpcUserOrganizationContext
     requested_scopes: Iterable[str] | None
     auth_state: RpcAuthState
 
+    # TODO: remove once getsentry has updated to use the new names.
     @property
     def api_user_organization_context(self) -> RpcUserOrganizationContext:
         return self.rpc_user_organization_context
@@ -657,7 +657,7 @@ class OrganizationGlobalAccess(DbAccess):
         )
 
 
-class ApiBackedOrganizationGlobalAccess(ApiBackedAccess):
+class ApiBackedOrganizationGlobalAccess(RpcBackedAccess):
     """Access to all an organization's teams and projects."""
 
     def __init__(
@@ -883,7 +883,7 @@ def from_request_org_and_scopes(
         )
 
     if getattr(request.user, "is_sentry_app", False):
-        return _from_api_sentry_app(rpc_user_org_context)
+        return _from_rpc_sentry_app(rpc_user_org_context)
 
     if is_superuser:
         member = rpc_user_org_context.member
@@ -901,7 +901,7 @@ def from_request_org_and_scopes(
         )
 
     if hasattr(request, "auth") and not request.user.is_authenticated:
-        return from_api_auth(request.auth, rpc_user_org_context)
+        return from_rpc_auth(request.auth, rpc_user_org_context)
 
     return from_user_and_rpc_user_org_context(
         user=request.user,
@@ -1014,7 +1014,9 @@ def _from_sentry_app(
     return OrganizationGlobalMembership(organization, sentry_app.scope_list, sso_is_valid=True)
 
 
-def _from_api_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
+def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
+    from sentry.services.hybrid_cloud.app import app_service
+
     if not context or context.user_id is None:
         return NoAccess()
 
@@ -1084,7 +1086,7 @@ def from_rpc_member(
     if rpc_user_organization_context.user_id is None:
         return DEFAULT
 
-    return ApiBackedAccess(
+    return RpcBackedAccess(
         rpc_user_organization_context=rpc_user_organization_context,
         requested_scopes=scopes,
         auth_state=auth_state
@@ -1112,7 +1114,7 @@ def from_auth(auth: ApiKey | SystemToken, organization: Organization) -> Access:
         return DEFAULT
 
 
-def from_api_auth(
+def from_rpc_auth(
     auth: ApiKey | SystemToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     if is_system_auth(auth):

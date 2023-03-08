@@ -30,6 +30,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -271,7 +272,9 @@ class Organization(Model, SnowflakeIdMixin):
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        return super().delete(**kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            Organization.outbox_for_update(self.id).save()
+            return super().delete(**kwargs)
 
     @staticmethod
     def outbox_for_update(org_id: int) -> RegionOutbox:
@@ -316,11 +319,11 @@ class Organization(Model, SnowflakeIdMixin):
         }
 
     def get_owners(self) -> Sequence[RpcUser]:
+        owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+            "user_id", flat=True
+        )
 
-        owner_memberships = OrganizationMember.objects.filter(
-            role=roles.get_top_dog().id, organization=self
-        ).values_list("user_id", flat=True)
-        return user_service.get_many(filter={"user_ids": owner_memberships})
+        return user_service.get_many(filter={"user_ids": owners})
 
     def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
@@ -528,8 +531,8 @@ class Organization(Model, SnowflakeIdMixin):
         )
 
         for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization=from_org)
-            do_update(queryset, {"organization": to_org})
+            queryset = model.objects.filter(organization_id=from_org.id)
+            do_update(queryset, {"organization_id": to_org.id})
 
         for model in ATTR_MODEL_LIST:
             queryset = model.objects.filter(organization_id=from_org.id)

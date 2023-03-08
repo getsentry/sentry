@@ -44,9 +44,7 @@ class IncidentSerializer(Serializer):
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
-                IncidentSeen.objects.filter(incident__in=item_list)
-                .select_related("user")
-                .order_by("-last_seen")
+                IncidentSeen.objects.filter(incident__in=item_list).order_by("-last_seen")
             )
             incident_seen_dict = defaultdict(list)
             for incident_seen, serialized_seen_by in zip(

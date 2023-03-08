@@ -1,9 +1,8 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import copy from 'copy-text-to-clipboard';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AutoSelectText from 'sentry/components/autoSelectText';
 import {Button} from 'sentry/components/button';
@@ -94,6 +93,17 @@ function ShareIssueModal({
 
   const shareUrl = group?.shareId ? getShareUrl() : null;
 
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(shareUrl!)
+      .then(() => {
+        addSuccessMessage(t('Copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error copying to clipboard'));
+      });
+  };
+
   return (
     <Fragment>
       <Header closeButton>
@@ -131,8 +141,8 @@ function ShareIssueModal({
                 borderless
                 size="sm"
                 onClick={() => {
-                  copy(shareUrl);
                   urlRef.current?.selectText();
+                  handleCopy();
                 }}
                 icon={<IconCopy />}
                 aria-label={t('Copy to clipboard')}
@@ -155,7 +165,7 @@ function ShareIssueModal({
           <Button
             priority="primary"
             onClick={() => {
-              copy(shareUrl);
+              handleCopy();
               closeModal();
             }}
           >

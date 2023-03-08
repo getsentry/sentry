@@ -3,7 +3,7 @@ from datetime import datetime
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import Serializer, register
-from sentry.models import MonitorCheckIn
+from sentry.monitors.models import MonitorCheckIn
 
 
 @register(MonitorCheckIn)
@@ -14,6 +14,7 @@ class MonitorCheckInSerializer(Serializer):
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
+            "attachmentId": obj.attachment_id,
         }
 
 
@@ -22,3 +23,4 @@ class MonitorCheckInSerializerResponse(TypedDict):
     status: str
     duration: int
     dateCreated: datetime
+    attachmentId: str

@@ -1,3 +1,8 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import Enum
@@ -25,9 +30,6 @@ class ProjectKeyRole(Enum):
 @dataclass
 class RpcProjectKey:
     dsn_public: str = ""
-
-
-ApiProjectKey = RpcProjectKey
 
 
 class ProjectKeyService(InterfaceWithLifecycle):

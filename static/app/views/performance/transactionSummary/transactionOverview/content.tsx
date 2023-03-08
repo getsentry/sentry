@@ -14,7 +14,8 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
-import Tooltip from 'sentry/components/tooltip';
+import {ActionBarItem} from 'sentry/components/smartSearchBar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,10 +38,8 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {
-  canUseMetricsInTransactionSummary,
-  canUseTransactionMetricsData,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -184,31 +183,33 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
-    if (!canUseMetricsInTransactionSummary(_org)) {
-      return undefined;
+    let items: ActionBarItem[] | undefined = undefined;
+    if (
+      _org.features.includes('performance-metrics-backed-transaction-summary') &&
+      !canUseTransactionMetricsData(_org, _location)
+    ) {
+      items = [
+        {
+          key: 'alert',
+          makeAction: () => ({
+            Button: () => (
+              <Tooltip
+                title={t(
+                  'Based on your search criteria and sample rate, the events available may be limited.'
+                )}
+              >
+                <StyledIconWarning size="sm" color="warningText" />
+              </Tooltip>
+            ),
+            menuItem: {
+              key: 'alert',
+            },
+          }),
+        },
+      ];
     }
 
-    return !canUseTransactionMetricsData(_org, _location)
-      ? [
-          {
-            key: 'alert',
-            makeAction: () => ({
-              Button: () => (
-                <Tooltip
-                  title={t(
-                    'Based on your search criteria and sample rate, the events available may be limited.'
-                  )}
-                >
-                  <StyledIconWarning size="sm" color="warningText" />
-                </Tooltip>
-              ),
-              menuItem: {
-                key: 'alert',
-              },
-            }),
-          },
-        ]
-      : undefined;
+    return items;
   }
 
   const hasPerformanceChartInterpolation = organization.features.includes(
@@ -217,9 +218,6 @@ function SummaryContent({
 
   const query = decodeScalar(location.query.query, '');
   const totalCount = totalValues === null ? null : totalValues['count()'];
-  const unfilteredTotalCount = unfilteredTotalValues
-    ? unfilteredTotalValues['count()']
-    : null;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -230,7 +228,7 @@ function SummaryContent({
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
-          return Number.isFinite(totalValues[field]);
+          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
         })
       ));
 
@@ -250,7 +248,8 @@ function SummaryContent({
   const fields = [...transactionsListEventView.fields];
 
   if (
-    organization.features.includes('session-replay-ui') &&
+    organization.features.includes('session-replay') &&
+    project &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));
@@ -356,7 +355,6 @@ function SummaryContent({
           totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
-          unfilteredTotalValue={unfilteredTotalCount}
         />
         <TransactionsList
           location={location}
@@ -422,6 +420,13 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
+        <TransactionPercentage
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          unfilteredTotals={unfilteredTotalValues}
+        />
         <UserStats
           organization={organization}
           location={location}
@@ -447,7 +452,6 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
-          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags

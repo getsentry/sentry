@@ -179,11 +179,11 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 @all_silo_test(stable=True)
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
     def test_serialize_org_integration(self):
-        api_org_integration1 = integration_service._serialize_organization_integration(
+        rpc_org_integration1 = integration_service._serialize_organization_integration(
             self.org_integration1
         )
         self.verify_org_integration_result(
-            result=api_org_integration1, expected=self.org_integration1
+            result=rpc_org_integration1, expected=self.org_integration1
         )
 
     def test_get_organization_integrations(self):

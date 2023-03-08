@@ -69,7 +69,9 @@ export enum IssueType {
   PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
 
   // Profile
-  PROFILE_BLOCKED_THREAD = 'profile_blocked_thread',
+  PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
+  PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
+  PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
 }
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
@@ -165,8 +167,9 @@ export type InboxDetails = {
 export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
-  | 'codeowners'
-  | 'releaseCommit';
+  | 'projectOwnership'
+  // TODO: codeowners may no longer exist
+  | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {

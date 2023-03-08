@@ -57,7 +57,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         cls,
         member: OrganizationMember,
     ) -> RpcOrganizationMember:
-        api_member = RpcOrganizationMember(
+        rpc_member = RpcOrganizationMember(
             id=member.id,
             organization_id=member.organization_id,
             user_id=member.user.id if member.user is not None else None,
@@ -81,12 +81,12 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         for omt in omts:
             omt.organizationmember = member
-            api_member.member_teams.append(
+            rpc_member.member_teams.append(
                 cls._serialize_team_member(omt, project_ids_by_team_id[omt.team_id])
             )
-        api_member.project_ids = list(all_project_ids)
+        rpc_member.project_ids = list(all_project_ids)
 
-        return api_member
+        return rpc_member
 
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
@@ -139,7 +139,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def serialize_organization(cls, org: Organization) -> RpcOrganization:
-        api_org: RpcOrganization = RpcOrganization(
+        rpc_org: RpcOrganization = RpcOrganization(
             slug=org.slug,
             id=org.id,
             flags=cls._serialize_flags(org),
@@ -150,9 +150,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
         projects: List[Project] = Project.objects.filter(organization=org)
         teams: List[Team] = Team.objects.filter(organization=org)
-        api_org.projects.extend(cls._serialize_project(project) for project in projects)
-        api_org.teams.extend(cls._serialize_team(team) for team in teams)
-        return api_org
+        rpc_org.projects.extend(cls._serialize_project(project) for project in projects)
+        rpc_org.teams.extend(cls._serialize_team(team) for team in teams)
+        return rpc_org
 
     def check_membership_by_id(
         self, organization_id: int, user_id: int
@@ -303,16 +303,16 @@ class DatabaseBackedOrganizationService(OrganizationService):
             member = OrganizationMember.objects.get(id=member_id)
             organization_member = self.serialize_member(member)
 
-        org_roles = []
+        org_roles: List[str] = []
         if organization_member:
             team_ids = [mt.team_id for mt in organization_member.member_teams]
-            org_roles = list(
+            all_roles: Set[str] = set(
                 Team.objects.filter(id__in=team_ids)
                 .exclude(org_role=None)
                 .values_list("org_role", flat=True)
-                .distinct()
             )
-            org_roles.append(organization_member.role)
+            all_roles.add(organization_member.role)
+            org_roles.extend(list(all_roles))
         return org_roles
 
     def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:

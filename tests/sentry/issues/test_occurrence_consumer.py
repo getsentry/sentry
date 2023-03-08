@@ -7,8 +7,9 @@ from unittest import mock
 
 import pytest
 
+from sentry import eventstore
 from sentry.eventstore.snuba.backend import SnubaEventStorage
-from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceSlowDBQueryGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import (
     EventLookupError,
@@ -19,7 +20,6 @@ from sentry.issues.occurrence_consumer import (
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
@@ -44,7 +44,7 @@ def get_test_message(
             {"name": "Line", "value": "40", "important": True},
             {"name": "Memory", "value": "breached", "important": False},
         ],
-        "type": ProfileBlockedThreadGroupType.type_id,
+        "type": ProfileFileIOGroupType.type_id,
         "detection_time": now.isoformat(),
     }
 
@@ -74,7 +74,6 @@ class IssueOccurrenceTestBase(OccurrenceTestMixin, TestCase, SnubaTestCase):  # 
         self.eventstore = SnubaEventStorage()
 
 
-@region_silo_test(stable=True)
 class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
     @pytest.mark.django_db
     def test_occurrence_consumer_with_event(self) -> None:
@@ -105,6 +104,10 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         project_id = event_data["event"]["project_id"]
         occurrence = result[0]
 
+        event = eventstore.get_event_by_id(project_id, event_data["event"]["event_id"])
+        event = event.for_group(event.group)
+        assert event.occurrence_id == occurrence.id
+
         fetched_occurrence = IssueOccurrence.fetch(occurrence.id, project_id)
         assert fetched_occurrence is not None
         self.assert_occurrences_identical(occurrence, fetched_occurrence)
@@ -125,8 +128,8 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
         message = get_test_message(self.project.id, type=300)
         with pytest.raises(InvalidEventPayloadError):
             with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-                "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
-                {300},
+                "sentry.issues.occurrence_consumer.get_group_types_by_category",
+                lambda _: {300},
             ):
                 _process_message(message)
 
@@ -139,7 +142,6 @@ class IssueOccurrenceProcessMessageTest(IssueOccurrenceTestBase):
                 _process_message(message)
 
 
-@region_silo_test(stable=True)
 class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
     def test_lookup_event_doesnt_exist(self) -> None:
         message = get_test_message(self.project.id, include_event=False)
@@ -168,8 +170,8 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
             type=PerformanceSlowDBQueryGroupType.type_id,
         )
         with self.feature("organizations:profile-blocked-main-thread-ingest"), mock.patch(
-            "sentry.issues.occurrence_consumer.INGEST_ALLOWED_ISSUE_TYPES",
-            {PerformanceSlowDBQueryGroupType.type_id},
+            "sentry.issues.occurrence_consumer.get_group_types_by_category",
+            lambda _: {PerformanceSlowDBQueryGroupType.type_id},
         ):
             processed = _process_message(message)
         assert processed is not None
@@ -180,7 +182,6 @@ class IssueOccurrenceLookupEventIdTest(IssueOccurrenceTestBase):
         assert fetched_event.get_event_type() == "transaction"
 
 
-@region_silo_test(stable=True)
 class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)
@@ -203,12 +204,10 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         self.run_invalid_schema_test(message)
 
     def test_invalid_payload(self) -> None:
-        self.run_invalid_payload_test(remove_event_fields=["event_id"])
         self.run_invalid_payload_test(remove_event_fields=["project_id"])
         self.run_invalid_payload_test(remove_event_fields=["timestamp"])
         self.run_invalid_payload_test(remove_event_fields=["platform"])
         self.run_invalid_payload_test(remove_event_fields=["tags"])
-        self.run_invalid_payload_test(update_event_fields={"event_id": 0000})
         self.run_invalid_payload_test(update_event_fields={"project_id": "p_id"})
         self.run_invalid_payload_test(update_event_fields={"timestamp": 0000})
         self.run_invalid_payload_test(update_event_fields={"platform": 0000})
@@ -234,15 +233,15 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         if they're mismatched, we move forward and validate further down the line
         """
         message = deepcopy(get_test_message(self.project.id))
-        message["event_id"] = "id1"
-        message["event"]["event_id"] = "id2"
+        message["event_id"] = uuid.uuid4().hex
+        message["event"]["event_id"] = uuid.uuid4().hex
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["event_id"] == message["event_id"]
         assert kwargs["event_data"]["event_id"] == message["event"]["event_id"]
 
     def test_missing_top_level_event_id(self) -> None:
         message = deepcopy(get_test_message(self.project.id))
-        event_id = "the_one"
+        event_id = uuid.uuid4().hex
         message.pop("event_id", None)
         message["event"]["event_id"] = event_id
         kwargs = _get_kwargs(message)
@@ -262,3 +261,33 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message["event"]["project_id"] = 2
         with pytest.raises(InvalidEventPayloadError):
             _get_kwargs(message)
+
+    def test_uuid_coercion(self) -> None:
+        event_id = "0c6d75ac-3969-41e0-bc4b-33c2ff7f3657"
+        occurrence_id = "b6e6e7d9-e582-40fd-8101-5666e96eb038"
+        message = deepcopy(get_test_message(self.project.id, id=occurrence_id, event_id=event_id))
+        message["event"]["event_id"] = event_id
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["id"] == occurrence_id.replace("-", "")
+        assert kwargs["occurrence_data"]["event_id"] == event_id.replace("-", "")
+        assert kwargs["event_data"]["event_id"] == event_id.replace("-", "")
+
+    def test_invalid_uuid(self) -> None:
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(deepcopy(get_test_message(self.project.id, id="hi")))
+        with pytest.raises(InvalidEventPayloadError):
+            _get_kwargs(deepcopy(get_test_message(self.project.id, event_id="hi")))
+        with pytest.raises(InvalidEventPayloadError):
+            message = deepcopy(get_test_message(self.project.id))
+            message["event"]["event_id"] = "hi"
+            _get_kwargs(message)
+
+    def test_occurrence_title_on_event(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["issue_title"] == kwargs["event_data"]["metadata"]["title"]
+
+    def test_occurrence_level_on_event(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]

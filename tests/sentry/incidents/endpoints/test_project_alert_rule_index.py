@@ -75,8 +75,8 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
-@freeze_time()
 @region_silo_test(stable=True)
+@freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"
@@ -241,6 +241,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
+
         with exempt_from_silo_limits():
             self.integration = Integration.objects.create(
                 provider="slack",
@@ -676,8 +677,8 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[1], skip_dates=True)
 
 
-@freeze_time()
 @region_silo_test(stable=True)
+@freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"
@@ -834,8 +835,8 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
-@freeze_time()
 @region_silo_test(stable=True)
+@freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     endpoint = "sentry-api-0-project-alert-rules"
     method = "post"

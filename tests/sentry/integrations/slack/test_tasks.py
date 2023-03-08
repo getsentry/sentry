@@ -17,9 +17,11 @@ from sentry.tasks.integrations.slack import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
+@region_silo_test(stable=True)
 class SlackTasksTest(TestCase):
     def setUp(self):
         self.integration = install_slack(self.organization)
@@ -250,12 +252,10 @@ class SlackTasksTest(TestCase):
                 find_channel_id_for_alert_rule(**data)
 
         rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by == self.user
+        assert rule.created_by.id == self.user.id
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)
@@ -282,9 +282,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -308,9 +306,7 @@ class SlackTasksTest(TestCase):
         assert not AlertRule.objects.filter(name="New Rule").exists()
         mock_set_value.assert_called_with("failed")
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
@@ -338,9 +334,7 @@ class SlackTasksTest(TestCase):
         rule = AlertRule.objects.get(name="New Rule")
         mock_set_value.assert_called_with("success", rule.id)
         mock_get_channel_id.assert_called_with(
-            integration_service.get_integration(integration_id=self.integration.id),
-            "my-channel",
-            180,
+            integration_service._serialize_integration(self.integration), "my-channel", 180
         )
 
         trigger_action = AlertRuleTriggerAction.objects.get(integration=self.integration.id)

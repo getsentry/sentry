@@ -5,12 +5,12 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     "properties": {
         # required properties
         "event_id": {"type": "string", "minLength": 1},
+        "level": {"type": "string", "minLength": 1},
         "platform": {"type": "string", "minLength": 1},
         "project_id": {"type": "integer"},
+        "received": {"type": "string", "format": "date-time"},
         "tags": {"type": "object"},
         "timestamp": {"type": "string", "format": "date-time"},
-        "received": {"type": "string", "format": "date-time"},
-        # "title": {"type": "string", "minLength": 1}, leaving this out, for now
         # non-required properties
         "breadcrumbs": {
             "type": ["array", "null"],
@@ -22,6 +22,24 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                 "type": "object",
                 "additionalProperties": {"type": ["string", "null"], "minLength": 1},
             },
+        },
+        "debug_meta": {
+            "type": ["object", "null"],
+            "properties": {
+                "sdk_info": {"type": "object"},
+                "images": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "minLength": 1},
+                        },
+                        "required": ["type"],
+                        "additionalProperties": {"type": ["string", "integer"]},
+                    },
+                },
+            },
+            "required": ["images"],
         },
         "dist": {
             "type": ["object", "null"],
@@ -132,10 +150,11 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
     },
     "required": [
         "event_id",
+        "level",
         "platform",
         "project_id",
         "tags",
         "timestamp",
-    ],  # title will be required, if enabled
+    ],
     "additionalProperties": False,
 }

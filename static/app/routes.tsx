@@ -130,6 +130,13 @@ function buildRoutes() {
   //   the <OrganizationDetails /> component, which provides the sidebar and
   //   organization context.
   //
+  //   When adding new routes make sure you have both a route that starts
+  //   with `/organizations/:orgId` and also 'customer-domains' route that
+  //   does not include `/organizations/:orgId`. Often you'll only need to
+  //   worry about this for the container route for that section of the UI.
+  //   Child routes should access the current organization with `useOrganization()`
+  //   or `withOrganization()` methods.
+  //
   //   Within these routes are a variety of subroutes. They are not all
   //   listed here as the subroutes will be added and removed, and most are
   //   self explanatory.
@@ -459,7 +466,7 @@ function buildRoutes() {
       />
       <Route
         path="ownership/"
-        name={t('Issue Owners')}
+        name={t('Ownership Rules')}
         component={make(() => import('sentry/views/settings/project/projectOwnership'))}
       />
       <Route
@@ -1294,8 +1301,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/'
-              : '/organizations/:orgId/crons/:monitorId/'
+              ? '/crons/:monitorSlug/'
+              : '/organizations/:orgId/crons/:monitorSlug/'
           }
           component={make(() => import('sentry/views/monitors/details'))}
           key={
@@ -1305,8 +1312,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/edit/'
-              : '/organizations/:orgId/crons/:monitorId/edit/'
+              ? '/crons/:monitorSlug/edit/'
+              : '/organizations/:orgId/crons/:monitorSlug/edit/'
           }
           component={make(() => import('sentry/views/monitors/edit'))}
           key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
@@ -1942,10 +1949,6 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
-        <Route
           path="flamechart/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
@@ -2236,6 +2239,9 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
+
+// Exported for use in tests.
+export {buildRoutes};
 
 function NoOp(props: {children: React.ReactNode}) {
   return <Fragment>{props.children}</Fragment>;

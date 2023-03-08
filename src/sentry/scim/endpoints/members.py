@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Any, Dict, Union
 
 import sentry_sdk
@@ -20,6 +22,7 @@ from sentry import audit_log, features, roles
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import (
@@ -68,22 +71,34 @@ class OperationValue(Field):
             return value
         elif isinstance(value, dict):
             return value
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(value, str):
+            value = resolve_maybe_bool_value(value)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
     def to_internal_value(self, data) -> Union[Dict, bool]:
         if isinstance(data, bool):
             return data
         elif isinstance(data, dict):
             return data
-        else:
-            raise ValidationError("value must be a boolean or object")
+        elif isinstance(data, str):
+            value = resolve_maybe_bool_value(data)
+            if value is not None:
+                return value
+        raise ValidationError("value must be a boolean or object")
 
 
 class SCIMPatchOperationSerializer(serializers.Serializer):
-    op = serializers.ChoiceField(choices=("replace",), required=True)
+    op = serializers.CharField(required=True)
     value = OperationValue()
     path = serializers.CharField(required=False)
+
+    def validate_op(self, value: str) -> str:
+        value = value.lower()
+        if value in [MemberPatchOps.REPLACE]:
+            return value
+        raise serializers.ValidationError(f'"{value}" is not a valid choice')
 
 
 class SCIMPatchRequestSerializer(serializers.Serializer):
@@ -110,10 +125,42 @@ def _scim_member_serializer_with_expansion(organization):
     return OrganizationMemberSCIMSerializer(expand=expand)
 
 
+def resolve_maybe_bool_value(value):
+    if isinstance(value, str):
+        value = value.lower()
+        # Some IdP vendors such as Azure send boolean values as actual strings.
+        if value == "true":
+            return True
+        elif value == "false":
+            return False
+    if isinstance(value, bool):
+        return value
+    return None
+
+
 @region_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str,
+        member_id: str = "me",
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[Any, Any]:
+        try:
+            args, kwargs = super().convert_args(
+                request, organization_slug, member_id, *args, **kwargs
+            )
+            return args, kwargs
+        except ResourceDoesNotExist:
+            raise SCIMApiError(
+                status_code=ResourceDoesNotExist.status_code,
+                detail=ResourceDoesNotExist.default_detail,
+            )
 
     def _delete_member(self, request: Request, organization, member):
         audit_data = member.get_audit_log_data()
@@ -137,11 +184,14 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         if operation.get("op").lower() == MemberPatchOps.REPLACE:
             if (
                 isinstance(operation.get("value"), dict)
-                and operation.get("value").get("active") is False
+                and resolve_maybe_bool_value(operation.get("value").get("active")) is False
             ):
                 # how okta sets active to false
                 return True
-            elif operation.get("path") == "active" and operation.get("value") is False:
+            elif (
+                operation.get("path") == "active"
+                and resolve_maybe_bool_value(operation.get("value")) is False
+            ):
                 # how other idps set active to false
                 return True
         return False

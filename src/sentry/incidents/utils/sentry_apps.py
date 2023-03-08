@@ -6,7 +6,6 @@ from sentry.auth.access import NoAccess
 from sentry.incidents.logic import get_filtered_actions
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.incidents.serializers import AlertRuleTriggerActionSerializer
-from sentry.mediators import alert_rule_actions
 from sentry.services.hybrid_cloud.app import app_service
 
 
@@ -28,11 +27,10 @@ def trigger_sentry_app_action_creators_for_incidents(alert_rule_data: Mapping[st
         )
         if not action_serializer.is_valid():
             raise serializers.ValidationError(action_serializer.errors)
-        installs = app_service.get_many(filter={"uuid": action.get("sentry_app_installation_uuid")})
-        result = alert_rule_actions.AlertRuleActionCreator.run(
-            install=installs[0],
-            fields=action.get("sentry_app_config"),
-        )
 
+        result = app_service.trigger_sentry_app_action_creators(
+            fields=action.get("sentry_app_config"),
+            install_uuid=action.get("sentry_app_installation_uuid"),
+        )
         if not result["success"]:
             raise serializers.ValidationError({"sentry_app": result["message"]})

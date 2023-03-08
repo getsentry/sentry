@@ -9,7 +9,6 @@ from sentry.services.hybrid_cloud.user import user_service
 class IncidentActivitySerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
         prefetch_related_objects(item_list, "incident__organization")
-        prefetch_related_objects(item_list, "user")
         serialized_users = user_service.serialize_many(
             filter={"user_ids": [i.user_id for i in item_list if i.user_id]}, as_user=user
         )

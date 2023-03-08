@@ -22,7 +22,7 @@ type Props = {
   replaySlug: string;
 };
 
-function ReplayContent({orgSlug, replaySlug, event}: Props) {
+function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   const routes = useRoutes();
   const {fetching, replay, fetchError} = useReplayData({
     orgSlug,
@@ -72,7 +72,11 @@ function ReplayContent({orgSlug, replaySlug, event}: Props) {
   };
 
   return (
-    <ReplayContextProvider replay={replay} initialTimeOffset={initialTimeOffset}>
+    <ReplayContextProvider
+      isFetching={fetching}
+      replay={replay}
+      initialTimeOffset={initialTimeOffset}
+    >
       <PlayerContainer data-test-id="player-container">
         <StaticPanel>
           <ReplayPlayer isPreview />
@@ -137,4 +141,4 @@ const StyledPlaceholder = styled(Placeholder)`
   margin-bottom: ${space(2)};
 `;
 
-export default ReplayContent;
+export default ReplayPreview;

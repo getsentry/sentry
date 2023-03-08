@@ -18,11 +18,12 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.api.utils import generate_organization_url, is_member_disabled_from_limit
 from sentry.auth import access
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import Authenticator, Organization, Project, ProjectStatus, Team, TeamStatus
+from sentry.models import Organization, OrganizationStatus, Project, ProjectStatus, Team, TeamStatus
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import (
@@ -161,7 +162,7 @@ class OrganizationMixin:
     def is_not_2fa_compliant(self, request: Request, organization: RpcOrganization) -> bool:
         return (
             organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
+            and not request.user.has_2fa()
             and not is_active_superuser(request)
         )
 
@@ -215,28 +216,28 @@ class OrganizationMixin:
         elif not features.has("organizations:create"):
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
-            org_exists = False
-            url = "/organizations/new/"
+            url = reverse("sentry-organization-create")
             if using_customer_domain:
                 url = absolute_uri(url)
 
             if using_customer_domain and request.user and request.user.is_authenticated:
-                organizations = organization_service.get_organizations(
-                    user_id=request.user.id, scope=None, only_visible=True
-                )
                 requesting_org_slug = request.subdomain
-                org_exists = (
-                    organization_service.check_organization_by_slug(
-                        slug=requesting_org_slug, only_visible=True
-                    )
-                    is not None
+                org_context = organization_service.get_organization_by_slug(
+                    slug=requesting_org_slug, only_visible=False, user_id=request.user.id
                 )
-                if org_exists and organizations:
-                    # If the user is a superuser, redirect them to the org's landing page (e.g. issues page)
-                    if request.user.is_superuser:
-                        url = Organization.get_url(requesting_org_slug)
+                if org_context and org_context.organization:
+                    if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
+                        url = reverse("sentry-customer-domain-restore-organization")
+                    elif org_context.organization.status == OrganizationStatus.DELETION_IN_PROGRESS:
+                        url_prefix = options.get("system.url-prefix")
+                        url = reverse("sentry-organization-create")
+                        return HttpResponseRedirect(absolute_uri(url, url_prefix=url_prefix))
                     else:
-                        url = reverse("sentry-auth-organization", args=[requesting_org_slug])
+                        # If the user is a superuser, redirect them to the org's landing page (e.g. issues page)
+                        if request.user.is_superuser:
+                            url = Organization.get_url(requesting_org_slug)
+                        else:
+                            url = reverse("sentry-auth-organization", args=[requesting_org_slug])
                     url_prefix = generate_organization_url(requesting_org_slug)
                     url = absolute_uri(url, url_prefix=url_prefix)
 
@@ -487,8 +488,8 @@ class OrganizationView(BaseView):
 
         return False
 
-    def handle_permission_required(self, request: Request, organization: Organization | RpcOrganization, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
-        if self.needs_sso(request, organization):
+    def handle_permission_required(self, request: Request, organization: Organization | RpcOrganization | None, *args: Any, **kwargs: Any) -> HttpResponse:  # type: ignore[override]
+        if organization and self.needs_sso(request, organization):
             logger.info(
                 "access.must-sso",
                 extra={"organization_id": organization.id, "user_id": request.user.id},
@@ -506,6 +507,21 @@ class OrganizationView(BaseView):
             redirect_uri = make_login_link_with_redirect(path, after_login_redirect)
 
         else:
+            if is_using_customer_domain(request):
+                # In the customer domain world, if an organziation is pending deletion, we redirect the user to the
+                # organization restoration page.
+                org_context = organization_service.get_organization_by_slug(
+                    slug=request.subdomain, only_visible=False, user_id=request.user.id
+                )
+                if org_context and org_context.member:
+                    if org_context.organization.status == OrganizationStatus.PENDING_DELETION:
+                        url_base = generate_organization_url(org_context.organization.slug)
+                        restore_org_path = reverse("sentry-customer-domain-restore-organization")
+                        return self.redirect(f"{url_base}{restore_org_path}")
+                    elif org_context.organization.status == OrganizationStatus.DELETION_IN_PROGRESS:
+                        url_base = options.get("system.url-prefix")
+                        create_org_path = reverse("sentry-organization-create")
+                        return self.redirect(f"{url_base}{create_org_path}")
             redirect_uri = self.get_no_permission_url(request, *args, **kwargs)
         return self.redirect(redirect_uri)
 

@@ -1,25 +1,46 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
 import datetime
-import hmac
 from dataclasses import dataclass, field
-from hashlib import sha256
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models.fields.jsonfield import JSONField
+from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
 
+if TYPE_CHECKING:
+    from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
 
-class SentryAppInstallationFilterArgs(TypedDict, total=False):
-    id: int
-    organization_id: int
-    uuid: str
-    date_deleted: Optional[datetime.datetime]
-    status: int  # SentryAppInstallationStatus
+
+@dataclass
+class RpcSentryAppService:
+    """
+    A `SentryAppService` (a notification service) wrapped up and serializable via the
+    rpc interface.
+    """
+
+    title: str = ""
+    slug: str = ""
+    service_type: str = "sentry_app"
+
+
+@dataclass
+class RpcSentryApp:
+    id: int = -1
+    scope_list: List[str] = field(default_factory=list)
+    application_id: int = -1
+    proxy_user_id: Optional[int] = None  # can be null on deletion.
+    owner_id: int = -1  # relation to an organization
+    name: str = ""
+    slug: str = ""
+    uuid: str = ""
+    events: List[str] = field(default_factory=list)
 
 
 @dataclass
@@ -27,73 +48,65 @@ class RpcSentryAppInstallation:
     id: int = -1
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
-    uuid: str = ""
     sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
-
-
-ApiSentryAppInstallation = RpcSentryAppInstallation
-
-
-@dataclass
-class RpcApiApplication:
-    id: int = -1
-    client_id: str = ""
-    client_secret: str = ""
-
-
-ApiApiApplication = RpcApiApplication
-
-
-@dataclass
-class RpcSentryApp:
-    id: int = -1
-    scope_list: List[str] = field(default_factory=list)
-    application: RpcApiApplication = field(default_factory=RpcApiApplication)
-    proxy_user_id: int | None = None  # can be null on deletion.
-    owner_id: int = -1  # relation to an organization
-    name: str = ""
-    slug: str = ""
+    date_deleted: Optional[datetime.datetime] = None
     uuid: str = ""
-    status: str = ""
-    events: List[str] = field(default_factory=list)
-    is_alertable: bool = False
-    components: List[RpcSentryAppComponent] = field(default_factory=list)
-    webhook_url: str = ""
-    is_internal: bool = True
-    is_unpublished: bool = True
-
-    def get_component(self, type: str) -> Optional[RpcSentryAppComponent]:
-        for c in self.components:
-            if c.type == type:
-                return c
-        return None
-
-    def build_signature(self, body: str) -> str:
-        secret = self.application.client_secret
-        return hmac.new(
-            key=secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
-        ).hexdigest()
-
-    @property
-    def slug_for_metrics(self) -> str:
-        if self.is_internal:
-            return "internal"
-        if self.is_unpublished:
-            return "unpublished"
-        return self.slug
-
-
-ApiSentryApp = RpcSentryApp
 
 
 @dataclass
 class RpcSentryAppComponent:
     uuid: str = ""
+    sentry_app_id: int = -1
     type: str = ""
-    schema: JSONField = None
+    schema: Mapping[str, Any] = field(default_factory=dict)
 
 
-ApiSentryAppComponent = RpcSentryAppComponent
+class SentryAppEventDataInterface(Protocol):
+    """
+    Protocol making RpcSentryAppEvents capable of consuming from various sources, keeping only
+    the minimum required properties.
+    """
+
+    id: str
+    label: str
+
+    @property
+    def actionType(self) -> str:
+        pass
+
+    def is_enabled(self) -> bool:
+        pass
+
+
+@dataclass
+class RpcSentryAppEventData(SentryAppEventDataInterface):
+    id: str = ""
+    label: str = ""
+    action_type: str = ""
+    enabled: bool = True
+
+    @property
+    def actionType(self) -> str:
+        return self.action_type
+
+    def is_enabled(self) -> bool:
+        return self.enabled
+
+    @classmethod
+    def from_event(cls, data_interface: SentryAppEventDataInterface) -> "RpcSentryAppEventData":
+        return RpcSentryAppEventData(
+            id=data_interface.id,
+            label=data_interface.label,
+            action_type=data_interface.actionType,
+            enabled=data_interface.is_enabled(),
+        )
+
+
+class SentryAppInstallationFilterArgs(TypedDict, total=False):
+    installation_ids: List[int]
+    app_ids: List[int]
+    organization_id: int
+    uuids: List[str]
 
 
 class AppService(
@@ -103,19 +116,7 @@ class AppService(
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> RpcSentryAppInstallation | None:
-        pass
-
-    @abc.abstractmethod
-    def get_related_sentry_app_components(
-        self,
-        *,
-        organization_ids: List[int],
-        type: str,
-        sentry_app_ids: Optional[List[int]] = None,
-        sentry_app_uuids: Optional[List[str]] = None,
-        group_by: str = "sentry_app_id",
-    ) -> Dict[str | int, Dict[str, Dict[str, Any]]]:
+    ) -> Optional[RpcSentryAppInstallation]:
         pass
 
     @abc.abstractmethod
@@ -123,8 +124,70 @@ class AppService(
         self,
         *,
         organization_id: int,
-        sentry_app_id: Optional[int] = None,
     ) -> List[RpcSentryAppInstallation]:
+        pass
+
+    @abc.abstractmethod
+    def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
+        pass
+
+    def serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+        return RpcSentryApp(
+            id=app.id,
+            scope_list=app.scope_list,
+            application_id=app.application_id,
+            proxy_user_id=app.proxy_user_id,
+            owner_id=app.owner_id,
+            name=app.name,
+            slug=app.slug,
+            uuid=app.uuid,
+            events=app.events,
+        )
+
+    @abc.abstractmethod
+    def get_custom_alert_rule_actions(
+        self,
+        *,
+        event_data: RpcSentryAppEventData,
+        organization_id: int,
+        project_slug: Optional[str],
+    ) -> List[Mapping[str, Any]]:
+        pass
+
+    @abc.abstractmethod
+    def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
+        pass
+
+    @abc.abstractmethod
+    def get_related_sentry_app_components(
+        self,
+        *,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by: str = "sentry_app_id",
+    ) -> Mapping[str, Any]:
+        pass
+
+    def serialize_sentry_app_installation(
+        self, installation: SentryAppInstallation, app: Optional[SentryApp] = None
+    ) -> RpcSentryAppInstallation:
+        if app is None:
+            app = installation.sentry_app
+
+        return RpcSentryAppInstallation(
+            id=installation.id,
+            organization_id=installation.organization_id,
+            status=installation.status,
+            sentry_app=self.serialize_sentry_app(app),
+            date_deleted=installation.date_deleted,
+            uuid=app.uuid,
+        )
+
+    @abc.abstractmethod
+    def trigger_sentry_app_action_creators(
+        self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
+    ) -> "AlertRuleActionResult":
         pass
 
 

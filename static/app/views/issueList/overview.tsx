@@ -538,7 +538,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -838,17 +837,6 @@ class IssueListOverview extends Component<Props, State> {
     });
   }
 
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
-
-    this.onSearch(query);
-  };
-
   onSearch = (query: string) => {
     if (query === this.state.query) {
       // if query is the same, just re-fetch data
@@ -1111,9 +1099,24 @@ class IssueListOverview extends Component<Props, State> {
       });
     }
 
+    const links = parseLinkHeader(this.state.pageLinks);
+
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
-    this.fetchData(true);
+    const queryCount = this.state.queryCount - itemIds.length;
+    this.setState({
+      actionTaken: true,
+      queryCount,
+    });
+
+    if (GroupStore.getAllItemIds().length === 0) {
+      // If we run out of issues on the last page, navigate back a page to
+      // avoid showing an empty state - if not on the last page, just show a spinner
+      const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.fetchCounts(queryCount, true);
+    } else {
+      this.fetchData(true);
+    }
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1147,28 +1150,14 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
+    const numIssuesOnPage = groupIds.length;
 
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
     const displayCount = tct('[count] of [total]', {
-      count: pageCount,
+      count: numIssuesOnPage,
       total: (
         <StyledQueryCount
           hideParens
@@ -1199,7 +1188,6 @@ class IssueListOverview extends Component<Props, State> {
           onRealtimeChange={this.onRealtimeChange}
           router={router}
           displayReprocessingTab={showReprocessingTab}
-          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <StyledBody>
@@ -1249,9 +1237,13 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading
+                  ? tct('Showing [displayCount] issues', {
+                      displayCount,
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
@@ -1286,17 +1278,9 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(max-content, 1fr);
-  grid-template-areas:
-    'saved-searches'
-    'content';
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: 1fr;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'content saved-searches';
-  }
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`

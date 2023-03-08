@@ -1,14 +1,24 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
-from sentry.utils import json
+from django.conf import settings
+
+from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
 
-RELEASE_BOOST_FACTOR = 5
-KEY_TRANSACTION_BOOST_FACTOR = 5
-HEALTH_CHECK_DROPPING_FACTOR = 5
+KEY_TRANSACTIONS_BOOST_FACTOR = 1.5
+
+LATEST_RELEASES_BOOST_FACTOR = 1.5
+LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
+
+IGNORE_HEALTH_CHECKS_FACTOR = 5
+
+
+ProjectId = int
+OrganizationId = int
+TransactionName = str
 
 
 class ActivatableBias(TypedDict):
@@ -28,6 +38,7 @@ class RuleType(Enum):
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
+    BOOST_LOW_VOLUME_TRANSACTIONS = "boostLowVolumeTransactions"
 
 
 DEFAULT_BIASES: List[ActivatableBias] = [
@@ -38,12 +49,14 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
+    RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
@@ -62,58 +75,50 @@ class TimeRange(TypedDict):
     end: str
 
 
-class Inner(TypedDict):
-    op: str
+class EqConditionOptions(TypedDict):
+    ignoreCase: bool
+
+
+class EqCondition(TypedDict):
+    op: Literal["eq"]
     name: str
     value: List[str]
-    options: Dict[str, bool]
+    options: EqConditionOptions
+
+
+class GlobCondition(TypedDict):
+    op: Literal["glob"]
+    name: str
+    value: List[str]
 
 
 class Condition(TypedDict):
-    op: str
-    inner: List[Inner]
+    op: Literal["and", "or"]
+    inner: List[Union[EqCondition, GlobCondition]]
 
 
-class BaseRule(TypedDict):
+class Rule(TypedDict):
+    samplingValue: SamplingValue
     type: str
-    active: bool
     condition: Condition
     id: int
 
 
-class RuleV1(BaseRule):
-    sampleRate: float
-
-
-class RuleV2(BaseRule):
-    samplingValue: SamplingValue
-
-
-class DecayingFnV1(TypedDict):
-    type: str
-    decayedSampleRate: Optional[str]
-
-
-class DecayingRuleV1(RuleV1):
-    timeRange: TimeRange
-    decayingFn: DecayingFnV1
-
-
-class DecayingFnV2(TypedDict):
+class DecayingFn(TypedDict):
     type: str
     decayedValue: Optional[str]
 
 
-class DecayingRuleV2(RuleV2):
+class DecayingRule(Rule):
     timeRange: TimeRange
-    decayingFn: DecayingFnV2
+    decayingFn: DecayingFn
 
 
 # Type defining the all the possible rules types that can exist.
-PolymorphicRule = Union[RuleV1, RuleV2, DecayingRuleV1, DecayingRuleV2]
+PolymorphicRule = Union[Rule, DecayingRule]
 
 
-def get_rule_type(rule: BaseRule) -> Optional[RuleType]:
+def get_rule_type(rule: Rule) -> Optional[RuleType]:
     # Edge case handled naively in which we check if the ID is within the possible bounds. This is done because the
     # latest release rules have ids from 1500 to 1500 + (limit - 1). For example if the limit is 2, we will only have
     # ids: 1500, 1501.
@@ -137,7 +142,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
             {
                 "id": rule["id"],
                 "type": rule["type"],
-                "active": rule["active"],
                 "condition": rule["condition"],
             }
         )
@@ -145,15 +149,8 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
 
 
 def get_sampling_value(rule: PolymorphicRule) -> Optional[Tuple[str, float]]:
-    # Gets the sampling value from the rule, based on the type.
-    if "samplingValue" in rule:
-        sampling_value = rule["samplingValue"]  # type:ignore
-        return sampling_value["type"], float(sampling_value["value"])
-    # This should be removed once V1 is faded out.
-    elif "sampleRate" in rule:
-        return "sampleRate", rule["sampleRate"]  # type:ignore
-
-    return None
+    sampling = rule["samplingValue"]
+    return sampling["type"], float(sampling["value"])
 
 
 def _deep_sorted(value: Union[Any, Dict[Any, Any]]) -> Union[Any, Dict[Any, Any]]:
@@ -185,3 +182,27 @@ def get_enabled_user_biases(user_set_biases: Optional[List[ActivatableBias]]) ->
 
 def get_supported_biases_ids() -> Set[str]:
     return {bias["id"] for bias in DEFAULT_BIASES}
+
+
+def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
+    """
+    This function known as dynamic factor function is used during the rules generation in order to determine the factor
+    for each rule based on the base_sample_rate of the project.
+
+    The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
+    because multiplication will exceed 1 very quickly in case we don't reduce the factor.
+    """
+    if x == 0:
+        raise Exception("A dynamic factor of 0 cannot be set.")
+
+    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
+        raise Exception(
+            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
+        )
+
+    return float(x / x**base_sample_rate)
+
+
+def get_redis_client_for_ds() -> Any:
+    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

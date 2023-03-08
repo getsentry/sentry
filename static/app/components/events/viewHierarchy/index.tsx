@@ -8,11 +8,13 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   useVirtualizedTree,
   UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import useOrganization from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
 import {RenderingSystem} from './renderingSystem';
@@ -69,6 +71,7 @@ type ViewHierarchyProps = {
 };
 
 function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
+  const organization = useOrganization();
   const [scrollContainerRef, setScrollContainerRef] = useState<HTMLDivElement | null>(
     null
   );
@@ -91,6 +94,15 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
     }
   ) => {
     const key = `view-hierarchy-node-${r.key}`;
+
+    if (selectedNodeIndex === r.key && selectedNode !== r.item.node) {
+      // Workaround because rows don't take up the whole width of the scroll container
+      // so the onClick handler won't fire
+      setSelectedNode(r.item.node);
+      r.ref?.focus({preventScroll: true});
+      setUserHasSelected(true);
+    }
+
     return (
       <TreeItem
         key={key}
@@ -101,13 +113,13 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
         tabIndex={selectedNodeIndex === r.key ? 0 : 1}
         onMouseEnter={handleRowMouseEnter}
         onKeyDown={handleRowKeyDown}
-        onFocus={() => {
-          setSelectedNode(r.item.node);
-        }}
         onClick={e => {
           handleRowClick(e);
-          setSelectedNode(r.item.node);
-          setUserHasSelected(true);
+          trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_tree', {
+            organization,
+            platform: project.platform,
+            user_org_role: organization.orgRole,
+          });
         }}
       >
         {r.item.depth !== 0 && <DepthMarker depth={r.item.depth} />}
@@ -147,8 +159,13 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
       setUserHasSelected(true);
       setSelectedNode(node);
       handleScrollTo(item => item === node);
+      trackAdvancedAnalyticsEvent('issue_details.view_hierarchy.select_from_wireframe', {
+        organization,
+        platform: project.platform,
+        user_org_role: organization.orgRole,
+      });
     },
-    [handleScrollTo]
+    [handleScrollTo, organization, project.platform]
   );
 
   const showWireframe = project?.platform !== 'unity';
@@ -165,12 +182,15 @@ function ViewHierarchy({viewHierarchy, project}: ViewHierarchyProps) {
 
   return (
     <Fragment>
-      <RenderingSystem system={viewHierarchy.rendering_system} />
+      <RenderingSystem
+        platform={project?.platform}
+        system={viewHierarchy.rendering_system}
+      />
       <Content>
         <Left hasRight={showWireframe}>
           <TreeContainer>
-            <GhostRow ref={hoveredGhostRowRef} />
-            <GhostRow ref={clickedGhostRowRef} />
+            <div ref={hoveredGhostRowRef} />
+            <div ref={clickedGhostRowRef} />
             <ScrollContainer ref={setScrollContainerRef} style={scrollContainerStyles}>
               <RenderedItemsContainer style={containerStyles}>
                 {renderedItems}
@@ -228,6 +248,7 @@ const TreeContainer = styled('div')`
   background-color: ${p => p.theme.background};
   border: 1px solid ${p => p.theme.gray100};
   border-radius: ${p => p.theme.borderRadius};
+  border-top-left-radius: 0;
 `;
 
 const DetailsContainer = styled('div')`
@@ -238,7 +259,7 @@ const DetailsContainer = styled('div')`
 `;
 
 const ScrollContainer = styled('div')`
-  padding: ${space(1.5)};
+  padding: 0 ${space(1.5)} ${space(1.5)} ${space(1.5)};
 `;
 
 const RenderedItemsContainer = styled('div')`
@@ -266,10 +287,6 @@ const DepthMarker = styled('div')<{depth: number}>`
     transparent 6px,
     transparent 21px
   );
-`;
-
-const GhostRow = styled('div')`
-  top: ${space(1.5)};
 `;
 
 const EmptyStateContainer = styled('div')`

@@ -126,13 +126,15 @@ from sentry.api.endpoints.internal import (
     InternalStatsEndpoint,
     InternalWarningsEndpoint,
 )
-from sentry.api.endpoints.monitor_stats import MonitorStatsEndpoint
 from sentry.api.endpoints.organization_access_request_details import (
     OrganizationAccessRequestDetailsEndpoint,
 )
 from sentry.api.endpoints.organization_activity import OrganizationActivityEndpoint
 from sentry.api.endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from sentry.api.endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from sentry.api.endpoints.organization_artifactbundle_assemble import (
+    OrganizationArtifactBundleAssembleEndpoint,
+)
 from sentry.api.endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from sentry.api.endpoints.organization_auth_provider_details import (
     OrganizationAuthProviderDetailsEndpoint,
@@ -231,7 +233,6 @@ from sentry.api.endpoints.organization_metrics import (
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
-from sentry.api.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.api.endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from sentry.api.endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
@@ -338,6 +339,7 @@ from sentry.api.endpoints.project_processingissues import (
     ProjectProcessingIssuesFixEndpoint,
 )
 from sentry.api.endpoints.project_profiling_profile import (
+    ProjectProfilingFlamegraphEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
 )
@@ -513,6 +515,8 @@ from sentry.integrations.slack.webhooks import (
 from sentry.integrations.vercel.webhook import VercelWebhookEndpoint
 from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
+from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
+from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (
@@ -597,6 +601,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationTransactionAnomalyDetectionEndpoint,
     ProjectProfilingProfileEndpoint,
     ProjectProfilingRawProfileEndpoint,
+    ProjectProfilingFlamegraphEndpoint,
     JiraDescriptorEndpoint,
     JiraInstalledEndpoint,
     JiraUninstalledEndpoint,
@@ -615,7 +620,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     BroadcastDetailsEndpoint,
     AcceptProjectTransferEndpoint,
     AcceptOrganizationInvite,
-    MonitorStatsEndpoint,
+    OrganizationMonitorStatsEndpoint,
     UserIndexEndpoint,
     UserDetailsEndpoint,
     UserAvatarEndpoint,
@@ -745,6 +750,7 @@ __EXCLUDED_FROM_PUBLIC_ENDPOINTS = {
     OrganizationMemberIndexEndpoint,
     ExternalUserEndpoint,
     ExternalUserDetailsEndpoint,
+    OrganizationArtifactBundleAssembleEndpoint,
     OrganizationIntegrationRequestEndpoint,
     OrganizationInviteRequestIndexEndpoint,
     OrganizationInviteRequestDetailsEndpoint,

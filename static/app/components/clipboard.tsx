@@ -1,6 +1,5 @@
 import {cloneElement, isValidElement, useCallback, useEffect, useState} from 'react';
 import {findDOMNode} from 'react-dom';
-import copy from 'copy-text-to-clipboard';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
@@ -57,21 +56,20 @@ function Clipboard({
   const [element, setElement] = useState<ReturnType<typeof findDOMNode>>();
 
   const handleClick = useCallback(() => {
-    const copyWasSuccessful = copy(value);
-
-    if (!copyWasSuccessful) {
-      if (!hideMessages) {
-        addErrorMessage(errorMessage);
-      }
-      onError?.();
-      return;
-    }
-
-    if (!hideMessages) {
-      addSuccessMessage(successMessage);
-    }
-
-    onSuccess?.();
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        onSuccess?.();
+        if (!hideMessages) {
+          addSuccessMessage(successMessage);
+        }
+      })
+      .catch(() => {
+        onError?.();
+        if (!hideMessages) {
+          addErrorMessage(errorMessage);
+        }
+      });
   }, [value, onError, onSuccess, errorMessage, successMessage, hideMessages]);
 
   useEffect(() => {

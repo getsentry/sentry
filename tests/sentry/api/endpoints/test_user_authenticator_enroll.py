@@ -270,7 +270,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         self.login_as(user=self.user)
 
         self.require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        self.assertFalse(self.user.has_2fa())
 
     def require_2fa_for_organization(self):
         self.organization.update(flags=F("flags").bitor(Organization.flags.require_2fa))
@@ -304,7 +304,7 @@ class AcceptOrganizationInviteTest(APITestCase):
         assert om.email is None
 
         AuditLogEntry.objects.get(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=om.id,
             target_user=self.user,
             event=audit_log.get_event_id("MEMBER_ACCEPT"),

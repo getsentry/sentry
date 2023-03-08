@@ -34,6 +34,9 @@ class GithubRateLimitInfo:
     def next_window(self) -> str:
         return datetime.utcfromtimestamp(self.reset).strftime("%H:%M:%S")
 
+    def __repr__(self) -> str:
+        return f"GithubRateLimit(limit={self.limit},rem={self.remaining},reset={self.reset})"
+
 
 class GitHubClientMixin(ApiClient):  # type: ignore
     allow_redirects = True
@@ -161,11 +164,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         trees: Dict[str, RepoTree] = {}
         extra = {"gh_org": gh_org}
         repositories = self._populate_repositories(gh_org, cache_seconds)
+        extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-
-        rate_limit = self.get_rate_limit()
-        extra.update({"remaining": str(rate_limit.remaining), "repos_num": str(len(repositories))})
         logger.info("Using cached trees for Github org.", extra=extra)
+
+        try:
+            rate_limit = self.get_rate_limit()
+            extra.update({"remaining": str(rate_limit.remaining)})
+        except ApiError:
+            logger.warning("Failed to get latest rate limit info. Let's keep going.")
 
         return trees
 
@@ -179,43 +186,63 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 {"full_name": repo["full_name"], "default_branch": repo["default_branch"]}
                 for repo in self.get_repositories(fetch_max_pages=True)
             ]
-            cache.set(cache_key, repositories, cache_seconds)
-            logger.info("Cached repositories.")
+            if not repositories:
+                logger.warning("Fetching repositories returned an empty list.")
+            else:
+                cache.set(cache_key, repositories, cache_seconds)
+                logger.info("Cached repositories.", extra={"repos_count": len(repositories)})
 
         return repositories
+
+    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> None:
+        msg = "Continuing execution."
+        txt = error.text
+        if error.json:
+            json_data: JSONData = error.json
+            txt = json_data.get("message")
+
+        # TODO: Add condition for  getsentry/DataForThePeople
+        # e.g. getsentry/nextjs-sentry-example
+        if txt == "Git Repository is empty.":
+            logger.warning(f"The repository is empty. {msg}", extra=extra)
+        elif txt == "Not Found":
+            logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
+        elif txt == "Repository access blocked":
+            logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
+        elif txt == "Server Error":
+            logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+        elif txt == "Bad credentials":
+            logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+        elif txt.startswith("Unable to reach host:"):
+            logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
+        elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
+            logger.warning("Github has blocked this org. We will not continue.", extra=extra)
+            # Raising the error will be handled at the task level
+            raise error
+        else:
+            # We do not raise the exception so we can keep iterating through the repos.
+            # Nevertheless, investigate the error to determine if we should abort the processing
+            logger.exception(
+                f"Investigate if to raise error. An error happened. {msg}", extra=extra
+            )
 
     def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
         """
         For every repository, fetch the tree associated and cache it.
         This function takes API rate limits into consideration to prevent exhaustion.
         """
-
-        def process_error(error: ApiError, extra: Dict[str, str]) -> None:
-            msg = "Continuing execution."
-            txt = error.text
-            if error.json:
-                json_data: JSONData = error.json
-                txt = json_data.get("message")
-
-            # TODO: Add condition for  getsentry/DataForThePeople
-            # e.g. getsentry/nextjs-sentry-example
-            if txt == "Git Repository is empty.":
-                logger.warning(f"The repository is empty. {msg}", extra=extra)
-            elif txt == "Not Found":
-                logger.warning(f"The app does not have access to the repo. {msg}", extra=extra)
-            else:
-                # We do not raise the exception so we can keep iterating through the repos.
-                # Nevertheless, investigate the error to determine if we should abort the processing
-                logger.exception(
-                    f"Investigate if to raise error. An error happened. {msg}", extra=extra
-                )
-
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
 
-        rate_limit = self.get_rate_limit()
-        remaining_requests = rate_limit.remaining
-        logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+        remaining_requests = MINIMUM_REQUESTS
+        try:
+            rate_limit = self.get_rate_limit()
+            remaining_requests = rate_limit.remaining
+            logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+        except ApiError:
+            only_use_cache = True
+            # Report so we can investigate
+            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -227,6 +254,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 logger.info(
                     "Too few requests remaining. Grabbing values from the cache.", extra=extra
                 )
+            else:
+                remaining_requests -= 1
 
             try:
                 # The Github API rate limit is reset every hour
@@ -235,14 +264,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                process_error(error, extra)
+                self._populate_trees_process_error(error, extra)
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
-
-            remaining_requests -= 1
 
         return trees
 
@@ -324,14 +351,19 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         ):
             output = []
 
-            resp = self.get(path, params={"per_page": self.page_size})
-            output.extend(resp) if not response_key else output.extend(resp[response_key])
             page_number = 1
+            logger.info(f"Page {page_number}: {path}?per_page={self.page_size}")
+            resp = self.get(path, params={"per_page": self.page_size})
+            logger.info(resp)
+            output.extend(resp) if not response_key else output.extend(resp[response_key])
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
             while get_next_link(resp) and page_number < page_number_limit:
-                resp = self.get(get_next_link(resp))
+                new_path = get_next_link(resp)
+                logger.info(f"Page {page_number}: {path}")
+                resp = self.get(new_path)
+                logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
                 page_number += 1
             return output
@@ -388,13 +420,15 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         token: str | None = self.integration.metadata.get("access_token")
         expires_at: str | None = self.integration.metadata.get("expires_at")
+        now = datetime.utcnow()
 
         if (
             not token
             or not expires_at
-            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < datetime.utcnow())
+            or (datetime.strptime(expires_at, "%Y-%m-%dT%H:%M:%S") < now)
             or force_refresh
         ):
+            logger.info(f"Token to be refreshed (expires: {expires_at}, now: {now}).")
             from copy import deepcopy
 
             res = self.create_token()
@@ -405,6 +439,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             self.integration = integration_service.update_integration(  # type: ignore
                 integration_id=self.integration.id, metadata=new_metadata
             )
+            logger.info("The token has been refreshed.")
+
+        if expires_at:
+            logger.info(f"The token will expire at {expires_at} (now: {now}).")
 
         return token or ""
 

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import MutableMapping
 
 from django.db.models import Max, prefetch_related_objects
 
@@ -15,11 +16,15 @@ from sentry.incidents.models import (
     AlertRuleTriggerAction,
     Incident,
 )
-from sentry.models import ACTOR_TYPES, Rule, actor_type_to_class, actor_type_to_string
-from sentry.models.team import Team
-from sentry.models.user import User
+from sentry.models import (
+    ACTOR_TYPES,
+    Rule,
+    actor_type_to_class,
+    actor_type_to_string,
+    fetch_actors_by_actor_ids,
+)
 from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.snuba.models import SnubaQueryEventType
 
 
@@ -41,7 +46,7 @@ class AlertRuleSerializer(Serializer):
         ).exclude(sentry_app_config__isnull=True, sentry_app_id__isnull=True)
 
         sentry_app_installations_by_sentry_app_id = app_service.get_related_sentry_app_components(
-            organization_ids={alert_rule.organization_id for alert_rule in alert_rules.values()},
+            organization_ids=[alert_rule.organization_id for alert_rule in alert_rules.values()],
             sentry_app_ids=trigger_actions.values_list("sentry_app_id", flat=True),
             type="alert-rule-action",
         )
@@ -67,35 +72,37 @@ class AlertRuleSerializer(Serializer):
             rule_result = result[alert_rules[alert_rule_id]].setdefault("projects", [])
             rule_result.append(project_slug)
 
-        for rule_activity in AlertRuleActivity.objects.filter(
-            alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
-        ).select_related("alert_rule", "user"):
-            if rule_activity.user:
-                user = {
-                    "id": rule_activity.user.id,
-                    "name": rule_activity.user.get_display_name(),
-                    "email": rule_activity.user.email,
-                }
+        rule_activities = list(
+            AlertRuleActivity.objects.filter(
+                alert_rule__in=item_list, type=AlertRuleActivityType.CREATED.value
+            )
+        )
+
+        use_by_user_id: MutableMapping[int, RpcUser] = {
+            user.id: user
+            for user in user_service.get_many(
+                filter=dict(user_ids=[r.user_id for r in rule_activities])
+            )
+        }
+        for rule_activity in rule_activities:
+            rpc_user = use_by_user_id.get(rule_activity.user_id)
+            if rpc_user:
+                user = dict(id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email)
             else:
                 user = None
+            result[alert_rules[rule_activity.alert_rule_id]]["created_by"] = user
 
-            result[alert_rules[rule_activity.alert_rule.id]].update({"created_by": user})
-
-        resolved_actors = {}
         owners_by_type = defaultdict(list)
         for item in item_list:
             if item.owner_id is not None:
                 owners_by_type[actor_type_to_string(item.owner.type)].append(item.owner_id)
 
+        resolved_actors = {}
         for k, v in ACTOR_TYPES.items():
-            cls = actor_type_to_class(v)
-            if cls is Team:
-                resolved_actors[k] = {
-                    a.actor_id: a.id
-                    for a in actor_type_to_class(v).objects.filter(actor_id__in=owners_by_type[k])
-                }
-            if cls is User:
-                resolved_actors[k] = user_service.get_many(filter={"actor_ids": owners_by_type[k]})
+            resolved_actors[k] = {
+                a.actor_id: a.id
+                for a in fetch_actors_by_actor_ids(actor_type_to_class(v), owners_by_type[k])
+            }
 
         for alert_rule in alert_rules.values():
             if alert_rule.owner_id:

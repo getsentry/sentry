@@ -1,5 +1,3 @@
-from django.db.models import prefetch_related_objects
-
 from sentry.api.serializers import Serializer, register
 from sentry.incidents.models import IncidentSeen
 from sentry.services.hybrid_cloud.user import user_service
@@ -8,7 +6,6 @@ from sentry.services.hybrid_cloud.user import user_service
 @register(IncidentSeen)
 class IncidentSeenSerializer(Serializer):
     def get_attrs(self, item_list, user):
-        prefetch_related_objects(item_list, "user")
         user_map = {
             d["id"]: d
             for d in user_service.serialize_many(

@@ -60,10 +60,14 @@ function GroupHeaderTabs({
   project,
 }: GroupHeaderTabsProps) {
   const organization = useOrganization();
+  const projectIds = useMemo(
+    () => (project.id ? [Number(project.id)] : []),
+    [project.id]
+  );
   const replaysCount = useReplaysCount({
     groupIds: group.id,
     organization,
-    projectIds: [Number(project.id)],
+    projectIds,
   })[group.id];
   const projectFeatures = new Set(project ? project.features : []);
   const organizationFeatures = new Set(organization ? organization.features : []);
@@ -72,7 +76,7 @@ function GroupHeaderTabs({
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasSessionReplay =
-    organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
+    organizationFeatures.has('session-replay') && projectSupportsReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
 
