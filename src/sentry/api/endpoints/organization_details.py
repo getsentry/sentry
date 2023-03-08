@@ -527,10 +527,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            RpcOrganizationMappingUpdate(
-                                organization_id=organization.id,
-                                name=organization.name,
-                            )
+                            organization.id, RpcOrganizationMappingUpdate(name=organization.name)
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
