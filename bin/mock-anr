@@ -97,15 +97,6 @@ def main(project, org, env, days, release=None):
     click.echo(f"response: {anr_response}")
     click.echo(f"> Complete! generated anr event with id {anr_event_id}")
 
-    # file_io_response = send_event(file_io_event, project, project_key, "transaction")
-    # click.echo(f"response: {file_io_response}")
-    # # response = send_event(anr_event, project, project_key)
-    # # if file_io_response.status_code != 200 or response.status_code != 200:
-    # #     click.echo(f"Response failed {file_io_response}")
-    # #     click.echo(f"Response failed {response}")
-
-    # click.echo(f"> Complete! generated event with id {file_io_event}")
-
 
 if __name__ == "__main__":
     main()
