@@ -28,6 +28,7 @@ from sentry.models import (
     DebugIdArtifactBundle,
     EventError,
     Organization,
+    ReleaseArtifactBundle,
     ReleaseFile,
     SourceFileType,
 )
@@ -513,84 +514,6 @@ def compress(fp: IO) -> Tuple[bytes, bytes]:
     return zlib.compress(content), content
 
 
-def fetch_release_artifact(url, release, dist):
-    """
-    Get a release artifact either by extracting it or fetching it directly.
-
-    If a release archive was saved, the individual file will be extracted
-    from the archive.
-    """
-    cache_key, cache_key_meta = get_cache_keys(url, release, dist)
-
-    result = cache.get(cache_key)
-
-    if result == -1:  # Cached as unavailable
-        return None
-
-    if result:
-        return result_from_cache(url, result)
-
-    start = time.monotonic()
-    with sentry_sdk.start_span(
-        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_archive_for_url"
-    ):
-        archive_file = fetch_release_archive_for_url(release, dist, url)
-    if archive_file is not None:
-        try:
-            archive = ReleaseArchive(archive_file)
-        except Exception as exc:
-            archive_file.seek(0)
-            logger.error(
-                "Failed to initialize archive for release %s",
-                release.id,
-                exc_info=exc,
-                extra={"contents": base64.b64encode(archive_file.read(256))},
-            )
-            # TODO(jjbayer): cache error and return here
-        else:
-            with archive:
-                try:
-                    fp, headers = get_from_archive(url, archive)
-                except KeyError:
-                    # The manifest mapped the url to an archive, but the file
-                    # is not there.
-                    logger.error(
-                        "Release artifact %r not found in archive %s", url, archive_file.id
-                    )
-                    cache.set(cache_key, -1, 60)
-                    metrics.timing(
-                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
-                    )
-                    return None
-                except Exception as exc:
-                    logger.error("Failed to read %s from release %s", url, release.id, exc_info=exc)
-                    # TODO(jjbayer): cache error and return here
-                else:
-                    result = fetch_and_cache_artifact(
-                        url,
-                        lambda: fp,
-                        cache_key,
-                        cache_key_meta,
-                        headers,
-                        # Cannot use `compress_file` because `ZipExtFile` does not support chunks
-                        compress_fn=compress,
-                    )
-                    metrics.timing(
-                        "sourcemaps.release_artifact_from_archive", time.monotonic() - start
-                    )
-
-                    return result
-
-    # Fall back to maintain compatibility with old releases and versions of
-    # sentry-cli which upload files individually
-    with sentry_sdk.start_span(
-        op="JavaScriptStacktraceProcessor.fetch_release_artifact.fetch_release_file"
-    ):
-        result = fetch_release_file(url, release, dist)
-
-    return result
-
-
 def is_html_response(result):
     # Check if response is HTML by looking if the first non-whitespace character is an open tag ('<').
     # This cannot parse as valid JS/JSON.
@@ -718,6 +641,8 @@ def fold_function_name(function_name):
 # Sentinel value used to represent the failure of loading an archive.
 INVALID_ARCHIVE = type("INVALID_ARCHIVE", (), {})()
 
+MAX_ARTIFACTS_NUMBER = 5
+
 
 class Fetcher:
     """
@@ -748,22 +673,20 @@ class Fetcher:
             if open_archive is not INVALID_ARCHIVE:
                 open_archive.close()
 
-    def _lookup_in_open_archives(self, debug_id, source_file_type):
+    def _lookup_in_open_archives(self, block):
         """
         Looks up in open archives if there is one that contains a matching file with debug_id and source_file_type.
         """
-        for bundle_id, open_archive in self.open_archives.items():
+        for artifact_bundle_id, open_archive in self.open_archives.items():
             if open_archive is INVALID_ARCHIVE:
                 continue
             try:
-                open_archive.get_file_by_debug_id(debug_id, source_file_type)
+                block(open_archive)
                 return open_archive
             except Exception as exc:
                 logger.debug(
-                    "Archive for bundle_id %s doesn't contain file with debug_id %s and source_file_type %s",
-                    bundle_id,
-                    debug_id,
-                    source_file_type,
+                    "Archive with id %s doesn't contain file",
+                    artifact_bundle_id,
                     exc_info=exc,
                 )
                 continue
@@ -840,7 +763,9 @@ class Fetcher:
             # and opened archive.
             # We do this under the assumption that the number of open archives for a single event is not very big,
             # considering that most frames will be resolved with the data from within the same artifact bundle.
-            cached_open_archive = self._lookup_in_open_archives(debug_id, source_file_type)
+            cached_open_archive = self._lookup_in_open_archives(
+                lambda open_archive: open_archive.get_file_by_debug_id(debug_id, source_file_type)
+            )
             if cached_open_archive:
                 return cached_open_archive
 
@@ -935,6 +860,179 @@ class Fetcher:
 
         return result
 
+    def _get_release_artifact_bundle_entries(self):
+        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
+        #  we have permissions on not all the bundles.
+        return (
+            ReleaseArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                release_name=self.release.version if self.release is not None else None,
+                dist_name=self.dist.name if self.dist is not None else None,
+            )
+            .order_by("-date_added")[:MAX_ARTIFACTS_NUMBER]
+            .select_related("artifact_bundle__file")
+        )
+
+    def _open_archive_by_url(self, url):
+        artifact_bundle_files = []
+        failed_artifact_bundle_ids = set()
+
+        try:
+            cached_open_archive = self._lookup_in_open_archives(
+                lambda open_archive: open_archive.get_file_by_url(url)
+            )
+            if cached_open_archive:
+                return cached_open_archive
+
+            artifact_bundles = self._get_release_artifact_bundle_entries()
+            for artifact_bundle in artifact_bundles:
+                cached_open_archive = self.open_archives.get(artifact_bundle.id)
+                if cached_open_archive is not None and cached_open_archive is not INVALID_ARCHIVE:
+                    return cached_open_archive
+
+                try:
+                    artifact_bundle_files.append(
+                        (artifact_bundle.id, self._fetch_artifact_bundle_file(artifact_bundle))
+                    )
+                except Exception:
+                    failed_artifact_bundle_ids.add(artifact_bundle.id)
+
+            # In case during the loading we ended up not being able to load anything and we got at least one error, we
+            # can't do much.
+            if len(artifact_bundle_files) == 0 and len(failed_artifact_bundle_ids) > 0:
+                raise Exception(
+                    "Failed to fetch at least one artifact bundle given a release/dist pair."
+                )
+        except Exception as exc:
+            logger.error(
+                "Failed to load the artifact bundles for release %s and dist %s",
+                self.release,
+                self.dist,
+                exc_info=exc,
+            )
+            for failed_artifact_bundle_id in failed_artifact_bundle_ids:
+                self.open_archives[failed_artifact_bundle_id] = INVALID_ARCHIVE
+
+            return None
+        else:
+            for artifact_bundle_id, artifact_bundle_file in artifact_bundle_files:
+                try:
+                    archive = ArtifactBundleArchive(artifact_bundle_file)
+                    self.open_archives[artifact_bundle_id] = archive
+                except Exception as exc:
+                    artifact_bundle_file.seek(0)
+                    logger.error(
+                        "Failed to initialize archive for the artifact bundle %s",
+                        artifact_bundle_file.id,
+                        exc_info=exc,
+                        extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
+                    )
+                    if artifact_bundle_id:
+                        self.open_archives[artifact_bundle_id] = INVALID_ARCHIVE
+
+            # After having loaded all the archives into memory, we want to look if we have the file again. Technically
+            # we could recursively implement this behavior but that would require the usage of a discriminator variable
+            # that will immediately return if the lookup is not successful. The repetition of the lookup seems a more
+            # explicit way to do the work.
+            cached_open_archive = self._lookup_in_open_archives(
+                lambda open_archive: open_archive.get_file_by_url(url)
+            )
+            if cached_open_archive:
+                return cached_open_archive
+
+            return None
+
+    def _fetch_release_artifact(self, url):
+        """
+        Get a release artifact either by extracting it or fetching it directly.
+
+        If a release archive was saved, the individual file will be extracted
+        from the archive.
+        """
+        # We want to first look for the file by url in the new tables.
+        with sentry_sdk.start_span(op="Fetcher._fetch_release_artifact._open_archive_by_url"):
+            archive = self._open_archive_by_url(url)
+            if archive is not None:
+                # We know that if we have an archive which is not None, that the url will be found internally.
+                fp, headers = archive.get_file_by_url(url)
+                result = fetch_and_cache_artifact(
+                    url,
+                    lambda: fp,
+                    None,
+                    None,
+                    headers,
+                    compress_fn=compress,
+                )
+                return result
+
+        # If we weren't able to load the file by release in the new tables, we want to fallback to the old mechanism.
+        cache_key, cache_key_meta = get_cache_keys(url, self.release, self.dist)
+        result = cache.get(cache_key)
+        if result == -1:  # Cached as unavailable
+            return None
+        if result:
+            return result_from_cache(url, result)
+
+        start = time.monotonic()
+        with sentry_sdk.start_span(
+            op="Fetcher._fetch_release_artifact.fetch_release_archive_for_url"
+        ):
+            archive_file = fetch_release_archive_for_url(self.release, self.dist, url)
+        if archive_file is not None:
+            try:
+                archive = ReleaseArchive(archive_file)
+            except Exception as exc:
+                archive_file.seek(0)
+                logger.error(
+                    "Failed to initialize archive for release %s",
+                    self.release.id,
+                    exc_info=exc,
+                    extra={"contents": base64.b64encode(archive_file.read(256))},
+                )
+                # TODO(jjbayer): cache error and return here
+            else:
+                with archive:
+                    try:
+                        fp, headers = get_from_archive(url, archive)
+                    except KeyError:
+                        # The manifest mapped the url to an archive, but the file
+                        # is not there.
+                        logger.error(
+                            "Release artifact %r not found in archive %s", url, archive_file.id
+                        )
+                        cache.set(cache_key, -1, 60)
+                        metrics.timing(
+                            "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                        )
+                        return None
+                    except Exception as exc:
+                        logger.error(
+                            "Failed to read %s from release %s", url, self.release.id, exc_info=exc
+                        )
+                        # TODO(jjbayer): cache error and return here
+                    else:
+                        result = fetch_and_cache_artifact(
+                            url,
+                            lambda: fp,
+                            cache_key,
+                            cache_key_meta,
+                            headers,
+                            # Cannot use `compress_file` because `ZipExtFile` does not support chunks
+                            compress_fn=compress,
+                        )
+                        metrics.timing(
+                            "sourcemaps.release_artifact_from_archive", time.monotonic() - start
+                        )
+
+                        return result
+
+        # Fall back to maintain compatibility with old releases and versions of
+        # sentry-cli which upload files individually
+        with sentry_sdk.start_span(op="Fetcher._fetch_release_artifact.fetch_release_file"):
+            result = fetch_release_file(url, self.release, self.dist)
+
+        return result
+
     def fetch_by_url(self, url):
         """
         Pull down a URL, returning a UrlResult object.
@@ -956,7 +1054,7 @@ class Fetcher:
         #   to allow for uploads with new tables but old release association.
         if self.release:
             with sentry_sdk.start_span(op="Fetcher.fetch_by_url.fetch_release_artifact"):
-                result = fetch_release_artifact(url, self.release, self.dist)
+                result = self._fetch_release_artifact(url)
         else:
             result = None
 

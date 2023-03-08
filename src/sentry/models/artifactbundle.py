@@ -112,7 +112,7 @@ class ArtifactBundleArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self._build_entries_by_debug_id_map()
+        self._build_memory_maps()
 
     def close(self):
         self._zip_file.close()
@@ -139,16 +139,18 @@ class ArtifactBundleArchive:
         except SymbolicError:
             return None
 
-    def _build_entries_by_debug_id_map(self):
+    def _build_memory_maps(self):
         self._entries_by_debug_id = {}
+        self._entries_by_url = {}
 
         # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
+            # Building the map for debug_id lookup.
             headers = self._normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id", None)) is not None:
+            if (debug_id := headers.get("debug-id")) is not None:
                 debug_id = self._normalize_debug_id(debug_id)
-                file_type = info.get("type", None)
+                file_type = info.get("type")
                 if (
                     debug_id is not None
                     and file_type is not None
@@ -156,6 +158,13 @@ class ArtifactBundleArchive:
                     is not None
                 ):
                     self._entries_by_debug_id[(debug_id, source_file_type)] = (file_path, info)
+
+            # Building the map for url lookup.
+            self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+        file_path, info = self._entries_by_url[url]
+        return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType

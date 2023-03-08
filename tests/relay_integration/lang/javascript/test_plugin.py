@@ -2101,3 +2101,84 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
         assert frame.context_line == "\treturn a + b; // fôo"
         assert frame.post_context == ["}", ""]
+
+    # def test_expansion_with_release(self):
+    #     # TODO: add test
+    #
+    #     debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+    #     data = {
+    #         "timestamp": self.min_ago,
+    #         "message": "hello",
+    #         "platform": "javascript",
+    #         "release": "abc",
+    #         "exception": {
+    #             "values": [
+    #                 {
+    #                     "type": "Error",
+    #                     "stacktrace": {
+    #                         "frames": [
+    #                             {
+    #                                 "abs_path": "http://example.com/file.min.js",
+    #                                 "filename": "file.min.js",
+    #                                 "lineno": 1,
+    #                                 "colno": 39,
+    #                             },
+    #                             {
+    #                                 "abs_path": "http://example.com/file.min.js",
+    #                                 "filename": "file.min.js",
+    #                                 "lineno": 1,
+    #                                 "colno": 79,
+    #                             },
+    #                             # We want also to test the source without minification.
+    #                             {
+    #                                 "abs_path": "http://example.com/file1.js",
+    #                                 "filename": "file1.js",
+    #                                 "lineno": 3,
+    #                                 "colno": 12,
+    #                             },
+    #                         ]
+    #                     },
+    #                 }
+    #             ]
+    #         },
+    #         "debug_meta": {
+    #             "images": [
+    #                 {
+    #                     "type": "sourcemap",
+    #                     "debug_id": debug_id,
+    #                     "code_file": "http://example.com/file.min.js",
+    #                 }
+    #             ]
+    #         },
+    #     }
+    #
+    #     event = self.post_and_retrieve_event(data)
+    #
+    #     assert "errors" not in event.data
+    #
+    #     exception = event.interfaces["exception"]
+    #     frame_list = exception.values[0].stacktrace.frames
+    #
+    #     frame = frame_list[0]
+    #     assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+    #     assert frame.context_line == "\treturn a + b; // fôo"
+    #     assert frame.post_context == ["}", ""]
+    #
+    #     frame = frame_list[1]
+    #     assert frame.pre_context == ["function multiply(a, b) {", '\t"use strict";']
+    #     assert frame.context_line == "\treturn a * b;"
+    #     assert frame.post_context == [
+    #         "}",
+    #         "function divide(a, b) {",
+    #         '\t"use strict";',
+    #         "\ttry {",
+    #         "\t\treturn multiply(add(a, b), a, b) / c;",
+    #     ]
+    #
+    #     frame = frame_list[2]
+    #     assert frame.pre_context == ["function add(a, b) {", '\t"use strict";']
+    #     assert frame.context_line == "\treturn a + b; // fôo"
+    #     assert frame.post_context == ["}", ""]
+    #
+    # def test_expansion_with_release_and_dist(self):
+    #     pass
