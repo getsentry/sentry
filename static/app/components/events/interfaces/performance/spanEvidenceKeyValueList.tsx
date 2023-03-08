@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
 
+import {Button} from 'sentry/components/button';
 import ClippedBox from 'sentry/components/clippedBox';
 import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -267,7 +268,10 @@ const makeTransactionNameRow = (event: Event, orgSlug: string) => {
   return makeRow(
     t('Transaction'),
     <pre>
-      <Link to={to}>{event.title}</Link>
+      <TransactionRowContainer>
+        <Link to={to}>{event.title}</Link>
+        <StyledButton size="xs">{t('View Full Event')}</StyledButton>
+      </TransactionRowContainer>
     </pre>
   );
 };
@@ -455,3 +459,13 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
   return spanURL?.pathname ?? '';
 }
+
+const TransactionRowContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const StyledButton = styled(Button)`
+  font-family: ${p => p.theme.text.family};
+`;
