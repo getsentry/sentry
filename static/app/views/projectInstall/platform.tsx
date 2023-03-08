@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
@@ -63,8 +63,8 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
 
   const redirectToNeutralDocs = useCallback(() => {
     const url = `/organizations/${organization.slug}/projects/${params.projectId}/getting-started/`;
-    browserHistory.push(normalizeUrl(url));
-  }, [organization.slug, params.projectId]);
+    router.push(normalizeUrl(url));
+  }, [organization.slug, params.projectId, router]);
 
   useEffect(() => {
     fetchData();
@@ -164,7 +164,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
         {isGettingStarted && heartbeatFooter ? (
           <Footer
             projectSlug={params.projectId}
-            projectId={project.id}
+            projectId={project?.id}
             route={route}
             router={router}
             location={location}
@@ -176,7 +176,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
               busy={loadingProjects}
               to={{
                 pathname: issueStreamLink,
-                query: project.id,
+                query: project?.id,
                 hash: '#welcome',
               }}
             >
@@ -186,7 +186,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
               busy={loadingProjects}
               to={{
                 pathname: performanceOverviewLink,
-                query: project.id,
+                query: project?.id,
               }}
             >
               {t('Take me to Performance')}

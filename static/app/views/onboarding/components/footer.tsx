@@ -38,9 +38,9 @@ type OnboardingState = {
 const DEFAULT_POLL_INTERVAL = 5000;
 
 type Props = Pick<RouteComponentProps<{}, {}>, 'router' | 'route' | 'location'> & {
-  projectId: Project['id'];
   projectSlug: Project['slug'];
   newOrg?: boolean;
+  projectId?: Project['id'];
 };
 
 async function openChangeRouteModal({
