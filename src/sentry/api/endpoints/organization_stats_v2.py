@@ -173,19 +173,18 @@ class OrganizationStatsEndpointV2(OrganizationEventsEndpointBase):
         Select a field, define a date range, and group or filter by columns.
         """
         with self.handle_query_errors():
+            tenant_ids = {"organization_id": organization.id}
             with sentry_sdk.start_span(op="outcomes.endpoint", description="build_outcomes_query"):
                 query = self.build_outcomes_query(
                     request,
                     organization,
                 )
             with sentry_sdk.start_span(op="outcomes.endpoint", description="run_outcomes_query"):
-                result_totals = run_outcomes_query_totals(query)
+                result_totals = run_outcomes_query_totals(query, tenant_ids=tenant_ids)
                 result_timeseries = (
                     None
                     if "project_id" in query.query_groupby
-                    else run_outcomes_query_timeseries(
-                        query, tenant_ids={"organization_id": organization.id}
-                    )
+                    else run_outcomes_query_timeseries(query, tenant_ids=tenant_ids)
                 )
             with sentry_sdk.start_span(
                 op="outcomes.endpoint", description="massage_outcomes_result"
