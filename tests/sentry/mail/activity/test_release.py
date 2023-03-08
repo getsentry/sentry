@@ -76,7 +76,7 @@ class ReleaseTestCase(ActivityTestCase):
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user1,
+                user_id=self.user1.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": self.release.version, "deploy_id": self.deploy.id},
             )
@@ -125,7 +125,7 @@ class ReleaseTestCase(ActivityTestCase):
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user1,
+                user_id=self.user1.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": "a", "deploy_id": 5},
             )
@@ -139,7 +139,7 @@ class ReleaseTestCase(ActivityTestCase):
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user1,
+                user_id=self.user1.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )
@@ -185,7 +185,7 @@ class ReleaseTestCase(ActivityTestCase):
         email = ReleaseActivityNotification(
             Activity(
                 project=self.project,
-                user=self.user1,
+                user_id=self.user1.id,
                 type=ActivityType.RELEASE.value,
                 data={"version": release.version, "deploy_id": deploy.id},
             )

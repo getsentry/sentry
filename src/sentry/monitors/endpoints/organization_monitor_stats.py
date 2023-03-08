@@ -5,8 +5,9 @@ from rest_framework.response import Response
 
 from sentry import tsdb
 from sentry.api.base import StatsMixin, region_silo_endpoint
-from sentry.api.bases.monitor import MonitorEndpoint
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+
+from .base import MonitorEndpoint
 
 
 @region_silo_endpoint

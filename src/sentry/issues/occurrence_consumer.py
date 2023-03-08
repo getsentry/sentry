@@ -186,6 +186,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 optional_params = [
                     "breadcrumbs",
                     "contexts",
+                    "debug_meta",
                     "dist",
                     "environment",
                     "extra",
