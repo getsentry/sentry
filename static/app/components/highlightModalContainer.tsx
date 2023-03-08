@@ -30,7 +30,7 @@ const PositionTopRight = styled('img')<{width: string}>`
   right: 0;
   top: 0;
   pointer-events: none;
-  border-radius: 0 8px 0 0;
+  border-radius: 0 ${p => p.theme.modalBorderRadius} 0 0;
 `;
 
 const PositionBottomLeft = styled('img')<{width: string}>`
@@ -39,7 +39,7 @@ const PositionBottomLeft = styled('img')<{width: string}>`
   bottom: 0;
   left: 0;
   pointer-events: none;
-  border-radius: 0 0 0 8px;
+  border-radius: 0 0 0 ${p => p.theme.modalBorderRadius};
 `;
 
 HighlightModalContainer.defaultProps = {
