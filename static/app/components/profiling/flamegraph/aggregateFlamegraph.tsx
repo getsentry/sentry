@@ -204,10 +204,10 @@ export function AggregateFlamegraph(): ReactElement {
   useEffect(() => {
     const canvasHeight = flamegraphCanvasRef?.getBoundingClientRect().height;
     if (!canvasHeight) {
-      return undefined;
+      return;
     }
 
-    const removeModifier = setFlamegraphThemeMutation(theme => {
+    setFlamegraphThemeMutation(theme => {
       const flamegraphFitTo = canvasHeight / flamegraph.depth;
       const minReadableRatio = 0.8; // this is quite small
       const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
@@ -218,9 +218,6 @@ export function AggregateFlamegraph(): ReactElement {
         theme.SIZES.BAR_FONT_SIZE * Math.max(minReadableRatio, fitToRatio);
       return theme;
     });
-    return () => {
-      removeModifier();
-    };
   }, [flamegraph, flamegraphCanvasRef, setFlamegraphThemeMutation]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before

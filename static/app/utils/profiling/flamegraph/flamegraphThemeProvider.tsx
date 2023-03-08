@@ -17,7 +17,7 @@ type FlamegraphThemeMutationCallback = (
 ) => FlamegraphTheme;
 
 export const FlamegraphThemeMutationContext = createContext<
-  ((cb: FlamegraphThemeMutationCallback) => () => void) | null
+  ((cb: FlamegraphThemeMutationCallback) => void) | null
 >(null);
 
 interface FlamegraphThemeProviderProps {
@@ -33,7 +33,6 @@ function FlamegraphThemeProvider(
 
   const addModifier = useCallback((cb: FlamegraphThemeMutationCallback) => {
     setMutation(() => cb);
-    return () => setMutation(null);
   }, []);
 
   const activeFlamegraphTheme = useMemo(() => {
