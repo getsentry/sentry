@@ -317,21 +317,18 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname', {
-          delay: null,
-        });
+        await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
+        await userEvent.paste('myname');
 
         // Add another condition
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           "The event's tags match {key} {match} {value}",
         ]);
         // Edit new Condition
-        await userEvent.type(screen.getByPlaceholderText('key'), 'conditionKey', {
-          delay: null,
-        });
-        await userEvent.type(screen.getByPlaceholderText('value'), 'conditionValue', {
-          delay: null,
-        });
+        await userEvent.click(screen.getByPlaceholderText('key'));
+        await userEvent.paste('conditionKey');
+        await userEvent.click(screen.getByPlaceholderText('value'));
+        await userEvent.paste('conditionValue');
         await selectEvent.select(screen.getByText('contains'), ['does not equal']);
 
         await userEvent.click(screen.getByText('Save Rule'));
@@ -371,13 +368,15 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
+        await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
+        await userEvent.paste('myname');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           'The issue is older or newer than...',
         ]);
-        await userEvent.type(screen.getByPlaceholderText('10'), '12');
+        await userEvent.click(screen.getByPlaceholderText('10'));
+        await userEvent.paste('12');
 
         await userEvent.click(screen.getByText('Save Rule'));
 
