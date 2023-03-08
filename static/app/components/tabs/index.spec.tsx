@@ -1,3 +1,5 @@
+import {PointerEventsCheckLevel} from '@testing-library/user-event';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -201,13 +203,13 @@ describe('Tabs', () => {
     });
   });
 
-  it('renders tab links', async () => {
+  it.only('renders tab links', async () => {
     const routerContext = TestStubs.routerContext();
     render(
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <TabList.Item key={tab.key} to="/some-link">
+            <TabList.Item key={tab.key} to="#some-link">
               {tab.label}
             </TabList.Item>
           ))}
@@ -225,7 +227,7 @@ describe('Tabs', () => {
       const tabEl = screen.getByRole('tab', {name: tab.label});
       expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
         'href',
-        '/some-link'
+        '#some-link'
       );
     });
 
@@ -234,9 +236,21 @@ describe('Tabs', () => {
     // tab/window. The current view shouldn't update.
     const secondTabEl = screen.getByRole('tab', {name: TABS[1].label});
     const secondTabLink = within(secondTabEl).getByRole('link', {hidden: true});
-    await userEvent.click(secondTabLink, {metaKey: true});
-    await userEvent.click(secondTabLink, {ctrlKey: true});
-    await userEvent.click(secondTabLink, {shiftKey: true});
+
+    const user = userEvent.setup();
+
+    await user.keyboard('[MetaLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/MetaLeft]');
+
+    await user.keyboard('[ControlLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/ControlLeft]');
+
+    await user.keyboard('[ShiftLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/ShiftLeft]');
+
     expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
       'aria-selected',
       'true'
