@@ -1,4 +1,3 @@
-import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert, alertStyles} from 'sentry/components/alert';
@@ -8,14 +7,6 @@ type AlertType = React.ComponentProps<typeof Alert>['type'];
 
 const getAlertSelector = (type: AlertType) =>
   type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
-
-const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
-  `
-    ${getAlertSelector(type)} {
-      ${alertStyles({theme: p.theme, type})};
-      display: block;
-    }
-  `;
 
 export const DocumentationWrapper = styled('div')`
   padding-top: ${space(1)};
@@ -86,5 +77,13 @@ export const DocumentationWrapper = styled('div')`
     margin-bottom: 0;
   }
 
-  ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
+  ${p =>
+    Object.keys(p.theme.alert).map(
+      type => `
+        ${getAlertSelector(type as AlertType)} {
+          ${alertStyles({theme: p.theme, type: type as AlertType})};
+          display: block;
+        }
+      `
+    )}
 `;
