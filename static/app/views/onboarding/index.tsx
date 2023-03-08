@@ -186,35 +186,27 @@ function Onboarding(props: Props) {
       if (sessionStorage.status === OnboardingStatus.WAITING) {
         try {
           await removeProject(api, organization.slug, selectedProjectSlug);
-          if (clientState) {
-            setClientState({
-              url: 'setup-docs/',
-              state: 'projects_selected',
-              selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
-              platformToProjectIdMap: Object.keys(platformToProjectIdMap).reduce(
-                (acc, value) => {
-                  if (value !== selectedProjectSlugs[0] && !acc[value]) {
-                    acc[value] = value;
-                  }
-                  return acc;
-                },
-                {}
-              ),
-            });
-          }
         } catch (error) {
           handleXhrErrorResponse(t('Unable to delete project'))(error);
           // we don't give the user any feedback regarding this error as this shall be silent
         }
-      } else {
-        if (clientState) {
-          setClientState({
-            ...clientState,
-            url: 'setup-docs/',
-            state: 'projects_selected',
-            selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
-          });
-        }
+      }
+
+      if (clientState) {
+        setClientState({
+          url: 'setup-docs/',
+          state: 'projects_selected',
+          selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
+          platformToProjectIdMap:
+            sessionStorage.status === OnboardingStatus.WAITING
+              ? Object.keys(platformToProjectIdMap).reduce((acc, value) => {
+                  if (value !== selectedProjectSlugs[0] && !acc[value]) {
+                    acc[value] = value;
+                  }
+                  return acc;
+                }, {})
+              : clientState.platformToProjectIdMap,
+        });
       }
     }
 
