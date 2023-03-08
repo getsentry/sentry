@@ -198,7 +198,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
             id=avatar.id,
             file_id=avatar.file_id,
             ident=avatar.ident,
-            avatar_type=avatar.avatar_type,
+            avatar_type=avatar.get_avatar_type_display(),
         )
     args["avatar"] = avatar
     authenticators: List[RpcAuthenticator] = []

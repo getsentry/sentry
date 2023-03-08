@@ -23,9 +23,6 @@ import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/ove
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
-jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
-  jest.fn(() => null)
-);
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
