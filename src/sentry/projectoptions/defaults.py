@@ -14,7 +14,9 @@ LATEST_EPOCH = 9
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
-BETA_GROUPING_CONFIG = "mobile:2021-02-12"
+# NOTE: this is empty for now to migrate projects off the deprecated
+# `mobile` strategy via grouping auto-updates.
+BETA_GROUPING_CONFIG = ""
 register(
     key="sentry:grouping_config",
     epoch_defaults={

@@ -42,4 +42,4 @@ class ProjectGroupingConfigsTest(APITestCase):
     def test_feature_flag_on(self):
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         for config in response.data:
-            assert config["latest"] == (config["id"] == "mobile:2021-02-12")
+            assert config["latest"] == (config["id"] == "newstyle:2019-10-29")
