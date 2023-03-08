@@ -67,15 +67,19 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
                     prioritise_projects()
 
         # we expect only uniform rule
+        # also we test here that `generate_rules` can handle trough redis long floats
         assert generate_rules(proj_a)[0]["samplingValue"] == {
             "type": "sampleRate",
-            "value": pytest.approx(0.16666666666666666),
+            "value": pytest.approx(0.14814814814814817),
         }
         assert generate_rules(proj_b)[0]["samplingValue"] == {
             "type": "sampleRate",
-            "value": pytest.approx(0.19642857142857142),
+            "value": pytest.approx(0.1904761904761905),
         }
-        assert generate_rules(proj_c)[0]["samplingValue"] == {"type": "sampleRate", "value": 0.375}
+        assert generate_rules(proj_c)[0]["samplingValue"] == {
+            "type": "sampleRate",
+            "value": pytest.approx(0.4444444444444444),
+        }
         assert generate_rules(proj_d)[0]["samplingValue"] == {"type": "sampleRate", "value": 1.0}
 
 

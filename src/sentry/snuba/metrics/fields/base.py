@@ -149,7 +149,7 @@ def run_metrics_query(
         dataset=Dataset.Metrics.value,
         app_id="metrics",
         query=query,
-        tenant_ids={"referrer": referrer, "organization_id": org_id},
+        tenant_ids={"organization_id": org_id},
     )
     result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])

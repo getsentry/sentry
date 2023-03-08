@@ -44,7 +44,6 @@ from sentry.tasks.post_process import (
     ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT,
     post_process_group,
     process_event,
-    process_owner_assignments,
 )
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.cases import BaseTestCase
@@ -581,10 +580,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             auto_assignment=True,
         )
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_owner_assignment_order_precedence(self, mock_process_owner_assignments):
+    def test_owner_assignment_order_precedence(self):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -617,12 +613,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             "integration": ActivityIntegration.PROJECT_OWNERSHIP.value,
             "rule": str(Rule(Matcher("path", "src/*"), [Owner("user", self.user.email)])),
         }
-        assert mock_process_owner_assignments.call_count == 1
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_owner_assignment_extra_groups(self, mock_process_owner_assignments):
+    def test_owner_assignment_extra_groups(self):
         extra_user = self.create_user()
         self.create_team_membership(self.team, user=extra_user)
         self.make_ownership(
@@ -651,12 +643,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(extra_user.id, None), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        assert mock_process_owner_assignments.call_count == 1
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_owner_assignment_existing_owners(self, mock_process_owner_assignments):
+    def test_owner_assignment_existing_owners(self):
         extra_team = self.create_team()
         ProjectTeam.objects.create(team=extra_team, project=self.project)
 
@@ -692,12 +680,8 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert {(None, extra_team.id), (self.user.id, None)} == {
             (o.user_id, o.team_id) for o in owners
         }
-        assert mock_process_owner_assignments.call_count == 1
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_owner_assignment_assign_user(self, mock_process_owner_assignments):
+    def test_owner_assignment_assign_user(self):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -716,7 +700,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == self.user.id
         assert assignee.team is None
-        assert mock_process_owner_assignments.call_count == 1
 
     def test_owner_assignment_ownership_no_matching_owners(self):
         event = self.create_event(
@@ -756,10 +739,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_only_first_assignment_works(self, mock_process_owner_assignments):
+    def test_only_first_assignment_works(self):
         self.make_ownership()
         event = self.create_event(
             data={
@@ -779,7 +759,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == self.user.id
         assert assignee.team is None
-        assert mock_process_owner_assignments.call_count == 1
 
         event = self.create_event(
             data={
@@ -851,12 +830,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         assert assignee.user_id is None
         assert assignee.team == self.team
 
-    @patch(
-        "sentry.tasks.post_process.process_owner_assignments.delay", wraps=process_owner_assignments
-    )
-    def test_owner_assignment_when_owners_have_been_unassigned(
-        self, mock_process_owner_assignments
-    ):
+    def test_owner_assignment_when_owners_have_been_unassigned(self):
         """
         Test that ensures that if certain assignees get unassigned, and project rules are changed
         then the new group assignees should be re-calculated and re-assigned
@@ -962,7 +936,6 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
         # Group should be re-assigned to the new group owner
         assignee = event.group.assignee_set.first()
         assert assignee.user_id == user_4.id
-        assert mock_process_owner_assignments.call_count == 6
 
     def test_ensure_when_assignees_and_owners_are_cached_does_not_cause_unbound_errors(self):
         self.make_ownership()
@@ -1359,6 +1332,9 @@ class PostProcessGroupPerformanceTest(
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 0
 
+    @patch("sentry.tasks.post_process.handle_owner_assignment")
+    @patch("sentry.tasks.post_process.handle_auto_assignment")
+    @patch("sentry.tasks.post_process.process_rules")
     @patch("sentry.tasks.post_process.run_post_process_job")
     @patch("sentry.rules.processor.RuleProcessor")
     @patch("sentry.signals.transaction_processed.send_robust")
@@ -1369,6 +1345,9 @@ class PostProcessGroupPerformanceTest(
         transaction_processed_signal_mock,
         mock_processor,
         run_post_process_job_mock,
+        mock_process_rules,
+        mock_handle_auto_assignment,
+        mock_handle_owner_assignment,
     ):
         min_ago = before_now(minutes=1).replace(tzinfo=pytz.utc)
         event = self.store_transaction(
@@ -1388,6 +1367,12 @@ class PostProcessGroupPerformanceTest(
             is_regression=False,
             is_new_group_environment=True,
         )
+
+        call_order = []
+        mock_handle_owner_assignment.side_effect = call_order.append(mock_handle_owner_assignment)
+        mock_handle_auto_assignment.side_effect = call_order.append(mock_handle_auto_assignment)
+        mock_process_rules.side_effect = call_order.append(mock_process_rules)
+
         post_process_group(
             **group_state,
             cache_key=cache_key,
@@ -1399,6 +1384,11 @@ class PostProcessGroupPerformanceTest(
         assert event_processed_signal_mock.call_count == 0
         assert mock_processor.call_count == 0
         assert run_post_process_job_mock.call_count == 2
+        assert call_order == [
+            mock_handle_owner_assignment,
+            mock_handle_auto_assignment,
+            mock_process_rules,
+        ]
 
 
 class TransactionClustererTestCase(TestCase, SnubaTestCase):

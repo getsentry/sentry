@@ -7,7 +7,7 @@ from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
+from sentry.monitors.models import CheckInStatus, MonitorStatus, MonitorType, ScheduleType
 
 MONITOR_TYPES = {"cron_job": MonitorType.CRON_JOB}
 
@@ -89,6 +89,7 @@ class CronJobValidator(serializers.Serializer):
 class MonitorValidator(serializers.Serializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField()
+    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False)
     status = serializers.ChoiceField(
         choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())), default="active"
     )

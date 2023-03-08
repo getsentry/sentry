@@ -538,7 +538,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -1100,9 +1099,24 @@ class IssueListOverview extends Component<Props, State> {
       });
     }
 
+    const links = parseLinkHeader(this.state.pageLinks);
+
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
-    this.fetchData(true);
+    const queryCount = this.state.queryCount - itemIds.length;
+    this.setState({
+      actionTaken: true,
+      queryCount,
+    });
+
+    if (GroupStore.getAllItemIds().length === 0) {
+      // If we run out of issues on the last page, navigate back a page to
+      // avoid showing an empty state - if not on the last page, just show a spinner
+      const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.fetchCounts(queryCount, true);
+    } else {
+      this.fetchData(true);
+    }
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1223,9 +1237,13 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading
+                  ? tct('Showing [displayCount] issues', {
+                      displayCount,
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}

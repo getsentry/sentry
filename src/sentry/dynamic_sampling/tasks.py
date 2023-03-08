@@ -3,8 +3,8 @@ from typing import Optional, Sequence, Tuple
 
 from sentry import features, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.adjustment_models import DSProject as DSProject
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
+from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
@@ -84,20 +84,24 @@ def adjust_sample_rates(
     for project_id, count_per_root in projects_with_tx_count:
         project_ids_with_counts[project_id] = count_per_root
 
+    sample_rate = None
     for project in Project.objects.get_many_from_cache(project_ids_with_counts.keys()):
         sample_rate = quotas.get_blended_sample_rate(project)
         if sample_rate is None:
             continue
         projects.append(
-            DSProject(
+            DSElement(
                 id=project.id,
-                count_per_root=project_ids_with_counts[project.id],
-                blended_sample_rate=sample_rate,
+                count=project_ids_with_counts[project.id],
             )
         )
 
+    # quit early if there is now sample_rate
+    if sample_rate is None:
+        return
+
     model = AdjustedModel(projects=projects)
-    ds_projects = model.adjust_sample_rates()
+    ds_projects = model.adjust_sample_rates(sample_rate=sample_rate)
 
     redis_client = get_redis_client_for_ds()
     with redis_client.pipeline(transaction=False) as pipeline:

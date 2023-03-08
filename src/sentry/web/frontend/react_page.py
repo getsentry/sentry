@@ -90,7 +90,10 @@ class ReactMixin:
                         if redirect_url:
                             return HttpResponseRedirect(redirect_url)
 
-        return render_to_response("sentry/base-react.html", context=context, request=request)
+        response = render_to_response("sentry/base-react.html", context=context, request=request)
+        if "x-sentry-browser-profiling" in request.headers:
+            response["Document-Policy"] = "js-profiling"
+        return response
 
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this

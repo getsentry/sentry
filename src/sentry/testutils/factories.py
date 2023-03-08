@@ -453,7 +453,7 @@ class Factories:
             type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
-            user=user,
+            user_id=user.id if user else None,
             data={"version": version},
         )
 
@@ -500,11 +500,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(org, release, project=None, extra_files=None):
+    def create_artifact_bundle(
+        org, release, project=None, extra_files=None, fixture_path="artifact_bundle"
+    ):
         import zipfile
 
         bundle = io.BytesIO()
-        bundle_dir = get_fixture_path("artifact_bundle")
+        bundle_dir = get_fixture_path(fixture_path)
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
             for path, content in (extra_files or {}).items():
                 zipfile.writestr(path, content)
@@ -1360,7 +1362,7 @@ class Factories:
             project=project,
             group=issue,
             type=ActivityType.NOTE.value,
-            user=user,
+            user_id=user.id,
             data=data,
         )
 
