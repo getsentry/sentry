@@ -97,6 +97,7 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codecov-integration-cta': () => React.ReactNode;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -190,7 +191,6 @@ export type InterfaceChromeHooks = {
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:item-override': SidebarItemOverrideHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
@@ -461,14 +461,6 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
-  id?: string;
-}>;
-
-type SidebarItemOverrideHook = () => React.ComponentType<{
-  /**
-   * The item label being wrapped
-   */
-  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
   id?: string;
 }>;
 
