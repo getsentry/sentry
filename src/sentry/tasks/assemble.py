@@ -367,9 +367,6 @@ def handle_assemble_for_release_file(bundle, archive, manifest, organization, ve
     saved_as_archive = False
 
     if artifact_count >= min_artifact_count:
-        if release is None:
-            raise AssembleArtifactsError("release does not exist")
-
         try:
             update_artifact_index(release, dist, bundle)
             saved_as_archive = True
