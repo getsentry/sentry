@@ -10,11 +10,11 @@ export function useWheelCenterZoom(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
   canvasPoolManager: CanvasPoolManager,
-  disableZoom: boolean = false
+  disable: boolean = false
 ) {
   const zoom = useCallback(
     (evt: WheelEvent) => {
-      if (!canvas || !view || disableZoom) {
+      if (!canvas || !view || disable) {
         return;
       }
 
@@ -29,7 +29,7 @@ export function useWheelCenterZoom(
         view,
       ]);
     },
-    [canvas, view, canvasPoolManager, disableZoom]
+    [canvas, view, canvasPoolManager, disable]
   );
 
   return zoom;
