@@ -4,8 +4,9 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Protocol, Sequence, cast
+from typing import List, Optional, Sequence, Union, cast
 
+from sentry.models import NotificationSetting, Team
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -17,9 +18,6 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
 
-if TYPE_CHECKING:
-    from sentry.models import NotificationSetting
-
 
 class RpcNotificationSetting(RpcModel):
     scope_type: NotificationScopeType = NotificationScopeType.USER
@@ -30,17 +28,18 @@ class RpcNotificationSetting(RpcModel):
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
 
 
-class MayHaveActor(Protocol):
-    @property
-    def id(self) -> int:
-        pass
+class RpcRecipient(RpcModel):
+    id: int
+    actor_id: Optional[int]
+    source_class: str
 
-    @property
-    def actor_id(self) -> Optional[int]:
-        pass
-
-    def class_name(self) -> str:
-        pass
+    @classmethod
+    def of(cls, obj: Union[RpcUser, Team]) -> "RpcRecipient":
+        if isinstance(obj, RpcUser):
+            return cls(id=obj.id, actor_id=obj.actor_id, source_class="User")
+        if isinstance(obj, Team):
+            return cls(id=obj.id, actor_id=obj.actor_id, source_class="Team")
+        raise TypeError
 
 
 class NotificationsService(RpcService):
@@ -62,7 +61,7 @@ class NotificationsService(RpcService):
         *,
         type: NotificationSettingTypes,
         parent_id: int,
-        recipients: Sequence[MayHaveActor],
+        recipients: Sequence[RpcRecipient],
     ) -> List[RpcNotificationSetting]:
         pass
 
