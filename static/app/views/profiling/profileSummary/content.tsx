@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
+import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFlamegraphPanel';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
@@ -17,6 +18,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
@@ -28,6 +30,7 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -66,10 +69,21 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
+  const isAggregateFlamegraphEnabled = organization.features.includes(
+    'profiling-aggregate-flamegraph'
+  );
+
   return (
     <Fragment>
       <Layout.Main fullWidth>
-        <ProfileCharts query={props.query} hideCount />
+        <ProfileCharts
+          query={props.query}
+          hideCount
+          compact={isAggregateFlamegraphEnabled}
+        />
+        {isAggregateFlamegraphEnabled && (
+          <AggregateFlamegraphPanel transaction={props.transaction} />
+        )}
         <TableHeader>
           <CompactSelect
             triggerProps={{prefix: t('Filter'), size: 'xs'}}
