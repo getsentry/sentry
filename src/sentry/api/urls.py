@@ -1678,14 +1678,14 @@ ORGANIZATION_URLS = [
 
 PROJECT_URLS = [
     url(
-        r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
-        ProjectAgnosticRuleConditionsEndpoint.as_view(),
-        name="sentry-api-0-project-agnostic-rule-conditions",
-    ),
-    url(
         r"^$",
         ProjectIndexEndpoint.as_view(),
         name="sentry-api-0-projects",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
+        ProjectAgnosticRuleConditionsEndpoint.as_view(),
+        name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
