@@ -8,7 +8,9 @@ from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -46,9 +48,21 @@ class UserOptionFilterArgs(TypedDict, total=False):
     organization_id: Optional[int]
 
 
-class UserOptionService(
-    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], InterfaceWithLifecycle
-):
+class UserOptionService(InterfaceWithLifecycle):
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: UserOptionFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @abstractmethod
+    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+        pass
+
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
