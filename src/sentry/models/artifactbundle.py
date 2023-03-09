@@ -40,7 +40,9 @@ class ArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    bundle_id = models.UUIDField(null=True)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    bundle_id = models.UUIDField(default="")
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -58,7 +60,9 @@ class ReleaseArtifactBundle(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, null=True)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    dist_name = models.CharField(max_length=64, default="")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
