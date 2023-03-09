@@ -16,7 +16,13 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
-import {DROPPED_OUTCOMES, HIDDEN_OUTCOMES} from 'sentry/views/organizationStats';
+import {
+  DROPPED_OUTCOMES,
+  formatUsageWithUnits,
+  getFormatUsageOptions,
+  HIDDEN_OUTCOMES,
+  isDisplayUtc,
+} from 'sentry/views/organizationStats/utils';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -31,7 +37,6 @@ import UsageChart, {
   UsageChartProps,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
 export type UsageStatsOrganizationProps = {
   dataCategory: DataCategoryInfo['plural'];

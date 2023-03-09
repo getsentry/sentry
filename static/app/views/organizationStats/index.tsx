@@ -32,7 +32,6 @@ import {
   DataCategoryInfo,
   DateString,
   Organization,
-  Outcome,
   PageFilters,
   Project,
 } from 'sentry/types';
@@ -43,14 +42,6 @@ import HeaderTabs from 'sentry/views/organizationStats/header';
 import {CHART_OPTIONS_DATACATEGORY, ChartDataTransform} from './usageChart';
 import UsageStatsOrg from './usageStatsOrg';
 import UsageStatsProjects from './usageStatsProjects';
-
-export const HIDDEN_OUTCOMES = new Set([Outcome.CLIENT_DISCARD]);
-export const DROPPED_OUTCOMES = new Set([
-  Outcome.ABUSE,
-  Outcome.DROPPED,
-  Outcome.INVALID,
-  Outcome.RATE_LIMITED,
-]);
 
 const HookHeader = HookOrDefault({hookName: 'component:org-stats-banner'});
 

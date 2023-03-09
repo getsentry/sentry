@@ -1,12 +1,19 @@
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {DataCategoryInfo} from 'sentry/types';
+import {DataCategoryInfo, Outcome} from 'sentry/types';
 import {formatBytesBase10} from 'sentry/utils';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
 export const MILLION = 10 ** 6;
 export const BILLION = 10 ** 9;
 export const GIGABYTE = 10 ** 9;
+export const HIDDEN_OUTCOMES = new Set([Outcome.CLIENT_DISCARD]);
+export const DROPPED_OUTCOMES = new Set([
+  Outcome.ABUSE,
+  Outcome.DROPPED,
+  Outcome.INVALID,
+  Outcome.RATE_LIMITED,
+]);
 
 type FormatOptions = {
   /**
