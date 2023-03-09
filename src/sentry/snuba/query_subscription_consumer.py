@@ -86,7 +86,7 @@ def parse_message_value(value: str) -> Dict[str, Any]:
     return payload
 
 
-def handle_message(message: Message, __batch_deadline, commit_batch_timeout_ms) -> None:
+def handle_message(message: Message) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
     subscription. If the subscription has been removed, or no longer has a valid callback then
@@ -94,10 +94,6 @@ def handle_message(message: Message, __batch_deadline, commit_batch_timeout_ms) 
     :param message:
     :return:
     """
-    # set a commit time deadline only after the first message for this batch is seen
-    if not __batch_deadline:
-        __batch_deadline = commit_batch_timeout_ms / 1000.0 + time.time()
-
     with sentry_sdk.push_scope() as scope:
         try:
             with metrics.timer("snuba_query_subscriber.parse_message_value"):
@@ -389,3 +385,17 @@ class QuerySubscriptionConsumer:
 
     def signal_shutdown(self) -> None:
         self.__shutdown_requested = True
+
+    def handle_message(self, message: Message) -> None:
+        """
+        Parses the value from Kafka, and if valid passes the payload to the callback defined by the
+        subscription. If the subscription has been removed, or no longer has a valid callback then
+        just log metrics/errors and continue.
+        :param message:
+        :return:
+        """
+        # set a commit time deadline only after the first message for this batch is seen
+        if not self.__batch_deadline:
+            self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
+
+        handle_message(message)

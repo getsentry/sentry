@@ -15,7 +15,6 @@ from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
     QuerySubscriptionConsumer,
-    handle_message,
     parse_message_value,
     register_subscriber,
     subscriber_registry,
@@ -75,12 +74,10 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
             pool.urlopen.return_value.status = 202
-            handle_message(
+            self.consumer.handle_message(
                 self.build_mock_message(
                     self.valid_wrapper, topic=settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
-                ),
-                self.consumer._QuerySubscriptionConsumer__batch_deadline,
-                self.consumer.commit_batch_timeout_ms,
+                )
             )
             pool.urlopen.assert_called_once_with(
                 "DELETE",
@@ -100,11 +97,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         )
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
-        handle_message(
-            self.build_mock_message(data),
-            self.consumer._QuerySubscriptionConsumer__batch_deadline,
-            self.consumer.commit_batch_timeout_ms,
-        )
+        self.consumer.handle_message(self.build_mock_message(data))
         self.metrics.incr.assert_called_once_with(
             "snuba_query_subscriber.subscription_type_not_registered"
         )
@@ -128,11 +121,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
-        handle_message(
-            self.build_mock_message(data),
-            self.consumer._QuerySubscriptionConsumer__batch_deadline,
-            self.consumer.commit_batch_timeout_ms,
-        )
+        self.consumer.handle_message(self.build_mock_message(data))
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
