@@ -35,7 +35,6 @@ class ActionServiceType(FlexibleIntEnum):
     The available services to fire action notifications
     """
 
-    DISABLED = -1  # Use to explicitly fire no action,
     EMAIL = 0
     PAGERDUTY = 1
     SLACK = 2
@@ -46,7 +45,6 @@ class ActionServiceType(FlexibleIntEnum):
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
-            (cls.DISABLED, "disabled"),
             (cls.EMAIL, "email"),
             (cls.PAGERDUTY, "pagerduty"),
             (cls.SLACK, "slack"),
