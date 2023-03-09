@@ -1,18 +1,18 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Alert, alertStyles} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -20,7 +20,7 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
-import {HeartbeatFooter} from 'sentry/views/onboarding/components/heartbeatFooter';
+import {Footer} from 'sentry/views/onboarding/components/footer';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -81,7 +81,7 @@ function ProjectDocs(props: {
 
   const docs = props.platformDocs !== null && (
     <DocsWrapper key={props.platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+      <DocumentationWrapper dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
       {missingExampleWarning()}
     </DocsWrapper>
   );
@@ -298,8 +298,9 @@ function SetupDocs({
 
       {project &&
         (heartbeatFooter ? (
-          <HeartbeatFooter
+          <Footer
             projectSlug={project.slug}
+            projectId={project.id}
             route={route}
             router={router}
             location={location}
@@ -348,19 +349,6 @@ function SetupDocs({
 
 export default withProjects(SetupDocs);
 
-type AlertType = React.ComponentProps<typeof Alert>['type'];
-
-const getAlertSelector = (type: AlertType) =>
-  type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
-
-const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
-  css`
-    ${getAlertSelector(type)} {
-      ${alertStyles({theme: p.theme, type})};
-      display: block;
-    }
-  `;
-
 const AnimatedContentWrapper = styled(motion.div)`
   overflow: hidden;
 `;
@@ -375,44 +363,6 @@ AnimatedContentWrapper.defaultProps = {
     height: 0,
   },
 };
-
-const Content = styled(motion.div)`
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p {
-    margin-bottom: 18px;
-  }
-
-  div[data-language] {
-    margin-bottom: ${space(2)};
-  }
-
-  code {
-    color: ${p => p.theme.pink400};
-  }
-
-  h2 {
-    font-size: 1.4em;
-  }
-
-  .alert h5 {
-    font-size: 1em;
-    margin-bottom: 0.625rem;
-  }
-
-  /**
-   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
-   */
-  .content-flush-bottom *:last-child {
-    margin-bottom: 0;
-  }
-
-  ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
-`;
 
 const DocsWrapper = styled(motion.div)``;
 

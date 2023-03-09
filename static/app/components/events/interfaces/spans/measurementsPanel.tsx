@@ -3,23 +3,22 @@ import styled from '@emotion/styled';
 
 import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import space from 'sentry/styles/space';
-import {EventTransaction} from 'sentry/types/event';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
 import {
   getMeasurementBounds,
-  getMeasurements,
   SpanBoundsType,
   SpanGeneratedBoundsType,
+  VerticalMark,
 } from './utils';
 
 type Props = {
   dividerPosition: number;
-  event: EventTransaction;
   generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
+  measurements: Map<number, VerticalMark>;
 };
 
 type VitalLabel = {
@@ -28,8 +27,7 @@ type VitalLabel = {
 };
 
 function MeasurementsPanel(props: Props) {
-  const {event, generateBounds, dividerPosition} = props;
-  const measurements = getMeasurements(event, generateBounds);
+  const {measurements, generateBounds, dividerPosition} = props;
 
   return (
     <Container

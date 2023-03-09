@@ -8,21 +8,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import (
-    Distribution,
-    Organization,
-    Project,
-    Release,
-    ReleaseFile,
-    SourceMapProcessingIssue,
-)
+from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
 from sentry.models.releasefile import read_artifact_index
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
@@ -42,9 +35,6 @@ class SourceMapProcessingResponse(TypedDict):
 @extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
     public = {"GET"}
-
-    def has_feature(self, organization: Organization, request: Request):
-        return features.has("organizations:fix-source-map-cta", organization, actor=request.user)
 
     @extend_schema(
         operation_id="Debug issues related to source maps for a given event",
@@ -69,36 +59,41 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         ```````````````````````````````````````````
         Return a list of source map errors for a given event.
         """
-
-        if not self.has_feature(project.organization, request):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
-            )
-
         frame_idx = request.GET.get("frame_idx")
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")
+
+        frame_idx = int(frame_idx)
 
         exception_idx = request.GET.get("exception_idx")
         if not exception_idx:
             raise ParseError(detail="Query parameter 'exception_idx' is required")
 
+        exception_idx = int(exception_idx)
+
         event = eventstore.get_event_by_id(project.id, event_id)
         if event is None:
             raise NotFound(detail="Event not found")
 
-        exception = event.interfaces["exception"].values[int(exception_idx)]
+        try:
+            exception = event.interfaces["exception"].values[exception_idx]
+        except IndexError:
+            raise ParseError(detail="Query parameter 'exception_idx' is out of bounds")
+
         raw_stacktrace = exception.raw_stacktrace
         if raw_stacktrace:
             # Exception is already source mapped
+            return self._create_response()
+
+        frame, filename, abs_path = self._get_frame_filename_and_path(exception, frame_idx)
+
+        if frame.context_line:
             return self._create_response()
 
         try:
             release = self._extract_release(event, project)
         except (SourceMapException, Release.DoesNotExist):
             return self._create_response(issue=SourceMapProcessingIssue.MISSING_RELEASE)
-
-        filename, abs_path = self._get_filename_and_path(exception, frame_idx)
 
         user_agent = release.user_agent
 
@@ -163,12 +158,15 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             errors_list.append(response)
         return Response({"errors": errors_list})
 
-    def _get_filename_and_path(self, exception, frame_idx):
+    def _get_frame_filename_and_path(self, exception, frame_idx):
         frame_list = exception.stacktrace.frames
-        frame = frame_list[int(frame_idx)]
+        try:
+            frame = frame_list[frame_idx]
+        except IndexError:
+            raise ParseError(detail="Query parameter 'frame_idx' is out of bounds")
         filename = frame.filename
         abs_path = frame.abs_path
-        return filename, abs_path
+        return frame, filename, abs_path
 
     def _find_matches(self, release_artifacts, unified_path, filename, release, event):
         full_matches = [
@@ -253,13 +251,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             )
         return full_matches[0]
 
-    def _get_filename(self, event, exception_idx, frame_idx):
-        exceptions = event.interfaces["exception"].values
-        frame_list = exceptions[int(exception_idx)].stacktrace.frames
-        frame = frame_list[int(frame_idx)]
-        filename = frame.filename
-        return filename
-
     def _discover_sourcemap_url(self, artifact, filename):
         file = artifact.file
         # Code adapted from sentry/lang/javascript/processor.py
@@ -297,7 +288,7 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
             if artifact_index is not None:
                 files = artifact_index.get("files", {})
                 source = ArtifactSource(dist, files, [], [])
-                data_sources.extend([source[i] for i in range(len(source))])
+                data_sources.extend(source[:])
 
         return data_sources
 

@@ -15,7 +15,7 @@ import {IconChevron, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Actor, SuggestedOwnerReason} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -40,8 +40,8 @@ function AssigneeAvatar({
         <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
       ),
     }),
-    releaseCommit: '',
     ownershipRule: t('Matching Issue Owners Rule'),
+    projectOwnership: t('Matching Issue Owners Rule'),
     codeowners: t('Matching Codeowners Rule'),
   };
   const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);

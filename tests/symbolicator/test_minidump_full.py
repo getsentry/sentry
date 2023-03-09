@@ -13,7 +13,7 @@ from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.utils.safe import get_path
-from tests.symbolicator import insta_snapshot_stacktrace_data
+from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -83,7 +83,11 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                     {"sentry[logger]": "test-logger"},
                 )
 
-        insta_snapshot_stacktrace_data(self, event.data)
+        candidates = event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        event.data["debug_meta"]["images"][0]["candidates"] = candidates
+
+        insta_snapshot_native_stacktrace_data(self, event.data)
         assert event.data.get("logger") == "test-logger"
         # assert event.data.get("extra") == {"foo": "bar"}
 
@@ -139,7 +143,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
                 )
 
-        insta_snapshot_stacktrace_data(self, event.data)
+        insta_snapshot_native_stacktrace_data(self, event.data)
         assert not EventAttachment.objects.filter(event_id=event.event_id)
 
     def test_reprocessing(self):
@@ -159,7 +163,7 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
                     {"upload_file_minidump": f}, {"sentry[logger]": "test-logger"}
                 )
 
-            insta_snapshot_stacktrace_data(self, event.data, subname="initial")
+            insta_snapshot_native_stacktrace_data(self, event.data, subname="initial")
 
             self.upload_symbols()
 
@@ -174,7 +178,11 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
             assert new_event is not None
             assert new_event.event_id == event.event_id
 
-        insta_snapshot_stacktrace_data(self, new_event.data, subname="reprocessed")
+        candidates = new_event.data["debug_meta"]["images"][0]["candidates"]
+        redact_location(candidates)
+        new_event.data["debug_meta"]["images"][0]["candidates"] = candidates
+
+        insta_snapshot_native_stacktrace_data(self, new_event.data, subname="reprocessed")
 
         for event_id in (event.event_id, new_event.event_id):
             (minidump,) = sorted(

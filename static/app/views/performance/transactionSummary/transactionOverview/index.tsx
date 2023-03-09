@@ -22,8 +22,8 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import {
-  canUseMetricsInTransactionSummary,
   getTransactionMEPParamsIfApplicable,
+  getUnfilteredTotalsEventView,
 } from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 
 import {addRoutePerformanceContext} from '../../utils';
@@ -109,25 +109,39 @@ function OverviewContentWrapper(props: ChildProps) {
     queryExtras,
   });
 
-  const unfilteredQueryExtras = getTransactionMEPParamsIfApplicable(
-    mepSetting,
-    organization,
-    location,
-    true
-  );
-
-  const additionalQueryData = useDiscoverQuery({
-    eventView: getUnfilteredTotalsEventView(eventView, location),
+  // Count has to be total indexed events count because it's only used
+  // in indexed events contexts
+  const totalCountQueryData = useDiscoverQuery({
+    eventView: getTotalCountEventView(organization, eventView),
     orgSlug: organization.slug,
     location,
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.performance.transaction-summary',
-    queryExtras: unfilteredQueryExtras,
+  });
+
+  // Unfiltered count has to be total indexed events count because it's only used
+  // in indexed events contexts
+  const additionalQueryData = useDiscoverQuery({
+    eventView: getUnfilteredTotalsEventView(eventView, location, ['count']),
+    orgSlug: organization.slug,
+    location,
+    transactionThreshold,
+    transactionThresholdMetric,
+    referrer: 'api.performance.transaction-summary',
   });
 
   const {data: tableData, isLoading, error} = queryData;
-  const {data: unfilteredTableData} = additionalQueryData;
+  const {
+    data: unfilteredTableData,
+    isLoading: isAdditionalQueryLoading,
+    error: additionalQueryError,
+  } = additionalQueryData;
+  const {
+    data: totalCountTableData,
+    isLoading: isTotalCountQueryLoading,
+    error: totalCountQueryError,
+  } = totalCountQueryData;
 
   const spanOperationBreakdownFilter = decodeFilterFromLocation(location);
 
@@ -152,14 +166,19 @@ function OverviewContentWrapper(props: ChildProps) {
     });
   };
 
-  const totals: TotalValues | null =
-    (tableData?.data?.[0] as {[k: string]: number}) ?? null;
+  let totals: TotalValues | null =
+    (tableData?.data?.[0] as {
+      [k: string]: number;
+    }) ?? null;
+  const totalCountData: TotalValues | null =
+    (totalCountTableData?.data?.[0] as {[k: string]: number}) ?? null;
 
-  const unfilteredTotals: TotalValues | null = canUseMetricsInTransactionSummary(
-    organization
-  )
-    ? (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null
-    : null;
+  // Count is always a count of indexed events,
+  // while other fields could be either metrics or index based
+  totals = {...totals, ...totalCountData};
+
+  const unfilteredTotals: TotalValues | null =
+    (unfilteredTableData?.data?.[0] as {[k: string]: number}) ?? null;
 
   return (
     <SummaryContent
@@ -168,8 +187,8 @@ function OverviewContentWrapper(props: ChildProps) {
       eventView={eventView}
       projectId={projectId}
       transactionName={transactionName}
-      isLoading={isLoading}
-      error={error}
+      isLoading={isLoading || isAdditionalQueryLoading || isTotalCountQueryLoading}
+      error={error || additionalQueryError || totalCountQueryError}
       totalValues={totals}
       onChangeFilter={onChangeFilter}
       spanOperationBreakdownFilter={spanOperationBreakdownFilter}
@@ -226,33 +245,16 @@ function generateEventView({
   );
 }
 
-function getUnfilteredTotalsEventView(
-  eventView: EventView,
-  location: Location
+function getTotalCountEventView(
+  _organization: Organization,
+  eventView: EventView
 ): EventView {
-  const totalsColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['tpm', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['count', '', undefined, undefined],
-    },
-  ];
+  const totalCountField: QueryFieldValue = {
+    kind: 'function',
+    function: ['count', '', undefined, undefined],
+  };
 
-  const transactionName = decodeScalar(location.query.transaction);
-  const conditions = new MutableSearch('');
-
-  conditions.setFilterValues('event.type', ['transaction']);
-  if (transactionName) {
-    conditions.setFilterValues('transaction', [transactionName]);
-  }
-
-  const unfilteredEventView = eventView.withColumns([...totalsColumns]);
-  unfilteredEventView.query = conditions.formatString();
-
-  return unfilteredEventView;
+  return eventView.withColumns([totalCountField]);
 }
 
 function getTotalsEventView(
@@ -268,10 +270,6 @@ function getTotalsEventView(
     {
       kind: 'function',
       function: ['p95', '', undefined, undefined],
-    },
-    {
-      kind: 'function',
-      function: ['count', '', undefined, undefined],
     },
     {
       kind: 'function',
@@ -296,6 +294,10 @@ function getTotalsEventView(
     {
       kind: 'function',
       function: ['apdex', '', undefined, undefined],
+    },
+    {
+      kind: 'function',
+      function: ['sum', 'transaction.duration', undefined, undefined],
     },
   ];
 

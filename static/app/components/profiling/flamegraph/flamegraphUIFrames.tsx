@@ -278,7 +278,7 @@ export function FlamegraphUIFrames({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiles.type === 'loading' || profiles.type === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && uiFrames.frames.length <= 1 ? (
+      ) : profiles.type === 'resolved' && !uiFrames.frames.length ? (
         <CollapsibleTimelineMessage>
           {t('Profile has no dropped or slow frames')}
         </CollapsibleTimelineMessage>

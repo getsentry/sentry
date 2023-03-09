@@ -6,6 +6,8 @@ import {PlatformCategory, PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {Group, IssueCategory, Organization} from 'sentry/types';
 import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -20,11 +22,15 @@ export interface Props {
 
 const AllEventsTable = (props: Props) => {
   const {location, organization, issueId, excludedTags, group} = props;
+  const config = getConfigForIssueType(props.group);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
 
   const eventView: EventView = EventView.fromLocation(props.location);
+  if (config.usesIssuePlatform) {
+    eventView.dataset = DiscoverDatasets.ISSUE_PLATFORM;
+  }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
   eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
@@ -49,8 +55,6 @@ const AllEventsTable = (props: Props) => {
     return <LoadingError message={error} onRetry={() => setError('')} />;
   }
 
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
-
   return (
     <EventsTable
       eventView={eventView}
@@ -65,7 +69,6 @@ const AllEventsTable = (props: Props) => {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      showReplayCol={isReplayEnabled}
     />
   );
 };
@@ -74,7 +77,7 @@ type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
 const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
+  const isReplayEnabled = organization.features.includes('session-replay');
 
   const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
     getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});

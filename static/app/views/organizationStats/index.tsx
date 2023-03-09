@@ -27,7 +27,7 @@ import {
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   DataCategoryInfo,
   DateString,
@@ -263,7 +263,7 @@ export class OrganizationStats extends Component<Props> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(
@@ -318,7 +318,7 @@ export class OrganizationStats extends Component<Props> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(

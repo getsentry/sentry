@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -11,7 +11,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import {Item, TabList} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -67,7 +67,9 @@ function TransactionHeader({
   );
 
   const hasSessionReplay =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project);
 
   const hasProfiling =
     project &&
@@ -103,10 +105,15 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  const projectIds = useMemo(
+    () => (project?.id ? [Number(project.id)] : []),
+    [project?.id]
+  );
+
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds: project ? [Number(project.id)] : [],
+    projectIds,
   })[transactionName];
 
   return (
@@ -186,34 +193,42 @@ function TransactionHeader({
                 gridColumn: '1 / -1',
               }}
             >
-              <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
-              <Item key={Tab.Events}>{t('All Events')}</Item>
-              <Item key={Tab.Tags}>{t('Tags')}</Item>
-              <Item key={Tab.Spans}>{t('Spans')}</Item>
-              <Item
+              <TabList.Item key={Tab.TransactionSummary}>{t('Overview')}</TabList.Item>
+              <TabList.Item key={Tab.Events}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.Tags}>{t('Tags')}</TabList.Item>
+              <TabList.Item key={Tab.Spans}>{t('Spans')}</TabList.Item>
+              <TabList.Item
                 key={Tab.Anomalies}
                 textValue={t('Anomalies')}
                 hidden={!hasAnomalyDetection}
               >
                 {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
-              </Item>
-              <Item
+              </TabList.Item>
+              <TabList.Item
                 key={Tab.WebVitals}
                 textValue={t('Web Vitals')}
                 hidden={!renderWebVitals}
               >
                 {t('Web Vitals')}
-              </Item>
-              <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.Replays}
+                textValue={t('Replays')}
+                hidden={!hasSessionReplay}
+              >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
-              </Item>
-              <Item key={Tab.Profiling} textValue={t('Profiling')} hidden={!hasProfiling}>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.Profiling}
+                textValue={t('Profiling')}
+                hidden={!hasProfiling}
+              >
                 {t('Profiling')}
                 <FeatureBadge type="beta" noTooltip />
-              </Item>
+              </TabList.Item>
             </TabList>
           );
         }}

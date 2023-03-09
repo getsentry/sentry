@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
@@ -50,7 +50,7 @@ function EventOrGroupExtraDetails({
   const issuesPath = `/organizations/${organization.slug}/issues/`;
 
   const showReplayCount =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') && projectSupportsReplay(project);
 
   return (
     <GroupExtra>

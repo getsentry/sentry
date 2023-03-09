@@ -4,7 +4,7 @@ from sentry.models import ProjectOwnership
 
 @register(ProjectOwnership)
 class ProjectOwnershipSerializer(Serializer):
-    def serialize(self, obj, attrs, user):
+    def serialize(self, obj, attrs, user, should_return_schema=False):
         assignment = (
             "Auto Assign to Suspect Commits"
             if obj.auto_assignment and obj.suspect_committer_auto_assignment
@@ -13,10 +13,8 @@ class ProjectOwnershipSerializer(Serializer):
             else "Turn off Auto-Assignment"
         )
 
-        return {
+        project_ownership_data = {
             "raw": obj.raw,
-            # Should we expose this?
-            # 'schema': obj.schema,
             "fallthrough": obj.fallthrough,
             "dateCreated": obj.date_created,
             "lastUpdated": obj.last_updated,
@@ -24,3 +22,8 @@ class ProjectOwnershipSerializer(Serializer):
             "autoAssignment": assignment,
             "codeownersAutoSync": obj.codeowners_auto_sync,
         }
+
+        if should_return_schema:
+            project_ownership_data["schema"] = obj.schema
+
+        return project_ownership_data

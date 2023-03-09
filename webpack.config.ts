@@ -39,7 +39,6 @@ const {env} = process;
 env.NODE_ENV = env.NODE_ENV ?? 'development';
 const IS_PRODUCTION = env.NODE_ENV === 'production';
 const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
-const IS_STORYBOOK = env.STORYBOOK_BUILD === '1';
 
 // This is used to stop rendering dynamic content for tests/snapshots
 // We want it in the case where we are running tests and it is in CI,
@@ -438,6 +437,7 @@ const appConfig: Configuration = {
       vm: false,
       stream: false,
       crypto: require.resolve('crypto-browserify'),
+      util: require.resolve('util'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
     },
@@ -476,7 +476,7 @@ const appConfig: Configuration = {
   devtool: IS_PRODUCTION ? 'source-map' : 'eval-cheap-module-source-map',
 };
 
-if (IS_TEST || IS_ACCEPTANCE_TEST || IS_STORYBOOK) {
+if (IS_TEST || IS_ACCEPTANCE_TEST) {
   appConfig.resolve!.alias!['integration-docs-platforms'] = path.join(
     __dirname,
     'fixtures/integration-docs/_platforms.json'
@@ -525,9 +525,16 @@ if (
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
     },
-    // Required for getsentry
-    allowedHosts: 'all',
+    // Cover the various environments we use (vercel, getsentry-dev, localhost)
+    allowedHosts: [
+      '.sentry.dev',
+      '.dev.getsentry.net',
+      '.localhost',
+      '127.0.0.1',
+      '.docker.internal',
+    ],
     static: {
       directory: './src/sentry/static/sentry',
       watch: true,
@@ -593,6 +600,9 @@ if (IS_UI_DEV_ONLY) {
       type: 'https',
       options: httpsOptions,
     },
+    headers: {
+      'Document-Policy': 'js-profiling',
+    },
     static: {
       publicPath: '/_assets/',
     },
@@ -604,7 +614,9 @@ if (IS_UI_DEV_ONLY) {
         changeOrigin: true,
         headers: {
           Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
         },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
       },
     ],
     historyApiFallback: {
@@ -636,6 +648,9 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       mobile: true,
       excludeChunks: ['pipeline'],
       title: 'Sentry',
+      window: {
+        __SENTRY_DEV_UI: true,
+      },
     })
   );
 }

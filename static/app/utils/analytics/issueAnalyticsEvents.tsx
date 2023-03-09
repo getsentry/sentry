@@ -1,4 +1,5 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -8,8 +9,8 @@ type IssueStream = {
 
 type SourceMapDebugParam = {
   type: SourceMapProcessingIssueType;
-  sdkName?: string;
-};
+  group_id?: string;
+} & BaseEventAnalyticsParams;
 
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
@@ -30,6 +31,30 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.view_hierarchy.hover_rendering_system': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_tree': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_wireframe': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_error_banner.proguard_misconfigured.clicked': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_misconfigured.displayed': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_missing_mapping.displayed': {
+    group?: string;
+    platform?: string;
+  };
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -145,7 +170,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'issue_details.view_hierarchy.hover_rendering_system':
+    'View Hierarchy: Hovered rendering system icon',
+  'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
+  'issue_details.view_hierarchy.select_from_wireframe':
+    'View Hierarchy: Selection from wireframe',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
+  'issue_error_banner.proguard_misconfigured.displayed':
+    'Proguard Potentially Misconfigured Issue Error Banner Displayed',
+  'issue_error_banner.proguard_missing_mapping.displayed':
+    'Proguard Missing Mapping Issue Error Banner Displayed',
+  'issue_error_banner.proguard_misconfigured.clicked':
+    'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',

@@ -39,6 +39,7 @@ MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
 TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
+DEVICE_CLASS_ALIAS = "device.class"
 
 
 class ThresholdDict(TypedDict):

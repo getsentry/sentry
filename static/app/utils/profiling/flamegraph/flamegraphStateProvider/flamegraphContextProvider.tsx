@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
@@ -21,30 +20,12 @@ function isValidHighlightFrame(
   return !!frame && typeof frame.name === 'string';
 }
 
-function getAxisForType(
-  type: FlamegraphPreferences['type'],
-  xAxis: FlamegraphPreferences['xAxis']
-): FlamegraphPreferences['xAxis'] {
-  if (type === 'flamegraph') {
-    return 'profile';
-  }
-  return xAxis;
-}
-
 interface FlamegraphStateProviderProps {
   children: React.ReactNode;
   initialState?: DeepPartial<FlamegraphState>;
 }
 
 function getDefaultState(initialState?: DeepPartial<FlamegraphState>): FlamegraphState {
-  const type =
-    initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-  const xAxis = getAxisForType(
-    type,
-    initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis
-  );
-
   return {
     profiles: {
       highlightFrames: isValidHighlightFrame(initialState?.profiles?.highlightFrames)
@@ -62,7 +43,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
-      type: initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type,
       timelines: {
         ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         ...(initialState?.preferences?.timelines ?? {}),
@@ -76,7 +56,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         initialState?.preferences?.sorting ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,

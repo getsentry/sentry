@@ -38,6 +38,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
                     project_ids=list({e.project_id for e in event_users}),
                     event_users=event_users,
                     limit=limit,
+                    tenant_ids={"organization_id": organization.id},
                 )
             ).order_by("-last_seen")[:limit]
         else:

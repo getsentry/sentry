@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
-import copy from 'copy-text-to-clipboard';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Textarea from 'sentry/components/forms/controls/textarea';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -48,7 +48,16 @@ const Form = ({
     }
   };
 
-  const onCopy = (value: string) => () => copy(value);
+  const onCopy = (value: string) => () => {
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        addSuccessMessage(t('Copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error copying to clipboard'));
+      });
+  };
 
   return (
     <form onSubmit={handleSubmit} id="relay-form">

@@ -1,25 +1,32 @@
-import {useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
 
+import {removeProject} from 'sentry/actionCreators/projects';
 import {Button, ButtonProps} from 'sentry/components/button';
 import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
+import useApi from 'sentry/utils/useApi';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
+import {OnboardingState, OnboardingStatus} from './components/footer';
 import Stepper from './components/stepper';
 import OnboardingPlatform from './deprecatedPlatform';
 import {PlatformSelection} from './platformSelection';
@@ -73,12 +80,30 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
 }
 
 function Onboarding(props: Props) {
+  const api = useApi();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+
+  const selectedPlatforms = clientState?.selectedPlatforms || [];
+  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+
+  const selectedProjectSlugs = selectedPlatforms
+    .map(platform => platformToProjectIdMap[platform])
+    .filter((slug): slug is string => slug !== undefined);
+
+  const selectedProjectSlug = selectedProjectSlugs[0];
+  const selectedProject = props.projects.find(p => p.slug === selectedProjectSlug);
+
+  const [sessionStorage] = useSessionStorage<Partial<OnboardingState>>(
+    `onboarding-${selectedProject?.id}`,
+    {}
+  );
+
   const {
     organization,
     params: {step: stepId},
   } = props;
+
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
     return () => {
@@ -92,6 +117,10 @@ function Onboarding(props: Props) {
 
   const singleSelectPlatform = !!props.organization?.features.includes(
     'onboarding-remove-multiselect-platform'
+  );
+
+  const projectDeletionOnBackClick = !!props.organization?.features.includes(
+    'onboarding-project-deletion-on-back-click'
   );
 
   const onboardingSteps = getOrganizationOnboardingSteps(singleSelectPlatform);
@@ -140,7 +169,7 @@ function Onboarding(props: Props) {
     browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
   };
 
-  const handleGoBack = () => {
+  const handleGoBack = async () => {
     if (!stepObj) {
       return;
     }
@@ -151,11 +180,45 @@ function Onboarding(props: Props) {
       return;
     }
 
+    // The user is going back to select a new platform,
+    // so we silently delete the last created project
+    if (projectDeletionOnBackClick && stepIndex === onboardingSteps.length - 1) {
+      if (
+        sessionStorage.status === OnboardingStatus.WAITING ||
+        sessionStorage.status === undefined
+      ) {
+        try {
+          await removeProject(api, organization.slug, selectedProjectSlug);
+        } catch (error) {
+          handleXhrErrorResponse(t('Unable to delete project'))(error);
+          // we don't give the user any feedback regarding this error as this shall be silent
+        }
+      }
+
+      if (clientState) {
+        setClientState({
+          url: 'setup-docs/',
+          state: 'projects_selected',
+          selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
+          platformToProjectIdMap:
+            sessionStorage.status === OnboardingStatus.WAITING ||
+            sessionStorage.status === undefined
+              ? Object.keys(platformToProjectIdMap).reduce((acc, value) => {
+                  if (value !== selectedProjectSlug && !acc[value]) {
+                    acc[value] = value;
+                  }
+                  return acc;
+                }, {})
+              : clientState.platformToProjectIdMap,
+        });
+      }
+    }
+
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
 
-    trackAdvancedAnalyticsEvent('heartbeat.onboarding_back_button_clicked', {
+    trackAdvancedAnalyticsEvent('onboarding.back_button_clicked', {
       organization,
       from: onboardingSteps[stepIndex].id,
       to: previousStep.id,
@@ -190,6 +253,17 @@ function Onboarding(props: Props) {
       </SkipOnboardingLink>
     );
   };
+
+  const jumpToSetupProject = useCallback(() => {
+    const nextStep = onboardingSteps.find(({id}) => id === 'setup-docs');
+    if (!nextStep) {
+      Sentry.captureMessage(
+        'Missing step in onboarding: `setup-docs` when trying to jump there'
+      );
+      return;
+    }
+    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+  }, [onboardingSteps, organization]);
 
   if (!stepObj || stepIndex === -1) {
     return (
@@ -234,6 +308,7 @@ function Onboarding(props: Props) {
                 route={props.route}
                 router={props.router}
                 location={props.location}
+                jumpToSetupProject={jumpToSetupProject}
                 {...{
                   genSkipOnboardingLink,
                 }}

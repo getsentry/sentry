@@ -5,7 +5,7 @@ from typing import Any, Mapping, MutableMapping
 
 from sentry.models import Activity, NotificationSetting, Organization, Team, User
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
@@ -67,10 +67,10 @@ class AssignedActivityNotification(GroupActivityNotification):
     ) -> str:
         assignee = self.get_assignee()
 
-        if not self.activity.user:
+        if not self.user:
             return f"Issue automatically assigned to {assignee}"
 
-        author = self.activity.user.get_display_name()
+        author = self.user.get_display_name()
         if assignee == "themselves":
             author, assignee = assignee, author
 
@@ -78,7 +78,7 @@ class AssignedActivityNotification(GroupActivityNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
         """Hack to tack on the assigned team to the list of users subscribed to the group."""
         users_by_provider = super().get_participants_with_group_subscription_reason()
         if is_team_assignee(self.activity):
@@ -93,7 +93,7 @@ class AssignedActivityNotification(GroupActivityNotification):
                 )
                 actors_by_provider: MutableMapping[
                     ExternalProviders,
-                    MutableMapping[Team | APIUser, int],
+                    MutableMapping[Team | RpcUser, int],
                 ] = defaultdict(dict)
                 actors_by_provider.update({**users_by_provider})
                 for provider, teams in teams_by_provider.items():

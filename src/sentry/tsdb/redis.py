@@ -272,6 +272,7 @@ class RedisTSDB(BaseTSDB):
         environment_ids=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -454,6 +455,7 @@ class RedisTSDB(BaseTSDB):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         """
         Count distinct items during a time range.

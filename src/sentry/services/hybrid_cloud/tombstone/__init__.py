@@ -1,3 +1,8 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
 from abc import abstractmethod
 from dataclasses import dataclass
 
@@ -6,7 +11,7 @@ from sentry.silo import SiloMode
 
 
 @dataclass
-class ApiTombstone:
+class RpcTombstone:
     table_name: str = ""
     identifier: int = -1
 
@@ -17,7 +22,7 @@ class ApiTombstone:
 # of who owns what models changes independent of the rollout of logic.
 class TombstoneService(InterfaceWithLifecycle):
     @abstractmethod
-    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
+    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         pass
 
 

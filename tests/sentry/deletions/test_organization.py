@@ -54,7 +54,7 @@ class DeleteOrganizationTest(TransactionTestCase):
             organization_id=org.id, release=release, commit=commit, order=0
         )
 
-        env = Environment.objects.create(organization_id=org.id, project_id=4, name="foo")
+        env = Environment.objects.create(organization_id=org.id, name="foo")
         release_env = ReleaseEnvironment.objects.create(
             organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
         )
@@ -64,7 +64,7 @@ class DeleteOrganizationTest(TransactionTestCase):
         )
 
         dashboard = Dashboard.objects.create(
-            organization_id=org.id, title="The Dashboard", created_by=self.user
+            organization_id=org.id, title="The Dashboard", created_by_id=self.user.id
         )
         widget_1 = DashboardWidget.objects.create(
             dashboard=dashboard,

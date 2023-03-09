@@ -19,7 +19,6 @@ interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
-  group_id: number;
   has_commit: boolean;
   has_release: boolean;
   has_source_maps: boolean;
@@ -28,8 +27,12 @@ export type BaseEventAnalyticsParams = {
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  error_has_replay?: boolean;
+  event_errors?: string;
   event_platform?: string;
   event_type?: string;
+  has_otel?: boolean;
+  release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
 };
@@ -71,6 +74,7 @@ export type TeamInsightsEventParameters = {
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
+    assigned_type?: string;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};

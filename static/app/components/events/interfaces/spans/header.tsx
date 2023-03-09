@@ -15,7 +15,7 @@ import {
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import theme from 'sentry/utils/theme';
@@ -40,6 +40,7 @@ import {
 } from './types';
 import {
   boundsGenerator,
+  getMeasurements,
   getSpanOperation,
   SpanBoundsType,
   SpanGeneratedBoundsType,
@@ -399,7 +400,7 @@ class TraceViewHeader extends Component<PropType, State> {
               <DividerSpacer />
               {hasMeasurements ? (
                 <MeasurementsPanel
-                  event={event}
+                  measurements={getMeasurements(event, this.generateBounds())}
                   generateBounds={this.generateBounds()}
                   dividerPosition={dividerPosition}
                 />

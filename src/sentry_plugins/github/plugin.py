@@ -12,6 +12,7 @@ from sentry.locks import locks
 from sentry.models import Integration, Organization, OrganizationOption, Repository
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.plugins.providers import RepositoryProvider
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
@@ -47,7 +48,7 @@ class GitHubMixin(CorePluginMixin):
         else:
             return ERR_INTERNAL
 
-    def get_client(self, user):
+    def get_client(self, user: RpcUser):
         auth = self.get_auth(user=user)
         if auth is None:
             raise PluginError(API_ERRORS[401])

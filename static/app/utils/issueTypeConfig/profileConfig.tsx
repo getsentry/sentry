@@ -26,11 +26,10 @@ const profileConfig: IssueCategoryConfigMapping = {
     replays: {enabled: false},
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
-    evidence: {
-      title: t('Function Evidence'),
-    },
+    // Renders `ProfileEventEvidence` instead
+    evidence: null,
   },
-  [IssueType.PROFILE_BLOCKED_THREAD]: {
+  [IssueType.PROFILE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t(
         'I/O operations on the UI thread can cause jank and lead to frame drops that are distracting. If long enough, these blocking operations can cause Application Not Responding dialogs that will cause the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
@@ -41,14 +40,7 @@ const profileConfig: IssueCategoryConfigMapping = {
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
         },
       ],
-      linksByPlatform: {
-        'apple-ios': [
-          {
-            text: t('Improve Performance in your iOS Applications'),
-            link: 'https://blog.sentry.io/2022/05/10/improve-performance-in-your-ios-applications-part-2/#decode-images',
-          },
-        ],
-      },
+      linksByPlatform: {},
     },
   },
 };

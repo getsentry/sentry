@@ -148,6 +148,7 @@ export interface Thread {
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
   name?: string | null;
+  state?: string | null;
 }
 
 export type Frame = {
@@ -583,9 +584,15 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface BrowserContext {
+  name: string;
+  version: string;
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  browser?: BrowserContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
@@ -647,6 +654,7 @@ type EventOccurrence = {
   issueTitle: string;
   resourceId: string;
   subtitle: string;
+  type: number;
 };
 
 interface EventBase {
@@ -704,6 +712,7 @@ interface EventBase {
 }
 
 interface TraceEventContexts extends EventContexts {
+  browser?: BrowserContext;
   profile?: ProfileContext;
 }
 

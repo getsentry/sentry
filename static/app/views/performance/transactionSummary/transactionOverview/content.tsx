@@ -13,11 +13,13 @@ import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import Tooltip from 'sentry/components/tooltip';
+import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
+import {ActionBarItem} from 'sentry/components/smartSearchBar';
+import {Tooltip} from 'sentry/components/tooltip';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
@@ -29,7 +31,6 @@ import {
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
-import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {decodeScalar} from 'sentry/utils/queryString';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -37,10 +38,8 @@ import withProjects from 'sentry/utils/withProjects';
 import {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 import Tags from 'sentry/views/discover/tags';
-import {
-  canUseMetricsInTransactionSummary,
-  canUseTransactionMetricsData,
-} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
+import {TransactionPercentage} from 'sentry/views/performance/transactionSummary/transactionOverview/transactionPercentage';
+import {canUseTransactionMetricsData} from 'sentry/views/performance/transactionSummary/transactionOverview/utils';
 import {
   PERCENTILE as VITAL_PERCENTILE,
   VITAL_GROUPS,
@@ -184,31 +183,33 @@ function SummaryContent({
   }
 
   function generateActionBarItems(_org: Organization, _location: Location) {
-    if (!canUseMetricsInTransactionSummary(_org)) {
-      return undefined;
+    let items: ActionBarItem[] | undefined = undefined;
+    if (
+      _org.features.includes('performance-metrics-backed-transaction-summary') &&
+      !canUseTransactionMetricsData(_org, _location)
+    ) {
+      items = [
+        {
+          key: 'alert',
+          makeAction: () => ({
+            Button: () => (
+              <Tooltip
+                title={t(
+                  'Based on your search criteria and sample rate, the events available may be limited.'
+                )}
+              >
+                <StyledIconWarning size="sm" color="warningText" />
+              </Tooltip>
+            ),
+            menuItem: {
+              key: 'alert',
+            },
+          }),
+        },
+      ];
     }
 
-    return !canUseTransactionMetricsData(_org, _location)
-      ? [
-          {
-            key: 'alert',
-            makeAction: () => ({
-              Button: () => (
-                <Tooltip
-                  title={t(
-                    'Based on your search criteria and sample rate, the events available may be limited.'
-                  )}
-                >
-                  <StyledIconWarning size="sm" color="warningText" />
-                </Tooltip>
-              ),
-              menuItem: {
-                key: 'alert',
-              },
-            }),
-          },
-        ]
-      : undefined;
+    return items;
   }
 
   const hasPerformanceChartInterpolation = organization.features.includes(
@@ -217,9 +218,6 @@ function SummaryContent({
 
   const query = decodeScalar(location.query.query, '');
   const totalCount = totalValues === null ? null : totalValues['count()'];
-  const unfilteredTotalCount = unfilteredTotalValues
-    ? unfilteredTotalValues['count()']
-    : null;
 
   // NOTE: This is not a robust check for whether or not a transaction is a front end
   // transaction, however it will suffice for now.
@@ -230,7 +228,7 @@ function SummaryContent({
         group.vitals.some(vital => {
           const functionName = `percentile(${vital},${VITAL_PERCENTILE})`;
           const field = functionName;
-          return Number.isFinite(totalValues[field]);
+          return Number.isFinite(totalValues[field]) && totalValues[field] !== 0;
         })
       ));
 
@@ -250,7 +248,8 @@ function SummaryContent({
   const fields = [...transactionsListEventView.fields];
 
   if (
-    organization.features.includes('session-replay-ui') &&
+    organization.features.includes('session-replay') &&
+    project &&
     projectSupportsReplay(project)
   ) {
     transactionsListTitles.push(t('replay'));
@@ -260,7 +259,10 @@ function SummaryContent({
   if (
     organization.features.includes('profiling') &&
     project &&
-    isProfilingSupportedOrProjectHasProfiles(project)
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project.hasProfiles
   ) {
     transactionsListTitles.push(t('profile'));
     fields.push({field: 'profile.id'});
@@ -353,7 +355,6 @@ function SummaryContent({
           totalValue={totalCount}
           currentFilter={spanOperationBreakdownFilter}
           withoutZerofill={hasPerformanceChartInterpolation}
-          unfilteredTotalValue={unfilteredTotalCount}
         />
         <TransactionsList
           location={location}
@@ -403,6 +404,12 @@ function SummaryContent({
           transactionName={transactionName}
           currentFilter={spanOperationBreakdownFilter}
         />
+
+        <SuspectFunctionsTable
+          project={project}
+          transaction={transactionName}
+          analyticsPageSource="performance_transaction"
+        />
         <RelatedIssues
           organization={organization}
           location={location}
@@ -413,6 +420,13 @@ function SummaryContent({
         />
       </Layout.Main>
       <Layout.Side>
+        <TransactionPercentage
+          organization={organization}
+          isLoading={isLoading}
+          error={error}
+          totals={totalValues}
+          unfilteredTotals={unfilteredTotalValues}
+        />
         <UserStats
           organization={organization}
           location={location}
@@ -438,7 +452,6 @@ function SummaryContent({
           totals={totalValues}
           eventView={eventView}
           transactionName={transactionName}
-          unfilteredTotals={unfilteredTotalValues}
         />
         <SidebarSpacer />
         <Tags

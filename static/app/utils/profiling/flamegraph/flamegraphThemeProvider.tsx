@@ -1,22 +1,24 @@
-import {createContext, useMemo} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {
-  makeColorMapByApplicationFrame,
-  makeColorMapByFrequency,
-  makeColorMapByLibrary,
-  makeColorMapByRecursion,
-  makeColorMapBySystemFrame,
-} from 'sentry/utils/profiling/colors/utils';
 import {
   DarkFlamegraphTheme,
   FlamegraphTheme,
   LightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
+
+type FlamegraphThemeMutationCallback = (
+  theme: FlamegraphTheme,
+  colorMode?: 'light' | 'dark'
+) => FlamegraphTheme;
+
+export const FlamegraphThemeMutationContext = createContext<
+  ((cb: FlamegraphThemeMutationCallback) => void) | null
+>(null);
 
 interface FlamegraphThemeProviderProps {
   children: React.ReactNode;
@@ -25,52 +27,30 @@ interface FlamegraphThemeProviderProps {
 function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
-  const {theme} = useLegacyStore(ConfigStore);
-  const flamegraphPreferences = useFlamegraphPreferences();
+  const {theme: colorMode} = useLegacyStore(ConfigStore);
 
-  const activeFlamegraphTheme = useMemo((): FlamegraphTheme => {
-    const base = theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+  const [mutation, setMutation] = useState<FlamegraphThemeMutationCallback | null>(null);
 
-    switch (flamegraphPreferences.colorCoding) {
-      case 'by symbol name': {
-        return base;
-      }
-      case 'by recursion': {
-        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByRecursion}};
-      }
-      case 'by library': {
-        return {...base, COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByLibrary}};
-      }
-      case 'by system frame': {
-        return {
-          ...base,
-          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapBySystemFrame},
-        };
-      }
-      case 'by application frame': {
-        return {
-          ...base,
-          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByApplicationFrame},
-        };
-      }
-      case 'by frequency': {
-        return {
-          ...base,
-          COLORS: {...base.COLORS, COLOR_MAP: makeColorMapByFrequency},
-        };
-      }
-      default: {
-        throw new TypeError(
-          `Unsupported flamegraph color coding ${flamegraphPreferences.colorCoding}`
-        );
-      }
+  const addModifier = useCallback((cb: FlamegraphThemeMutationCallback) => {
+    setMutation(() => cb);
+  }, []);
+
+  const activeFlamegraphTheme = useMemo(() => {
+    const flamegraphTheme =
+      colorMode === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+    if (!mutation) {
+      return flamegraphTheme;
     }
-  }, [theme, flamegraphPreferences.colorCoding]);
+    const clonedTheme = cloneDeep(flamegraphTheme);
+    return mutation(clonedTheme, colorMode);
+  }, [mutation, colorMode]);
 
   return (
-    <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
-      {props.children}
-    </FlamegraphThemeContext.Provider>
+    <FlamegraphThemeMutationContext.Provider value={addModifier}>
+      <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
+        {props.children}
+      </FlamegraphThemeContext.Provider>
+    </FlamegraphThemeMutationContext.Provider>
   );
 }
 

@@ -56,7 +56,9 @@ class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
-        return project.get_option(self._option_name, default=[])  # type: ignore
+        ret = project.get_option(self._option_name, default=[])
+        # normalize tuple vs. list (write_pickle vs. write_json)
+        return [tuple(lst) for lst in ret]  # type: ignore[misc]
 
     def read(self, project: Project) -> RuleSet:
         return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
@@ -73,7 +75,7 @@ class ProjectOptionRuleStore:
 
 class CompositeRuleStore:
     #: Maximum number (non-negative integer) of rules to write to stores.
-    MERGE_MAX_RULES: int = 25
+    MERGE_MAX_RULES: int = 50
 
     def __init__(self, stores: List[RuleStore]):
         self._stores = stores

@@ -22,7 +22,7 @@ import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {EventSdkUpdates} from 'sentry/components/events/sdkUpdates';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -102,7 +102,7 @@ const GroupEventDetailsContent = ({
         projectSlug={project.slug}
         location={location}
       />
-      <EventEvidence event={event} group={group} />
+      <EventEvidence event={event} group={group} projectSlug={project.slug} />
       <GroupEventEntry entryType={EntryType.MESSAGE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
@@ -111,6 +111,7 @@ const GroupEventDetailsContent = ({
         <SpanEvidenceSection
           event={event as EventTransaction}
           organization={organization}
+          projectSlug={project.slug}
         />
       )}
       <GroupEventEntry entryType={EntryType.HPKP} {...eventEntryProps} />

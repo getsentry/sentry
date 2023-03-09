@@ -7,6 +7,7 @@ from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
 from .appconnectbuilds import *  # NOQA
+from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
 from .authenticator import *  # NOQA
@@ -61,9 +62,6 @@ from .integrations import *  # NOQA
 from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
-from .monitor import *  # NOQA
-from .monitorcheckin import *  # NOQA
-from .monitorlocation import *  # NOQA
 from .notificationsetting import *  # NOQA
 from .options import *  # NOQA
 from .organization import *  # NOQA

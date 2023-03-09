@@ -268,6 +268,12 @@ export function useVirtualizedTree<T extends TreeLike>(
       const element = latestItemsRef.current.find(item => item.key === index);
       if (element?.ref) {
         element.ref.dataset.hovered = 'true';
+        markRowAsHovered(index, latestItemsRef.current, {
+          ghostRowRef: hoveredGhostRowRef.current,
+          rowHeight: props.rowHeight,
+          scrollTop: latestStateRef.current.scrollTop,
+          theme,
+        });
       }
     };
 
@@ -588,6 +594,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
           scrollHeight: latestStateRef.current.scrollHeight,
           currentScrollTop: latestStateRef.current.scrollTop,
+          maxScrollableHeight: newTree.flattened.length * props.rowHeight,
         },
         'center'
       );

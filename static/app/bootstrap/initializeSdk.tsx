@@ -1,3 +1,4 @@
+// eslint-disable-next-line simple-import-sort/imports
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
@@ -7,6 +8,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
 import {addExtraMeasurements, LongTaskObserver} from 'sentry/utils/performanceForSentry';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const SPA_MODE_ALLOW_URLS = [
   'localhost',
@@ -15,6 +17,10 @@ const SPA_MODE_ALLOW_URLS = [
   'webpack-internal://',
 ];
 
+// We check for `window.__initialData.user` property and only enable profiling
+// for Sentry employees. This is to prevent a Violation error being visible in
+// the browser console for our users.
+const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -44,15 +50,13 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
             ),
           }
         : {}),
-      idleTimeout: 5000,
-      _metricOptions: {
-        _reportAllChanges: false,
-      },
       _experiments: {
         enableInteractions: true,
+        onStartRouteTransaction: Sentry.onProfilingStartRouteTransaction,
       },
       ...partialTracingOptions,
     }),
+    new Sentry.BrowserProfilingIntegration(),
   ];
 
   return integrations;
@@ -84,6 +88,8 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     allowUrls: SPA_DSN ? SPA_MODE_ALLOW_URLS : sentryConfig?.whitelistUrls,
     integrations: getSentryIntegrations(sentryConfig, routes),
     tracesSampleRate,
+    // @ts-ignore not part of browser SDK types yet
+    profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
         return tracesSampleRate / 100;
@@ -99,6 +105,9 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
           partialDesc => !span.description?.includes(partialDesc)
         );
       });
+      if (event.transaction) {
+        event.transaction = normalizeUrl(event.transaction, {forceCustomerDomain: true});
+      }
       return event;
     },
     /**

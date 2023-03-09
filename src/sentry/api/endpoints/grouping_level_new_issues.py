@@ -106,7 +106,15 @@ def _get_hash_for_parent_level(group: Group, id: int, levels_overview: LevelsOve
             .set_where(_get_group_filters(group))
             .set_limit(1)
         )
-        request = SnubaRequest(dataset="events", app_id="grouping", query=query)
+        request = SnubaRequest(
+            dataset="events",
+            app_id="grouping",
+            query=query,
+            tenant_ids={
+                "referrer": "api.group_hashes_levels.get_hash_for_parent_level",
+                "organization_id": group.project.organization_id,
+            },
+        )
         return_hash: str = get_path(snuba.raw_snql_query(request), "data", 0, "hash")  # type: ignore
         cache.set(cache_key, return_hash)
 
@@ -187,10 +195,13 @@ def _query_snuba(group: Group, id: int, offset=None, limit=None):
     if limit is not None:
         query = query.set_limit(limit)
 
-    request = SnubaRequest(dataset="events", app_id="grouping", query=query)
-    return snuba.raw_snql_query(request, referrer="api.group_hashes_levels.get_level_new_issues")[
-        "data"
-    ]
+    request = SnubaRequest(
+        dataset="events",
+        app_id="grouping",
+        query=query,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    return snuba.raw_snql_query(request, "api.group_hashes_levels.get_level_new_issues")["data"]
 
 
 def _process_snuba_results(query_res, group: Group, id: int, user):

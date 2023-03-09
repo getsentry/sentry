@@ -14,7 +14,7 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
 )
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import exempt_from_silo_limits
@@ -100,7 +100,7 @@ class Fixtures:
             group=self.group,
             project=self.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={},
         )
 
@@ -193,10 +193,6 @@ class Fixtures:
         return Factories.create_release_file(release_id, file, name, dist_id)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
-        if org is None:
-            org = self.organization.slug
-        if release is None:
-            release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
     def create_release_archive(self, org=None, release=None, *args, **kwargs):
@@ -396,7 +392,7 @@ class Fixtures:
         self,
         organization: Organization,
         external_id: str = "TXXXXXXX1",
-        user: APIUser = None,
+        user: RpcUser = None,
         identity_external_id: str = "UXXXXXXX1",
         **kwargs: Any,
     ):

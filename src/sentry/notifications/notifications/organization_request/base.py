@@ -11,7 +11,7 @@ from sentry.notifications.notifications.strategies.role_based_recipient_strategy
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -36,7 +36,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
     def get_context(self) -> MutableMapping[str, Any]:
         return {}
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
+    def determine_recipients(self) -> Iterable[Team | RpcUser]:
         return self.role_based_recipient_strategy.determine_recipients()
 
     def get_notification_title(
@@ -56,7 +56,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         )
 
         return self.role_based_recipient_strategy.build_notification_footer_from_settings_url(
-            settings_url, recipient
+            settings_url
         )
 
     def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:

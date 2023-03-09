@@ -383,7 +383,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
             if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = generate_rules(project)
+                data["dynamicSamplingRules"] = {
+                    "rules": [],
+                    "rulesV2": generate_rules(project),
+                }
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
@@ -691,6 +694,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:reprocessing_active",
                     bool(options["sentry:reprocessing_active"]),
+                )
+            if "filters:react-hydration-errors" in options:
+                project.update_option(
+                    "filters:react-hydration-errors",
+                    bool(options["filters:react-hydration-errors"]),
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(

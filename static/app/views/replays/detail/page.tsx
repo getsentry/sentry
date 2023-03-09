@@ -8,7 +8,7 @@ import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPage
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import ReplayMetaData, {
   HeaderPlaceholder,
@@ -24,8 +24,8 @@ type Props = {
 
 function Page({children, crumbs, orgSlug, replayRecord}: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} - Replays - ${orgSlug}`
-    : `Replays - ${orgSlug}`;
+    ? `${replayRecord.id} - Session Replay - ${orgSlug}`
+    : `Session Replay - ${orgSlug}`;
 
   const header = (
     <Header>

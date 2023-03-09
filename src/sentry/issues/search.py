@@ -13,6 +13,10 @@ from sentry.utils import snuba
 from sentry.utils.snuba import SnubaQueryParams
 
 
+class UnsupportedSearchQuery(Exception):
+    pass
+
+
 class IntermediateSearchQueryPartial(Protocol):
     def __call__(
         self,
@@ -49,6 +53,7 @@ GroupSearchStrategy = Callable[
         Optional[Sequence[int]],
         Mapping[str, Sequence[int]],
         Sequence[Any],
+        Optional[Any],
     ],
     Optional[SnubaQueryParams],
 ]
@@ -100,6 +105,7 @@ def _query_params_for_error(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     if group_ids:
         filters = {"group_id": sorted(group_ids), **filters}
@@ -135,6 +141,7 @@ def _query_params_for_perf(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
     if organization:
@@ -198,9 +205,12 @@ def _query_params_for_generic(
     group_ids: Optional[Sequence[int]],
     filters: Mapping[str, Sequence[int]],
     conditions: Sequence[Any],
+    actor: Optional[Any] = None,
 ) -> Optional[SnubaQueryParams]:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has("organizations:issue-platform", organization=organization):
+    if organization and features.has(
+        "organizations:issue-platform", organization=organization, actor=actor
+    ):
         if group_ids:
             filters = {"group_id": sorted(group_ids), **filters}
 
@@ -227,6 +237,24 @@ SEARCH_STRATEGIES: Mapping[int, GroupSearchStrategy] = {
 }
 
 
+def _update_profiling_search_filters(
+    search_filters: Sequence[SearchFilter],
+) -> Sequence[SearchFilter]:
+    updated_filters = []
+
+    for sf in search_filters:
+        # XXX: we replace queries on these keys to something that should return nothing since
+        # profiling issues doesn't support stacktraces
+        if sf.key.name in ("error.unhandled", "error.handled"):
+            raise UnsupportedSearchQuery(
+                f"{sf.key.name} filter isn't supported for {GroupCategory.PROFILE.name}"
+            )
+        else:
+            updated_filters.append(sf)
+
+    return updated_filters
+
+
 SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
     GroupCategory.PERFORMANCE.value: lambda search_filters: [
         # need to remove this search filter, so we don't constrain the returned transactions
@@ -234,6 +262,7 @@ SEARCH_FILTER_UPDATERS: Mapping[int, GroupSearchFilterUpdater] = {
         for sf in search_filters
         if sf.key.name != "message"
     ],
+    GroupCategory.PROFILE.value: _update_profiling_search_filters,
 }
 
 

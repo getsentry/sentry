@@ -1,4 +1,16 @@
 from collections.abc import Mapping
+from typing import List, Literal, Optional, TypedDict, Union
+
+RemarkType = Literal["a", "x", "s", "m", "p", "e"]
+
+
+class Remark(TypedDict):
+    rule_id: str
+    type: RemarkType
+    # Range start is a byte offset
+    range_start: Optional[int]
+    # Range end is a byte offset
+    range_end: Optional[int]
 
 
 class Meta:
@@ -145,6 +157,38 @@ class Meta:
         if isinstance(data, Mapping):
             error = [error, dict(data)]
         meta["err"].append(error)
+
+        if value is not None:
+            meta["val"] = value
+
+    def add_remark(self, rem: Remark, value=None):
+        """
+        Adds a remark to the meta data at the current path.
+
+        If an optional ``value`` is specified, it is attached as original value
+        into the meta data. Note that there is only one original value, not one
+        per remark.
+
+        `range_start` and `range_end` in `rem` are byte offsets.
+
+        If no meta data entry exists for the current path, it is created, along
+        with the entire parent tree.
+        """
+        meta = self.create()
+        if "rem" not in meta or meta["rem"] is None:
+            meta["rem"] = []
+
+        rem_list: List[Union[str, int]] = [rem["rule_id"], rem["type"]]
+
+        range_start = rem.get("range_start")
+        if range_start is not None:
+            rem_list.append(range_start)
+
+        range_end = rem.get("range_end")
+        if range_end is not None:
+            rem_list.append(range_end)
+
+        meta["rem"].append(rem_list)
 
         if value is not None:
             meta["val"] = value

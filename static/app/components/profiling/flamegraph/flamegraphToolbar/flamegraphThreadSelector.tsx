@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -57,6 +57,7 @@ function FlamegraphThreadSelector({
       emptyProfiles.push(option);
       return;
     });
+
     return [profiles, emptyProfiles];
   }, [profileGroup]);
 
@@ -76,8 +77,8 @@ function FlamegraphThreadSelector({
         size: 'xs',
       }}
       options={[
-        {label: t('Profiles'), options: profileOptions},
-        {label: t('Empty Profiles'), options: emptyProfileOptions},
+        {key: 'profiles', label: t('Profiles'), options: profileOptions},
+        {key: 'empty-profiles', label: t('Empty Profiles'), options: emptyProfileOptions},
       ]}
       value={threadId ?? 0}
       onChange={handleChange}

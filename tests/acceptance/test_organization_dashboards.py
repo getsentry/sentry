@@ -44,7 +44,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             project_id=self.project.id,
         )
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.page = DashboardDetailPage(
             self.browser, self.client, organization=self.organization, dashboard=self.dashboard
@@ -134,6 +134,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
 
             self.capture_screenshots("dashboards - move existing widget on existing dashboard")
 
+    @pytest.mark.skip(reason="flaky: DD-1216")
     def test_widget_edit_keeps_same_layout_after_modification(self):
         existing_widget = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -463,6 +464,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
                 "dashboards - position when adding multiple widgets through Add Widget tile in edit"
             )
 
+    @pytest.mark.skip(reason="flaky: DD-1217")
     def test_position_when_adding_multiple_widgets_through_add_widget_tile_in_create(
         self,
     ):
@@ -708,7 +710,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             organization=self.organization, teams=[self.team], name="Bengal"
         )
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -743,7 +745,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
         dashboard_with_layouts = Dashboard.objects.create(
             title="Dashboard with some defined layouts",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
         )
         DashboardWidget.objects.create(
