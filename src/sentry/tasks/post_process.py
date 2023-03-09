@@ -403,12 +403,15 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
-            record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
+            record_transaction_name as record_transaction_name_for_clustering,
         )
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
         if occurrence_id is None:
+            # We use the data being present/missing in the processing store
+            # to ensure that we don't duplicate work should the forwarding consumers
+            # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
                 logger.info(
