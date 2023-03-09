@@ -1,5 +1,7 @@
 from typing import Mapping, Tuple, cast
 
+import sentry_sdk
+
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
 from sentry.utils import json
 
@@ -19,9 +21,8 @@ def get_transactions_resampling_rates(
             val = json.loads(serialised_val)
             ret_val = cast(Tuple[Mapping[str, float], float], val)
             return ret_val
-    except (TypeError, ValueError):
-        # for any error just get the default
-        pass
+    except (TypeError, ValueError) as e:
+        sentry_sdk.capture_exception(e)
 
     return {}, default_rate
 
