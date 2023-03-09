@@ -25,6 +25,15 @@ TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 
+topic_to_dataset: Dict[str, Dataset] = {
+    settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
+    settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
+    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
+    settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
+}
+
 
 def register_subscriber(
     subscriber_key: str,
@@ -36,6 +45,156 @@ def register_subscriber(
         return func
 
     return inner
+
+
+def parse_message_value(value: str) -> Dict[str, Any]:
+    """
+    Parses the value received via the Kafka consumer and verifies that it
+    matches the expected schema.
+    :param value: A json formatted string
+    :return: A dict with the parsed message
+    """
+    with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
+        wrapper: Dict[str, Any] = json.loads(value)
+
+    with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
+        try:
+            jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
+        except jsonschema.ValidationError:
+            metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
+            raise InvalidSchemaError("Message wrapper does not match schema")
+
+    schema_version: int = wrapper["version"]
+    if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
+        metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
+        raise InvalidMessageError("Version specified in wrapper has no schema")
+
+    payload: Dict[str, Any] = wrapper["payload"]
+    with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
+        try:
+            jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
+        except jsonschema.ValidationError:
+            metrics.incr("snuba_query_subscriber.message_payload_invalid")
+            raise InvalidSchemaError("Message payload does not match schema")
+    # XXX: Since we just return the raw dict here, when the payload changes it'll
+    # break things. This should convert the payload into a class rather than passing
+    # the dict around, but until we get time to refactor we can keep things working
+    # here.
+    payload.setdefault("values", payload.get("result"))
+
+    payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
+    return payload
+
+
+def handle_message(message: Message, __batch_deadline, commit_batch_timeout_ms) -> None:
+    """
+    Parses the value from Kafka, and if valid passes the payload to the callback defined by the
+    subscription. If the subscription has been removed, or no longer has a valid callback then
+    just log metrics/errors and continue.
+    :param message:
+    :return:
+    """
+    # set a commit time deadline only after the first message for this batch is seen
+    if not __batch_deadline:
+        __batch_deadline = commit_batch_timeout_ms / 1000.0 + time.time()
+
+    with sentry_sdk.push_scope() as scope:
+        try:
+            with metrics.timer("snuba_query_subscriber.parse_message_value"):
+                contents = parse_message_value(message.value())
+        except InvalidMessageError:
+            # If the message is in an invalid format, just log the error
+            # and continue
+            logger.exception(
+                "Subscription update could not be parsed",
+                extra={
+                    "offset": message.offset(),
+                    "partition": message.partition(),
+                    "value": message.value(),
+                },
+            )
+            return
+        scope.set_tag("query_subscription_id", contents["subscription_id"])
+
+        try:
+            with metrics.timer("snuba_query_subscriber.fetch_subscription"):
+                subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
+                    subscription_id=contents["subscription_id"]
+                )
+                if subscription.status != QuerySubscription.Status.ACTIVE.value:
+                    metrics.incr("snuba_query_subscriber.subscription_inactive")
+                    return
+        except QuerySubscription.DoesNotExist:
+            metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
+            logger.warning(
+                "Received subscription update, but subscription does not exist",
+                extra={
+                    "offset": message.offset(),
+                    "partition": message.partition(),
+                    "value": message.value(),
+                },
+            )
+            try:
+                if "entity" in contents:
+                    entity_key = contents["entity"]
+                else:
+                    # XXX(ahmed): Remove this logic. This was kept here as backwards compat
+                    # for subscription updates with schema version `2`. However schema version 3
+                    # sends the "entity" in the payload
+                    entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
+                    entity_match = re.match(entity_regex, contents["request"]["query"])
+                    if not entity_match:
+                        raise InvalidMessageError("Unable to fetch entity from query in message")
+                    entity_key = entity_match.group(2)
+                topic = message.topic()
+                if topic in topic_to_dataset:
+                    _delete_from_snuba(
+                        topic_to_dataset[topic],
+                        contents["subscription_id"],
+                        EntityKey(entity_key),
+                    )
+                else:
+                    logger.error(
+                        "Topic not registered with QuerySubscriptionConsumer, can't remove "
+                        "non-existent subscription from Snuba",
+                        extra={"topic": topic, "subscription_id": contents["subscription_id"]},
+                    )
+            except InvalidMessageError as e:
+                logger.exception(e)
+            except Exception:
+                logger.exception("Failed to delete unused subscription from snuba.")
+            return
+
+        if subscription.type not in subscriber_registry:
+            metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
+            logger.error(
+                "Received subscription update, but no subscription handler registered",
+                extra={
+                    "offset": message.offset(),
+                    "partition": message.partition(),
+                    "value": message.value(),
+                },
+            )
+            return
+
+        sentry_sdk.set_tag("project_id", subscription.project_id)
+        sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
+
+        callback = subscriber_registry[subscription.type]
+        with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
+            "snuba_query_subscriber.callback.duration", instance=subscription.type
+        ):
+            span.set_data("payload", contents)
+            span.set_data("subscription_dataset", subscription.snuba_query.dataset)
+            span.set_data("subscription_query", subscription.snuba_query.query)
+            span.set_data("subscription_aggregation", subscription.snuba_query.aggregate)
+            span.set_data("subscription_time_window", subscription.snuba_query.time_window)
+            span.set_data("subscription_resolution", subscription.snuba_query.resolution)
+            span.set_data("message_offset", message.offset())
+            span.set_data("message_partition", message.partition())
+            span.set_data("message_value", message.value())
+
+            callback(contents, subscription)
 
 
 class InvalidMessageError(Exception):
@@ -52,15 +211,6 @@ class QuerySubscriptionConsumer:
     a related subscription id and the latest values related to the subscribed query.
     These values are passed along to a callback associated with the subscription.
     """
-
-    topic_to_dataset: Dict[str, Dataset] = {
-        settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
-        settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
-        settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-        settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-        settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
-        settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
-    }
 
     def __init__(
         self,
@@ -183,7 +333,7 @@ class QuerySubscriptionConsumer:
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 try:
-                    self.handle_message(message)
+                    handle_message(message)
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
                     # consumer. If we see errors occurring here they need to be investigated to
@@ -239,153 +389,3 @@ class QuerySubscriptionConsumer:
 
     def signal_shutdown(self) -> None:
         self.__shutdown_requested = True
-
-    def handle_message(self, message: Message) -> None:
-        """
-        Parses the value from Kafka, and if valid passes the payload to the callback defined by the
-        subscription. If the subscription has been removed, or no longer has a valid callback then
-        just log metrics/errors and continue.
-        :param message:
-        :return:
-        """
-        # set a commit time deadline only after the first message for this batch is seen
-        if not self.__batch_deadline:
-            self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
-
-        with sentry_sdk.push_scope() as scope:
-            try:
-                with metrics.timer("snuba_query_subscriber.parse_message_value"):
-                    contents = self.parse_message_value(message.value())
-            except InvalidMessageError:
-                # If the message is in an invalid format, just log the error
-                # and continue
-                logger.exception(
-                    "Subscription update could not be parsed",
-                    extra={
-                        "offset": message.offset(),
-                        "partition": message.partition(),
-                        "value": message.value(),
-                    },
-                )
-                return
-            scope.set_tag("query_subscription_id", contents["subscription_id"])
-
-            try:
-                with metrics.timer("snuba_query_subscriber.fetch_subscription"):
-                    subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
-                        subscription_id=contents["subscription_id"]
-                    )
-                    if subscription.status != QuerySubscription.Status.ACTIVE.value:
-                        metrics.incr("snuba_query_subscriber.subscription_inactive")
-                        return
-            except QuerySubscription.DoesNotExist:
-                metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
-                logger.warning(
-                    "Received subscription update, but subscription does not exist",
-                    extra={
-                        "offset": message.offset(),
-                        "partition": message.partition(),
-                        "value": message.value(),
-                    },
-                )
-                try:
-                    if "entity" in contents:
-                        entity_key = contents["entity"]
-                    else:
-                        # XXX(ahmed): Remove this logic. This was kept here as backwards compat
-                        # for subscription updates with schema version `2`. However schema version 3
-                        # sends the "entity" in the payload
-                        entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
-                        entity_match = re.match(entity_regex, contents["request"]["query"])
-                        if not entity_match:
-                            raise InvalidMessageError(
-                                "Unable to fetch entity from query in message"
-                            )
-                        entity_key = entity_match.group(2)
-                    topic = message.topic()
-                    if topic in self.topic_to_dataset:
-                        _delete_from_snuba(
-                            self.topic_to_dataset[topic],
-                            contents["subscription_id"],
-                            EntityKey(entity_key),
-                        )
-                    else:
-                        logger.error(
-                            "Topic not registered with QuerySubscriptionConsumer, can't remove "
-                            "non-existent subscription from Snuba",
-                            extra={"topic": topic, "subscription_id": contents["subscription_id"]},
-                        )
-                except InvalidMessageError as e:
-                    logger.exception(e)
-                except Exception:
-                    logger.exception("Failed to delete unused subscription from snuba.")
-                return
-
-            if subscription.type not in subscriber_registry:
-                metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
-                logger.error(
-                    "Received subscription update, but no subscription handler registered",
-                    extra={
-                        "offset": message.offset(),
-                        "partition": message.partition(),
-                        "value": message.value(),
-                    },
-                )
-                return
-
-            sentry_sdk.set_tag("project_id", subscription.project_id)
-            sentry_sdk.set_tag("query_subscription_id", contents["subscription_id"])
-
-            callback = subscriber_registry[subscription.type]
-            with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
-                "snuba_query_subscriber.callback.duration", instance=subscription.type
-            ):
-                span.set_data("payload", contents)
-                span.set_data("subscription_dataset", subscription.snuba_query.dataset)
-                span.set_data("subscription_query", subscription.snuba_query.query)
-                span.set_data("subscription_aggregation", subscription.snuba_query.aggregate)
-                span.set_data("subscription_time_window", subscription.snuba_query.time_window)
-                span.set_data("subscription_resolution", subscription.snuba_query.resolution)
-                span.set_data("message_offset", message.offset())
-                span.set_data("message_partition", message.partition())
-                span.set_data("message_value", message.value())
-
-                callback(contents, subscription)
-
-    def parse_message_value(self, value: str) -> Dict[str, Any]:
-        """
-        Parses the value received via the Kafka consumer and verifies that it
-        matches the expected schema.
-        :param value: A json formatted string
-        :return: A dict with the parsed message
-        """
-        with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-            wrapper: Dict[str, Any] = json.loads(value)
-
-        with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
-            try:
-                jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
-            except jsonschema.ValidationError:
-                metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
-                raise InvalidSchemaError("Message wrapper does not match schema")
-
-        schema_version: int = wrapper["version"]
-        if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
-            metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
-            raise InvalidMessageError("Version specified in wrapper has no schema")
-
-        payload: Dict[str, Any] = wrapper["payload"]
-        with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
-            try:
-                jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
-            except jsonschema.ValidationError:
-                metrics.incr("snuba_query_subscriber.message_payload_invalid")
-                raise InvalidSchemaError("Message payload does not match schema")
-        # XXX: Since we just return the raw dict here, when the payload changes it'll
-        # break things. This should convert the payload into a class rather than passing
-        # the dict around, but until we get time to refactor we can keep things working
-        # here.
-        payload.setdefault("values", payload.get("result"))
-
-        payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
-        return payload
