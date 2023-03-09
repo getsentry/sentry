@@ -495,12 +495,6 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
   margin: ${space(0.5)} ${space(0.5)};
 
-  /* Add 1px to top margin if immediately preceded by menu header, to account for the
-  header's shadow border */
-  div[data-select-overlay][data-has-header='true'] > & {
-    margin-top: calc(${space(0.5)} + 1px);
-  }
-
   &:focus,
   &.focus-visible {
     outline: none;
