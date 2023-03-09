@@ -350,11 +350,10 @@ def handle_assemble_for_release_file(bundle, archive, organization, version):
     dist_name = manifest.get("dist")
     dist = release.add_dist(dist_name) if dist_name else None
 
-    artifact_count = archive.get_artifact_count()
     min_artifact_count = options.get("processing.release-archive-min-files")
     saved_as_archive = False
 
-    if artifact_count >= min_artifact_count:
+    if archive.artifact_count >= min_artifact_count:
         try:
             update_artifact_index(release, dist, bundle)
             saved_as_archive = True
@@ -369,20 +368,15 @@ def handle_assemble_for_release_file(bundle, archive, organization, version):
         }
         _store_single_files(archive, meta, True)
 
-    return artifact_count
-
 
 def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, project_ids, dist):
     # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
     # contents.
     version = version or archive.manifest.get("release")
     dist = dist or archive.manifest.get("dist")
-
-    artifact_count = archive.get_artifact_count()
-
-    _create_artifact_bundle(version, dist, organization.id, project_ids, bundle, artifact_count)
-
-    return artifact_count
+    _create_artifact_bundle(
+        version, dist, organization.id, project_ids, bundle, archive.artifact_count
+    )
 
 
 @instrumented_task(name="sentry.tasks.assemble.assemble_artifacts", queue="assemble")
@@ -440,16 +434,14 @@ def assemble_artifacts(
 
         with archive:
             if upload_as_artifact_bundle:
-                artifact_count = handle_assemble_for_artifact_bundle(
+                handle_assemble_for_artifact_bundle(
                     bundle, archive, organization, version, project_ids, dist
                 )
             else:
-                artifact_count = handle_assemble_for_release_file(
-                    bundle, archive, organization, version
-                )
+                handle_assemble_for_release_file(bundle, archive, organization, version)
 
-        # Count files extracted, to compare them to release files endpoint
-        metrics.incr("tasks.assemble.extracted_files", amount=artifact_count)
+            # Count files extracted, to compare them to release files endpoint
+            metrics.incr("tasks.assemble.extracted_files", amount=archive.artifact_count)
     except AssembleArtifactsError as e:
         set_assemble_status(
             AssembleTask.ARTIFACTS, org_id, checksum, ChunkFileState.ERROR, detail=str(e)

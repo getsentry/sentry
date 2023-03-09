@@ -186,8 +186,8 @@ class ReleaseArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
+        self.artifact_count = len(self.manifest.get("files", {}))
         files = self.manifest.get("files", {})
-
         self._entries_by_url = {entry["url"]: (path, entry) for path, entry in files.items()}
 
     def __enter__(self):
@@ -226,10 +226,6 @@ class ReleaseArchive:
         safe_extract_zip(self._fileobj, temp_dir.name, strip_toplevel=False)
 
         return temp_dir
-
-    def get_artifact_count(self):
-        """Return the number of artifacts in the archive."""
-        return len(self.manifest.get("files", {}))
 
 
 class _ArtifactIndexData:
