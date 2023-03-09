@@ -44,7 +44,7 @@ type SpanEvidenceKeyValueListProps = {
   offendingSpans: Span[];
   orgSlug: string;
   parentSpan: Span | null;
-  projectSlug: string;
+  projectSlug?: string;
 };
 
 const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
@@ -54,7 +54,7 @@ export function SpanEvidenceKeyValueList({
   projectSlug,
 }: {
   event: EventTransaction;
-  projectSlug: string;
+  projectSlug?: string;
 }) {
   const {slug: orgSlug} = useOrganization();
   const spanInfo = getSpanInfoFromTransactionEvent(event);
@@ -282,7 +282,7 @@ const PresortedKeyValueList = ({data}: {data: KeyValueListData}) => (
   <KeyValueList shouldSort={false} data={data} />
 );
 
-const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug: string) => {
+const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug?: string) => {
   const transactionSummaryLocation = transactionSummaryRouteWithQuery({
     orgSlug,
     projectID: event.projectID,
@@ -296,15 +296,16 @@ const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug: stri
   });
 
   const eventDetailsLocation = getTransactionDetailsUrl(orgSlug, eventSlug);
-
   return makeRow(
     t('Transaction'),
     <pre>
       <TransactionRowContainer>
         <Link to={transactionSummaryLocation}>{event.title}</Link>
-        <StyledButton size="xs" to={eventDetailsLocation}>
-          {t('View Full Event')}
-        </StyledButton>
+        {projectSlug && (
+          <StyledButton size="xs" to={eventDetailsLocation}>
+            {t('View Full Event')}
+          </StyledButton>
+        )}
       </TransactionRowContainer>
     </pre>
   );
