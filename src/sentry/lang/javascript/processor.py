@@ -812,7 +812,7 @@ class Fetcher:
             except Exception as exc:
                 artifact_bundle_file.seek(0)
                 logger.error(
-                    "Failed to initialize archive for the artifact bundle %s",
+                    "Failed to initialize archive for the artifact bundle file %s",
                     artifact_bundle_file.id,
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
@@ -887,14 +887,25 @@ class Fetcher:
             artifact_bundles = self._get_release_artifact_bundle_entries()
             for artifact_bundle in artifact_bundles:
                 cached_open_archive = self.open_archives.get(artifact_bundle.id)
-                if cached_open_archive is not None and cached_open_archive is not INVALID_ARCHIVE:
+
+                # In case the archive is marked as INVALID_ARCHIVE we are just going to continue in the hope of
+                # finding other cached archives.
+                if cached_open_archive is INVALID_ARCHIVE:
+                    continue
+
+                # Only if we find a valid open archive we return the archive itself.
+                if cached_open_archive is not None:
                     return cached_open_archive
 
                 try:
-                    artifact_bundle_files.append(
-                        (artifact_bundle.id, self._fetch_artifact_bundle_file(artifact_bundle))
+                    # In case we didn't find the archive in the cache, we want to fetch the artifact bundle to put later
+                    # in the cache.
+                    artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
+                    artifact_bundle_files.append((artifact_bundle.id, artifact_bundle_file))
+                except Exception as exc:
+                    logger.error(
+                        "Failed to fetch artifact bundle %s", artifact_bundle.id, exc_info=exc
                     )
-                except Exception:
                     failed_artifact_bundle_ids.add(artifact_bundle.id)
 
             # In case during the loading we ended up not being able to load anything and we got at least one error, we
@@ -910,6 +921,9 @@ class Fetcher:
                 self.dist,
                 exc_info=exc,
             )
+            # In case we got an exception we want to mark all the ids that we failed to fetch as invalid. In case
+            # an exception is thrown before fetching any bundles, the set will be empty, thus no bundles will be marked
+            # as invalid.
             for failed_artifact_bundle_id in failed_artifact_bundle_ids:
                 self.open_archives[failed_artifact_bundle_id] = INVALID_ARCHIVE
 
@@ -922,7 +936,7 @@ class Fetcher:
                 except Exception as exc:
                     artifact_bundle_file.seek(0)
                     logger.error(
-                        "Failed to initialize archive for the artifact bundle %s",
+                        "Failed to initialize archive for the artifact bundle file %s",
                         artifact_bundle_file.id,
                         exc_info=exc,
                         extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
