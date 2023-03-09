@@ -75,7 +75,6 @@ default_manager.add("organizations:discover-query-builder-as-landing-page", Orga
 default_manager.add("organizations:ds-prioritise-by-project-bias", OrganizationFeature)
 default_manager.add("organizations:ds-prioritise-by-transaction-bias", OrganizationFeature)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
-default_manager.add("organizations:fix-source-map-cta", OrganizationFeature, True)
 default_manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-title-ui", OrganizationFeature, True)
 default_manager.add("organizations:grouping-tree-ui", OrganizationFeature, True)

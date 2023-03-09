@@ -4,7 +4,6 @@ from rest_framework import status
 from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.models import Distribution, File, Release, ReleaseFile
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -38,23 +37,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_no_feature_flag(self):
-        event = self.store_event(
-            data={"event_id": "a" * 32},
-            project_id=self.project.id,
-        )
-        resp = self.get_error_response(
-            self.organization.slug,
-            self.project.slug,
-            event.event_id,
-            frame=0,
-            status_code=status.HTTP_404_NOT_FOUND,
-        )
-        assert (
-            resp.data["detail"]
-            == "Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
-        )
-
     def test_url_prefix(self):
         cases = [
             ("~/v1/scripts/footer/bundle.js", "~/v1/assets/footer/bundle.js", "assets/"),
@@ -66,7 +48,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         for filename, artifact_name, expected in cases:
             assert SourceMapDebugEndpoint()._find_url_prefix(filename, artifact_name) == expected
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_missing_event(self):
         resp = self.get_error_response(
             self.organization.slug,
@@ -78,7 +59,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_no_frame_given(self):
         event = self.store_event(
             data={"event_id": "a" * 32, "release": "my-release"}, project_id=self.project.id
@@ -91,7 +71,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is required"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_frame_out_of_bounds(self):
         event = self.store_event(
             data=self.base_data,
@@ -107,7 +86,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'frame_idx' is out of bounds"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_exception_out_of_bounds(self):
         event = self.store_event(
             data=self.base_data,
@@ -123,7 +101,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Query parameter 'exception_idx' is out of bounds"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_event_has_context_line(self):
         event = self.store_event(
             data=self.base_data,
@@ -140,7 +117,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         error = resp.data["errors"]
         assert error == []
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_event_has_no_release(self):
         event = self.store_event(
             data={
@@ -177,7 +153,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_release_on_event"
         assert error["message"] == "The event is missing a release"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_user_agent(self):
         event = self.store_event(
             data={
@@ -221,7 +196,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/static/js/main.fa8fe19f.js",
         }
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_release_has_no_artifacts(self):
         event = self.store_event(
             data={
@@ -261,7 +235,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["type"] == "no_sourcemaps_on_release"
         assert error["message"] == "The release is missing source maps"
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_no_valid_url(self):
         event = self.store_event(
             data={
@@ -322,7 +295,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert error["message"] == "The absolute path url is not valid"
         assert error["data"] == {"absPath": "app.example.com/static/js/main.fa8fe19f.js"}
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_partial_url_match(self):
         event = self.store_event(
             data={
@@ -378,7 +350,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "artifactNames": ["~/dist/static/js/application.js"],
         }
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_no_url_match(self):
         event = self.store_event(
             data={
@@ -431,7 +402,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "artifactNames": ["http://example.com/application.js"],
         }
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_dist_mismatch(self):
         event = self.store_event(
             data={
@@ -492,7 +462,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/application.js",
         }
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_no_sourcemap_found(self):
         event = self.store_event(
             data={
@@ -553,7 +522,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             "filename": "/application.js",
         }
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_sourcemap_in_header(self):
         event = self.store_event(
             data={
@@ -622,7 +590,6 @@ class SourceMapDebugEndpointTestCase(APITestCase):
 
         assert resp.data["errors"] == []
 
-    @with_feature("organizations:fix-source-map-cta")
     def test_sourcemap_in_file(self):
         event = self.store_event(
             data={
