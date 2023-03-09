@@ -10,10 +10,23 @@ from .webhooks import (
 )
 
 urlpatterns = [
-    url(r"^ui-hook/$", JiraUiHookView.as_view()),
-    url(r"^descriptor/$", JiraDescriptorEndpoint.as_view()),
-    url(r"^installed/$", JiraInstalledEndpoint.as_view(), name="sentry-extensions-jira-installed"),
-    url(r"^uninstalled/$", JiraUninstalledEndpoint.as_view()),
+    url(
+        r"^ui-hook/$",
+        JiraUiHookView.as_view(),
+    ),
+    url(
+        r"^descriptor/$",
+        JiraDescriptorEndpoint.as_view(),
+    ),
+    url(
+        r"^installed/$",
+        JiraInstalledEndpoint.as_view(),
+        name="sentry-extensions-jira-installed",
+    ),
+    url(
+        r"^uninstalled/$",
+        JiraUninstalledEndpoint.as_view(),
+    ),
     url(
         r"^issue-updated/$",
         JiraIssueUpdatedWebhook.as_view(),
@@ -24,7 +37,10 @@ urlpatterns = [
         JiraSearchEndpoint.as_view(),
         name="sentry-extensions-jira-search",
     ),
-    url(r"^configure/$", JiraExtensionConfigurationView.as_view()),
+    url(
+        r"^configure/$",
+        JiraExtensionConfigurationView.as_view(),
+    ),
     url(
         r"^issue/(?P<issue_key>[^\/]+)/$",
         JiraIssueHookView.as_view(),
