@@ -14,6 +14,8 @@ import {
 } from './spanEvidenceKeyValueList';
 
 describe('SpanEvidenceKeyValueList', () => {
+  const projectSlug = 'project';
+
   describe('N+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
     builder.getEvent().projectID = '123';
@@ -46,7 +48,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -111,7 +115,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -186,7 +192,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -267,7 +275,9 @@ describe('SpanEvidenceKeyValueList', () => {
     );
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -398,7 +408,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(parentSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -442,7 +454,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(offenderSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
@@ -497,7 +511,9 @@ describe('SpanEvidenceKeyValueList', () => {
     builder.addSpan(offenderSpan);
 
     it('Renders relevant fields', () => {
-      render(<SpanEvidenceKeyValueList event={builder.getEvent()} />);
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
 
       expect(screen.getByRole('cell', {name: 'Transaction'})).toBeInTheDocument();
       expect(
