@@ -73,10 +73,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
 
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
-
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
