@@ -861,6 +861,10 @@ ORGANIZATION_URLS = [
         OrganizationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-details",
     ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+        include(GROUP_URLS),
+    ),
     # Alert Rules
     url(
         r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
@@ -1246,10 +1250,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
         OrganizationGroupIndexStatsEndpoint.as_view(),
         name="sentry-api-0-organization-group-index-stats",
-    ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
-        include(GROUP_URLS),
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/$",
@@ -2420,7 +2420,59 @@ urlpatterns = [
         r"^relays/",
         include(RELAY_URLS),
     ),
-    # Api Data
+    # Groups / Issues
+    url(
+        r"^(?:issues|groups)/",
+        include(GROUP_URLS),
+    ),
+    # Organizations
+    url(
+        r"^organizations/",
+        include(ORGANIZATION_URLS),
+    ),
+    # Projects
+    url(
+        r"^projects/",
+        include(PROJECT_URLS),
+    ),
+    # Teams
+    url(
+        r"^teams/",
+        include(TEAM_URLS),
+    ),
+    # Users
+    url(
+        r"^users/",
+        include(USER_URLS),
+    ),
+    # UserRoles
+    url(
+        r"^userroles/",
+        include(USER_ROLE_URLS),
+    ),
+    # Sentry Apps
+    url(
+        r"^sentry-apps/",
+        include(SENTRY_APP_URLS),
+    ),
+    # Toplevel app installs
+    url(
+        r"^sentry-app-installations/",
+        include(SENTRY_APP_INSTALLATION_URLS),
+    ),
+    # Auth
+    url(
+        r"^auth/",
+        include(AUTH_URLS),
+    ),
+    # Broadcasts
+    url(
+        r"^broadcasts/",
+        include(BROADCAST_URLS),
+    ),
+    #
+    #
+    #
     url(
         r"^assistant/$",
         AssistantEndpoint.as_view(),
@@ -2451,21 +2503,11 @@ urlpatterns = [
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
     ),
-    # Auth
-    url(
-        r"^auth/",
-        include(AUTH_URLS),
-    ),
     # List Authenticators
     url(
         r"^authenticators/$",
         AuthenticatorIndexEndpoint.as_view(),
         name="sentry-api-0-authenticator-index",
-    ),
-    # Broadcasts
-    url(
-        r"^broadcasts/",
-        include(BROADCAST_URLS),
     ),
     # Project transfer
     url(
@@ -2520,41 +2562,6 @@ urlpatterns = [
             ]
         ),
     ),
-    # Users
-    url(
-        r"^users/",
-        include(USER_URLS),
-    ),
-    # UserRoles
-    url(
-        r"^userroles/",
-        include(USER_ROLE_URLS),
-    ),
-    # Organizations
-    url(
-        r"^organizations/",
-        include(ORGANIZATION_URLS),
-    ),
-    # Teams
-    url(
-        r"^teams/",
-        include(TEAM_URLS),
-    ),
-    # Projects
-    url(
-        r"^projects/",
-        include(PROJECT_URLS),
-    ),
-    # Toplevel app installs
-    url(
-        r"^sentry-app-installations/",
-        include(SENTRY_APP_INSTALLATION_URLS),
-    ),
-    # Groups / Issues
-    url(
-        r"^(?:issues|groups)/",
-        include(GROUP_URLS),
-    ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.
     url(
@@ -2583,11 +2590,6 @@ urlpatterns = [
         r"^shared/(?:issues|groups)/(?P<share_id>[^\/]+)/$",
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-shared-group-details",
-    ),
-    # Sentry Apps
-    url(
-        r"^sentry-apps/",
-        include(SENTRY_APP_URLS),
     ),
     url(
         r"^sentry-apps-stats/$",
