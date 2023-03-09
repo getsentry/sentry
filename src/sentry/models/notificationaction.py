@@ -131,6 +131,18 @@ class TriggerGenerator:
 
 
 @region_silo_only_model
+class NotificationActionProject(Model):
+    __include_in_export__ = True
+
+    project = FlexibleForeignKey("sentry.Project")
+    action = FlexibleForeignKey("sentry.NotificationAction")
+
+    class Meta:
+        app_label = "sentry"
+        db_table = "sentry_notificationactionproject"
+
+
+@region_silo_only_model
 class NotificationAction(AbstractNotificationAction):
     """
     Generic notification action model to programmatically route depending on the trigger (or source) for the notification
@@ -146,8 +158,8 @@ class NotificationAction(AbstractNotificationAction):
     _trigger_types: List[Tuple[int, str]] = ActionTriggerType.as_choices()
 
     organization = FlexibleForeignKey("sentry.Organization")
-    projects = models.ManyToManyField("sentry.Project")
-    # TODO(Leander): After adding AlertRuleTriggerAction to HybridCloudForeignKey, we can remove these lines
+    projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
+    # TODO(Leander): After adding HybridCloudForeignKeys to AlertRuleTriggerAction, we can remove these lines
     integration = None
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
     sentry_app = None
