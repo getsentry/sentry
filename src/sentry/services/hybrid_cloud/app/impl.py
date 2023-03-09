@@ -34,12 +34,12 @@ class DatabaseBackedAppService(AppService):
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._AppServiceFilterQuery().serialize_many(filter, as_user, auth_context)
+        return self._FQ.serialize_many(filter, as_user, auth_context)
 
     def get_many(
         self, *, filter: SentryAppInstallationFilterArgs
     ) -> List[RpcSentryAppInstallation]:
-        return self._AppServiceFilterQuery().get_many(filter)
+        return self._FQ.get_many(filter)
 
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         return [
@@ -149,6 +149,8 @@ class DatabaseBackedAppService(AppService):
 
         def serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
             return AppService.serialize_sentry_app_installation(object)
+
+    _FQ = _AppServiceFilterQuery()
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import fields
-from functools import cached_property
 from typing import Any, Callable, FrozenSet, Iterable, List, Optional
 
 from django.db.models import QuerySet
@@ -33,10 +32,6 @@ from sentry.services.hybrid_cloud.user import (
 
 
 class DatabaseBackedUserService(UserService):
-    @cached_property
-    def _fq(self) -> _UserFilterQuery:
-        return self._UserFilterQuery()
-
     def serialize_many(
         self,
         *,
@@ -45,10 +40,10 @@ class DatabaseBackedUserService(UserService):
         auth_context: Optional[AuthenticationContext] = None,
         serializer: Optional[UserSerializeType] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._fq.serialize_many(filter, as_user, auth_context, serializer)
+        return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
 
     def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
-        return self._fq.get_many(filter)
+        return self._FQ.get_many(filter)
 
     def get_many_by_email(
         self,
@@ -58,7 +53,7 @@ class DatabaseBackedUserService(UserService):
         is_project_member: bool = False,
         project_id: Optional[int] = None,
     ) -> List[RpcUser]:
-        query = self._fq.base_query()
+        query = self._FQ.base_query()
         if is_verified:
             query = query.filter(emails__is_verified=is_verified)
         if is_active:
@@ -70,14 +65,14 @@ class DatabaseBackedUserService(UserService):
                 ]
             )
         return [
-            self._fq.serialize_rpc(user)
+            self._FQ.serialize_rpc(user)
             for user in query.filter(in_iexact("emails__email", emails))
         ]
 
     def get_by_username(
         self, username: str, with_valid_password: bool = True, is_active: bool | None = None
     ) -> List[RpcUser]:
-        qs = self._fq.base_query()
+        qs = self._FQ.base_query()
 
         if is_active is not None:
             qs = qs.filter(is_active=is_active)
@@ -98,8 +93,8 @@ class DatabaseBackedUserService(UserService):
 
     def get_from_group(self, group: Group) -> List[RpcUser]:
         return [
-            self._fq.serialize_rpc(u)
-            for u in self._fq.base_query().filter(
+            self._FQ.serialize_rpc(u)
+            for u in self._FQ.base_query().filter(
                 sentry_orgmember_set__organization=group.organization,
                 sentry_orgmember_set__teams__in=group.project.teams.all(),
                 is_active=True,
@@ -108,7 +103,7 @@ class DatabaseBackedUserService(UserService):
 
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         return [
-            self._fq.serialize_rpc(u) for u in self._fq.base_query().filter(actor_id__in=actor_ids)
+            self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
         ]
 
     def close(self) -> None:
@@ -181,6 +176,8 @@ class DatabaseBackedUserService(UserService):
 
         def serialize_rpc(self, user: User) -> RpcUser:
             return serialize_rpc_user(user)
+
+    _FQ = _UserFilterQuery()
 
 
 def serialize_rpc_user(user: User) -> RpcUser:

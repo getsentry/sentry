@@ -27,10 +27,10 @@ class DatabaseBackedUserOptionService(UserOptionService):
         as_user: Optional[RpcUser] = None,
         auth_context: Optional[AuthenticationContext] = None,
     ) -> List[OpaqueSerializedResponse]:
-        return self._UserOptionFilterQuery().serialize_many(filter, as_user, auth_context)
+        return self._FQ.serialize_many(filter, as_user, auth_context)
 
     def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
-        return self._UserOptionFilterQuery().get_many(filter)
+        return self._FQ.get_many(filter)
 
     def delete_options(self, *, option_ids: List[int]) -> None:
         UserOption.objects.filter(id__in=option_ids).delete()  # type: ignore
@@ -100,6 +100,8 @@ class DatabaseBackedUserOptionService(UserOptionService):
                 project_id=op.project_id,
                 organization_id=op.organization_id,
             )
+
+    _FQ = _UserOptionFilterQuery()
 
     def close(self) -> None:
         pass
