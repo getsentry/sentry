@@ -20,11 +20,13 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
+import {OnboardingState, OnboardingStatus} from './components/footer';
 import Stepper from './components/stepper';
 import OnboardingPlatform from './deprecatedPlatform';
 import {PlatformSelection} from './platformSelection';
@@ -79,13 +81,29 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
 
 function Onboarding(props: Props) {
   const api = useApi();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+
+  const selectedPlatforms = clientState?.selectedPlatforms || [];
+  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
+
+  const selectedProjectSlugs = selectedPlatforms
+    .map(platform => platformToProjectIdMap[platform])
+    .filter((slug): slug is string => slug !== undefined);
+
+  const selectedProjectSlug = selectedProjectSlugs[0];
+  const selectedProject = props.projects.find(p => p.slug === selectedProjectSlug);
+
+  const [sessionStorage] = useSessionStorage<Partial<OnboardingState>>(
+    `onboarding-${selectedProject?.id}`,
+    {}
+  );
 
   const {
     organization,
     params: {step: stepId},
   } = props;
+
   const cornerVariantTimeoutRed = useRef<number | undefined>(undefined);
-  const [clientState, setClientState] = usePersistedOnboardingState();
 
   useEffect(() => {
     return () => {
@@ -165,34 +183,30 @@ function Onboarding(props: Props) {
     // The user is going back to select a new platform,
     // so we silently delete the last created project
     if (projectDeletionOnBackClick && stepIndex === onboardingSteps.length - 1) {
-      const selectedPlatforms = clientState?.selectedPlatforms || [];
-      const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
-
-      const selectedProjectSlugs = selectedPlatforms
-        .map(platform => platformToProjectIdMap[platform])
-        .filter((slug): slug is string => slug !== undefined);
-
-      try {
-        await removeProject(api, organization.slug, selectedProjectSlugs[0]);
-        if (clientState) {
-          setClientState({
-            url: 'setup-docs/',
-            state: 'projects_selected',
-            selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
-            platformToProjectIdMap: Object.keys(platformToProjectIdMap).reduce(
-              (acc, value) => {
-                if (value !== selectedProjectSlugs[0] && !acc[value]) {
-                  acc[value] = value;
-                }
-                return acc;
-              },
-              {}
-            ),
-          });
+      if (sessionStorage.status === OnboardingStatus.WAITING) {
+        try {
+          await removeProject(api, organization.slug, selectedProjectSlug);
+        } catch (error) {
+          handleXhrErrorResponse(t('Unable to delete project'))(error);
+          // we don't give the user any feedback regarding this error as this shall be silent
         }
-      } catch (error) {
-        handleXhrErrorResponse(t('Unable to delete project'))(error);
-        // we don't give the user any feedback regarding this error as this shall be silent
+      }
+
+      if (clientState) {
+        setClientState({
+          url: 'setup-docs/',
+          state: 'projects_selected',
+          selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
+          platformToProjectIdMap:
+            sessionStorage.status === OnboardingStatus.WAITING
+              ? Object.keys(platformToProjectIdMap).reduce((acc, value) => {
+                  if (value !== selectedProjectSlugs[0] && !acc[value]) {
+                    acc[value] = value;
+                  }
+                  return acc;
+                }, {})
+              : clientState.platformToProjectIdMap,
+        });
       }
     }
 

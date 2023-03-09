@@ -6,7 +6,7 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
@@ -55,7 +55,6 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
         <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
-          api={this.api}
           data={data}
           onRemove={this.handleRemove}
           organization={organization}

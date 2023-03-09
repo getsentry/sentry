@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
 
 import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
+import {EmptyMessage} from './styles';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -58,6 +60,7 @@ function CompactSelect<Value extends React.Key>({
   // Control props
   grid,
   disabled,
+  emptyMessage,
   size = 'md',
   closeOnSelect,
   triggerProps,
@@ -127,6 +130,9 @@ function CompactSelect<Value extends React.Key>({
           );
         }}
       </List>
+
+      {/* Only displayed when List is empty */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
 }
