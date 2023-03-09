@@ -55,7 +55,6 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
         <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
-          api={this.api}
           data={data}
           onRemove={this.handleRemove}
           organization={organization}

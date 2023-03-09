@@ -13,9 +13,7 @@ from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.monitorcheckin import MonitorCheckInSerializerResponse
 from sentry.api.utils import get_date_range_from_params
-from sentry.api.validators import MonitorCheckInValidator
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -32,6 +30,8 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
+from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
@@ -72,10 +72,6 @@ class MonitorCheckInsEndpoint(MonitorEndpoint):
         # we don't allow read permission with DSNs
         if isinstance(request.auth, ProjectKey):
             return self.respond(status=401)
-
-        if organization_slug:
-            if project.organization.slug != organization_slug:
-                return self.respond_invalid()
 
         start, end = get_date_range_from_params(request.GET)
         if start is None or end is None:

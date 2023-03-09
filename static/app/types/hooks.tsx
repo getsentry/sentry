@@ -97,6 +97,7 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codecov-integration-cta': () => React.ReactNode;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -175,6 +176,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
