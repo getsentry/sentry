@@ -55,9 +55,9 @@ export function ChangeRouteModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={handleSetUpLater}>{t('Yes, I’ll set up later')}</Button>
+          <Button onClick={handleSetUpLater}>{t('On second thought\u2026')}</Button>
           <Button priority="primary" onClick={closeModal}>
-            {t('No, I’ll set up now')}
+            {t('Go away')}
           </Button>
         </ButtonBar>
       </Footer>

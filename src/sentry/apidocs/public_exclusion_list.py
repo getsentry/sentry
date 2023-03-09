@@ -233,8 +233,6 @@ from sentry.api.endpoints.organization_metrics import (
     OrganizationMetricsTagDetailsEndpoint,
     OrganizationMetricsTagsEndpoint,
 )
-from sentry.api.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
-from sentry.api.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.api.endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from sentry.api.endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
 from sentry.api.endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
@@ -517,6 +515,8 @@ from sentry.integrations.slack.webhooks import (
 from sentry.integrations.vercel.webhook import VercelWebhookEndpoint
 from sentry.integrations.vsts.search import VstsSearchEndpoint
 from sentry.integrations.vsts.webhooks import WorkItemWebhook
+from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
+from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint
 from sentry.plugins.endpoints import PluginGroupEndpoint
 from sentry.rules.history.endpoints.project_rule_group_history import (

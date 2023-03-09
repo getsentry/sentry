@@ -10,6 +10,6 @@ class DebugNoteEmailView(ActivityMailDebugView):
         random = get_random(request)
         return {
             "type": ActivityType.NOTE.value,
-            "user": request.user,
+            "user_id": request.user.id,
             "data": {"text": make_message(random, max(2, int(random.weibullvariate(12, 0.4))))},
         }

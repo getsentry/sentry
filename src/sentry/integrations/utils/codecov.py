@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Any, Dict, Literal, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import requests
 from rest_framework import status
@@ -13,14 +13,10 @@ from sentry.models.organization import Organization
 
 LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
-    "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/report"
-)
-NEW_CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
-REF_TYPE = Literal["branch", "sha"]
-CODECOV_TIMEOUT = 10
+CODECOV_TIMEOUT = 2
 
 
 class CodecovIntegrationError(Enum):
@@ -78,14 +74,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
     )
 
 
-def get_codecov_data(
-    repo: str,
-    service: str,
-    ref: str,
-    ref_type: REF_TYPE,
-    path: str,
-    organization: Organization,
-) -> Tuple[LineCoverage | None, str | None]:
+def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage | None, str | None]:
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
         return None, None
@@ -95,46 +84,39 @@ def get_codecov_data(
 
     path = path.lstrip("/")
     url = CODECOV_REPORT_URL.format(
-        service=service, owner_username=owner_username, repo_name=repo_name
+        service=service,
+        owner_username=owner_username,
+        repo_name=repo_name,
+        path=path,
     )
-    params = {ref_type: ref, "path": path}
-
-    use_new_api = features.has("organizations:codecov-stacktrace-integration-v2", organization)
-    if use_new_api:
-        url = NEW_CODECOV_REPORT_URL.format(
-            service=service, owner_username=owner_username, repo_name=repo_name, path=path
-        )
-        params = {}
 
     line_coverage, codecov_url = None, None
     with configure_scope() as scope:
-        timeout = CODECOV_TIMEOUT if use_new_api else None
-
         response = requests.get(
             url,
-            params=params,
+            params={"walk_back": 10},
             headers={"Authorization": f"Bearer {codecov_token}"},
-            timeout=timeout,
+            timeout=CODECOV_TIMEOUT,
         )
         tags = {
             "codecov.request_url": url,
-            "codecov.request_params": params,
             "codecov.request_path": path,
-            "codecov.request_ref": ref,
             "codecov.http_code": response.status_code,
         }
 
         response_json = response.json()
-        if use_new_api:
-            tags["codecov.new_endpoint"] = True
-            line_coverage = response_json.get("line_coverage")
-        else:
-            files = response_json.get("files")
-            line_coverage = files[0].get("line_coverage") if files else None
+
+        tags["codecov.new_endpoint"] = True
+        line_coverage = response_json.get("line_coverage")
 
         coverage_found = line_coverage not in [None, [], [[]]]
         codecov_url = response_json.get("commit_file_url", "")
-        tags.update({"codecov.coverage_found": coverage_found, "codecov.coverage_url": codecov_url})
+        tags.update(
+            {
+                "codecov.coverage_found": coverage_found,
+                "codecov.coverage_url": codecov_url,
+            },
+        )
 
         for key, value in tags.items():
             scope.set_tag(key, value)
@@ -144,22 +126,13 @@ def get_codecov_data(
     return line_coverage, codecov_url
 
 
-def fetch_codecov_data(
-    organization: Organization,
-    sha: str | None,
-    config: Any,
-) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     try:
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
         path = config["outcome"]["sourcePath"]
 
-        ref = sha if sha else config["config"]["defaultBranch"]
-        ref_type: REF_TYPE = "sha" if sha else "branch"
-
-        lineCoverage, codecovUrl = get_codecov_data(
-            repo, service, ref, ref_type, path, organization
-        )
+        lineCoverage, codecovUrl = get_codecov_data(repo, service, path)
         if lineCoverage and codecovUrl:
             return {
                 "lineCoverage": lineCoverage,

@@ -57,6 +57,7 @@ function FlamegraphThreadSelector({
       emptyProfiles.push(option);
       return;
     });
+
     return [profiles, emptyProfiles];
   }, [profileGroup]);
 
@@ -76,8 +77,8 @@ function FlamegraphThreadSelector({
         size: 'xs',
       }}
       options={[
-        {label: t('Profiles'), options: profileOptions},
-        {label: t('Empty Profiles'), options: emptyProfileOptions},
+        {key: 'profiles', label: t('Profiles'), options: profileOptions},
+        {key: 'empty-profiles', label: t('Empty Profiles'), options: emptyProfileOptions},
       ]}
       value={threadId ?? 0}
       onChange={handleChange}

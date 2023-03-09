@@ -131,6 +131,55 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
             ],
         }
 
+    def test_get(self):
+        # Test put + get without the streamline-targeting-context flag
+        self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
+        resp_no_schema = self.client.get(self.path)
+        assert "schema" not in resp_no_schema.data.keys()
+
+        # Test get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
+            resp = self.client.get(self.path)
+            assert resp.data["schema"] == {
+                "$version": 1,
+                "rules": [
+                    {
+                        "matcher": {"type": "path", "pattern": "*.js"},
+                        "owners": [
+                            {"type": "user", "id": self.user.id, "name": "admin@localhost"},
+                            {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                        ],
+                    }
+                ],
+            }
+
+            # Assert that "identifier" is not renamed to "name" in the backend
+            ownership = ProjectOwnership.objects.get(project=self.project)
+            assert ownership.schema["rules"] == [
+                {
+                    "matcher": {"type": "path", "pattern": "*.js"},
+                    "owners": [
+                        {"type": "user", "identifier": "admin@localhost", "id": self.user.id},
+                        {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                    ],
+                }
+            ]
+
+    @with_feature("organizations:streamline-targeting-context")
+    def test_get_empty_with_streamline_targeting(self):
+        resp = self.client.get(self.path)
+        assert resp.status_code == 200
+        assert resp.data == {
+            "raw": None,
+            "fallthrough": True,
+            "autoAssignment": "Auto Assign to Issue Owner",
+            "isActive": True,
+            "dateCreated": None,
+            "lastUpdated": None,
+            "codeownersAutoSync": True,
+            "schema": None,
+        }
+
     def test_invalid_email(self):
         resp = self.client.put(self.path, {"raw": "*.js idont@exist.com #tiger-team"})
         assert resp.status_code == 400
