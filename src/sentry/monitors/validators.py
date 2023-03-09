@@ -60,29 +60,29 @@ class CronJobValidator(serializers.Serializer):
         else:
             schedule_type = self.instance["schedule_type"]
 
-        value = attrs.get("schedule")
-        if not value:
+        schedule = attrs.get("schedule")
+        if not schedule:
             return attrs
 
         if schedule_type == ScheduleType.INTERVAL:
-            if not isinstance(value, list):
-                raise ValidationError("Invalid value for schedule_type")
-            if not isinstance(value[0], int):
-                raise ValidationError("Invalid value for schedule unit count (index 0)")
-            if value[1] not in INTERVAL_NAMES:
-                raise ValidationError("Invalid value for schedule unit name (index 1)")
+            if not isinstance(schedule, list):
+                raise ValidationError("Invalid schedule for schedule_type")
+            if not isinstance(schedule[0], int):
+                raise ValidationError("Invalid schedule for schedule unit count (index 0)")
+            if schedule[1] not in INTERVAL_NAMES:
+                raise ValidationError("Invalid schedule for schedule unit name (index 1)")
         elif schedule_type == ScheduleType.CRONTAB:
-            if not isinstance(value, str):
-                raise ValidationError("Invalid value for schedule_type")
-            value = value.strip()
-            if value.startswith("@"):
+            if not isinstance(schedule, str):
+                raise ValidationError("Invalid schedule for schedule_type")
+            schedule = schedule.strip()
+            if schedule.startswith("@"):
                 try:
-                    value = NONSTANDARD_CRONTAB_SCHEDULES[value]
+                    schedule = NONSTANDARD_CRONTAB_SCHEDULES[schedule]
                 except KeyError:
                     raise ValidationError("Schedule was not parseable")
-            if not croniter.is_valid(value):
+            if not croniter.is_valid(schedule):
                 raise ValidationError("Schedule was not parseable")
-            attrs["schedule"] = value
+            attrs["schedule"] = schedule
         return attrs
 
 
