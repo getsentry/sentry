@@ -24,8 +24,8 @@ type Props = {
 
 function Page({children, crumbs, orgSlug, replayRecord}: Props) {
   const title = replayRecord
-    ? `${replayRecord.id} - Replays - ${orgSlug}`
-    : `Replays - ${orgSlug}`;
+    ? `${replayRecord.id} - Session Replay - ${orgSlug}`
+    : `Session Replay - ${orgSlug}`;
 
   const header = (
     <Header>

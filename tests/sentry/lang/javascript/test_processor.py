@@ -4,7 +4,9 @@ import unittest
 import zipfile
 from copy import deepcopy
 from io import BytesIO
+from time import time
 from unittest.mock import ANY, MagicMock, call, patch
+from uuid import uuid4
 
 import pytest
 import responses
@@ -18,6 +20,7 @@ from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_excep
 from sentry.lang.javascript.processor import (
     CACHE_CONTROL_MAX,
     CACHE_CONTROL_MIN,
+    INVALID_ARCHIVE,
     Fetcher,
     JavaScriptStacktraceProcessor,
     UnparseableSourcemap,
@@ -34,7 +37,15 @@ from sentry.lang.javascript.processor import (
     should_retry_fetch,
     trim_line,
 )
-from sentry.models import EventError, File, Release, ReleaseFile
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    EventError,
+    File,
+    Release,
+    ReleaseFile,
+    SourceFileType,
+)
 from sentry.models.releasefile import ARTIFACT_INDEX_FILENAME, update_artifact_index
 from sentry.stacktraces.processing import ProcessableFrame, find_stacktraces_in_data
 from sentry.testutils import TestCase
@@ -550,14 +561,14 @@ class FetchReleaseFileTest(TestCase):
         assert good_file.chunks.call_count == 1
 
 
-class FetchFileTest(TestCase):
+class FetchFileByUrlTest(TestCase):
     @responses.activate
     def test_simple(self):
         responses.add(
             responses.GET, "http://example.com", body="foo bar", content_type="application/json"
         )
 
-        result = Fetcher().fetch_by_url("http://example.com")
+        result = Fetcher(self.organization).fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -566,7 +577,7 @@ class FetchFileTest(TestCase):
         assert result.headers == {"content-type": "application/json"}
 
         # ensure we use the cached result
-        result2 = Fetcher().fetch_by_url("http://example.com")
+        result2 = Fetcher(self.organization).fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -595,7 +606,7 @@ class FetchFileTest(TestCase):
             self.project.update_option("sentry:token_header", header_name_option_value)
 
             url = f"http://example.com/{i}/"
-            result = Fetcher(project=self.project).fetch_by_url(url)
+            result = Fetcher(self.organization, project=self.project).fetch_by_url(url)
 
             assert result.url == url
             assert result.body == b"foo bar"
@@ -609,20 +620,20 @@ class FetchFileTest(TestCase):
         responses.add(responses.GET, "http://example.com", body=RequestException())
 
         with pytest.raises(http.BadSource):
-            Fetcher().fetch_by_url("http://example.com")
+            Fetcher(self.organization).fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
         # ensure we use the cached domain-wide failure for the second call
         with pytest.raises(http.BadSource):
-            Fetcher().fetch_by_url("http://example.com/foo/bar")
+            Fetcher(self.organization).fetch_by_url("http://example.com/foo/bar")
 
         assert len(responses.calls) == 1
 
     @responses.activate
     def test_non_url_without_release(self):
         with pytest.raises(http.BadSource):
-            Fetcher().fetch_by_url("/example.js")
+            Fetcher(self.organization).fetch_by_url("/example.js")
 
     @responses.activate
     @patch("sentry.lang.javascript.processor.fetch_release_file")
@@ -635,7 +646,7 @@ class FetchFileTest(TestCase):
         release = Release.objects.create(version="1", organization_id=self.project.organization_id)
         release.add_project(self.project)
 
-        result = Fetcher(release=release).fetch_by_url("/example.js")
+        result = Fetcher(self.organization, release=release).fetch_by_url("/example.js")
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
@@ -671,13 +682,13 @@ class FetchFileTest(TestCase):
 
         # Attempt to fetch nonexisting
         with pytest.raises(http.BadSource):
-            Fetcher(release=release).fetch_by_url("does-not-exist.js")
+            Fetcher(self.organization, release=release).fetch_by_url("does-not-exist.js")
 
         # Attempt to fetch nonexsting again (to check if cache works)
         with pytest.raises(http.BadSource):
-            result = Fetcher(release=release).fetch_by_url("does-not-exist.js")
+            result = Fetcher(self.organization, release=release).fetch_by_url("does-not-exist.js")
 
-        result = Fetcher(release=release).fetch_by_url("/example.js")
+        result = Fetcher(self.organization, release=release).fetch_by_url("/example.js")
         assert result.url == "/example.js"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
@@ -685,7 +696,7 @@ class FetchFileTest(TestCase):
         assert result.encoding == "utf-8"
 
         # Make sure cache loading works:
-        result2 = Fetcher(release=release).fetch_by_url("/example.js")
+        result2 = Fetcher(self.organization, release=release).fetch_by_url("/example.js")
         assert result2 == result
 
     def _create_archive(self, release, url):
@@ -843,7 +854,7 @@ class FetchFileTest(TestCase):
             content_type="application/json; charset=utf-8",
         )
 
-        result = Fetcher().fetch_by_url("http://example.com")
+        result = Fetcher(self.organization).fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -853,7 +864,7 @@ class FetchFileTest(TestCase):
         assert result.encoding == "utf-8"
 
         # ensure we use the cached result
-        result2 = Fetcher().fetch_by_url("http://example.com")
+        result2 = Fetcher(self.organization).fetch_by_url("http://example.com")
 
         assert len(responses.calls) == 1
 
@@ -879,7 +890,7 @@ class FetchFileTest(TestCase):
             )
 
             with pytest.raises(http.CannotFetch) as exc:
-                Fetcher().fetch_by_url("http://example.com")
+                Fetcher(self.organization).fetch_by_url("http://example.com")
 
             assert exc.value.data["type"] == EventError.TOO_LARGE_FOR_CACHE
 
@@ -892,10 +903,431 @@ class FetchFileTest(TestCase):
     def test_truncated(self):
         url = truncatechars("http://example.com", 3)
         with pytest.raises(http.CannotFetch) as exc:
-            Fetcher().fetch_by_url(url)
+            Fetcher(self.organization).fetch_by_url(url)
 
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
+
+
+class FetchFileByDebugIdTest(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.organization = self.create_organization()
+
+    @staticmethod
+    def get_compressed_zip_file(artifact_name, files):
+        def remove_and_return(dictionary, key):
+            dictionary.pop(key)
+            return dictionary
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            for file_path, info in files.items():
+                zip_file.writestr(file_path, bytes(info["content"]))
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "files": {
+                            file_path: remove_and_return(info, "content")
+                            for file_path, info in files.items()
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name=artifact_name, type="artifact.bundle")
+        file.putfile(compressed)
+
+        return file
+
+    @staticmethod
+    def relevant_calls(mock, prefix):
+        return [
+            call
+            for call in mock.mock_calls
+            if (call.args and call.args[0] or call.kwargs and call.kwargs["key"] or "").startswith(
+                prefix
+            )
+        ]
+
+    def test_fetch_by_debug_id_with_valid_params(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                        "sourcemap": "~/index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+        )
+
+        # Check with present debug id and source file type.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result.url == f"debug-id:{debug_id}"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
+        assert result.encoding == "utf-8"
+        fetcher.close()
+
+        # Check with present debug id and source file type.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
+        )
+        assert result.url == f"debug-id:{debug_id}"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {
+            "content-type": "application/json",
+            "debug-id": debug_id,
+            "sourcemap": "~/index.js.map",
+        }
+        assert result.encoding == "utf-8"
+        fetcher.close()
+
+        # Check with present debug id and absent source file type.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE
+        )
+        assert result is None
+        fetcher.close()
+
+        # Check with absent debug id and present source file type.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153",
+            source_file_type=SourceFileType.SOURCE_MAP,
+        )
+        assert result is None
+        fetcher.close()
+
+        # Check with absent debug id and absent source file type.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153", source_file_type=SourceFileType.SOURCE
+        )
+        assert result is None
+        fetcher.close()
+
+    def test_fetch_by_debug_id_with_invalid_params(self):
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {"content-type": "application/json"},
+                }
+            },
+        )
+        ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=1
+        )
+
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(debug_id=None, source_file_type=None)
+        assert result is None
+
+        fetcher.close()
+
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_fetch_by_debug_id_caching(self, cache_get, cache_set):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                # We omitted the minified file for simplicity but in reality a bundle must have the original
+                # files in order to the symbolication to properly happen.
+            },
+        )
+
+        bundle_id = uuid4()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=bundle_id, file=file, artifact_count=2
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        # First call without cached result.
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result is not None
+        assert result.body == b"foo"
+        # Archive cache.
+        assert len(fetcher.open_archives) == 1
+        # Bundle level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+        assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 1
+        cache_get.reset_mock()
+        cache_set.reset_mock()
+
+        # Second call with cached result.
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result is not None
+        assert result.body == b"foo"
+        # Archive cache.
+        assert len(fetcher.open_archives) == 1
+        # Bundle level cache.
+        assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 0
+        assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
+
+        fetcher.close()
+
+    @patch("sentry.lang.javascript.processor.cache.set", side_effect=cache.set)
+    @patch("sentry.lang.javascript.processor.cache.get", side_effect=cache.get)
+    def test_fetch_by_debug_id_caching_with_size_bigger_than_max_cache_size(
+        self, cache_get, cache_set
+    ):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                # We omitted the minified file for simplicity but in reality a bundle must have the original
+                # files in order to the symbolication to properly happen.
+            },
+        )
+
+        bundle_id = uuid4()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=bundle_id, file=file, artifact_count=2
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", 1):
+            # First call without cached result.
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+            )
+            assert result is not None
+            assert result.body == b"foo"
+            # Archive cache.
+            assert len(fetcher.open_archives) == 1
+            # Bundle level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 1
+            assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
+            cache_get.reset_mock()
+            cache_set.reset_mock()
+
+            # Second call without cached result.
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+            )
+            assert result is not None
+            assert result.body == b"foo"
+            # Archive cache.
+            assert len(fetcher.open_archives) == 1
+            # Bundle level cache.
+            assert len(self.relevant_calls(cache_get, "artifactbundle:v1")) == 0
+            assert len(self.relevant_calls(cache_set, "artifactbundle:v1")) == 0
+
+            fetcher.close()
+
+    def test_fetch_by_debug_id_caching_with_failure(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                # We omitted the minified file for simplicity but in reality a bundle must have the original
+                # files in order to the symbolication to properly happen.
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            bundle_id=uuid4(),
+            file=file,
+            artifact_count=2,
+        )
+
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        fetcher = Fetcher(self.organization)
+
+        with patch(
+            "sentry.lang.javascript.processor.Fetcher._get_debug_id_artifact_bundle_entry",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+            )
+            assert result is None
+            # If _get_debug_id_artifact_bundle_entry fails we don't have an artifact bundle id,
+            # thus no archive can be found.
+            assert len(fetcher.open_archives) == 0
+
+        with patch(
+            "sentry.lang.javascript.processor.Fetcher._fetch_artifact_bundle_file",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+            )
+            assert result is None
+            # If _fetch_artifact_bundle_file fails we have an artifact bundle id, thus we should have an
+            # INVALID_ARCHIVE store in the local cache.
+            assert len(fetcher.open_archives) == 1
+            assert fetcher.open_archives[artifact_bundle.id] is INVALID_ARCHIVE
+
+        with patch(
+            "sentry.lang.javascript.processor.ArtifactBundleArchive",
+            side_effect=Exception(),
+        ):
+            result = fetcher.fetch_by_debug_id(
+                debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+            )
+            assert result is None
+            # If the instantiation of ArtifactBundleArchive fails, we have an artifact bundle id, thus we should have an
+            # INVALID_ARCHIVE store in the local cache.
+            assert len(fetcher.open_archives) == 1
+            assert fetcher.open_archives[artifact_bundle.id] is INVALID_ARCHIVE
+
+        fetcher.close()
+
+
+class BuildAbsPathDebugIdCacheTest(TestCase):
+    def test_build_with(self):
+        processor = JavaScriptStacktraceProcessor(
+            data={
+                "timestamp": time(),
+                "message": "hello",
+                "platform": "javascript",
+                "debug_meta": {
+                    "images": [
+                        {
+                            "type": "sourcemap",
+                            "debug_id": "c941d872-af1f-4f0c-a7ff-ad3d295fe153",
+                            "code_file": "http://example.com/file.min.js",
+                        }
+                    ]
+                },
+                "exception": {
+                    "values": [
+                        {
+                            "type": "Error",
+                            "stacktrace": {
+                                "frames": [
+                                    {
+                                        "abs_path": "http://example.com/file.min.js",
+                                        "filename": "file.min.js",
+                                        "lineno": 1,
+                                        "colno": 39,
+                                    },
+                                    {
+                                        "function": 'function: "HTMLDocument.<anonymous>"',
+                                        "abs_path": "http//example.com/index.html",
+                                        "filename": "index.html",
+                                        "lineno": 283,
+                                        "colno": 17,
+                                        "in_app": False,
+                                    },
+                                ]
+                            },
+                        }
+                    ]
+                },
+            },
+            stacktrace_infos=None,
+            project=self.create_project(),
+        )
+        processor.build_abs_path_debug_id_cache()
+
+        assert processor.abs_path_debug_id == {
+            "http://example.com/file.min.js": "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        }
 
 
 class CacheControlTest(unittest.TestCase):

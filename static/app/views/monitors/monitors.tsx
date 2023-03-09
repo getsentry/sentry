@@ -30,7 +30,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
-import CronsFeedbackButton from './cronsFeedbackButton';
+import CronsFeedbackButton from './components/cronsFeedbackButton';
 import {MonitorRow} from './row';
 import {Monitor} from './types';
 
@@ -149,11 +149,11 @@ class Monitors extends AsyncView<Props, State> {
                 >
                   {monitorList?.map(monitor => (
                     <MonitorRow
-                      key={monitor.id}
+                      key={monitor.slug}
                       monitor={monitor}
                       onDelete={() => {
                         this.setState({
-                          monitorList: monitorList.filter(m => m.id !== monitor.id),
+                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
                         });
                       }}
                       organization={organization}

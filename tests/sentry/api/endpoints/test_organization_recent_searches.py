@@ -33,19 +33,19 @@ class RecentSearchesListTest(APITestCase):
         self.create_team(members=[self.user])
         RecentSearch.objects.create(
             organization=self.organization,
-            user=self.create_user("other@user.com"),
+            user_id=self.create_user("other@user.com").id,
             type=SearchType.ISSUE.value,
             query="some test",
         )
         RecentSearch.objects.create(
             organization=self.create_organization(),
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.ISSUE.value,
             query="some test",
         )
         event_recent_search = RecentSearch.objects.create(
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.EVENT.value,
             query="some test",
             last_seen=timezone.now(),
@@ -53,7 +53,7 @@ class RecentSearchesListTest(APITestCase):
         )
         session_recent_search = RecentSearch.objects.create(
             organization=self.organization,
-            user=self.user,
+            user_id=self.user.id,
             type=SearchType.SESSION.value,
             query="some test",
             last_seen=timezone.now(),
@@ -62,7 +62,7 @@ class RecentSearchesListTest(APITestCase):
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="some test",
                 last_seen=timezone.now(),
@@ -70,7 +70,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="older query",
                 last_seen=timezone.now() - timedelta(minutes=30),
@@ -78,7 +78,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="oldest query",
                 last_seen=timezone.now() - timedelta(hours=1),
@@ -105,7 +105,7 @@ class RecentSearchesListTest(APITestCase):
         issue_recent_searches = [
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="some test",
                 last_seen=timezone.now(),
@@ -113,7 +113,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="older query",
                 last_seen=timezone.now() - timedelta(minutes=30),
@@ -121,7 +121,7 @@ class RecentSearchesListTest(APITestCase):
             ),
             RecentSearch.objects.create(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=SearchType.ISSUE.value,
                 query="oldest query",
                 last_seen=timezone.now() - timedelta(hours=1),
@@ -155,7 +155,7 @@ class RecentSearchesCreateTest(APITestCase):
             assert response.status_code == 201
             assert RecentSearch.objects.filter(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=search_type,
                 query=query,
                 last_seen=the_date,
@@ -166,7 +166,7 @@ class RecentSearchesCreateTest(APITestCase):
             assert response.status_code == 204, response.content
             assert RecentSearch.objects.filter(
                 organization=self.organization,
-                user=self.user,
+                user_id=self.user.id,
                 type=search_type,
                 query=query,
                 last_seen=the_date,

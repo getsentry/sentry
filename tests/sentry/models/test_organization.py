@@ -355,7 +355,9 @@ class Require2fa(TestCase):
         assert mail.outbox[0].to == [non_compliant_user.email]
 
         audit_logs = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         )
         assert audit_logs.count() == 1
         assert audit_logs[0].data["email"] == non_compliant_user.email
@@ -375,7 +377,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
 
     def test_handle_2fa_required__non_compliant_members(self):
@@ -392,7 +396,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == len(non_compliant)
         assert AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).count() == len(non_compliant)
 
     def test_handle_2fa_required__pending_member__ok(self):
@@ -406,7 +412,9 @@ class Require2fa(TestCase):
 
         assert len(mail.outbox) == 0
         assert not AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("MEMBER_PENDING"), organization=self.org, actor=self.owner
+            event=audit_log.get_event_id("MEMBER_PENDING"),
+            organization_id=self.org.id,
+            actor=self.owner,
         ).exists()
 
     @mock.patch("sentry.tasks.auth.logger")
@@ -463,7 +471,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=None,
                 actor_key=api_key,
             ).count()
@@ -484,7 +492,7 @@ class Require2fa(TestCase):
         assert (
             AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("MEMBER_PENDING"),
-                organization=self.org,
+                organization_id=self.org.id,
                 actor=self.owner,
                 actor_key=None,
                 ip_address=None,

@@ -77,7 +77,7 @@ type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
 const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
+  const isReplayEnabled = organization.features.includes('session-replay');
 
   const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
     getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});
