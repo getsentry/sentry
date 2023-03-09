@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Organization, Outcome, Project} from 'sentry/types';
 import withProjects from 'sentry/utils/withProjects';
+import {DROPPED_OUTCOMES, HIDDEN_OUTCOMES} from 'sentry/views/organizationStats';
 
 import {UsageSeries} from './types';
 import UsageTable, {CellProject, CellStat, TableStat} from './usageTable';
@@ -351,7 +352,10 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
         const {outcome, project: projectId} = group.by;
         // Backend enum is singlar. Frontend enum is plural.
 
-        if (!projectSet.has(projectId.toString())) {
+        if (
+          !projectSet.has(projectId.toString()) ||
+          HIDDEN_OUTCOMES.has(outcome as Outcome)
+        ) {
           return;
         }
 
@@ -359,18 +363,11 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
           stats[projectId] = {...baseStat};
         }
 
-        if (outcome !== Outcome.CLIENT_DISCARD) {
-          stats[projectId].total += group.totals['sum(quantity)'];
-        }
-
-        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
-          stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else if (
-          outcome === Outcome.RATE_LIMITED ||
-          outcome === Outcome.INVALID ||
-          outcome === Outcome.DROPPED
-        ) {
+        stats[projectId].total += group.totals['sum(quantity)'];
+        if (DROPPED_OUTCOMES.has(outcome as Outcome)) {
           stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
+        } else {
+          stats[projectId][outcome] += group.totals['sum(quantity)'];
         }
       });
 

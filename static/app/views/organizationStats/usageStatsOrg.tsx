@@ -16,6 +16,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
+import {DROPPED_OUTCOMES, HIDDEN_OUTCOMES} from 'sentry/views/organizationStats';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -343,43 +344,35 @@ class UsageStatsOrganization<
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
+        [Outcome.ABUSE]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
       };
 
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
+        if (
+          !dataCategory.includes(`${category}`) ||
+          HIDDEN_OUTCOMES.has(outcome as Outcome)
+        ) {
           return;
         }
 
-        if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)'];
-        }
-
+        count.total += group.totals['sum(quantity)'];
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          switch (outcome) {
-            case Outcome.ACCEPTED:
-            case Outcome.FILTERED:
-              usageStats[i][outcome] += stat;
-              return;
-            case Outcome.DROPPED:
-            case Outcome.RATE_LIMITED:
-            case Outcome.INVALID:
-              usageStats[i].dropped.total += stat;
-              // TODO: add client discards to dropped?
-              return;
-            default:
-              return;
+          if (DROPPED_OUTCOMES.has(outcome as Outcome)) {
+            usageStats[i].dropped.total += stat;
+          } else {
+            usageStats[i][outcome] += stat;
           }
         });
       });
 
-      // Invalid and rate_limited data is combined with dropped
-      count[Outcome.DROPPED] += count[Outcome.INVALID];
-      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      DROPPED_OUTCOMES.forEach(oc => {
+        count[Outcome.DROPPED] += count[oc];
+      });
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
