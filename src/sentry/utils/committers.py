@@ -25,16 +25,9 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.commit import CommitSerializer, get_users_for_commits
 from sentry.api.serializers.models.release import Author
 from sentry.eventstore.models import Event
-from sentry.models import (
-    Commit,
-    CommitFileChange,
-    Group,
-    Integration,
-    Project,
-    Release,
-    ReleaseCommit,
-)
+from sentry.models import Commit, CommitFileChange, Group, Project, Release, ReleaseCommit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils import metrics
 from sentry.utils.event_frames import find_stack_frames, get_sdk_name, munged_filename_and_frames
@@ -315,13 +308,12 @@ def get_event_file_committers(
 def get_serialized_event_file_committers(
     project: Project, event: Event, frame_limit: int = 25
 ) -> Sequence[AuthorCommitsSerialized]:
-    integrations = Integration.objects.filter(
-        organizations=event.project.organization,
-        provider__in=["github", "gitlab"],
+    integrations = integration_service.get_integrations(
+        organization_id=project.organization_id, providers=["github", "gitlab"]
     )
     use_fallback = (
         features.has("organizations:commit-context-fallback", event.project.organization)
-        and not integrations.exists()
+        and not integrations
     )
 
     if features.has("organizations:commit-context", project.organization) and not use_fallback:
