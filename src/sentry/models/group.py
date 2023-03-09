@@ -213,6 +213,7 @@ def get_oldest_or_latest_event_for_environments(
         orderby=ordering.value,
         referrer="Group.get_latest",
         dataset=dataset,
+        tenant_ids={"organization_id": group.project.organization_id},
     )
 
     if events:

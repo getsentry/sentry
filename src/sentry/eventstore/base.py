@@ -156,6 +156,7 @@ class EventStorage(Service):
         limit=100,
         offset=0,
         referrer="eventstore.get_events",
+        tenant_ids=None,
     ):
         """
         Fetches a list of events given a set of criteria.

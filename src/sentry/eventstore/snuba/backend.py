@@ -55,6 +55,7 @@ class SnubaEventStorage(EventStorage):
         offset=DEFAULT_OFFSET,
         referrer="eventstore.get_events",
         dataset=snuba.Dataset.Events,
+        tenant_ids=None,
     ):
         """
         Get events from Snuba, with node data loaded.
@@ -68,6 +69,7 @@ class SnubaEventStorage(EventStorage):
                 referrer=referrer,
                 should_bind_nodes=True,
                 dataset=dataset,
+                tenant_ids=tenant_ids,
             )
 
     def get_unfetched_events(
@@ -101,6 +103,7 @@ class SnubaEventStorage(EventStorage):
         referrer=None,
         should_bind_nodes=False,
         dataset=snuba.Dataset.Events,
+        tenant_ids=None,
     ):
         assert filter, "You must provide a filter"
         cols = self.__get_columns(dataset)
@@ -142,6 +145,7 @@ class SnubaEventStorage(EventStorage):
                     offset=DEFAULT_OFFSET,
                     referrer=referrer,
                     dataset=dataset,
+                    tenant_ids=tenant_ids,
                 )
 
                 if "error" not in result:
@@ -169,6 +173,7 @@ class SnubaEventStorage(EventStorage):
             offset=offset,
             referrer=referrer,
             dataset=dataset,
+            tenant_ids=tenant_ids,
         )
 
         if "error" not in result:
