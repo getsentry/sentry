@@ -168,6 +168,48 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(),
         },
       ];
+    // event errors
+    case SourceMapProcessingIssueType.TOO_LARGE_FOR_CACHE:
+      return [
+        {
+          title: t('Source Map File too large to cache'),
+          desc: t('TODO UPDATE'),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
+
+    case SourceMapProcessingIssueType.FETCH_INVALID_HTTP_CODE:
+      return [
+        {
+          title: t('Sentry received an invalid HTTP code fetching the source map'),
+          desc: t('TODO UPDATE'),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
+    case SourceMapProcessingIssueType.JS_INVALID_CONTENT:
+      return [
+        {
+          title: t('Sentry received an invalid content type fetching the source map'),
+          desc: t('TODO UPDATE'),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
+    case SourceMapProcessingIssueType.FETCH_GENERIC_ERROR:
+      return [
+        {
+          title: t('The source map failed to load because of an unkown error'),
+          desc: t('TODO UPDATE'),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
+    case SourceMapProcessingIssueType.RESTRICTED_IP:
+      return [
+        {
+          title: t('The source map failed to load because of a restricted IP'),
+          desc: t('TODO UPDATE'),
+          docsLink: getTroubleshootingLink(),
+        },
+      ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
     default:
       return [];

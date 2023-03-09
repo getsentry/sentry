@@ -13,7 +13,7 @@ import List from 'sentry/components/list';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Artifact, Project} from 'sentry/types';
+import {Artifact, Organization, Project} from 'sentry/types';
 import {DebugFile} from 'sentry/types/debugFiles';
 import {Image} from 'sentry/types/debugImage';
 import {EntryType, Event, ExceptionValue, Thread} from 'sentry/types/event';
@@ -211,6 +211,25 @@ const useFetchReleaseArtifacts = ({event, project}: {event: Event; project: Proj
   return releaseArtifacts;
 };
 
+// we can filter out source map errors now that we have the debugging endpoint
+const filterOutSourceMapErrors = (
+  errors: EventErrorData[],
+  organization: Organization
+) => {
+  const baseErrorsToCheck = ['js_no_source'];
+  const featureGatedErrorsToCheck = [
+    'fetch_invalid_http_code',
+    'too_large_for_cache',
+    'js_invalid_content',
+    'fetch_generic_error',
+    'restricted_ip',
+  ];
+  const errorsToCheck = organization.features.includes('fix-extended-source-map-errors')
+    ? [...baseErrorsToCheck, ...featureGatedErrorsToCheck]
+    : baseErrorsToCheck;
+  return errors.filter(error => !errorsToCheck.includes(error.type));
+};
+
 const useRecordAnalyticsEvent = ({event, project}: {event: Event; project: Project}) => {
   const organization = useOrganization();
 
@@ -278,7 +297,10 @@ export const EventErrors = ({event, project, isShare}: EventErrorsProps) => {
   const otherErrors: Array<EventErrorData> =
     eventErrors.length > MAX_ERRORS ? eventErrors : uniqWith(eventErrors, isEqual);
 
-  const errors = [...otherErrors, ...proguardErrors];
+  const errors = [
+    ...filterOutSourceMapErrors(otherErrors, organization),
+    ...proguardErrors,
+  ];
 
   if (proguardErrorsLoading) {
     // XXX: This is necessary for acceptance tests to wait until removal since there is

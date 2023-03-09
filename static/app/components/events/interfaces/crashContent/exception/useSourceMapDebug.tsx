@@ -44,6 +44,39 @@ interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
 }
 
+interface TooLargeForCacheError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.TOO_LARGE_FOR_CACHE;
+}
+
+interface FetchInvalidHttpCodeError extends BaseSourceMapDebugError {
+  data: {
+    url: string;
+    value: number;
+  };
+  type: SourceMapProcessingIssueType.FETCH_INVALID_HTTP_CODE;
+}
+
+interface JSInvalidContentError extends BaseSourceMapDebugError {
+  data: {
+    url: string;
+  };
+  type: SourceMapProcessingIssueType.JS_INVALID_CONTENT;
+}
+
+interface GenericFetchError extends BaseSourceMapDebugError {
+  data: {
+    value: string;
+  };
+  type: SourceMapProcessingIssueType.FETCH_GENERIC_ERROR;
+}
+
+interface RestrictedIPError extends BaseSourceMapDebugError {
+  data: {
+    url: string;
+  };
+  type: SourceMapProcessingIssueType.RESTRICTED_IP;
+}
+
 export type SourceMapDebugError =
   | UnknownErrorDebugError
   | MissingReleaseDebugError
@@ -53,7 +86,12 @@ export type SourceMapDebugError =
   | PartialMatchDebugError
   | DistMismatchDebugError
   | SourcemapNotFoundDebugError
-  | NoURLMatchDebugError;
+  | NoURLMatchDebugError
+  | TooLargeForCacheError
+  | FetchInvalidHttpCodeError
+  | JSInvalidContentError
+  | GenericFetchError
+  | RestrictedIPError;
 
 export interface SourceMapDebugResponse {
   errors: SourceMapDebugError[];
@@ -69,6 +107,11 @@ export enum SourceMapProcessingIssueType {
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
   SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
+  TOO_LARGE_FOR_CACHE = 'too_large_for_cache',
+  FETCH_INVALID_HTTP_CODE = 'fetch_invalid_http_code',
+  JS_INVALID_CONTENT = 'js_invalid_content',
+  FETCH_GENERIC_ERROR = 'generic_fetch_error',
+  RESTRICTED_IP = 'restricted_ip',
 }
 
 const sourceMapDebugQuery = ({
