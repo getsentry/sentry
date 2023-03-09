@@ -80,10 +80,7 @@ function ReleaseEventsChart({
 
     switch (chartType) {
       case ReleaseComparisonChartType.ERROR_COUNT:
-        return new MutableSearch([
-          '!event.type:transaction',
-          releaseFilter,
-        ]).formatString();
+        return new MutableSearch(['event.type:error', releaseFilter]).formatString();
       case ReleaseComparisonChartType.TRANSACTION_COUNT:
         return new MutableSearch([
           'event.type:transaction',

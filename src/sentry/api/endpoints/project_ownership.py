@@ -8,6 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectOwnershipPermission
 from sentry.api.serializers import serialize
 from sentry.models import ProjectOwnership
+from sentry.models.project import Project
 from sentry.ownership.grammar import CODEOWNERS, create_schema_from_issue_owners
 from sentry.signals import ownership_rule_created
 
@@ -68,7 +69,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             self.context["ownership"].project.organization,
         ):
             schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id, True
+                attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
             )
         else:
             schema = create_schema_from_issue_owners(
@@ -162,6 +163,27 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
                 last_updated=None,
             )
 
+    def add_owner_id_to_schema(self, ownership: ProjectOwnership, project: Project) -> None:
+        if not hasattr(ownership, "schema") or (
+            ownership.schema
+            and ownership.schema.get("rules")
+            and "id" not in ownership.schema["rules"][0]["owners"][0].keys()
+        ):
+            ownership.schema = create_schema_from_issue_owners(ownership.raw, project.id, True)
+            ownership.save()
+
+    def rename_schema_identifier_for_parsing(self, ownership: ProjectOwnership) -> None:
+        """
+        Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
+        in the frontend
+
+        `ownership`: The ownership containing the schema with the rules that will be renamed
+        """
+        if hasattr(ownership, "schema") and ownership.schema and ownership.schema.get("rules"):
+            for rule in ownership.schema["rules"]:
+                for rule_owner in rule["owners"]:
+                    rule_owner["name"] = rule_owner.pop("identifier")
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project's Ownership configuration
@@ -171,13 +193,17 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
 
         :auth: required
         """
+        ownership = self.get_ownership(project)
         should_return_schema = features.has(
             "organizations:streamline-targeting-context", project.organization
         )
+
+        if should_return_schema and ownership:
+            self.add_owner_id_to_schema(ownership, project)
+            self.rename_schema_identifier_for_parsing(ownership)
+
         return Response(
-            serialize(
-                self.get_ownership(project), request.user, should_return_schema=should_return_schema
-            )
+            serialize(ownership, request.user, should_return_schema=should_return_schema)
         )
 
     def put(self, request: Request, project) -> Response:

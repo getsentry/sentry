@@ -1,4 +1,5 @@
-import {createContext} from 'react';
+import {createContext, useCallback, useMemo, useState} from 'react';
+import cloneDeep from 'lodash/cloneDeep';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -10,6 +11,15 @@ import {
 
 export const FlamegraphThemeContext = createContext<FlamegraphTheme | null>(null);
 
+type FlamegraphThemeMutationCallback = (
+  theme: FlamegraphTheme,
+  colorMode?: 'light' | 'dark'
+) => FlamegraphTheme;
+
+export const FlamegraphThemeMutationContext = createContext<
+  ((cb: FlamegraphThemeMutationCallback) => void) | null
+>(null);
+
 interface FlamegraphThemeProviderProps {
   children: React.ReactNode;
 }
@@ -17,15 +27,30 @@ interface FlamegraphThemeProviderProps {
 function FlamegraphThemeProvider(
   props: FlamegraphThemeProviderProps
 ): React.ReactElement {
-  const {theme} = useLegacyStore(ConfigStore);
+  const {theme: colorMode} = useLegacyStore(ConfigStore);
 
-  const activeFlamegraphTheme =
-    theme === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+  const [mutation, setMutation] = useState<FlamegraphThemeMutationCallback | null>(null);
+
+  const addModifier = useCallback((cb: FlamegraphThemeMutationCallback) => {
+    setMutation(() => cb);
+  }, []);
+
+  const activeFlamegraphTheme = useMemo(() => {
+    const flamegraphTheme =
+      colorMode === 'light' ? LightFlamegraphTheme : DarkFlamegraphTheme;
+    if (!mutation) {
+      return flamegraphTheme;
+    }
+    const clonedTheme = cloneDeep(flamegraphTheme);
+    return mutation(clonedTheme, colorMode);
+  }, [mutation, colorMode]);
 
   return (
-    <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
-      {props.children}
-    </FlamegraphThemeContext.Provider>
+    <FlamegraphThemeMutationContext.Provider value={addModifier}>
+      <FlamegraphThemeContext.Provider value={activeFlamegraphTheme}>
+        {props.children}
+      </FlamegraphThemeContext.Provider>
+    </FlamegraphThemeMutationContext.Provider>
   );
 }
 

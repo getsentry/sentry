@@ -149,11 +149,11 @@ class Monitors extends AsyncView<Props, State> {
                 >
                   {monitorList?.map(monitor => (
                     <MonitorRow
-                      key={monitor.id}
+                      key={monitor.slug}
                       monitor={monitor}
                       onDelete={() => {
                         this.setState({
-                          monitorList: monitorList.filter(m => m.id !== monitor.id),
+                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
                         });
                       }}
                       organization={organization}
