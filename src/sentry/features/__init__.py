@@ -158,6 +158,7 @@ default_manager.add("organizations:scim-team-roles", OrganizationFeature, Featur
 default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, FeatureHandlerStrategy.MANAGED)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, FeatureHandlerStrategy.STATIC)
 default_manager.add("organizations:session-replay", OrganizationFeature, FeatureHandlerStrategy.STATIC)
+default_manager.add("organizations:session-replay-ui", OrganizationFeature, FeatureHandlerStrategy.STATIC)
 default_manager.add("organizations:session-replay-beta-grace", OrganizationFeature, FeatureHandlerStrategy.MANAGED)
 default_manager.add("organizations:session-replay-ga", OrganizationFeature, FeatureHandlerStrategy.MANAGED)
 default_manager.add("organizations:session-replay-sdk", OrganizationFeature, FeatureHandlerStrategy.MANAGED)
