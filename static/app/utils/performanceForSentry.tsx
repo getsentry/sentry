@@ -3,7 +3,11 @@ import {captureException, captureMessage} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {IdleTransaction} from '@sentry/tracing';
 import {Transaction, TransactionEvent} from '@sentry/types';
-import {browserPerformanceTimeOrigin, timestampWithMs} from '@sentry/utils';
+import {
+  _browserPerformanceTimeOriginMode,
+  browserPerformanceTimeOrigin,
+  timestampWithMs,
+} from '@sentry/utils';
 
 import getCurrentSentryReactTransaction from './getCurrentSentryReactTransaction';
 
@@ -259,7 +263,8 @@ export const VisuallyCompleteWithData = ({
             `${id}-vcsd-end`
           );
           num.current = num.current++;
-          const [measureEntry] = performance.getEntriesByName(measureName);
+          const entries = performance.getEntriesByName(measureName);
+          const [measureEntry] = entries;
           if (!measureEntry) {
             return;
           }
@@ -280,7 +285,9 @@ export const VisuallyCompleteWithData = ({
               t.setMeasurement('lcpDiffVCD', lcp - time, 'millisecond');
             }
 
+            t.setTag('singlePerfEntry', entries.length === 1);
             t.setTag('longTaskCount', longTaskCount.current);
+            t.setTag('browserOriginMode', _browserPerformanceTimeOriginMode);
             t.setMeasurement('visuallyCompleteData', time, 'millisecond');
           });
         }, 0);
