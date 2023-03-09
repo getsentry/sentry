@@ -630,6 +630,9 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# controls how many orgs will be queried by the prioritise by transaction task
+# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
+register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)
