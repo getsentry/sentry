@@ -83,9 +83,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         version = data.get("version")
         dist = data.get("dist")
 
-        if version is None and dist is not None:
+        if not version and dist:
             return Response(
-                {"error": "You need to specify a version together with a dist"}, status=400
+                {"error": "You need to specify a release together with a dist"}, status=400
             )
 
         assemble_artifacts.apply_async(

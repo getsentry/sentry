@@ -227,6 +227,10 @@ class ReleaseArchive:
 
         return temp_dir
 
+    def get_artifact_count(self):
+        """Return the number of artifacts in the archive."""
+        return len(self.manifest.get("files", {}))
+
 
 class _ArtifactIndexData:
     """Holds data of artifact index and keeps track of changes"""
