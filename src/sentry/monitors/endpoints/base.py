@@ -46,6 +46,20 @@ class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
 
 
 class MonitorEndpoint(Endpoint):
+    """
+    Base endpoint class for monitors which will lookup the monitor ID and
+    convert it to a Monitor object.
+
+    Currently this has two strategies for monitor lookup
+
+    1. Via the monitor slug. In this scenario the organization_slug MUST be
+       present, since monitor slugs are unique with the organization_slug
+
+    2. Via the monitor GUID. In this scenario the organization_slug is not
+       required as GUIDs are global to sentry. We will check that the
+       organization resulting from the monitor project
+    """
+
     permission_classes = (ProjectMonitorPermission,)
 
     def convert_args(
