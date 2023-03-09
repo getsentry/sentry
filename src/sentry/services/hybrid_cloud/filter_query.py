@@ -29,13 +29,16 @@ OpaqueSerializedResponse = Any
 #     e.g. we don't want to just query for every row if no filters are passed
 #   * A standard interface across most of our simple rpc services
 #
-# This class should be delegated to, to add this functionality to the public interface for a service.
+# A singleton instance of a subclass can be delegated to, to add this functionality to the public interface for a service.
 # E.g.
 # class DatabaseBackedUserService(UserService):
 #     def serialize_many(...) -> List[OpaqueSerializedResponse]:
-#         return self._UserFilterQuery().serialize_many(filter, as_user, auth_context, serializer)
+#         return self._FQ.serialize_many(filter, as_user, auth_context, serializer)
 #
-#    class _UserFilterQuery(FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType]): ...
+#     class _UserFilterQuery(FilterQueryDatabaseImpl[User, UserFilterArgs, RpcUser, UserSerializeType]):
+#        ...
+#
+#     _FQ = _UserFilterQuery()
 class FilterQueryDatabaseImpl(
     Generic[BASE_MODEL, FILTER_ARGS, RPC_RESPONSE, SERIALIZER_ENUM], abc.ABC
 ):
