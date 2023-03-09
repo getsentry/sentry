@@ -66,6 +66,19 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         response = self.client.post(
             self.url,
+            data={
+                "checksum": checksum,
+                "chunks": [],
+                "projects": [self.project.id],
+                "version": "release/1",
+                "dist": "/android",
+            },
+            HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
+        )
+        assert response.status_code == 400, response.content
+
+        response = self.client.post(
+            self.url,
             data={"checksum": checksum, "chunks": [], "projects": [self.project.slug]},
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
