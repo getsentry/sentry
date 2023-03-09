@@ -9,9 +9,19 @@ from .webhooks.command import SlackCommandsEndpoint
 from .webhooks.event import SlackEventEndpoint
 
 urlpatterns = [
-    url(r"^action/$", SlackActionEndpoint.as_view()),
-    url(r"^commands/$", SlackCommandsEndpoint.as_view(), name="sentry-integration-slack-commands"),
-    url(r"^event/$", SlackEventEndpoint.as_view()),
+    url(
+        r"^action/$",
+        SlackActionEndpoint.as_view(),
+    ),
+    url(
+        r"^commands/$",
+        SlackCommandsEndpoint.as_view(),
+        name="sentry-integration-slack-commands",
+    ),
+    url(
+        r"^event/$",
+        SlackEventEndpoint.as_view(),
+    ),
     url(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",
         SlackLinkIdentityView.as_view(),
