@@ -53,7 +53,7 @@ export const sdkLoaderOptions = {
     label: t('Enable Performance Monitoring'),
   },
   [DynamicSDKLoaderOption.HAS_REPLAY]: {
-    label: t('Enable Replay'),
+    label: t('Enable Session Replay'),
   },
   [DynamicSDKLoaderOption.HAS_DEBUG]: {
     label: t('Enable Debug Bundles'),
