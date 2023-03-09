@@ -35,22 +35,24 @@ class ActionServiceType(FlexibleIntEnum):
     The available services to fire action notifications
     """
 
+    DISABLED = -1  # Use to explicitly fire no action,
     EMAIL = 0
     PAGERDUTY = 1
     SLACK = 2
     MSTEAMS = 3
     SENTRY_APP = 4
-    SENTRY = 5  # Use notification platform (src/sentry/notifications)
+    SENTRY_NOTIFICATION = 5  # Use personal notification platform (src/sentry/notifications)
 
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
+            (cls.DISABLED, "disabled"),
             (cls.EMAIL, "email"),
             (cls.PAGERDUTY, "pagerduty"),
             (cls.SLACK, "slack"),
             (cls.MSTEAMS, "msteams"),
             (cls.SENTRY_APP, "sentry_app"),
-            (cls.SENTRY, "sentry"),
+            (cls.SENTRY_NOTIFICATION, "sentry_notification"),
         )
 
 
@@ -146,10 +148,12 @@ class NotificationAction(AbstractNotificationAction):
     _trigger_types: List[Tuple[int, str]] = ActionTriggerType.as_choices()
 
     organization = FlexibleForeignKey("sentry.Organization")
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    projects = models.ManyToManyField("sentry.Project")
     # TODO(Leander): After adding AlertRuleTriggerAction to HybridCloudForeignKey, we can remove these lines
     integration = None
     integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    sentry_app = None
+    sentry_app_id = HybridCloudForeignKey("sentry.SentryApp", on_delete="CASCADE")
 
     # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
     trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
