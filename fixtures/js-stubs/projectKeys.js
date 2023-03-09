@@ -20,6 +20,21 @@ export function ProjectKeys(params = []) {
       id: '188ee45a58094d939428d8585aa6f661',
       isActive: true,
       label: 'Natural Halibut',
+      browserSdkVersion: 'latest',
+      browserSdk: {
+        choices: [
+          ['latest', 'latest'],
+          ['7.x', '7.x'],
+          ['6.x', '6.x'],
+          ['5.x', '5.x'],
+          ['4.x', '4.x'],
+        ],
+      },
+      dynamicSdkLoaderOptions: {
+        hasPerformance: false,
+        hasReplay: false,
+        hasDebug: false,
+      },
     },
     ...params,
   ];
