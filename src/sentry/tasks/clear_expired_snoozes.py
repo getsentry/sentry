@@ -23,7 +23,7 @@ def clear_expired_snoozes():
         record_group_history(group, GroupHistoryStatus.UNIGNORED)
         issue_unignored.send_robust(
             project=group.project,
-            user=None,
+            user_id=None,
             group=group,
             transition_type="automatic",
             sender="clear_expired_snoozes",

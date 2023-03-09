@@ -471,11 +471,10 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_unignored.connect(weak=False)
-def record_issue_unignored(project, user, group, transition_type, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
+def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
+    if user_id is not None:
+        default_user_id = user_id
     else:
-        user_id = None
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(
