@@ -13,6 +13,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
 
+const notTags = [
+  'browser.name',
+  'browser.version',
+  'device.brand',
+  'device.family',
+  'device.model_id',
+  'device.name',
+  'platform',
+  'releases',
+  'os.name',
+  'os.version',
+  'sdk.name',
+  'sdk.version',
+  'user.ip',
+];
+
 function TagPanel() {
   const organization = useOrganization();
   const {replay} = useReplayContext();
@@ -23,7 +39,9 @@ function TagPanel() {
       ({
         pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
         query: {
-          query: `${name}:"${value}"`,
+          query: notTags.includes(name)
+            ? `${name}:"${value}"`
+            : `tags["${name}"]:"${value}"`,
         },
       } as LocationDescriptor),
     [organization.slug]

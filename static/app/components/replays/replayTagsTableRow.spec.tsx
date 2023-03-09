@@ -32,4 +32,21 @@ describe('ReplayTagsTableRow', () => {
     expect(screen.getByText('bar').closest('a')).toHaveAttribute('href', '/home?foo=bar');
     expect(screen.getByText('baz').closest('a')).toHaveAttribute('href', '/home?foo=baz');
   });
+
+  it('Should render tags and values with spaces inside them', () => {
+    render(
+      <ReplayTagsTableRow
+        name="foo bar"
+        values={['biz baz']}
+        generateUrl={(name, value) => ({pathname: '/home', query: {[name]: value}})}
+      />,
+      {context: TestStubs.routerContext()}
+    );
+
+    expect(screen.getByText('foo bar')).toBeInTheDocument();
+    expect(screen.getByText('biz baz').closest('a')).toHaveAttribute(
+      'href',
+      '/home?foo%20bar=biz%20baz'
+    );
+  });
 });
