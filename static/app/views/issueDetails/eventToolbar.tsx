@@ -1,9 +1,8 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 import moment from 'moment-timezone';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {DataSection} from 'sentry/components/events/styles';
@@ -37,9 +36,21 @@ type Props = {
   hasReplay?: boolean;
 };
 
-class GroupEventToolbar extends Component<Props> {
-  shouldComponentUpdate(nextProps: Props) {
-    return this.props.event.id !== nextProps.event.id;
+type State = {
+  showAiSuggest?: boolean;
+};
+
+class GroupEventToolbar extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = {showAiSuggest: false};
+  }
+
+  shouldComponentUpdate(nextProps: Props, nextState: State) {
+    return (
+      this.props.event.id !== nextProps.event.id ||
+      this.state.showAiSuggest !== nextState.showAiSuggest
+    );
   }
 
   handleNavigationClick(button: string) {
@@ -51,19 +62,9 @@ class GroupEventToolbar extends Component<Props> {
   }
 
   explain() {
-    openModal(({Header}) => (
-      <Fragment>
-        <Header closeButton>
-          <strong>{t('Potentially Helpful AI Assistent')}</strong>
-          <FeatureBadge type="experimental" />
-        </Header>
-        <EventAiSuggest
-          event={this.props.event}
-          project={this.props.project}
-          organization={this.props.organization}
-        />
-      </Fragment>
-    ));
+    this.setState({
+      showAiSuggest: !this.state.showAiSuggest,
+    });
   }
 
   render() {
@@ -174,6 +175,13 @@ class GroupEventToolbar extends Component<Props> {
           project={project}
           organization={organization}
         />
+        {this.state.showAiSuggest && (
+          <EventAiSuggest
+            event={this.props.event}
+            project={this.props.project}
+            organization={this.props.organization}
+          />
+        )}
       </Wrapper>
     );
   }

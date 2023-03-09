@@ -1,8 +1,12 @@
 import {Fragment, useEffect, useState} from 'react';
+import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
 
+import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import marked from 'sentry/utils/marked';
@@ -91,25 +95,52 @@ export function EventAiSuggest({event, organization, project}: Props) {
 
   if (loading) {
     return (
-      <LoadingIndicator>
-        <AiLoadingMessage />
-      </LoadingIndicator>
+      <Wrapper>
+        <LoadingIndicator>
+          <AiLoadingMessage />
+        </LoadingIndicator>
+      </Wrapper>
     );
   }
   if (error) {
-    return <LoadingError />;
+    return (
+      <Wrapper>
+        <LoadingError />
+      </Wrapper>
+    );
   }
   if (suggestion) {
     return (
-      <div
-        dangerouslySetInnerHTML={{
-          __html: marked(suggestion, {
-            gfm: true,
-            breaks: true,
-          }),
-        }}
-      />
+      <Wrapper>
+        <h2>
+          {t('Potentially Helpful AI Assistent')}
+          <FeatureBadge type="experimental" />
+        </h2>
+        <div
+          dangerouslySetInnerHTML={{
+            __html: marked(suggestion, {
+              gfm: true,
+              breaks: true,
+            }),
+          }}
+        />
+      </Wrapper>
     );
   }
   return <Fragment />;
 }
+
+// compensate the margins from DataSection
+const Wrapper = styled('div')`
+  background-color: ${p => p.theme.surface200};
+  box-shadow: 0 0 10px ${p => p.theme.gray200} inset;
+  border-top: 1px solid ${p => p.theme.gray200};
+  border-bottom: 1px solid ${p => p.theme.gray200};
+  margin: ${space(1)} -${space(2)};
+  padding: ${space(1)} ${space(2)};
+
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    margin: ${space(2)} -${space(4)};
+    padding: ${space(4)} ${space(4)} ${space(2)} ${space(4)};
+  }
+`;

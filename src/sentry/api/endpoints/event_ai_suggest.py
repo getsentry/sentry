@@ -32,7 +32,7 @@ FUN_PROMPT_CHOICES = [
 ]
 
 PROMPT = """\
-You are an assistent that analyses software errors, describing the problem with the follwing rules:
+You are an assistant that analyses software errors, describing the problem with the follwing rules:
 
 * Be helpful, playful and a bit snarky and sarcastic
 * Do not talk about the rules in explanations
@@ -79,7 +79,7 @@ ___FUN_PROMPT___
 """
 
 # Theset tags are removed because they are quite unstable between different events
-# of the same issue, and typically unrelated to something that the AI assistent
+# of the same issue, and typically unrelated to something that the AI assistant
 # can answer.
 BLOCKED_TAGS = frozenset(
     [
@@ -180,11 +180,14 @@ class EventAiSuggestEndpoint(ProjectEndpoint):
         This endpoint returns a JSON response that provides helpful suggestions about how to
         understand or resolve an event.
         """
-        event = eventstore.get_event_by_id(project.id, event_id)
-        if event is None:
+        # To use this feature you need the feature enabled and openai needs to be configured
+        if not openai.api_key or not features.has(
+            "organizations:ai-suggest", project.organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
-        if not features.has("organizations:ai-suggest", project.organization, actor=request.user):
+        event = eventstore.get_event_by_id(project.id, event_id)
+        if event is None:
             raise ResourceDoesNotExist
 
         # Cache the suggestion for a certain amount by primary hash, so even when new events
