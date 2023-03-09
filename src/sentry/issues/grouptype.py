@@ -4,7 +4,7 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import Enum
-from typing import TYPE_CHECKING, Any, Dict, Optional, Set, Type
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 
 from django.conf import settings
 
@@ -26,8 +26,6 @@ class GroupCategory(Enum):
 GROUP_CATEGORIES_CUSTOM_EMAIL = (GroupCategory.ERROR, GroupCategory.PERFORMANCE)
 # GroupCategories which have customized email templates. If not included here, will fall back to a generic template.
 
-_group_type_registry: Dict[int, Type[GroupType]] = {}
-_category_lookup: Dict[int, Set[int]] = defaultdict(set)
 DEFAULT_IGNORE_LIMIT: int = 3
 DEFAULT_EXPIRY_TIME: timedelta = timedelta(hours=24)
 
@@ -46,6 +44,9 @@ class GroupTypeRegistry:
         self._registry[group_type.type_id] = group_type
         self._slug_lookup[group_type.slug] = group_type
         self._category_lookup[group_type.category].add(group_type.type_id)
+
+    def all(self) -> List[Type[GroupType]]:
+        return list(self._registry.values())
 
     def get_all_group_type_ids(self) -> Set[int]:
         return {type.type_id for type in self._registry.values()}
