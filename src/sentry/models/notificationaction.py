@@ -3,13 +3,14 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import Callable, Iterable, Tuple
+from typing import Callable, Iterable, List, Tuple
 
 from django.db import models
 from pyparsing import MutableMapping
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 logger = logging.getLogger(__name__)
 
@@ -108,18 +109,25 @@ class AbstractNotificationAction(Model):
 
 class ActionTriggerType(FlexibleIntEnum):
     """
-    The possible sources of action notifications
+    The possible sources of action notifications.
+    Use values less than 100 here to avoid conflicts with getsentry's trigger values.
     """
 
-    SPIKE_PROTECTION = 0  # Handlers registered in getsentry
-    SPEND_ALLOCATIONS = 1  # Handlers registered in getsentry
+    AUDIT_LOG = 0
 
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
-        return (
-            (cls.SPIKE_PROTECTION, "spike-protection"),
-            (cls.SPEND_ALLOCATIONS, "spend-allocations"),
-        )
+        return ((cls.AUDIT_LOG, "audit-log"),)
+
+
+class TriggerGenerator:
+    """
+    Allows NotificationAction.trigger_type to enforce extra triggers via
+    NotificationAction.register_trigger_type
+    """
+
+    def __iter__(self):
+        yield from NotificationAction._trigger_types
 
 
 @region_silo_only_model
@@ -135,15 +143,32 @@ class NotificationAction(AbstractNotificationAction):
         ActionTriggerType, MutableMapping[ActionTargetType, Callable]
     ] = defaultdict(dict)
 
+    _trigger_types: List[Tuple[int, str]] = ActionTriggerType.as_choices()
+
     organization = FlexibleForeignKey("sentry.Organization")
     project = FlexibleForeignKey("sentry.Project", null=True)
+    # TODO(Leander): After adding AlertRuleTriggerAction to HybridCloudForeignKey, we can remove these lines
+    integration = None
+    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
 
     # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
-    trigger_type = models.SmallIntegerField(choices=ActionTriggerType.as_choices())
+    trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_notificationaction"
+
+    @classmethod
+    def register_trigger_type(
+        cls,
+        value: int,
+        display_text: str,
+    ):
+        """
+        This method is used for adding trigger types to this model from getsentry.
+        If the trigger is relevant to sentry as well, directly modify ActionTriggerType.
+        """
+        cls._trigger_types = cls._trigger_types + ((value, display_text),)
 
     @classmethod
     def register_handler(
