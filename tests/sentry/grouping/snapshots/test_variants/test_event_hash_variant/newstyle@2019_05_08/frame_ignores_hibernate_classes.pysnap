@@ -1,0 +1,24 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (stacktrace of system takes precedence)
+      stacktrace
+        frame (non app frame)
+          module*
+            "com.example.model.User$HibernateProxy$oRWxjAWT"
+          function*
+            "jipJipManagementApplication"
+--------------------------------------------------------------------------
+system:
+  hash: "a01e3a60f8863fd9dfc5697fae1eed46"
+  component:
+    system*
+      stacktrace*
+        frame*
+          module*
+            "com.example.model.User$HibernateProxy$oRWxjAWT"
+          function*
+            "jipJipManagementApplication"
