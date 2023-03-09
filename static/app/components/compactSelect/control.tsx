@@ -68,6 +68,10 @@ export interface ControlProps extends UseOverlayProps {
   clearable?: boolean;
   disabled?: boolean;
   /**
+   * Message to be displayed when all options have been filtered out (via search).
+   */
+  emptyMessage?: string;
+  /**
    * Whether to render a grid list rather than a list box.
    *
    * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
