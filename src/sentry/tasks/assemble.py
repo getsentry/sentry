@@ -297,6 +297,7 @@ def _create_artifact_bundle(
         if len(debug_ids_with_types) > 0 or version:
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=org_id,
+                # In case we didn't find the bundle_id in the manifest, we will just generate our own.
                 bundle_id=bundle_id if bundle_id else uuid.uuid4().hex,
                 file=archive_file,
                 artifact_count=artifact_count,
