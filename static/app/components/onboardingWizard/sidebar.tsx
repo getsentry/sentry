@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {OnboardingTask, OnboardingTaskKey, Organization, Project} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
-import {useSandboxTasks} from 'sentry/utils/demoWalkthrough';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -91,7 +90,7 @@ export const useGetTasks = (
       complete: filteredTasks.filter(findCompleteTasks),
     };
   }, [organization, projects, onboardingState]);
-  return isDemoWalkthrough() ? useSandboxTasks : callback;
+  return callback;
 };
 
 function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
@@ -118,11 +117,7 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
   }
   const getOnboardingTasks = useGetTasks(organization, projects, onboardingState);
 
-  const {allTasks, customTasks, active, upcoming, complete} = getOnboardingTasks({
-    organization,
-    projects,
-    onboardingState: onboardingState || undefined,
-  });
+  const {allTasks, customTasks, active, upcoming, complete} = getOnboardingTasks();
 
   const markTasksAsSeen = useCallback(
     async function () {
