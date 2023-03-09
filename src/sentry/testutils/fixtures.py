@@ -193,10 +193,6 @@ class Fixtures:
         return Factories.create_release_file(release_id, file, name, dist_id)
 
     def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
-        if org is None:
-            org = self.organization.slug
-        if release is None:
-            release = self.release.version
         return Factories.create_artifact_bundle(org, release, *args, **kwargs)
 
     def create_release_archive(self, org=None, release=None, *args, **kwargs):
