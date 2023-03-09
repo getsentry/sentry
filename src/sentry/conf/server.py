@@ -1134,6 +1134,8 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-normalize": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
+    # Use a larger sample size & merge threshold for transaction clustering.
+    "organizations:transaction-name-clusterer-2x": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1250,6 +1252,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable Session Replay showing in the sidebar
+    "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -1321,8 +1325,6 @@ SENTRY_FEATURES = {
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
     "organizations:org-roles-for-teams": False,
-    # Enable the in-app source map debugging feature
-    "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
     # Adds additional filters and a new section to issue alert rules.
