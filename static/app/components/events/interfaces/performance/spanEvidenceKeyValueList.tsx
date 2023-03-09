@@ -85,7 +85,12 @@ export function SpanEvidenceKeyValueList({
 
   return (
     <ClippedBox clipHeight={300}>
-      <Component event={event} orgSlug={orgSlug} {...spanInfo} />
+      <Component
+        event={event}
+        orgSlug={orgSlug}
+        projectSlug={projectSlug}
+        {...spanInfo}
+      />
     </ClippedBox>
   );
 }
@@ -198,18 +203,20 @@ const SlowDBQueryEvidence = ({
   offendingSpans,
   orgSlug,
   projectSlug,
-}: SpanEvidenceKeyValueListProps) => (
-  <PresortedKeyValueList
-    data={[
-      makeTransactionNameRow(event, orgSlug, projectSlug),
-      makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
-      makeRow(
-        t('Duration Impact'),
-        getSingleSpanDurationImpact(event, offendingSpans[0])
-      ),
-    ]}
-  />
-);
+}: SpanEvidenceKeyValueListProps) => {
+  return (
+    <PresortedKeyValueList
+      data={[
+        makeTransactionNameRow(event, orgSlug, projectSlug),
+        makeRow(t('Slow DB Query'), getSpanEvidenceValue(offendingSpans[0])),
+        makeRow(
+          t('Duration Impact'),
+          getSingleSpanDurationImpact(event, offendingSpans[0])
+        ),
+      ]}
+    />
+  );
+};
 
 const RenderBlockingAssetSpanEvidence = ({
   event,
