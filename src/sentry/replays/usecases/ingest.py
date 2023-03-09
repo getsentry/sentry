@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from datetime import datetime, timezone
 from io import BytesIO
-from typing import TypedDict, Union
+from typing import List, TypedDict, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -265,3 +265,38 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
+
+
+@dataclasses.dataclass
+class IndexMessage:
+    action: str
+    element: str
+    id: str
+    classes: List[str]
+    aria_label: str
+    aria_role: str
+    role: str
+    text_content: str
+    node_id: int
+    timestamp: int
+
+
+def parse_events(segment_data: bytes) -> List[IndexMessage]:
+    events = json.loads(segment_data)
+    for event in events:
+        if event["type"] == 5 and event["data"].get("tag") == "ui.interaction":
+            payload = event["data"]["payload"]
+            if payload["action"] == "click":
+                node = payload["node"]
+                yield IndexMessage(
+                    action="click",
+                    element=node["tagName"],
+                    id=node["attributes"].get("id", ""),
+                    classes=node["attributes"].get("class", "").split(" "),
+                    aria_label=node["attributes"].get("aria_label", ""),
+                    aria_role=node["attributes"].get("aria_role", ""),
+                    role=node["attributes"].get("role", ""),
+                    text_content=node["text_content"],
+                    node_id=node["id"],
+                    timestamp=event["timestamp"],
+                )
