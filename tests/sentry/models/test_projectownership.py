@@ -360,7 +360,7 @@ class ProjectOwnershipTestCase(TestCase):
         ProjectOwnership.handle_auto_assignment(self.project2.id, self.event)
         assert len(GroupAssignee.objects.all()) == 1
         assignee = GroupAssignee.objects.get(group=self.event.group)
-        assert assignee.user_id == self.user.id
+        assert assignee.user_id == self.user2.id
 
     def test_handle_skip_auto_assignment(self):
         """Test that if an issue has already been manually assigned, we skip overriding the assignment
