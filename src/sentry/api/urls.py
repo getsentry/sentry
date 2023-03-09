@@ -511,38 +511,83 @@ __all__ = ("urlpatterns",)
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
 GROUP_URLS = [
-    url(r"^(?P<issue_id>[^\/]+)/$", GroupDetailsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/activities/$", GroupActivitiesEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/events/$", GroupEventsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/events/latest/$", GroupEventsLatestEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/events/oldest/$", GroupEventsOldestEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$", GroupNotesEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/$",
+        GroupDetailsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/activities/$",
+        GroupActivitiesEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/events/$",
+        GroupEventsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/events/latest/$",
+        GroupEventsLatestEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/events/oldest/$",
+        GroupEventsOldestEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/$",
+        GroupNotesEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:notes|comments)/(?P<note_id>[^\/]+)/$",
         GroupNotesDetailsEndpoint.as_view(),
     ),
-    url(r"^(?P<issue_id>[^\/]+)/hashes/$", GroupHashesEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/grouping/levels/$", GroupingLevelsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/hashes/$",
+        GroupHashesEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/grouping/levels/$",
+        GroupingLevelsEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/grouping/levels/(?P<id>[^\/]+)/new-issues/$",
         GroupingLevelNewIssuesEndpoint.as_view(),
     ),
-    url(r"^(?P<issue_id>[^\/]+)/hashes/split/$", GroupHashesSplitEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/hashes/split/$",
+        GroupHashesSplitEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/reprocessing/$",
         GroupReprocessingEndpoint.as_view(),
         name="sentry-api-0-issues-reprocessing",
     ),
-    url(r"^(?P<issue_id>[^\/]+)/stats/$", GroupStatsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/tags/$", GroupTagsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$", GroupTagKeyDetailsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$", GroupTagKeyValuesEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/stats/$",
+        GroupStatsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/tags/$",
+        GroupTagsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/$",
+        GroupTagKeyDetailsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/tags/(?P<key>[^/]+)/values/$",
+        GroupTagKeyValuesEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/(?:user-feedback|user-reports)/$",
         GroupUserReportsEndpoint.as_view(),
     ),
-    url(r"^(?P<issue_id>[^\/]+)/attachments/$", GroupAttachmentsEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/similar/$", GroupSimilarIssuesEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/attachments/$",
+        GroupAttachmentsEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/similar/$",
+        GroupSimilarIssuesEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/external-issues/$",
         GroupExternalIssuesEndpoint.as_view(),
@@ -552,16 +597,28 @@ GROUP_URLS = [
         r"^(?P<issue_id>[^\/]+)/external-issues/(?P<external_issue_id>\d+)/$",
         GroupExternalIssueDetailsEndpoint.as_view(),
     ),
-    url(r"^(?P<issue_id>[^\/]+)/integrations/$", GroupIntegrationsEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/integrations/$",
+        GroupIntegrationsEndpoint.as_view(),
+    ),
     url(
         r"^(?P<issue_id>[^\/]+)/integrations/(?P<integration_id>\d+)/$",
         GroupIntegrationDetailsEndpoint.as_view(),
         name="integration-details",
     ),
-    url(r"^(?P<issue_id>[^\/]+)/current-release/$", GroupCurrentReleaseEndpoint.as_view()),
-    url(r"^(?P<issue_id>[^\/]+)/first-last-release/$", GroupFirstLastReleaseEndpoint.as_view()),
+    url(
+        r"^(?P<issue_id>[^\/]+)/current-release/$",
+        GroupCurrentReleaseEndpoint.as_view(),
+    ),
+    url(
+        r"^(?P<issue_id>[^\/]+)/first-last-release/$",
+        GroupFirstLastReleaseEndpoint.as_view(),
+    ),
     # Load plugin group urls
-    url(r"^(?P<issue_id>[^\/]+)/plugins?/", include("sentry.plugins.base.group_api_urls")),
+    url(
+        r"^(?P<issue_id>[^\/]+)/plugins?/",
+        include("sentry.plugins.base.group_api_urls"),
+    ),
 ]
 
 urlpatterns = [
@@ -570,7 +627,11 @@ urlpatterns = [
         r"^relays/",
         include(
             [
-                url(r"^$", RelayIndexEndpoint.as_view(), name="sentry-api-0-relays-index"),
+                url(
+                    r"^$",
+                    RelayIndexEndpoint.as_view(),
+                    name="sentry-api-0-relays-index",
+                ),
                 url(
                     r"^register/challenge/$",
                     RelayRegisterChallengeEndpoint.as_view(),
@@ -610,7 +671,11 @@ urlpatterns = [
         ),
     ),
     # Api Data
-    url(r"^assistant/$", AssistantEndpoint.as_view(), name="sentry-api-0-assistant"),
+    url(
+        r"^assistant/$",
+        AssistantEndpoint.as_view(),
+        name="sentry-api-0-assistant",
+    ),
     url(
         r"^api-applications/$",
         ApiApplicationsEndpoint.as_view(),
@@ -626,7 +691,11 @@ urlpatterns = [
         ApiAuthorizationsEndpoint.as_view(),
         name="sentry-api-0-api-authorizations",
     ),
-    url(r"^api-tokens/$", ApiTokensEndpoint.as_view(), name="sentry-api-0-api-tokens"),
+    url(
+        r"^api-tokens/$",
+        ApiTokensEndpoint.as_view(),
+        name="sentry-api-0-api-tokens",
+    ),
     url(
         r"^prompts-activity/$",
         PromptsActivityEndpoint.as_view(),
@@ -637,9 +706,21 @@ urlpatterns = [
         r"^auth/",
         include(
             [
-                url(r"^$", AuthIndexEndpoint.as_view(), name="sentry-api-0-auth"),
-                url(r"^config/$", AuthConfigEndpoint.as_view(), name="sentry-api-0-auth-config"),
-                url(r"^login/$", AuthLoginEndpoint.as_view(), name="sentry-api-0-auth-login"),
+                url(
+                    r"^$",
+                    AuthIndexEndpoint.as_view(),
+                    name="sentry-api-0-auth",
+                ),
+                url(
+                    r"^config/$",
+                    AuthConfigEndpoint.as_view(),
+                    name="sentry-api-0-auth-config",
+                ),
+                url(
+                    r"^login/$",
+                    AuthLoginEndpoint.as_view(),
+                    name="sentry-api-0-auth-login",
+                ),
             ]
         ),
     ),
@@ -650,8 +731,15 @@ urlpatterns = [
         name="sentry-api-0-authenticator-index",
     ),
     # Broadcasts
-    url(r"^broadcasts/$", BroadcastIndexEndpoint.as_view(), name="sentry-api-0-broadcast-index"),
-    url(r"^broadcasts/(?P<broadcast_id>[^\/]+)/$", BroadcastDetailsEndpoint.as_view()),
+    url(
+        r"^broadcasts/$",
+        BroadcastIndexEndpoint.as_view(),
+        name="sentry-api-0-broadcast-index",
+    ),
+    url(
+        r"^broadcasts/(?P<broadcast_id>[^\/]+)/$",
+        BroadcastDetailsEndpoint.as_view(),
+    ),
     # Project transfer
     url(
         r"^accept-transfer/$",
@@ -710,7 +798,11 @@ urlpatterns = [
         r"^users/",
         include(
             [
-                url(r"^$", UserIndexEndpoint.as_view(), name="sentry-api-0-user-index"),
+                url(
+                    r"^$",
+                    UserIndexEndpoint.as_view(),
+                    name="sentry-api-0-user-index",
+                ),
                 url(
                     r"^(?P<user_id>[^\/]+)/$",
                     UserDetailsEndpoint.as_view(),
@@ -872,7 +964,11 @@ urlpatterns = [
         r"^organizations/",
         include(
             [
-                url(r"^$", OrganizationIndexEndpoint.as_view(), name="sentry-api-0-organizations"),
+                url(
+                    r"^$",
+                    OrganizationIndexEndpoint.as_view(),
+                    name="sentry-api-0-organizations",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/$",
                     OrganizationDetailsEndpoint.as_view(),
@@ -1818,7 +1914,11 @@ urlpatterns = [
                     ProjectAgnosticRuleConditionsEndpoint.as_view(),
                     name="sentry-api-0-project-agnostic-rule-conditions",
                 ),
-                url(r"^$", ProjectIndexEndpoint.as_view(), name="sentry-api-0-projects"),
+                url(
+                    r"^$",
+                    ProjectIndexEndpoint.as_view(),
+                    name="sentry-api-0-projects",
+                ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
                     ProjectDetailsEndpoint.as_view(),
@@ -2335,7 +2435,10 @@ urlpatterns = [
         name="sentry-api-0-profiling-project-profile",
     ),
     # Groups
-    url(r"^(?:issues|groups)/", include(GROUP_URLS)),
+    url(
+        r"^(?:issues|groups)/",
+        include(GROUP_URLS),
+    ),
     # TODO: include in the /organizations/ route tree + remove old dupe once hybrid cloud launches
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/issues/(?P<issue_id>[^\/]+)/participants/$",
@@ -2359,7 +2462,11 @@ urlpatterns = [
         name="sentry-api-0-shared-group-details",
     ),
     # Sentry Apps
-    url(r"^sentry-apps/$", SentryAppsEndpoint.as_view(), name="sentry-api-0-sentry-apps"),
+    url(
+        r"^sentry-apps/$",
+        SentryAppsEndpoint.as_view(),
+        name="sentry-api-0-sentry-apps",
+    ),
     url(
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
@@ -2483,13 +2590,34 @@ urlpatterns = [
                     InternalBeaconEndpoint.as_view(),
                     name="sentry-api-0-internal-beacon",
                 ),
-                url(r"^quotas/$", InternalQuotasEndpoint.as_view()),
-                url(r"^queue/tasks/$", InternalQueueTasksEndpoint.as_view()),
-                url(r"^stats/$", InternalStatsEndpoint.as_view()),
-                url(r"^warnings/$", InternalWarningsEndpoint.as_view()),
-                url(r"^packages/$", InternalPackagesEndpoint.as_view()),
-                url(r"^environment/$", InternalEnvironmentEndpoint.as_view()),
-                url(r"^mail/$", InternalMailEndpoint.as_view()),
+                url(
+                    r"^quotas/$",
+                    InternalQuotasEndpoint.as_view(),
+                ),
+                url(
+                    r"^queue/tasks/$",
+                    InternalQueueTasksEndpoint.as_view(),
+                ),
+                url(
+                    r"^stats/$",
+                    InternalStatsEndpoint.as_view(),
+                ),
+                url(
+                    r"^warnings/$",
+                    InternalWarningsEndpoint.as_view(),
+                ),
+                url(
+                    r"^packages/$",
+                    InternalPackagesEndpoint.as_view(),
+                ),
+                url(
+                    r"^environment/$",
+                    InternalEnvironmentEndpoint.as_view(),
+                ),
+                url(
+                    r"^mail/$",
+                    InternalMailEndpoint.as_view(),
+                ),
                 url(
                     r"^project-config/$",
                     AdminRelayProjectConfigsEndpoint.as_view(),
@@ -2499,14 +2627,26 @@ urlpatterns = [
         ),
     ),
     # Project Wizard
-    url(r"^wizard/$", SetupWizard.as_view(), name="sentry-api-0-project-wizard-new"),
+    url(
+        r"^wizard/$",
+        SetupWizard.as_view(),
+        name="sentry-api-0-project-wizard-new",
+    ),
     url(
         r"^wizard/(?P<wizard_hash>[^\/]+)/$",
         SetupWizard.as_view(),
         name="sentry-api-0-project-wizard",
     ),
     # Catch all
-    url(r"^$", IndexEndpoint.as_view(), name="sentry-api-index"),
-    url(r"^", CatchallEndpoint.as_view(), name="sentry-api-catchall"),
+    url(
+        r"^$",
+        IndexEndpoint.as_view(),
+        name="sentry-api-index",
+    ),
+    url(
+        r"^",
+        CatchallEndpoint.as_view(),
+        name="sentry-api-catchall",
+    ),
     # url(r'^api-auth/', include('rest_framework.urls', namespace='rest_framework'))
 ]
