@@ -121,7 +121,8 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
 
         auditlog = AuditLogEntry.objects.filter(
-            organization=self.project.organization, event=audit_log.get_event_id("PROJECT_EDIT")
+            organization_id=self.project.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
         )
         assert len(auditlog) == 1
         assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
