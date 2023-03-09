@@ -99,6 +99,17 @@ def _handle_image_status(status, image, sdk_info, data):
         if not package or is_known_third_party(package, sdk_info=sdk_info):
             return
 
+        # FIXME(swatinem): .NET never had debug images before, and it is possible
+        # to send fully symbolicated events from the SDK.
+        # Updating to an SDK that does send images would otherwise trigger these
+        # errors all the time if debug files were missing, even though the event
+        # was already fully symbolicated on the client.
+        # We are just completely filtering out these errors here. Ideally, we
+        # would rather do this selectively, only for images that were referenced
+        # from non-symbolicated frames.
+        if image.get("type") == "pe_dotnet":
+            return
+
         if is_optional_package(package, sdk_info=sdk_info):
             error = SymbolicationFailed(type=EventError.NATIVE_MISSING_OPTIONALLY_BUNDLED_DSYM)
         else:
