@@ -27,6 +27,7 @@ type Props = {
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
   newestFirst?: boolean;
+  showIcon?: boolean;
 };
 
 function Content({
@@ -39,6 +40,7 @@ function Content({
   isHoverPreviewed,
   groupingCurrentLevel,
   meta,
+  showIcon,
   includeSystemFrames = true,
   expandFirstFrame = true,
 }: Props) {
@@ -252,7 +254,7 @@ function Content({
 
   return (
     <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
-      <StacktracePlatformIcon platform={platformIcon} />
+      {showIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );

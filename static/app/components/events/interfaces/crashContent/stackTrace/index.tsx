@@ -17,6 +17,7 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   stacktrace: StacktraceType;
   meta?: Record<any, any>;
   nativeV2?: boolean;
+  showIcon?: boolean;
   stackView?: STACK_VIEW;
 };
 
@@ -30,6 +31,7 @@ function StackTrace({
   groupingCurrentLevel,
   nativeV2,
   meta,
+  showIcon = true,
 }: Props) {
   if (stackView === STACK_VIEW.RAW) {
     return (
@@ -52,6 +54,7 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
+          showIcon={showIcon}
         />
       </ErrorBoundary>
     );
@@ -69,6 +72,7 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
+          showIcon={showIcon}
         />
       </ErrorBoundary>
     );
@@ -84,6 +88,7 @@ function StackTrace({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
+        showIcon={showIcon}
       />
     </ErrorBoundary>
   );

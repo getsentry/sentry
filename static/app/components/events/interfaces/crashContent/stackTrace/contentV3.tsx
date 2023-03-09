@@ -21,6 +21,7 @@ type Props = {
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
   newestFirst?: boolean;
+  showIcon?: boolean;
 };
 
 function Content({
