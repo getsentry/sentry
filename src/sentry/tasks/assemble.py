@@ -369,7 +369,7 @@ def handle_assemble_for_release_file(bundle, archive, organization, version):
         _store_single_files(archive, meta, True)
 
 
-def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, project_ids, dist):
+def handle_assemble_for_artifact_bundle(bundle, archive, organization, version, dist, project_ids):
     # We want to give precedence to the request fields and only if they are unset fallback to the manifest's
     # contents.
     version = version or archive.manifest.get("release")
@@ -435,7 +435,7 @@ def assemble_artifacts(
         with archive:
             if upload_as_artifact_bundle:
                 handle_assemble_for_artifact_bundle(
-                    bundle, archive, organization, version, project_ids, dist
+                    bundle, archive, organization, version, dist, project_ids
                 )
             else:
                 handle_assemble_for_release_file(bundle, archive, organization, version)
