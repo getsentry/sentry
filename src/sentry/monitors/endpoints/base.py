@@ -4,6 +4,7 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
+from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
@@ -114,19 +115,27 @@ class MonitorEndpoint(Endpoint):
 
 
 class MonitorCheckInEndpoint(MonitorEndpoint):
+    # Checkins are available via DNS authentication
+    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
+
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
     def convert_args(
         self,
         request: Request,
         monitor_id: str,
-        checkin_id: str,
+        checkin_id: str | None = None,
         *args,
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, monitor_id, *args, **kwargs)
 
+        # Ignore lookup of checkin if no ID is present
+        if checkin_id is None:
+            return args, kwargs
+
         monitor = kwargs["monitor"]
+
         # we support the magic keyword of "latest" to grab the most recent check-in
         # which is unfinished (thus still mutable)
         if checkin_id == "latest":
