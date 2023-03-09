@@ -1,0 +1,394 @@
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+import {isAppleDevice, isMac} from '@react-aria/utils';
+
+import {Button} from 'sentry/components/button';
+import Checkbox from 'sentry/components/checkbox';
+import {
+  CompactSelect,
+  MultipleSelectProps,
+  SelectOption,
+  SelectOptionOrSection,
+} from 'sentry/components/compactSelect';
+import {IconInfo} from 'sentry/icons/iconInfo';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
+
+export interface HybridFilterProps<Value extends React.Key>
+  extends Omit<
+    MultipleSelectProps<Value>,
+    'value' | 'defaultValue' | 'onChange' | 'multiple'
+  > {
+  onChange: (selected: Value[]) => void;
+  value: Value[];
+  checkboxWrapper?: (
+    renderCheckbox: (props: React.ComponentProps<typeof Checkbox>) => React.ReactNode
+  ) => React.ReactNode;
+  /**
+   * Message to show in the menu footer
+   */
+  menuFooterMessage?: string;
+  multiple?: boolean;
+  onReplace?: (selected: Value) => void;
+  onToggle?: (selected: Value[]) => void;
+}
+
+/**
+ * A special filter component with "hybrid" (both single and multiple) selection, made
+ * specifically for page filters. Clicking on an option will select only that option
+ * (single selection). Command/ctrl-clicking on an option or clicking on it's checkbox
+ * will add the option to the selection state (multiple selection).
+ *
+ * Note: this component is controlled only — changes must be handled via the `onChange`
+ * callback.
+ */
+export function HybridFilter<Value extends React.Key>({
+  options,
+  multiple,
+  value,
+  onClear,
+  onChange,
+  onReplace,
+  onToggle,
+  menuFooter,
+  menuFooterMessage,
+  checkboxWrapper,
+  ...selectProps
+}: HybridFilterProps<Value>) {
+  /**
+   * An internal set of staged, uncommitted values. In multiple selection mode (the user
+   * command/ctrl-clicked on an option or clicked directly on a checkbox), changes
+   * aren't committed right away. They are stored as a temporary set of staged values
+   * that can be reset by clicking "Cancel" or committed by clicking "Apply".
+   */
+  const [stagedValue, setStagedValue] = useState<Value[]>([]);
+
+  // Update `stagedValue` whenever the external `value` changes
+  useEffect(() => setStagedValue(value), [value]);
+
+  const commit = useCallback(
+    (val: Value[]) => {
+      setStagedValue(val); // reset staged value
+      onChange?.(val);
+    },
+    [onChange]
+  );
+
+  const removeStagedChanges = useCallback(() => setStagedValue(value), [value]);
+
+  const commitStagedChanges = useCallback(
+    () => commit(stagedValue),
+    [commit, stagedValue]
+  );
+
+  /**
+   * Whether there are staged, uncommitted changes. Used to determine whether we should
+   * show the "Cancel"/"Apply" buttons.
+   */
+  const hasStagedChanges = useMemo(
+    () =>
+      stagedValue.length !== value.length ||
+      !stagedValue.every(val => value.includes(val)),
+    [value, stagedValue]
+  );
+
+  const toggleOption = useCallback(
+    (val: Value) => {
+      setStagedValue(cur => {
+        const newSet = new Set(cur);
+        if (newSet.has(val)) {
+          newSet.delete(val);
+        } else {
+          newSet.add(val);
+        }
+
+        const newValue = [...newSet];
+        onToggle?.(newValue);
+        return newValue;
+      });
+    },
+    [onToggle]
+  );
+
+  /**
+   * Whether a modifier key (ctrl/alt/shift) is being pressed. If true, the selector is
+   * in multiple selection mode.
+   */
+  const [modifierKeyPressed, setModifierKeyPressed] = useState(false);
+  const onKeyUp = useCallback(() => setModifierKeyPressed(false), []);
+  const onKeyDown = useCallback(
+    e => {
+      e.key === 'Escape' && commitStagedChanges();
+      setModifierKeyPressed(isModifierKeyPressed(e));
+    },
+    [commitStagedChanges]
+  );
+
+  const mappedOptions = useMemo<SelectOptionOrSection<Value>[]>(() => {
+    const mapOption = (option: SelectOption<Value>): SelectOption<Value> => ({
+      ...option,
+      hideCheck: true,
+      trailingItems: ({isFocused, isSelected, disabled}) => {
+        const TrailingCheckbox = (props: React.ComponentProps<typeof Checkbox>) => (
+          <CheckWrap
+            visible={isFocused || isSelected || (!!multiple && modifierKeyPressed)}
+            role="presentation"
+          >
+            <Checkbox
+              size="sm"
+              checked={isSelected}
+              disabled={disabled || props.disabled}
+              onChange={() => toggleOption(option.value)}
+              aria-label={t('Select %s', option.label)}
+              {...props}
+            />
+          </CheckWrap>
+        );
+
+        return (
+          <TrailingWrap
+            onKeyDown={e => e.stopPropagation()}
+            onPointerDown={e => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
+          >
+            {typeof option.trailingItems === 'function'
+              ? option.trailingItems({isFocused, isSelected, disabled})
+              : option.trailingItems}
+            {checkboxWrapper ? (
+              checkboxWrapper(props => <TrailingCheckbox {...props} />)
+            ) : (
+              <TrailingCheckbox />
+            )}
+          </TrailingWrap>
+        );
+      },
+    });
+
+    return options.map(item =>
+      'options' in item
+        ? {...item, options: item.options.map(mapOption)}
+        : mapOption(item)
+    );
+  }, [options, toggleOption, multiple, checkboxWrapper, modifierKeyPressed]);
+
+  const [modifierTipSeen, setModifierTipSeen] = useSyncedLocalStorageState(
+    'hybrid-filter:modifier-tip-seen',
+    false
+  );
+  const renderFooter = useMemo(() => {
+    const showModifierTip =
+      multiple && options.length > 1 && !hasStagedChanges && !modifierTipSeen;
+    return menuFooter || hasStagedChanges || showModifierTip
+      ? ({closeOverlay}) => (
+          <Fragment>
+            {menuFooterMessage && <FooterMessage>{menuFooterMessage}</FooterMessage>}
+            <FooterWrap>
+              <FooterInnerWrap>{menuFooter}</FooterInnerWrap>
+              {showModifierTip && (
+                <FooterTip>
+                  <IconInfo size="xs" />
+                  <FooterTipMessage>
+                    {isMac()
+                      ? t('Command-click to select multiple')
+                      : t('Ctrl-click to select multiple')}
+                  </FooterTipMessage>
+                </FooterTip>
+              )}
+              {hasStagedChanges && (
+                <FooterInnerWrap>
+                  <Button
+                    borderless
+                    size="xs"
+                    onClick={() => {
+                      closeOverlay();
+                      removeStagedChanges();
+                    }}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    borderless
+                    size="xs"
+                    priority="primary"
+                    onClick={() => {
+                      closeOverlay();
+                      commit(stagedValue);
+                    }}
+                  >
+                    {t('Apply')}
+                  </Button>
+                </FooterInnerWrap>
+              )}
+            </FooterWrap>
+          </Fragment>
+        )
+      : null;
+  }, [
+    options,
+    commit,
+    stagedValue,
+    removeStagedChanges,
+    menuFooter,
+    menuFooterMessage,
+    hasStagedChanges,
+    multiple,
+    modifierTipSeen,
+  ]);
+
+  const sectionToggleWasPressed = useRef(false);
+  const onSectionToggle = useCallback(() => (sectionToggleWasPressed.current = true), []);
+
+  const handleChange = useCallback(
+    (selectedOptions: SelectOption<Value>[]) => {
+      const oldValue = stagedValue;
+      const newValue = selectedOptions.map(op => op.value);
+      const oldValueSet = new Set(oldValue);
+      const newValueSet = new Set(newValue);
+
+      // Find out which options were added/removed by comparing the old and new value
+      newValueSet.forEach(val => {
+        if (oldValueSet.has(val)) {
+          newValueSet.delete(val);
+          oldValueSet.delete(val);
+        }
+      });
+      const diff = newValueSet.size > 0 ? [...newValueSet] : [...oldValueSet];
+
+      // A section toggle button was clicked
+      if (diff.length > 1 || sectionToggleWasPressed.current) {
+        sectionToggleWasPressed.current = false;
+        commit(newValue);
+        return;
+      }
+
+      // A modifier key is being pressed --> enter multiple selection mode
+      if (multiple && modifierKeyPressed) {
+        !modifierTipSeen && setModifierTipSeen(true);
+        toggleOption(diff[0]);
+        return;
+      }
+
+      // Only one option was clicked on --> use single, direct selection mode
+      onReplace?.(diff[0]);
+      commit(diff);
+    },
+    [
+      commit,
+      stagedValue,
+      toggleOption,
+      onReplace,
+      multiple,
+      modifierKeyPressed,
+      modifierTipSeen,
+      setModifierTipSeen,
+    ]
+  );
+
+  const handleClear = useCallback(() => {
+    onClear?.();
+    commit([]);
+  }, [onClear, commit]);
+
+  return (
+    <CompactSelect
+      grid
+      multiple
+      clearable={multiple}
+      closeOnSelect={!(multiple && modifierKeyPressed)}
+      options={mappedOptions}
+      value={stagedValue}
+      onChange={handleChange}
+      onClear={handleClear}
+      onSectionToggle={onSectionToggle}
+      onInteractOutside={commitStagedChanges}
+      menuFooter={renderFooter}
+      onKeyDown={onKeyDown}
+      onKeyUp={onKeyUp}
+      {...selectProps}
+    />
+  );
+}
+
+/**
+ * Whether a key that modifies the selection behavior (ctrl/alt/shift) is being pressed.
+ * Based on:
+ * https://github.com/adobe/react-spectrum/blob/main/packages/%40react-aria/selection/src/utils.ts
+ */
+function isModifierKeyPressed(e: React.KeyboardEvent<HTMLDivElement>) {
+  return (
+    (isAppleDevice() ? e.altKey : e.ctrlKey) || // contiguous selection modifier
+    (isMac() ? e.metaKey : e.ctrlKey) || // ctrl key
+    e.shiftKey
+  );
+}
+
+const TrailingWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const CheckWrap = styled('div')<{visible: boolean}>`
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  opacity: ${p => (p.visible ? 1 : 0.5)};
+  padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+`;
+
+const FooterWrap = styled('div')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(2)};
+`;
+
+const FooterMessage = styled('p')`
+  padding-bottom: ${space(1)};
+  margin-bottom: ${space(1)};
+  border-bottom: solid 1px ${p => p.theme.innerBorder};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const FooterTip = styled('p')`
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(0.5)};
+  align-items: center;
+  justify-content: center;
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  margin: 0;
+
+  /* Right-align content if there's non-empty content to the left */
+  div:not(:empty) ~ & {
+    justify-content: end;
+  }
+`;
+
+const FooterTipMessage = styled('span')`
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const FooterInnerWrap = styled('div')`
+  grid-row: -1;
+  display: grid;
+  grid-auto-flow: column;
+  gap: ${space(1)};
+
+  &:empty {
+    display: none;
+  }
+
+  &:last-of-type {
+    justify-self: end;
+    justify-items: end;
+  }
+  &:first-of-type,
+  &:only-child {
+    justify-self: start;
+    justify-items: start;
+  }
+`;
