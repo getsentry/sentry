@@ -94,7 +94,7 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     with configure_scope() as scope:
         response = requests.get(
             url,
-            params={},
+            params={"walk_back": 10},
             headers={"Authorization": f"Bearer {codecov_token}"},
             timeout=CODECOV_TIMEOUT,
         )
