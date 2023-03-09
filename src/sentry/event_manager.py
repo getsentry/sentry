@@ -521,7 +521,7 @@ class EventManager:
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
         # _save_aggregate needs special logic to not create orphaned hashes in migration cases
         # but it wants a different logic to implement splitting of hierarchical hashes.
-        migrate_off_hierarchical = (
+        migrate_off_hierarchical = bool(
             secondary_hashes
             and secondary_hashes.hierarchical_hashes
             and not hashes.hierarchical_hashes
