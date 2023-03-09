@@ -348,9 +348,7 @@ def handle_assemble_for_release_file(bundle, archive, organization, version):
         raise AssembleArtifactsError("release does not exist")
 
     dist_name = manifest.get("dist")
-    dist = None
-    if dist_name:
-        dist = release.add_dist(dist_name)
+    dist = release.add_dist(dist_name) if dist_name else None
 
     artifact_count = archive.get_artifact_count()
     min_artifact_count = options.get("processing.release-archive-min-files")
