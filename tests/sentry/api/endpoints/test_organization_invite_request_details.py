@@ -88,7 +88,7 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
         assert not OrganizationMember.objects.filter(id=self.invite_request.id).exists()
 
         audit_log_entry = AuditLogEntry.objects.get(
-            organization=self.org,
+            organization_id=self.org.id,
             actor=self.user,
             event=audit_log.get_event_id("INVITE_REQUEST_REMOVE"),
         )
@@ -181,7 +181,9 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase):
         assert mock_invite_email.call_count == 1
 
         audit_log_entry = AuditLogEntry.objects.get(
-            organization=self.org, actor=self.user, event=audit_log.get_event_id("MEMBER_INVITE")
+            organization_id=self.org.id,
+            actor=self.user,
+            event=audit_log.get_event_id("MEMBER_INVITE"),
         )
         member = OrganizationMember.objects.get(
             id=self.invite_request.id, invite_status=InviteStatus.APPROVED.value

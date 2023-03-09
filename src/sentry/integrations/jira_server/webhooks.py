@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import Endpoint, pending_silo_endpoint
 from sentry.integrations.jira_server.utils import handle_assignee_change, handle_status_change
+from sentry.integrations.utils.cleanup import clear_tags_and_context
 from sentry.models import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
@@ -51,6 +52,7 @@ class JiraIssueUpdatedWebhook(Endpoint):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request, token, *args, **kwargs) -> Response:
+        clear_tags_and_context()
         extra = {}
         try:
             integration = get_integration_from_token(token)

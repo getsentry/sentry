@@ -64,62 +64,35 @@ class TestCodecovIntegration(APITestCase):
         assert has_integration
 
     @responses.activate
+    @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_get_codecov_report(self):
         expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
-        expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
+        expected_codecov_url = "https://app.codecov.io/gh/testgit/abc/commit/0f1e2d/path/to/file.py"
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/report",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py",
             status=200,
             json={
-                "files": [{"line_coverage": expected_line_coverage}],
+                "line_coverage": expected_line_coverage,
                 "commit_file_url": expected_codecov_url,
+                "commit_sha": "0f1e2d",
             },
         )
 
         coverage, url = get_codecov_data(
             repo="testgit/abc",
             service="github",
-            ref="master",
-            ref_type="branch",
             path="path/to/file.py",
-            organization=self.organization,
         )
         assert coverage == expected_line_coverage
         assert url == expected_codecov_url
 
     @responses.activate
     @with_feature("organizations:codecov-stacktrace-integration-v2")
-    def test_get_codecov_report_new_endpoint(self):
-        expected_line_coverage = [[1, 1], [2, 1], [3, 1], [4, 1], [5, 1]]
-        expected_codecov_url = "https://codecov.io/gh/testgit/abc/commit/abc"
+    def test_get_codecov_report_error(self):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
-            status=200,
-            json={
-                "files": [{"line_coverage": expected_line_coverage}],
-                "commit_file_url": expected_codecov_url,
-            },
-        )
-
-        coverage, url = get_codecov_data(
-            repo="testgit/abc",
-            service="github",
-            ref="master",
-            ref_type="branch",
-            path="path/to/file.py",
-            organization=self.organization,
-        )
-        assert coverage == expected_line_coverage
-        assert url == expected_codecov_url
-
-    @responses.activate
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
-    def test_get_codecov_report_new_endpoint_error(self):
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py?branch=master",
+            "https://api.codecov.io/api/v2/gh/testgit/repos/abc/file_report/path/to/file.py",
             status=404,
         )
 
@@ -127,10 +100,7 @@ class TestCodecovIntegration(APITestCase):
             _, _ = get_codecov_data(
                 repo="testgit/abc",
                 service="github",
-                ref="master",
-                ref_type="branch",
                 path="path/to/file.py",
-                organization=self.organization,
             )
 
             assert e.status == 404

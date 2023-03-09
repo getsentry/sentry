@@ -23,10 +23,12 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
 
-        if not span_id or not self._is_eligible_http_span(span) or self._overlaps_last_span(span):
+        if not span_id or not self._is_eligible_http_span(span):
+            return
+
+        if self._overlaps_last_span(span):
             self._validate_and_store_performance_problem()
             self._reset_variables()
-            return
 
         self._add_problem_span(span)
 
@@ -95,6 +97,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if (
             not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
         ):  # Just using all methods to see if anything interesting pops up
+            return False
+
+        if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
         return True

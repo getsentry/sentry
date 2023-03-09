@@ -19,7 +19,7 @@ from arroyo.backends.abstract import Consumer
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.backends.kafka.commit import CommitCodec
 from arroyo.errors import ConsumerError, EndOfPartition
-from arroyo.types import BrokerValue, Partition, Topic, TPayload
+from arroyo.types import BrokerValue, Partition, Topic, TStrategyPayload
 from arroyo.utils.concurrent import execute
 
 from sentry.utils import metrics
@@ -68,7 +68,7 @@ class Synchronized(Generic[T]):
             self.__value = value
 
 
-class SynchronizedConsumer(Consumer[TPayload]):
+class SynchronizedConsumer(Consumer[TStrategyPayload]):
     """
     This class implements a consumer that is can only consume messages that
     have already been consumed and committed b y one or more other consumer
@@ -94,7 +94,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
 
     def __init__(
         self,
-        consumer: Consumer[TPayload],
+        consumer: Consumer[TStrategyPayload],
         commit_log_consumer: Consumer[KafkaPayload],
         commit_log_topic: Topic,
         commit_log_groups: Set[str],
@@ -220,7 +220,7 @@ class SynchronizedConsumer(Consumer[TPayload]):
     def unsubscribe(self) -> None:
         return self.__consumer.unsubscribe()
 
-    def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[TPayload]]:
+    def poll(self, timeout: Optional[float] = None) -> Optional[BrokerValue[TStrategyPayload]]:
         self.__check_commit_log_worker_running()
 
         # Resume any partitions that can be resumed (where the local

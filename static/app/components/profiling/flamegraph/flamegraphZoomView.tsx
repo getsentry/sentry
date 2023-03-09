@@ -112,9 +112,6 @@ function FlamegraphZoomView({
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
-    if (flamegraph.profile.type === 'flamegraph') {
-      return null;
-    }
     if (!flamegraphOverlayCanvasRef) {
       return null;
     }
@@ -209,7 +206,8 @@ function FlamegraphZoomView({
             flamegraphView.configView,
             flamegraphCanvas.physicalSpace,
             flamegraphView.fromConfigView(flamegraphCanvas.physicalSpace),
-            flamegraphView.toConfigView(flamegraphCanvas.logicalSpace)
+            flamegraphView.toConfigView(flamegraphCanvas.logicalSpace),
+            flamegraph.profile.type === 'flamechart'
           );
         }
       : undefined;

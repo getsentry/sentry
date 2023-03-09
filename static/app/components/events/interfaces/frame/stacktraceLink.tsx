@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -34,6 +34,7 @@ import {
 } from 'sentry/utils/integrationUtil';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -106,7 +107,7 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
   );
 }
 
-function shouldshowCodecovFeatures(
+function shouldShowCodecovFeatures(
   organization: Organization,
   match: StacktraceLinkResult
 ) {
@@ -118,6 +119,18 @@ function shouldshowCodecovFeatures(
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return enabled && validStatus && match.config?.provider.key === 'github';
+}
+
+function shouldShowCodecovPrompt(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-integration') &&
+    organization.features.includes('codecov-stacktrace-integration-v2') &&
+    !organization.codecovAccess;
+
+  return enabled && match.config?.provider.key === 'github';
 }
 
 interface CodecovLinkProps {
@@ -159,6 +172,26 @@ function CodecovLink({
     <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
       <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
       {t('Open in Codecov')}
+    </OpenInLink>
+  );
+}
+
+function CodecovPrompt({organization}: {organization: Organization}) {
+  const onOpenCodecovLink = () => {
+    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_PROMPT_CLICKED, {
+      view: 'stacktrace_link',
+      organization,
+    });
+  };
+
+  return (
+    <OpenInLink
+      href="https://about.codecov.io/sign-up-sentry-codecov/"
+      openInNewTab
+      onClick={onOpenCodecovLink}
+    >
+      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      {t('Add Codecov test coverage')}
     </OpenInLink>
   );
 }
@@ -208,30 +241,20 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     }
   );
 
-  useEffect(() => {
-    if (isLoading || prompt.isLoading || !match) {
-      return;
-    }
-
-    trackIntegrationAnalytics(StacktraceLinkEvents.LINK_VIEWED, {
-      view: 'stacktrace_issue_details',
-      organization,
-      platform: project?.platform,
-      project_id: project?.id,
-      state:
-        // Should follow the same logic in render
-        match.sourceUrl
-          ? 'match'
-          : match.error || match.integrations.length > 0
-          ? 'no_match'
-          : !isPromptDismissed
-          ? 'prompt'
-          : 'empty',
-      ...getAnalyticsDataForEvent(event),
-    });
-    // excluding isPromptDismissed because we want this only to record once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, prompt.isLoading, match, organization, project, event]);
+  useRouteAnalyticsParams(
+    match
+      ? {
+          stacktrace_link_viewed: true,
+          stacktrace_link_status: match.sourceUrl
+            ? 'match'
+            : match.error || match.integrations.length
+            ? 'no_match'
+            : !isPromptDismissed
+            ? 'prompt'
+            : 'empty',
+        }
+      : {}
+  );
 
   const onOpenLink = () => {
     const provider = match!.config?.provider;
@@ -276,14 +299,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {shouldshowCodecovFeatures(organization, match) && (
+        {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
             coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
             status={match.codecov?.status}
             organization={organization}
             event={event}
           />
-        )}
+        ) : shouldShowCodecovPrompt(organization, match) ? (
+          <CodecovPrompt organization={organization} />
+        ) : null}
       </StacktraceLinkWrapper>
     );
   }
