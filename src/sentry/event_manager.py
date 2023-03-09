@@ -518,8 +518,13 @@ class EventManager:
 
         hashes = CalculatedHashes(
             hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=hashes.hierarchical_hashes,
-            tree_labels=hashes.tree_labels,
+            hierarchical_hashes=(
+                list(hashes.hierarchical_hashes)
+                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+            ),
+            tree_labels=(
+                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+            ),
         )
 
         if not do_background_grouping_before:
