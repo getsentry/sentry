@@ -1248,39 +1248,29 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _resolve_device_class(self, _: str) -> SelectType:
         return Function(
-            "if",
+            "multiIf",
             [
                 Function(
                     "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["low"])]
                 ),
                 "low",
                 Function(
-                    "if",
+                    "in",
                     [
-                        Function(
-                            "in",
-                            [
-                                self.builder.column("tags[device.class]"),
-                                list(DEVICE_CLASS["medium"]),
-                            ],
-                        ),
-                        "medium",
-                        Function(
-                            "if",
-                            [
-                                Function(
-                                    "in",
-                                    [
-                                        self.builder.column("tags[device.class]"),
-                                        list(DEVICE_CLASS["high"]),
-                                    ],
-                                ),
-                                "high",
-                                None,
-                            ],
-                        ),
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["medium"]),
                     ],
                 ),
+                "medium",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["high"]),
+                    ],
+                ),
+                "high",
+                None,
             ],
             DEVICE_CLASS_ALIAS,
         )

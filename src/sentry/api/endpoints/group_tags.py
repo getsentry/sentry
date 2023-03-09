@@ -40,7 +40,11 @@ class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
 
         tag_keys = tagstore.get_group_tag_keys_and_top_values(
-            group, environment_ids, keys=keys, value_limit=value_limit
+            group,
+            environment_ids,
+            keys=keys,
+            value_limit=value_limit,
+            tenant_ids={"organization_id": group.project.organization_id},
         )
 
         data = serialize(tag_keys, request.user)

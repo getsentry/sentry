@@ -47,6 +47,16 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
+from sentry.monitors.endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
+from sentry.monitors.endpoints.monitor_checkins import MonitorCheckInsEndpoint
+from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
+    OrganizationMonitorCheckInAttachmentEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_details import (
+    OrganizationMonitorDetailsEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
+from sentry.monitors.endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from sentry.replays.endpoints.organization_replay_count import OrganizationReplayCountEndpoint
 from sentry.replays.endpoints.organization_replay_events_meta import (
     OrganizationReplayEventsMetaEndpoint,
@@ -191,12 +201,13 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
-from .endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
-from .endpoints.monitor_checkins import MonitorCheckInsEndpoint
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
 from .endpoints.organization_api_key_index import OrganizationApiKeyIndexEndpoint
+from .endpoints.organization_artifactbundle_assemble import (
+    OrganizationArtifactBundleAssembleEndpoint,
+)
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_provider_send_reminders import (
@@ -292,12 +303,6 @@ from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
 )
-from .endpoints.organization_monitor_checkin_attachment import (
-    OrganizationMonitorCheckInAttachmentEndpoint,
-)
-from .endpoints.organization_monitor_details import OrganizationMonitorDetailsEndpoint
-from .endpoints.organization_monitor_stats import OrganizationMonitorStatsEndpoint
-from .endpoints.organization_monitors import OrganizationMonitorsEndpoint
 from .endpoints.organization_onboarding_continuation_email import (
     OrganizationOnboardingContinuationEmail,
 )
@@ -1102,6 +1107,11 @@ urlpatterns = [
                     r"^(?P<organization_slug>[^\/]+)/avatar/$",
                     OrganizationAvatarEndpoint.as_view(),
                     name="sentry-api-0-organization-avatar",
+                ),
+                url(
+                    r"^(?P<organization_slug>[^\/]+)/artifactbundle/assemble/$",
+                    OrganizationArtifactBundleAssembleEndpoint.as_view(),
+                    name="sentry-api-0-organization-artifactbundle-assemble",
                 ),
                 url(
                     r"^(?P<organization_slug>[^\/]+)/config/integrations/$",
