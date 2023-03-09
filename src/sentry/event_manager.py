@@ -1561,16 +1561,10 @@ def _save_aggregate(
 
     is_new = False
 
-    if root_hierarchical_grouphash is None:
-        # No hierarchical grouping was run, only consider flat hashes
-        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
-    elif root_hierarchical_grouphash.group_id is None:
-        # The root hash is not assigned to a group.
-        # We ran multiple grouping algorithms
-        # (see secondary grouping), and the hierarchical hash is new
-        new_hashes = [root_hierarchical_grouphash]
-    else:
-        new_hashes = []
+    # Figure out which group hashes need to have the group assigned.
+    new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+    if root_hierarchical_grouphash:
+        new_hashes.append(root_hierarchical_grouphash)
 
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
