@@ -67,7 +67,6 @@ def handle_assignee_change(
         return
 
     email = get_assignee_email(integration, assignee, use_email_scope)
-    # TODO(steve) check display name
     if not email:
         logger.info(
             "missing-assignee-email",
