@@ -40,9 +40,9 @@ class ArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
-    # NULL != NULL.
-    bundle_id = models.UUIDField(default="")
+    # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
+    # with nullable fields, since NULL != NULL.
+    bundle_id = models.UUIDField(default="00000000-00000000-00000000-00000000")
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
