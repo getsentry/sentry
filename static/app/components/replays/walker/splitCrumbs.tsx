@@ -135,15 +135,15 @@ const ScrollingList = styled('ul')`
 `;
 
 const Span = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 0;
   max-width: 240px;
 `;
 
 const Link = styled('a')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 0;
   text-decoration: underline;
 `;

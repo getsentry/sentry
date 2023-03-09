@@ -2,11 +2,14 @@ import {ComponentProps, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
+import BaseBadge from 'sentry/components/idBadge/baseBadge';
 import Placeholder from 'sentry/components/placeholder';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
+import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -17,7 +20,18 @@ type Props = {
 function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
-  const labelTitle = replayRecord?.user.display_name;
+
+  const {projects} = useProjects();
+  const project = projects.find(p => p.id === replayRecord?.project_id);
+
+  const labelTitle = replayRecord ? (
+    <Fragment>
+      {getShortEventId(replayRecord?.id)}
+      <ReplaysFeatureBadge />
+    </Fragment>
+  ) : (
+    <HeaderPlaceholder width="500px" height="24px" />
+  );
 
   return (
     <Breadcrumbs
@@ -30,12 +44,10 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
           label: t('Session Replay'),
         },
         {
-          label: labelTitle ? (
+          label: (
             <Fragment>
-              {labelTitle} <ReplaysFeatureBadge />
+              {<BaseBadge displayName={labelTitle} project={project} avatarSize={16} />}
             </Fragment>
-          ) : (
-            <HeaderPlaceholder width="500px" height="24px" />
           ),
         },
       ]}

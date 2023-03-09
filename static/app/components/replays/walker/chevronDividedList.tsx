@@ -19,7 +19,7 @@ function ChevronDividedList({items}: Props) {
           : [
               <Item key={`${i}-chev`} role="separator">
                 <Chevron>
-                  <IconChevron color="gray300" size="xs" direction="right" />
+                  <IconChevron color="gray500" size="xs" direction="right" />
                 </Chevron>
               </Item>,
               li,
@@ -34,7 +34,7 @@ const List = styled('ul')<{cols: number}>`
   margin: 0;
   list-style: none;
   display: grid;
-  gap: ${space(1)};
+  gap: ${space(0.75)};
   grid-template-columns: ${p =>
     p.cols <= 3
       ? `minmax(auto, max-content) max-content minmax(auto, max-content) max-content minmax(auto, max-content)`
@@ -51,8 +51,7 @@ const Item = styled('li')`
 `;
 
 const Chevron = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
 

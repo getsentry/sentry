@@ -2,6 +2,7 @@ import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DeleteButton from 'sentry/components/replays/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
@@ -33,12 +34,28 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 
       <ButtonActionsWrapper>
         <ShareButton />
+        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
         <DeleteButton />
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
 
       {replayRecord && crumbs ? (
-        <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+        <UserBadge
+          avatarSize={32}
+          displayName={<DisplayName>{replayRecord.user.display_name || ''}</DisplayName>}
+          user={{
+            username: replayRecord.user.display_name || '',
+            email: replayRecord.user.email || '',
+            id: replayRecord.user.id || '',
+            ip_address: replayRecord.user.ip || '',
+            name: replayRecord.user.username || '',
+          }}
+          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+          displayEmail={
+            <Cols>
+              <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+            </Cols>
+          }
+        />
       ) : (
         <HeaderPlaceholder />
       )}
@@ -61,9 +78,23 @@ const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: 0 ${space(3)};
+    gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
+`;
+
+const Cols = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
+`;
+
+// TODO: is there a header component i can pull?
+const DisplayName = styled('h1')`
+  color: ${p => p.theme.gray500};
+  font-weight: 500;
+  font-size: ${p => p.theme.headerFontSize};
+  margin: 0;
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default

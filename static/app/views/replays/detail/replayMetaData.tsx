@@ -1,18 +1,15 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Duration from 'sentry/components/duration';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
-import Tag, {Background} from 'sentry/components/tag';
+import ContextIcon from 'sentry/components/replays/contextIcon';
+import ErrorCount from 'sentry/components/replays/errorCount';
 import TimeSince from 'sentry/components/timeSince';
-import {IconCalendar, IconClock} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {IconCalendar} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
-import useProjects from 'sentry/utils/useProjects';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -21,9 +18,6 @@ type Props = {
 
 function ReplayMetaData({replayRecord}: Props) {
   const {pathname, query} = useLocation();
-  const {replaySlug} = useParams();
-  const {projects} = useProjects();
-  const [slug] = replaySlug.split(':');
 
   const errorsTabHref = {
     pathname,
@@ -37,50 +31,37 @@ function ReplayMetaData({replayRecord}: Props) {
 
   return (
     <KeyMetrics>
-      {replayRecord ? (
-        <ProjectBadge
-          project={projects.find(p => p.id === replayRecord.project_id) || {slug}}
-          avatarSize={16}
+      <KeyMetricLabel>{t('OS')}</KeyMetricLabel>
+      <KeyMetricData>
+        <ContextIcon
+          name={replayRecord?.os.name ?? ''}
+          version={replayRecord?.os.version ?? undefined}
         />
-      ) : (
-        <HeaderPlaceholder />
-      )}
+      </KeyMetricData>
 
+      <KeyMetricLabel>{t('Browser')}</KeyMetricLabel>
+      <KeyMetricData>
+        <ContextIcon
+          name={replayRecord?.browser.name ?? ''}
+          version={replayRecord?.browser.version ?? undefined}
+        />
+      </KeyMetricData>
+
+      <KeyMetricLabel>{t('Start Time')}</KeyMetricLabel>
       <KeyMetricData>
         {replayRecord ? (
           <Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.started_at} unitStyle="short" />
+            <TimeSince date={replayRecord.started_at} unitStyle="regular" />
           </Fragment>
         ) : (
           <HeaderPlaceholder />
         )}
       </KeyMetricData>
-      <KeyMetricData>
-        {replayRecord ? (
-          <Fragment>
-            <IconClock color="gray300" />
-            <Duration
-              seconds={Math.trunc(replayRecord?.duration.asSeconds())}
-              abbreviation
-              exact
-            />
-          </Fragment>
-        ) : (
-          <HeaderPlaceholder />
-        )}
-      </KeyMetricData>
-
+      <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
       {replayRecord ? (
         <StyledLink to={errorsTabHref}>
-          <ErrorTag
-            icon={null}
-            type={replayRecord.count_errors ? 'error' : 'black'}
-            level={replayRecord.count_errors ? 'fatal' : 'default'}
-          >
-            {replayRecord.count_errors}
-          </ErrorTag>
-          {tn('Error', 'Errors', replayRecord.count_errors)}
+          <ErrorCount countErrors={replayRecord.count_errors} />
         </StyledLink>
       ) : (
         <HeaderPlaceholder />
@@ -97,20 +78,23 @@ export const HeaderPlaceholder = styled(
   background-color: ${p => p.theme.background};
 `;
 
-const KeyMetrics = styled('div')`
-  display: flex;
-  gap: ${space(3)};
+const KeyMetrics = styled('dl')`
+  display: grid;
+  grid-template-rows: max-content 1fr;
+  grid-template-columns: repeat(4, max-content);
+  grid-auto-flow: column;
+  gap: 0 ${space(3)};
   align-items: center;
-  justify-content: end;
-  font-size: ${p => p.theme.fontSizeMedium};
-
-  @media (max-width: ${p => p.theme.breakpoints.medium}) {
-    justify-content: start;
-  }
+  color: ${p => p.theme.gray300};
+  margin: 0;
 `;
 
-const KeyMetricData = styled('div')`
-  color: ${p => p.theme.textColor};
+const KeyMetricLabel = styled('dt')`
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+const KeyMetricData = styled('dd')`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
   font-weight: normal;
   display: flex;
   align-items: center;
@@ -121,18 +105,6 @@ const KeyMetricData = styled('div')`
 const StyledLink = styled(Link)`
   display: flex;
   gap: ${space(1)};
-`;
-
-const ErrorTag = styled(Tag)<{level: 'fatal' | 'default'}>`
-  ${Background} {
-    background: ${p => p.theme.level[p.level]};
-    border-color: ${p => p.theme.level[p.level]};
-    padding: 0 ${space(0.75)};
-
-    span {
-      color: ${p => p.theme.buttonCountActive} !important;
-    }
-  }
 `;
 
 export default ReplayMetaData;

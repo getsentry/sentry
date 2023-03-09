@@ -34,10 +34,15 @@ async function fetchReplayList({
   try {
     const path = `/organizations/${organization.slug}/replays/`;
 
+    // HACK!!! Because the sort field needs to be in the eventView, but I cannot
+    // ask the server for compound fields like `os.name`.
+    const payload = eventView.getEventsAPIPayload(location);
+    payload.field = payload.field.map(field => field.split('.')[0]);
+
     const [{data}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
       query: {
-        ...eventView.getEventsAPIPayload(location),
+        ...payload,
         cursor: location.query.cursor,
       },
     });
