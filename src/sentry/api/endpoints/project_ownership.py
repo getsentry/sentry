@@ -69,7 +69,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
             self.context["ownership"].project.organization,
         ):
             schema = create_schema_from_issue_owners(
-                attrs["raw"], self.context["ownership"].project_id, True
+                attrs["raw"], self.context["ownership"].project_id, add_owner_ids=True
             )
         else:
             schema = create_schema_from_issue_owners(
@@ -177,7 +177,7 @@ class ProjectOwnershipEndpoint(ProjectEndpoint):
         Rename the attribute "identifier" to "name" in the schema response so that it can be parsed
         in the frontend
 
-        `rules`: List of rules from the schema
+        `ownership`: The ownership containing the schema with the rules that will be renamed
         """
         if hasattr(ownership, "schema") and ownership.schema and ownership.schema.get("rules"):
             for rule in ownership.schema["rules"]:

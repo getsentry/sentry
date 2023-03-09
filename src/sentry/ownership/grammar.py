@@ -589,7 +589,7 @@ def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, in
 
 
 def create_schema_from_issue_owners(
-    issue_owners: str, project_id: int, add_project_ownership_data: bool = False
+    issue_owners: str, project_id: int, add_owner_ids: bool = False
 ) -> Mapping[str, Any]:
     try:
         rules = parse_rules(issue_owners)
@@ -611,14 +611,14 @@ def create_schema_from_issue_owners(
                 bad_actors.append(owner.identifier)
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
-        elif add_project_ownership_data:
+        elif add_owner_ids:
             owners_id[owner.identifier] = actor[0]
 
     if bad_actors:
         bad_actors.sort()
         raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
 
-    if add_project_ownership_data:
+    if add_owner_ids:
         add_owner_ids_to_schema(schema["rules"], owners_id)
 
     return schema

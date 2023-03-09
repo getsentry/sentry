@@ -69,7 +69,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # Convert IssueOwner syntax into schema syntax
         try:
             validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                issue_owners=issue_owner_rules,
+                project_id=self.context["project"].id,
+                add_owner_ids=True,
             )
             return {
                 **attrs,
