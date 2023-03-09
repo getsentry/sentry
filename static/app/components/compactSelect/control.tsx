@@ -364,6 +364,7 @@ export function Control({
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-has-header={!!menuTitle || clearable}
+            data-has-search={searchable}
             data-has-footer={!!menuFooter}
             data-select-overlay
           >
@@ -433,6 +434,12 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+
+  div[data-select-overlay][data-has-search='true'] > & {
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
 
