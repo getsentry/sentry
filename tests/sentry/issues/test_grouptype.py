@@ -17,19 +17,19 @@ from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
-class BaseGroupTypeTest:
-    def setUp(self):
+class BaseGroupTypeTest(TestCase):  # type: ignore
+    def setUp(self) -> None:
         super().setUp()
         self.registry_patcher = patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry())
         self.registry_patcher.__enter__()
 
-    def tearDown(self):
+    def tearDown(self) -> None:
         super().tearDown()
         self.registry_patcher.__exit__(None, None, None)
 
 
 @region_silo_test
-class GroupTypeTest(BaseGroupTypeTest, TestCase):  # type: ignore
+class GroupTypeTest(BaseGroupTypeTest):
     def test_get_types_by_category(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
@@ -116,7 +116,7 @@ class GroupTypeTest(BaseGroupTypeTest, TestCase):  # type: ignore
 
 
 @region_silo_test
-class GroupTypeReleasedTest(BaseGroupTypeTest, TestCase):  # type: ignore
+class GroupTypeReleasedTest(BaseGroupTypeTest):
     def test_released(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(PerformanceGroupTypeDefaults, GroupType):

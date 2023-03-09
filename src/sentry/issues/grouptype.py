@@ -38,7 +38,7 @@ class GroupTypeRegistry:
     _slug_lookup: Dict[str, Type[GroupType]] = field(default_factory=dict)
     _category_lookup: Dict[int, Set[int]] = field(default_factory=lambda: defaultdict(set))
 
-    def add(self, group_type: Type[GroupType]):
+    def add(self, group_type: Type[GroupType]) -> None:
         if self._registry.get(group_type.type_id):
             raise ValueError(
                 f"A group type with the type_id {group_type.type_id} has already been registered."
