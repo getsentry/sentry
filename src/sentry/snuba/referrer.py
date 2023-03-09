@@ -69,6 +69,9 @@ class ReferrerBase(Enum):
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
     API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
+    API_GROUP_HASHES_LEVELS_GET_HASH_FOR_PARENT_LEVEL = (
+        "api.group_hashes_levels.get_hash_for_parent_level"
+    )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
@@ -349,6 +352,13 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
         "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
     )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
+        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"

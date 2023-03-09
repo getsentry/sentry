@@ -9,12 +9,18 @@ describe('ProfileEventEvidence', function () {
       id: 'event-id',
       occurrence: {
         evidenceDisplay: [{name: 'Evidence name', value: 'Evidence value'}],
-        evidenceData: {frameName: 'some_func', framePackage: 'something.dll'},
+        evidenceData: {
+          profileId: 'profile-id',
+          frameName: 'some_func',
+          framePackage: 'something.dll',
+          transactionId: 'transaction-id',
+          transactionName: '/some/transaction/',
+        },
       },
     }),
     group: TestStubs.Group({
       issueCategory: IssueCategory.PROFILE,
-      issueType: IssueType.PROFILE_BLOCKED_THREAD,
+      issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
     }),
     projectSlug: 'project-slug',
   };
@@ -22,8 +28,11 @@ describe('ProfileEventEvidence', function () {
   it('displays profile ID and data in evidence display', function () {
     render(<ProfileEventEvidence {...defaultProps} />);
 
+    expect(screen.getByRole('cell', {name: 'Transaction Name'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '/some/transaction/'})).toBeInTheDocument();
+
     expect(screen.getByRole('cell', {name: 'Profile ID'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'event-id'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'profile-id'})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Evidence name'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Evidence value'})).toBeInTheDocument();
@@ -32,9 +41,18 @@ describe('ProfileEventEvidence', function () {
   it('correctly links to the profile frame', function () {
     render(<ProfileEventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('link', {name: 'event-id'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'profile-id'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/profiling/profile/project-slug/event-id/flamechart/?frameName=some_func&framePackage=something.dll&referrer=issue-details'
+      '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamechart/?frameName=some_func&framePackage=something.dll&referrer=issue'
+    );
+  });
+
+  it('correctly links to the transaction', function () {
+    render(<ProfileEventEvidence {...defaultProps} />);
+
+    expect(screen.getByRole('link', {name: '/some/transaction/'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/performance/project-slug:transaction-id/?referrer=issue'
     );
   });
 });

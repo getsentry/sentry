@@ -15,6 +15,7 @@ class Dataset(Enum):
     Replays = "replays"
     Profiles = "profiles"
     IssuePlatform = "search_issues"
+    Functions = "functions"
 
 
 @unique
@@ -28,4 +29,6 @@ class EntityKey(Enum):
     MetricsDistributions = "metrics_distributions"
     GenericMetricsDistributions = "generic_metrics_distributions"
     GenericMetricsSets = "generic_metrics_sets"
+    GenericMetricsCounters = "generic_metrics_counters"
+    GenericOrgMetricsCounters = "generic_org_metrics_counters"
     IssuePlatform = "search_issues"

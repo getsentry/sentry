@@ -1,0 +1,7 @@
+---
+source: tests/sentry/grouping/similarity/test_features.py
+---
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","cdnjs"]],[["function","jsdelivr"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","jsdelivr"]],[["function","run"]]]
+similarity:2020-07-23:stacktrace:frames-pairs: [[["function","unpkg"],["module","react-dom@16.13.1/umd/react-dom.production"]],[["function","cdnjs"]]]
+similarity:2020-07-23:type:ident-shingle: "Error"

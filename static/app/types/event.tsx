@@ -148,6 +148,7 @@ export interface Thread {
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
   name?: string | null;
+  state?: string | null;
 }
 
 export type Frame = {
@@ -653,6 +654,7 @@ type EventOccurrence = {
   issueTitle: string;
   resourceId: string;
   subtitle: string;
+  type: number;
 };
 
 interface EventBase {

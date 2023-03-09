@@ -27,7 +27,6 @@ class UniformRulesGenerator(BiasRulesGenerator):
                     "value": bias_data["sampleRate"],
                 },
                 "type": "trace",
-                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [],

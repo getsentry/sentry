@@ -17,7 +17,7 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-import {MonitorBadge} from './monitorBadge';
+import {MonitorBadge} from './components/monitorBadge';
 import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
 
 interface MonitorRowProps {
@@ -70,7 +70,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     {
       key: 'edit',
       label: t('Edit'),
-      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.id}/edit/`),
+      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.slug}/edit/`),
     },
     {
       key: 'delete',
@@ -79,7 +79,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
       onAction: () => {
         openConfirmModal({
           onConfirm: async () => {
-            await deleteMonitor(api, organization.slug, monitor.id);
+            await deleteMonitor(api, organization.slug, monitor.slug);
             onDelete();
           },
           header: t('Delete Monitor?'),
@@ -97,7 +97,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitor.status} />
-        <Link to={`/organizations/${organization.slug}/crons/${monitor.id}/`}>
+        <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
           {monitor.name}
         </Link>
       </MonitorName>

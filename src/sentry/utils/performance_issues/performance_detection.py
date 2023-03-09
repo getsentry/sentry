@@ -37,6 +37,7 @@ from .base import (
 )
 from .detectors import (
     ConsecutiveDBSpanDetector,
+    ConsecutiveHTTPSpanDetector,
     NPlusOneAPICallsDetector,
     UncompressedAssetSpanDetector,
 )
@@ -193,6 +194,7 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
         DetectorType.N_PLUS_ONE_DB_QUERIES: {
             "count": settings["n_plus_one_db_count"],
             "duration_threshold": settings["n_plus_one_db_duration_threshold"],  # ms
+            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: {
             "count": settings["n_plus_one_db_count"],
@@ -225,12 +227,17 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "total_duration_threshold": 100.0,  # ms
             "minimum_occurrences_of_pattern": 3,
             "max_sequence_length": 5,
+            "detection_rate": settings["n_plus_one_db_detection_rate"],
         },
         DetectorType.UNCOMPRESSED_ASSETS: {
             "size_threshold_bytes": 500 * 1024,
             "duration_threshold": 500,  # ms
             "allowed_span_ops": ["resource.css", "resource.script"],
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
+        },
+        DetectorType.CONSECUTIVE_HTTP_OP: {
+            "span_duration_threshold": 300,  # ms
+            "consecutive_count_threshold": 3,
         },
     }
 
@@ -244,6 +251,7 @@ def _detect_performance_problems(
     detection_settings = get_detection_settings(project_id)
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
+        ConsecutiveHTTPSpanDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetector(detection_settings, data),
@@ -560,7 +568,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         return True  # This detector is fully rolled out
 
     def is_creation_allowed_for_project(self, project: Optional[Project]) -> bool:
-        return True  # This should probably use the `n_plus_one_db.problem-creation` option, which is currently not in use
+        return self.settings["detection_rate"] > random.random()
 
     def visit_span(self, span: Span) -> None:
         span_id = span.get("span_id", None)
@@ -1093,7 +1101,7 @@ class MNPlusOneDBSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True  # Detection always allowed by project for now
+        return self.settings["detection_rate"] > random.random()
 
     def visit_span(self, span):
         self.state, performance_problem = self.state.next(span)

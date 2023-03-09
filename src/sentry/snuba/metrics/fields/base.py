@@ -145,7 +145,12 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    request = Request(
+        dataset=Dataset.Metrics.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": org_id},
+    )
     result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 

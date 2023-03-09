@@ -538,7 +538,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -1100,9 +1099,24 @@ class IssueListOverview extends Component<Props, State> {
       });
     }
 
+    const links = parseLinkHeader(this.state.pageLinks);
+
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
-    this.fetchData(true);
+    const queryCount = this.state.queryCount - itemIds.length;
+    this.setState({
+      actionTaken: true,
+      queryCount,
+    });
+
+    if (GroupStore.getAllItemIds().length === 0) {
+      // If we run out of issues on the last page, navigate back a page to
+      // avoid showing an empty state - if not on the last page, just show a spinner
+      const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.fetchCounts(queryCount, true);
+    } else {
+      this.fetchData(true);
+    }
   };
 
   tagValueLoader = (key: string, search: string) => {
@@ -1136,28 +1150,14 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
+    const numIssuesOnPage = groupIds.length;
 
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
     const displayCount = tct('[count] of [total]', {
-      count: pageCount,
+      count: numIssuesOnPage,
       total: (
         <StyledQueryCount
           hideParens
@@ -1237,9 +1237,13 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading
+                  ? tct('Showing [displayCount] issues', {
+                      displayCount,
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}

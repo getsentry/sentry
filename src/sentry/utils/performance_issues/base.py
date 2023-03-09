@@ -13,6 +13,7 @@ from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -33,6 +34,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
+    CONSECUTIVE_HTTP_OP = "consecutive_http"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
@@ -48,6 +50,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
+    DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
 }
 
 
@@ -197,8 +200,12 @@ UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-
 # Preserves filename in e.g. main.[hash].js, but includes number when chunks
 # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
 CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
-# Finds trailing hashes before the final extension.
-TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+# Finds one or more trailing hashes before the final extension.
+TRAILING_HASH_REGEX = re.compile(r"([-.])(?:[a-f0-9]{8,64}\.)+([a-z0-9]{2,6})$", re.I)
+# Finds strictly numeric filenames.
+NUMERIC_FILENAME_REGEX = re.compile(r"/[0-9]+(\.[a-z0-9]{2,6})$", re.I)
+# Finds version numbers in the path or filename (v123, v1.2.3, etc).
+VERSION_NUMBER_REGEX = re.compile(r"v[0-9]+(?:\.[0-9]+)*")
 # Looks for anything hex hash-like, but with a larger min size than the
 # above to limit false positives.
 ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
@@ -211,6 +218,8 @@ def fingerprint_resource_span(span: Span):
     path = UUID_REGEX.sub("*", path)
     path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
     path = TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+    path = NUMERIC_FILENAME_REGEX.sub("/*\\1", path)
+    path = VERSION_NUMBER_REGEX.sub("*", path)
     path = ASSET_HASH_REGEX.sub("*", path)
     stripped_url = url._replace(path=path, query="").geturl()
     return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()

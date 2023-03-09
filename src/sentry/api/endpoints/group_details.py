@@ -120,7 +120,11 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
 
     @staticmethod
     def __group_hourly_daily_stats(group: Group, environment_ids: Sequence[int]):
-        get_range = functools.partial(tsdb.get_range, environment_ids=environment_ids)
+        get_range = functools.partial(
+            tsdb.get_range,
+            environment_ids=environment_ids,
+            tenant_ids={"organization_id": group.project.organization_id},
+        )
         model = get_issue_tsdb_group_model(group.issue_category)
         now = timezone.now()
         hourly_stats = tsdb.rollup(
@@ -181,7 +185,12 @@ class GroupDetailsEndpoint(GroupEndpoint, EnvironmentMixin):
                     }
                 )
 
-            tags = tagstore.get_group_tag_keys(group, environment_ids, limit=100)
+            tags = tagstore.get_group_tag_keys(
+                group,
+                environment_ids,
+                limit=100,
+                tenant_ids={"organization_id": group.project.organization_id},
+            )
 
             user_reports = (
                 UserReport.objects.filter(group_id=group.id)

@@ -155,10 +155,13 @@ def _check_releases_have_health_data(
             Condition(Column("release"), Op.IN, release_versions),
         ],
     )
-    request = Request(dataset="sessions", app_id="default", query=query)
-    data = snuba.raw_snql_query(request, referrer="snuba.sessions.check_releases_have_health_data")[
-        "data"
-    ]
+    request = Request(
+        dataset="sessions",
+        app_id="default",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    data = snuba.raw_snql_query(request, "snuba.sessions.check_releases_have_health_data")["data"]
     return {row["release"] for row in data}
 
 
@@ -265,10 +268,13 @@ def _get_project_releases_count(
         where=where,
         having=having,
     )
-    request = Request(dataset="sessions", app_id="default", query=query)
-    data = snuba.raw_snql_query(request, referrer="snuba.sessions.get_project_releases_count")[
-        "data"
-    ]
+    request = Request(
+        dataset="sessions",
+        app_id="default",
+        query=query,
+        tenant_ids={"organization_id": organization_id},
+    )
+    data = snuba.raw_snql_query(request, "snuba.sessions.get_project_releases_count")["data"]
     return data[0]["count"] if data else 0
 
 

@@ -99,18 +99,16 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
-    Monitor,
-    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
-    ScheduleType,
     UserEmail,
     UserOption,
 )
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
@@ -1824,7 +1822,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.anon_users_query = {
             "name": "Anonymous Users",
@@ -2314,11 +2312,12 @@ class MonitorTestCase(APITestCase):
             ),
         )
 
-    def _create_monitor(self):
+    def _create_monitor(self, **kwargs):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            **kwargs,
         )

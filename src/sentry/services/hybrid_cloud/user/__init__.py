@@ -1,4 +1,7 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import datetime
 from abc import abstractmethod
@@ -12,6 +15,31 @@ from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
+
+
+@dataclass(frozen=True, eq=True)
+class RpcAvatar:
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
+
+
+@dataclass(frozen=True, eq=True)
+class RpcUserEmail:
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
+
+
+@dataclass(frozen=True, eq=True)
+class RpcAuthenticator:
+    id: int = 0
+    user_id: int = -1
+    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    type: int = -1
+    config: Any = None
 
 
 @dataclass(frozen=True, eq=True)
@@ -30,7 +58,7 @@ class RpcUser:
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
-    last_active: datetime.datetime | None = None
+    last_active: Optional[datetime.datetime] = None
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
@@ -69,31 +97,6 @@ class RpcUser:
         return len(self.authenticators) > 0
 
 
-@dataclass(frozen=True, eq=True)
-class RpcAvatar:
-    id: int = 0
-    file_id: int = 0
-    ident: str = ""
-    avatar_type: str = "letter_avatar"
-
-
-@dataclass(frozen=True, eq=True)
-class RpcUserEmail:
-    id: int = 0
-    email: str = ""
-    is_verified: bool = False
-
-
-@dataclass(frozen=True, eq=True)
-class RpcAuthenticator:
-    id: int = 0
-    user_id: int = -1
-    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
-    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
-    type: int = -1
-    config: Any = None
-
-
 class UserSerializeType(IntEnum):  # annoying
     SIMPLE = 0
     DETAILED = 1
@@ -115,7 +118,12 @@ class UserService(
 ):
     @abstractmethod
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
     ) -> List[RpcUser]:
         """
         Return a list of users matching the filters
@@ -127,7 +135,7 @@ class UserService(
 
     @abstractmethod
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -142,7 +150,7 @@ class UserService(
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[RpcUser]:
+    def get_from_group(self, group: "Group") -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 

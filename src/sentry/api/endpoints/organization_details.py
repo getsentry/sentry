@@ -527,10 +527,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            RpcOrganizationMappingUpdate(
-                                organization_id=organization.id,
-                                name=organization.name,
-                            )
+                            organization.id, RpcOrganizationMappingUpdate(name=organization.name)
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.
@@ -598,6 +595,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                     transaction_id=schedule.guid,
                 )
                 organization.send_delete_confirmation(entry, ONE_DAY)
+                Organization.objects.uncache_object(organization.id)
         context = serialize(
             organization,
             request.user,

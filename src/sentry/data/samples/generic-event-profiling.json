@@ -2,6 +2,18 @@
     "detection_time": "2023-01-19T20:53:49.386332Z",
     "event":
     {
+        "debug_meta": {
+            "images": [
+              {
+                "type": "elf",
+                "image_addr": "0xe5d95000",
+                "image_size": 6975488,
+                "code_file": "/apex/com.android.runtime/lib/libart.so",
+                "code_id": "a0a062684495092d1756e30ba2dff37d",
+                "debug_id": "6862a0a0-9544-2d09-1756-e30ba2dff37d"
+              }
+            ]
+         },
         "environment": "production",
         "event_id": "066f15fe1cd2406aaa7c6a07471d7aef",
         "platform": "cocoa",
@@ -364,6 +376,6 @@
     "id": "0c6d75ac-3969-41e0-bc4b-33c2ff7f3657",
     "issue_title": "File I/O function called on main thread",
     "subtitle": "Some Transaction",
-    "type": 2000,
+    "type": 2001,
     "project_id": 1
 }

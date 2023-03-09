@@ -234,11 +234,13 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-def _patch_artifact_manifest(path, org, release, project=None, extra_files=None):
+def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
         manifest = json.load(fp)
-    manifest["org"] = org
-    manifest["release"] = release
+    if org:
+        manifest["org"] = org
+    if release:
+        manifest["release"] = release
     if project:
         manifest["project"] = project
     for path in extra_files or {}:
@@ -453,7 +455,7 @@ class Factories:
             type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
-            user=user,
+            user_id=user.id if user else None,
             data={"version": version},
         )
 
@@ -500,11 +502,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(org, release, project=None, extra_files=None):
+    def create_artifact_bundle(
+        org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
+    ):
         import zipfile
 
         bundle = io.BytesIO()
-        bundle_dir = get_fixture_path("artifact_bundle")
+        bundle_dir = get_fixture_path(fixture_path)
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
             for path, content in (extra_files or {}).items():
                 zipfile.writestr(path, content)
@@ -1139,14 +1143,16 @@ class Factories:
             IncidentProject.objects.create(incident=incident, project=project)
         if seen_by:
             for user in seen_by:
-                IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
+                IncidentSeen.objects.create(
+                    incident=incident, user_id=user.id, last_seen=timezone.now()
+                )
         return incident
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_incident_activity(incident, type, comment=None, user=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user=user
+            incident=incident, type=type, comment=comment, user_id=user_id
         )
 
     @staticmethod
@@ -1358,7 +1364,7 @@ class Factories:
             project=project,
             group=issue,
             type=ActivityType.NOTE.value,
-            user=user,
+            user_id=user.id,
             data=data,
         )
 

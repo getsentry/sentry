@@ -28,7 +28,7 @@ class AcceptInviteTest(TestCase):
         return (
             reverse("sentry-api-0-accept-organization-invite", args=args),
             reverse(
-                "sentry-api-0-accept-organization-invite-with-org",
+                "sentry-api-0-organization-accept-organization-invite",
                 args=[self.organization.slug] + args,
             ),
         )
@@ -36,7 +36,7 @@ class AcceptInviteTest(TestCase):
     def _get_urls(self):
         return (
             "sentry-api-0-accept-organization-invite",
-            "sentry-api-0-accept-organization-invite-with-org",
+            "sentry-api-0-organization-accept-organization-invite",
         )
 
     def _get_path(self, url, args):
@@ -186,7 +186,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user
@@ -291,7 +291,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user
@@ -350,7 +350,7 @@ class AcceptInviteTest(TestCase):
         )
 
         path = reverse(
-            "sentry-api-0-accept-organization-invite-with-org", args=["asdf", om.id, om.token]
+            "sentry-api-0-organization-accept-organization-invite", args=["asdf", om.id, om.token]
         )
 
         resp = self.client.get(path)
