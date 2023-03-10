@@ -20,7 +20,7 @@ from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -62,7 +62,6 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
-from sentry.onboarding_tasks import fetch_onboarding_tasks
 from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -428,7 +427,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        onboarding_tasks = list(fetch_onboarding_tasks(obj, user))
+        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -528,7 +527,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(onboarding_tasks, user)
+        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         return context
 
 

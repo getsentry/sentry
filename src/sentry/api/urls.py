@@ -506,6 +506,8 @@ from .endpoints.user_subscriptions import UserSubscriptionsEndpoint
 from .endpoints.userroles_details import UserRoleDetailsEndpoint
 from .endpoints.userroles_index import UserRolesEndpoint
 
+__all__ = ("urlpatterns",)
+
 # issues endpoints are available both top level (by numerical ID) as well as coupled
 # to the organization (and queryable via short ID)
 GROUP_URLS = [
