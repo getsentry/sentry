@@ -23,8 +23,6 @@ class OrganizationReplayEventsMetaEndpoint(OrganizationEventsV2EndpointBase):
     This endpoint offers a narrow interface specific to the requirements of `useReplayData.tsx`
     """
 
-    private = True
-
     def get_field_list(self, organization: Organization, request: Request) -> Sequence[str]:
         return [
             "error.type",
