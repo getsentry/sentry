@@ -52,7 +52,7 @@ class RareTransactionsRulesBias(Bias):
     Useless adapter for Bias "infrastructure"
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def get_rules(self, bias_params: BiasParams) -> List[PolymorphicRule]:
