@@ -1028,6 +1028,27 @@ class FetchByUrlTest(FetchTest):
         assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
         fetcher.close()
 
+        # Fetching with no release.
+        fetcher = Fetcher(organization=self.organization, dist=dist)
+        with pytest.raises(Exception):
+            fetcher.fetch_by_url("http://example.com/index.js")
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+        # Fetching with no dist.
+        fetcher = Fetcher(organization=self.organization, release=self.release)
+        with pytest.raises(Exception):
+            fetcher.fetch_by_url("http://example.com/index.js")
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+        # Fetching with no release and no dist.
+        fetcher = Fetcher(organization=self.organization)
+        with pytest.raises(Exception):
+            fetcher.fetch_by_url("http://example.com/index.js")
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
     def test_multiple_archives_with_release_dist_pair(self):
         dist = self.release.add_dist("android")
 
