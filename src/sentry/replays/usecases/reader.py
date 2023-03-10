@@ -83,6 +83,8 @@ def fetch_filestore_segments_meta(
         .order_by("segment_id")
         .all()[offset : limit + offset]
     )
+    if not segments:
+        return []
 
     files = File.objects.filter(id__in=[segment.file_id for segment in segments]).prefetch_related(
         Prefetch(
