@@ -30,7 +30,7 @@ from sentry.snuba.dataset import Dataset, EntityKey
 if typing.TYPE_CHECKING:
     from sentry.models import Group
 
-MIGRATION_NAME = "0372_backfill_perf_issue_events_issue_platform"
+MIGRATION_NAME = "0378_backfill_perf_issue_events_issue_platform"
 
 # TODO: figure out how to parameterize this to the RunPython call
 DRY_RUN = False
@@ -325,7 +325,7 @@ class Migration(CheckedMigration):  # type: ignore[misc]
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0371_monitor_make_org_slug_unique"),
+        ("sentry", "0377_groupedmesssage_type_individual_index"),
     ]
 
     operations = [
