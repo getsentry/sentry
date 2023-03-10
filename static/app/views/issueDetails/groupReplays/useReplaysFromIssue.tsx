@@ -5,9 +5,10 @@ import {Location} from 'history';
 import type {Group, Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
-import {DEFAULT_SORT, REPLAY_LIST_FIELDS} from 'sentry/utils/replays/fetchReplayList';
+import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function useReplayFromIssue({
   group,
