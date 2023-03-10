@@ -42,6 +42,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.utils import metrics
 from sentry.utils.request_cache import request_cache
@@ -587,7 +588,7 @@ class OrganizationMemberAccess(DbAccess):
         auth_state = auth_service.get_user_auth_state(
             organization_id=member.organization_id,
             is_superuser=False,
-            org_member=member,
+            org_member=DatabaseBackedOrganizationService.summarize_member(member),
             user_id=member.user_id,
         )
         sso_state = auth_state.sso_state
@@ -976,7 +977,11 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
-            org_member=member,
+            org_member=(
+                DatabaseBackedOrganizationService.summarize_member(member)
+                if member is not None
+                else None
+            ),
         ).sso_state
 
         return OrganizationGlobalAccess(
