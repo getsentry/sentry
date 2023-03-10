@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
-import {RadioField} from 'sentry/components/forms';
 import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
+import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
@@ -35,7 +35,7 @@ import {
 } from '../types';
 
 const SCHEDULE_OPTIONS: RadioOption<string>[] = [
-  [ScheduleType.INTERVAL, t('Simple')],
+  [ScheduleType.INTERVAL, t('Interval')],
   [ScheduleType.CRONTAB, t('Crontab')],
 ];
 
@@ -250,7 +250,8 @@ function MonitorForm({
               }
               if (schedule_type === 'interval') {
                 return (
-                  <ScheduleGroupInputs>
+                  <ScheduleGroupInputs interval>
+                    <LabelText>{t('Every')}</LabelText>
                     <StyledNumberField
                       name="config.schedule.frequency"
                       placeholder="e.g. 1"
@@ -279,12 +280,15 @@ function MonitorForm({
           {t('How long to wait before we consider a check-in as missed.')}
         </ListItemSubText>
         <InputGroup>
-          <StyledNumberField
-            name="config.checkin_margin"
-            placeholder="e.g. 30"
-            stacked
-            inline={false}
-          />
+          <LabeledInputs>
+            <StyledNumberField
+              name="config.checkin_margin"
+              placeholder="e.g. 30"
+              stacked
+              inline={false}
+            />
+            <LabelText>{t('Minutes')}</LabelText>
+          </LabeledInputs>
         </InputGroup>
         <StyledListItem>{t('Set a failed status')}</StyledListItem>
         <ListItemSubText>
@@ -293,12 +297,15 @@ function MonitorForm({
           )}
         </ListItemSubText>
         <InputGroup>
-          <StyledNumberField
-            name="config.max_runtime"
-            placeholder="e.g. 30"
-            stacked
-            inline={false}
-          />
+          <LabeledInputs>
+            <StyledNumberField
+              name="config.max_runtime"
+              placeholder="e.g. 30"
+              stacked
+              inline={false}
+            />
+            <LabelText>{t('Minutes')}</LabelText>
+          </LabeledInputs>
         </InputGroup>
       </StyledList>
     </Form>
@@ -341,8 +348,11 @@ const StyledListItem = styled(ListItem)`
   line-height: 1.3;
 `;
 
-const ListItemSubText = styled(Text)`
+const LabelText = styled(Text)`
   color: ${p => p.theme.subText};
+`;
+
+const ListItemSubText = styled(LabelText)`
   padding-left: ${space(4)};
 `;
 
@@ -353,10 +363,16 @@ const InputGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
+  width: 500px;
 `;
 
-const ScheduleGroupInputs = styled('div')`
+const LabeledInputs = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr auto;
+  align-items: center;
   gap: ${space(1)};
+`;
+
+const ScheduleGroupInputs = styled(LabeledInputs)<{interval?: boolean}>`
+  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
 `;
