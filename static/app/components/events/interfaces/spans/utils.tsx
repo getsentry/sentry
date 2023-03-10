@@ -305,7 +305,17 @@ export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined
     return undefined;
   }
 
-  return span?.description ?? getSpanID(span);
+  const label = span?.description ?? getSpanID(span);
+
+  if (span.op === 'http.client') {
+    try {
+      return decodeURIComponent(label);
+    } catch {
+      // Do nothing
+    }
+  }
+
+  return label;
 }
 
 export function getTraceContext(
