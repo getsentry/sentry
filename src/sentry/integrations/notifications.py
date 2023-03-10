@@ -6,15 +6,15 @@ from typing import Any, Iterable, Mapping, MutableMapping
 from sentry.constants import ObjectStatus
 from sentry.models import ExternalActor, Integration, Organization, Team, User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider, identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: Team | RpcUser,
+    recipient: RpcActor,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -101,7 +101,7 @@ def get_integrations_by_channel_by_recipient(
     for recipient in recipients:
         channels_to_integrations = (
             get_channel_and_integration_by_user(recipient, organization, provider)
-            if recipient.class_name() == "User"
+            if recipient.actor_type == ActorType.USER
             else get_channel_and_integration_by_team(recipient, organization, provider)
         )
         output[recipient] = channels_to_integrations

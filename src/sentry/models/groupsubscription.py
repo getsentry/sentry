@@ -1,5 +1,4 @@
-from collections import defaultdict
-from typing import TYPE_CHECKING, Iterable, Mapping, MutableMapping, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Iterable, Optional, Sequence, Union
 
 from django.conf import settings
 from django.db import IntegrityError, models, transaction
@@ -19,12 +18,13 @@ from sentry.notifications.helpers import (
     where_should_be_participating,
 )
 from sentry.notifications.types import GroupSubscriptionReason, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.models import Group, Team, User
+    from sentry.notifications.utils.participants import ParticipantMap
 
 
 class GroupSubscriptionManager(BaseManager):  # type: ignore
@@ -112,15 +112,14 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
                     raise e
         return False
 
-    def get_participants(
-        self, group: "Group"
-    ) -> Mapping[ExternalProviders, Mapping["RpcUser", int]]:
+    def get_participants(self, group: "Group") -> "ParticipantMap":
         """
         Identify all users who are participating with a given issue.
         :param group: Group object
         """
+        from sentry.notifications.utils.participants import ParticipantMap
 
-        all_possible_users = user_service.get_from_group(group)
+        all_possible_users = [RpcActor.from_rpc_user(u) for u in user_service.get_from_group(group)]
         active_and_disabled_subscriptions = self.filter(
             group=group, user_id__in=[u.id for u in all_possible_users]
         )
@@ -137,9 +136,7 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
             notification_settings, all_possible_users
         )
 
-        result: MutableMapping[ExternalProviders, MutableMapping["RpcUser", int]] = defaultdict(
-            dict
-        )
+        result = ParticipantMap()
         for user in all_possible_users:
             subscription_option = subscriptions_by_user_id.get(user.id)
             providers = where_should_be_participating(
@@ -148,11 +145,12 @@ class GroupSubscriptionManager(BaseManager):  # type: ignore
                 notification_settings_by_recipient,
             )
             for provider in providers:
-                result[provider][user] = (
+                reason = (
                     subscription_option
                     and subscription_option.reason
                     or GroupSubscriptionReason.implicit
                 )
+                result.add(provider, user, reason)
 
         return result
 

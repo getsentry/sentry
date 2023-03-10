@@ -23,13 +23,13 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
 
 if TYPE_CHECKING:
     from sentry.models import NotificationSetting, Organization, Project, Team, User
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 REMOVE_SETTING_BATCH_SIZE = 1000
 
@@ -249,7 +249,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Organization | Project,
-        recipients: Iterable[Team | User | RpcUser],
+        recipients: Iterable[RpcActor],
     ) -> QuerySet:
         from sentry.models import Team
 
@@ -265,9 +265,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         for recipient in recipients:
             if type(recipient) == Team:
                 team_ids.add(recipient.id)
-            if recipient.class_name() == "User":
+            if recipient.actor_type == ActorType.USER:
                 user_ids.add(recipient.id)
-            actor_ids.add(recipient.actor_id)
+            if recipient.actor_id is not None:
+                actor_ids.add(recipient.actor_id)
 
         # If the list would be empty, don't bother querying.
         if not actor_ids:
@@ -294,9 +295,9 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[Team | RpcUser],
+        recipients: Iterable[RpcActor],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    ) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
@@ -320,7 +321,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def get_notification_recipients(
         self, project: Project
-    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -397,9 +398,10 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                     defaults={"value": NotificationSettingOptionValues.NEVER.value},
                 )
 
-    def has_any_provider_settings(
-        self, recipient: Team | User, provider: ExternalProviders
-    ) -> bool:
+    def has_any_provider_settings(self, recipient: RpcActor, provider: ExternalProviders) -> bool:
+        if recipient.actor_id is None:
+            return False
+
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})

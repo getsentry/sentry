@@ -23,7 +23,7 @@ from sentry.notifications.utils import (
     get_repos,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.notifications.utils.participants import get_participants_for_release
+from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -62,9 +62,7 @@ class ReleaseActivityNotification(ActivityNotification):
         self.version = self.release.version
         self.version_parsed = parse_release(self.version)["description"]
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         return get_participants_for_release(self.projects, self.organization, self.user_ids)
 
     def get_users_by_teams(self) -> Mapping[int, list[int]]:

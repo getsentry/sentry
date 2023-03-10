@@ -90,9 +90,6 @@ class RpcUser:
             return self.avatar.avatar_type
         return "letter_avatar"
 
-    def class_name(self) -> str:
-        return "User"
-
     def has_2fa(self) -> bool:
         return len(self.authenticators) > 0
 

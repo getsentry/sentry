@@ -15,6 +15,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
@@ -26,13 +27,12 @@ from sentry.types.integrations import (
 
 if TYPE_CHECKING:
     from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
-    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    recipient: Team | RpcUser | None = None,  # not needed right now
+    recipient: RpcActor | None = None,  # not needed right now
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
@@ -49,7 +49,7 @@ def _get_notification_setting_default(
 
 def _get_default_value_by_provider(
     type: NotificationSettingTypes,
-    recipient: Team | RpcUser | None = None,
+    recipient: RpcActor | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     return {
         provider: _get_notification_setting_default(provider, type, recipient)
@@ -59,10 +59,10 @@ def _get_default_value_by_provider(
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
-        Team | RpcUser,
+        RpcActor,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | RpcUser,
+    recipient: RpcActor,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
@@ -84,10 +84,10 @@ def _get_setting_mapping_from_mapping(
 
 def where_should_recipient_be_notified(
     notification_settings_by_recipient: Mapping[
-        Team | User,
+        RpcActor,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | User,
+    recipient: RpcActor,
     type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
 ) -> list[ExternalProviders]:
     """
@@ -121,10 +121,10 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    recipient: Team | RpcUser,
+    recipient: RpcActor,
     subscription: GroupSubscription | None,
     notification_settings_by_recipient: Mapping[
-        Team | User,
+        RpcActor,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
 ) -> list[ExternalProviders]:
@@ -153,7 +153,7 @@ def get_values_by_provider_by_type(
     ],
     all_providers: Iterable[ExternalProviders],
     type: NotificationSettingTypes,
-    recipient: Team | User | None = None,
+    recipient: RpcActor | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Given a mapping of scopes to a mapping of default and specific notification
@@ -181,9 +181,9 @@ def get_values_by_provider_by_type(
 
 def transform_to_notification_settings_by_recipient(
     notification_settings: Iterable[RpcNotificationSetting],
-    recipients: Iterable[Team | RpcUser],
+    recipients: Iterable[RpcActor],
 ) -> Mapping[
-    Team | RpcUser,
+    RpcActor,
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
@@ -192,14 +192,14 @@ def transform_to_notification_settings_by_recipient(
     """
     actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
     notification_settings_by_recipient: MutableMapping[
-        Team | RpcUser,
+        RpcActor,
         MutableMapping[
             NotificationScopeType,
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
         ],
     ] = defaultdict(lambda: defaultdict(dict))
     for notification_setting in notification_settings:
-        recipient = actor_mapping.get(notification_setting.target_id)
+        recipient = actor_mapping[notification_setting.target_id]
         scope_type = NotificationScopeType(notification_setting.scope_type)
         value = NotificationSettingOptionValues(notification_setting.value)
         provider = ExternalProviders(notification_setting.provider)
@@ -431,7 +431,7 @@ def get_fallback_settings(
     types_to_serialize: Iterable[NotificationSettingTypes],
     project_ids: Iterable[int],
     organization_ids: Iterable[int],
-    recipient: Team | User | None = None,
+    recipient: RpcActor | None = None,
 ) -> MutableMapping[str, MutableMapping[str, MutableMapping[int, MutableMapping[str, str]]]]:
     """
     The API is responsible for calculating the implied setting values when a
@@ -516,7 +516,7 @@ def get_value_for_actor(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | User,
+    recipient: RpcActor,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
     Instead of checking the DB to see if `recipient` is a Team or User, just
@@ -534,7 +534,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | User,
+    recipient: RpcActor,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> NotificationSettingOptionValues:
@@ -571,7 +571,7 @@ def get_values_by_provider(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | User,
+    recipient: RpcActor,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:

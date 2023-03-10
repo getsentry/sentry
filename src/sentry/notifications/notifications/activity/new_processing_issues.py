@@ -7,6 +7,7 @@ from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
 from sentry.types.integrations import ExternalProviders
 
+from ...utils.participants import ParticipantMap
 from .base import ActivityNotification
 
 
@@ -18,19 +19,15 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         super().__init__(activity)
         self.issues = summarize_issues(self.activity.data["issues"])
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | User, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         participants_by_provider = NotificationSetting.objects.get_notification_recipients(
             self.project
         )
-        return {
-            provider: {
-                participant: GroupSubscriptionReason.processing_issue
-                for participant in participants
-            }
-            for provider, participants in participants_by_provider.items()
-        }
+        result = ParticipantMap()
+        for provider, participants in participants_by_provider.items():
+            for participant in participants:
+                result.add(provider, participant, GroupSubscriptionReason.processing_issue)
+        return result
 
     def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> str:
         return f"Some events failed to process in your project {self.project.slug}"

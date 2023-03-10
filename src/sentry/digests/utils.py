@@ -11,6 +11,7 @@ from sentry.eventstore.models import Event
 from sentry.models import Group, Project, ProjectOwnership, Rule, Team
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.notifications.utils.participants import get_send_to
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
 
@@ -122,7 +123,7 @@ def get_participants_by_event(
     target_type: ActionTargetType = ActionTargetType.ISSUE_OWNERS,
     target_identifier: int | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> Mapping[Event, Mapping[ExternalProviders, set[Team | RpcUser]]]:
+) -> Mapping[Event, Mapping[ExternalProviders, set[RpcActor]]]:
     """
     This is probably the slowest part in sending digests because we do a lot of
     DB calls while we iterate over every event. It would be great if we could

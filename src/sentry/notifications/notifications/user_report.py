@@ -10,7 +10,7 @@ from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.notifications.utils.participants import ParticipantMap
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -28,15 +28,13 @@ class UserReportNotification(ProjectNotification):
         self.group = Group.objects.get(id=report["issue"]["id"])
         self.report = report
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
-        return {
-            provider: data
-            for provider, data in data_by_provider.items()
-            if provider in [ExternalProviders.EMAIL]
-        }
+        result = ParticipantMap()
+        for provider, data in data_by_provider.items():
+            if provider == ExternalProviders.EMAIL:
+                result.add_all(provider, data)
+        return result
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         # Explicitly typing to satisfy mypy.
