@@ -300,7 +300,11 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   return span.parent_span_id;
 }
 
-export function formatSpanTreeLabel(span: ProcessedSpanType): string {
+export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return undefined;
+  }
+
   return span?.description ?? getSpanID(span);
 }
 
