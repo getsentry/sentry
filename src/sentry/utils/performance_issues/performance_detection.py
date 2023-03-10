@@ -236,8 +236,9 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
             "detection_enabled": settings["uncompressed_assets_detection_enabled"],
         },
         DetectorType.CONSECUTIVE_HTTP_OP: {
-            "span_duration_threshold": 300,  # ms
+            "span_duration_threshold": 1000,  # ms
             "consecutive_count_threshold": 3,
+            "max_duration_between_spans": 10000,  # ms
         },
     }
 
