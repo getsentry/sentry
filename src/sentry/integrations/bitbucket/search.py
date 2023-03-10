@@ -13,6 +13,8 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 @pending_silo_endpoint
 class BitbucketSearchEndpoint(IntegrationEndpoint):
+    private = True
+
     def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(

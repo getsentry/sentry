@@ -24,6 +24,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationPermission,)
 
     def _get_serializer(self, request: Request):

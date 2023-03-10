@@ -11,6 +11,7 @@ from sentry.utils.warnings import DeprecatedSettingWarning, UnsupportedBackend, 
 
 @pending_silo_endpoint
 class InternalWarningsEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

@@ -26,12 +26,9 @@ EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-    from sentry.apidocs.public_exclusion_list import (
-        EXCLUDED_FROM_PUBLIC_ENDPOINTS,
-        PUBLIC_ENDPOINTS_FROM_JSON,
-    )
+    from sentry.apidocs.public_exclusion_list import PUBLIC_ENDPOINTS_FROM_JSON
 
-    registered_endpoints = PUBLIC_ENDPOINTS_FROM_JSON | EXCLUDED_FROM_PUBLIC_ENDPOINTS
+    registered_endpoints = PUBLIC_ENDPOINTS_FROM_JSON
 
     filtered = []
     for (path, path_regex, method, callback) in endpoints:

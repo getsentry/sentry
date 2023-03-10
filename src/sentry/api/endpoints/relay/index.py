@@ -11,6 +11,7 @@ from sentry.models import Relay
 
 @pending_silo_endpoint
 class RelayIndexEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

@@ -38,6 +38,8 @@ def replace_keys(html, project_key):
 
 @region_silo_endpoint
 class ProjectDocsPlatformEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, platform) -> Response:
         data = load_doc(platform)
         if not data:

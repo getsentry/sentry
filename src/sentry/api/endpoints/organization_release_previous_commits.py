@@ -12,6 +12,7 @@ from sentry.ratelimits.config import RateLimitConfig
 
 @region_silo_endpoint
 class OrganizationReleasePreviousCommitsEndpoint(OrganizationReleasesBaseEndpoint):
+    private = True
     rate_limits = RateLimitConfig(group="CLI")
 
     def get(self, request: Request, organization, version) -> Response:

@@ -34,6 +34,7 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 
 @region_silo_endpoint
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationSearchEditPermission,)
 
     def convert_args(self, request: Request, organization_slug, search_id, *args, **kwargs):

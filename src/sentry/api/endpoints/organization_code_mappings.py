@@ -123,6 +123,7 @@ class OrganizationIntegrationMixin:
 
 @region_silo_endpoint
 class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    private = True
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization) -> Response:

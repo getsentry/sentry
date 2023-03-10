@@ -10,6 +10,8 @@ from sentry.models import ServiceHook
 
 @region_silo_endpoint
 class ProjectServiceHookStatsEndpoint(ProjectEndpoint, StatsMixin):
+    private = True
+
     def get(self, request: Request, project, hook_id) -> Response:
         try:
             hook = ServiceHook.objects.get(project_id=project.id, guid=hook_id)

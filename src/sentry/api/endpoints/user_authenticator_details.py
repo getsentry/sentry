@@ -16,6 +16,7 @@ from sentry.security import capture_security_activity
 
 @control_silo_endpoint
 class UserAuthenticatorDetailsEndpoint(UserEndpoint):
+    private = True
     permission_classes = (OrganizationUserPermission,)
 
     def _get_device_for_rename(self, authenticator, interface_device_id):

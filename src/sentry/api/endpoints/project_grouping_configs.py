@@ -9,6 +9,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 
 @region_silo_endpoint
 class ProjectGroupingConfigsEndpoint(ProjectEndpoint):
+    private = True
     """Retrieve available grouping configs with project-specific information
 
     See GroupingConfigsEndpoint

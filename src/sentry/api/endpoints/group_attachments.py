@@ -11,6 +11,8 @@ from sentry.models import EventAttachment, event_attachment_screenshot_filter
 
 @region_silo_endpoint
 class GroupAttachmentsEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         """
         List Event Attachments

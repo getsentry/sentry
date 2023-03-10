@@ -10,6 +10,8 @@ from sentry.models import Environment, UserReport
 
 @region_silo_endpoint
 class GroupUserReportsEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         """
         List User Reports

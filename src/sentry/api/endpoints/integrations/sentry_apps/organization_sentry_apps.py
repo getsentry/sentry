@@ -11,6 +11,8 @@ from sentry.models import SentryApp
 
 @region_silo_endpoint
 class OrganizationSentryAppsEndpoint(OrganizationEndpoint):
+    private = True
+
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
         queryset = SentryApp.objects.filter(owner=organization, application__isnull=False)

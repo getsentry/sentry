@@ -314,6 +314,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsGeoEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def has_feature(self, request: Request, organization):
         return features.has("organizations:dashboards-basic", organization, actor=request.user)
 

@@ -38,6 +38,7 @@ DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = getattr(
 
 @control_silo_endpoint
 class AuthIndexEndpoint(Endpoint):
+    private = True
     """
     Manage session authentication
 

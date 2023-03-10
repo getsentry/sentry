@@ -13,6 +13,8 @@ from sentry.web.helpers import render_to_response
 
 @region_silo_endpoint
 class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
+    private = True
+
     def delete(self, request: Request, project) -> Response:
         """
         This discards all open processing issues
@@ -23,6 +25,8 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         token = None
 
@@ -69,6 +73,8 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         List a project's processing issues.

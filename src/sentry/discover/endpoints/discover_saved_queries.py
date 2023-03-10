@@ -16,6 +16,7 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):

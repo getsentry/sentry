@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class ExternalUserDetailsEndpoint(OrganizationEndpoint, ExternalActorEndpointMixin):
+    private = True
+
     def convert_args(  # type: ignore[override]
         self,
         request: Request,

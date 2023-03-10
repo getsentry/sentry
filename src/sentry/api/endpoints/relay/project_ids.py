@@ -9,6 +9,7 @@ from sentry.models import ProjectKey
 
 @region_silo_endpoint
 class RelayProjectIdsEndpoint(Endpoint):
+    private = True
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
 

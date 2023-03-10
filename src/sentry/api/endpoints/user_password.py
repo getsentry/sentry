@@ -44,6 +44,8 @@ class UserPasswordSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserPasswordEndpoint(UserEndpoint):
+    private = True
+
     def put(self, request: Request, user) -> Response:
         # pass some context to serializer otherwise when we create a new serializer instance,
         # user.password gets set to new plaintext password from request and

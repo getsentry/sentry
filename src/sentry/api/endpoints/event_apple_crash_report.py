@@ -12,6 +12,8 @@ from sentry.utils.safe import get_path
 
 @region_silo_endpoint
 class EventAppleCrashReportEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve an Apple Crash Report from an event

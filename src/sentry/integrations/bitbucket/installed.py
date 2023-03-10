@@ -10,6 +10,7 @@ from .integration import BitbucketIntegrationProvider
 
 @pending_silo_endpoint
 class BitbucketInstalledEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

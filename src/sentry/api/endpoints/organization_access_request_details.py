@@ -43,6 +43,7 @@ class AccessRequestSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationAccessRequestDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = [AccessRequestPermission]
 
     # TODO(dcramer): this should go onto AccessRequestPermission

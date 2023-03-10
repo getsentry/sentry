@@ -75,6 +75,8 @@ class UserNotificationDetailsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserNotificationDetailsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         serialized = serialize(user, request.user, UserNotificationsSerializer())
         return Response(serialized)

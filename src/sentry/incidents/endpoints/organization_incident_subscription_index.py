@@ -19,6 +19,7 @@ class IncidentSubscriptionPermission(IncidentPermission):
 
 @region_silo_endpoint
 class OrganizationIncidentSubscriptionIndexEndpoint(IncidentEndpoint):
+    private = True
     permission_classes = (IncidentSubscriptionPermission,)
 
     def post(self, request: Request, organization, incident) -> Response:

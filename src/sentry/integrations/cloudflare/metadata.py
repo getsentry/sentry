@@ -11,6 +11,7 @@ logger = logging.getLogger("sentry.integrations.cloudflare")
 
 @pending_silo_endpoint
 class CloudflareMetadataEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

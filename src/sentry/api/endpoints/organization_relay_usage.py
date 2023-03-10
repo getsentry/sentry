@@ -10,6 +10,7 @@ from sentry.models import RelayUsage
 
 @region_silo_endpoint
 class OrganizationRelayUsage(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization) -> Response:

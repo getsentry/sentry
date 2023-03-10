@@ -19,6 +19,7 @@ def get_component_interaction_key(sentry_app, component_type):
 
 @region_silo_endpoint
 class SentryAppInteractionEndpoint(SentryAppBaseEndpoint, StatsMixin):
+    private = True
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

@@ -31,6 +31,8 @@ DEFAULT_TAG_KEY_LIMIT = 5
 
 
 class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2EndpointBase):
+    private = True
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 
@@ -60,6 +62,8 @@ class OrganizationEventsFacetsPerformanceEndpointBase(OrganizationEventsV2Endpoi
 
 @region_silo_endpoint
 class OrganizationEventsFacetsPerformanceEndpoint(OrganizationEventsFacetsPerformanceEndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         try:
             params, aggregate_column, filter_query = self._setup(request, organization)

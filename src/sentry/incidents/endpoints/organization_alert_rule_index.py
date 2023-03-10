@@ -30,6 +30,8 @@ from .utils import parse_team_params
 
 @region_silo_endpoint
 class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         Fetches alert rules and legacy rules for an organization
@@ -152,6 +154,7 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationAlertRuleIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAlertRulePermission,)
 
     def get(self, request: Request, organization) -> Response:

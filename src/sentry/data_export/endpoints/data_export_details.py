@@ -16,6 +16,7 @@ from ..models import ExportedData
 
 @pending_silo_endpoint
 class DataExportDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationDataExportPermission,)
 
     def get(self, request: Request, organization: Organization, data_export_id: str) -> Response:

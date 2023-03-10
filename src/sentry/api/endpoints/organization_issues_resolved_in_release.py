@@ -11,6 +11,7 @@ from sentry.models import Group
 
 @region_silo_endpoint
 class OrganizationIssuesResolvedInReleaseEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    private = True
     permission_classes = (OrganizationPermission,)
 
     def get(self, request: Request, organization, version) -> Response:

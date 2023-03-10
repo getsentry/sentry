@@ -19,6 +19,8 @@ from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 @region_silo_endpoint
 class ProjectAlertRuleDetailsEndpoint(ProjectAlertRuleEndpoint):
+    private = True
+
     def get(self, request: Request, project, alert_rule) -> Response:
         """
         Fetch an alert rule.

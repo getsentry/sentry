@@ -12,6 +12,7 @@ from sentry.utils.samples import create_sample_event
 
 @region_silo_endpoint
 class ProjectCreateSampleEndpoint(ProjectEndpoint):
+    private = True
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)

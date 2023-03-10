@@ -8,6 +8,7 @@ from sentry.grouping.strategies.configurations import CONFIGURATIONS
 
 @pending_silo_endpoint
 class GroupingConfigsEndpoint(Endpoint):
+    private = True
     permission_classes = ()
 
     def get(self, request: Request) -> Response:

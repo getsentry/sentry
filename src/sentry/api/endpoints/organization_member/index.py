@@ -117,6 +117,7 @@ class OrganizationMemberSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization) -> Response:

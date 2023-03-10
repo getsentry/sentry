@@ -10,6 +10,8 @@ from sentry.api.serializers.models.integration import IntegrationProviderSeriali
 
 @region_silo_endpoint
 class OrganizationConfigIntegrationsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         def is_provider_enabled(provider):
             if not provider.requires_feature_flag:

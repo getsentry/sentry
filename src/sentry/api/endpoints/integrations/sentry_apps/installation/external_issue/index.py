@@ -20,6 +20,8 @@ class PlatformExternalIssueSerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class SentryAppInstallationExternalIssuesEndpoint(ExternalIssueBaseEndpoint):
+    private = True
+
     def post(self, request: Request, installation) -> Response:
         data = request.data
 

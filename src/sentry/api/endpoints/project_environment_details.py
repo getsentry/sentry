@@ -15,6 +15,8 @@ class ProjectEnvironmentSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, environment) -> Response:
         try:
             instance = EnvironmentProject.objects.select_related("environment").get(

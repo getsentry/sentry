@@ -25,6 +25,7 @@ def upsert_missing_release(project, version):
 
 @region_silo_endpoint
 class ProjectReleaseStatsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version) -> Response:

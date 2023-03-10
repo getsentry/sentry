@@ -44,6 +44,7 @@ def get_integration_from_token(token):
 
 @pending_silo_endpoint
 class JiraIssueUpdatedWebhook(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

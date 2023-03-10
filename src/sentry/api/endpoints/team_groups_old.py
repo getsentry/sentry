@@ -13,6 +13,8 @@ from sentry.models import Group, GroupStatus
 
 @region_silo_endpoint
 class TeamGroupsOldEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+    private = True
+
     def get(self, request: Request, team) -> Response:
         """
         Return the oldest issues owned by a team

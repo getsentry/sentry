@@ -44,6 +44,8 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 
 @region_silo_endpoint
 class TeamMembersEndpoint(TeamEndpoint):
+    private = True
+
     def get(self, request: Request, team) -> Response:
         queryset = OrganizationMemberTeam.objects.filter(
             Q(organizationmember__user__is_active=True) | Q(organizationmember__user__isnull=True),

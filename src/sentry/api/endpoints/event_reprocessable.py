@@ -10,6 +10,8 @@ from sentry.reprocessing2 import CannotReprocess, pull_event_data
 
 @region_silo_endpoint
 class EventReprocessableEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve information about whether an event can be reprocessed.

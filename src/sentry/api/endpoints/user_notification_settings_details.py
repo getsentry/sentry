@@ -13,6 +13,7 @@ from sentry.notifications.helpers import get_providers_for_recipient
 
 @control_silo_endpoint
 class UserNotificationSettingsDetailsEndpoint(UserEndpoint):
+    private = True
     """
     This Notification Settings endpoint is the generic way to interact with the
     NotificationSettings table via the API.

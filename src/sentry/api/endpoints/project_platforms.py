@@ -9,6 +9,8 @@ from sentry.models import ProjectPlatform
 
 @region_silo_endpoint
 class ProjectPlatformsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         queryset = ProjectPlatform.objects.filter(project_id=project.id)
         return Response(serialize(list(queryset), request.user))

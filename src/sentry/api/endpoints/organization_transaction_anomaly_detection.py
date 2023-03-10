@@ -97,6 +97,8 @@ def get_time_params(start, end):
 
 @region_silo_endpoint
 class OrganizationTransactionAnomalyDetectionEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def has_feature(self, organization, request):
         return features.has(
             "organizations:performance-anomaly-detection-ui", organization, actor=request.user

@@ -21,6 +21,8 @@ logger = logging.getLogger(__name__)
 
 @pending_silo_endpoint
 class SentryAppsEndpoint(SentryAppsBaseEndpoint):
+    private = True
+
     def get(self, request: Request) -> Response:
         status = request.GET.get("status")
 

@@ -9,6 +9,7 @@ from sentry.plugins.base import plugins
 
 @pending_silo_endpoint
 class InternalPackagesEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

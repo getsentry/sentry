@@ -10,6 +10,8 @@ from sentry.mediators.sentry_app_installations import Destroyer, Updater
 
 @control_silo_endpoint
 class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, installation) -> Response:
 
         return Response(serialize(installation))

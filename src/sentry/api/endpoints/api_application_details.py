@@ -32,6 +32,7 @@ class ApiApplicationSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiApplicationDetailsEndpoint(Endpoint):
+    private = True
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

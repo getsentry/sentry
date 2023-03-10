@@ -9,6 +9,7 @@ from sentry.api.permissions import SuperuserPermission
 
 @pending_silo_endpoint
 class InternalQuotasEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

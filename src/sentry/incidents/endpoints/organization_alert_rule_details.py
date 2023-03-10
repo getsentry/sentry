@@ -15,6 +15,8 @@ from sentry.models.actor import ACTOR_TYPES
 
 @region_silo_endpoint
 class OrganizationAlertRuleDetailsEndpoint(OrganizationAlertRuleEndpoint):
+    private = True
+
     def get(self, request: Request, organization, alert_rule) -> Response:
         """
         Fetch an alert rule.

@@ -9,6 +9,8 @@ from sentry.models import PlatformExternalIssue
 
 @region_silo_endpoint
 class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
+    private = True
+
     def delete(self, request: Request, external_issue_id, group) -> Response:
         try:
             external_issue = PlatformExternalIssue.objects.get(

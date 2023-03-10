@@ -10,6 +10,8 @@ from sentry.models import Environment
 
 @region_silo_endpoint
 class ProjectTagsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(request, project.organization_id)

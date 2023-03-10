@@ -35,6 +35,7 @@ class EmailSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserEmailsConfirmEndpoint(UserEndpoint):
+    private = True
     rate_limits = {
         "POST": {
             RateLimitCategory.USER: RateLimit(10, 60),

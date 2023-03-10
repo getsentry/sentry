@@ -10,6 +10,8 @@ from .base import JiraEndpointBase
 
 @pending_silo_endpoint
 class JiraUninstalledEndpoint(JiraEndpointBase):
+    private = True
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
         integration = get_integration_from_jwt(

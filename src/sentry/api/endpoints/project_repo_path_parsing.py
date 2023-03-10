@@ -93,6 +93,7 @@ class PathMappingSerializer(CamelSnakeSerializer):
 
 
 class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
+    private = True
     """
     Similar to the code_mappings endpoint, loosen permissions to all users
     """
@@ -104,6 +105,7 @@ class ProjectRepoPathParsingEndpointLoosePermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectRepoPathParsingEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectRepoPathParsingEndpointLoosePermission,)
     """
     Returns the parameters associated with the RepositoryProjectPathConfig

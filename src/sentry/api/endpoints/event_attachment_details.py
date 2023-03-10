@@ -45,6 +45,7 @@ class EventAttachmentDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class EventAttachmentDetailsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (EventAttachmentDetailsPermission,)
 
     def download(self, attachment):

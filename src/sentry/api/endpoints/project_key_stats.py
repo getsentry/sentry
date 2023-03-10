@@ -21,6 +21,7 @@ from sentry.utils.outcomes import Outcome
 
 @region_silo_endpoint
 class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

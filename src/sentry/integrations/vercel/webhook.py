@@ -122,6 +122,7 @@ def get_payload_and_token(
 
 @pending_silo_endpoint
 class VercelWebhookEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
     provider = "vercel"

@@ -8,6 +8,8 @@ from sentry.models import Integration, Organization
 
 @pending_silo_endpoint
 class VstsSearchEndpoint(IntegrationEndpoint):  # type: ignore
+    private = True
+
     def get(self, request: Request, organization: Organization, integration_id: int) -> Response:
         try:
             integration = Integration.objects.get(

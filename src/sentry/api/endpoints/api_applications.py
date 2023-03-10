@@ -10,6 +10,7 @@ from sentry.models import ApiApplication, ApiApplicationStatus
 
 @control_silo_endpoint
 class ApiApplicationsEndpoint(Endpoint):
+    private = True
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

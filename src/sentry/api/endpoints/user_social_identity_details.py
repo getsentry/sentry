@@ -13,6 +13,8 @@ logger = logging.getLogger("sentry.accounts")
 
 @control_silo_endpoint
 class UserSocialIdentityDetailsEndpoint(UserEndpoint):
+    private = True
+
     def delete(self, request: Request, user, identity_id) -> Response:
         """
         Disconnect a Identity from Account

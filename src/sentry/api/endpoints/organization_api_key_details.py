@@ -18,6 +18,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @region_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request: Request, organization, api_key_id) -> Response:

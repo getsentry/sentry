@@ -14,6 +14,7 @@ ERR_NO_SSO = _("The SSO feature is not enabled for this organization.")
 
 @region_silo_endpoint
 class OrganizationAuthProviderSendRemindersEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAdminPermission,)
 
     def post(self, request: Request, organization) -> Response:

@@ -17,6 +17,7 @@ def normalize_symbol_source(key, source):
 
 @pending_silo_endpoint
 class BuiltinSymbolSourcesEndpoint(Endpoint):
+    private = True
     permission_classes = ()
 
     def get(self, request: Request) -> Response:

@@ -11,6 +11,8 @@ from sentry.models import UserIP
 
 @control_silo_endpoint
 class UserIPsEndpoint(UserEndpoint):
+    private = True
+
     @sudo_required
     def get(self, request: Request, user) -> Response:
         """

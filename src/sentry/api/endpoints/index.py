@@ -8,6 +8,7 @@ from sentry.models.user import User
 
 @control_silo_endpoint
 class IndexEndpoint(Endpoint):
+    private = True
     permission_classes = ()
 
     def get(self, request: Request) -> Response:

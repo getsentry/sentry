@@ -122,6 +122,8 @@ class DeleteUserSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class UserDetailsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve User Details

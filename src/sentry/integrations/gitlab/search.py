@@ -9,6 +9,8 @@ from sentry.shared_integrations.exceptions import ApiError
 
 @region_silo_endpoint
 class GitlabIssueSearchEndpoint(IntegrationEndpoint):
+    private = True
+
     def get(self, request: Request, organization, integration_id) -> Response:
         try:
             integration = Integration.objects.get(

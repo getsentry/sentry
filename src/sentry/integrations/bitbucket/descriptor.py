@@ -10,6 +10,7 @@ from .client import BITBUCKET_KEY
 
 @pending_silo_endpoint
 class BitbucketDescriptorEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

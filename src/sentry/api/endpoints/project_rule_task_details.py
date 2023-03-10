@@ -11,6 +11,7 @@ from sentry.models import Rule, RuleStatus
 
 @region_silo_endpoint
 class ProjectRuleTaskDetailsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = [ProjectSettingPermission]
 
     def get(self, request: Request, project, task_uuid) -> Response:

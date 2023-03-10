@@ -10,6 +10,8 @@ from sentry.models import EnvironmentProject
 
 @region_silo_endpoint
 class ProjectEnvironmentsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Environments

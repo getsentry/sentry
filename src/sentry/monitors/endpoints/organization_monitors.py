@@ -44,6 +44,7 @@ DEFAULT_ORDERING_CASE = Case(
 
 @region_silo_endpoint
 class OrganizationMonitorsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationMonitorPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

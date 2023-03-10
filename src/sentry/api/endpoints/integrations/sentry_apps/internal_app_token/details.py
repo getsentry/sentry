@@ -11,6 +11,7 @@ from sentry.models import ApiToken
 
 @pending_silo_endpoint
 class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
+    private = True
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def convert_args(self, request: Request, sentry_app_slug, api_token, *args, **kwargs):

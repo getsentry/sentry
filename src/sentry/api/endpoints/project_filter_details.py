@@ -10,6 +10,8 @@ from sentry.ingest import inbound_filters
 
 @region_silo_endpoint
 class ProjectFilterDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def put(self, request: Request, project, filter_id) -> Response:
         """
         Update a filter

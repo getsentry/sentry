@@ -25,6 +25,8 @@ class IntegrationSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, organization, integration_id) -> Response:
         org_integration = self.get_organization_integration(organization, integration_id)
 

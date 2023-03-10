@@ -14,6 +14,8 @@ from .base import JiraEndpointBase
 
 @pending_silo_endpoint
 class JiraInstalledEndpoint(JiraEndpointBase):
+    private = True
+
     def post(self, request: Request, *args, **kwargs) -> Response:
         token = self.get_token(request)
 

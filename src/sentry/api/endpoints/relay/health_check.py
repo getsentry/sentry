@@ -6,6 +6,7 @@ from sentry.api.base import Endpoint, pending_silo_endpoint
 
 @pending_silo_endpoint
 class RelayHealthCheck(Endpoint):
+    private = True
     """
     Endpoint checked by downstream Relay when a suspected network error is encountered.
     This endpoint doesn't do anything besides returning an Ok, and the downstream Relay

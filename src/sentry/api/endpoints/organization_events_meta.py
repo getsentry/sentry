@@ -16,6 +16,8 @@ from sentry.api.serializers.models.group import GroupSerializer
 
 @region_silo_endpoint
 class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)
@@ -40,6 +42,8 @@ UNESCAPED_QUOTE_RE = re.compile('(?<!\\\\)"')
 
 @region_silo_endpoint
 class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         try:
             # events-meta is still used by events v1 which doesn't require global views

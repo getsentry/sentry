@@ -55,6 +55,7 @@ class AssistantSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class AssistantEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

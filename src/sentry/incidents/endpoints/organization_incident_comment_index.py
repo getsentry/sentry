@@ -23,6 +23,7 @@ class CommentSerializer(serializers.Serializer, MentionsMixin):
 
 @region_silo_endpoint
 class OrganizationIncidentCommentIndexEndpoint(IncidentEndpoint):
+    private = True
     permission_classes = (IncidentPermission,)
 
     def post(self, request: Request, organization, incident) -> Response:

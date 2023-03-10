@@ -17,6 +17,8 @@ from sentry.utils import auth
 
 @region_silo_endpoint
 class AcceptOrganizationInvite(Endpoint):
+    private = True
+    private = True
     # Disable authentication and permission requirements.
     permission_classes = []
 

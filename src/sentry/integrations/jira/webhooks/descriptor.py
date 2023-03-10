@@ -19,6 +19,7 @@ if settings.JIRA_USE_EMAIL_SCOPE:
 
 @pending_silo_endpoint
 class JiraDescriptorEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

@@ -14,6 +14,7 @@ from sentry.utils.hashlib import md5_text
 
 @pending_silo_endpoint
 class SystemHealthEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
     rate_limits = RateLimitConfig(group="INTERNAL")
 

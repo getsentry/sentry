@@ -48,6 +48,8 @@ class IntegrationIssueConfigSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationDetailsEndpoint(GroupEndpoint):
+    private = True
+
     def _has_issue_feature(self, organization, user):
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", organization, actor=user

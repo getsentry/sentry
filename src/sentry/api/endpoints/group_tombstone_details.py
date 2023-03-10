@@ -9,6 +9,8 @@ from sentry.models import GroupHash, GroupTombstone
 
 @region_silo_endpoint
 class GroupTombstoneDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def delete(self, request: Request, project, tombstone_id) -> Response:
         """
         Remove a GroupTombstone

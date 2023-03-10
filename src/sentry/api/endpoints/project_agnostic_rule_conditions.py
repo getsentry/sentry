@@ -8,6 +8,8 @@ from sentry.rules import rules
 
 @region_silo_endpoint
 class ProjectAgnosticRuleConditionsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve the list of rule conditions

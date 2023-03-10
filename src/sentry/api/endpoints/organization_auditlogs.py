@@ -27,6 +27,7 @@ class AuditLogQueryParamSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class OrganizationAuditLogsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAuditPermission,)
 
     def get(self, request: Request, organization) -> Response:

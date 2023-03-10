@@ -47,6 +47,7 @@ def is_team_linked_to_channel(organization: Organization, slack_request: SlackDM
 
 @region_silo_endpoint
 class SlackCommandsEndpoint(SlackDMEndpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

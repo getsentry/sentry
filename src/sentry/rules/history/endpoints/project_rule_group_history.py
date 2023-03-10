@@ -52,6 +52,8 @@ class RuleGroupHistorySerializer(Serializer):  # type: ignore
 @extend_schema(tags=["issue_alerts"])
 @region_silo_endpoint
 class ProjectRuleGroupHistoryIndexEndpoint(RuleEndpoint):
+    private = True
+
     @extend_schema(
         operation_id="Retrieve a group firing history for an issue alert",
         parameters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.PROJECT_SLUG, ISSUE_ALERT_PARAMS],

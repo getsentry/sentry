@@ -10,6 +10,7 @@ from sentry.models import AuthProvider
 
 @region_silo_endpoint
 class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAuthProviderPermission,)
 
     def get(self, request: Request, organization) -> Response:

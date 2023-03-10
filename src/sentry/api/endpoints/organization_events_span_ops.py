@@ -18,6 +18,8 @@ class SpanOp(TypedDict):
 
 @region_silo_endpoint
 class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):  # type: ignore
+    private = True
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:

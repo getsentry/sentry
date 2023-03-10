@@ -12,6 +12,8 @@ from sentry.plugins.base import plugins
 
 @region_silo_endpoint
 class OrganizationPluginsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         all_plugins = {p.slug: p for p in plugins.all()}
 

@@ -21,6 +21,8 @@ from sentry.utils.performance_issues.performance_detection import EventPerforman
 
 @region_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Returns the grouping information for an event

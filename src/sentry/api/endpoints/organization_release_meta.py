@@ -12,6 +12,8 @@ from sentry.models import CommitFileChange, ProjectPlatform, Release, ReleaseCom
 
 @region_silo_endpoint
 class OrganizationReleaseMetaEndpoint(OrganizationReleasesBaseEndpoint):
+    private = True
+
     def get(self, request: Request, organization, version) -> Response:
         """
         Retrieve an Organization's Release's Associated Meta Data

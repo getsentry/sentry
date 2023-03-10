@@ -41,6 +41,8 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class OrganizationMemberUnreleasedCommitsEndpoint(OrganizationMemberEndpoint):
+    private = True
+
     def get(self, request: Request, organization, member) -> Response:
         email_list = [
             e.email

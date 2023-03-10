@@ -9,6 +9,7 @@ from sentry.utils.email import send_mail
 
 @pending_silo_endpoint
 class InternalMailEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

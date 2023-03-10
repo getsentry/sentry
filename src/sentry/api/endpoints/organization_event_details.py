@@ -10,6 +10,8 @@ from sentry.models.project import Project, ProjectStatus
 
 @region_silo_endpoint
 class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization, project_slug, event_id) -> Response:
         """event_id is validated by a regex in the URL"""
         if not self.has_feature(organization, request):

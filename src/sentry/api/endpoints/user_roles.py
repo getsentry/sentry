@@ -10,6 +10,7 @@ from sentry.models import UserRole
 
 @control_silo_endpoint
 class UserUserRolesEndpoint(UserEndpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request, user) -> Response:

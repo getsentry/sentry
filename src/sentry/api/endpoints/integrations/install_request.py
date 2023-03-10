@@ -41,6 +41,8 @@ def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
 
 @region_silo_endpoint
 class OrganizationIntegrationRequestEndpoint(OrganizationRequestChangeEndpoint):
+    private = True
+
     def post(self, request: Request, organization) -> Response:
         """
         Email the organization owners asking them to install an integration.

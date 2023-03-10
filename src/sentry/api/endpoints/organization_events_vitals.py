@@ -12,6 +12,7 @@ from sentry.snuba import discover
 
 @region_silo_endpoint
 class OrganizationEventsVitalsEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
     VITALS = {
         "measurements.lcp": {"thresholds": [0, 2500, 4000]},
         "measurements.fid": {"thresholds": [0, 100, 300]},

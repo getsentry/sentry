@@ -9,6 +9,7 @@ from sentry.models import Relay
 
 @pending_silo_endpoint
 class RelayPublicKeysEndpoint(Endpoint):
+    private = True
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False

@@ -11,6 +11,8 @@ from sentry.models import PlatformExternalIssue
 
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoint):
+    private = True
+
     def delete(self, request: Request, installation, external_issue_id) -> Response:
         try:
             platform_external_issue = PlatformExternalIssue.objects.get(

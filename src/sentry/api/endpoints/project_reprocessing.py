@@ -8,6 +8,7 @@ from sentry.reprocessing import trigger_reprocessing
 
 @region_silo_endpoint
 class ProjectReprocessingEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:

@@ -10,6 +10,7 @@ from sentry.api.serializers.rest_framework import DashboardWidgetSerializer
 
 @region_silo_endpoint
 class OrganizationDashboardWidgetDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationDashboardsPermission,)
 
     def post(self, request: Request, organization) -> Response:

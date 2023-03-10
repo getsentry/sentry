@@ -12,6 +12,8 @@ from sentry.utils.sdk import set_measurement
 
 @region_silo_endpoint
 class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         try:
             filter_params = self.get_filter_params(request, organization)

@@ -17,6 +17,8 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class DocIntegrationsEndpoint(DocIntegrationsBaseEndpoint):
+    private = True
+
     def get(self, request: Request):
         if is_active_superuser(request):
             queryset = DocIntegration.objects.all()

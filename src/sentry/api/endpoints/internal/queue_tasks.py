@@ -8,6 +8,7 @@ from sentry.celery import app
 
 @pending_silo_endpoint
 class InternalQueueTasksEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

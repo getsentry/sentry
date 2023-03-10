@@ -21,6 +21,8 @@ def _fix_label(label):
 
 @region_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         version = request.GET.get("version", None)
         if version == "2":

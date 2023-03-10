@@ -25,6 +25,7 @@ class RelaxedProjectPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectTransferEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = [RelaxedProjectPermission]
 
     @sudo_required

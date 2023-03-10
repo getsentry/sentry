@@ -6,5 +6,6 @@ from sentry.models import TeamAvatar
 
 @region_silo_endpoint
 class TeamAvatarEndpoint(AvatarMixin, TeamEndpoint):
+    private = True
     object_type = "team"
     model = TeamAvatar

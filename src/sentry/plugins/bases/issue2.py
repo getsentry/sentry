@@ -25,6 +25,7 @@ from social_auth.models import UserSocialAuth
 # TODO(dcramer): remove this in favor of GroupEndpoint
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
+    private = True
     view_method_name = None
     plugin = None
 

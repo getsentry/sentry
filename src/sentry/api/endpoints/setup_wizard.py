@@ -16,6 +16,7 @@ SETUP_WIZARD_CACHE_TIMEOUT = 600
 
 @pending_silo_endpoint
 class SetupWizard(Endpoint):
+    private = True
     permission_classes = ()
 
     def delete(self, request: Request, wizard_hash=None) -> Response:

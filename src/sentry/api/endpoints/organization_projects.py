@@ -190,6 +190,8 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint, EnvironmentMixin):
 
 @region_silo_endpoint
 class OrganizationProjectsCountEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         queryset = Project.objects.filter(organization=organization)
 

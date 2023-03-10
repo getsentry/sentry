@@ -17,6 +17,8 @@ from sentry.utils import json
 
 @region_silo_endpoint
 class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    private = True
+
     def post(self, request: Request, organization) -> Response:
         """
         Assembles an artifact bundle and stores the debug ids in the database.

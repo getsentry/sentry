@@ -23,6 +23,8 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserSubscriptionsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve Account Subscriptions

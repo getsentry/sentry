@@ -22,6 +22,7 @@ def get_codeowner_contents(config):
 
 @region_silo_endpoint
 class OrganizationCodeMappingCodeOwnersEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):

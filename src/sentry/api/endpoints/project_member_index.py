@@ -10,6 +10,8 @@ from sentry.models import OrganizationMember
 
 @region_silo_endpoint
 class ProjectMemberIndexEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         queryset = (
             OrganizationMember.objects.filter(

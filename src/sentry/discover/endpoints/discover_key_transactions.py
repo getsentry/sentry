@@ -28,6 +28,7 @@ class KeyTransactionPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
+    private = True
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -135,6 +136,7 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 
 @region_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
+    private = True
     permission_classes = (KeyTransactionPermission,)
 
     def get(self, request: Request, organization) -> Response:

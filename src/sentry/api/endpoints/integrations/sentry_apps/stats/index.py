@@ -11,6 +11,7 @@ from sentry.models import SentryApp, SentryAppAvatar
 
 @pending_silo_endpoint
 class SentryAppsStatsEndpoint(SentryAppsBaseEndpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

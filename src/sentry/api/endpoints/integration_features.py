@@ -21,6 +21,7 @@ class IntegrationFeaturesPermissions(SentryPermission):
 
 @control_silo_endpoint
 class IntegrationFeaturesEndpoint(Endpoint):
+    private = True
     permission_classes = (IntegrationFeaturesPermissions,)
 
     def get(self, request: Request, *args: Any, **kwargs: Any) -> Response:

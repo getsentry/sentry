@@ -10,6 +10,8 @@ from sentry.models import Team
 
 @region_silo_endpoint
 class ProjectTeamsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         List a Project's Teams

@@ -76,6 +76,8 @@ def get_identities(user: User) -> Iterable[UserIdentityConfig]:
 
 @control_silo_endpoint
 class UserIdentityConfigEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a user's SocialIdentity, Identity, and AuthIdentity values
@@ -91,6 +93,8 @@ class UserIdentityConfigEndpoint(UserEndpoint):
 
 @control_silo_endpoint
 class UserIdentityConfigDetailsEndpoint(UserEndpoint):
+    private = True
+
     @staticmethod
     def _get_identity(user, category, identity_id) -> Optional[UserIdentityConfig]:
         identity_id = int(identity_id)

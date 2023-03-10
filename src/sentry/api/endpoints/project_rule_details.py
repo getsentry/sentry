@@ -24,6 +24,8 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRuleDetailsEndpoint(RuleEndpoint):
+    private = True
+
     @transaction_start("ProjectRuleDetailsEndpoint")
     def get(self, request: Request, project, rule) -> Response:
         """

@@ -11,6 +11,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

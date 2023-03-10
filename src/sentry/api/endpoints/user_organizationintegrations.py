@@ -10,6 +10,8 @@ from sentry.models import ObjectStatus, OrganizationIntegration
 
 @region_silo_endpoint
 class UserOrganizationIntegrationsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a users' organization integrations

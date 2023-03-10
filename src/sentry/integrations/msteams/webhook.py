@@ -130,6 +130,7 @@ def verify_signature(request):
 
 @pending_silo_endpoint
 class MsTeamsWebhookEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
     provider = "msteams"

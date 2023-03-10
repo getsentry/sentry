@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 @pending_silo_endpoint
 class SentryAppAuthorizationsEndpoint(SentryAppAuthorizationsBaseEndpoint):
+    private = True
+
     def post(self, request: Request, installation) -> Response:
         with sentry_sdk.configure_scope() as scope:
             scope.set_tag("organization", installation.organization_id)

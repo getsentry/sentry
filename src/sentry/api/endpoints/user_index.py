@@ -13,6 +13,7 @@ from sentry.search.utils import tokenize_query
 
 @control_silo_endpoint
 class UserIndexEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

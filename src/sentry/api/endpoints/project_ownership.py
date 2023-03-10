@@ -152,6 +152,7 @@ class ProjectOwnershipSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectOwnershipEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = [ProjectOwnershipPermission]
 
     def get_ownership(self, project):

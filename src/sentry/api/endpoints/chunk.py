@@ -46,6 +46,7 @@ class GzipChunk(BytesIO):
 
 @pending_silo_endpoint
 class ChunkUploadEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationReleasePermission,)
     rate_limits = RateLimitConfig(group="CLI")
 

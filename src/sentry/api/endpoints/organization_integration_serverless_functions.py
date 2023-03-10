@@ -19,6 +19,8 @@ class ServerlessActionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegrationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repository project path configs in an integration

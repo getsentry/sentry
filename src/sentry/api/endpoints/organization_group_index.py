@@ -139,6 +139,7 @@ def inbox_search(
 
 @region_silo_endpoint
 class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
+    private = True
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 

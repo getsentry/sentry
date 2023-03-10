@@ -10,6 +10,7 @@ from sentry.models import SentryAppAvatar
 
 @pending_silo_endpoint
 class SentryAppAvatarEndpoint(AvatarMixin, SentryAppBaseEndpoint):
+    private = True
     object_type = "sentry_app"
     model = SentryAppAvatar
     serializer_cls = SentryAppAvatarSerializer

@@ -9,6 +9,8 @@ from social_auth.models import UserSocialAuth
 
 @control_silo_endpoint
 class UserSocialIdentitiesIndexEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         List Account's Identities

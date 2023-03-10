@@ -21,6 +21,7 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 
 @pending_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

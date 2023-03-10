@@ -28,6 +28,7 @@ class IncidentSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationIncidentDetailsEndpoint(IncidentEndpoint):
+    private = True
     permission_classes = (IncidentPermission,)
 
     def get(self, request: Request, organization, incident) -> Response:

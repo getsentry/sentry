@@ -16,6 +16,7 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 @control_silo_endpoint
 class UserRoleDetailsEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     @sudo_required

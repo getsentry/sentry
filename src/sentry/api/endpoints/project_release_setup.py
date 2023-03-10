@@ -10,6 +10,7 @@ from sentry.utils.hashlib import hash_values
 
 @region_silo_endpoint
 class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

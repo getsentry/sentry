@@ -32,6 +32,8 @@ class SentryAppInstallationsSerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         queryset = SentryAppInstallation.objects.filter(organization=organization)
 

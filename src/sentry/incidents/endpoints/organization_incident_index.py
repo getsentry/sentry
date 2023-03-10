@@ -27,6 +27,7 @@ from .utils import parse_team_params
 
 @region_silo_endpoint
 class OrganizationIncidentIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (IncidentPermission,)
 
     def get(self, request: Request, organization) -> Response:

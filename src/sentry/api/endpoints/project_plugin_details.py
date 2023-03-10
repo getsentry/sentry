@@ -28,6 +28,8 @@ OK_UPDATED = "Successfully updated configuration."
 
 @region_silo_endpoint
 class ProjectPluginDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def _get_plugin(self, plugin_id):
         try:
             return plugins.get(plugin_id)

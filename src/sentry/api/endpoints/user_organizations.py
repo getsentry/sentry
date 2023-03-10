@@ -10,6 +10,8 @@ from sentry.api.serializers import serialize
 
 @control_silo_endpoint
 class UserOrganizationsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         queryset = user.get_orgs()
 

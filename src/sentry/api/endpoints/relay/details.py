@@ -9,6 +9,7 @@ from sentry.models import Relay
 
 @pending_silo_endpoint
 class RelayDetailsEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def delete(self, request: Request, relay_id) -> Response:

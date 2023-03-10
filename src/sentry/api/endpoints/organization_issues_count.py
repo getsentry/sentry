@@ -20,6 +20,7 @@ ISSUES_COUNT_MAX_HITS_LIMIT = 100
 
 @region_silo_endpoint
 class OrganizationIssuesCountEndpoint(OrganizationEventsEndpointBase):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

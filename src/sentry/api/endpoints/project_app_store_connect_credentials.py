@@ -81,6 +81,7 @@ class AppStoreConnectCredentialsSerializer(serializers.Serializer):  # type: ign
 
 @pending_silo_endpoint
 class AppStoreConnectAppsEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
     """Retrieves available applications with provided credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/apps/``
@@ -196,6 +197,7 @@ class AppStoreCreateCredentialsSerializer(serializers.Serializer):  # type: igno
 
 @pending_silo_endpoint
 class AppStoreConnectCreateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
     """Returns all the App Store Connect symbol source settings ready to be saved.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/``
@@ -270,6 +272,7 @@ class AppStoreUpdateCredentialsSerializer(serializers.Serializer):  # type: igno
 
 @pending_silo_endpoint
 class AppStoreConnectUpdateCredentialsEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
     """Updates a subset of the existing credentials.
 
     ``POST projects/{org_slug}/{proj_slug}/appstoreconnect/{id}/``
@@ -382,6 +385,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
 
 @pending_silo_endpoint
 class AppStoreConnectStatusEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
     """Returns a summary of the project's App Store Connect configuration
     and builds.
 

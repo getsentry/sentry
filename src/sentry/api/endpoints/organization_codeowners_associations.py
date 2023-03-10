@@ -13,6 +13,7 @@ from sentry.models import Organization, Project, ProjectCodeOwners
 
 @region_silo_endpoint
 class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization):

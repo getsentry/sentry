@@ -48,6 +48,8 @@ class EventsHasMeasurementsQuerySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsHasMeasurementsEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         if not self.has_feature(organization, request):
             return Response(status=404)

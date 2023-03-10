@@ -9,6 +9,8 @@ from sentry.api.serializers import serialize
 
 @region_silo_endpoint
 class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         For each Project in an Organization, list its processing issues. Can

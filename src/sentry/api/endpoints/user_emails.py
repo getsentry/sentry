@@ -58,6 +58,8 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class UserEmailsEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Get list of emails

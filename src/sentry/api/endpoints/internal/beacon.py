@@ -38,6 +38,7 @@ class MetricsSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class InternalBeaconEndpoint(Endpoint):
+    private = True
     permission_classes = ()
 
     def post(self, request: Request) -> Response:

@@ -10,6 +10,8 @@ from sentry.models import Environment
 
 @region_silo_endpoint
 class GroupStatsEndpoint(GroupEndpoint, EnvironmentMixin, StatsMixin):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         try:
             environment_id = self._get_environment_id_from_request(

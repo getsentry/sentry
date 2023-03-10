@@ -20,6 +20,8 @@ from sentry.models import Project, SentryAppComponent, SentryAppInstallation
 #  endpoint that can take project_id or sentry_app_id as a query parameter.
 @pending_silo_endpoint
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
+    private = True
+
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
             request=request,
@@ -31,6 +33,8 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
 
 @region_silo_endpoint
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
+    private = True
+
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
         project_id = request.GET.get("projectId")

@@ -22,6 +22,7 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 
 @pending_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

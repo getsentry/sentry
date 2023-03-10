@@ -10,6 +10,7 @@ from sentry.models import Repository
 
 @pending_silo_endpoint
 class BitbucketUninstalledEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

@@ -33,6 +33,7 @@ class PromptsActivitySerializer(serializers.Serializer):
 
 @pending_silo_endpoint
 class PromptsActivityEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

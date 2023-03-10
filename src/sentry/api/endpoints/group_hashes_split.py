@@ -21,6 +21,8 @@ from sentry.utils import snuba
 
 @region_silo_endpoint
 class GroupHashesSplitEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         """
         Return information on whether the group can be split up, has been split

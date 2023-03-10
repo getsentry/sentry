@@ -26,6 +26,7 @@ class InviteRequestPermissions(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (InviteRequestPermissions,)
 
     def get(self, request: Request, organization) -> Response:

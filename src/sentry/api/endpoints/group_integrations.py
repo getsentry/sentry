@@ -71,6 +71,8 @@ class IntegrationIssueSerializer(IntegrationSerializer):
 
 @region_silo_endpoint
 class GroupIntegrationsEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         has_issue_basic = features.has(
             "organizations:integrations-issue-basic", group.organization, actor=request.user

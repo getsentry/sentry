@@ -25,6 +25,8 @@ INVALID_USER_MSG = (
 
 @control_silo_endpoint
 class UserNotificationFineTuningEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user, notification_type) -> Response:
         try:
             notification_type = FineTuningAPIKey(notification_type)

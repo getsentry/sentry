@@ -76,6 +76,8 @@ ALLOWED_EVENTS_STATS_REFERRERS: Set[str] = {
 
 @region_silo_endpoint
 class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
+    private = True
+
     def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
         feature_names = [
             "organizations:performance-chart-interpolation",

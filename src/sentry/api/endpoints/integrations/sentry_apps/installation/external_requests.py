@@ -9,6 +9,8 @@ from sentry.models import Project
 
 @pending_silo_endpoint
 class SentryAppInstallationExternalRequestsEndpoint(SentryAppInstallationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, installation) -> Response:
         try:
             project = Project.objects.get(

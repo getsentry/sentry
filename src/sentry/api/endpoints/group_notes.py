@@ -19,6 +19,8 @@ from sentry.types.activity import ActivityType
 
 @region_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 

@@ -13,6 +13,8 @@ from sentry.plugins.base import plugins
 
 @region_silo_endpoint
 class OrganizationPluginsConfigsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
 
         """

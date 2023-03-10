@@ -41,6 +41,8 @@ class OrganizationDashboardBase(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
+    private = True
+
     def get(self, request: Request, organization, dashboard) -> Response:
         """
         Retrieve an Organization's Dashboard
@@ -139,6 +141,8 @@ class OrganizationDashboardDetailsEndpoint(OrganizationDashboardBase):
 
 @region_silo_endpoint
 class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
+    private = True
+
     def post(self, request: Request, organization, dashboard) -> Response:
         """
         Update last_visited and increment visits counter

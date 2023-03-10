@@ -8,6 +8,8 @@ from sentry.plugins.base import bindings
 
 @region_silo_endpoint
 class OrganizationConfigRepositoriesEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         provider_bindings = bindings.get("repository.provider")
         providers = []

@@ -12,6 +12,7 @@ from sentry.models import NotificationSetting, Team
 
 @region_silo_endpoint
 class TeamNotificationSettingsDetailsEndpoint(TeamEndpoint):
+    private = True
     """
     This Notification Settings endpoint is the generic way to interact with the
     NotificationSettings table via the API.

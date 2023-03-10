@@ -10,6 +10,8 @@ from sentry.eventstore.models import Event
 
 @pending_silo_endpoint
 class DataScrubbingSelectorSuggestionsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         Generate a list of data scrubbing selectors from existing event data.

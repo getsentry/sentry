@@ -48,6 +48,7 @@ def filter_by_features(
 
 @region_silo_endpoint
 class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

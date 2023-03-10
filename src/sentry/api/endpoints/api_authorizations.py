@@ -11,6 +11,7 @@ from sentry.models import ApiApplicationStatus, ApiAuthorization, ApiToken
 
 @control_silo_endpoint
 class ApiAuthorizationsEndpoint(Endpoint):
+    private = True
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

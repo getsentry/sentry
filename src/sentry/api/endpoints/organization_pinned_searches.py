@@ -28,6 +28,7 @@ class OrganizationSearchSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationPinnedSearchEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationPinnedSearchPermission,)
 
     def put(self, request: Request, organization) -> Response:

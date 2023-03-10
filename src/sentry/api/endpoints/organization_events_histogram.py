@@ -41,6 +41,8 @@ class HistogramSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationEventsHistogramEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
+
     def has_feature(self, organization, request):
         return features.has("organizations:performance-view", organization, actor=request.user)
 

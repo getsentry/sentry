@@ -41,6 +41,7 @@ class CloudflareTokenAuthentication(TokenAuthentication):
 
 @pending_silo_endpoint
 class CloudflareWebhookEndpoint(Endpoint):
+    private = True
     authentication_classes = (CloudflareTokenAuthentication,)
     permission_classes = ()
 

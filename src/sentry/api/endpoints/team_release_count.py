@@ -16,6 +16,8 @@ from sentry.models import Project, Release
 
 @region_silo_endpoint
 class TeamReleaseCountEndpoint(TeamEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, team) -> Response:
         """
         Returns a dict of team projects, and a time-series list of release counts for each.

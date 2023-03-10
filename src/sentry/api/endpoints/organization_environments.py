@@ -10,6 +10,8 @@ from sentry.models import Environment, EnvironmentProject
 
 @region_silo_endpoint
 class OrganizationEnvironmentsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         visibility = request.GET.get("visibility", "visible")
         if visibility not in environment_visibility_filter_options:

@@ -9,6 +9,8 @@ from sentry.models import Authenticator
 
 @control_silo_endpoint
 class UserAuthenticatorIndexEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """Returns all interface for a user (un-enrolled ones), otherwise an empty array"""
 

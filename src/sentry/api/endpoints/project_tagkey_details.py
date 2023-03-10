@@ -13,6 +13,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class ProjectTagKeyDetailsEndpoint(ProjectEndpoint, EnvironmentMixin):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "DELETE": {

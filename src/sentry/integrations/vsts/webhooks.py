@@ -20,6 +20,7 @@ PROVIDER_KEY = "vsts"
 
 @pending_silo_endpoint
 class WorkItemWebhook(Endpoint):  # type: ignore
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

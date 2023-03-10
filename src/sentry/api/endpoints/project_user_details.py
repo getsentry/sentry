@@ -11,6 +11,8 @@ from sentry.models import EventUser
 
 @region_silo_endpoint
 class ProjectUserDetailsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, user_hash) -> Response:
         euser = EventUser.objects.get(project_id=project.id, hash=user_hash)
         return Response(serialize(euser, request.user))

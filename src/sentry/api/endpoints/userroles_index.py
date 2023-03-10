@@ -16,6 +16,7 @@ audit_logger = logging.getLogger("sentry.audit.user")
 
 @control_silo_endpoint
 class UserRolesEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

@@ -21,6 +21,7 @@ from .organization_code_mappings import (
 
 @region_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    private = True
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):

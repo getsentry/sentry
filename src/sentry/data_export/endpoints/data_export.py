@@ -108,6 +108,7 @@ class DataExportQuerySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class DataExportEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    private = True
     permission_classes = (OrganizationDataExportPermission,)
 
     def post(self, request: Request, organization) -> Response:

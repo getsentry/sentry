@@ -36,6 +36,7 @@ def _get_signature(project_id, plugin_id, token):
 
 @region_silo_endpoint
 class ProjectReleasesTokenEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (StrictProjectPermission,)
 
     def _regenerate_token(self, project):

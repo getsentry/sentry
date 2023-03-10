@@ -8,6 +8,8 @@ from sentry.ingest import inbound_filters
 
 @region_silo_endpoint
 class ProjectFiltersEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         List a project's filters

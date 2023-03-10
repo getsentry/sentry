@@ -11,6 +11,8 @@ from sentry.models.integrations.integration_feature import IntegrationTypes
 
 @pending_silo_endpoint
 class SentryAppFeaturesEndpoint(SentryAppBaseEndpoint):
+    private = True
+
     def get(self, request: Request, sentry_app) -> Response:
         features = IntegrationFeature.objects.filter(
             target_id=sentry_app.id, target_type=IntegrationTypes.SENTRY_APP.value

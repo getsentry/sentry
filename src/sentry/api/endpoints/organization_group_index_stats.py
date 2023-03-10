@@ -15,6 +15,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class OrganizationGroupIndexStatsEndpoint(OrganizationEventsEndpointBase):
+    private = True
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 

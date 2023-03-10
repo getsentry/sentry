@@ -9,6 +9,8 @@ from sentry.models import Project
 
 @region_silo_endpoint
 class OrganizationProjectsSentFirstEventEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         Verify If Any Project Within An Organization Has Received a First Event

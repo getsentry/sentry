@@ -13,6 +13,7 @@ from sentry.models import UserReport
 
 @region_silo_endpoint
 class OrganizationUserReportsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationUserReportsPermission,)
 
     def get(self, request: Request, organization) -> Response:

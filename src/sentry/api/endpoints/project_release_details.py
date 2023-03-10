@@ -18,6 +18,7 @@ from sentry.utils.sdk import bind_organization_context, configure_scope
 
 @region_silo_endpoint
 class ProjectReleaseDetailsEndpoint(ProjectEndpoint, ReleaseAnalyticsMixin):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project, version) -> Response:

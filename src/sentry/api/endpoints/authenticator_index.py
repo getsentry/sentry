@@ -10,6 +10,7 @@ from sentry.models import Authenticator
 
 @pending_silo_endpoint
 class AuthenticatorIndexEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
 
     def get(self, request: Request) -> Response:

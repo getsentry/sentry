@@ -11,6 +11,8 @@ from sentry.models import ActorTuple, ProjectOwnership, Team
 
 @region_silo_endpoint
 class EventOwnersEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve suggested owners information for an event

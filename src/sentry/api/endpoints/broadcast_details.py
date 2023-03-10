@@ -20,6 +20,7 @@ from rest_framework.response import Response
 
 @control_silo_endpoint
 class BroadcastDetailsEndpoint(Endpoint):
+    private = True
     permission_classes = (IsAuthenticated,)
 
     def _get_broadcast(self, request: Request, broadcast_id):

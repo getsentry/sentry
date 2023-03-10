@@ -13,6 +13,8 @@ logger = logging.getLogger("sentry.api")
 
 @region_silo_endpoint
 class GroupExternalIssuesEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group) -> Response:
 
         external_issues = PlatformExternalIssue.objects.filter(group_id=group.id)

@@ -19,6 +19,7 @@ class ApiTokenSerializer(serializers.Serializer):
 
 @control_silo_endpoint
 class ApiTokensEndpoint(Endpoint):
+    private = True
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

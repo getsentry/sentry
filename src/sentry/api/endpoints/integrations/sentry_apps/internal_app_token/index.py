@@ -13,6 +13,7 @@ from sentry.models.integrations.sentry_app import MASKED_VALUE
 
 @pending_silo_endpoint
 class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
+    private = True
     permission_classes = (SentryInternalAppTokenPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

@@ -16,6 +16,8 @@ from sentry.models import GroupHistory, GroupHistoryStatus
 
 @region_silo_endpoint
 class TeamTimeToResolutionEndpoint(TeamEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, team) -> Response:
         """
         Return a a time bucketed list of mean group resolution times for a given team.

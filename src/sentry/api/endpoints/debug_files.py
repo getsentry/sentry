@@ -257,6 +257,7 @@ class UnknownDebugFilesEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class AssociateDSymFilesEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     # Legacy endpoint, kept for backwards compatibility
@@ -276,6 +277,7 @@ def find_missing_chunks(organization, chunks):
 
 @region_silo_endpoint
 class DifAssembleEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def post(self, request: Request, project) -> Response:
@@ -394,6 +396,7 @@ class DifAssembleEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class SourceMapsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:

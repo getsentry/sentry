@@ -573,6 +573,8 @@ class OrganizationReleasesEndpoint(
 
 @region_silo_endpoint
 class OrganizationReleasesStatsEndpoint(OrganizationReleasesBaseEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         List an Organization's Releases specifically for building timeseries

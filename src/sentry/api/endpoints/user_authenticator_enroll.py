@@ -103,6 +103,8 @@ def get_serializer_field_metadata(serializer, fields=None):
 
 @control_silo_endpoint
 class UserAuthenticatorEnrollEndpoint(UserEndpoint):
+    private = True
+
     @sudo_required
     def get(self, request: Request, user, interface_id) -> Response:
         """

@@ -10,6 +10,7 @@ from sentry.models import UserAvatar
 
 @control_silo_endpoint
 class UserAvatarEndpoint(AvatarMixin, UserEndpoint):
+    private = True
     object_type = "user"
     model = UserAvatar
 

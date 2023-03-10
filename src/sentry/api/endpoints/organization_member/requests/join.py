@@ -43,6 +43,7 @@ def create_organization_join_request(organization, email, ip_address=None):
 
 @region_silo_endpoint
 class OrganizationJoinRequestEndpoint(OrganizationEndpoint):
+    private = True
     # Disable authentication and permission requirements.
     permission_classes = []
 

@@ -7,6 +7,7 @@ from sentry.models import DocIntegrationAvatar
 
 @control_silo_endpoint
 class DocIntegrationAvatarEndpoint(AvatarMixin, DocIntegrationBaseEndpoint):
+    private = True
     object_type = "doc_integration"
     model = DocIntegrationAvatar
     serializer_cls = DocIntegrationAvatarSerializer

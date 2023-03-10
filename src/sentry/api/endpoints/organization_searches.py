@@ -16,6 +16,7 @@ from sentry.models.search_common import SearchType
 
 @region_silo_endpoint
 class OrganizationSearchesEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationSearchPermission,)
 
     def get(self, request: Request, organization) -> Response:

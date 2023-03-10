@@ -28,6 +28,7 @@ class RepositorySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationIntegrationsPermission,)
 
     def put(self, request: Request, organization, repo_id) -> Response:

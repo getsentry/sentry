@@ -11,6 +11,8 @@ from sentry.utils.committers import get_serialized_event_file_committers
 
 @region_silo_endpoint
 class EventFileCommittersEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         """
         Retrieve Committer information for an event

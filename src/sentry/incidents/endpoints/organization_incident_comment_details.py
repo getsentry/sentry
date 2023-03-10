@@ -46,6 +46,7 @@ class CommentDetailsEndpoint(IncidentEndpoint):
 
 @region_silo_endpoint
 class OrganizationIncidentCommentDetailsEndpoint(CommentDetailsEndpoint):
+    private = True
     permission_classes = (IncidentPermission,)
 
     def delete(self, request: Request, organization, incident, activity) -> Response:

@@ -10,6 +10,7 @@ from sentry.models import Release, ReleaseCommit, Repository
 
 @region_silo_endpoint
 class ProjectReleaseRepositories(ProjectEndpoint):
+    private = True
 
     permission_classes = (ProjectReleasePermission,)
 

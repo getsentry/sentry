@@ -24,6 +24,7 @@ class OrganizationRecentSearchPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationRecentSearchPermission,)
 
     def get(self, request: Request, organization) -> Response:

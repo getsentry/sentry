@@ -99,6 +99,8 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class EventJsonEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project, event_id) -> Response:
         event = eventstore.get_event_by_id(project.id, event_id)
 

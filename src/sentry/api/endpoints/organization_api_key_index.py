@@ -13,6 +13,7 @@ DEFAULT_SCOPES = ["project:read", "event:read", "team:read", "org:read", "member
 
 @region_silo_endpoint
 class OrganizationApiKeyIndexEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationAdminPermission,)
 
     def get(self, request: Request, organization) -> Response:

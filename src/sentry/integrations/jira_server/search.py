@@ -12,6 +12,7 @@ from .utils import build_user_choice
 
 @pending_silo_endpoint
 class JiraServerSearchEndpoint(IntegrationEndpoint):
+    private = True
     provider = "jira_server"
 
     def _get_integration(self, organization, integration_id):

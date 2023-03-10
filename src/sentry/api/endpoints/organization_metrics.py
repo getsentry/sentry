@@ -40,6 +40,7 @@ def get_use_case_id(use_case: str) -> UseCaseKey:
 
 @region_silo_endpoint
 class OrganizationMetricsEndpoint(OrganizationEndpoint):
+    private = True
     """Get metric name, available operations and the metric unit"""
 
     def get(self, request: Request, organization) -> Response:
@@ -60,6 +61,7 @@ class OrganizationMetricsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
+    private = True
     """Get metric name, available operations, metric unit and available tags"""
 
     def get(self, request: Request, organization, metric_name) -> Response:
@@ -83,6 +85,7 @@ class OrganizationMetricDetailsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
+    private = True
     """Get list of tag names for this project
 
     If the ``metric`` query param is provided, only tags for a certain metric
@@ -114,6 +117,7 @@ class OrganizationMetricsTagsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
+    private = True
     """Get all existing tag values for a metric"""
 
     def get(self, request: Request, organization, tag_name) -> Response:
@@ -144,6 +148,7 @@ class OrganizationMetricsTagDetailsEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationMetricsDataEndpoint(OrganizationEndpoint):
+    private = True
     """Get the time series data for one or more metrics.
 
     The data can be filtered and grouped by tags.

@@ -26,6 +26,8 @@ OLDEST_LABEL = "> 1 year"
 
 @region_silo_endpoint
 class TeamUnresolvedIssueAgeEndpoint(TeamEndpoint, EnvironmentMixin):  # type: ignore
+    private = True
+
     def get(self, request: Request, team: Team) -> Response:
         """
         Return a time bucketed list of how old unresolved issues are.

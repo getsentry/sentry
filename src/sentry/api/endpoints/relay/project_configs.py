@@ -27,6 +27,7 @@ def _sample_apm():
 
 @region_silo_endpoint
 class RelayProjectConfigsEndpoint(Endpoint):
+    private = True
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)
     enforce_rate_limit = False

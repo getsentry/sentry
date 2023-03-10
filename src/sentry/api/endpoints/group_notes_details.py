@@ -15,6 +15,8 @@ from sentry.types.activity import ActivityType
 
 @region_silo_endpoint
 class GroupNotesDetailsEndpoint(GroupEndpoint):
+    private = True
+
     # We explicitly don't allow a request with an ApiKey
     # since an ApiKey is bound to the Organization, not
     # an individual. Not sure if we'd want to allow an ApiKey

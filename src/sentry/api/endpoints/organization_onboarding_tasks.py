@@ -14,6 +14,7 @@ class OnboardingTaskPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OnboardingTaskPermission,)
 
     def post(self, request: Request, organization) -> Response:

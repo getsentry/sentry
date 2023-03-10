@@ -10,6 +10,7 @@ from sentry.services.hybrid_cloud.user import user_service
 
 @region_silo_endpoint
 class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (MemberPermission,)
 
     def get(self, request: Request, organization, user_id) -> Response:

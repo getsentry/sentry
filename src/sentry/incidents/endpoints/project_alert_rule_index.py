@@ -27,6 +27,8 @@ from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 
 @region_silo_endpoint
 class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         Fetches alert rules and legacy rules for a project
@@ -56,6 +58,7 @@ class ProjectCombinedRuleIndexEndpoint(ProjectEndpoint):
 
 @region_silo_endpoint
 class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectAlertRulePermission,)
 
     def get(self, request: Request, project) -> Response:

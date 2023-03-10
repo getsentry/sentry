@@ -12,6 +12,8 @@ from sentry.models import GroupRelease, ReleaseEnvironment, ReleaseProject
 
 @region_silo_endpoint
 class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
+
     def _get_current_release(self, group, environments):
         release_projects = ReleaseProject.objects.filter(project_id=group.project_id).values_list(
             "release_id", flat=True

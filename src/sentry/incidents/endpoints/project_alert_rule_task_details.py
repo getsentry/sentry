@@ -11,6 +11,7 @@ from sentry.integrations.slack.utils import RedisRuleStatus
 
 @region_silo_endpoint
 class ProjectAlertRuleTaskDetailsEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = [ProjectSettingPermission]
 
     def get(self, request: Request, project, task_uuid) -> Response:

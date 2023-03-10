@@ -10,6 +10,8 @@ from sentry.models import Group, Project
 
 @region_silo_endpoint
 class SentryAppInstallationExternalIssueActionsEndpoint(SentryAppInstallationBaseEndpoint):
+    private = True
+
     def post(self, request: Request, installation) -> Response:
         data = request.data.copy()
 

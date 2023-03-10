@@ -10,6 +10,8 @@ from sentry.rules import rules
 
 @region_silo_endpoint
 class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve the list of configuration options for a given project.

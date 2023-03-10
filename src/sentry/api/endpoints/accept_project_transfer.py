@@ -23,6 +23,7 @@ class InvalidPayload(Exception):
 
 @region_silo_endpoint
 class AcceptProjectTransferEndpoint(Endpoint):
+    private = True
     authentication_classes = (SessionAuthentication,)
     permission_classes = (IsAuthenticated,)
 

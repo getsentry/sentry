@@ -22,6 +22,7 @@ class RelayRegisterResponseSerializer(RelayIdSerializer):
 
 @pending_silo_endpoint
 class RelayRegisterResponseEndpoint(Endpoint):
+    private = True
     authentication_classes = ()
     permission_classes = ()
 

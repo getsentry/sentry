@@ -11,6 +11,8 @@ from sentry.models import EventUser, Group, OrganizationMemberTeam, Project
 
 @region_silo_endpoint
 class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         email = request.GET.get("email")
 

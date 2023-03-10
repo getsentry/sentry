@@ -11,6 +11,7 @@ from sentry.app import env
 
 @pending_silo_endpoint
 class InternalEnvironmentEndpoint(Endpoint):
+    private = True
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:

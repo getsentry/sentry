@@ -40,6 +40,7 @@ class BufferedRequest:
 
 @pending_silo_endpoint
 class SentryAppRequestsEndpoint(SentryAppBaseEndpoint):
+    private = True
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

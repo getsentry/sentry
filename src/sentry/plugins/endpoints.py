@@ -35,6 +35,7 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class PluginGroupEndpoint(GroupEndpoint):
+    private = True
     plugin = None
     view = None
 

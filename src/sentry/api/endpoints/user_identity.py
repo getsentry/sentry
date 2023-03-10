@@ -10,6 +10,8 @@ from sentry.models import Identity
 
 @control_silo_endpoint
 class UserIdentityEndpoint(UserEndpoint):
+    private = True
+
     def get(self, request: Request, user) -> Response:
         """
         Retrieve all of a users' identities (NOT AuthIdentities)

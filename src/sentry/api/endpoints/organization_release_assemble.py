@@ -17,6 +17,8 @@ from sentry.utils import json
 
 @region_silo_endpoint
 class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
+    private = True
+
     def post(self, request: Request, organization, version) -> Response:
         """
         Handle an artifact bundle and merge it into the release

@@ -9,6 +9,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @region_silo_endpoint
 class GroupFirstLastReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

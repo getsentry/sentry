@@ -10,6 +10,8 @@ from sentry.models import Project
 
 @pending_silo_endpoint
 class SlugsUpdateEndpoint(OrganizationEndpoint):
+    private = True
+
     def put(self, request: Request, organization) -> Response:
         """
         Update Project Slugs

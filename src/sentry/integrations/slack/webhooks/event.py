@@ -30,6 +30,7 @@ from .command import LINK_FROM_CHANNEL_MESSAGE
 
 @region_silo_endpoint
 class SlackEventEndpoint(SlackDMEndpoint):
+    private = True
     """
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """

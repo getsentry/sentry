@@ -10,6 +10,7 @@ from sentry.incidents.logic import get_incident_activity
 
 @region_silo_endpoint
 class OrganizationIncidentActivityIndexEndpoint(IncidentEndpoint):
+    private = True
     permission_classes = (IncidentPermission,)
 
     def get(self, request: Request, organization, incident) -> Response:

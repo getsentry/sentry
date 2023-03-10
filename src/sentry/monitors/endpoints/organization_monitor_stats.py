@@ -12,6 +12,8 @@ from .base import MonitorEndpoint
 
 @region_silo_endpoint
 class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
+    private = True
+
     # TODO(dcramer): probably convert to tsdb
     def get(
         self, request: Request, project, monitor, organization_slug: str | None = None

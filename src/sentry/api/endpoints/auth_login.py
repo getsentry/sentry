@@ -16,6 +16,7 @@ from sentry.web.frontend.base import OrganizationMixin
 
 @control_silo_endpoint
 class AuthLoginEndpoint(Endpoint, OrganizationMixin):
+    private = True
     # Disable authentication and permission requirements.
     permission_classes = []
 

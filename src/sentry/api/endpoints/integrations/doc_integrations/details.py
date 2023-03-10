@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 @control_silo_endpoint
 class DocIntegrationDetailsEndpoint(DocIntegrationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, doc_integration: DocIntegration) -> Response:
         return self.respond(serialize(doc_integration, request.user), status=status.HTTP_200_OK)
 

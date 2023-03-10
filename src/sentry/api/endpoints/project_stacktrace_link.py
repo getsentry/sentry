@@ -132,6 +132,7 @@ def set_tags(scope: Scope, result: JSONData) -> None:
 
 @region_silo_endpoint
 class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
+    private = True
     """
     Returns valid links for source code providers so that
     users can go from the file in the stack trace to the

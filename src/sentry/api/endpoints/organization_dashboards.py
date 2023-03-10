@@ -29,6 +29,7 @@ class OrganizationDashboardsPermission(OrganizationPermission):
 
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:

@@ -20,6 +20,8 @@ class IntegrationRepository(TypedDict):
 
 @region_silo_endpoint
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
+    private = True
+
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repositories available in an integration

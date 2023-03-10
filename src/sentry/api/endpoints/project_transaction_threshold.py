@@ -41,6 +41,7 @@ class ProjectTransactionThresholdSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
+    private = True
     permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request):

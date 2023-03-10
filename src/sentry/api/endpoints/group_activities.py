@@ -9,6 +9,8 @@ from sentry.models import Activity
 
 @region_silo_endpoint
 class GroupActivitiesEndpoint(GroupEndpoint, EnvironmentMixin):
+    private = True
+
     def get(self, request: Request, group) -> Response:
         """
         Retrieve all the Activities for a Group

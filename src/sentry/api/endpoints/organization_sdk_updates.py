@@ -64,6 +64,8 @@ def serialize(data, projects):
 
 @region_silo_endpoint
 class OrganizationSdkUpdatesEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         projects = self.get_projects(request, organization)
 

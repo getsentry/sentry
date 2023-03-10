@@ -13,6 +13,8 @@ from sentry.utils import email
 
 @pending_silo_endpoint
 class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
+    private = True
+
     def has_ui_component(self, sentry_app):
         """Determine if the sentry app supports issue linking or stack trace linking."""
         elements = (sentry_app.schema or {}).get("elements", [])

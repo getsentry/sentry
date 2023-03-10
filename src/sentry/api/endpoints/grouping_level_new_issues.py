@@ -24,6 +24,8 @@ from sentry.utils.safe import get_path
 
 @region_silo_endpoint
 class GroupingLevelNewIssuesEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, id: str, group: Group) -> Response:
         """
         Retrieve information about a particular grouping level, including a

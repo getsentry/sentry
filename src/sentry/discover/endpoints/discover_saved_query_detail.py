@@ -16,6 +16,7 @@ from sentry.discover.models import DiscoverSavedQuery
 
 @region_silo_endpoint
 class DiscoverSavedQueryDetailEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -110,6 +111,7 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class DiscoverSavedQueryVisitEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):

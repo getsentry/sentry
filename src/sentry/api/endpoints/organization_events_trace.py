@@ -272,6 +272,8 @@ def query_trace_data(
 
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # type: ignore
+    private = True
+
     def has_feature(self, organization: Organization, request: HttpRequest) -> bool:
         return bool(
             features.has("organizations:performance-view", organization, actor=request.user)
@@ -383,6 +385,8 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):  # 
 
 @region_silo_endpoint
 class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
+    private = True
+
     @staticmethod
     def get_current_transaction(
         transactions: Sequence[SnubaTransaction], errors: Sequence[SnubaError], event_id: str
@@ -525,6 +529,8 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
+    private = True
+
     @staticmethod
     def update_children(event: TraceEvent) -> None:
         """Updates the children of subtraces
@@ -701,6 +707,8 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
+    private = True
+
     def get(self, request: HttpRequest, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
             return Response(status=404)

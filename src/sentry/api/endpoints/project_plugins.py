@@ -10,6 +10,8 @@ from sentry.plugins.base import plugins
 
 @region_silo_endpoint
 class ProjectPluginsEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         context = serialize(
             [plugin for plugin in plugins.configurable_for_project(project, version=None)],

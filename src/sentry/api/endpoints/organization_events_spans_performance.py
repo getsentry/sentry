@@ -141,6 +141,8 @@ class SpansPerformanceSerializer(serializers.Serializer):  # type: ignore
 
 @region_silo_endpoint
 class OrganizationEventsSpansPerformanceEndpoint(OrganizationEventsSpansEndpointBase):
+    private = True
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -214,6 +216,8 @@ class SpanSerializer(serializers.Serializer):  # type: ignore
 
 @region_silo_endpoint
 class OrganizationEventsSpansExamplesEndpoint(OrganizationEventsSpansEndpointBase):
+    private = True
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         try:
@@ -295,6 +299,8 @@ class SpanExamplesPaginator:
 
 @region_silo_endpoint
 class OrganizationEventsSpansStatsEndpoint(OrganizationEventsSpansEndpointBase):
+    private = True
+
     def get(self, request: Request, organization: Organization) -> Response:
 
         serializer = SpanSerializer(data=request.GET)

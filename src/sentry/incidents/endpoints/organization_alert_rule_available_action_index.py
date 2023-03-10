@@ -64,6 +64,8 @@ def build_action_response(
 
 @region_silo_endpoint
 class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         Fetches actions that an alert rule can perform for an organization

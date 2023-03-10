@@ -49,6 +49,8 @@ from rest_framework.response import Response
 
 @region_silo_endpoint
 class GroupingLevelsEndpoint(GroupEndpoint):
+    private = True
+
     def get(self, request: Request, group: Group) -> Response:
         """
         Return the available levels for this group.

@@ -16,6 +16,8 @@ logger = logging.getLogger(__name__)
 
 @pending_silo_endpoint
 class JiraIssueUpdatedWebhook(JiraEndpointBase):
+    private = True
+
     def handle_exception(self, request: Request, exc: Exception) -> Response:
         if isinstance(exc, ApiError):
             response_option = handle_jira_api_error(exc, " to get email")

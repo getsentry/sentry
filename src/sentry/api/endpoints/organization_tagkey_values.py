@@ -19,6 +19,8 @@ def validate_sort_field(field_name: str) -> str:
 
 @region_silo_endpoint
 class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
+    private = True
+
     def get(self, request: Request, organization, key) -> Response:
         if not TAG_KEY_RE.match(key):
             return Response({"detail": f'Invalid tag key format for "{key}"'}, status=400)

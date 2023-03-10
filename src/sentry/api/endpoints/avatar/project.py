@@ -6,5 +6,6 @@ from sentry.models import ProjectAvatar
 
 @region_silo_endpoint
 class ProjectAvatarEndpoint(AvatarMixin, ProjectEndpoint):
+    private = True
     object_type = "project"
     model = ProjectAvatar

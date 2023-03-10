@@ -25,6 +25,7 @@ from sentry.tasks.derive_code_mappings import get_installation
 
 @region_silo_endpoint
 class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
+    private = True
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

@@ -11,6 +11,8 @@ from sentry.models import Team, TeamStatus
 
 @region_silo_endpoint
 class OrganizationUserTeamsEndpoint(OrganizationEndpoint):
+    private = True
+
     def get(self, request: Request, organization) -> Response:
         """
         List your Teams In the Current Organization

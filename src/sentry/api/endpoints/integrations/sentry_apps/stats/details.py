@@ -9,6 +9,7 @@ from sentry.models import SentryAppInstallation
 
 @pending_silo_endpoint
 class SentryAppStatsEndpoint(SentryAppBaseEndpoint, StatsMixin):
+    private = True
     permission_classes = (SentryAppStatsPermission,)
 
     def get(self, request: Request, sentry_app) -> Response:

@@ -75,6 +75,7 @@ class TrendQueryBuilder(QueryBuilder):
 
 
 class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
+    private = True
     trend_columns = {
         "p50": "percentile_range({column}, 0.5, {condition}, {boundary}) as {query_alias}",
         "p75": "percentile_range({column}, 0.75, {condition}, {boundary}) as {query_alias}",
@@ -509,6 +510,8 @@ class OrganizationEventsTrendsEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase):
+    private = True
+
     def build_result_handler(
         self,
         request,
@@ -561,6 +564,8 @@ class OrganizationEventsTrendsStatsEndpoint(OrganizationEventsTrendsEndpointBase
 
 @region_silo_endpoint
 class OrganizationEventsTrendsEndpoint(OrganizationEventsTrendsEndpointBase):
+    private = True
+
     def build_result_handler(
         self,
         request,

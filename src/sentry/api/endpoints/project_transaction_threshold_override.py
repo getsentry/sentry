@@ -56,6 +56,7 @@ class ProjectTransactionThresholdOverrideSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsV2EndpointBase):
+    private = True
     permission_classes = (ProjectTransactionThresholdOverridePermission,)
 
     def get_project(self, request: Request, organization):

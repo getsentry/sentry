@@ -10,6 +10,8 @@ from sentry.models import GroupTombstone
 
 @region_silo_endpoint
 class GroupTombstoneEndpoint(ProjectEndpoint):
+    private = True
+
     def get(self, request: Request, project) -> Response:
         """
         Retrieve a Project's GroupTombstones

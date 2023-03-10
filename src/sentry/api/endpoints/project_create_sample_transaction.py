@@ -67,6 +67,7 @@ def fix_event_data(data):
 
 @region_silo_endpoint
 class ProjectCreateSampleTransactionEndpoint(ProjectEndpoint):
+    private = True
     # Members should be able to create sample events.
     # This is the same scope that allows members to view all issues for a project.
     permission_classes = (ProjectEventPermission,)
