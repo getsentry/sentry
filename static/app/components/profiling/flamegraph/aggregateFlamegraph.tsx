@@ -208,11 +208,10 @@ export function AggregateFlamegraph(): ReactElement {
       const flamegraphFitTo = canvasHeight / flamegraph.depth;
       const minReadableRatio = 0.8; // this is quite small
       const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
+      const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1);
 
-      theme.SIZES.BAR_HEIGHT =
-        theme.SIZES.BAR_HEIGHT * Math.max(minReadableRatio, fitToRatio);
-      theme.SIZES.BAR_FONT_SIZE =
-        theme.SIZES.BAR_FONT_SIZE * Math.max(minReadableRatio, fitToRatio);
+      theme.SIZES.BAR_HEIGHT = theme.SIZES.BAR_HEIGHT * barHeightRatio;
+      theme.SIZES.BAR_FONT_SIZE = theme.SIZES.BAR_FONT_SIZE * barHeightRatio;
       return theme;
     });
 
