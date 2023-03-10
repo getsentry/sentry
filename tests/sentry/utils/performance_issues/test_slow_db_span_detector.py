@@ -11,9 +11,9 @@ from sentry.testutils.performance_issues.event_generators import (
     get_event,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import SlowDBQueryDetector
 from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
-    SlowDBQueryDetector,
     get_detection_settings,
     run_detector_on_data,
 )
