@@ -172,7 +172,7 @@ def _process_tombstone_reconciliation(
         watermark_target = "r"
 
     with sentry_sdk.start_transaction(
-        op="deletion.hybrid_cloud.process_tombstone_reconciliation", name="process"
+        name="deletion.hybrid_cloud.process_tombstone_reconciliation", op="process"
     ) as transaction:
         transaction.set_tag("field_name", f"{model._meta.db_table}.{field.name}")
         transaction.set_tag("watermark", prefix)

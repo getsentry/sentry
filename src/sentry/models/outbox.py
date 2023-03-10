@@ -185,7 +185,7 @@ class OutboxBase(Model):
             )
 
     def process(self) -> bool:
-        with sentry_sdk.start_transaction(op="outbox.process", name="process") as transaction:
+        with sentry_sdk.start_transaction(op="outbox.process", name="outboxprocess") as transaction:
             transaction.set_tag("category_name", OutboxCategory(self.category).name)
             transaction.set_data("shard", self.key_from(self.coalesced_columns))
             with self.process_coalesced() as coalesced:

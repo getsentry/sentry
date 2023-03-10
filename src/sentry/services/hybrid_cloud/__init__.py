@@ -5,6 +5,7 @@ import dataclasses
 import functools
 import inspect
 import logging
+import random
 import threading
 from abc import ABC, abstractmethod
 from typing import (
@@ -231,7 +232,9 @@ def _wrap_with_metrics(
 ) -> Callable[..., Any]:
     def wrapper(*args: Any, **kwds: Any) -> Any:
         with sentry_sdk.start_transaction(
-            op=f"hybrid_cloud.services.{service_class_name}", name="execute"
+            name=f"hybrid_cloud.services.{service_class_name}.{method_name}",
+            op="execute",
+            sampled=random.random() < 0.1,
         ):
             transaction: Transaction | None = Hub.current.scope.transaction
             if transaction:
