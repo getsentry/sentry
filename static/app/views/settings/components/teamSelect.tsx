@@ -101,20 +101,20 @@ function TeamSelect({
       team => slugsToFilter.includes(team.slug) && team.orgRole !== null
     );
     // get teams with org roles, if any
-    const allOrgRoles =
+    const allMemberOrgRoles =
       teamsWithOrgRole.length > 0
         ? teamsWithOrgRole.map(team => team.orgRole ?? undefined)
         : [];
     // sort them and to get the highest priority role
     // highest prio role may change minimum team role
-    allOrgRoles.push(selectedOrgRole);
-    allOrgRoles.sort((a, b) =>
+    allMemberOrgRoles.push(selectedOrgRole);
+    allMemberOrgRoles.sort((a, b) =>
       orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
         ? 1
         : -1
     );
 
-    return allOrgRoles[0];
+    return allMemberOrgRoles[0];
   };
   const topOrgRole = getTopOrgRole();
 
