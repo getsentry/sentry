@@ -218,7 +218,7 @@ class OptionsManager:
     ):
         assert key not in self.registry, "Option already registered: %r" % key
 
-        if len(key) > 64:
+        if len(key) > 128:
             raise ValueError("Option key has max length of 64 characters")
 
         # If our default is a callable, execute it to
