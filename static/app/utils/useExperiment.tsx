@@ -40,6 +40,11 @@ type UseExperimentReturnValue<E extends ExperimentKey> = {
   logExperiment: () => void;
 };
 
+export type UseExperiment = <E extends ExperimentKey>(
+  experiment: E,
+  options?: UseExperimentOptions
+) => UseExperimentReturnValue<E>;
+
 function useExperimentAssignment(experiment: ExperimentKey) {
   const organization = useOrganization();
   const {user} = useLegacyStore(ConfigStore);
@@ -89,10 +94,10 @@ function useExperimentAssignment(experiment: ExperimentKey) {
   return unassignedValue;
 }
 
-export function useExperiment<E extends ExperimentKey>(
-  experiment: E,
-  {logExperimentOnMount = true}: UseExperimentOptions = {}
-): UseExperimentReturnValue<E> {
+export const useExperiment: UseExperiment = (
+  experiment,
+  {logExperimentOnMount = true} = {}
+) => {
   const organization = useOrganization();
 
   const logExperiment = useCallback(() => {
@@ -114,4 +119,4 @@ export function useExperiment<E extends ExperimentKey>(
     experimentAssignment,
     logExperiment,
   };
-}
+};
