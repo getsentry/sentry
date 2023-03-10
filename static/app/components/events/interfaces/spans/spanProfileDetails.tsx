@@ -25,9 +25,9 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {SpanType} from './types';
 
 const MAX_STACK_DEPTH = 16;
-const MAX_TOP_NODES = 10;
+const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
-const TOP_NODE_THRESHOLD = 3;
+const TOP_NODE_MIN_COUNT = 3;
 
 interface SpanProfileDetailsProps {
   event: Readonly<EventTransaction>;
@@ -80,22 +80,33 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     [nodes]
   );
 
-  const {frames, hasPrevious, hasNext} = useMemo(() => {
-    if (index >= nodes.length) {
-      return {frames: [], hasPrevious: false, hasNext: false};
+  const maxNodes = useMemo(() => {
+    // find the number of nodes with the minimum number of samples
+    let hasMinCount = 0;
+    for (let i = 0; i < nodes.length; i++) {
+      if (nodes[i].count >= TOP_NODE_MIN_COUNT) {
+        hasMinCount += 1;
+      } else {
+        break;
+      }
     }
 
-    const lastIndex = Math.max(
-      MIN_TOP_NODES,
-      nodes.findIndex(node => node.count < TOP_NODE_THRESHOLD) - 1
-    );
+    hasMinCount = Math.max(MIN_TOP_NODES, hasMinCount);
+
+    return Math.min(nodes.length, MAX_TOP_NODES, hasMinCount);
+  }, [nodes]);
+
+  const {frames, hasPrevious, hasNext} = useMemo(() => {
+    if (index >= maxNodes) {
+      return {frames: [], hasPrevious: false, hasNext: false};
+    }
 
     return {
       frames: extractFrames(nodes[index], event.platform || 'other'),
       hasPrevious: index > 0,
-      hasNext: index < nodes.length - 1 && index + 1 < Math.min(MAX_TOP_NODES, lastIndex),
+      hasNext: index + 1 < maxNodes,
     };
-  }, [index, event, nodes]);
+  }, [index, maxNodes, event, nodes]);
 
   const profileTarget =
     project &&
@@ -137,8 +148,10 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       <SpanDetails>
         <SpanDetailsItem grow>
           <Label>
-            {tct('Thread [name]', {
+            {tct('Thread [name] - Top Stacks ([index] of [total])', {
               name: <Link to={profileTarget}>{threadName}</Link>,
+              index: index + 1,
+              total: maxNodes,
             })}
           </Label>
         </SpanDetailsItem>
