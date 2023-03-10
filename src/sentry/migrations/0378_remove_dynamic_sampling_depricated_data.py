@@ -3,7 +3,6 @@
 from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 def remove_depricated_dynamic_sampling_data(apps, schema_editor):
@@ -11,9 +10,8 @@ def remove_depricated_dynamic_sampling_data(apps, schema_editor):
     Delete the rows in the ProjectOption table that relate to plugins we've deleted.
     """
     ProjectOption = apps.get_model("sentry", "ProjectOption")
-    for project_option in RangeQuerySetWrapperWithProgressBar(ProjectOption.objects.all()):
-        if project_option.key in ("sentry:dynamic_sampling",):
-            project_option.delete()
+    for project_option in ProjectOption.objects.filter(key="sentry:dynamic_sampling"):
+        project_option.delete()
 
 
 class Migration(CheckedMigration):
