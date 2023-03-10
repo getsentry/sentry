@@ -47,11 +47,13 @@ from sentry.incidents.endpoints.project_alert_rule_index import (
 from sentry.incidents.endpoints.project_alert_rule_task_details import (
     ProjectAlertRuleTaskDetailsEndpoint,
 )
-from sentry.monitors.endpoints.monitor_checkin_details import MonitorCheckInDetailsEndpoint
-from sentry.monitors.endpoints.monitor_checkins import MonitorCheckInsEndpoint
-from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
-    OrganizationMonitorCheckInAttachmentEndpoint,
+from sentry.monitors.endpoints.monitor_ingest_checkin_attachment import (
+    MonitorIngestCheckinAttachmentEndpoint,
 )
+from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
+    MonitorIngestCheckInDetailsEndpoint,
+)
+from sentry.monitors.endpoints.monitor_ingest_checkin_index import MonitorIngestCheckInIndexEndpoint
 from sentry.monitors.endpoints.organization_monitor_details import (
     OrganizationMonitorDetailsEndpoint,
 )
@@ -1320,21 +1322,23 @@ ORGANIZATION_URLS = [
         OrganizationMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-stats",
     ),
-    url(
-        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-        OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
-        name="sentry-api-0-organization-monitor-check-in-attachment",
-    ),
+    # Monitor checkin org-level ingestion
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
-        MonitorCheckInsEndpoint.as_view(),
+        MonitorIngestCheckInIndexEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        MonitorCheckInDetailsEndpoint.as_view(),
+        MonitorIngestCheckInDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-details",
     ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
+        MonitorIngestCheckinAttachmentEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-check-in-attachment",
+    ),
+    # Pinned and saved search
     url(
         r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
         OrganizationPinnedSearchEndpoint.as_view(),
@@ -2543,16 +2547,16 @@ urlpatterns = [
         name="sentry-api-0-accept-organization-invite",
     ),
     # Top-level monitor checkin APIs. NOTE that there are also organization
-    # level checkin APIs.
+    # level checkin ingest APIs.
     url(
         r"^monitors/(?P<monitor_id>[^\/]+)/checkins/$",
-        MonitorCheckInsEndpoint.as_view(),
-        name="sentry-api-0-monitor-check-in-index",
+        MonitorIngestCheckInIndexEndpoint.as_view(),
+        name="sentry-api-0-monitor-ingest-check-in-index",
     ),
     url(
         r"^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        MonitorCheckInDetailsEndpoint.as_view(),
-        name="sentry-api-0-monitor-check-in-details",
+        MonitorIngestCheckInDetailsEndpoint.as_view(),
+        name="sentry-api-0-monitor-ingest-check-in-details",
     ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.
