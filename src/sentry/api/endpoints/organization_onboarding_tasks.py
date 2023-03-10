@@ -18,9 +18,8 @@ class OrganizationOnboardingTaskEndpoint(OrganizationEndpoint):
 
     def post(self, request: Request, organization) -> Response:
 
-        try:
-            task_id = onboarding_tasks.get_task_lookup_by_key(request.data["task"])
-        except KeyError:
+        task_id = onboarding_tasks.get_task_lookup_by_key(request.data["task"])
+        if task_id is None:
             return Response({"detail": "Invalid task key"}, status=422)
 
         status_value = request.data.get("status")
