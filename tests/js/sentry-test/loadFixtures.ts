@@ -145,16 +145,27 @@ export function makeLazyFixtures<UserProvidedFixtures extends Record<any, any>>(
           for (const exportKey in maybeModule) {
             target[exportKey] = maybeModule[exportKey];
           }
-        } catch {
-          // ignore
+        } catch (error) {
+          return () => {
+            throw new Error(
+              error +
+                '\n\n' +
+                `Failed to resolve ${prop} fixture.
+              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
+              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
+              - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.
+
+              `
+            );
+          };
         }
 
         if (target[prop] === undefined) {
           return () => {
             throw new Error(
-              `Failed to resolve ${prop} fixture. \n
-              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture. \n
-              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk. \n
+              `Failed to resolve ${prop} fixture.
+              - Your fixture does not map directly to file on disk or fixture file could be exporting > 1 fixture.
+              - To resolve this, add a mapping to SPECIAL_MAPPING in loadFixtures.ts or ensure fixture export name maps to the file on disk.
               - If you are seeing this only in CI and you have followed the step above, check the exact casing of the file as it is case sensitive.`
             );
           };
