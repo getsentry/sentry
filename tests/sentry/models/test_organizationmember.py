@@ -403,3 +403,19 @@ class OrganizationMemberTest(TestCase):
             roles.get("admin"),
             roles.get("manager"),
         ]
+
+    def test_org_roles_by_source(self):
+        manager_team = self.create_team(organization=self.organization, org_role="manager")
+        owner_team = self.create_team(organization=self.organization, org_role="owner")
+        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
+        member = self.create_member(
+            organization=self.organization,
+            teams=[manager_team, owner_team, owner_team2],
+            user=self.create_user(),
+            role="member",
+        )
+
+        roles = member.get_org_roles_from_teams_by_source()
+        assert roles[0][1].id == "owner"
+        assert roles[-1][0] == manager_team.slug
+        assert roles[-1][1].id == "manager"
