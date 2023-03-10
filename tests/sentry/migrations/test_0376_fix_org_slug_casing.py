@@ -2,8 +2,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestOrgSlugMigration(TestMigrations):
-    migrate_from = "0352_add_org_role_to_team_model"
-    migrate_to = "0353_fix_org_slug_casing"
+    migrate_from = "0375_remove_nullable_from_field"
+    migrate_to = "0376_fix_org_slug_casing"
 
     def setup_before_migration(self, apps):
         self.ok_org = self.create_organization(slug="good-slug")
