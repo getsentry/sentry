@@ -3,7 +3,8 @@ from unittest import mock
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models import ProjectOwnership
+from sentry import audit_log
+from sentry.models import AuditLogEntry, ProjectOwnership
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -115,6 +116,17 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         assert resp.status_code == 200
         assert resp.data["autoAssignment"] == "Turn off Auto-Assignment"
 
+    def test_audit_log_entry(self):
+        resp = self.client.put(self.path, {"autoAssignment": "Auto Assign to Issue Owner"})
+        assert resp.status_code == 200
+
+        auditlog = AuditLogEntry.objects.filter(
+            organization_id=self.project.organization.id,
+            event=audit_log.get_event_id("PROJECT_EDIT"),
+        )
+        assert len(auditlog) == 1
+        assert "Auto Assign to Issue Owner" in auditlog[0].data["autoAssignment"]
+
     @with_feature("organizations:streamline-targeting-context")
     def test_update_with_streamline_targeting(self):
         resp = self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
@@ -132,16 +144,13 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
         }
 
     def test_get(self):
+        # Test put + get without the streamline-targeting-context flag
         self.client.put(self.path, {"raw": "*.js admin@localhost #tiger-team"})
         resp_no_schema = self.client.get(self.path)
         assert "schema" not in resp_no_schema.data.keys()
 
-        @with_feature("organizations:streamline-targeting-context")
-        def test_get_with_streamline_targeting(self):
-            """
-            Test that the get response includes the modified schema for parsing and
-            the "identifier" field in the ownership schema is not re-named
-            """
+        # Test get after with the streamline-targeting-context flag
+        with self.feature({"organizations:streamline-targeting-context": True}):
             resp = self.client.get(self.path)
             assert resp.data["schema"] == {
                 "$version": 1,
@@ -156,6 +165,7 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                 ],
             }
 
+            # Assert that "identifier" is not renamed to "name" in the backend
             ownership = ProjectOwnership.objects.get(project=self.project)
             assert ownership.schema["rules"] == [
                 {
@@ -166,8 +176,6 @@ class ProjectOwnershipEndpointTestCase(APITestCase):
                     ],
                 }
             ]
-
-        test_get_with_streamline_targeting(self)
 
     @with_feature("organizations:streamline-targeting-context")
     def test_get_empty_with_streamline_targeting(self):

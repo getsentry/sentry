@@ -293,9 +293,8 @@ def test_transaction_clusterer_generates_rules(default_project):
     with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
-    default_project.update_option(
-        "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
-    )
+    rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
+    ProjectOptionRuleStore().write(default_project, rules)
 
     with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None
