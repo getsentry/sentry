@@ -29,7 +29,7 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.snuba.dataset import Dataset, EntityKey
 
 if typing.TYPE_CHECKING:
-    from sentry.models import Group, GroupHash
+    from sentry.models import Group
 
 MIGRATION_NAME = "0372_backfill_perf_issue_events_issue_platform"
 
@@ -39,6 +39,12 @@ WRITE_TO_FILE = False
 
 START_DATETIME = datetime(2008, 5, 8)
 END_DATETIME = datetime.now() + timedelta(days=1)
+
+
+class TransactionRow(typing.TypedDict):
+    project_id: int
+    group_id: int
+    event_id: str
 
 
 class BackfillEventSuccess(typing.Protocol):
@@ -80,7 +86,9 @@ def save_error_to_file(
     )
 
 
-def write_to_file(project_id: int, path_suffix: str, group_id, data: typing.Iterable) -> None:
+def write_to_file(
+    project_id: int, path_suffix: str, group_id: int, data: typing.Iterable[Any]
+) -> None:
     from pathlib import Path
 
     # TODO: optimize this to avoid opening and closing file handles repeatedly
@@ -100,7 +108,7 @@ def print_success(created_group: "Group", mapped_occurrence: IssueOccurrenceData
 
 
 def print_exception_on_error(
-    attempted_row: Mapping[str, Any],
+    attempted_row: TransactionRow,
     exc: Exception,
     occurrence_nodestore_saved: bool,
     occurrence_eventstream_sent: bool,
@@ -110,7 +118,7 @@ def print_exception_on_error(
     )
 
 
-def backfill_eventstream(apps, schema_editor):
+def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
     """
     Backfills Performance-issue events from the transaction table to the IssuePlatform dataset(search_issues).
     1. Source Groups from postgres as the 'source of truth' for issues.
@@ -155,10 +163,8 @@ def backfill_eventstream(apps, schema_editor):
         backfill_by_project(project_perf_issue["project_id"], Group, GroupHash, DRY_RUN)
 
 
-def backfill_by_project(
-    project_id: int, Group: "Group", GroupHash: "GroupHash", dry_run: bool
-) -> None:
-    next_offset = 0
+def backfill_by_project(project_id: int, Group: Any, GroupHash: Any, dry_run: bool) -> None:
+    next_offset: Optional[int] = 0
 
     while next_offset is not None:
         rows, next_offset = _query_performance_issue_events(
@@ -181,9 +187,9 @@ def backfill_by_project(
 
 
 def backfill_perf_issue_occurrence(
-    row: Mapping[str, Any],
-    Group: "Group",
-    GroupHash: "GroupHash",
+    row: TransactionRow,
+    Group: Any,
+    GroupHash: Any,
     on_success: BackfillEventSuccess = lambda *args: None,
     on_exception: BackfillEventError = lambda *args: None,
     dry_run: bool = True,
@@ -196,10 +202,16 @@ def backfill_perf_issue_occurrence(
         group_id = row["group_id"]
         event_id = row["event_id"]
 
-        group: Group = Group.objects.get(id=group_id)
-        group_hash: GroupHash = GroupHash.objects.get(group_id=group_id)
+        group = Group.objects.get(id=group_id)
+        group_hash = GroupHash.objects.get(group_id=group_id)
 
         event: Event = lookup_event(project_id=project_id, event_id=event_id)
+
+        # TODO: this data probably maps to evidence_data and/or evidence_display
+        # from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
+        #
+        # hashes = event.get_hashes()
+        # problems: Sequence[Optional[EventPerformanceProblem]] = EventPerformanceProblem.fetch_multi([(event, h) for h in hashes.hashes])
 
         et = eventtypes.get(group.data.get("type", "default"))()
         issue_title = et.get_title(group.data["metadata"])
@@ -233,7 +245,7 @@ def backfill_perf_issue_occurrence(
 
 
 def __save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event, group
+    occurrence_data: IssueOccurrenceData, event: Event, group: Group
 ) -> Tuple[IssueOccurrence, GroupInfo]:
     process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
@@ -254,7 +266,7 @@ def __save_issue_occurrence(
 
 def _query_performance_issue_events(
     project_id: int, start: datetime, end: datetime, offset: int = 0
-) -> Tuple[Sequence[Mapping[str, Any]], Optional[int]]:
+) -> Tuple[Sequence[TransactionRow], Optional[int]]:
     # TODO: need to make sure we're not querying any dupes, verify uniqueness on (project_id, group_id, event_id)
     page_limit = 10000
 
@@ -300,7 +312,7 @@ def _query_performance_issue_events(
     return result_data, next_offset
 
 
-class Migration(CheckedMigration):
+class Migration(CheckedMigration):  # type: ignore[misc]
     # This flag is used to mark that a migration shouldn't be automatically run in production. For
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the

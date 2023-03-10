@@ -85,7 +85,9 @@ class TestDefaultFlag(TestMigrations):
                 }
             )
 
-        rows = self._query(self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE)
+        rows = self._query_performance_issue_transactions(
+            self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE
+        )
 
         assert len(rows) == len(keys)
         self.keys = keys
@@ -96,11 +98,13 @@ class TestDefaultFlag(TestMigrations):
         assert Group.objects.all().count() == 2
         assert GroupHash.objects.all().count() == 2
 
-        rows = self._query(self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE)
+        rows = self._query_performance_issue_transactions(
+            self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE
+        )
         assert len(rows) == 2
 
         event_keys = {key["event_id"] for key in self.keys}
-        search_issues = self._query_search_issues(
+        search_issues = self._query_search_issue_events(
             [self.project.id], self.QUERY_START_DATE, self.QUERY_END_DATE
         )
         search_issue_event_keys = {search_issue["event_id"] for search_issue in search_issues}
@@ -108,7 +112,7 @@ class TestDefaultFlag(TestMigrations):
         assert len(event_keys) == len(search_issue_event_keys)
         assert event_keys == search_issue_event_keys
 
-    def _query_search_issues(self, project_ids, start, end):
+    def _query_search_issue_events(self, project_ids, start, end):
         snuba_request = Request(
             dataset=Dataset.IssuePlatform.value,
             app_id="migration",
@@ -141,7 +145,7 @@ class TestDefaultFlag(TestMigrations):
 
         return result_snql["data"]
 
-    def _query(self, project_id, start, end):
+    def _query_performance_issue_transactions(self, project_id, start, end):
         snuba_request = Request(
             dataset=Dataset.Transactions.value,
             app_id="migration",
