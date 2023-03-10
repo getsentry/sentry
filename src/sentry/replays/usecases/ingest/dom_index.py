@@ -88,8 +88,7 @@ def create_replay_actions_payload(
 
 def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsPayloadAction]:
     """Return a list of ReplayActionsPayloadAction types."""
-    decompressed_bytes = zlib.decompress(segment_data, zlib.MAX_WBITS | 32)
-    events = json.loads(decompressed_bytes)
+    events = json.loads(decompress(segment_data))
 
     for event in events:
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
@@ -110,6 +109,14 @@ def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsPayloadActio
                     "timestamp": int(payload["timestamp"]),
                     "event_hash": uuid.uuid4().hex,
                 }
+
+
+def decompress(data: bytes) -> bytes:
+    """Return decompressed bytes."""
+    if data.startswith(b"["):
+        return data
+    else:
+        return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
 def _initialize_publisher() -> KafkaPublisher:
