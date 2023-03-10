@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
+from sentry.utils import json
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
@@ -27,18 +28,18 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
             return
 
         completed = set(
-            self.Model.objects.filter(
+            OrganizationOnboardingTask.objects.filter(
                 Q(organization_id=organization_id)
                 & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
             ).values_list("task", flat=True)
         )
-        if completed >= self.Model.REQUIRED_ONBOARDING_TASKS:
+        if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
             try:
                 with transaction.atomic():
                     OrganizationOption.objects.create(
                         organization_id=organization_id,
                         key="onboarding:complete",
-                        value={"updated": timezone.now()},
+                        value={"updated": json.datetime_to_str(timezone.now())},
                     )
             except IntegrityError:
                 pass
