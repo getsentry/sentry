@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pytz import utc
 
+from sentry.utils import json
+
 
 class WellKnownProjectOption:
     def __init__(self, key, default=None, epoch_defaults=None):
@@ -74,7 +76,9 @@ class ProjectOptionsManager:
 
         ProjectOption.objects.set_value(project, "sentry:relay-rev", uuid.uuid4().hex)
         ProjectOption.objects.set_value(
-            project, "sentry:relay-rev-lastchange", datetime.utcnow().replace(tzinfo=utc)
+            project,
+            "sentry:relay-rev-lastchange",
+            json.datetime_to_str(datetime.utcnow().replace(tzinfo=utc)),
         )
 
     def register(self, key, default=None, epoch_defaults=None):

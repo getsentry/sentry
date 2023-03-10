@@ -69,8 +69,9 @@ class ProjectOptionRuleStore:
 
     def write(self, project: Project, rules: RuleSet) -> None:
         """Writes the rules to project options, sorted by depth."""
-        sorted_rules = self._sort(rules)
-        project.update_option(self._option_name, sorted_rules)
+        # we make sure the database stores lists such that they are json round trippable
+        converted_rules = [list(tup) for tup in self._sort(rules)]
+        project.update_option(self._option_name, converted_rules)
 
 
 class CompositeRuleStore:
