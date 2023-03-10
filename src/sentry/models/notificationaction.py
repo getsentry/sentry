@@ -30,7 +30,7 @@ class FlexibleIntEnum(IntEnum):
         return invert_choices.get(name)
 
 
-class ActionServiceType(FlexibleIntEnum):
+class ActionService(FlexibleIntEnum):
     """
     The available services to fire action notifications
     """
@@ -54,7 +54,7 @@ class ActionServiceType(FlexibleIntEnum):
         )
 
 
-class ActionTargetType(FlexibleIntEnum):
+class ActionTarget(FlexibleIntEnum):
     """
     Explains the contents of target_identifier
     """
@@ -88,16 +88,16 @@ class AbstractNotificationAction(Model):
     sentry_app = FlexibleForeignKey("sentry.SentryApp", null=True)
 
     # The type of service which will receive the action notification (e.g. slack, pagerduty, etc.)
-    type = models.SmallIntegerField(choices=ActionServiceType.as_choices())
+    type = models.SmallIntegerField(choices=ActionService.as_choices())
     # The type of target which the service uses for routing (e.g. user, team)
-    target_type = models.SmallIntegerField(choices=ActionTargetType.as_choices())
+    target_type = models.SmallIntegerField(choices=ActionTarget.as_choices())
     # Identifier of the target for the given service (e.g. slack channel id, pagerdutyservice id)
     target_identifier = models.TextField(null=True)
     # User-friendly name of the target (e.g. #slack-channel, pagerduty-service-name)
     target_display = models.TextField(null=True)
 
     @property
-    def service_type(self) -> ActionServiceType:
+    def service_type(self) -> ActionService:
         """
         Used for disambiguity of self.type
         """
@@ -107,7 +107,7 @@ class AbstractNotificationAction(Model):
         abstract = True
 
 
-class ActionTriggerType(FlexibleIntEnum):
+class ActionTrigger(FlexibleIntEnum):
     """
     The possible sources of action notifications.
     Use values less than 100 here to avoid conflicts with getsentry's trigger values.
@@ -151,19 +151,22 @@ class NotificationAction(AbstractNotificationAction):
     __include_in_export__ = True
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
-    _handlers: MutableMapping[
-        ActionTriggerType, MutableMapping[ActionTargetType, Callable]
-    ] = defaultdict(dict)
-
-    _trigger_types: List[Tuple[int, str]] = ActionTriggerType.as_choices()
+    _handlers: MutableMapping[ActionTrigger, MutableMapping[ActionTarget, Callable]] = defaultdict(
+        dict
+    )
+    _trigger_types: List[Tuple[int, str]] = ActionTrigger.as_choices()
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
     # TODO(Leander): After adding HybridCloudForeignKeys to AlertRuleTriggerAction, we can remove these lines
     integration = None
-    integration_id = HybridCloudForeignKey("sentry.Integration", on_delete="CASCADE")
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
     sentry_app = None
-    sentry_app_id = HybridCloudForeignKey("sentry.SentryApp", on_delete="CASCADE")
+    sentry_app_id = HybridCloudForeignKey(
+        "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
+    )
 
     # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
     trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
@@ -180,21 +183,21 @@ class NotificationAction(AbstractNotificationAction):
     ):
         """
         This method is used for adding trigger types to this model from getsentry.
-        If the trigger is relevant to sentry as well, directly modify ActionTriggerType.
+        If the trigger is relevant to sentry as well, directly modify ActionTrigger.
         """
         cls._trigger_types = cls._trigger_types + ((value, display_text),)
 
     @classmethod
     def register_handler(
         cls,
-        trigger_type: ActionTriggerType,
-        service_type: ActionServiceType,
+        trigger_type: ActionTrigger,
+        service_type: ActionService,
     ):
         def inner(handler):
             if service_type not in cls._handlers[trigger_type]:
                 cls._handlers[trigger_type][service_type] = handler
             else:
-                raise Exception(
+                raise AttributeError(
                     f"Conflicting handler for trigger:service pair ({trigger_type}:{service_type})"
                 )
             return handler
