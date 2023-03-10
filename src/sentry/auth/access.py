@@ -977,7 +977,11 @@ def from_request(
             user_id=request.user.id,
             organization_id=organization.id,
             is_superuser=is_superuser,
-            org_member=DatabaseBackedOrganizationService.summarize_member(member),
+            org_member=(
+                DatabaseBackedOrganizationService.summarize_member(member)
+                if member is not None
+                else None
+            ),
         ).sso_state
 
         return OrganizationGlobalAccess(
