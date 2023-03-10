@@ -1,10 +1,20 @@
 from datetime import datetime, timedelta
-from hashlib import md5
 
-from snuba_sdk import Column, Condition, Entity, Function, Op, Query, Request
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+    Request,
+)
 
-from sentry import eventstream
-from sentry.event_manager import EventManager, _save_grouphash_and_group
+from sentry.event_manager import EventManager
 from sentry.issues.occurrence_consumer import lookup_event
 from sentry.models import Group, GroupHash
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -59,52 +69,11 @@ class TestDefaultFlag(TestMigrations):
                     "performance.issues.all.problem-detection": 100.0,
                 }
             ):
+                # this assumes the old style of creating perf issue is preserved
+                # since we'll be dual-writing the perf issue to transactions and search_issues, this should work fine
                 event = manager.save(project_id=self.project.id)
                 self.events.append(event)
                 assert len(event.groups) == 1
-
-                # performance problem detection on event + project
-                from sentry.utils.performance_issues.performance_detection import (
-                    detect_performance_problems,
-                )
-
-                performance_problems = detect_performance_problems(
-                    event.get_raw_data(), self.project
-                )
-                assert len(performance_problems) == 1
-                for problem in performance_problems:
-                    problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-
-                for perf_problem in performance_problems:
-                    group, is_new = _save_grouphash_and_group(
-                        self.project,
-                        event,
-                        perf_problem.fingerprint,
-                        **{"type": perf_problem.type.type_id},
-                    )
-
-                    eventstream.insert(
-                        event=event,
-                        is_new=True,
-                        is_regression=False,
-                        is_new_group_environment=False,
-                        primary_hash=perf_problem.fingerprint,
-                        received_timestamp=None,
-                        # We are choosing to skip consuming the event back
-                        # in the eventstream if it's flagged as raw.
-                        # This means that we want to publish the event
-                        # through the event stream, but we don't care
-                        # about post processing and handling the commit.
-                        skip_consume=True,
-                        group_states=[
-                            {
-                                "id": group.id,
-                                "is_new": True,
-                                "is_regression": False,
-                                "is_new_group_environment": False,
-                            }
-                        ],
-                    )
 
             self.groups.append(event.groups[0])
             assert lookup_event(project_id=self.project.id, event_id=event.event_id)
@@ -116,7 +85,7 @@ class TestDefaultFlag(TestMigrations):
                 }
             )
 
-        rows = self._query([self.project.id], self.QUERY_START_DATE, self.QUERY_END_DATE)
+        rows = self._query(self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE)
 
         assert len(rows) == len(keys)
         self.keys = keys
@@ -127,11 +96,10 @@ class TestDefaultFlag(TestMigrations):
         assert Group.objects.all().count() == 2
         assert GroupHash.objects.all().count() == 2
 
-        event_keys = {key["event_id"] for key in self.keys}
-        # XXX: hack to make sure snuba processes all events
-        from time import sleep
+        rows = self._query(self.project.id, self.QUERY_START_DATE, self.QUERY_END_DATE)
+        assert len(rows) == 2
 
-        sleep(0.5)
+        event_keys = {key["event_id"] for key in self.keys}
         search_issues = self._query_search_issues(
             [self.project.id], self.QUERY_START_DATE, self.QUERY_END_DATE
         )
@@ -157,6 +125,11 @@ class TestDefaultFlag(TestMigrations):
                     Condition(Column("timestamp"), Op.LT, end),
                 ],
                 groupby=[Column("group_id"), Column("project_id"), Column("event_id")],
+                orderby=[
+                    OrderBy(Column("project_id"), direction=Direction.ASC),
+                    OrderBy(Column("group_id"), direction=Direction.ASC),
+                    OrderBy(Column("event_id"), direction=Direction.ASC),
+                ],
             ),
         )
 
@@ -168,7 +141,7 @@ class TestDefaultFlag(TestMigrations):
 
         return result_snql["data"]
 
-    def _query(self, project_ids, start, end):
+    def _query(self, project_id, start, end):
         snuba_request = Request(
             dataset=Dataset.Transactions.value,
             app_id="migration",
@@ -181,11 +154,13 @@ class TestDefaultFlag(TestMigrations):
                 ],
                 where=[
                     Condition(Column("group_ids"), Op.IS_NOT_NULL),
-                    Condition(Column("project_id"), Op.IN, project_ids),
+                    Condition(Column("project_id"), Op.EQ, project_id),
                     Condition(Column("finish_ts"), Op.GTE, start),
                     Condition(Column("finish_ts"), Op.LT, end),
                 ],
                 groupby=[Column("group_id"), Column("project_id"), Column("event_id")],
+                limit=Limit(10000),
+                offset=Offset(0),
             ),
         )
 
