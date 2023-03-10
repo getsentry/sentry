@@ -231,14 +231,21 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <SidebarItem
-      {...sidebarItemProps}
-      icon={<IconPlay size="md" />}
-      label={t('Replays')}
-      to={`/organizations/${organization.slug}/replays/`}
-      id="replays"
-      isNew
-    />
+    <Feature
+      hookName="feature-disabled:replay-sidebar-item"
+      features={['session-replay-ui']}
+      organization={organization}
+      requireAll={false}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconPlay size="md" />}
+        label={t('Replays')}
+        to={`/organizations/${organization.slug}/replays/`}
+        id="replays"
+        isNew
+      />
+    </Feature>
   );
 
   const dashboards = hasOrganization && (

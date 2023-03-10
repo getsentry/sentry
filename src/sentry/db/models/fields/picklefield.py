@@ -5,7 +5,6 @@ from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
 PICKLE_WRITE_JSON = False
-PICKLE_READ_JSON = True
 
 
 class PickledObjectField(django_picklefield.PickledObjectField):
@@ -23,7 +22,6 @@ class PickledObjectField(django_picklefield.PickledObjectField):
 
     def __init__(self, *args, **kwargs):
         self.write_json = kwargs.pop("write_json", PICKLE_WRITE_JSON)
-        self.read_json = kwargs.pop("read_json", PICKLE_READ_JSON)
         self.disable_pickle_validation = kwargs.pop("disable_pickle_validation", False)
         super().__init__(*args, **kwargs)
 
@@ -39,12 +37,21 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             and not self.disable_pickle_validation
         ):
             try:
-                json.dumps(value, default=jsonfield.default)
+                s = json.dumps(value, default=jsonfield.default)
             except Exception as e:
                 raise TypeError(
                     "Tried to serialize a pickle field with a value that cannot be serialized as JSON: %s"
                     % (e,)
                 )
+            else:
+                rt = json.loads(s)
+                if value != rt:
+                    raise TypeError(
+                        f"json serialized database value was not the same after deserializing:\n"
+                        f"- {type(value)=}\n"
+                        f"- {type(rt)=}"
+                    )
+
         return super().get_db_prep_value(value, *args, **kwargs)
 
     def to_python(self, value):

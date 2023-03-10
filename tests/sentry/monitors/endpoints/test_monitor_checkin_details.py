@@ -40,6 +40,7 @@ class UpdateMonitorCheckInTest(APITestCase):
 
     def _create_monitor(self):
         return Monitor.objects.create(
+            slug="my-monitor",
             organization_id=self.organization.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
@@ -62,9 +63,9 @@ class UpdateMonitorCheckInTest(APITestCase):
         )[0]
 
     def test_noop_in_progress(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
@@ -82,9 +83,9 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert checkin.date_updated > checkin.date_added
 
     def test_passing(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
@@ -109,10 +110,25 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor_environment.status == MonitorStatus.OK
             assert monitor_environment.last_checkin > checkin.date_added
 
+    def test_passing_with_slug(self):
+        monitor = self._create_monitor()
+        checkin = MonitorCheckIn.objects.create(
+            monitor=monitor, project_id=self.project.id, date_added=monitor.date_added
+        )
+
+        path = reverse(
+            self.endpoint_with_org, args=[self.organization.slug, monitor.slug, checkin.guid]
+        )
+        resp = self.client.put(path, data={"status": "ok"})
+        assert resp.status_code == 200, resp.content
+
+        checkin = MonitorCheckIn.objects.get(id=checkin.id)
+        assert checkin.status == CheckInStatus.OK
+
     def test_failing(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
@@ -138,9 +154,9 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor_environment.last_checkin > checkin.date_added
 
     def test_latest_returns_last_unfinished(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             checkin = MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
@@ -187,9 +203,10 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert monitor_environment.last_checkin > checkin2.date_added
 
     def test_latest_with_no_unfinished_checkin(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
@@ -203,9 +220,9 @@ class UpdateMonitorCheckInTest(APITestCase):
             assert resp.status_code == 404, resp.content
 
     def test_invalid_checkin_id(self):
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-            monitor_environment = self._create_monitor_environment(monitor)
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,
