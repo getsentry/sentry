@@ -76,7 +76,7 @@ function GroupHeaderTabs({
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasSessionReplay =
-    organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
+    organizationFeatures.has('session-replay') && projectSupportsReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
 

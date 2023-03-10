@@ -531,8 +531,8 @@ class Organization(Model, SnowflakeIdMixin):
         )
 
         for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization=from_org)
-            do_update(queryset, {"organization": to_org})
+            queryset = model.objects.filter(organization_id=from_org.id)
+            do_update(queryset, {"organization_id": to_org.id})
 
         for model in ATTR_MODEL_LIST:
             queryset = model.objects.filter(organization_id=from_org.id)

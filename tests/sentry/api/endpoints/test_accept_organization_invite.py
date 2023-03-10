@@ -186,7 +186,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user
@@ -291,7 +291,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user

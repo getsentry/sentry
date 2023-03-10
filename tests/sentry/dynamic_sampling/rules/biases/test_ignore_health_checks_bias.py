@@ -25,13 +25,11 @@ def test_generate_bias_rules_v2(data_provider, default_project):
     rules = IgnoreHealthChecksRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {
                         "name": "event.transaction",
                         "op": "glob",
-                        "options": {"ignoreCase": True},
                         "value": health_check_globs,
                     }
                 ],

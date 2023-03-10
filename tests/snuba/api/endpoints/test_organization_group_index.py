@@ -1950,6 +1950,24 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
 
+    def test_resolve_ignored(self):
+        group = self.create_group(status=GroupStatus.IGNORED)
+        snooze = GroupSnooze.objects.create(
+            group=group, until=timezone.now() - timedelta(minutes=1)
+        )
+
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, teams=group.project.teams.all(), user=member
+        )
+
+        self.login_as(user=member)
+        response = self.get_success_response(
+            qs_params={"id": group.id, "project": self.project.id}, status="resolved"
+        )
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
 
@@ -3028,7 +3046,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert (
             Activity.objects.filter(
-                group=group1, user=user, type=ActivityType.ASSIGNED.value
+                group=group1, user_id=user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )

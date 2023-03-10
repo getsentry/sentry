@@ -755,3 +755,11 @@ def validate_cdc_search_filters(search_filters: Optional[Sequence[SearchFilter]]
         ):
             return False
     return True
+
+
+# Mapping of device class to the store corresponding tag value
+DEVICE_CLASS = {
+    "LOW": {"1"},
+    "MEDIUM": {"2"},
+    "HIGH": {"3"},
+}

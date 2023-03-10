@@ -16,7 +16,7 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             Activity(
                 project=self.project,
                 group=group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.SET_RESOLVED,
                 data={"assignee": ""},
             )

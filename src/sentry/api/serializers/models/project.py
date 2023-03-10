@@ -176,6 +176,7 @@ def format_options(attrs: defaultdict(dict)):
             "sentry:performance_issue_creation_rate"
         ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),

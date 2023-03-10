@@ -55,7 +55,7 @@ class ConsecutiveDbDetectorTest(TestCase):
 
         return create_event(spans)
 
-    def test_detects_conseucitve_http_issue(self):
+    def test_detects_consecutive_http_issue(self):
         event = self.create_issue_event()
         problems = self.find_problems(event)
 
@@ -78,7 +78,105 @@ class ConsecutiveDbDetectorTest(TestCase):
         ]
 
     def test_does_not_detect_conseucitve_http_issue_with_low_duration(self):
-        event = self.create_issue_event(500)
+        event = self.create_issue_event(100)
         problems = self.find_problems(event)
 
         assert problems == []
+
+    def test_detects_consecutive_with_non_http_between_http_spans(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        spans.insert(
+            1, modify_span_start(create_span("resource.script", 500, "/static/js/bundle.js"), 2000)
+        )
+
+        event = create_event(spans)
+
+        problems = self.find_problems(event)
+
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-e3d915e5dd423874d4bee287a277fafeb6e3245d",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                    "bbbbbbbbbbbbbbbb",
+                ],
+            )
+        ]
+
+    def test_does_not_detect_nextjs_asset(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        assert len(self.find_problems(create_event(spans))) == 1
+
+        spans[0] = modify_span_start(
+            create_span(
+                "http.client", span_duration, "GET /_next/static/css/file-hash-abc.css", "hash4"
+            ),
+            0,
+        )
+
+        assert self.find_problems(create_event(spans)) == []
+
+    def test_does_not_detect_with_high_duration_between_spans(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, (10000 + span_duration) * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        assert self.find_problems(create_event(spans)) == []
