@@ -126,7 +126,7 @@ def mock_replay(
         "start_time": sec(timestamp),
         "replay_id": replay_id,
         "project_id": project_id,
-        "retention_days": 30,
+        "retention_days": kwargs.pop("retention_days", 30),
         "payload": list(
             bytes(
                 json.dumps(

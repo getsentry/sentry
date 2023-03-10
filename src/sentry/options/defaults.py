@@ -205,6 +205,25 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Options
+#
+# Replay storage backend configuration (only applicable if the direct-storage driver is used)
+register("replay.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "replay.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
+# on organization-id.
+register(
+    "replay.storage.direct-storage-sample-rate",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
