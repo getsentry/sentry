@@ -9,6 +9,7 @@ from django.db.models import Q
 from psycopg2 import OperationalError
 from psycopg2.errorcodes import DEADLOCK_DETECTED
 
+from sentry.runner.commands import cleanup
 from sentry.sentry_metrics.configuration import IndexerStorage, UseCaseKey, get_ingest_config
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -20,6 +21,12 @@ from sentry.sentry_metrics.indexer.base import (
 from sentry.sentry_metrics.indexer.cache import CachingIndexer, StringIndexerCache
 from sentry.sentry_metrics.indexer.limiters.writes import writes_limiter_factory
 from sentry.sentry_metrics.indexer.postgres.models import TABLE_MAPPING, BaseIndexer, IndexerTable
+from sentry.sentry_metrics.indexer.postgres.models import (
+    PerfStringIndexer as PerfStringIndexerPostgresModel,
+)
+from sentry.sentry_metrics.indexer.postgres.models import (
+    StringIndexer as StringIndexerPostgresModel,
+)
 from sentry.sentry_metrics.indexer.strings import StaticStringIndexer
 from sentry.utils import metrics
 
@@ -212,3 +219,9 @@ class PGStringIndexerV2(StringIndexer):
 class PostgresIndexer(StaticStringIndexer):
     def __init__(self) -> None:
         super().__init__(CachingIndexer(indexer_cache, PGStringIndexerV2()))
+        cleanup.EXTRA_BULK_QUERY_DELETES.extend(
+            [
+                (StringIndexerPostgresModel, "last_seen", None),
+                (PerfStringIndexerPostgresModel, "last_seen", None),
+            ]
+        )
