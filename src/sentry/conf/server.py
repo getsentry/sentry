@@ -382,6 +382,7 @@ INSTALLED_APPS = (
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
+    "sentry.issues.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
