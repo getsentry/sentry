@@ -18,8 +18,8 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
-from arroyo.types import Commit, Partition
-from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException, Message, TopicPartition
+from arroyo.types import Commit, Message, Partition
+from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException, TopicPartition  # Message
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -98,7 +98,7 @@ def parse_message_value(value: str) -> Dict[str, Any]:
     return payload
 
 
-def handle_message(message: Message) -> None:
+def handle_message(message_value, message_offset, message_partition, topic) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
     subscription. If the subscription has been removed, or no longer has a valid callback then
@@ -109,16 +109,16 @@ def handle_message(message: Message) -> None:
     with sentry_sdk.push_scope() as scope:
         try:
             with metrics.timer("snuba_query_subscriber.parse_message_value"):
-                contents = parse_message_value(message.value())
+                contents = parse_message_value(message_value)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
             # and continue
             logger.exception(
                 "Subscription update could not be parsed",
                 extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
+                    "offset": message_offset,
+                    "partition": message_partition,
+                    "value": message_value,
                 },
             )
             return
@@ -137,9 +137,9 @@ def handle_message(message: Message) -> None:
             logger.warning(
                 "Received subscription update, but subscription does not exist",
                 extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
+                    "offset": message_offset,
+                    "partition": message_partition,
+                    "value": message_value,
                 },
             )
             try:
@@ -154,7 +154,6 @@ def handle_message(message: Message) -> None:
                     if not entity_match:
                         raise InvalidMessageError("Unable to fetch entity from query in message")
                     entity_key = entity_match.group(2)
-                topic = message.topic()
                 if topic in topic_to_dataset:
                     _delete_from_snuba(
                         topic_to_dataset[topic],
@@ -178,9 +177,9 @@ def handle_message(message: Message) -> None:
             logger.error(
                 "Received subscription update, but no subscription handler registered",
                 extra={
-                    "offset": message.offset(),
-                    "partition": message.partition(),
-                    "value": message.value(),
+                    "offset": message_offset,
+                    "partition": message_partition,
+                    "value": message_value,
                 },
             )
             return
@@ -198,9 +197,9 @@ def handle_message(message: Message) -> None:
             span.set_data("subscription_aggregation", subscription.snuba_query.aggregate)
             span.set_data("subscription_time_window", subscription.snuba_query.time_window)
             span.set_data("subscription_resolution", subscription.snuba_query.resolution)
-            span.set_data("message_offset", message.offset())
-            span.set_data("message_partition", message.partition())
-            span.set_data("message_value", message.value())
+            span.set_data("message_offset", message_offset)
+            span.set_data("message_partition", message_partition)
+            span.set_data("message_value", message_value)
 
             callback(contents, subscription)
 
@@ -214,6 +213,9 @@ class InvalidSchemaError(InvalidMessageError):
 
 
 class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def __init__(self, topic):
+        self.topic = topic
+
     def create_with_partitions(
         self,
         commit: Commit,
@@ -226,17 +228,22 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 try:
-                    handle_message(message)
+                    handle_message(
+                        message.payload.value,
+                        message.value.offset,
+                        message.value.partition,
+                        self.topic,
+                    )
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
                     # consumer. If we see errors occurring here they need to be investigated to
                     # make sure that we're not dropping legitimate messages.
                     logger.exception(
-                        "Unexpected error while handling message in QuerySubscriptionConsumer. Skipping message.",
+                        "Unexpected error while handling message in QuerySubscriptionStrategy. Skipping message.",
                         extra={
-                            "offset": message.offset(),
-                            "partition": message.partition(),
-                            "value": message.value(),
+                            "offset": message.value.offset,
+                            "partition": message.value.partition,
+                            "value": message.value,
                         },
                     )
 
@@ -276,7 +283,7 @@ def get_query_subscription_consumer(
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
-        processor_factory=QuerySubscriptionStrategyFactory(),
+        processor_factory=QuerySubscriptionStrategyFactory(topic),
         commit_policy=ONCE_PER_SECOND,
     )
 
@@ -409,7 +416,7 @@ class QuerySubscriptionConsumer:
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 try:
-                    self.handle_message(message)
+                    self.handle_message(message, self.topic)
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
                     # consumer. If we see errors occurring here they need to be investigated to
@@ -466,9 +473,9 @@ class QuerySubscriptionConsumer:
     def signal_shutdown(self) -> None:
         self.__shutdown_requested = True
 
-    def handle_message(self, message: Message) -> None:
+    def handle_message(self, message: Message, topic) -> None:
         # set a commit time deadline only after the first message for this batch is seen
         if not self.__batch_deadline:
             self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
 
-        handle_message(message)
+        handle_message(message.value(), message.offset(), message.partition(), topic)

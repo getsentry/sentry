@@ -427,20 +427,32 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Force subscriptions to start from a particular offset",
 )
+@click.option(
+    "--use-arroyo-consumer",
+    default=False,
+    is_flag=True,
+    help="Switches to the new arroyo consumer implementation.",
+)
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
-    from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer
-
-    # TODO replace this with get_query_subscription_consumer
-    subscriber = QuerySubscriptionConsumer(
-        group_id=options["group"],
-        topic=options["topic"],
-        commit_batch_size=options["commit_batch_size"],
-        commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
-        initial_offset_reset=options["initial_offset_reset"],
-        force_offset_reset=options["force_offset_reset"],
+    from sentry.snuba.query_subscription_consumer import (
+        QuerySubscriptionConsumer,
+        get_query_subscription_consumer,
     )
+
+    if not options["use-arroyo-consumer"]:
+        subscriber = QuerySubscriptionConsumer(
+            group_id=options["group"],
+            topic=options["topic"],
+            commit_batch_size=options["commit_batch_size"],
+            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
+            initial_offset_reset=options["initial_offset_reset"],
+            force_offset_reset=options["force_offset_reset"],
+        )
+    else:
+        subscriber = get_query_subscription_consumer(**options)
+
     run_processor_with_signals(subscriber)
 
 
