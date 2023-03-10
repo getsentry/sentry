@@ -18,7 +18,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Environment, ProjectKey
+from sentry.models import Environment
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
