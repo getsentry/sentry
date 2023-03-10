@@ -200,6 +200,8 @@ def fingerprint_span(span: Span):
     return fingerprint
 
 
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
