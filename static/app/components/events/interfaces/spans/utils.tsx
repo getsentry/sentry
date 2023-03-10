@@ -300,6 +300,24 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   return span.parent_span_id;
 }
 
+export function formatSpanTreeLabel(span: ProcessedSpanType): string | undefined {
+  if (isGapSpan(span)) {
+    return undefined;
+  }
+
+  const label = span?.description ?? getSpanID(span);
+
+  if (span.op === 'http.client') {
+    try {
+      return decodeURIComponent(label);
+    } catch {
+      // Do nothing
+    }
+  }
+
+  return label;
+}
+
 export function getTraceContext(
   event: Readonly<EventTransaction>
 ): TraceContextType | undefined {

@@ -77,17 +77,19 @@ class RpcOrganizationMemberFlags(RpcModel):
         return bool(getattr(self, item))
 
 
-class RpcOrganizationMember(RpcModel):
+class RpcOrganizationMemberSummary(RpcModel):
     id: int = -1
     organization_id: int = -1
-    # This can be null when the user is deleted.
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None  # This can be null when the user is deleted.
+    flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
+
+
+class RpcOrganizationMember(RpcOrganizationMemberSummary):
     member_teams: List[RpcTeamMember] = Field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
     project_ids: List[int] = Field(default_factory=list)
     scopes: List[str] = Field(default_factory=list)
-    flags: RpcOrganizationMemberFlags = Field(default_factory=lambda: RpcOrganizationMemberFlags())
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]

@@ -16,10 +16,13 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
-from sentry.models import OrganizationMember
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcOrganizationMemberSummary,
+)
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -307,7 +310,7 @@ class AuthService(RpcService):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional[Union[RpcOrganizationMember, OrganizationMember]],
+        org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
         pass
 

@@ -23,6 +23,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcOrganizationInvite,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
+    RpcOrganizationMemberSummary,
     RpcOrganizationSummary,
     RpcProject,
     RpcTeam,
@@ -86,6 +87,18 @@ class DatabaseBackedOrganizationService(OrganizationService):
         rpc_member.project_ids = list(all_project_ids)
 
         return rpc_member
+
+    @classmethod
+    def summarize_member(
+        cls,
+        member: OrganizationMember,
+    ) -> RpcOrganizationMemberSummary:
+        return RpcOrganizationMemberSummary(
+            id=member.id,
+            organization_id=member.organization_id,
+            user_id=member.user_id,
+            flags=cls._serialize_member_flags(member),
+        )
 
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
