@@ -315,7 +315,7 @@ function MonitorForm({
 export default MonitorForm;
 
 const StyledList = styled(List)`
-  width: 700px;
+  width: 500px;
 `;
 
 const StyledTextCopyInput = styled(TextCopyInput)`
