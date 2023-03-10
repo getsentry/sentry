@@ -308,8 +308,8 @@ def _create_artifact_bundle(
                 ReleaseArtifactBundle.objects.create(
                     organization_id=org_id,
                     release_name=version,
-                    # dist_name can be nullable, so no check is required.
-                    dist_name=dist,
+                    # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
+                    dist_name=dist or "",
                     artifact_bundle=artifact_bundle,
                 )
 
