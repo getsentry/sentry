@@ -15,10 +15,13 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
-from sentry.models import OrganizationMember
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcOrganizationMemberSummary,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
@@ -298,7 +301,7 @@ class AuthService(InterfaceWithLifecycle):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional[Union[RpcOrganizationMember, OrganizationMember]],
+        org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
         pass
 
