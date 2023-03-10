@@ -2,11 +2,23 @@ import logging
 import re
 import time
 from random import random
-from typing import Any, Callable, Dict, Iterable, List, Optional, cast
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union, cast
 
 import jsonschema
 import pytz
 import sentry_sdk
+from arroyo import Topic
+from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
+from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
+from arroyo.commit import ONCE_PER_SECOND
+from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+    RunTask,
+)
+from arroyo.types import Commit, Partition
 from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException, Message, TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -201,6 +213,74 @@ class InvalidSchemaError(InvalidMessageError):
     pass
 
 
+class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
+    def create_with_partitions(
+        self,
+        commit: Commit,
+        partitions: Mapping[Partition, int],
+    ) -> ProcessingStrategy[KafkaPayload]:
+        def process_message(message: Message[KafkaPayload]) -> None:
+            with sentry_sdk.start_transaction(
+                op="handle_message",
+                name="query_subscription_consumer_process_message",
+                sampled=random() <= options.get("subscriptions-query.sample-rate"),
+            ), metrics.timer("snuba_query_subscriber.handle_message"):
+                try:
+                    handle_message(message)
+                except Exception:
+                    # This is a failsafe to make sure that no individual message will block this
+                    # consumer. If we see errors occurring here they need to be investigated to
+                    # make sure that we're not dropping legitimate messages.
+                    logger.exception(
+                        "Unexpected error while handling message in QuerySubscriptionConsumer. Skipping message.",
+                        extra={
+                            "offset": message.offset(),
+                            "partition": message.partition(),
+                            "value": message.value(),
+                        },
+                    )
+
+        return RunTask(process_message, CommitOffsets(commit))
+
+
+def get_query_subscription_consumer(
+    topic: str,
+    group_id: str,
+    auto_offset_reset: str,
+    strict_offset_reset: bool,
+    force_topic: Union[str, None],
+    initial_offset_reset: str = "earliest",
+) -> StreamProcessor[KafkaPayload]:
+    topic = force_topic or topic
+    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+    cluster_options = kafka_config.get_kafka_consumer_cluster_options(
+        cluster_name,
+        {
+            "group.id": group_id,
+            "session.timeout.ms": 6000,
+            "auto.offset.reset": initial_offset_reset,
+            "enable.auto.commit": "false",
+            "enable.auto.offset.store": "false",
+            "enable.partition.eof": "false",
+            "default.topic.config": {"auto.offset.reset": initial_offset_reset},
+        },
+    )
+    consumer = KafkaConsumer(
+        build_kafka_consumer_configuration(
+            cluster_options,
+            auto_offset_reset=auto_offset_reset,
+            group_id=group_id,
+            strict_offset_reset=strict_offset_reset,
+        )
+    )
+    return StreamProcessor(
+        consumer=consumer,
+        topic=Topic(topic),
+        processor_factory=QuerySubscriptionStrategyFactory(),
+        commit_policy=ONCE_PER_SECOND,
+    )
+
+
 class QuerySubscriptionConsumer:
     """
     A Kafka consumer that processes query subscription update messages. Each message has
@@ -329,7 +409,7 @@ class QuerySubscriptionConsumer:
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
                 try:
-                    handle_message(message)
+                    self.handle_message(message)
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
                     # consumer. If we see errors occurring here they need to be investigated to
@@ -387,13 +467,6 @@ class QuerySubscriptionConsumer:
         self.__shutdown_requested = True
 
     def handle_message(self, message: Message) -> None:
-        """
-        Parses the value from Kafka, and if valid passes the payload to the callback defined by the
-        subscription. If the subscription has been removed, or no longer has a valid callback then
-        just log metrics/errors and continue.
-        :param message:
-        :return:
-        """
         # set a commit time deadline only after the first message for this batch is seen
         if not self.__batch_deadline:
             self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()

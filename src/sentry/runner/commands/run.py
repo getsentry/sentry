@@ -432,6 +432,7 @@ def post_process_forwarder(**options):
 def query_subscription_consumer(**options):
     from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer
 
+    # TODO replace this with get_query_subscription_consumer
     subscriber = QuerySubscriptionConsumer(
         group_id=options["group"],
         topic=options["topic"],
@@ -440,7 +441,6 @@ def query_subscription_consumer(**options):
         initial_offset_reset=options["initial_offset_reset"],
         force_offset_reset=options["force_offset_reset"],
     )
-
     run_processor_with_signals(subscriber)
 
 
