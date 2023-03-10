@@ -48,14 +48,14 @@ class TransactionRow(typing.TypedDict):
 
 
 class BackfillEventSuccess(typing.Protocol):
-    def __call__(self, created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
+    def __call__(self, created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
         pass
 
 
 class BackfillEventError(typing.Protocol):
     def __call__(
         self,
-        attempted_row: Mapping[str, Any],
+        attempted_row: TransactionRow,
         exc: Exception,
         occurrence_nodestore_saved: bool,
         occurrence_eventstream_sent: bool,
@@ -63,7 +63,7 @@ class BackfillEventError(typing.Protocol):
         pass
 
 
-def save_success_to_file(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
+def save_success_to_file(created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
     write_to_file(
         created_group.project_id,
         "success",
@@ -101,7 +101,7 @@ def write_to_file(
         writer.writerow(data)
 
 
-def print_success(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
+def print_success(created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
     print(  # noqa: S002
         f"project_id={created_group.project_id}, group_id={created_group.id}, event_id={mapped_occurrence['event_id']}, occurrence_id={mapped_occurrence['id']}, fingerprint={mapped_occurrence['fingerprint']}"
     )
