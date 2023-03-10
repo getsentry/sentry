@@ -9,7 +9,7 @@ from sentry.tasks.base import instrumented_task
 @instrumented_task(name="sentry.tasks.clear_expired_snoozes", time_limit=65, soft_time_limit=60)
 def clear_expired_snoozes():
     groupsnooze_list = list(
-        GroupSnooze.objects.filter(until__lte=timezone.now()).values_list("id", "group")
+        GroupSnooze.objects.filter(until__lte=timezone.now()).values_list("id", "group")[:1000]
     )
     group_snooze_ids = [gs[0] for gs in groupsnooze_list]
     group_list = [gs[1] for gs in groupsnooze_list]
