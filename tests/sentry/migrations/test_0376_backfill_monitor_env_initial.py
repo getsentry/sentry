@@ -10,8 +10,8 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
-    migrate_from = "0374_breaking_even_more_keys"
-    migrate_to = "0375_backfill_monitor_env_initial"
+    migrate_from = "0375_remove_nullable_from_field"
+    migrate_to = "0376_backfill_monitor_env_initial"
 
     def setup_before_migration(self, apps):
         self.monitor = Monitor.objects.create(
