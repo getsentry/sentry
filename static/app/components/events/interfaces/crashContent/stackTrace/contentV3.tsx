@@ -17,6 +17,7 @@ type Props = {
   platform: PlatformType;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  hideIcon?: boolean;
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
