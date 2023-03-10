@@ -10,7 +10,7 @@ from datetime import datetime
 from io import BytesIO
 from itertools import groupby
 from os.path import splitext
-from typing import IO, Optional, Tuple
+from typing import IO, Callable, Optional, Tuple
 from urllib.parse import urlsplit
 
 import sentry_sdk
@@ -49,7 +49,6 @@ from sentry.utils.safe import get_path
 from sentry.utils.urls import non_standard_url_join
 
 __all__ = ["JavaScriptStacktraceProcessor"]
-
 
 # number of surrounding lines (on each side) to fetch
 LINES_OF_CONTEXT = 5
@@ -383,11 +382,13 @@ def fetch_release_file(filename, release, dist=None):
 
 
 @metrics.wraps("sourcemaps.get_from_archive")
-def get_from_archive(url: str, archive: ReleaseArchive) -> Tuple[bytes, dict]:
+def try_get_with_normalized_urls(
+    url: str, block: Callable[[str], Tuple[bytes, dict]]
+) -> Tuple[bytes, dict]:
     candidates = ReleaseFile.normalize(url)
     for candidate in candidates:
         try:
-            return archive.get_file_by_url(candidate)
+            return block(candidate)
         except KeyError:
             pass
 
@@ -493,7 +494,6 @@ def fetch_release_archive_for_url(release, dist, url) -> Optional[IO]:
             # `cache.set` will only keep values up to a certain size,
             # so we should not read the entire file if it's too large for caching
             if CACHE_MAX_VALUE_SIZE is not None and file_.size > CACHE_MAX_VALUE_SIZE:
-
                 return file_
 
             with sentry_sdk.start_span(op="fetch_release_archive_for_url.read_for_caching") as span:
@@ -680,6 +680,7 @@ class Fetcher:
         for artifact_bundle_id, open_archive in self.open_archives.items():
             if open_archive is INVALID_ARCHIVE:
                 continue
+
             try:
                 block(open_archive)
                 return open_archive
@@ -866,8 +867,8 @@ class Fetcher:
         return (
             ReleaseArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
-                release_name=self.release.version if self.release is not None else None,
-                dist_name=self.dist.name if self.dist is not None else None,
+                release_name=self.release.version if self.release else None,
+                dist_name=self.dist.name if self.dist else None,
             )
             .order_by("-date_added")[:MAX_ARTIFACTS_NUMBER]
             .select_related("artifact_bundle__file")
@@ -884,8 +885,9 @@ class Fetcher:
             if cached_open_archive:
                 return cached_open_archive
 
-            artifact_bundles = self._get_release_artifact_bundle_entries()
-            for artifact_bundle in artifact_bundles:
+            release_artifact_bundles = self._get_release_artifact_bundle_entries()
+            for release_artifact_bundle in release_artifact_bundles:
+                artifact_bundle = release_artifact_bundle.artifact_bundle
                 cached_open_archive = self.open_archives.get(artifact_bundle.id)
 
                 # In case the archive is marked as INVALID_ARCHIVE we are just going to continue in the hope of
@@ -912,7 +914,7 @@ class Fetcher:
             # can't do much.
             if len(artifact_bundle_files) == 0 and len(failed_artifact_bundle_ids) > 0:
                 raise Exception(
-                    "Failed to fetch at least one artifact bundle given a release/dist pair."
+                    "Failed to fetch at least one artifact bundle given a release/dist pair"
                 )
         except Exception as exc:
             logger.error(
@@ -949,7 +951,9 @@ class Fetcher:
             # that will immediately return if the lookup is not successful. The repetition of the lookup seems a more
             # explicit way to do the work.
             cached_open_archive = self._lookup_in_open_archives(
-                lambda open_archive: open_archive.get_file_by_url(url)
+                lambda open_archive: try_get_with_normalized_urls(
+                    url, lambda candidate: open_archive.get_file_by_url(candidate)
+                )
             )
             if cached_open_archive:
                 return cached_open_archive
@@ -967,17 +971,26 @@ class Fetcher:
         with sentry_sdk.start_span(op="Fetcher._fetch_release_artifact._open_archive_by_url"):
             archive = self._open_archive_by_url(url)
             if archive is not None:
-                # We know that if we have an archive which is not None, that the url will be found internally.
-                fp, headers = archive.get_file_by_url(url)
-                result = fetch_and_cache_artifact(
-                    url,
-                    lambda: fp,
-                    None,
-                    None,
-                    headers,
-                    compress_fn=compress,
-                )
-                return result
+                try:
+                    # We know that if we have an archive which is not None, that the url will be found internally but
+                    # we still cover with an exception handler the whole code to make sure all possible failures are
+                    # caught.
+                    fp, headers = try_get_with_normalized_urls(
+                        url, lambda candidate: archive.get_file_by_url(candidate)
+                    )
+                    result = fetch_and_cache_artifact(
+                        url,
+                        lambda: fp,
+                        None,
+                        None,
+                        headers,
+                        compress_fn=compress,
+                    )
+                    return result
+                except Exception as exc:
+                    logger.error(
+                        "Failed to open file with base url %s in artifact bundle", url, exc_info=exc
+                    )
 
         # If we weren't able to load the file by release in the new tables, we want to fallback to the old mechanism.
         cache_key, cache_key_meta = get_cache_keys(url, self.release, self.dist)
@@ -1007,7 +1020,9 @@ class Fetcher:
             else:
                 with archive:
                     try:
-                        fp, headers = get_from_archive(url, archive)
+                        fp, headers = try_get_with_normalized_urls(
+                            url, lambda candidate: archive.get_file_by_url(candidate)
+                        )
                     except KeyError:
                         # The manifest mapped the url to an archive, but the file
                         # is not there.
