@@ -813,8 +813,7 @@ class Fetcher:
             except Exception as exc:
                 artifact_bundle_file.seek(0)
                 logger.error(
-                    "Failed to initialize archive for the artifact bundle file %s",
-                    artifact_bundle_file.id,
+                    "Failed to initialize archive for the artifact bundle file",
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                 )
@@ -878,10 +877,13 @@ class Fetcher:
         artifact_bundle_files = []
         failed_artifact_bundle_ids = set()
 
-        try:
-            cached_open_archive = self._lookup_in_open_archives(
-                lambda open_archive: open_archive.get_file_by_url(url)
+        def file_by_url_candidates_lookup(open_archive):
+            try_get_with_normalized_urls(
+                url, lambda candidate: open_archive.get_file_by_url(candidate)
             )
+
+        try:
+            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
             if cached_open_archive:
                 return cached_open_archive
 
@@ -938,8 +940,7 @@ class Fetcher:
                 except Exception as exc:
                     artifact_bundle_file.seek(0)
                     logger.error(
-                        "Failed to initialize archive for the artifact bundle file %s",
-                        artifact_bundle_file.id,
+                        "Failed to initialize archive for the artifact bundle file",
                         exc_info=exc,
                         extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
                     )
@@ -950,11 +951,7 @@ class Fetcher:
             # we could recursively implement this behavior but that would require the usage of a discriminator variable
             # that will immediately return if the lookup is not successful. The repetition of the lookup seems a more
             # explicit way to do the work.
-            cached_open_archive = self._lookup_in_open_archives(
-                lambda open_archive: try_get_with_normalized_urls(
-                    url, lambda candidate: open_archive.get_file_by_url(candidate)
-                )
-            )
+            cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
             if cached_open_archive:
                 return cached_open_archive
 
@@ -975,6 +972,9 @@ class Fetcher:
                     # We know that if we have an archive which is not None, that the url will be found internally but
                     # we still cover with an exception handler the whole code to make sure all possible failures are
                     # caught.
+                    #
+                    # Technically we could return the matched candidate url from _open_archive_by_url() but considering
+                    # that try_get_with_normalized_urls() is O(1) the benefits will not outweigh the clean code.
                     fp, headers = try_get_with_normalized_urls(
                         url, lambda candidate: archive.get_file_by_url(candidate)
                     )
