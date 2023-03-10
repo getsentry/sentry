@@ -349,10 +349,12 @@ const StyledListItem = styled(ListItem)`
 `;
 
 const LabelText = styled(Text)`
+  font-weight: bold;
   color: ${p => p.theme.subText};
 `;
 
 const ListItemSubText = styled(LabelText)`
+  font-weight: normal;
   padding-left: ${space(4)};
 `;
 
@@ -363,7 +365,6 @@ const InputGroup = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(1)};
-  width: 500px;
 `;
 
 const LabeledInputs = styled('div')`
