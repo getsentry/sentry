@@ -214,12 +214,12 @@ class RpcService(InterfaceWithLifecycle):
             fallback = stubbed(cls.get_local_implementation, cls.local_mode)
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
-                if cls.local_mode == SiloMode.REGION:
-                    if signature is None:
-                        raise RpcServiceUnimplementedException(
-                            f"Signature was not initialized for {cls.__name__}.{method_name}"
-                        )
+                if signature is None:
+                    raise RpcServiceUnimplementedException(
+                        f"Signature was not initialized for {cls.__name__}.{method_name}"
+                    )
 
+                if cls.local_mode == SiloMode.REGION:
                     region = signature.resolve_to_region(kwargs)
                 else:
                     region = None
