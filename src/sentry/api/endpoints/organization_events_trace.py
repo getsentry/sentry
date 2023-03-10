@@ -22,7 +22,7 @@ from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
-from snuba_sdk import AliasedExpression, Column
+from snuba_sdk import AliasedExpression, Column, Function
 
 from sentry import constants, eventstore, features
 from sentry.api.base import region_silo_endpoint
@@ -283,6 +283,21 @@ def child_sort_key(item: TraceEvent) -> List[int]:
     # The sorting of items without nodestore events doesn't matter cause we drop them
     else:
         return [0]
+
+
+def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
+    transaction_query = QueryBuilder(
+        Dataset.Transactions,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=[],
+        limit=MAX_TRACE_SIZE,
+    )
+    transaction_query.columns.append(
+        Function("sum", [Function("arrayUniq", [Column("group_ids")])], "total_groups")
+    )
+    count = transaction_query.run_query("api.trace-view.count-performance-issues")
+    return count["data"][0].get("total_groups", 0)
 
 
 def query_trace_data(
@@ -791,6 +806,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
+            result["performance_issues"] = count_performance_issues(trace_id, params)
         return Response(self.serialize(result["data"][0]))
 
     @staticmethod
@@ -800,4 +816,5 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             "projects": results.get("projects") or 0,
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
+            "performance_issues": results.get("performance_issues") or 0,
         }
