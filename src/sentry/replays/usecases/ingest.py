@@ -282,21 +282,23 @@ class IndexMessage:
 
 
 def parse_events(segment_data: bytes) -> List[IndexMessage]:
+    """Return a list of IndexMessage types."""
     events = json.loads(segment_data)
     for event in events:
-        if event["type"] == 5 and event["data"].get("tag") == "ui.interaction":
+        if event["type"] == 5 and event["data"]["tag"] == "breadcrumb":
             payload = event["data"]["payload"]
-            if payload["action"] == "click":
+            if payload["category"] == "ui.click":
                 node = payload["node"]
+                attributes = node.get("attributes", {})
                 yield IndexMessage(
                     action="click",
                     element=node["tagName"],
-                    id=node["attributes"].get("id", ""),
-                    classes=node["attributes"].get("class", "").split(" "),
-                    aria_label=node["attributes"].get("aria_label", ""),
-                    aria_role=node["attributes"].get("aria_role", ""),
-                    role=node["attributes"].get("role", ""),
+                    id=attributes.get("id", ""),
+                    classes=attributes.get("class", "").split(" "),
+                    aria_label=attributes.get("aria_label", ""),
+                    aria_role=attributes.get("aria_role", ""),
+                    role=attributes.get("role", ""),
                     text_content=node["text_content"],
                     node_id=node["id"],
-                    timestamp=event["timestamp"],
+                    timestamp=int(payload["timestamp"]),
                 )
