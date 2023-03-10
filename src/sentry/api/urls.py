@@ -861,6 +861,10 @@ ORGANIZATION_URLS = [
         OrganizationDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-details",
     ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
+        include(GROUP_URLS),
+    ),
     # Alert Rules
     url(
         r"^(?P<organization_slug>[^\/]+)/alert-rules/available-actions/$",
@@ -1248,10 +1252,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-group-index-stats",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?:issues|groups)/",
-        include(GROUP_URLS),
-    ),
-    url(
         r"^(?P<organization_slug>[^\/]+)/integrations/$",
         OrganizationIntegrationsEndpoint.as_view(),
         name="sentry-api-0-organization-integrations",
@@ -1304,6 +1304,7 @@ ORGANIZATION_URLS = [
         OrganizationInviteRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-invite-request-detail",
     ),
+    # Monitors
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/$",
         OrganizationMonitorsEndpoint.as_view(),
@@ -1323,6 +1324,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-attachment",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        MonitorCheckInsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-check-in-index",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        MonitorCheckInDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-check-in-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
@@ -1678,14 +1689,14 @@ ORGANIZATION_URLS = [
 
 PROJECT_URLS = [
     url(
-        r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
-        ProjectAgnosticRuleConditionsEndpoint.as_view(),
-        name="sentry-api-0-project-agnostic-rule-conditions",
-    ),
-    url(
         r"^$",
         ProjectIndexEndpoint.as_view(),
         name="sentry-api-0-projects",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/rule-conditions/$",
+        ProjectAgnosticRuleConditionsEndpoint.as_view(),
+        name="sentry-api-0-project-agnostic-rule-conditions",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/$",
@@ -2342,6 +2353,11 @@ SENTRY_APP_INSTALLATION_URLS = [
         name="sentry-api-0-sentry-app-installation-details",
     ),
     url(
+        r"^(?P<uuid>[^\/]+)/authorizations/$",
+        SentryAppAuthorizationsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-authorizations",
+    ),
+    url(
         r"^(?P<uuid>[^\/]+)/external-requests/$",
         SentryAppInstallationExternalRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-requests",
@@ -2420,7 +2436,59 @@ urlpatterns = [
         r"^relays/",
         include(RELAY_URLS),
     ),
-    # Api Data
+    # Groups / Issues
+    url(
+        r"^(?:issues|groups)/",
+        include(GROUP_URLS),
+    ),
+    # Organizations
+    url(
+        r"^organizations/",
+        include(ORGANIZATION_URLS),
+    ),
+    # Projects
+    url(
+        r"^projects/",
+        include(PROJECT_URLS),
+    ),
+    # Teams
+    url(
+        r"^teams/",
+        include(TEAM_URLS),
+    ),
+    # Users
+    url(
+        r"^users/",
+        include(USER_URLS),
+    ),
+    # UserRoles
+    url(
+        r"^userroles/",
+        include(USER_ROLE_URLS),
+    ),
+    # Sentry Apps
+    url(
+        r"^sentry-apps/",
+        include(SENTRY_APP_URLS),
+    ),
+    # Toplevel app installs
+    url(
+        r"^sentry-app-installations/",
+        include(SENTRY_APP_INSTALLATION_URLS),
+    ),
+    # Auth
+    url(
+        r"^auth/",
+        include(AUTH_URLS),
+    ),
+    # Broadcasts
+    url(
+        r"^broadcasts/",
+        include(BROADCAST_URLS),
+    ),
+    #
+    #
+    #
     url(
         r"^assistant/$",
         AssistantEndpoint.as_view(),
@@ -2451,21 +2519,11 @@ urlpatterns = [
         PromptsActivityEndpoint.as_view(),
         name="sentry-api-0-prompts-activity",
     ),
-    # Auth
-    url(
-        r"^auth/",
-        include(AUTH_URLS),
-    ),
     # List Authenticators
     url(
         r"^authenticators/$",
         AuthenticatorIndexEndpoint.as_view(),
         name="sentry-api-0-authenticator-index",
-    ),
-    # Broadcasts
-    url(
-        r"^broadcasts/",
-        include(BROADCAST_URLS),
     ),
     # Project transfer
     url(
@@ -2484,76 +2542,17 @@ urlpatterns = [
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
     ),
-    # Monitors
+    # Top-level monitor checkin APIs. NOTE that there are also organization
+    # level checkin APIs.
     url(
-        r"^monitors/",
-        include(
-            [
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-                    MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-details",
-                ),
-            ]
-        ),
+        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        MonitorCheckInsEndpoint.as_view(),
+        name="sentry-api-0-monitor-check-in-index",
     ),
-    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
     url(
-        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
-        include(
-            [
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-check-in-index",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-                    MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-check-in-details",
-                ),
-            ]
-        ),
-    ),
-    # Users
-    url(
-        r"^users/",
-        include(USER_URLS),
-    ),
-    # UserRoles
-    url(
-        r"^userroles/",
-        include(USER_ROLE_URLS),
-    ),
-    # Organizations
-    url(
-        r"^organizations/",
-        include(ORGANIZATION_URLS),
-    ),
-    # Teams
-    url(
-        r"^teams/",
-        include(TEAM_URLS),
-    ),
-    # Projects
-    url(
-        r"^projects/",
-        include(PROJECT_URLS),
-    ),
-    # Toplevel app installs
-    url(
-        r"^sentry-app-installations/",
-        include(SENTRY_APP_INSTALLATION_URLS),
-    ),
-    # Groups / Issues
-    url(
-        r"^(?:issues|groups)/",
-        include(GROUP_URLS),
+        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        MonitorCheckInDetailsEndpoint.as_view(),
+        name="sentry-api-0-monitor-check-in-details",
     ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.
@@ -2584,20 +2583,10 @@ urlpatterns = [
         SharedGroupDetailsEndpoint.as_view(),
         name="sentry-api-0-shared-group-details",
     ),
-    # Sentry Apps
-    url(
-        r"^sentry-apps/",
-        include(SENTRY_APP_URLS),
-    ),
     url(
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-apps-stats",
-    ),
-    url(
-        r"^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$",
-        SentryAppAuthorizationsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-authorizations",
     ),
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",

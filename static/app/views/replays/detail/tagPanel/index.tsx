@@ -57,7 +57,7 @@ function TagPanel() {
     <Panel>
       <FluidPanel>
         {tags.length ? (
-          <KeyValueTable>
+          <KeyValueTable noMargin>
             {tags.map(([key, values]) => (
               <ReplayTagsTableRow
                 key={key}
