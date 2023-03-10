@@ -1,8 +1,10 @@
+import zipfile
 from enum import Enum
-from typing import List, Optional, Tuple
+from typing import IO, List, Optional, Tuple
 
 from django.db import models
 from django.utils import timezone
+from symbolic import SymbolicError, normalize_debug_id
 
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -11,6 +13,7 @@ from sentry.db.models import (
     Model,
     region_silo_only_model,
 )
+from sentry.utils import json
 
 
 class SourceFileType(Enum):
@@ -37,7 +40,9 @@ class ArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    bundle_id = models.UUIDField(null=True)
+    # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
+    # with nullable fields, since NULL != NULL.
+    bundle_id = models.UUIDField(default="00000000-00000000-00000000-00000000")
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -55,7 +60,9 @@ class ReleaseArtifactBundle(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
-    dist_id = BoundedBigIntegerField(null=True)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    dist_name = models.CharField(max_length=64, default="")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -63,7 +70,7 @@ class ReleaseArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_releaseartifactbundle"
 
-        unique_together = (("organization_id", "release_name", "dist_id", "artifact_bundle"),)
+        unique_together = (("organization_id", "release_name", "dist_name", "artifact_bundle"),)
 
 
 @region_silo_only_model
@@ -100,3 +107,62 @@ class ProjectArtifactBundle(Model):
         db_table = "sentry_projectartifactbundle"
 
         unique_together = (("project_id", "artifact_bundle"),)
+
+
+class ArtifactBundleArchive:
+    """Read-only view of uploaded ZIP artifact bundle."""
+
+    def __init__(self, fileobj: IO):
+        self._fileobj = fileobj
+        self._zip_file = zipfile.ZipFile(self._fileobj)
+        self.manifest = self._read_manifest()
+        self._build_entries_by_debug_id_map()
+
+    def close(self):
+        self._zip_file.close()
+        self._fileobj.close()
+
+    def info(self, filename: str) -> zipfile.ZipInfo:
+        return self._zip_file.getinfo(filename)
+
+    def read(self, filename: str) -> bytes:
+        return self._zip_file.read(filename)
+
+    def _read_manifest(self) -> dict:
+        manifest_bytes = self.read("manifest.json")
+        return json.loads(manifest_bytes.decode("utf-8"))
+
+    @staticmethod
+    def _normalize_headers(headers: dict) -> dict:
+        return {k.lower(): v for k, v in headers.items()}
+
+    @staticmethod
+    def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+        try:
+            return normalize_debug_id(debug_id)
+        except SymbolicError:
+            return None
+
+    def _build_entries_by_debug_id_map(self):
+        self._entries_by_debug_id = {}
+
+        # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
+        files = self.manifest.get("files", {})
+        for file_path, info in files.items():
+            headers = self._normalize_headers(info.get("headers", {}))
+            if (debug_id := headers.get("debug-id", None)) is not None:
+                debug_id = self._normalize_debug_id(debug_id)
+                file_type = info.get("type", None)
+                if (
+                    debug_id is not None
+                    and file_type is not None
+                    and (source_file_type := SourceFileType.from_lowercase_key(file_type))
+                    is not None
+                ):
+                    self._entries_by_debug_id[(debug_id, source_file_type)] = (file_path, info)
+
+    def get_file_by_debug_id(
+        self, debug_id: str, source_file_type: SourceFileType
+    ) -> Tuple[IO, dict]:
+        file_path, info = self._entries_by_debug_id[debug_id, source_file_type]
+        return self._zip_file.open(file_path), info.get("headers", {})

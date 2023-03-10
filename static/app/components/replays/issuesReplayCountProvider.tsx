@@ -24,7 +24,7 @@ type Props = {
  */
 export default function IssuesReplayCountProvider({children, groupIds}: Props) {
   const organization = useOrganization();
-  const hasSessionReplay = organization.features.includes('session-replay-ui');
+  const hasSessionReplay = organization.features.includes('session-replay');
 
   if (hasSessionReplay) {
     return (

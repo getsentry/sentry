@@ -6,6 +6,7 @@ import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -97,6 +98,7 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codecov-integration-cta': () => React.ReactNode;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -175,6 +177,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
@@ -190,7 +193,6 @@ export type InterfaceChromeHooks = {
   'sidebar:bottom-items': SidebarBottomItemsHook;
   'sidebar:help-menu': GenericOrganizationComponentHook;
   'sidebar:item-label': SidebarItemLabelHook;
-  'sidebar:item-override': SidebarItemOverrideHook;
   'sidebar:organization-dropdown-menu': GenericOrganizationComponentHook;
   'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentHook;
 };
@@ -235,6 +237,7 @@ export type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-experiment': UseExperiment;
 };
 
 /**
@@ -461,14 +464,6 @@ type SidebarItemLabelHook = () => React.ComponentType<{
    * The key of the item label currently being rendered. If no id is provided
    * the hook will have no effect.
    */
-  id?: string;
-}>;
-
-type SidebarItemOverrideHook = () => React.ComponentType<{
-  /**
-   * The item label being wrapped
-   */
-  children: (props: Partial<React.ComponentProps<typeof SidebarItem>>) => React.ReactNode;
   id?: string;
 }>;
 

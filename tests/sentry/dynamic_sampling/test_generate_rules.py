@@ -610,3 +610,29 @@ def test_generate_rules_return_uniform_rule_with_non_existent_releases(
         },
     ]
     _validate_rules(default_project)
+
+
+@pytest.mark.django_db
+@patch("sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate")
+def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, default_project):
+    get_blended_sample_rate.return_value = 0.0
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
+    )
+
+    assert generate_rules(default_project) == [
+        {
+            "condition": {"inner": [], "op": "and"},
+            "id": 1000,
+            "samplingValue": {"type": "sampleRate", "value": 0.0},
+            "type": "trace",
+        },
+    ]
+    get_blended_sample_rate.assert_called_with(default_project)
+    _validate_rules(default_project)

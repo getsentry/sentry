@@ -18,6 +18,7 @@ IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 ProjectId = int
 OrganizationId = int
+TransactionName = str
 
 
 class ActivatableBias(TypedDict):
@@ -191,9 +192,12 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
     because multiplication will exceed 1 very quickly in case we don't reduce the factor.
     """
-    if base_sample_rate <= 0.0 or base_sample_rate > 1.0:
+    if x == 0:
+        raise Exception("A dynamic factor of 0 cannot be set.")
+
+    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
         raise Exception(
-            "The dynamic factor function requires a sample rate in the interval [0.x, 1.0] with x > 0."
+            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
         )
 
     return float(x / x**base_sample_rate)

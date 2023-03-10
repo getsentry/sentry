@@ -132,3 +132,51 @@ class ConsecutiveDbDetectorTest(TestCase):
                 ],
             )
         ]
+
+    def test_does_not_detect_nextjs_asset(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, span_duration * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+        assert len(self.find_problems(create_event(spans))) == 1
+
+        spans[0] = modify_span_start(
+            create_span(
+                "http.client", span_duration, "GET /_next/static/css/file-hash-abc.css", "hash4"
+            ),
+            0,
+        )
+
+        assert self.find_problems(create_event(spans)) == []
+
+    def test_does_not_detect_with_high_duration_between_spans(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, (10000 + span_duration) * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        assert self.find_problems(create_event(spans)) == []

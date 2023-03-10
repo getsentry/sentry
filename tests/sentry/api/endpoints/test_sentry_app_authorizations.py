@@ -9,7 +9,7 @@ from sentry.testutils import APITestCase
 
 
 class TestSentryAppAuthorizations(APITestCase):
-    endpoint = "sentry-api-0-sentry-app-authorizations"
+    endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"
 
     def setUp(self):
