@@ -76,7 +76,7 @@ jmespath==0.10.0
 jsonschema==3.2.0
 kombu==4.6.11
 lazy-object-proxy==1.7.1
-lxml==4.6.5
+lxml==4.9.1
 lxml-stubs==0.4.0
 maxminddb==2.0.3
 mccabe==0.7.0
