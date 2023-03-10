@@ -75,5 +75,5 @@ class OutboxBackedLogService(LogService):
             shard_identifier=event.user_id,
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
-            payload=asdict(event),
+            payload=event.__dict__,
         ).save()
