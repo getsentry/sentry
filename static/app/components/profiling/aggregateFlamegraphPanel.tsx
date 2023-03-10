@@ -1,15 +1,17 @@
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
+import {Flex} from 'sentry/components/profiling/flex';
+import {t} from 'sentry/locale';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
-  const query = useAggregateFlamegraphQuery({transaction});
-
+  const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
   return (
-    <ProfileGroupProvider type="flamegraph" input={query.data ?? null} traceID="">
+    <ProfileGroupProvider type="flamegraph" input={data ?? null} traceID="">
       <FlamegraphStateProvider
         initialState={{
           preferences: {
@@ -20,7 +22,13 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
       >
         <FlamegraphThemeProvider>
           <Panel>
-            <AggregateFlamegraph />
+            <Flex h={400} column justify="center">
+              {isLoading ? (
+                <LoadingIndicator>{t('Loading Flamegraph')}</LoadingIndicator>
+              ) : (
+                <AggregateFlamegraph />
+              )}
+            </Flex>
           </Panel>
         </FlamegraphThemeProvider>
       </FlamegraphStateProvider>
