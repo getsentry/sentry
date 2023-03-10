@@ -22,13 +22,7 @@ from snuba_sdk import (
 )
 
 from sentry.models.file import File, FileBlobIndex
-from sentry.replays.cache import replay_cache
-from sentry.replays.lib.storage import (
-    FilestoreBlob,
-    RecordingSegmentStorageMeta,
-    StorageBlob,
-    make_filename,
-)
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.utils.snuba import raw_snql_query
 
@@ -251,19 +245,8 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> str:
 
 def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
     """Return the segment blob data."""
-    cache_key = make_filename(segment)
-
-    # Attempt to read from cache.
-    cache_value: bytes | None = replay_cache.get(cache_key, raw=True)
-    if cache_value:
-        return cache_value
-
     driver = FilestoreBlob() if segment.file_id else StorageBlob()
-    result = decompress(driver.get(segment))
-
-    # Cache our read.
-    replay_cache.set(cache_key, result, timeout=3600, raw=True)
-    return result
+    return decompress(driver.get(segment))
 
 
 def decompress(buffer: bytes) -> bytes:
