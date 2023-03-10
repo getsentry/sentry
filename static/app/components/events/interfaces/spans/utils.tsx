@@ -300,6 +300,10 @@ export function getSpanParentSpanID(span: ProcessedSpanType): string | undefined
   return span.parent_span_id;
 }
 
+export function formatSpanTreeLabel(span: ProcessedSpanType): string {
+  return span?.description ?? getSpanID(span);
+}
+
 export function getTraceContext(
   event: Readonly<EventTransaction>
 ): TraceContextType | undefined {
