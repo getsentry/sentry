@@ -642,6 +642,8 @@ def fold_function_name(function_name):
 # Sentinel value used to represent the failure of loading an archive.
 INVALID_ARCHIVE = type("INVALID_ARCHIVE", (), {})()
 
+# Maximum number of artifacts that we can pull and open from the database. This upper bound serves as a way to protect
+# the system from loading an arbitrarily big number of artifacts that might cause high memory and cpu usage.
 MAX_ARTIFACTS_NUMBER = 5
 
 
@@ -862,6 +864,10 @@ class Fetcher:
         return result
 
     def _get_release_artifact_bundle_entries(self):
+        """
+        Gets the MAX_ARTIFACT_NUMBER most recent entries in the ReleaseArtifactBundle table together with the respective
+        ArtifactBundle and the connected File.
+        """
         # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
         #  we have permissions on not all the bundles.
         return (
@@ -875,6 +881,13 @@ class Fetcher:
         )
 
     def _open_archive_by_url(self, url):
+        """
+        Opens all the archives connected to the release/dist pair and returns the first one containing a file with
+        the supplied "url".
+
+        The idea of opening all connected archives is because we upper bound them, and we know that for most frames,
+        they will be resolved by files within the same archive.
+        """
         artifact_bundle_files = []
         failed_artifact_bundle_ids = set()
 
@@ -959,6 +972,10 @@ class Fetcher:
             return None
 
     def fetch_by_url_new(self, url):
+        """
+        Pulls down the file indexed by url using the data in the ReleaseArtifactBundle table and returns a UrlResult
+        object that "falsely" emulates an HTTP response connected to an HTTP request for fetching the file.
+        """
         result = None
 
         # We want to first look for the file by url in the new tables ReleaseArtifactBundle and ArtifactBundle.

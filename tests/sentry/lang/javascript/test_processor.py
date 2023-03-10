@@ -960,6 +960,8 @@ class FetchByUrlTest(FetchTest):
         assert exc.value.data["type"] == EventError.JS_MISSING_SOURCE
         assert exc.value.data["url"] == url
 
+
+class FetchByUrlNewTest(FetchTest):
     def test_one_archive_with_release_dist_pair(self):
         dist = self.release.add_dist("android")
 
@@ -999,7 +1001,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching the minified source with present url.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        result = fetcher.fetch_by_url("http://example.com/index.js")
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
@@ -1010,7 +1012,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching the source map with present url.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        result = fetcher.fetch_by_url("http://example.com/index.js.map")
+        result = fetcher.fetch_by_url_new("http://example.com/index.js.map")
         assert result.url == "http://example.com/index.js.map"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
@@ -1021,31 +1023,25 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching source with absent url.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        # We expect an exception because we fall back to HTTP fetching since both ReleaseArtifactBundle and ReleaseFile
-        # tables don't contain the data we are looking for.
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/hello/main.js")
+        assert fetcher.fetch_by_url_new("http://example.com/hello/main.js") is None
         assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
         fetcher.close()
 
         # Fetching with no release.
         fetcher = Fetcher(organization=self.organization, dist=dist)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/index.js")
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
         # Fetching with no dist.
         fetcher = Fetcher(organization=self.organization, release=self.release)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/index.js")
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
         # Fetching with no release and no dist.
         fetcher = Fetcher(organization=self.organization)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/index.js")
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
@@ -1119,7 +1115,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching the minified source with present url in the first artifact.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        result = fetcher.fetch_by_url("http://example.com/index.js")
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
@@ -1133,7 +1129,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching the minified source with present url in the second artifact.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        result = fetcher.fetch_by_url("http://example.com/main.js")
+        result = fetcher.fetch_by_url_new("http://example.com/main.js")
         assert result.url == "http://example.com/main.js"
         assert result.body == b"BAR"
         assert isinstance(result.body, bytes)
@@ -1194,7 +1190,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching source with present url.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        result = fetcher.fetch_by_url("http://example.com/index.js")
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
@@ -1211,8 +1207,7 @@ class FetchByUrlTest(FetchTest):
 
         # Fetching source with absent url.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/main.js")
+        assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
         assert sorted(list(fetcher.open_archives.keys())) == [
             artifact_bundle_1.id,
             artifact_bundle_2.id,
@@ -1249,8 +1244,7 @@ class FetchByUrlTest(FetchTest):
         )
 
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/main.js")
+        assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
         # We check if all archives are broken.
         for key in sorted(list(fetcher.open_archives.keys())):
             assert fetcher.open_archives[key] == INVALID_ARCHIVE
@@ -1307,8 +1301,7 @@ class FetchByUrlTest(FetchTest):
 
         # We expect that the last 2 bundles will be invalid, thus the fetch will fail.
         fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
-        with pytest.raises(Exception):
-            fetcher.fetch_by_url("http://example.com/index.js")
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         # We check if all archives are broken.
         for key in sorted(list(fetcher.open_archives.keys())):
             assert fetcher.open_archives[key] == INVALID_ARCHIVE
