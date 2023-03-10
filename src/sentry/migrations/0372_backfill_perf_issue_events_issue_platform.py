@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
 from django.db import migrations
-from django.db.models import Count
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Offset, Op, Query, Request
 
 from sentry import eventtypes
@@ -48,7 +47,7 @@ class TransactionRow(typing.TypedDict):
 
 
 class BackfillEventSuccess(typing.Protocol):
-    def __call__(self, created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
+    def __call__(self, created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
         pass
 
 
@@ -63,7 +62,7 @@ class BackfillEventError(typing.Protocol):
         pass
 
 
-def save_success_to_file(created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
+def save_success_to_file(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
     write_to_file(
         created_group.project_id,
         "success",
@@ -101,7 +100,7 @@ def write_to_file(
         writer.writerow(data)
 
 
-def print_success(created_group: Group, mapped_occurrence: IssueOccurrenceData) -> None:
+def print_success(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
     print(  # noqa: S002
         f"project_id={created_group.project_id}, group_id={created_group.id}, event_id={mapped_occurrence['event_id']}, occurrence_id={mapped_occurrence['id']}, fingerprint={mapped_occurrence['fingerprint']}"
     )
@@ -141,7 +140,7 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
     Group = apps.get_model("sentry", "Group")
     GroupHash = apps.get_model("sentry", "GroupHash")
 
-    project_perf_issues = (
+    projects_with_perf_issues = (
         Group.objects.filter(
             type__in=(
                 PerformanceSlowDBQueryGroupType.type_id,
@@ -154,12 +153,12 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
                 PerformanceUncompressedAssetsGroupType.type_id,
             )
         )
-        .values("id", "project_id")
-        .annotate(issue_counts=Count("id"))
+        .values("project_id")
         .order_by("project_id")
+        .distinct()
     )
 
-    for project_perf_issue in project_perf_issues:
+    for project_perf_issue in projects_with_perf_issues:
         backfill_by_project(project_perf_issue["project_id"], Group, GroupHash, DRY_RUN)
 
 
@@ -195,7 +194,7 @@ def backfill_perf_issue_occurrence(
     dry_run: bool = True,
 ) -> None:
     occurrence_nodestore_saved = False
-    occurrence_evenstream_sent = False
+    occurrence_eventstream_sent = False
 
     try:
         project_id = row["project_id"]
@@ -237,15 +236,15 @@ def backfill_perf_issue_occurrence(
             occurrence_nodestore_saved = True
 
             send_issue_occurrence_to_eventstream(event, occurrence, group_info, skip_consume=True)
-            occurrence_evenstream_sent = True
+            occurrence_eventstream_sent = True
 
         on_success(group, occurrence_data)
     except Exception as e:
-        on_exception(row, e, occurrence_nodestore_saved, occurrence_evenstream_sent)
+        on_exception(row, e, occurrence_nodestore_saved, occurrence_eventstream_sent)
 
 
 def __save_issue_occurrence(
-    occurrence_data: IssueOccurrenceData, event: Event, group: Group
+    occurrence_data: IssueOccurrenceData, event: Event, group: "Group"
 ) -> Tuple[IssueOccurrence, GroupInfo]:
     process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
