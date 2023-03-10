@@ -10,8 +10,8 @@ from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.performance_issues.base import DetectorType
+from sentry.utils.performance_issues.detectors import NPlusOneDBSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
-    NPlusOneDBSpanDetector,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
