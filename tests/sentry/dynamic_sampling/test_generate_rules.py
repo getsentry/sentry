@@ -690,13 +690,6 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
             "samplingValue": {"type": "sampleRate", "value": 0.7},
             "type": "transaction",
         },
-        # general rule to override the uniform rate in order to maintain the correct sampling rate
-        {
-            "condition": {"inner": [], "op": "and"},
-            "id": boost_low_transactions_id,
-            "samplingValue": {"type": "sampleRate", "value": 0.037},
-            "type": "transaction",
-        },
         # effectively ignored uniform rule
         {
             "condition": {"inner": [], "op": "and"},

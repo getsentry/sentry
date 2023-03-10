@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from sentry.dynamic_sampling import RESERVED_IDS, RuleType
 from sentry.dynamic_sampling.rules.biases.base import BiasParams
 from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
     RareTransactionsRulesBias,
@@ -21,6 +22,7 @@ def _create_mocks():
         if org_id == org.id and proj_id == proj.id:
             return {
                 "t1": 0.1,
+                "t2": 0.2,
             }, 0.01
         return {}, default_rate
 
@@ -58,13 +60,23 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
                     }
                 ],
             },
-            "id": 1400,
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS],
         },
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.01},
+            "samplingValue": {"type": "sampleRate", "value": 0.2},
             "type": "transaction",
-            "condition": {"op": "and", "inner": []},
-            "id": 1400,
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.transaction",
+                        "value": ["t2"],
+                        "options": {"ignoreCase": True},
+                    }
+                ],
+            },
+            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + 1,
         },
     ]
     assert rules == expected

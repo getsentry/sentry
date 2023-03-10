@@ -19,6 +19,7 @@ def get_rules(project: Project, sample_rate: float) -> List[PolymorphicRule]:
     if len(transaction_map) == 0:
         return ret_val  # no point returning any rules the project rule should take over
 
+    idx = 0
     for name, transaction_rate in transaction_map.items():
         # add a rule for each rebalanced transaction
         ret_val.append(
@@ -39,25 +40,10 @@ def get_rules(project: Project, sample_rate: float) -> List[PolymorphicRule]:
                         }
                     ],
                 },
-                "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS],
+                "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS] + idx,
             }
         )
-
-    # add a rule for all other transactions:
-    ret_val.append(
-        {
-            "samplingValue": {
-                "type": "sampleRate",
-                "value": rate,
-            },
-            "type": "transaction",
-            "condition": {
-                "op": "and",
-                "inner": [],
-            },
-            "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS],
-        }
-    )
+        idx += 1
     return ret_val
 
 
