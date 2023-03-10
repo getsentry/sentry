@@ -7,7 +7,12 @@ from typing import Any, Callable, Dict, Iterator, Mapping, Tuple, Type, TypeVar,
 
 import pydantic
 
-from sentry.services.hybrid_cloud import ArgumentDict, DelegatedBySiloMode, InterfaceWithLifecycle
+from sentry.services.hybrid_cloud import (
+    ArgumentDict,
+    DelegatedBySiloMode,
+    InterfaceWithLifecycle,
+    stubbed,
+)
 from sentry.silo import SiloMode
 from sentry.types.region import Region
 
@@ -20,6 +25,16 @@ _IS_RPC_METHOD_ATTR = "__is_rpc_method"
 
 class RpcServiceSetupException(Exception):
     """Indicates an error in declaring the properties of RPC services."""
+
+
+class RpcServiceUnimplementedException(Exception):
+    """Indicates that an RPC service is not yet able to complete a remote call.
+
+    This is a temporary measure while the RPC services are being developed. It
+    signals that a remote call in a testing or development environment should fall
+    back to a monolithic implementation. When RPC services are production-ready,
+    these should become hard failures.
+    """
 
 
 class RpcMethodSignature:
@@ -69,7 +84,7 @@ class RpcMethodSignature:
         if self._base_service_cls.local_mode != SiloMode.REGION:
             raise RpcServiceSetupException(f"{self.service_name} does not run on the region silo")
 
-        raise NotImplementedError()  # TODO
+        raise RpcServiceUnimplementedException("Need to resolve region")  # TODO
 
 
 class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
@@ -194,24 +209,46 @@ class RpcService(InterfaceWithLifecycle):
     def _create_remote_delegation(cls) -> RpcService:
         """Create a service object that makes remote calls to another silo."""
 
-        def create_remote_method(base_method: Callable[..., Any]) -> Callable[..., Any]:
-            signature = cls._signatures[base_method.__name__]
+        def create_remote_method(method_name: str) -> Callable[..., Any]:
+            signature = cls._signatures.get(method_name)
+            fallback = stubbed(cls.get_local_implementation, cls.local_mode)
 
             def remote_method(service_obj: RpcService, **kwargs: Any) -> Any:
                 if cls.local_mode == SiloMode.REGION:
+                    if signature is None:
+                        raise RpcServiceUnimplementedException(
+                            f"Signature was not initialized for {cls.__name__}.{method_name}"
+                        )
+
                     region = signature.resolve_to_region(kwargs)
                 else:
                     region = None
 
-                serial_arguments = signature.serialize_arguments(kwargs)
-                return dispatch_remote_call(
-                    region, cls.name, base_method.__name__, serial_arguments
-                )
+                try:
+                    serial_arguments = signature.serialize_arguments(kwargs)
+                except Exception as e:
+                    raise RpcServiceUnimplementedException(
+                        f"Could not serialize arguments for {cls.__name__}.{method_name}"
+                    ) from e
 
-            return remote_method
+                return dispatch_remote_call(region, cls.name, method_name, serial_arguments)
+
+            def remote_method_with_fallback(service_obj: RpcService, **kwargs: Any) -> Any:
+                # See RpcServiceUnimplementedException documentation
+                # TODO: Remove this when RPC services are production-ready
+                try:
+                    return remote_method(service_obj, **kwargs)
+                except RpcServiceUnimplementedException as e:
+                    logger.error(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
+
+                    service = fallback()
+                    method = getattr(service, method_name)
+                    return method(**kwargs)
+
+            return remote_method_with_fallback
 
         overrides = {
-            service_method.__name__: create_remote_method(service_method)
+            service_method.__name__: create_remote_method(service_method.__name__)
             for service_method in cls._get_all_abstract_rpc_methods()
         }
         remote_service_class = type(f"{cls.__name__}__RemoteDelegate", (cls,), overrides)
@@ -267,4 +304,4 @@ def dispatch_remote_call(
     region: Region | None, service_name: str, method_name: str, serial_arguments: ArgumentDict
 ) -> Any:
     service, method = _look_up_service_method(service_name, method_name)
-    raise NotImplementedError()  # TODO
+    raise RpcServiceUnimplementedException("Need to dispatch remotely")  # TODO
