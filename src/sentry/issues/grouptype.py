@@ -126,8 +126,12 @@ class GroupType:
         return features.has(cls.build_post_process_group_feature_name(), organization)
 
     @classmethod
+    def build_feature_name_slug(cls) -> str:
+        return cls.slug.replace("_", "-")
+
+    @classmethod
     def build_base_feature_name(cls) -> str:
-        return f"organizations:{cls.slug.replace('_', '-')}"
+        return f"organizations:{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> str:
