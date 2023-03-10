@@ -131,17 +131,14 @@ class Superuser:
         org = getattr(self.request, "organization", None)
         if org and org.id != self.org_id:
             return self._check_expired_on_org_change()
-        user = getattr(self.request, "user", None)
-        if user is None:
-            return False
         # if we've been logged out
-        if not user.is_authenticated:
+        if not self.request.user.is_authenticated:
             return False
         # if superuser status was changed
-        if not user.is_superuser:
+        if not self.request.user.is_superuser:
             return False
         # if the user has changed
-        if str(user.id) != self.uid:
+        if str(self.request.user.id) != self.uid:
             return False
         return self._is_active
 
