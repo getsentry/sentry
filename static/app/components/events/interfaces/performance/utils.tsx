@@ -67,7 +67,7 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   affectedSpanIds: string[];
   focusedSpanIds: string[];
 } {
-  const issueType = event?.perfProblem?.issueType;
+  const issueType = event.perfProblem?.issueType;
   const affectedSpanIds: string[] = [];
   const focusedSpanIds: string[] = [];
 
@@ -81,7 +81,7 @@ export function getProblemSpansForSpanTree(event: EventTransaction): {
   }
 
   if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
-    const consecutiveSpanIds = event?.perfProblem?.causeSpanIds ?? [];
+    const consecutiveSpanIds = event.perfProblem?.causeSpanIds ?? [];
 
     if (consecutiveSpanIds.length < 11) {
       focusedSpanIds.push(...consecutiveSpanIds);
