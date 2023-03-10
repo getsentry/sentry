@@ -46,7 +46,7 @@ class RpcIntegration(RpcModel):
 
 class RpcOrganizationIntegration(RpcModel):
     id: int
-    default_auth_id: int
+    default_auth_id: Optional[int]
     organization_id: int
     integration_id: int
     config: Dict[str, Any]
