@@ -43,7 +43,7 @@ CHECKIN_QUOTA_WINDOW = 60
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorCheckInsEndpoint(MonitorEndpoint):
+class MonitorIngestCheckInIndexEndpoint(MonitorEndpoint):
     authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     public = {"GET", "POST"}
 

@@ -16,7 +16,7 @@ MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
 
 @region_silo_endpoint
-class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
+class MonitorIngestCheckinAttachmentEndpoint(MonitorCheckInEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
     private = True
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
