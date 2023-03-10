@@ -55,7 +55,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0375_remove_nullable_from_field"),
+        ("sentry", "0376_longer_option_names"),
     ]
 
     operations = [
