@@ -1,4 +1,5 @@
 from ..base import ModelDeletionTask, ModelRelation
+from .apigrant import ModelApiGrantDeletionTask
 
 
 class SentryAppInstallationDeletionTask(ModelDeletionTask):
@@ -11,10 +12,13 @@ class SentryAppInstallationDeletionTask(ModelDeletionTask):
         )
 
         return [
-            ModelRelation(ApiGrant, {"id": instance.api_grant_id}),
+            ModelRelation(ApiGrant, {"id": instance.api_grant_id}, task=ModelApiGrantDeletionTask),
             ModelRelation(ServiceHook, {"application_id": instance.sentry_app.application_id}),
             ModelRelation(SentryAppInstallationToken, {"sentry_app_installation_id": instance.id}),
             ModelRelation(
                 SentryAppInstallationForProvider, {"sentry_app_installation_id": instance.id}
             ),
         ]
+
+    def mark_deletion_in_progress(self, instance_list):
+        pass
