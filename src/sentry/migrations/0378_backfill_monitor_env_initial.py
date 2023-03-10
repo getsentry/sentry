@@ -55,7 +55,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0376_longer_option_names"),
+        ("sentry", "0377_groupedmesssage_type_individual_index"),
     ]
 
     operations = [
