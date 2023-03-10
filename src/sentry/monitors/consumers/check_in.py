@@ -46,10 +46,18 @@ def process_message(message: Message[KafkaPayload]) -> None:
             environment_name = params.get("environment")
             if not environment_name:
                 environment_name = "production"
+
+            # TODO: assume these objects exist once backfill is completed
             environment = Environment.get_or_create(project=monitor.project, name=environment_name)
 
-            monitor_environment = MonitorEnvironment.objects.get(
-                monitor=monitor, environment=environment
+            monitorenvironment_defaults = {
+                "status": monitor.status,
+                "next_checkin": monitor.next_checkin,
+                "last_checkin": monitor.last_checkin,
+            }
+
+            monitor_environment = MonitorEnvironment.objects.get_or_create(
+                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
             )
 
             status = getattr(CheckInStatus, params["status"].upper())
@@ -61,7 +69,6 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 check_in = MonitorCheckIn.objects.select_for_update().get(
                     guid=params["check_in_id"],
                     project_id=project_id,
-                    monitor_environment=monitor_environment,
                 )
 
                 if duration is None:

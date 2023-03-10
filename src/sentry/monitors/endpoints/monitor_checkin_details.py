@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
+from sentry.models import Environment, ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, MonitorStatus
 
 from .base import MonitorCheckInEndpoint
@@ -115,7 +115,26 @@ class MonitorCheckInDetailsEndpoint(MonitorCheckInEndpoint):
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
 
-        monitor_environment = checkin.monitor_environment
+        # TODO: assume these objects exist once backfill is completed
+        environment_name = params.get("environment")
+        if not environment_name:
+            environment_name = "production"
+
+        environment = Environment.get_or_create(project=monitor.project, name=environment_name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        monitor_environment = MonitorEnvironment.objects.get_or_create(
+            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+        )
+
+        if not checkin.monitor_environment:
+            checkin.monitor_environment = monitor_environment
+            checkin.save()
 
         with transaction.atomic():
             checkin.update(**params)
