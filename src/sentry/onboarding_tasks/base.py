@@ -11,16 +11,16 @@ class OnboardingTaskBackend(Service):
         "create_or_update_onboarding_task",
         "try_mark_onboarding_complete",
     )
-    MODEL: AbstractOnboardingTask = AbstractOnboardingTask
+    Model: AbstractOnboardingTask = AbstractOnboardingTask
 
-    def get_task_lookup_by_key(self):
-        return self.MODEL.TASK_LOOKUP_BY_KEY
+    def get_task_lookup_by_key(self, key):
+        return self.Model.TASK_LOOKUP_BY_KEY.get(key)
 
-    def get_status_lookup_by_key(self):
-        return self.MODEL.STATUS_LOOKUP_BY_KEY
+    def get_status_lookup_by_key(self, key):
+        return self.Model.STATUS_LOOKUP_BY_KEY.get(key)
 
     def get_skippable_tasks(self):
-        return self.MODEL.SKIPPABLE_TASKS
+        return self.Model.SKIPPABLE_TASKS
 
     def fetch_onboarding_tasks(self, organization, user):
         raise NotImplementedError

@@ -7,13 +7,13 @@ from sentry.onboarding_tasks.base import OnboardingTaskBackend
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
-    MODEL = OrganizationOnboardingTask
+    Model = OrganizationOnboardingTask
 
     def fetch_onboarding_tasks(self, organization, user):
-        return self.MODEL.objects.filter(organization=organization).select_related("user")
+        return self.Model.objects.filter(organization=organization).select_related("user")
 
     def create_or_update_onboarding_task(self, organization, user, task, values):
-        return self.MODEL.objects.create_or_update(
+        return self.Model.objects.create_or_update(
             organization=organization,
             task=task,
             values=values,
@@ -27,12 +27,12 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
             return
 
         completed = set(
-            self.MODEL.objects.filter(
+            self.Model.objects.filter(
                 Q(organization_id=organization_id)
                 & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
             ).values_list("task", flat=True)
         )
-        if completed >= self.MODEL.REQUIRED_ONBOARDING_TASKS:
+        if completed >= self.Model.REQUIRED_ONBOARDING_TASKS:
             try:
                 with transaction.atomic():
                     OrganizationOption.objects.create(
