@@ -74,11 +74,13 @@ export function CodeOwnerFileTable({
   };
 
   const handleDelete = (codeowner: CodeOwner) => async () => {
-    const endpoint = `/api/0/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`;
     try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(
+        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        {
+          method: 'DELETE',
+        }
+      );
       onDelete(codeowner);
       addSuccessMessage(t('Deletion successful'));
     } catch {
@@ -119,8 +121,9 @@ export function CodeOwnerFileTable({
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
+                disabled,
               }}
-              disabledKeys={disabled ? ['sync', 'delete'] : []}
+              isDisabled={disabled}
             />
           </FlexCenter>
         </Fragment>
