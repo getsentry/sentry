@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, ReactNode} from 'react';
 import styled from '@emotion/styled';
 import kebabCase from 'lodash/kebabCase';
 import mapValues from 'lodash/mapValues';
@@ -296,24 +296,26 @@ const makeTransactionNameRow = (event: Event, orgSlug: string, projectSlug?: str
   });
 
   const eventDetailsLocation = getTransactionDetailsUrl(orgSlug, eventSlug);
+
+  const actionButton = projectSlug ? (
+    <Button size="xs" to={eventDetailsLocation}>
+      {t('View Full Event')}
+    </Button>
+  ) : undefined;
+
   return makeRow(
     t('Transaction'),
     <pre>
-      <TransactionRowContainer>
-        <Link to={transactionSummaryLocation}>{event.title}</Link>
-        {projectSlug && (
-          <StyledButton size="xs" to={eventDetailsLocation}>
-            {t('View Full Event')}
-          </StyledButton>
-        )}
-      </TransactionRowContainer>
-    </pre>
+      <Link to={transactionSummaryLocation}>{event.title}</Link>
+    </pre>,
+    actionButton
   );
 };
 
 const makeRow = (
   subject: KeyValueListDataItem['subject'],
-  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][]
+  value: KeyValueListDataItem['value'] | KeyValueListDataItem['value'][],
+  actionButton?: ReactNode
 ): KeyValueListDataItem => {
   const itemKey = kebabCase(subject);
 
@@ -323,6 +325,7 @@ const makeRow = (
     value,
     subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
     isMultiValue: Array.isArray(value),
+    actionButton,
   };
 };
 
@@ -494,13 +497,3 @@ function formatBasePath(span: Span, baseURL?: string): string {
 
   return spanURL?.pathname ?? '';
 }
-
-const TransactionRowContainer = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const StyledButton = styled(Button)`
-  font-family: ${p => p.theme.text.family};
-`;
