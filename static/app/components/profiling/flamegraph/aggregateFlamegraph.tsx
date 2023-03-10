@@ -210,6 +210,8 @@ export function AggregateFlamegraph(): ReactElement {
       const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
       const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1);
 
+      // reduce the offset to leave just enough space for the toolbar
+      theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET = 2.5;
       theme.SIZES.BAR_HEIGHT = theme.SIZES.BAR_HEIGHT * barHeightRatio;
       theme.SIZES.BAR_FONT_SIZE = theme.SIZES.BAR_FONT_SIZE * barHeightRatio;
       return theme;
