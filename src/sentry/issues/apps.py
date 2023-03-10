@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
 
-class Config(AppConfig):
+class Config(AppConfig):  # type: ignore
     name = "sentry.issues"
 
-    def ready(self):
+    def ready(self) -> None:
         from . import receivers  # NOQA
