@@ -1,11 +1,17 @@
-import {ReactElement, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  ReactElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -376,7 +382,7 @@ export function AggregateFlamegraph(): ReactElement {
   }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
 
   return (
-    <Flex h={500} column>
+    <Fragment>
       <FlamegraphZoomView
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
@@ -397,7 +403,7 @@ export function AggregateFlamegraph(): ReactElement {
           {t('Reset Zoom')}
         </Button>
       </AggregateFlamegraphToolbar>
-    </Flex>
+    </Fragment>
   );
 }
 
