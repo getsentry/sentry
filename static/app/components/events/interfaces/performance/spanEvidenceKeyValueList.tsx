@@ -104,6 +104,7 @@ const ConsecutiveDBQueriesSpanEvidence = ({
 
 const NPlusOneDBQueriesSpanEvidence = ({
   event,
+  causeSpans,
   parentSpan,
   offendingSpans,
   orgSlug,
@@ -124,6 +125,9 @@ const NPlusOneDBQueriesSpanEvidence = ({
         [
           makeTransactionNameRow(event, orgSlug),
           parentSpan ? makeRow(t('Parent Span'), getSpanEvidenceValue(parentSpan)) : null,
+          causeSpans.length > 0
+            ? makeRow(t('Preceding Span'), getSpanEvidenceValue(causeSpans[0]))
+            : null,
           ...repeatingSpanRows,
         ].filter(Boolean) as KeyValueListData
       }
