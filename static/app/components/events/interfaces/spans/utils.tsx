@@ -14,7 +14,6 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {WebVital} from 'sentry/utils/fields';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {getPerformanceTransaction} from 'sentry/utils/performanceForSentry';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -33,20 +32,6 @@ import {
 
 export const isValidSpanID = (maybeSpanID: any) =>
   isString(maybeSpanID) && maybeSpanID.length > 0;
-
-export const setSpansOnTransaction = (spanCount: number) => {
-  const transaction = getPerformanceTransaction();
-
-  if (!transaction || spanCount === 0) {
-    return;
-  }
-
-  const spanCountGroups = [10, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1001];
-  const spanGroup = spanCountGroups.find(g => spanCount <= g) || -1;
-
-  transaction.setTag('ui.spanCount', spanCount);
-  transaction.setTag('ui.spanCount.grouped', `<=${spanGroup}`);
-};
 
 export type SpanBoundsType = {endTimestamp: number; startTimestamp: number};
 export type SpanGeneratedBoundsType =

@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {setTag} from '@sentry/react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -15,6 +14,7 @@ import SuspectSpansQuery, {
   ChildrenProps as SuspectSpansProps,
 } from 'sentry/utils/performance/suspectSpans/suspectSpansQuery';
 import {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
@@ -96,11 +96,7 @@ export default function SpanDetailsContentWrapper(props: Props) {
                 (tableData?.data?.[0]?.['count()'] as number) ?? null;
 
               if (totalCount) {
-                setTag('spans.totalCount', totalCount);
-                const countGroup = [
-                  1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000,
-                ].find(n => totalCount <= n);
-                setTag('spans.totalCount.grouped', `<=${countGroup}`);
+                setGroupedEntityTag('spans.totalCount', 1000, totalCount);
               }
 
               return (

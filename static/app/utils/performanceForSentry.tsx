@@ -1,5 +1,5 @@
 import {Fragment, Profiler, ReactNode, useEffect, useRef} from 'react';
-import {captureException, captureMessage} from '@sentry/react';
+import {captureException, captureMessage, setExtra, setTag} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {IdleTransaction} from '@sentry/tracing';
 import {Transaction, TransactionEvent} from '@sentry/types';
@@ -416,4 +416,33 @@ export const addExtraMeasurements = (transaction: TransactionEvent) => {
   } catch (_) {
     // Defensive catch since this code is auxiliary.
   }
+};
+
+/**
+ * A util function to help create some broad buckets to group entity counts without exploding cardinality.
+ *
+ * @param tagName - Name for the tag, will create `<tagName>` in data and `<tagname>.grouped` as a tag
+ * @param max - The approximate maximum value for the tag, A bucket between max and Infinity is also captured so it's fine if it's not precise, the data won't be entirely lost.
+ * @param n - The value to be grouped, should represent `n` entities.
+ * @param [buckets=[1,2,5]] - An optional param to specify the bucket progression. Default is 1,2,5 (10,20,50 etc).
+ */
+export const setGroupedEntityTag = (
+  tagName: string,
+  max: number,
+  n: number,
+  buckets = [1, 2, 5]
+) => {
+  setExtra(tagName, n);
+  let groups = [0];
+  loop: for (let m = 1, mag = 0; m <= max; m *= 10, mag++) {
+    for (const i of buckets) {
+      const group = i * 10 ** mag;
+      if (group > max) {
+        break loop;
+      }
+      groups = [...groups, group];
+    }
+  }
+  groups = [...groups, +Infinity];
+  setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
