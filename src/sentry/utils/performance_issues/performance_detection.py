@@ -4,29 +4,28 @@ import hashlib
 import logging
 import random
 from abc import ABC, abstractmethod
-from collections import defaultdict, deque
+from collections import deque
 from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 
 import sentry_sdk
-from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features, nodestore, options, projectoptions
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
-    PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneGroupType,
 )
-from sentry.models import Organization, Project, ProjectDebugFile, ProjectOption
+from sentry.models import Organization, Project, ProjectOption
 from sentry.projectoptions.defaults import DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS
 from sentry.utils import metrics
 from sentry.utils.event_frames import get_sdk_name
 from sentry.utils.safe import get_path
 
-from .base import DetectorType, PerformanceDetector
+from .base import DetectorType, PerformanceDetector, total_span_time
 from .detectors import (
     ConsecutiveDBSpanDetector,
     ConsecutiveHTTPSpanDetector,
+    FileIOMainThreadDetector,
     NPlusOneAPICallsDetector,
     NPlusOneDBSpanDetector,
     NPlusOneDBSpanDetectorExtended,
@@ -305,153 +304,6 @@ def run_detector_on_data(detector, data):
         detector.visit_span(span)
 
     detector.on_complete()
-
-
-def total_span_time(span_list: List[Dict[str, Any]]) -> float:
-    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
-    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
-    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
-    total_duration = 0
-    first_item = sorted_span_list[0]
-    current_min = first_item["start_timestamp"]
-    current_max = first_item["timestamp"]
-    for span in sorted_span_list[1:]:
-        # If the start is contained within the current, check if the max extends the current duration
-        if current_min <= span["start_timestamp"] <= current_max:
-            current_max = max(span["timestamp"], current_max)
-        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
-        # min/max
-        else:
-            total_duration += current_max - current_min
-            current_min = span["start_timestamp"]
-            current_max = span["timestamp"]
-    # Add the remaining duration
-    total_duration += current_max - current_min
-    return total_duration * 1000
-
-
-class FileIOMainThreadDetector(PerformanceDetector):
-    """
-    Checks for a file io span on the main thread
-    """
-
-    __slots__ = ("spans_involved", "stored_problems")
-
-    type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
-    settings_key = DetectorType.FILE_IO_MAIN_THREAD
-
-    def init(self):
-        self.spans_involved = {}
-        self.most_recent_start_time = {}
-        self.most_recent_hash = {}
-        self.stored_problems = {}
-        self.mapper = None
-        self.parent_to_blocked_span = defaultdict(list)
-        self._prepare_deobfuscation()
-
-    def _prepare_deobfuscation(self):
-        event = self._event
-        if "debug_meta" in event:
-            images = event["debug_meta"].get("images", [])
-            project_id = event.get("project")
-            if not isinstance(images, list):
-                return
-            if project_id is not None:
-                project = Project.objects.get_from_cache(id=project_id)
-            else:
-                return
-
-            for image in images:
-                if image.get("type") == "proguard":
-                    uuid = image.get("uuid")
-                    dif_paths = ProjectDebugFile.difcache.fetch_difs(
-                        project, [uuid], features=["mapping"]
-                    )
-                    debug_file_path = dif_paths.get(uuid)
-                    if debug_file_path is None:
-                        return
-
-                    mapper = ProguardMapper.open(debug_file_path)
-                    if not mapper.has_line_info:
-                        return
-                    self.mapper = mapper
-                    return
-
-    def _deobfuscate_module(self, module: str) -> str:
-        if self.mapper is not None:
-            return self.mapper.remap_class(module)
-        else:
-            return module
-
-    def _deobfuscate_function(self, frame):
-        if self.mapper is not None and "module" in frame and "function" in frame:
-            functions = self.mapper.remap_frame(
-                frame["module"], frame["function"], frame.get("lineno") or 0
-            )
-            return ".".join([func.method for func in functions])
-        else:
-            return frame.get("function", "")
-
-    def visit_span(self, span: Span):
-        if self._is_file_io_on_main_thread(span):
-            parent_span_id = span.get("parent_span_id")
-            self.parent_to_blocked_span[parent_span_id].append(span)
-
-    def on_complete(self):
-        for parent_span_id, span_list in self.parent_to_blocked_span.items():
-            span_list = [
-                span for span in span_list if "start_timestamp" in span and "timestamp" in span
-            ]
-            total_duration = total_span_time(span_list)
-            settings_for_span = self.settings_for_span(span_list[0])
-            if not settings_for_span:
-                return
-
-            _, _, _, _, settings = settings_for_span
-            if total_duration >= settings["duration_threshold"]:
-                fingerprint = self._fingerprint(span_list)
-                self.stored_problems[fingerprint] = PerformanceProblem(
-                    fingerprint=fingerprint,
-                    op=span_list[0].get("op"),
-                    desc=span_list[0].get("description", ""),
-                    parent_span_ids=[parent_span_id],
-                    type=PerformanceFileIOMainThreadGroupType,
-                    cause_span_ids=[],
-                    offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
-                )
-
-    def _fingerprint(self, span_list) -> str:
-        call_stack_strings = []
-        overall_stack = []
-        for span in span_list:
-            for item in span.get("data", {}).get("call_stack", []):
-                module = self._deobfuscate_module(item.get("module", ""))
-                function = self._deobfuscate_function(item)
-                call_stack_strings.append(f"{module}.{function}")
-            # Use set to remove dupes, and list index to preserve order
-            overall_stack.append(
-                ".".join(sorted(set(call_stack_strings), key=lambda c: call_stack_strings.index(c)))
-            )
-        call_stack = "-".join(
-            sorted(set(overall_stack), key=lambda s: overall_stack.index(s))
-        ).encode("utf8")
-        hashed_stack = hashlib.sha1(call_stack).hexdigest()
-        return f"1-{PerformanceFileIOMainThreadGroupType.type_id}-{hashed_stack}"
-
-    def _is_file_io_on_main_thread(self, span: Span) -> bool:
-        data = span.get("data", {})
-        if data is None:
-            return False
-        # doing is True since the value can be any type
-        return data.get("blocked_main_thread", False) is True
-
-    def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-file-io-main-thread-detector", organization, actor=None
-        )
-
-    def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return True
 
 
 class MNPlusOneState(ABC):
