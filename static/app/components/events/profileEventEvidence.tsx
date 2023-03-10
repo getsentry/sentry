@@ -1,6 +1,8 @@
+import {Button} from 'sentry/components/button';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
-import Link from 'sentry/components/links/link';
+import {IconProfiling} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {Event} from 'sentry/types';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -20,22 +22,22 @@ export const ProfileEventEvidence = ({event, projectSlug}: ProfileEvidenceProps)
           {
             subject: 'Transaction Name',
             key: 'Transaction Name',
-            value: (
-              <pre>
-                <Link
-                  to={getTransactionDetailsUrl(
-                    organization.slug,
-                    generateEventSlug({
-                      id: evidenceData.transactionId,
-                      project: projectSlug,
-                    }),
-                    undefined,
-                    {referrer: 'issue'}
-                  )}
-                >
-                  {evidenceData.transactionName}
-                </Link>
-              </pre>
+            value: evidenceData.transactionName,
+            actionButton: (
+              <Button
+                size="xs"
+                to={getTransactionDetailsUrl(
+                  organization.slug,
+                  generateEventSlug({
+                    id: evidenceData.transactionId,
+                    project: projectSlug,
+                  }),
+                  undefined,
+                  {referrer: 'issue'}
+                )}
+              >
+                {t('View Transaction')}
+              </Button>
             ),
           },
         ]
@@ -45,23 +47,24 @@ export const ProfileEventEvidence = ({event, projectSlug}: ProfileEvidenceProps)
           {
             subject: 'Profile ID',
             key: 'Profile ID',
-            value: (
-              <pre>
-                <Link
-                  to={generateProfileFlamechartRouteWithHighlightFrame({
-                    profileId: evidenceData.profileId,
-                    projectSlug,
-                    orgSlug: organization.slug,
-                    frameName: evidenceData.frameName,
-                    framePackage: evidenceData.framePackage,
-                    query: {
-                      referrer: 'issue',
-                    },
-                  })}
-                >
-                  {evidenceData.profileId}
-                </Link>
-              </pre>
+            value: evidenceData.profileId,
+            actionButton: (
+              <Button
+                size="xs"
+                to={generateProfileFlamechartRouteWithHighlightFrame({
+                  profileId: evidenceData.profileId,
+                  projectSlug,
+                  orgSlug: organization.slug,
+                  frameName: evidenceData.frameName,
+                  framePackage: evidenceData.framePackage,
+                  query: {
+                    referrer: 'issue',
+                  },
+                })}
+                icon={<IconProfiling size="xs" />}
+              >
+                {t('View Profile')}
+              </Button>
             ),
           },
         ]
