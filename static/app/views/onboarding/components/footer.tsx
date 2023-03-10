@@ -122,16 +122,18 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       organization,
     });
 
-    openChangeRouteModal({
-      router,
-      nextLocation: {
-        ...router.location,
-        pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
-      },
-      setClientState,
-      clientState,
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
+    }
+
+    router.push({
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
     });
-  }, [router, organization, sessionStorage.status, setClientState, clientState]);
+  }, [router, organization, setClientState, clientState, sessionStorage.status]);
 
   const handleSkipOnboarding = useCallback(() => {
     if (sessionStorage.status !== OnboardingStatus.WAITING) {
@@ -166,6 +168,25 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projects,
     projectSlug,
   ]);
+
+  const handleViewError = useCallback(() => {
+    trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
+      organization,
+      new_organization: !!newOrg,
+    });
+
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
+    }
+
+    router.push({
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/${sessionStorage.firstIssueId}/?referrer=onboarding-first-event-footer`,
+    });
+  }, [organization, newOrg, router, sessionStorage, clientState, setClientState]);
 
   useEffect(() => {
     if (!firstError) {
@@ -202,18 +223,6 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     setSessionStorage({status: OnboardingStatus.PROCESSED, firstIssueId: firstIssue.id});
     addSuccessMessage(t('First error processed'));
   }, [firstIssue, newOrg, organization, setSessionStorage, sessionStorage]);
-
-  const handleViewError = useCallback(() => {
-    trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
-      organization,
-      new_organization: !!newOrg,
-    });
-
-    router.push({
-      ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/${sessionStorage.firstIssueId}/?referrer=onboarding-first-event-footer`,
-    });
-  }, [organization, newOrg, router, sessionStorage]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>

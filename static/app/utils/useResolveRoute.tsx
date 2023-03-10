@@ -38,7 +38,7 @@ function useResolveRoute(route: string, organization?: OrganizationSummary) {
 
   if (!organization) {
     if (hasCustomerDomain) {
-      return `${sentryUrl}${normalizeUrl(route)}`;
+      return `${sentryUrl}/new/`;
     }
     return route;
   }

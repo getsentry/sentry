@@ -6,6 +6,7 @@ import PlatformPicker from 'sentry/components/platformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
@@ -13,6 +14,7 @@ import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 export function PlatformSelection(props: StepProps) {
+  const organization = useOrganization();
   const [selectedPlatform, setSelectedPlatform] = useState<PlatformKey | undefined>(
     undefined
   );
@@ -24,6 +26,15 @@ export function PlatformSelection(props: StepProps) {
       setSelectedPlatform(clientState.selectedPlatforms[0]);
     }
   }, [clientState]);
+
+  const disabledPlatforms = clientState
+    ? Object.keys(clientState.platformToProjectIdMap).reduce((acc, key) => {
+        if (!acc[key]) {
+          acc[key] = t('Project already created');
+        }
+        return acc;
+      }, {})
+    : undefined;
 
   return (
     <Wrapper>
@@ -51,11 +62,13 @@ export function PlatformSelection(props: StepProps) {
           setPlatform={platformKey => {
             setSelectedPlatform(platformKey ?? undefined);
           }}
-          organization={props.organization}
+          disabledPlatforms={disabledPlatforms}
+          organization={organization}
         />
       </motion.div>
       <CreateProjectsFooter
         {...props}
+        organization={organization}
         clearPlatforms={() => setSelectedPlatform(undefined)}
         platforms={selectedPlatform ? [selectedPlatform] : []}
       />

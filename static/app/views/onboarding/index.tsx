@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {AnimatePresence, motion, MotionProps, useAnimation} from 'framer-motion';
@@ -14,16 +14,15 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
-import withProjects from 'sentry/utils/withProjects';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
 
 import {OnboardingState, OnboardingStatus} from './components/footer';
@@ -39,10 +38,7 @@ type RouteParams = {
   step: string;
 };
 
-type Props = RouteComponentProps<RouteParams, {}> & {
-  organization: Organization;
-  projects: Project[];
-};
+type Props = RouteComponentProps<RouteParams, {}>;
 
 function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDescriptor[] {
   return [
@@ -81,17 +77,15 @@ function getOrganizationOnboardingSteps(singleSelectPlatform: boolean): StepDesc
 
 function Onboarding(props: Props) {
   const api = useApi();
+  const {projects} = useProjects();
+  const organization = useOrganization();
+
   const [clientState, setClientState] = usePersistedOnboardingState();
 
   const selectedPlatforms = clientState?.selectedPlatforms || [];
-  const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
 
-  const selectedProjectSlugs = selectedPlatforms
-    .map(platform => platformToProjectIdMap[platform])
-    .filter((slug): slug is string => slug !== undefined);
-
-  const selectedProjectSlug = selectedProjectSlugs[0];
-  const selectedProject = props.projects.find(p => p.slug === selectedProjectSlug);
+  const selectedProjectSlug = selectedPlatforms[0];
+  const selectedProject = projects.find(p => p.slug === selectedProjectSlug);
 
   const [sessionStorage] = useSessionStorage<Partial<OnboardingState>>(
     `onboarding-${selectedProject?.id}`,
@@ -99,7 +93,6 @@ function Onboarding(props: Props) {
   );
 
   const {
-    organization,
     params: {step: stepId},
   } = props;
 
@@ -111,15 +104,15 @@ function Onboarding(props: Props) {
     };
   }, []);
 
-  const heartbeatFooter = !!props.organization?.features.includes(
+  const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
   );
 
-  const singleSelectPlatform = !!props.organization?.features.includes(
+  const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
   );
 
-  const projectDeletionOnBackClick = !!props.organization?.features.includes(
+  const projectDeletionOnBackClick = !!organization?.features.includes(
     'onboarding-project-deletion-on-back-click'
   );
 
@@ -157,7 +150,7 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== stepObj.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
+    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
   const goNextStep = (step: StepDescriptor) => {
@@ -166,10 +159,22 @@ function Onboarding(props: Props) {
     if (step.cornerVariant !== nextStep.cornerVariant) {
       cornerVariantControl.start('none');
     }
-    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
   };
 
-  const handleGoBack = async () => {
+  const deleteProject = useCallback(
+    async (projectSlug: string) => {
+      try {
+        await removeProject(api, organization.slug, projectSlug);
+      } catch (error) {
+        handleXhrErrorResponse(t('Unable to delete project'))(error);
+        // we don't give the user any feedback regarding this error as this shall be silent
+      }
+    },
+    [api, organization.slug]
+  );
+
+  const handleGoBack = useCallback(() => {
     if (!stepObj) {
       return;
     }
@@ -178,40 +183,6 @@ function Onboarding(props: Props) {
 
     if (!previousStep) {
       return;
-    }
-
-    // The user is going back to select a new platform,
-    // so we silently delete the last created project
-    if (projectDeletionOnBackClick && stepIndex === onboardingSteps.length - 1) {
-      if (
-        sessionStorage.status === OnboardingStatus.WAITING ||
-        sessionStorage.status === undefined
-      ) {
-        try {
-          await removeProject(api, organization.slug, selectedProjectSlug);
-        } catch (error) {
-          handleXhrErrorResponse(t('Unable to delete project'))(error);
-          // we don't give the user any feedback regarding this error as this shall be silent
-        }
-      }
-
-      if (clientState) {
-        setClientState({
-          url: 'setup-docs/',
-          state: 'projects_selected',
-          selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
-          platformToProjectIdMap:
-            sessionStorage.status === OnboardingStatus.WAITING ||
-            sessionStorage.status === undefined
-              ? Object.keys(platformToProjectIdMap).reduce((acc, value) => {
-                  if (value !== selectedProjectSlug && !acc[value]) {
-                    acc[value] = value;
-                  }
-                  return acc;
-                }, {})
-              : clientState.platformToProjectIdMap,
-        });
-      }
     }
 
     if (stepObj.cornerVariant !== previousStep.cornerVariant) {
@@ -224,10 +195,66 @@ function Onboarding(props: Props) {
       to: previousStep.id,
     });
 
-    browserHistory.replace(
+    // from selected platform to welcome
+    if (stepIndex === onboardingSteps.length - 2) {
+      setClientState({
+        platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
+        selectedPlatforms: [],
+        url: 'welcome/',
+        state: undefined,
+      });
+    }
+
+    // from setup docs to selected platform
+    if (
+      stepIndex === onboardingSteps.length - 1 &&
+      projectDeletionOnBackClick &&
+      selectedProject
+    ) {
+      // The user is going back to select a new platform,
+      // so we silently delete the last created project
+      // if the user didn't send an first error yet.
+      const projectShallBeRemoved =
+        sessionStorage.status === undefined ||
+        sessionStorage.status === OnboardingStatus.WAITING;
+
+      if (projectShallBeRemoved) {
+        deleteProject(selectedProjectSlug);
+      }
+
+      setClientState({
+        url: 'select-platform/',
+        state: 'projects_selected',
+        selectedPlatforms: [selectedProject.slug as PlatformKey],
+        platformToProjectIdMap: Object.keys(
+          clientState?.platformToProjectIdMap ?? {}
+        ).reduce((acc, platform) => {
+          if (!acc[platform] && platform !== selectedProject.slug) {
+            acc[platform] = platform;
+          }
+          return acc;
+        }, {}),
+      });
+    }
+
+    props.router.replace(
       normalizeUrl(`/onboarding/${organization.slug}/${previousStep.id}/`)
     );
-  };
+  }, [
+    stepObj,
+    stepIndex,
+    onboardingSteps,
+    organization,
+    cornerVariantControl,
+    clientState,
+    setClientState,
+    selectedProjectSlug,
+    props.router,
+    selectedProject,
+    deleteProject,
+    projectDeletionOnBackClick,
+    sessionStorage.status,
+  ]);
 
   const genSkipOnboardingLink = () => {
     const source = `targeted-onboarding-${stepId}`;
@@ -262,8 +289,8 @@ function Onboarding(props: Props) {
       );
       return;
     }
-    browserHistory.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
-  }, [onboardingSteps, organization]);
+    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+  }, [onboardingSteps, organization, props.router]);
 
   if (!stepObj || stepIndex === -1) {
     return (
@@ -303,7 +330,6 @@ function Onboarding(props: Props) {
                 stepIndex={stepIndex}
                 onComplete={() => stepObj && goNextStep(stepObj)}
                 orgId={organization.slug}
-                organization={props.organization}
                 search={props.location.search}
                 route={props.route}
                 router={props.router}
@@ -458,4 +484,4 @@ const OnboardingWrapper = styled('main')`
   flex-direction: column;
 `;
 
-export default withOrganization(withProjects(Onboarding));
+export default Onboarding;
