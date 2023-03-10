@@ -1304,6 +1304,7 @@ ORGANIZATION_URLS = [
         OrganizationInviteRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-invite-request-detail",
     ),
+    # Monitors
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/$",
         OrganizationMonitorsEndpoint.as_view(),
@@ -1323,6 +1324,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
         OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-check-in-attachment",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        MonitorCheckInsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-check-in-index",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        MonitorCheckInDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-monitor-check-in-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/pinned-searches/$",
@@ -2531,41 +2542,17 @@ urlpatterns = [
         AcceptOrganizationInvite.as_view(),
         name="sentry-api-0-accept-organization-invite",
     ),
-    # Monitors
+    # Top-level monitor checkin APIs. NOTE that there are also organization
+    # level checkin APIs.
     url(
-        r"^monitors/",
-        include(
-            [
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-index",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-                    MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-monitor-check-in-details",
-                ),
-            ]
-        ),
+        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/$",
+        MonitorCheckInsEndpoint.as_view(),
+        name="sentry-api-0-monitor-check-in-index",
     ),
-    # TODO: include in the /organizations/ route tree + remove old dupes once hybrid cloud launches
     url(
-        r"^organizations/(?P<organization_slug>[^\/]+)/monitors/",
-        include(
-            [
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/$",
-                    MonitorCheckInsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-check-in-index",
-                ),
-                url(
-                    r"^(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-                    MonitorCheckInDetailsEndpoint.as_view(),
-                    name="sentry-api-0-organization-monitor-check-in-details",
-                ),
-            ]
-        ),
+        r"^monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
+        MonitorCheckInDetailsEndpoint.as_view(),
+        name="sentry-api-0-monitor-check-in-details",
     ),
     # Profiling - This is a temporary endpoint to easily go from a project id + profile id to a flamechart.
     # It will be removed in the near future.

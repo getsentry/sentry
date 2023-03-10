@@ -7,7 +7,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {addExtraMeasurements, LongTaskObserver} from 'sentry/utils/performanceForSentry';
+import {addExtraMeasurements} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -153,6 +153,4 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
-
-  LongTaskObserver.startPerformanceObserver();
 }

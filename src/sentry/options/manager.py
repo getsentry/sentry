@@ -218,8 +218,8 @@ class OptionsManager:
     ):
         assert key not in self.registry, "Option already registered: %r" % key
 
-        if len(key) > 64:
-            raise ValueError("Option key has max length of 64 characters")
+        if len(key) > 128:
+            raise ValueError("Option key has max length of 128 characters")
 
         # If our default is a callable, execute it to
         # see what value is returns, so we can use that to derive the type
