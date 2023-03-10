@@ -1396,9 +1396,10 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
         # In case we resolved the sourcemap with the debug_id, the url will be the debug_id.
         sourcemap_url = (
-            self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-            if resolved_smc_with in {FetcherSource.URL, FetcherSource.URL_NEW}
-            else debug_id_urlify(debug_id)  # TODO(iambricardo): debug-id://12334/mysourcemap.json
+            # TODO(iambricardo): debug-id://12334/mysourcemap.json
+            debug_id_urlify(debug_id)
+            if resolved_smc_with == FetcherSource.DEBUG_ID
+            else self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
         )
         self.sourcemaps_touched.add(sourcemap_url)
 
