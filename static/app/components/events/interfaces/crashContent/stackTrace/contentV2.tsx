@@ -23,11 +23,11 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  hideIcon?: boolean;
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
   newestFirst?: boolean;
-  showIcon?: boolean;
 };
 
 function Content({
@@ -40,7 +40,7 @@ function Content({
   isHoverPreviewed,
   groupingCurrentLevel,
   meta,
-  showIcon,
+  hideIcon,
   includeSystemFrames = true,
   expandFirstFrame = true,
 }: Props) {
@@ -254,7 +254,7 @@ function Content({
 
   return (
     <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
-      {showIcon && <StacktracePlatformIcon platform={platformIcon} />}
+      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );

@@ -26,11 +26,11 @@ type Props = {
   platform: PlatformType;
   className?: string;
   debugFrames?: StacktraceFilenameQuery[];
+  hideIcon?: boolean;
   isHoverPreviewed?: boolean;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
-  showIcon?: boolean;
 } & Partial<DefaultProps>;
 
 type State = {
@@ -142,7 +142,7 @@ class Content extends Component<Props, State> {
       isHoverPreviewed,
       meta,
       debugFrames,
-      showIcon,
+      hideIcon,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -268,7 +268,7 @@ class Content extends Component<Props, State> {
 
     return (
       <Wrapper className={className} data-test-id="stack-trace-content">
-        {showIcon && <StacktracePlatformIcon platform={platformIcon} />}
+        {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
         <GuideAnchor target="stack_trace">
           <StyledList data-test-id="frames">{frames}</StyledList>
         </GuideAnchor>
