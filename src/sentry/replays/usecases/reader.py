@@ -4,7 +4,7 @@ import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import List
+from typing import Iterator, List
 
 from django.db.models import Prefetch
 from snuba_sdk import (
@@ -236,11 +236,20 @@ def _fetch_segments_from_snuba(
 # BLOB DOWNLOAD BEHAVIOR.
 
 
-def download_segments(segments: List[RecordingSegmentStorageMeta]) -> str:
+def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[bytes]:
     """Download segment data from remote storage."""
+    # Map all of the segments to a worker process for download.
     with ThreadPoolExecutor(max_workers=4) as exe:
         results = exe.map(download_segment, segments)
-        return (b"[" + b",".join(results) + b"]").decode("utf-8")
+
+    yield b"["
+
+    for i, result in enumerate(results):
+        yield result
+        if i < len(segments) - 1:
+            yield b","
+
+    yield b"]"
 
 
 def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
