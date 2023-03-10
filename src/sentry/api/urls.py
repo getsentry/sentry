@@ -2342,6 +2342,11 @@ SENTRY_APP_INSTALLATION_URLS = [
         name="sentry-api-0-sentry-app-installation-details",
     ),
     url(
+        r"^(?P<uuid>[^\/]+)/authorizations/$",
+        SentryAppAuthorizationsEndpoint.as_view(),
+        name="sentry-api-0-sentry-app-installation-authorizations",
+    ),
+    url(
         r"^(?P<uuid>[^\/]+)/external-requests/$",
         SentryAppInstallationExternalRequestsEndpoint.as_view(),
         name="sentry-api-0-sentry-app-installation-external-requests",
@@ -2595,11 +2600,6 @@ urlpatterns = [
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-apps-stats",
-    ),
-    url(
-        r"^sentry-app-installations/(?P<uuid>[^\/]+)/authorizations/$",
-        SentryAppAuthorizationsEndpoint.as_view(),
-        name="sentry-api-0-sentry-app-authorizations",
     ),
     url(
         r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",
