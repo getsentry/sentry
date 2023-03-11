@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0377_groupedmessage_type_individual_index"),
+        ("sentry", "0377_groupedmesssage_type_individual_index"),
     ]
 
     operations = [
