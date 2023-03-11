@@ -151,7 +151,10 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    users = set(User.objects.get_team_members_with_verified_email_for_projects(projects))
+    users = {
+        RpcActor.from_orm_user(user)
+        for user in User.objects.get_team_members_with_verified_email_for_projects(projects)
+    }
 
     # Get all the involved users' settings for deploy-emails (including
     # users' organization-independent settings.)
@@ -261,7 +264,7 @@ def get_owner_reason(
 def disabled_users_from_project(project: Project) -> Mapping[ExternalProviders, set[User]]:
     """Get a set of users that have disabled Issue Alert notifications for a given project."""
     user_ids = project.member_set.values_list("user", flat=True)
-    users = User.objects.filter(id__in=user_ids)
+    users = [RpcActor.from_orm_user(user) for user in User.objects.filter(id__in=user_ids)]
     notification_settings = NotificationSetting.objects.get_for_recipient_by_parent(
         type=NotificationSettingTypes.ISSUE_ALERTS,
         parent=project,
