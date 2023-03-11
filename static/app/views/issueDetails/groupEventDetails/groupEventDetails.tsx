@@ -31,7 +31,7 @@ import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 
-import GroupEventToolbar from '../eventToolbar';
+import GroupEventHeader from '../groupEventHeader';
 import ReprocessingProgress from '../reprocessingProgress';
 import {
   getEventEnvironment,
@@ -223,9 +223,6 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
     const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
     const {activity: activities} = group;
     const mostRecentActivity = getGroupMostRecentActivity(activities);
-
-    const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
-
     return (
       <TransactionProfileIdProvider
         projectId={event?.projectID}
@@ -255,13 +252,10 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                       {this.renderGroupStatusBanner()}
                       <QuickTraceContext.Provider value={results}>
                         {eventWithMeta && (
-                          <GroupEventToolbar
+                          <GroupEventHeader
                             group={group}
                             event={eventWithMeta}
-                            organization={organization}
-                            location={location}
                             project={project}
-                            hasReplay={hasReplay}
                           />
                         )}
                         {this.renderReprocessedBox(

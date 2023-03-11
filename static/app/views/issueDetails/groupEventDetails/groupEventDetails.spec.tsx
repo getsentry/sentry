@@ -214,51 +214,6 @@ describe('groupEventDetails', () => {
     expect(browserHistory.replace).not.toHaveBeenCalled();
   });
 
-  it('next/prev links', async function () {
-    const props = makeDefaultMockData();
-
-    mockGroupApis(
-      props.organization,
-      props.project,
-      props.group,
-      TestStubs.Event({
-        size: 1,
-        dateCreated: '2019-03-20T00:00:00.000Z',
-        errors: [],
-        entries: [],
-        tags: [{key: 'environment', value: 'dev'}],
-        previousEventID: 'prev-event-id',
-        nextEventID: 'next-event-id',
-      })
-    );
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${props.organization.slug}/${props.project.slug}/events/1/`,
-      body: event,
-    });
-
-    const routerContext = TestStubs.routerContext();
-
-    await act(async () => {
-      render(
-        <TestComponent
-          {...props}
-          location={{query: {environment: 'dev'}} as Location<any>}
-        />,
-        {
-          context: routerContext,
-          organization: props.organization,
-        }
-      );
-      await tick();
-    });
-
-    expect(screen.getByLabelText(/Oldest/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Older/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Newer/)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Newest/)).toBeInTheDocument();
-  });
-
   it('displays error on event error', async function () {
     const props = makeDefaultMockData();
 
