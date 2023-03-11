@@ -10,14 +10,17 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
-from sentry.utils.performance_issues.base import DETECTOR_TYPE_TO_GROUP_TYPE, DetectorType
+from sentry.utils.performance_issues.base import (
+    DETECTOR_TYPE_TO_GROUP_TYPE,
+    DetectorType,
+    total_span_time,
+)
 from sentry.utils.performance_issues.performance_detection import (
     EventPerformanceProblem,
     NPlusOneDBSpanDetector,
     PerformanceProblem,
     _detect_performance_problems,
     detect_performance_problems,
-    total_span_time,
 )
 
 BASE_DETECTOR_OPTIONS = {
@@ -305,6 +308,7 @@ class PerformanceDetectionTest(TestCase):
                     "integration_mongo": False,
                     "integration_postgres": False,
                     "consecutive_db": False,
+                    "consecutive_http": False,
                     "slow_db_query": False,
                     "render_blocking_assets": False,
                     "n_plus_one_db": False,

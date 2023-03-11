@@ -9,9 +9,10 @@ type Props = {
   value: React.ReactNode;
 };
 
-export const KeyValueTable = styled('dl')`
+export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   display: grid;
   grid-template-columns: 50% 50%;
+  ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
 export const KeyValueTableRow = ({keyName, value}: Props) => {

@@ -14,7 +14,9 @@ LATEST_EPOCH = 9
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
-BETA_GROUPING_CONFIG = "mobile:2021-02-12"
+# NOTE: this is empty for now to migrate projects off the deprecated
+# `mobile` strategy via grouping auto-updates.
+BETA_GROUPING_CONFIG = ""
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -63,14 +65,17 @@ register(
 # Default legacy-browsers filter
 register(key="filters:legacy-browsers", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default web crawlers filter
 register(key="filters:web-crawlers", epoch_defaults={1: "1", 6: "0"})
 
-# Default legacy-browsers filter
+# Default browser extensions filter
 register(key="filters:browser-extensions", epoch_defaults={1: "0"})
 
-# Default legacy-browsers filter
+# Default localhost filter
 register(key="filters:localhost", epoch_defaults={1: "0"})
+
+# Default react hydration errors filter
+register(key="filters:react-hydration-errors", epoch_defaults={1: "1"})
 
 # Default breakdowns config
 register(

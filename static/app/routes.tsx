@@ -1301,8 +1301,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/'
-              : '/organizations/:orgId/crons/:monitorId/'
+              ? '/crons/:monitorSlug/'
+              : '/organizations/:orgId/crons/:monitorSlug/'
           }
           component={make(() => import('sentry/views/monitors/details'))}
           key={
@@ -1312,8 +1312,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/edit/'
-              : '/organizations/:orgId/crons/:monitorId/edit/'
+              ? '/crons/:monitorSlug/edit/'
+              : '/organizations/:orgId/crons/:monitorSlug/edit/'
           }
           component={make(() => import('sentry/views/monitors/edit'))}
           key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
@@ -1948,10 +1948,6 @@ function buildRoutes() {
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
-        <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
         <Route
           path="flamechart/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}

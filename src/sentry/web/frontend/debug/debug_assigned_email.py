@@ -9,7 +9,7 @@ class DebugAssignedEmailView(ActivityMailDebugView):
     def get_activity(self, request: Request, event):
         return {
             "type": ActivityType.ASSIGNED.value,
-            "user": request.user,
+            "user_id": request.user.id,
             "data": {
                 "assignee": "10000000",
                 "assigneeEmail": "foo@example.com",
@@ -22,7 +22,7 @@ class DebugSelfAssignedEmailView(ActivityMailDebugView):
     def get_activity(self, request: Request, event):
         return {
             "type": ActivityType.ASSIGNED.value,
-            "user": request.user,
+            "user_id": request.user.id,
             "data": {
                 "assignee": str(request.user.id),
                 "assigneeEmail": request.user.email,
@@ -35,6 +35,6 @@ class DebugSelfAssignedTeamEmailView(ActivityMailDebugView):
     def get_activity(self, request: Request, event):
         return {
             "type": ActivityType.ASSIGNED.value,
-            "user": request.user,
+            "user_id": request.user.id,
             "data": {"assignee": "1", "assigneeEmail": None, "assigneeType": "team"},
         }

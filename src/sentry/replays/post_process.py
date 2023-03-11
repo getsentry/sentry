@@ -25,7 +25,7 @@ def generate_normalized_output(
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["id"] = item.pop("replay_id", None)
-        item["project_id"] = item.pop("projectId", None)
+        item["project_id"] = str(item["project_id"])
         item["trace_ids"] = item.pop("traceIds", [])
         item["error_ids"] = item.pop("errorIds", [])
         item["environment"] = item.pop("agg_environment", None)

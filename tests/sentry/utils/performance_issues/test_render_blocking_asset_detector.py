@@ -11,9 +11,9 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import RenderBlockingAssetSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
-    RenderBlockingAssetSpanDetector,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -196,6 +196,18 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             "/foo-6a7a65d8bf641868d8683022a5b62f54.js",
             "/bar-9aa723de2aa141eeb2e61a2c6bbf0d53.js",
         ),
+        # same file, trailing double hash
+        (
+            True,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/foo-7753eadb.362e3029.js",
+        ),
+        # different file, trailing double hash
+        (
+            False,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/bar-7753eadb.362e3029.js",
+        ),
         # filename is just a hash
         (
             True,
@@ -225,6 +237,54 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             True,
             "/6a7a65d8-bf64-1868-d868-3022a5b62f54.js",
             "/9aa723de-2aa1-41ee-b2e6-1a2c6bbf0d53.js",
+        ),
+        # dot-separated version number, same file
+        (
+            True,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/foo.js",
+        ),
+        # dot-separated version number, different file
+        (
+            False,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/bar.js",
+        ),
+        # version number without dots, same file
+        (
+            True,
+            "/v1/foo.js",
+            "/v20220301115713/foo.js",
+        ),
+        # version number without dots, different file
+        (
+            False,
+            "/v1/foo.js",
+            "/v20220301115713/bar.js",
+        ),
+        # same path, numeric filename
+        (
+            True,
+            "/foo/1.js",
+            "/foo/23.js",
+        ),
+        # same path, numeric filename, different extension
+        (
+            False,
+            "/foo/1.css",
+            "/foo/23.js",
+        ),
+        # different path, numeric filename
+        (
+            False,
+            "/foo/1.js",
+            "/bar/23.js",
+        ),
+        # same path, partially numeric filename
+        (
+            False,
+            "/foo/bar1.js",
+            "/foo/bar2.js",
         ),
     ],
 )

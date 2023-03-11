@@ -400,3 +400,64 @@ family:native function:*.cold.1 category=indirection
 [ category:runtime ]    | category:system  category=internals
 [ category:runtime ]    | category:runtime category=internals
 [ category:dtor ]       | category:dtor    category=internals
+
+# SDK specific rules
+
+## general
+path:**/vendor/**        -app
+
+## python
+path:**/site-packages/** -app
+path:**/dist-packages/** -app
+
+## js
+path:**/node_modules/** -app
+module:unpkg/** -app
+path:**https://unpkg.com/** -app
+path:**https://cdnjs.cloudflare.com/** -app
+path:**https://cdn.jsdelivr.net/** -app
+path:**https://esm.run/** -app
+family:javascript function:reportError ^-app -app
+
+### transpilers and polyfills are just noise, be more aggressive
+module:@babel/** -app -group
+module:core-js/** -app -group
+module:regenerator-runtime/** -app -group
+module:tslib/** -app -group
+
+## node
+function:runMicrotasks -app -group
+function:queueMicrotask -app -group
+function:processTicksAndRejections -app -group
+function:runNextTicks -app -group
+function:nextTick -app -group
+
+## go
+path:**/go/pkg/mod/** -app
+
+## java
+module:jdk.* -app
+module:sun.* -app
+module:com.sun.* -app
+module:java.* -app
+module:scala.* -app
+module:akka.* -app
+module:javax.* -app
+module:org.apache.* -app
+module:org.springframework.* -app
+module:org.glassfish.* -app
+module:org.jboss.* -app
+module:feign.* -app
+module:io.opentelemetry.* -app
+
+## kotlin
+module:kotlin.* -app
+module:kotlinx.* -app
+module:io.ktor.* -app
+module:io.netty.* -app
+
+# Telemetry - we don't care about other telemetry providers, just adds noise
+# TODO(neel) can look at language specific telemetry lib stacktraces
+module:newrelic -app -group
+path:**/*newrelic*/** -app -group
+path:**/*LogRocket*/** -app -group

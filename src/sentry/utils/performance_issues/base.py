@@ -13,6 +13,7 @@ from sentry import options
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
+    PerformanceConsecutiveHTTPQueriesGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -33,6 +34,7 @@ class DetectorType(Enum):
     N_PLUS_ONE_DB_QUERIES_EXTENDED = "n_plus_one_db_ext"
     N_PLUS_ONE_API_CALLS = "n_plus_one_api_calls"
     CONSECUTIVE_DB_OP = "consecutive_db"
+    CONSECUTIVE_HTTP_OP = "consecutive_http"
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
@@ -48,6 +50,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.FILE_IO_MAIN_THREAD: PerformanceFileIOMainThreadGroupType,
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
+    DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
 }
 
 
@@ -150,6 +153,12 @@ def get_span_duration(span: Span) -> timedelta:
     )
 
 
+def get_duration_between_spans(first_span: Span, second_span: Span):
+    first_span_ends = first_span.get("timestamp", 0)
+    second_span_begins = second_span.get("start_timestamp", 0)
+    return timedelta(seconds=second_span_begins - first_span_ends).total_seconds() * 1000
+
+
 def get_url_from_span(span: Span) -> str:
     data = span.get("data") or {}
     url = data.get("url") or ""
@@ -191,14 +200,43 @@ def fingerprint_span(span: Span):
     return fingerprint
 
 
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
 UUID_REGEX = re.compile(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", re.I)
 # Preserves filename in e.g. main.[hash].js, but includes number when chunks
 # are numbered (e.g. 2.[hash].js, 3.[hash].js, etc).
 CHUNK_HASH_REGEX = re.compile(r"(?:[0-9]+)?\.[a-f0-9]{8}\.chunk", re.I)
-# Finds trailing hashes before the final extension.
-TRAILING_HASH_REGEX = re.compile(r"([-.])[a-f0-9]{8,64}\.([a-z0-9]{2,6})$", re.I)
+# Finds one or more trailing hashes before the final extension.
+TRAILING_HASH_REGEX = re.compile(r"([-.])(?:[a-f0-9]{8,64}\.)+([a-z0-9]{2,6})$", re.I)
+# Finds strictly numeric filenames.
+NUMERIC_FILENAME_REGEX = re.compile(r"/[0-9]+(\.[a-z0-9]{2,6})$", re.I)
+# Finds version numbers in the path or filename (v123, v1.2.3, etc).
+VERSION_NUMBER_REGEX = re.compile(r"v[0-9]+(?:\.[0-9]+)*")
 # Looks for anything hex hash-like, but with a larger min size than the
 # above to limit false positives.
 ASSET_HASH_REGEX = re.compile(r"[a-f0-9]{16,64}", re.I)
@@ -211,6 +249,8 @@ def fingerprint_resource_span(span: Span):
     path = UUID_REGEX.sub("*", path)
     path = CHUNK_HASH_REGEX.sub(".*.chunk", path)
     path = TRAILING_HASH_REGEX.sub("\\1*.\\2", path)
+    path = NUMERIC_FILENAME_REGEX.sub("/*\\1", path)
+    path = VERSION_NUMBER_REGEX.sub("*", path)
     path = ASSET_HASH_REGEX.sub("*", path)
     stripped_url = url._replace(path=path, query="").geturl()
     return hashlib.sha1(stripped_url.encode("utf-8")).hexdigest()

@@ -9,13 +9,13 @@ export class Request {}
 export const initApiClientErrorHandling = RealApi.initApiClientErrorHandling;
 export const hasProjectBeenRenamed = RealApi.hasProjectBeenRenamed;
 
-const respond = (isAsync: boolean, fn?: Function, ...args: any[]): void => {
+const respond = (asyncDelay: AsyncDelay, fn?: Function, ...args: any[]): void => {
   if (!fn) {
     return;
   }
 
-  if (isAsync) {
-    setTimeout(() => fn(...args), 1);
+  if (asyncDelay !== undefined) {
+    setTimeout(() => fn(...args), asyncDelay);
     return;
   }
 
@@ -31,6 +31,7 @@ interface MatchCallable {
   (url: string, options: ApiNamespace.RequestOptions): boolean;
 }
 
+type AsyncDelay = undefined | number;
 type ResponseType = ApiNamespace.ResponseMeta & {
   body: any;
   callCount: 0;
@@ -39,6 +40,15 @@ type ResponseType = ApiNamespace.ResponseMeta & {
   method: string;
   statusCode: number;
   url: string;
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This will override `MockApiClient.asyncDelay` for this request.
+   */
+  asyncDelay?: AsyncDelay;
 };
 
 type MockResponse = [resp: ResponseType, mock: jest.Mock];
@@ -71,7 +81,15 @@ afterEach(() => {
 class Client implements ApiNamespace.Client {
   static mockResponses: MockResponse[] = [];
 
-  static mockAsync = false;
+  /**
+   * Whether to return mocked api responses directly, or with a setTimeout delay.
+   *
+   * Set to `null` to disable the async delay
+   * Set to a `number` which will be the amount of time (ms) for the delay
+   *
+   * This is the global/default value. `addMockResponse` can override per request.
+   */
+  static asyncDelay: AsyncDelay = undefined;
 
   static clearMockResponses() {
     Client.mockResponses = [];
@@ -120,6 +138,7 @@ class Client implements ApiNamespace.Client {
         callCount: 0,
         match: [],
         ...response,
+        asyncDelay: response.asyncDelay ?? Client.asyncDelay,
         headers: response.headers ?? {},
         getResponseHeader: (key: string) => response.headers?.[key] ?? null,
       },
@@ -159,12 +178,14 @@ class Client implements ApiNamespace.Client {
     func: FunctionCallback<T> | undefined,
     _cleanup: boolean = false
   ) {
+    const asyncDelay = Client.asyncDelay;
+
     return (...args: T) => {
       // @ts-expect-error
       if (RealApi.hasProjectBeenRenamed(...args)) {
         return;
       }
-      respond(Client.mockAsync, func, ...args);
+      respond(asyncDelay, func, ...args);
     };
   }
 
@@ -253,7 +274,7 @@ class Client implements ApiNamespace.Client {
       } else {
         response.callCount++;
         respond(
-          Client.mockAsync,
+          response.asyncDelay,
           options.success,
           body,
           {},
@@ -266,7 +287,7 @@ class Client implements ApiNamespace.Client {
       }
     }
 
-    respond(Client.mockAsync, options.complete);
+    respond(response?.asyncDelay, options.complete);
   }
 
   handleRequestError = RealApi.Client.prototype.handleRequestError;

@@ -1,7 +1,9 @@
 from enum import Enum
 from typing import Any, Dict, List, Literal, Optional, Set, Tuple, TypedDict, Union
 
-from sentry.utils import json
+from django.conf import settings
+
+from sentry.utils import json, redis
 
 BOOSTED_RELEASES_LIMIT = 10
 BOOSTED_KEY_TRANSACTION_LIMIT = 10
@@ -12,6 +14,11 @@ LATEST_RELEASES_BOOST_FACTOR = 1.5
 LATEST_RELEASES_BOOST_DECAYED_FACTOR = 1.0
 
 IGNORE_HEALTH_CHECKS_FACTOR = 5
+
+
+ProjectId = int
+OrganizationId = int
+TransactionName = str
 
 
 class ActivatableBias(TypedDict):
@@ -31,6 +38,7 @@ class RuleType(Enum):
     BOOST_LATEST_RELEASES_RULE = "boostLatestRelease"
     IGNORE_HEALTH_CHECKS_RULE = "ignoreHealthChecks"
     BOOST_KEY_TRANSACTIONS_RULE = "boostKeyTransactions"
+    BOOST_LOW_VOLUME_TRANSACTIONS = "boostLowVolumeTransactions"
 
 
 DEFAULT_BIASES: List[ActivatableBias] = [
@@ -41,12 +49,14 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,
     RuleType.BOOST_ENVIRONMENTS_RULE: 1001,
     RuleType.IGNORE_HEALTH_CHECKS_RULE: 1002,
     RuleType.BOOST_KEY_TRANSACTIONS_RULE: 1003,
+    RuleType.BOOST_LOW_VOLUME_TRANSACTIONS: 1400,
     RuleType.BOOST_LATEST_RELEASES_RULE: 1500,
 }
 REVERSE_RESERVED_IDS = {value: key for key, value in RESERVED_IDS.items()}
@@ -65,22 +75,31 @@ class TimeRange(TypedDict):
     end: str
 
 
-class Inner(TypedDict):
-    op: str
+class EqConditionOptions(TypedDict):
+    ignoreCase: bool
+
+
+class EqCondition(TypedDict):
+    op: Literal["eq"]
     name: str
     value: List[str]
-    options: Dict[str, bool]
+    options: EqConditionOptions
+
+
+class GlobCondition(TypedDict):
+    op: Literal["glob"]
+    name: str
+    value: List[str]
 
 
 class Condition(TypedDict):
-    op: str
-    inner: List[Inner]
+    op: Literal["and", "or"]
+    inner: List[Union[EqCondition, GlobCondition]]
 
 
 class Rule(TypedDict):
     samplingValue: SamplingValue
     type: str
-    active: bool
     condition: Condition
     id: int
 
@@ -123,7 +142,6 @@ def get_rule_hash(rule: PolymorphicRule) -> int:
             {
                 "id": rule["id"],
                 "type": rule["type"],
-                "active": rule["active"],
                 "condition": rule["condition"],
             }
         )
@@ -174,9 +192,17 @@ def apply_dynamic_factor(base_sample_rate: float, x: float) -> float:
     The high-level idea is that we want to reduce the factor the bigger the base_sample_rate becomes, this is done
     because multiplication will exceed 1 very quickly in case we don't reduce the factor.
     """
-    if base_sample_rate <= 0.0 or base_sample_rate > 1.0:
+    if x == 0:
+        raise Exception("A dynamic factor of 0 cannot be set.")
+
+    if base_sample_rate < 0.0 or base_sample_rate > 1.0:
         raise Exception(
-            "The dynamic factor function requires a sample rate in the interval [0.x, 1.0] with x > 0."
+            "The dynamic factor function requires a sample rate in the interval [0.0, 1.0]."
         )
 
     return float(x / x**base_sample_rate)
+
+
+def get_redis_client_for_ds() -> Any:
+    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
+    return redis.redis_clusters.get(cluster_key)

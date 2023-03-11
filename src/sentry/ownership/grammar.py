@@ -2,7 +2,19 @@ from __future__ import annotations
 
 import re
 from collections import namedtuple
-from typing import Any, Callable, Iterable, List, Mapping, Optional, Pattern, Sequence, Tuple, Union
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    Pattern,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar, NodeVisitor
@@ -569,7 +581,16 @@ def resolve_actors(owners: Iterable[Owner], project_id: int) -> Mapping[Owner, A
     return {o: actors.get((o.type, o.identifier.lower())) for o in owners}
 
 
-def create_schema_from_issue_owners(issue_owners: str, project_id: int) -> Mapping[str, Any]:
+def add_owner_ids_to_schema(rules: List[Dict[str, Any]], owners_id: Dict[str, int]) -> None:
+    for rule in rules:
+        for rule_owner in rule["owners"]:
+            if rule_owner["identifier"] in owners_id.keys():
+                rule_owner["id"] = owners_id[rule_owner["identifier"]]
+
+
+def create_schema_from_issue_owners(
+    issue_owners: str, project_id: int, add_owner_ids: bool = False
+) -> Mapping[str, Any]:
     try:
         rules = parse_rules(issue_owners)
     except ParseError as e:
@@ -580,6 +601,7 @@ def create_schema_from_issue_owners(issue_owners: str, project_id: int) -> Mappi
     schema = dump_schema(rules)
 
     owners = {o for rule in rules for o in rule.owners}
+    owners_id = {}
     actors = resolve_actors(owners, project_id)
 
     bad_actors = []
@@ -589,9 +611,14 @@ def create_schema_from_issue_owners(issue_owners: str, project_id: int) -> Mappi
                 bad_actors.append(owner.identifier)
             elif owner.type == "team":
                 bad_actors.append(f"#{owner.identifier}")
+        elif add_owner_ids:
+            owners_id[owner.identifier] = actor[0]
 
     if bad_actors:
         bad_actors.sort()
         raise ValidationError({"raw": "Invalid rule owners: {}".format(", ".join(bad_actors))})
+
+    if add_owner_ids:
+        add_owner_ids_to_schema(schema["rules"], owners_id)
 
     return schema

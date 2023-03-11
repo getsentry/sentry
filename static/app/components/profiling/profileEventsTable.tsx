@@ -11,6 +11,7 @@ import GridEditable, {
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
 import PerformanceDuration from 'sentry/components/performanceDuration';
+import UserMisery from 'sentry/components/userMisery';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
@@ -200,6 +201,19 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     }
   }
 
+  if (key === 'user_misery()') {
+    return (
+      <UserMisery
+        bars={10}
+        barHeight={20}
+        miserableUsers={undefined}
+        miseryLimit={undefined}
+        totalUsers={undefined}
+        userMisery={value || 0}
+      />
+    );
+  }
+
   switch (columnType) {
     case 'integer':
     case 'number':
@@ -274,6 +288,7 @@ const FIELDS = [
   'p95()',
   'p99()',
   'count()',
+  'user_misery()',
 ] as const;
 
 type FieldType = (typeof FIELDS)[number];
@@ -423,6 +438,11 @@ const COLUMN_ORDERS: Record<FieldType, GridColumnOrder<FieldType>> = {
     key: 'count()',
     name: t('Count()'),
     width: COL_WIDTH_UNDEFINED,
+  },
+  'user_misery()': {
+    key: 'user_misery()',
+    name: t('User Misery'),
+    width: 110,
   },
 };
 

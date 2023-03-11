@@ -64,7 +64,7 @@ const InputWrapper = styled('div')`
 const StyledInput = styled(Input)`
   width: 100%;
   padding: ${space(1)};
-  border-radius: 8px;
+  border-radius: ${p => p.theme.modalBorderRadius};
 
   outline: none;
   border: none;

@@ -36,6 +36,9 @@ interface PartialMatchDebugError extends BaseSourceMapDebugError {
 interface DistMismatchDebugError extends BaseSourceMapDebugError {
   type: SourceMapProcessingIssueType.DIST_MISMATCH;
 }
+interface SourcemapNotFoundDebugError extends BaseSourceMapDebugError {
+  type: SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND;
+}
 interface NoURLMatchDebugError extends BaseSourceMapDebugError {
   data: {absPath: string};
   type: SourceMapProcessingIssueType.NO_URL_MATCH;
@@ -49,6 +52,7 @@ export type SourceMapDebugError =
   | UrlNotValidDebugError
   | PartialMatchDebugError
   | DistMismatchDebugError
+  | SourcemapNotFoundDebugError
   | NoURLMatchDebugError;
 
 export interface SourceMapDebugResponse {
@@ -64,6 +68,7 @@ export enum SourceMapProcessingIssueType {
   NO_URL_MATCH = 'no_url_match',
   PARTIAL_MATCH = 'partial_match',
   DIST_MISMATCH = 'dist_mismatch',
+  SOURCEMAP_NOT_FOUND = 'sourcemap_not_found',
 }
 
 const sourceMapDebugQuery = ({
@@ -148,10 +153,6 @@ export function debugFramesEnabled({
   sdkName?: string;
 }) {
   if (!organization || !organization.features || !projectSlug || !eventId || !sdkName) {
-    return false;
-  }
-
-  if (!organization.features.includes('fix-source-map-cta')) {
     return false;
   }
 
