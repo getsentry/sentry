@@ -4,22 +4,19 @@ from django.core.files.uploadedfile import UploadedFile
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.models import File
 
-from .base import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
+from .base import MonitorIngestEndpoint
 
 MAX_ATTACHMENT_SIZE = 1024 * 100  # 100kb
 
 
 @region_silo_endpoint
-class MonitorIngestCheckinAttachmentEndpoint(MonitorCheckInEndpoint):
+class MonitorIngestCheckinAttachmentEndpoint(MonitorIngestEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
     private = True
-    authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
-    permission_classes = (MonitorCheckInAttachmentPermission,)
 
     def post(self, request: Request, project, monitor, checkin) -> Response:
         """

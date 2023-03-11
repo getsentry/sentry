@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -25,7 +24,6 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
-    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     public = {"GET"}
 
     @extend_schema(
