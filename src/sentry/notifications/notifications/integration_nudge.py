@@ -7,10 +7,11 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Sequen
 from sentry.db.models import Model
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Team, User
+    from sentry.models import Organization, User
 
 logger = logging.getLogger(__name__)
 
@@ -66,17 +67,17 @@ class IntegrationNudgeNotification(BaseNotification):
     def reference(self) -> Model | None:
         return None
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return {self.provider: {self.recipient}}
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return ""
 
-    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
         return MESSAGE_LIBRARY[self.seed].format(provider=self.provider.name.capitalize())
 
     def get_message_actions(
-        self, recipient: Team | User, provider: ExternalProviders
+        self, recipient: RpcActor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         return [
             MessageAction(
@@ -94,17 +95,17 @@ class IntegrationNudgeNotification(BaseNotification):
     ) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
-    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         return ""
 
-    def record_notification_sent(self, recipient: Team | User, provider: ExternalProviders) -> None:
+    def record_notification_sent(self, recipient: RpcActor, provider: ExternalProviders) -> None:
         pass
 
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {"seed": self.seed, **super().get_log_params(recipient)}

@@ -4,16 +4,7 @@ from typing import Any, Iterable, Mapping, MutableMapping, Sequence
 
 from sentry_relay import parse_release
 
-from sentry.models import (
-    Activity,
-    Commit,
-    CommitFileChange,
-    OrganizationMember,
-    Project,
-    Team,
-    User,
-    UserEmail,
-)
+from sentry.models import Activity, Commit, CommitFileChange, OrganizationMember, Project, UserEmail
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import (
     get_deploy,
@@ -24,6 +15,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
 from .base import ActivityNotification
@@ -90,11 +82,11 @@ class ReleaseActivityNotification(ActivityNotification):
             "version_parsed": self.version_parsed,
         }
 
-    def get_projects(self, recipient: Team | User) -> set[Project]:
+    def get_projects(self, recipient: RpcActor) -> set[Project]:
         if not self.release:
             return set()
 
-        if recipient.class_name() == "User":
+        if recipient.actor_type == ActorType.USER:
             if recipient.is_superuser or self.organization.flags.allow_joinleave:
                 # Admins can see all projects.
                 return self.projects
@@ -108,7 +100,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return projects
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         projects = self.get_projects(recipient)
         release_links = [
@@ -143,7 +135,7 @@ class ReleaseActivityNotification(ActivityNotification):
         return f"Release {self.version_parsed} was deployed to {self.environment}{projects_text}"
 
     def get_message_actions(
-        self, recipient: Team | User, provider: ExternalProviders
+        self, recipient: RpcActor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         if self.release:
             release = get_release(self.activity, self.project.organization)
@@ -160,13 +152,13 @@ class ReleaseActivityNotification(ActivityNotification):
                 ]
         return []
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         settings_url = self.get_settings_url(recipient, provider)
 
         # no environment related to a deploy

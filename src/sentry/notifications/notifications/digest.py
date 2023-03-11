@@ -28,11 +28,12 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Organization, Project
 
 logger = logging.getLogger(__name__)
 
@@ -85,10 +86,10 @@ class DigestNotification(ProjectNotification):
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
     @property
@@ -125,7 +126,7 @@ class DigestNotification(ProjectNotification):
     def get_extra_context(
         self,
         participants_by_provider_by_event: Mapping[
-            Event, Mapping[ExternalProviders, set[Team | User]]
+            Event, Mapping[ExternalProviders, set[RpcActor]]
         ],
     ) -> Mapping[int, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(

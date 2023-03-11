@@ -48,7 +48,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         # purposely use empty string for the notification title
         return ""
 
-    def build_notification_footer(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         if isinstance(recipient, Team):
             raise NotImplementedError
 
@@ -62,10 +62,10 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
             settings_url
         )
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
         if isinstance(recipient, Team):
             raise NotImplementedError
 

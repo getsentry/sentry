@@ -2,12 +2,13 @@ from __future__ import annotations
 
 from typing import Any, MutableMapping
 
-from sentry.models import Activity, Mapping, NotificationSetting, Team, User
+from sentry.models import Activity, Mapping, NotificationSetting
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.notifications.utils import summarize_issues
+from sentry.notifications.utils.participants import ParticipantMap
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
-from ...utils.participants import ParticipantMap
 from .base import ActivityNotification
 
 
@@ -29,7 +30,7 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
                 result.add(provider, participant, GroupSubscriptionReason.processing_issue)
         return result
 
-    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> str:
+    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> str:
         return f"Some events failed to process in your project {self.project.slug}"
 
     def get_context(self) -> MutableMapping[str, Any]:
@@ -58,8 +59,8 @@ class NewProcessingIssuesActivityNotification(ActivityNotification):
         )
         return f"Processing issues on {self.format_url(text=self.project.slug, url=project_url, provider=provider)}"
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return self.get_subject()
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
