@@ -5,6 +5,7 @@ import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   Panel,
   PanelAlert,
@@ -25,6 +26,20 @@ const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;
+
+function ConfirmAccountClose({handleRemoveAccount}: {handleRemoveAccount: () => void}) {
+  return (
+    <Confirm
+      priority="danger"
+      message={t(
+        'This is permanent and cannot be undone, are you really sure you want to do this?'
+      )}
+      onConfirm={handleRemoveAccount}
+    >
+      <Button priority="danger">{t('Close Account')}</Button>
+    </Confirm>
+  );
+}
 
 const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
   <div>
@@ -106,9 +121,15 @@ class AccountClose extends AsyncView<Props, State> {
     });
   };
 
-  handleRemoveAccount = async () => {
+  get orgSlugsToRemove() {
     const {orgsToRemove} = this.state;
-    const orgs = orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove);
+    return (
+      (orgsToRemove === null ? this.singleOwnerOrgs : Array.from(orgsToRemove)) || []
+    );
+  }
+
+  handleRemoveAccount = async () => {
+    const orgs = this.orgSlugsToRemove;
 
     addLoadingMessage('Closing account\u2026');
 
@@ -132,6 +153,11 @@ class AccountClose extends AsyncView<Props, State> {
 
   renderBody() {
     const {organizations, orgsToRemove} = this.state;
+
+    const HookedCustomConfirmAccountClose = HookOrDefault({
+      hookName: 'component:confirm-account-close',
+      defaultComponent: props => <ConfirmAccountClose {...props} />,
+    });
 
     return (
       <div>
@@ -183,16 +209,10 @@ class AccountClose extends AsyncView<Props, State> {
             ))}
           </PanelBody>
         </Panel>
-
-        <Confirm
-          priority="danger"
-          message={t(
-            'This is permanent and cannot be undone, are you really sure you want to do this?'
-          )}
-          onConfirm={this.handleRemoveAccount}
-        >
-          <Button priority="danger">{t('Close Account')}</Button>
-        </Confirm>
+        <HookedCustomConfirmAccountClose
+          handleRemoveAccount={this.handleRemoveAccount}
+          organizationSlugs={this.orgSlugsToRemove}
+        />
       </div>
     );
   }
