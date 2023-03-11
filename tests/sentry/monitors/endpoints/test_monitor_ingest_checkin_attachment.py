@@ -19,7 +19,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _path_func(self, monitor, checkin):
+    def get_path(self, monitor, checkin):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.guid, checkin.guid])
 
     def _create_monitor(self):
@@ -32,7 +32,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             date_added=timezone.now() - timedelta(minutes=1),
         )
 
-    def test_upload_and_download(self):
+    def test_upload(self):
         monitor = self._create_monitor()
         checkin = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -41,7 +41,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             status=CheckInStatus.IN_PROGRESS,
         )
 
-        path = self._path_func(monitor, checkin)
+        path = self.get_path(monitor, checkin)
         resp = self.client.post(
             path,
             {
@@ -61,10 +61,6 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
         assert file.name == "log.txt"
         assert file.getfile().read() == b"test log data"
 
-        resp = self.client.get(path)
-        assert resp.get("Content-Disposition") == "attachment; filename=log.txt"
-        assert b"".join(resp.streaming_content) == b"test log data"
-
     def test_upload_no_file(self):
         monitor = self._create_monitor()
         checkin = MonitorCheckIn.objects.create(
@@ -74,7 +70,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             status=CheckInStatus.IN_PROGRESS,
         )
 
-        path = self._path_func(monitor, checkin)
+        path = self.get_path(monitor, checkin)
         resp = self.client.post(
             path,
             {},
@@ -83,21 +79,6 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
 
         assert resp.status_code == 400
         assert resp.data["detail"] == "Missing uploaded file"
-
-    def test_download_no_file(self):
-        monitor = self._create_monitor()
-        checkin = MonitorCheckIn.objects.create(
-            monitor=monitor,
-            project_id=self.project.id,
-            date_added=monitor.date_added,
-            status=CheckInStatus.IN_PROGRESS,
-        )
-
-        path = self._path_func(monitor, checkin)
-        resp = self.client.get(path)
-
-        assert resp.status_code == 404
-        assert resp.data["detail"] == "Check-in has no attachment"
 
     @mock.patch(
         "sentry.monitors.endpoints.monitor_ingest_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
@@ -111,7 +92,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             status=CheckInStatus.IN_PROGRESS,
         )
 
-        path = self._path_func(monitor, checkin)
+        path = self.get_path(monitor, checkin)
         resp = self.client.post(
             path,
             {
@@ -134,7 +115,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             status=CheckInStatus.IN_PROGRESS,
         )
 
-        path = self._path_func(monitor, checkin)
+        path = self.get_path(monitor, checkin)
         resp = self.client.post(
             path,
             {
@@ -176,7 +157,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             status=CheckInStatus.IN_PROGRESS,
         )
 
-        path = self._path_func(monitor, checkin)
+        path = self.get_path(monitor, checkin)
         resp = self.client.post(
             path,
             {"file": "invalid_file"},
