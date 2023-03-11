@@ -13,7 +13,7 @@ class SentryAppInstallationDeletionTask(ModelDeletionTask):
 
         return [
             ModelRelation(ApiGrant, {"id": instance.api_grant_id}, task=ModelApiGrantDeletionTask),
-            ModelRelation(ServiceHook, {"application_id": instance.sentry_app.application_id}),
+            ModelRelation(ServiceHook, {"application__sentry_app_id": instance.sentry_app_id}),
             ModelRelation(SentryAppInstallationToken, {"sentry_app_installation_id": instance.id}),
             ModelRelation(
                 SentryAppInstallationForProvider, {"sentry_app_installation_id": instance.id}

@@ -47,8 +47,6 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.ProjectCodeOwners,
             ReplayRecordingSegment,
             models.RepositoryProjectPathConfig,
-            models.ServiceHookProject,
-            models.ServiceHook,
             models.UserReport,
             models.ProjectTransactionThreshold,
             DiscoverSavedQueryProject,

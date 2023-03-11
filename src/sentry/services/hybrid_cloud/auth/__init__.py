@@ -76,7 +76,7 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
     # What does this do you may ask?  Actually, it tricks the django request_framework to returning the correct 401
     # over 403 in unauthenticated cases, due to some deep library code nonsense.  Tests fail if you remove.
     # Otherwise, this authenticate header value means absolutely nothing to clients.
-    def authenticate_header(self, request: Request):
+    def authenticate_header(self, request: Request) -> str:
         return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 

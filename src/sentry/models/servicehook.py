@@ -16,6 +16,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models import SentryApp
 
 SERVICE_HOOK_EVENTS = [
@@ -31,7 +32,7 @@ class ServiceHookProject(Model):
     __include_in_export__ = False
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = HybridCloudForeignKey("sentry.Project", on_delete="CASCADE")
 
     class Meta:
         app_label = "sentry"
@@ -52,7 +53,7 @@ class ServiceHook(Model):
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     actor_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True, null=True)
-    organization_id = BoundedBigIntegerField(db_index=True, null=True)
+    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
