@@ -9,6 +9,7 @@ from sentry.models.notificationaction import logger as NotificationActionLogger
 from sentry.testutils import TestCase
 
 
+@patch.dict(NotificationAction._handlers, defaultdict(dict))
 class NotificationActionTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization(name="night city")
@@ -22,7 +23,6 @@ class NotificationActionTest(TestCase):
         self.illegal_trigger = (-1, "sandevistan")
         self.illegal_service = (-1, "braindance")
         # Reset registers for tests
-        NotificationAction._handlers = defaultdict(dict)
 
     @patch.object(NotificationActionLogger, "error")
     def test_register_handler_for_fire(self, mock_error_logger):

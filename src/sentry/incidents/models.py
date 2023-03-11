@@ -531,15 +531,18 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     typically some sort of notification.
     """
 
+    __include_in_export__ = True
+
     # Aliases from NotificationAction
     Type = ActionService
     TargetType = ActionTarget
 
-    __include_in_export__ = True
-
     _type_registrations = {}
 
     INTEGRATION_TYPES = frozenset((Type.PAGERDUTY.value, Type.SLACK.value, Type.MSTEAMS.value))
+
+    # ActionService items which are not supported for AlertRuleTriggerActions
+    EXEMPT_SERVICES = frozenset((Type.SENTRY_NOTIFICATION.value,))
 
     TypeRegistration = namedtuple(
         "TypeRegistration",
