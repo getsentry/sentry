@@ -269,15 +269,15 @@ def get_query_subscription_consumer(
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(
         cluster_name,
-        {
-            "group.id": group_id,
-            "session.timeout.ms": 6000,
-            "auto.offset.reset": initial_offset_reset,
-            "enable.auto.commit": "false",
-            "enable.auto.offset.store": "false",
-            "enable.partition.eof": "false",
-            "default.topic.config": {"auto.offset.reset": initial_offset_reset},
-        },
+        # {
+        #     "group.id": group_id,
+        #     "session.timeout.ms": 6000,
+        #     "auto.offset.reset": initial_offset_reset,
+        #     "enable.auto.commit": "false",
+        #     "enable.auto.offset.store": "false",
+        #     "enable.partition.eof": "false",
+        #     "default.topic.config": {"auto.offset.reset": initial_offset_reset},
+        # },
     )
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(

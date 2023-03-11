@@ -121,7 +121,6 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             tzinfo=pytz.utc
         )
         mock_callback.assert_called_once_with(data["payload"], sub)
-        assert False
 
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
