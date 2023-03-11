@@ -4,7 +4,6 @@ import {addErrorMessage, addLoadingMessage} from 'sentry/actionCreators/indicato
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import Confirm from 'sentry/components/confirm';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   Panel,
@@ -16,6 +15,7 @@ import {
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
+import {ConfirmAccountClose} from 'sentry/views/settings/account/confirmAccountClose';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -26,20 +26,6 @@ const Important = styled('div')`
   font-weight: bold;
   font-size: 1.2em;
 `;
-
-function ConfirmAccountClose({handleRemoveAccount}: {handleRemoveAccount: () => void}) {
-  return (
-    <Confirm
-      priority="danger"
-      message={t(
-        'This is permanent and cannot be undone, are you really sure you want to do this?'
-      )}
-      onConfirm={handleRemoveAccount}
-    >
-      <Button priority="danger">{t('Close Account')}</Button>
-    </Confirm>
-  );
-}
 
 const GoodbyeModalContent = ({Header, Body, Footer}: ModalRenderProps) => (
   <div>
