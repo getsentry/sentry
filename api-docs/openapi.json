@@ -233,6 +233,341 @@
     },
     "/api/0/organizations/{organization_slug}/scim/v2/Groups": {
       "$ref": "paths/scim/team_index.json"
+    },
+
+    "/api/0/organizations/{organization_slug}/monitors/{monitor_id}/checkins/": {
+      "get": {
+        "operationId": "Retrieve check-ins for a monitor",
+        "description": "Retrieve a list of check-ins for a monitor",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_slug",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The slug of the organization the resource belongs to.",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The id of the monitor",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "checkin_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The id of the check-in",
+            "required": true
+          }
+        ],
+        "tags": ["Crons"],
+        "security": [
+          {
+            "auth_token": ["project:admin", "project:read", "project:write"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "status": {
+                        "type": "string"
+                      },
+                      "duration": {
+                        "type": "integer"
+                      },
+                      "dateCreated": {
+                        "type": "string",
+                        "format": "date-time"
+                      },
+                      "attachmentId": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "attachmentId",
+                      "dateCreated",
+                      "duration",
+                      "id",
+                      "status"
+                    ]
+                  }
+                }
+              }
+            },
+            "description": ""
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "operationId": "Create a new check-in",
+        "description": "Creates a new check-in for a monitor.\n\nIf `status` is not present, it will be assumed that the check-in is starting, and be marked as `in_progress`.\n\nTo achieve a ping-like behavior, you can simply define `status` and optionally `duration` and\nthis check-in will be automatically marked as finished.\n\nNote: If a DSN is utilized for authentication, the response will be limited in details.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_slug",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The slug of the organization the resource belongs to.",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The id of the monitor",
+            "required": true
+          }
+        ],
+        "tags": ["Crons"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "enum": ["ok", "error", "in_progress"],
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "environment": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "auth_token": ["project:admin", "project:read", "project:write"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "dateCreated": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attachmentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["attachmentId", "dateCreated", "duration", "id", "status"]
+                }
+              }
+            },
+            "description": ""
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "dateCreated": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attachmentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["attachmentId", "dateCreated", "duration", "id", "status"]
+                }
+              }
+            },
+            "description": ""
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/0/organizations/{organization_slug}/monitors/{monitor_id}/checkins/{checkin_id}/": {
+      "put": {
+        "operationId": "Update a check-in",
+        "description": "Updates a check-in.\n\nOnce a check-in is finished (indicated via an `ok` or `error` status) it can no longer be changed.\n\nIf you simply wish to update that the task is still running, you can simply send an empty payload.\n\nYou may use `latest` for the `checkin_id` parameter in order to retrieve\nthe most recent (by creation date) check-in which is still mutable (not marked as finished).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "organization_slug",
+            "schema": {
+              "type": "string"
+            },
+            "description": "The slug of the organization the resource belongs to.",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "monitor_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The id of the monitor",
+            "required": true
+          },
+          {
+            "in": "path",
+            "name": "checkin_id",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The id of the check-in",
+            "required": true
+          }
+        ],
+        "tags": ["Crons"],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "enum": ["ok", "error", "in_progress"],
+                    "type": "string"
+                  },
+                  "duration": {
+                    "type": "integer",
+                    "nullable": true
+                  },
+                  "environment": {
+                    "type": "string",
+                    "nullable": true
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          },
+          "required": true
+        },
+        "security": [
+          {
+            "auth_token": ["project:admin", "project:read", "project:write"]
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "type": "string"
+                    },
+                    "duration": {
+                      "type": "integer"
+                    },
+                    "dateCreated": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "attachmentId": {
+                      "type": "string"
+                    }
+                  },
+                  "required": ["attachmentId", "dateCreated", "duration", "id", "status"]
+                }
+              }
+            },
+            "description": ""
+          },
+          "208": {
+            "description": "Already Reported"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -244,6 +579,74 @@
       "dsn": {
         "type": "http",
         "scheme": "DSN"
+      }
+    },
+
+    "schemas": {
+      "CheckInList__deleted": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string"
+            },
+            "duration": {
+              "type": "integer"
+            },
+            "dateCreated": {
+              "type": "string",
+              "format": "date-time"
+            },
+            "attachmentId": {
+              "type": "string"
+            }
+          },
+          "required": ["attachmentId", "dateCreated", "duration", "id", "status"]
+        }
+      },
+      "MonitorCheckIn__deleted": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer"
+          },
+          "dateCreated": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "attachmentId": {
+            "type": "string"
+          }
+        },
+        "required": ["attachmentId", "dateCreated", "duration", "id", "status"]
+      },
+      "MonitorCheckInValidator__deleted": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": ["ok", "error", "in_progress"],
+            "type": "string"
+          },
+          "duration": {
+            "type": "integer",
+            "nullable": true
+          },
+          "environment": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": ["status"]
       }
     }
   }
