@@ -28,7 +28,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -87,7 +87,7 @@ class AlertRuleNotification(ProjectNotification):
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        if recipient.class_name() == "User":
+        if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
                 timezone = pytz.timezone(user_tz)

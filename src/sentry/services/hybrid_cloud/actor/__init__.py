@@ -25,6 +25,7 @@ class RpcActor:
     id: int
     actor_id: Optional[int]
     actor_type: ActorType
+    is_superuser: bool = False
 
     @classmethod
     def from_object(cls, obj: Union["User", "Team", "RpcUser"]) -> "RpcActor":
@@ -40,11 +41,21 @@ class RpcActor:
 
     @classmethod
     def from_orm_user(cls, user: "User") -> "RpcActor":
-        return cls(id=user.id, actor_id=user.actor_id, actor_type=ActorType.USER)
+        return cls(
+            id=user.id,
+            actor_id=user.actor_id,
+            actor_type=ActorType.USER,
+            is_superuser=user.is_superuser,
+        )
 
     @classmethod
     def from_rpc_user(cls, user: RpcUser) -> "RpcActor":
-        return cls(id=user.id, actor_id=user.actor_id, actor_type=ActorType.USER)
+        return cls(
+            id=user.id,
+            actor_id=user.actor_id,
+            actor_type=ActorType.USER,
+            is_superuser=user.is_superuser,
+        )
 
     @classmethod
     def from_orm_team(cls, team: "Team") -> "RpcActor":
