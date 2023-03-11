@@ -28,7 +28,7 @@ from .base import MonitorCheckInEndpoint
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorCheckInDetailsEndpoint(MonitorCheckInEndpoint):
+class MonitorIngestCheckInDetailsEndpoint(MonitorCheckInEndpoint):
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
     public = {"PUT"}
 

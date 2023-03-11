@@ -12,7 +12,7 @@ from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
+class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
     def setUp(self):
@@ -100,7 +100,7 @@ class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
         assert resp.data["detail"] == "Check-in has no attachment"
 
     @mock.patch(
-        "sentry.monitors.endpoints.organization_monitor_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
+        "sentry.monitors.endpoints.monitor_ingest_checkin_attachment.MAX_ATTACHMENT_SIZE", 1
     )
     def test_upload_file_too_big(self):
         monitor = self._create_monitor()
