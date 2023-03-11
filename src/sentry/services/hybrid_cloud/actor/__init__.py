@@ -28,9 +28,11 @@ class RpcActor:
     is_superuser: bool = False
 
     @classmethod
-    def from_object(cls, obj: Union["User", "Team", "RpcUser"]) -> "RpcActor":
+    def from_object(cls, obj: Union["RpcActor", "User", "Team", "RpcUser"]) -> "RpcActor":
         from sentry.models import Team, User
 
+        if isinstance(obj, cls):
+            return obj
         if isinstance(obj, User):
             return cls.from_orm_user(obj)
         if isinstance(obj, Team):
