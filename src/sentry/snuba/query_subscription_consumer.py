@@ -19,7 +19,9 @@ from arroyo.processing.strategies import (
     RunTask,
 )
 from arroyo.types import Commit, Message, Partition
-from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException, TopicPartition  # Message
+from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException
+from confluent_kafka import Message as KafkaMessage
+from confluent_kafka import TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -98,7 +100,9 @@ def parse_message_value(value: str) -> Dict[str, Any]:
     return payload
 
 
-def handle_message(message_value, message_offset, message_partition, topic) -> None:
+def handle_message(
+    message_value: str, message_offset: int, message_partition: int, topic: str
+) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
     subscription. If the subscription has been removed, or no longer has a valid callback then
@@ -213,7 +217,7 @@ class InvalidSchemaError(InvalidMessageError):
 
 
 class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self, topic):
+    def __init__(self, topic: str):
         self.topic = topic
 
     def create_with_partitions(
@@ -227,11 +231,14 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
+                value: Any = message.value
+                offset: int = value.offset
+                partition: int = value.partition.index
                 try:
                     handle_message(
-                        message.payload.value,
-                        message.value.offset,
-                        message.value.partition,
+                        str(message.payload.value),
+                        offset,
+                        partition,
                         self.topic,
                     )
                 except Exception:
@@ -241,8 +248,8 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                     logger.exception(
                         "Unexpected error while handling message in QuerySubscriptionStrategy. Skipping message.",
                         extra={
-                            "offset": message.value.offset,
-                            "partition": message.value.partition,
+                            "offset": offset,
+                            "partition": partition,
                             "value": message.value,
                         },
                     )
@@ -473,7 +480,7 @@ class QuerySubscriptionConsumer:
     def signal_shutdown(self) -> None:
         self.__shutdown_requested = True
 
-    def handle_message(self, message: Message, topic) -> None:
+    def handle_message(self, message: KafkaMessage, topic: str) -> None:
         # set a commit time deadline only after the first message for this batch is seen
         if not self.__batch_deadline:
             self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
