@@ -25,8 +25,6 @@ from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):  # type: ignore
-    private = True
-
     def get_profiling_params(self, request: Request, project: Project) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))

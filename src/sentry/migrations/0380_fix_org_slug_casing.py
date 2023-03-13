@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0378_remove_dynamic_sampling_depricated_data"),
+        ("sentry", "0379_create_notificationaction_model"),
     ]
 
     operations = [

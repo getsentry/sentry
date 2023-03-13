@@ -3,8 +3,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestOrgSlugMigration(TestMigrations):
-    migrate_from = "0378_remove_dynamic_sampling_depricated_data"
-    migrate_to = "0379_fix_org_slug_casing"
+    migrate_from = "0379_create_notificationaction_model"
+    migrate_to = "0380_fix_org_slug_casing"
 
     def setup_before_migration(self, apps):
         self.ok_org = self.create_organization(slug="good-slug")
