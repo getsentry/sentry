@@ -114,13 +114,15 @@ class OptionsManager:
                 logger.debug("Using legacy key: %s", key, exc_info=True)
                 # History shows, there was an expectation of no types, and empty string
                 # as the default response value
-                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0)
+                return self.make_key(key, lambda: "", Any, DEFAULT_FLAGS, 0, 0, None)
             raise UnknownOption(key)
 
-    def make_key(self, name, default, type, flags, ttl, grace):
+    def make_key(self, name, default, type, flags, ttl, grace, grouping_info):
         from sentry.options.store import Key
 
-        return Key(name, default, type, flags, int(ttl), int(grace), _make_cache_key(name))
+        return Key(
+            name, default, type, flags, int(ttl), int(grace), _make_cache_key(name), grouping_info
+        )
 
     def isset(self, key):
         """
@@ -215,6 +217,9 @@ class OptionsManager:
         flags=DEFAULT_FLAGS,
         ttl=DEFAULT_KEY_TTL,
         grace=DEFAULT_KEY_GRACE,
+        # Optional info about how to group options together in the _admin ui. Only applies to
+        # options marked `FLAG_ADMIN_MODIFIABLE`
+        grouping_info=None,
     ):
         assert key not in self.registry, "Option already registered: %r" % key
 
@@ -267,7 +272,7 @@ class OptionsManager:
 
         settings.SENTRY_DEFAULT_OPTIONS[key] = default_value
 
-        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace)
+        self.registry[key] = self.make_key(key, default, type, flags, ttl, grace, grouping_info)
 
     def unregister(self, key):
         try:

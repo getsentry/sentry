@@ -35,7 +35,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0379_create_notificationaction_model"),
+        ("sentry", "0380_backfill_monitor_env_initial"),
     ]
 
     operations = [
