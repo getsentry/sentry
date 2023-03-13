@@ -24,6 +24,9 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         schema = {
             "type": "object",
             "properties": {
+                # The version pattern has been extracted from the url definition of OrganizationReleaseAssembleEndpoint.
+                "version": {"type": "string", "pattern": "^[^/]+$"},
+                "dist": {"type": "string"},
                 "projects": {"type": "array", "items": {"type": "string"}},
                 "checksum": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
                 "chunks": {
@@ -77,13 +80,25 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
 
         from sentry.tasks.assemble import assemble_artifacts
 
+        version = data.get("version")
+        dist = data.get("dist")
+
+        if not version and dist:
+            return Response(
+                {"error": "You need to specify a release together with a dist"}, status=400
+            )
+
         assemble_artifacts.apply_async(
             kwargs={
                 "org_id": organization.id,
                 "project_ids": list(project_ids),
-                "version": None,
+                # We don't perform any validation of the version, since the user might bind a bundle to a specific
+                # release version without actually having created the release object itself.
+                "version": version,
+                "dist": dist,
                 "checksum": checksum,
                 "chunks": chunks,
+                "upload_as_artifact_bundle": True,
             }
         )
 

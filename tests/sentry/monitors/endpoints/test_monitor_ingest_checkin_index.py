@@ -23,7 +23,7 @@ from sentry.testutils.silo import region_silo_test
 @region_silo_test(stable=True)
 @freeze_time()
 class CreateMonitorCheckInTest(MonitorTestCase):
-    endpoint = "sentry-api-0-monitor-check-in-index"
+    endpoint = "sentry-api-0-monitor-ingest-check-in-index"
     endpoint_with_org = "sentry-api-0-organization-monitor-check-in-index"
 
     def setUp(self):
@@ -257,41 +257,10 @@ class CreateMonitorCheckInTest(MonitorTestCase):
 
             path = path_func(monitor.guid)
 
-            with mock.patch("sentry.monitors.endpoints.monitor_checkins.CHECKIN_QUOTA_LIMIT", 1):
+            with mock.patch(
+                "sentry.monitors.endpoints.monitor_ingest_checkin_index.CHECKIN_QUOTA_LIMIT", 1
+            ):
                 resp = self.client.post(path, {"status": "ok"})
                 assert resp.status_code == 201, resp.content
                 resp = self.client.post(path, {"status": "ok"})
                 assert resp.status_code == 429, resp.content
-
-    def test_statsperiod_constraints(self):
-        self.login_as(self.user)
-
-        for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
-
-            path = path_func(monitor.guid)
-
-            checkin = MonitorCheckIn.objects.create(
-                project_id=self.project.id,
-                monitor_id=monitor.id,
-                status=MonitorStatus.OK,
-                date_added=timezone.now() - timedelta(hours=12),
-            )
-
-            end = timezone.now()
-            startOneHourAgo = end - timedelta(hours=1)
-            startOneDayAgo = end - timedelta(days=1)
-
-            resp = self.client.get(path, {"statsPeriod": "1h"})
-            assert resp.json() == []
-            resp = self.client.get(
-                path, {"start": startOneHourAgo.isoformat(), "end": end.isoformat()}
-            )
-            assert resp.json() == []
-
-            resp = self.client.get(path, {"statsPeriod": "1d"})
-            assert resp.json()[0]["id"] == str(checkin.guid)
-            resp = self.client.get(
-                path, {"start": startOneDayAgo.isoformat(), "end": end.isoformat()}
-            )
-            assert resp.json()[0]["id"] == str(checkin.guid)
