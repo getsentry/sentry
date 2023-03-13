@@ -70,10 +70,14 @@ class ParticipantMap:
     def get_participant_sets(self) -> Iterable[Tuple[ExternalProviders, Iterable[RpcActor]]]:
         return ((provider, participants.keys()) for (provider, participants) in self._dict.items())
 
-    def delete_participant_by_id(self, provider: ExternalProviders, participant_id: int) -> None:
+    def delete_participant_by_id(
+        self, provider: ExternalProviders, actor_type: ActorType, participant_id: int
+    ) -> None:
         provider_group = self._dict[provider]
         to_delete = [
-            participant for participant in provider_group.keys() if participant.id == participant_id
+            participant
+            for participant in provider_group.keys()
+            if participant.actor_type == actor_type and participant.id == participant_id
         ]
         for participant in to_delete:
             del provider_group[participant]
@@ -129,7 +133,7 @@ def get_participants_for_group(group: Group, user: RpcUser | None = None) -> Par
         # Optionally remove the actor that created the activity from the recipients list.
         providers = get_providers_from_which_to_remove_user(user, participants_by_provider)
         for provider in providers:
-            participants_by_provider.delete_participant_by_id(provider, user.id)
+            participants_by_provider.delete_participant_by_id(provider, ActorType.USER, user.id)
 
     return participants_by_provider
 
