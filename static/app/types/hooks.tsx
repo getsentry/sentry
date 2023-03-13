@@ -92,6 +92,11 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type AttemptCloseAttemptProps = {
+  handleRemoveAccount: () => void;
+  organizationSlugs: string[];
+};
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 /**
@@ -99,6 +104,7 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  */
 export type ComponentHooks = {
   'component:codecov-integration-cta': () => React.ReactNode;
+  'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
