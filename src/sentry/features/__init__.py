@@ -169,6 +169,7 @@ default_manager.add("organizations:streamline-targeting-context", OrganizationFe
 default_manager.add("organizations:symbol-sources", OrganizationFeature)
 default_manager.add("organizations:team-roles", OrganizationFeature)
 default_manager.add("organizations:transaction-name-normalize", OrganizationFeature)
+default_manager.add("organizations:transaction-name-mark-scrubbed-as-sanitized", OrganizationFeature)
 default_manager.add("organizations:transaction-name-clusterer", OrganizationFeature)
 default_manager.add("organizations:transaction-name-clusterer-2x", OrganizationFeature)
 default_manager.add("organizations:transaction-name-sanitization", OrganizationFeature, False)
