@@ -121,7 +121,6 @@ class MonitorCheckInEndpoint(MonitorEndpoint):
         request: Request,
         monitor_id: str,
         checkin_id: str,
-        organization_slug: str | None = None,
         *args,
         **kwargs,
     ):

@@ -437,6 +437,16 @@ class OrganizationMember(Model):
         all_org_roles.add(self.role)
         return list(all_org_roles)
 
+    def get_org_roles_from_teams_by_source(self) -> List[tuple(str, OrganizationRole)]:
+        org_roles = list(self.teams.all().exclude(org_role=None).values_list("slug", "org_role"))
+
+        sorted_org_roles = sorted(
+            [(slug, organization_roles.get(role)) for slug, role in org_roles],
+            key=lambda r: r[1].priority,
+            reverse=True,
+        )
+        return sorted_org_roles
+
     def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
         return organization_roles.get_sorted_roles(self.get_all_org_roles())
 

@@ -7,10 +7,10 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.models.project import Project
-from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance
 from sentry.replays.tasks import delete_recording_segments
+from sentry.replays.usecases.reader import has_archived_segment
 
 
 class ReplayDetailsPermission(ProjectPermission):
@@ -24,7 +24,7 @@ class ReplayDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectReplayDetailsEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ReplayDetailsPermission,)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
@@ -63,10 +63,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         ):
             return Response(status=404)
 
-        count = ReplayRecordingSegment.objects.filter(
-            project_id=project.id, replay_id=replay_id
-        ).count()
-        if count == 0:
+        if has_archived_segment(project.id, replay_id):
             return Response(status=404)
 
         delete_recording_segments.delay(project_id=project.id, replay_id=replay_id)
