@@ -363,9 +363,8 @@ export function Control({
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
-            data-has-header={!!menuTitle || clearable}
-            data-has-footer={!!menuFooter}
-            data-select-overlay
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
@@ -490,7 +489,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
-  div[data-select-overlay][data-has-header='true'] > & {
+  [data-menu-has-header='true'] > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 
