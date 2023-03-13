@@ -66,6 +66,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                             name = key
                             v.update({"name": name})
                             filtered_values.append(v)
+                            continue
 
                 resp["device.class"]["topValues"] = filtered_values
 
