@@ -212,19 +212,17 @@ export class Line extends Component<Props, State> {
     const {isExpanded} = this.state;
 
     return (
-      <ToggleContextButtonWrapper>
-        <ToggleContextButton
-          className="btn-toggle"
-          data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
-          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
-          size="zero"
-          title={t('Toggle Context')}
-          tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-          onClick={this.toggleContext}
-        >
-          <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
-        </ToggleContextButton>
-      </ToggleContextButtonWrapper>
+      <ToggleContextButton
+        className="btn-toggle"
+        data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
+        css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+        size="zero"
+        title={t('Toggle Context')}
+        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        onClick={this.toggleContext}
+      >
+        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+      </ToggleContextButton>
     );
   }
 
@@ -474,12 +472,9 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const ToggleContextButtonWrapper = styled('span')`
-  margin-left: ${space(1)};
-`;
-
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
+  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }
