@@ -152,5 +152,25 @@ describe('Threads', () => {
       userEvent.click(screen.getByText('ViewController.captureNSException (RUNNABLE)'));
       expect(screen.getByText('State')).toBeInTheDocument();
     });
+
+    it('maps android vm states to java vm states', () => {
+      const threadsEntry = entries[1];
+      threadsEntry.data.values[0].state = 'kWaitingPerformingGc';
+      render(
+        <Threads
+          data={threadsEntry.data}
+          projectSlug="project-id"
+          event={event}
+          hasHierarchicalGrouping={false}
+        />
+      );
+
+      // kWaitingPerformingGc maps to WAITING
+      expect(
+        screen.getByText('ViewController.captureNSException (WAITING)')
+      ).toBeInTheDocument();
+      userEvent.click(screen.getByText('ViewController.captureNSException (WAITING)'));
+      expect(screen.getByText('State')).toBeInTheDocument();
+    });
   });
 });

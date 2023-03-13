@@ -613,7 +613,7 @@ def update_groups(
                     if group.status == GroupStatus.IGNORED:
                         issue_unignored.send_robust(
                             project=project_lookup[group.project_id],
-                            user=acting_user,
+                            user_id=acting_user.id if acting_user else None,
                             group=group,
                             transition_type="manual",
                             sender=update_groups,

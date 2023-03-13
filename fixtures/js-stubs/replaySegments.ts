@@ -1,3 +1,4 @@
+import {EventType} from '@sentry-internal/rrweb';
 import {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
 
 type FullSnapshotEvent = {
@@ -9,7 +10,7 @@ type FullSnapshotEvent = {
     node: serializedNodeWithId;
   };
   timestamp: number;
-  type: 2; // EventType.FullSnapshot;
+  type: EventType.FullSnapshot;
 };
 
 type BaseReplayProps = {
@@ -28,15 +29,15 @@ export function ReplaySegmentInit({
 }) {
   return [
     {
-      type: 0, // EventType.DomContentLoaded
+      type: EventType.DomContentLoaded,
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
     },
     {
-      type: 1, // EventType.Load
+      type: EventType.Load,
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
     },
     {
-      type: 4, // EventType.Meta
+      type: EventType.Meta,
       data: {href, width, height},
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
     },
@@ -49,7 +50,7 @@ export function ReplaySegmentFullsnapshot({
 }: BaseReplayProps & {childNodes: serializedNodeWithId[]}): [FullSnapshotEvent] {
   return [
     {
-      type: 2, // EventType.FullSnapshot
+      type: EventType.FullSnapshot,
       timestamp: timestamp.getTime(),
       data: {
         initialOffset: {
@@ -121,7 +122,7 @@ export function ReplaySegmentBreadcrumb({
 }: BaseReplayProps & {payload: any}) {
   return [
     {
-      type: 5, // EventType.Custom
+      type: EventType.Custom,
       timestamp: timestamp.getTime(), // rrweb timestamps are in ms
       data: {
         tag: 'breadcrumb',

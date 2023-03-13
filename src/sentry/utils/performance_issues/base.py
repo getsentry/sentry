@@ -153,6 +153,12 @@ def get_span_duration(span: Span) -> timedelta:
     )
 
 
+def get_duration_between_spans(first_span: Span, second_span: Span):
+    first_span_ends = first_span.get("timestamp", 0)
+    second_span_begins = second_span.get("start_timestamp", 0)
+    return timedelta(seconds=second_span_begins - first_span_ends).total_seconds() * 1000
+
+
 def get_url_from_span(span: Span) -> str:
     data = span.get("data") or {}
     url = data.get("url") or ""
@@ -169,11 +175,12 @@ def get_url_from_span(span: Span) -> str:
     return url
 
 
-def fingerprint_spans(spans: List[Span]):
+def fingerprint_spans(spans: List[Span], unique_only: bool = False):
     span_hashes = []
     for span in spans:
-        hash = span.get("hash", "") or ""
-        span_hashes.append(str(hash))
+        hash = str(span.get("hash", "") or "")
+        if not unique_only or hash not in span_hashes:
+            span_hashes.append(hash)
     joined_hashes = "-".join(span_hashes)
     return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
@@ -193,6 +200,31 @@ def fingerprint_span(span: Span):
 
     return fingerprint
 
+
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
