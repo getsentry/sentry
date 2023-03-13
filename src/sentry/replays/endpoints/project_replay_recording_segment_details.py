@@ -13,8 +13,6 @@ from sentry.replays.usecases.reader import download_segment, fetch_segment_metad
 
 @region_silo_endpoint
 class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
-    private = True
-
     def get(self, request: Request, project, replay_id, segment_id) -> Response:
         if not features.has(
             "organizations:session-replay", project.organization, actor=request.user
