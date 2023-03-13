@@ -36,7 +36,7 @@ import {
 
 const SCHEDULE_OPTIONS: RadioOption<string>[] = [
   [ScheduleType.CRONTAB, t('Crontab')],
-  [ScheduleType.INTERVAL, t('Simple')],
+  [ScheduleType.INTERVAL, t('Interval')],
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -190,7 +190,7 @@ function MonitorForm({
 
         <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
         <ListItemSubText>
-          {tct('You can use [link:the crontab syntax] or our simple schedule.', {
+          {tct('You can use [link:the crontab syntax] or our interval schedule.', {
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
