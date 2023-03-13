@@ -102,7 +102,6 @@ type TestStubFixtures = {
   ReplayError: OverridableStub;
   ReplayRRWebDivHelloWorld: OverridableStub;
   ReplayRRWebNode: OverridableStub;
-  ReplayReaderParams: OverridableStub;
   ReplayRecord: OverridableStub<ReplayRecord>;
   ReplaySegmentBreadcrumb: OverridableStub;
   ReplaySegmentConsole: OverridableStub;
