@@ -642,6 +642,9 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
+# System-wise option for performance issue creation through issues platform
+register("performance.issues.send_to_occurrences_platform", default=False)
+
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
 register("dynamic-sampling:enabled-biases", default=True)
