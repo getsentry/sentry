@@ -79,7 +79,7 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory, reduce_noise
+from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType, reduce_noise
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
@@ -2474,47 +2474,51 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             if per_project_option:
                 performance_problems = job["performance_problems"]
                 for problem in performance_problems:
-                    occurrence = IssueOccurrence(
-                        id=uuid.uuid4().hex,
-                        resource_id=None,
-                        project_id=project.id,
-                        event_id=event_id,
-                        fingerprint=[problem.fingerprint],
-                        type=problem.type,
-                        issue_title=problem.title,
-                        subtitle=event.transaction,
-                        # TODO use this to set metadata.value="problem.desc"
-                        evidence_data={"value": problem.desc},
-                        evidence_display=[
-                            IssueEvidence(
-                                name="parent_span_ids",
-                                value=problem.parent_span_ids,
-                                important=True,
-                            ),
-                            IssueEvidence(
-                                name="cause_span_ids", value=problem.cause_span_ids, important=False
-                            ),
-                            IssueEvidence(
-                                name="offender_span_ids",
-                                value=problem.offender_span_ids,
-                                important=False,
-                            ),
-                        ],
-                        detection_time=event.datetime,
-                        level="info",
-                    )
+                    # handle N+1
+                    if problem.type.type_id == PerformanceNPlusOneGroupType.type_id:
+                        occurrence = IssueOccurrence(
+                            id=uuid.uuid4().hex,
+                            resource_id=None,
+                            project_id=project.id,
+                            event_id=event_id,
+                            fingerprint=[problem.fingerprint],
+                            type=problem.type,
+                            issue_title=problem.title,
+                            subtitle=event.transaction,
+                            # TODO use this to set metadata.value="problem.desc"
+                            evidence_data={"value": problem.desc},
+                            evidence_display=[
+                                IssueEvidence(
+                                    name="parent_span_ids",
+                                    value=problem.parent_span_ids,
+                                    important=True,
+                                ),
+                                IssueEvidence(
+                                    name="cause_span_ids",
+                                    value=problem.cause_span_ids,
+                                    important=False,
+                                ),
+                                IssueEvidence(
+                                    name="offender_span_ids",
+                                    value=problem.offender_span_ids,
+                                    important=False,
+                                ),
+                            ],
+                            detection_time=event.datetime,
+                            level="info",
+                        )
 
-                    topic = settings.KAFKA_INGEST_OCCURRENCES
-                    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-                    cluster_options = get_kafka_producer_cluster_options(cluster_name)
-                    producer = Producer(cluster_options)
+                        topic = settings.KAFKA_INGEST_OCCURRENCES
+                        cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+                        cluster_options = get_kafka_producer_cluster_options(cluster_name)
+                        producer = Producer(cluster_options)
 
-                    producer.produce(
-                        topic=topic,
-                        key=None,
-                        value=json.dumps(occurrence.to_dict(), default=str),
-                    )
-                    producer.flush()
+                        producer.produce(
+                            topic=topic,
+                            key=None,
+                            value=json.dumps(occurrence.to_dict(), default=str),
+                        )
+                        producer.flush()
 
 
 @metrics.wraps("event_manager.save_transaction_events")
