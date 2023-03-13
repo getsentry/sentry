@@ -7,7 +7,7 @@ from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union
 import jsonschema
 import pytz
 import sentry_sdk
-from arroyo import Topic
+from arroyo import Topic, configure_metrics
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
@@ -18,7 +18,7 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
-from arroyo.types import Commit, Message, Partition
+from arroyo.types import BrokerValue, Commit, Message, Partition
 from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException
 from confluent_kafka import Message as KafkaMessage
 from confluent_kafka import TopicPartition
@@ -31,6 +31,7 @@ from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTIO
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
+from sentry.utils.arroyo import MetricsWrapper
 from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
@@ -231,9 +232,10 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
             ), metrics.timer("snuba_query_subscriber.handle_message"):
-                value: Any = message.value
-                offset: int = value.offset
-                partition: int = value.partition.index
+                value = message.value
+                assert isinstance(value, BrokerValue)
+                offset = value.offset
+                partition = value.partition.index
                 try:
                     handle_message(
                         str(message.payload.value),
@@ -276,6 +278,9 @@ def get_query_subscription_consumer(
             strict_offset_reset=strict_offset_reset,
         )
     )
+    metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
+    configure_metrics(metrics_wrapper)
+
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
