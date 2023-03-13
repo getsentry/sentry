@@ -3,8 +3,9 @@ type ExtractedSlug = {
   slug: string;
 };
 
-// XXX: If you change this also change its sibiling in static/index.ejs
-// The two regexps are not exactly the same
+// XXX: If you change this also change its sibiling in:
+// - static/index.ejs
+// - webpack.config.ts
 const KNOWN_DOMAINS = /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
 
 /**

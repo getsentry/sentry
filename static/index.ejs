@@ -15,8 +15,10 @@
     <script type="text/javascript">
     try {
       function extractSlug() {
-        // XXX: If you change this also change its sibiling in static/app/utils/extractSlug.tsx
-        // The two regexps are not meant to be exactly the same
+        // XXX: If you change this also change its sibilings in:
+        // - static/app/utils/extractSlug.tsx
+        // - webpack.config.ts
+        // NB: This RegExp is not exactly the same as the other two
         var knownDomains = /\.(?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?$/;
         if (window.location.host.match(knownDomains)) {
           var domainParts = window.location.host.split('.');

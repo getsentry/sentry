@@ -584,6 +584,26 @@ if (
 //
 // Various sentry pages still rely on django to serve html views.
 if (IS_UI_DEV_ONLY) {
+  // XXX: If you change this also change its sibiling in:
+  // - static/index.ejs
+  // - static/app/utils/extractSlug.tsx
+  const KNOWN_DOMAINS =
+    /(?:\.?)((?:localhost|dev\.getsentry\.net|sentry\.dev)(?:\:\d*)?)$/;
+
+  const extractSlug = (hostname: string) => {
+    const match = hostname.match(KNOWN_DOMAINS);
+    if (!match) {
+      return null;
+    }
+
+    const [
+      matchedExpression, // Expression includes optional leading `.`
+    ] = match;
+
+    const [slug] = hostname.replace(matchedExpression, '').split('.');
+    return slug;
+  };
+
   // Try and load certificates from mkcert if available. Use $ yarn mkcert-localhost
   const certPath = path.join(__dirname, 'config');
   const httpsOptions = !fs.existsSync(path.join(certPath, 'localhost.pem'))
@@ -617,6 +637,10 @@ if (IS_UI_DEV_ONLY) {
           'Document-Policy': 'js-profiling',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        router: ({hostname}) => {
+          const orgSlug = extractSlug(hostname);
+          return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
       },
     ],
     historyApiFallback: {
