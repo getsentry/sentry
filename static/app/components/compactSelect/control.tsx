@@ -1,11 +1,4 @@
-import {
-  createContext,
-  Fragment,
-  useCallback,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, Fragment, useCallback, useMemo, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -270,6 +263,23 @@ export function Control({
   });
 
   /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = useCallback(
+    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
+    [overlayRef]
+  );
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = useCallback(
+    () => !search && setMenuFullWidth(undefined),
+    [search]
+  );
+
+  /**
    * A list of selected options across all select regions, to be used to generate the
    * trigger label.
    */
@@ -319,18 +329,6 @@ export function Control({
       }
     },
   });
-
-  /**
-   * The menu's full width, before any option has been filtered out. Used to maintain a
-   * constant width while the user types into the search box.
-   */
-  const [menuFullWidth, setMenuFullWidth] = useState<number>();
-  useLayoutEffect(() => {
-    if (!overlayRef.current || !overlayIsOpen) {
-      return;
-    }
-    setMenuFullWidth(overlayRef.current?.offsetWidth);
-  }, [overlayRef, overlayIsOpen]);
 
   const contextValue = useMemo(
     () => ({
@@ -394,6 +392,8 @@ export function Control({
                 <SearchInput
                   placeholder={searchPlaceholder}
                   value={search}
+                  onFocus={onSearchFocus}
+                  onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
