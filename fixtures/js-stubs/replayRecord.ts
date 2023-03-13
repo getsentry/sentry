@@ -37,16 +37,7 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
       version: '7.1.1',
     },
     started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-    tags: {
-      'browser.name': [replayRecord.browser?.name ?? 'Other'],
-      'device.family': [replayRecord.device?.family ?? 'Other'],
-      'os.name': [replayRecord.os?.name ?? 'Other'],
-      platform: [replayRecord.platform ?? 'javascript'],
-      releases: replayRecord.releases ?? ['1.0.0', '2.0.0'],
-      'sdk.name': [replayRecord.sdk?.name ?? 'sentry.javascript.browser'],
-      'sdk.version': [replayRecord.sdk?.version ?? '7.1.1'],
-      'user.ip': [replayRecord.user?.ip ?? '127.0.0.1'],
-    },
+
     trace_ids: [],
     urls: ['http://localhost:3000/'],
     user: {
@@ -57,5 +48,16 @@ export function ReplayRecord(replayRecord: Partial<TReplayRecord> = {}): TReplay
       display_name: '127.0.0.1',
     },
     ...replayRecord,
+    tags: {
+      ...replayRecord.tags,
+      'browser.name': [replayRecord.browser?.name ?? 'Other'],
+      'device.family': [replayRecord.device?.family ?? 'Other'],
+      'os.name': [replayRecord.os?.name ?? 'Other'],
+      platform: [replayRecord.platform ?? 'javascript'],
+      releases: replayRecord.releases ?? ['1.0.0', '2.0.0'],
+      'sdk.name': [replayRecord.sdk?.name ?? 'sentry.javascript.browser'],
+      'sdk.version': [replayRecord.sdk?.version ?? '7.1.1'],
+      'user.ip': [replayRecord.user?.ip ?? '127.0.0.1'],
+    },
   };
 }
