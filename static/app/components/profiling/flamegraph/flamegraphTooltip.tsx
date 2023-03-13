@@ -80,19 +80,27 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           </Fragment>
         )}
       </FlamegraphTooltipTimelineInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.right)}
-        {props.frame.frame.inline ? (
-          <FlamegraphInlineIndicator>
-            <IconLightning width={10} />
-            {t('inline frame')}
-          </FlamegraphInlineIndicator>
-        ) : (
-          ''
-        )}
-      </FlamegraphTooltipTimelineInfo>
+      {props.flamegraphRenderer.flamegraph.profile.unit === 'count' ? (
+        <FlamegraphTooltipTimelineInfo>
+          {props.frame.node.totalWeight} {t('samples')}
+        </FlamegraphTooltipTimelineInfo>
+      ) : (
+        <FlamegraphTooltipTimelineInfo>
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
+          {' \u2014 '}
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(
+            frameInConfigSpace.right
+          )}
+          {props.frame.frame.inline ? (
+            <FlamegraphInlineIndicator>
+              <IconLightning width={10} />
+              {t('inline frame')}
+            </FlamegraphInlineIndicator>
+          ) : (
+            ''
+          )}
+        </FlamegraphTooltipTimelineInfo>
+      )}
     </BoundTooltip>
   );
 }
