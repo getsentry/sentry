@@ -850,11 +850,10 @@ class Fetcher:
         else:
             # We decided to reuse the existing function but without caching in order to reuse some logic but in reality
             # the code could be inlined and simplified.
-            self.last_url_resolved_with_debug_id = urlify_debug_id(
-                debug_id, archive.get_file_url_by_debug_id(debug_id, source_file_type)
-            )
             result = fetch_and_cache_artifact(
-                self.last_url_resolved_with_debug_id,
+                urlify_debug_id(
+                    debug_id, archive.get_file_url_by_debug_id(debug_id, source_file_type)
+                ),
                 lambda: fp,
                 None,
                 None,
