@@ -28,11 +28,18 @@ class Migration(CheckedMigration):
                 migrations.RunSQL(
                     """
                     ALTER TABLE "auth_user" ADD COLUMN "avatar_type" smallint NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "auth_user" DROP COLUMN "avatar_type";
+                    """,
+                    hints={"tables": ["auth_user"]},
+                ),
+                migrations.RunSQL(
+                    """
                     ALTER TABLE "auth_user" ADD COLUMN "avatar_url" varchar(120) DEFAULT NULL;
                     """,
                     reverse_sql="""
                     ALTER TABLE "auth_user" DROP COLUMN "avatar_url";
-                    ALTER TABLE "auth_user" DROP COLUMN "avatar_type";
                     """,
                     hints={"tables": ["auth_user"]},
                 ),
