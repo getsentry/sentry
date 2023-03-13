@@ -15,6 +15,9 @@ from sentry.db.models import (
 )
 from sentry.utils import json
 
+NULL_UUID = "00000000-00000000-00000000-00000000"
+NULL_STRING = ""
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -42,7 +45,7 @@ class ArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
-    bundle_id = models.UUIDField(default="00000000-00000000-00000000-00000000")
+    bundle_id = models.UUIDField(default=NULL_UUID)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -62,7 +65,7 @@ class ReleaseArtifactBundle(Model):
     release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default="")
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 

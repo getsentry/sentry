@@ -25,6 +25,7 @@ from symbolic import SourceView
 from sentry import features, http, options
 from sentry.event_manager import set_tag
 from sentry.models import (
+    NULL_STRING,
     ArtifactBundleArchive,
     DebugIdArtifactBundle,
     EventError,
@@ -868,13 +869,18 @@ class Fetcher:
         Gets the MAX_ARTIFACT_NUMBER most recent entries in the ReleaseArtifactBundle table together with the respective
         ArtifactBundle and the connected File.
         """
+        # In case we don't have a release set, we don't even want to try and run the query because we won't be able
+        # to look for the bundle we want.
+        if self.release is None:
+            return None
+
         # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
         #  we have permissions on not all the bundles.
         return (
             ReleaseArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
-                release_name=self.release.version if self.release else None,
-                dist_name=self.dist.name if self.dist else None,
+                release_name=self.release.version,
+                dist_name=self.dist.name if self.dist else NULL_STRING,
             )
             .order_by("-date_added")[:MAX_ARTIFACTS_NUMBER]
             .select_related("artifact_bundle__file")

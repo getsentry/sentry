@@ -2375,11 +2375,10 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "sourcemap": "http://example.com/file.sourcemap.js",
         }
 
-    def test_expansion_with_release_dist_pair_and_malformed_sourcemap(self):
+    def test_expansion_with_release_and_malformed_sourcemap(self):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
-        dist = release.add_dist("android")
 
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
@@ -2448,7 +2447,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=release.version,
-            dist_name=dist.name,
             artifact_bundle=artifact_bundle,
         )
 
@@ -2457,7 +2455,6 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "message": "hello",
             "platform": "javascript",
             "release": release.version,
-            "dist": dist.name,
             "exception": {
                 "values": [
                     {
