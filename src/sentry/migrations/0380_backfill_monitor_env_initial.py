@@ -27,7 +27,7 @@ def backfill_monitor_environments(apps, schema_editor):
         )[0]
 
         EnvironmentProject.objects.get_or_create(
-            project_id=project_id, environment=environment, is_hidden=None
+            project_id=project_id, environment=environment, defaults={"is_hidden": None}
         )
 
         monitorenvironment_defaults = {
