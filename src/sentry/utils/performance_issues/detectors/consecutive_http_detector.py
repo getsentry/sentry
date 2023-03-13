@@ -123,7 +123,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         return True
 
     def _fingerprint(self) -> str:
-        hashed_spans = fingerprint_spans(self.consecutive_http_spans)
+        hashed_spans = fingerprint_spans(self.consecutive_http_spans, True)
         return f"1-{PerformanceConsecutiveHTTPQueriesGroupType.type_id}-{hashed_spans}"
 
     def on_complete(self) -> None:
