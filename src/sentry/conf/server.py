@@ -880,7 +880,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
         "schedule": timedelta(hours=4),
         "options": {"expires": 3600},
     },
