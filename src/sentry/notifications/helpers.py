@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -510,7 +512,7 @@ def get_value_for_parent(
     return notification_settings_by_scope.get(get_scope_type(type), {}).get(parent_id, {})
 
 
-def get_value_for_actor(
+def _get_value_for_actor(
     notification_settings_by_scope: Mapping[
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -533,7 +535,7 @@ def get_most_specific_notification_setting_value(
         NotificationScopeType,
         Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: RpcActor,
+    recipient: RpcActor | Team | User,
     parent_id: int,
     type: NotificationSettingTypes,
 ) -> NotificationSettingOptionValues:
@@ -541,14 +543,18 @@ def get_most_specific_notification_setting_value(
     Get the "most specific" notification setting value for a given user and
     project. If there are no settings, default to the default setting for EMAIL.
     """
+    if isinstance(recipient, AnonymousUser):
+        return _get_notification_setting_default(ExternalProviders.EMAIL, type, None)
+
+    recipient_actor = RpcActor.from_object(recipient)
     return (
         get_highest_notification_setting_value(
             get_value_for_parent(notification_settings_by_scope, parent_id, type)
         )
         or get_highest_notification_setting_value(
-            get_value_for_actor(notification_settings_by_scope, recipient)
+            _get_value_for_actor(notification_settings_by_scope, recipient_actor)
         )
-        or _get_notification_setting_default(ExternalProviders.EMAIL, type, recipient)
+        or _get_notification_setting_default(ExternalProviders.EMAIL, type, recipient_actor)
     )
 
 
@@ -581,7 +587,7 @@ def get_values_by_provider(
     """
     return merge_notification_settings_up(
         _get_default_value_by_provider(type, recipient),
-        get_value_for_actor(notification_settings_by_scope, recipient),
+        _get_value_for_actor(notification_settings_by_scope, recipient),
         get_value_for_parent(notification_settings_by_scope, parent_id, type),
     )
 

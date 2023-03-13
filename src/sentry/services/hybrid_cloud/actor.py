@@ -44,7 +44,7 @@ class RpcActor:
             return cls.from_orm_team(obj)
         if isinstance(obj, RpcUser):
             return cls.from_rpc_user(obj)
-        raise TypeError
+        raise TypeError(str(type(obj)))
 
     @classmethod
     def from_orm_user(cls, user: "User") -> "RpcActor":
