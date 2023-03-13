@@ -2466,54 +2466,55 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         project = event.project
         event_id = event.event_id
 
-        # add a system wide option here as well
-        # add a custom project option here
-        # per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
-        # if per_project_rate > random.random():
-        performance_problems = job["performance_problems"]
-        for problem in performance_problems:
-            # double check if it makes sense to do this
-            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
-
-            occurrence = IssueOccurrence(
-                id=uuid.uuid4().hex,
-                resource_id=None,
-                project_id=project.id,
-                event_id=event_id,
-                fingerprint=[problem.fingerprint],
-                type=problem.type,
-                issue_title=problem.title,
-                subtitle=event.transaction,
-                # TODO use this to set metadata.value="problem.desc"
-                evidence_data={"value": problem.desc},
-                evidence_display=[
-                    IssueEvidence(
-                        name="parent_span_ids", value=problem.parent_span_ids, important=True
-                    ),
-                    IssueEvidence(
-                        name="cause_span_ids", value=problem.cause_span_ids, important=False
-                    ),
-                    IssueEvidence(
-                        name="offender_span_ids", value=problem.offender_span_ids, important=False
-                    ),
-                ],
-                detection_time=event.datetime,
-                level="info",
+        use_platform = options.get("performance.issues.send_to_issues_platform", False)
+        if use_platform:
+            per_project_option = project.get_option(
+                "sentry:performance_issue_send_to_issues_platform", False
             )
+            if per_project_option:
+                performance_problems = job["performance_problems"]
+                for problem in performance_problems:
+                    occurrence = IssueOccurrence(
+                        id=uuid.uuid4().hex,
+                        resource_id=None,
+                        project_id=project.id,
+                        event_id=event_id,
+                        fingerprint=[problem.fingerprint],
+                        type=problem.type,
+                        issue_title=problem.title,
+                        subtitle=event.transaction,
+                        # TODO use this to set metadata.value="problem.desc"
+                        evidence_data={"value": problem.desc},
+                        evidence_display=[
+                            IssueEvidence(
+                                name="parent_span_ids",
+                                value=problem.parent_span_ids,
+                                important=True,
+                            ),
+                            IssueEvidence(
+                                name="cause_span_ids", value=problem.cause_span_ids, important=False
+                            ),
+                            IssueEvidence(
+                                name="offender_span_ids",
+                                value=problem.offender_span_ids,
+                                important=False,
+                            ),
+                        ],
+                        detection_time=event.datetime,
+                        level="info",
+                    )
 
-            topic = settings.KAFKA_INGEST_OCCURRENCES
-            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
-            cluster_options = get_kafka_producer_cluster_options(cluster_name)
-            producer = Producer(cluster_options)
+                    topic = settings.KAFKA_INGEST_OCCURRENCES
+                    cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+                    cluster_options = get_kafka_producer_cluster_options(cluster_name)
+                    producer = Producer(cluster_options)
 
-            producer.produce(
-                topic=topic,
-                key=None,
-                value=json.dumps(occurrence.to_dict(), default=str),
-            )
-            producer.flush()
+                    producer.produce(
+                        topic=topic,
+                        key=None,
+                        value=json.dumps(occurrence.to_dict(), default=str),
+                    )
+                    producer.flush()
 
 
 @metrics.wraps("event_manager.save_transaction_events")
