@@ -36,8 +36,6 @@ class TimeSeriesValueSerializer(Serializer):  # type: ignore
 @extend_schema(tags=["issue_alerts"])
 @region_silo_endpoint
 class ProjectRuleStatsIndexEndpoint(RuleEndpoint):
-    private = True
-
     @extend_schema(
         operation_id="Retrieve firing starts for an issue alert rule for a given time range. Results are returned in hourly buckets.",
         parameters=[GLOBAL_PARAMS.ORG_SLUG, GLOBAL_PARAMS.PROJECT_SLUG, ISSUE_ALERT_PARAMS],

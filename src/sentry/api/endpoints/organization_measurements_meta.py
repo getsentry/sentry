@@ -12,8 +12,6 @@ from sentry.snuba.metrics.datasource import get_custom_measurements
 
 @region_silo_endpoint
 class OrganizationMeasurementsMeta(OrganizationEventsEndpointBase):  # type: ignore
-    private = True
-
     def get(self, request: Request, organization: Organization) -> Response:
         try:
             params = self.get_snuba_params(request, organization)

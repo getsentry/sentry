@@ -17,7 +17,7 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRulePreviewEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ProjectAlertRulePermission,)
 
     # a post endpoint because it's too hard to pass a list of objects from the frontend

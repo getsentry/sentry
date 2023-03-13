@@ -14,7 +14,7 @@ from sentry.web.decorators import transaction_start
 
 @region_silo_endpoint
 class ProjectRuleActionsEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ProjectAlertRulePermission,)
 
     @transaction_start("ProjectRuleActionsEndpoint")

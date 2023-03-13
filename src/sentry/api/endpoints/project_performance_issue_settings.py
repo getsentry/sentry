@@ -27,7 +27,7 @@ class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    private = True  # TODO: Remove after EA.
+    # TODO: Remove after EA.
     permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:

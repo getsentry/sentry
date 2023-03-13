@@ -14,9 +14,7 @@ from .base import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
 @region_silo_endpoint
 class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
-    private = True
 
-    # TODO: Remove DSN authentication for get
     authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (MonitorCheckInAttachmentPermission,)
 

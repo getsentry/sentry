@@ -1,7 +1,5 @@
 from typing import Any, Dict, Literal, Mapping, Set, TypedDict
 
-from drf_spectacular.drainage import warn
-
 from sentry.apidocs.build import OPENAPI_TAGS
 from sentry.apidocs.utils import SentryApiBuildError
 
@@ -26,22 +24,9 @@ EXCLUSION_PATH_PREFIXES = ["/api/0/monitors/"]
 
 
 def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, rename
-    from sentry.apidocs.public_exclusion_list import (
-        EXCLUDED_FROM_PUBLIC_ENDPOINTS,
-        PUBLIC_ENDPOINTS_FROM_JSON,
-    )
-
-    registered_endpoints = PUBLIC_ENDPOINTS_FROM_JSON | EXCLUDED_FROM_PUBLIC_ENDPOINTS
 
     filtered = []
     for (path, path_regex, method, callback) in endpoints:
-        view = f"{callback.__module__}.{callback.__name__}"
-
-        if callback.view_class.public and callback.view_class.private:
-            warn(  # type: ignore[no-untyped-call]
-                "both `public` and `private` cannot be defined at the same time, "
-                "please remove one of the attributes."
-            )
 
         if any(path.startswith(p) for p in EXCLUSION_PATH_PREFIXES):
             pass
@@ -53,23 +38,9 @@ def custom_preprocessing_hook(endpoints: Any) -> Any:  # TODO: organize method, 
                 # to the rest of the OpenAPI build pipeline
                 filtered.append((path, path_regex, method, callback))
 
-        elif view in registered_endpoints:
-            # don't error if endpoint is added to exclusion list
-            pass
-
-        elif callback.view_class.private:
-            # if the endpoint is explicitly private, that's okay.
-            pass
         else:
-            # any new endpoint that isn't accounted for should recieve this error when building api docs
-            warn(  # type: ignore[no-untyped-call]
-                f"{view} {method} is unaccounted for. "
-                "Either document the endpoint and define the `public` attribute on the endpoint "
-                "with the public HTTP methods, "
-                "or set the `private` attribute on the endpoint to `True`. "
-                "See https://develop.sentry.dev/api/public/ for more info on "
-                "making APIs public."
-            )
+            # if an endpoint doesn't have any registered public methods, don't check it.
+            pass
 
     return filtered
 

@@ -14,8 +14,6 @@ from sentry.utils.cloudfunctions import delete_function, update_function
 
 @region_silo_endpoint
 class OrganizationSentryFunctionDetailsEndpoint(OrganizationEndpoint):
-    private = True
-
     def convert_args(self, request, organization_slug, function_slug, *args, **kwargs):
         args, kwargs = super().convert_args(request, organization_slug, *args, **kwargs)
 
