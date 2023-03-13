@@ -737,6 +737,7 @@ CELERY_QUEUES = [
         "dynamicsampling",
         routing_key="dynamicsampling",
     ),
+    Queue("auto_enable_codecov", routing_key="auto_enable_codecov"),
 ]
 
 for queue in CELERY_QUEUES:
