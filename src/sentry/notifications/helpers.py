@@ -15,7 +15,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
@@ -39,10 +39,9 @@ def _get_notification_setting_default(
     Slack notifications if they install Slack and link their identity.
     Approval notifications always default to Slack being on.
     """
-    from sentry.models import Team
 
     # every team default is off
-    if isinstance(recipient, Team):
+    if recipient is not None and recipient.actor_type == ActorType.TEAM:
         return NotificationSettingOptionValues.NEVER
     return NOTIFICATION_SETTING_DEFAULTS[provider][type]
 
@@ -587,11 +586,14 @@ def get_values_by_provider(
     )
 
 
-def get_providers_for_recipient(recipient: User | Team) -> Iterable[ExternalProviders]:
-    from sentry.models import ExternalActor, Identity, Team
+def get_providers_for_recipient(
+    raw_recipient: RpcActor | User | Team,
+) -> Iterable[ExternalProviders]:
+    from sentry.models import ExternalActor, Identity
 
+    recipient = RpcActor.from_object(raw_recipient)
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
-    if isinstance(recipient, Team):
+    if recipient.actor_type == ActorType.TEAM:
         return list(
             map(
                 get_provider_enum,
