@@ -882,7 +882,7 @@ CELERYBEAT_SCHEDULE = {
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
-        "schedule": timedelta(hours=24),
+        "schedule": timedelta(hours=4),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
@@ -3116,3 +3116,7 @@ SINGLE_SERVER_SILO_MODE = False
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
+
+# Temporary allowlist for specially configured organizations to use the direct-storage
+# driver.
+SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
