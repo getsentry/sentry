@@ -357,6 +357,11 @@ class Fixtures:
             alert_rule_trigger, target_identifier=target_identifier, **kwargs
         )
 
+    def create_notification_action(self, organization=None, projects=None, **kwargs):
+        return Factories.create_notification_action(
+            organization=organization, projects=projects, **kwargs
+        )
+
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
             user = self.user
