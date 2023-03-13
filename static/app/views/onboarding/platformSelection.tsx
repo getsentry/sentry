@@ -19,22 +19,29 @@ export function PlatformSelection(props: StepProps) {
     undefined
   );
 
-  const [clientState] = usePersistedOnboardingState();
+  const [clientState, _setClientState] = usePersistedOnboardingState();
+
+  const disabledPlatforms = Object.keys(clientState?.platformToProjectIdMap ?? {}).reduce(
+    (acc, key) => {
+      if (!acc[key]) {
+        acc[key] = t('Project already created');
+      }
+      return acc;
+    },
+    {}
+  );
 
   useEffect(() => {
-    if (clientState) {
+    if (!clientState) {
+      return;
+    }
+
+    const selectedprojectCreated = disabledPlatforms[clientState.selectedPlatforms[0]];
+
+    if (selectedPlatform === undefined && !selectedprojectCreated) {
       setSelectedPlatform(clientState.selectedPlatforms[0]);
     }
-  }, [clientState]);
-
-  const disabledPlatforms = clientState
-    ? Object.keys(clientState.platformToProjectIdMap).reduce((acc, key) => {
-        if (!acc[key]) {
-          acc[key] = t('Project already created');
-        }
-        return acc;
-      }, {})
-    : undefined;
+  }, [clientState, disabledPlatforms, selectedPlatform]);
 
   return (
     <Wrapper>

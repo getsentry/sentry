@@ -9,6 +9,7 @@ import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {Footer} from 'sentry/components/onboarding/footer';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -20,7 +21,6 @@ import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {Footer} from 'sentry/views/onboarding/components/footer';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
