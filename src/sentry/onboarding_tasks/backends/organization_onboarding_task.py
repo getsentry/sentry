@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.models import OnboardingTaskStatus, OrganizationOnboardingTask, OrganizationOption
 from sentry.onboarding_tasks.base import OnboardingTaskBackend
+from sentry.utils import json
 
 
 class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
@@ -38,7 +39,7 @@ class OrganizationOnboardingTaskBackend(OnboardingTaskBackend):
                     OrganizationOption.objects.create(
                         organization_id=organization_id,
                         key="onboarding:complete",
-                        value={"updated": timezone.now()},
+                        value={"updated": json.datetime_to_str(timezone.now())},
                     )
             except IntegrityError:
                 pass

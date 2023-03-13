@@ -11,6 +11,7 @@ from django.views.generic import View
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.integrations.utils.cleanup import clear_tags_and_context
 from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.utils import json
@@ -194,6 +195,7 @@ class GitlabWebhookEndpoint(View):
         return super().dispatch(request, *args, **kwargs)
 
     def post(self, request: Request) -> Response:
+        clear_tags_and_context()
         extra = {
             # This tells us the Gitlab version being used (e.g. current gitlab.com version -> GitLab/15.4.0-pre)
             "user-agent": request.META.get("HTTP_USER_AGENT"),

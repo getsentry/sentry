@@ -1,11 +1,17 @@
-import {ReactElement, useEffect, useLayoutEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  ReactElement,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
 import {Button} from 'sentry/components/button';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {Flex} from 'sentry/components/profiling/flex';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -208,11 +214,12 @@ export function AggregateFlamegraph(): ReactElement {
       const flamegraphFitTo = canvasHeight / flamegraph.depth;
       const minReadableRatio = 0.8; // this is quite small
       const fitToRatio = flamegraphFitTo / theme.SIZES.BAR_HEIGHT;
+      const barHeightRatio = Math.min(Math.max(minReadableRatio, fitToRatio), 1);
 
-      theme.SIZES.BAR_HEIGHT =
-        theme.SIZES.BAR_HEIGHT * Math.max(minReadableRatio, fitToRatio);
-      theme.SIZES.BAR_FONT_SIZE =
-        theme.SIZES.BAR_FONT_SIZE * Math.max(minReadableRatio, fitToRatio);
+      // reduce the offset to leave just enough space for the toolbar
+      theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET = 2.5;
+      theme.SIZES.BAR_HEIGHT = theme.SIZES.BAR_HEIGHT * barHeightRatio;
+      theme.SIZES.BAR_FONT_SIZE = theme.SIZES.BAR_FONT_SIZE * barHeightRatio;
       return theme;
     });
 
@@ -377,7 +384,7 @@ export function AggregateFlamegraph(): ReactElement {
   }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
 
   return (
-    <Flex h={500} column>
+    <Fragment>
       <FlamegraphZoomView
         canvasBounds={flamegraphCanvasBounds}
         canvasPoolManager={canvasPoolManager}
@@ -398,7 +405,7 @@ export function AggregateFlamegraph(): ReactElement {
           {t('Reset Zoom')}
         </Button>
       </AggregateFlamegraphToolbar>
-    </Flex>
+    </Fragment>
   );
 }
 
