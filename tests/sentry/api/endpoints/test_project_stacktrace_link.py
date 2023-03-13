@@ -4,15 +4,13 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.utils.http import urlencode
-from responses.matchers import query_string_matcher
 
 from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -355,60 +353,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     def inject_fixtures(self, caplog):
         self._caplog = caplog
 
-    @patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_latest_commit_from_blame(self, get_jwt, mock_blame):
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_blame.return_value = git_blame
-        project_stacktrace_link_endpoint = ProjectStacktraceLinkEndpoint()
-        commit_sha = project_stacktrace_link_endpoint.get_latest_commit_sha_from_blame(
-            integration_installation=self.integration.get_installation(
-                organization_id=self.project.organization_id
-            ),
-            line_no=26,
-            filepath="test/path/file.py",
-            repository=self.repo,
-            ref="main",
-        )
-        assert commit_sha == "5c7dc040fe713f718193e28972b43db94e5097b4"
-
-    @with_feature("organizations:codecov-commit-sha-from-git-blame")
-    @patch("sentry.integrations.mixins.repositories.RepositoryMixin.get_stacktrace_link")
-    @patch("sentry.integrations.github.client.GitHubClientMixin.get_blame_for_file")
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
-    def test_get_commit_sha_from_blame_failed_to_get_commit(
-        self, get_jwt, mock_blame, mock_get_stacktrace_link
-    ):
-        self._caplog.set_level(logging.ERROR, logger="sentry")
-        self.organization.flags.codecov_access = True
-        self.organization.save()
-        self.integration.provider = "github"
-        self.integration.save()
-
-        mock_get_stacktrace_link.return_value = (
-            "https://github.com/repo/blob/master/src/path/to/file.py",
-        )
-        mock_blame.return_value = []
-
-        with pytest.raises(Exception):
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                qs_params={"file": self.filepath, "lineNo": 26},
-            )
-
-            # Error logging means an error is sent to Sentry
-            assert self._caplog.record_tuples == [
-                (
-                    "sentry.api.endpoints.project_stacktrace_link",
-                    logging.ERROR,
-                    "Failed to get commit from git blame.",
-                )
-            ]
-            assert response.data.get("codecov") == {"status": 204}
-
     @patch.object(
         ExampleIntegration,
         "get_stacktrace_link",
@@ -416,18 +360,14 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     )
     @responses.activate
     def test_codecov_line_coverage_success(self, mock_integration):
-        qs = urlencode(
-            {"sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0", "path": "src/path/to/file.py"}
-        )
-
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
-            match=[query_string_matcher(qs)],
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
+                "line_coverage": self.expected_line_coverage,
                 "commit_file_url": self.expected_codecov_url,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )
@@ -454,16 +394,14 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     )
     @responses.activate
     def test_codecov_line_coverage_with_branch_success(self, mock_integration):
-        qs = urlencode({"branch": "master", "path": "src/path/to/file.py"})
-
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
-            match=[query_string_matcher(qs)],
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
+                "line_coverage": self.expected_line_coverage,
                 "commit_file_url": self.expected_codecov_url,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )
@@ -489,11 +427,9 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     @responses.activate
     def test_codecov_line_coverage_exception(self, mock_integration):
         self._caplog.set_level(logging.ERROR, logger="sentry")
-        qs = urlencode({"branch": "master", "path": "src/path/to/file.py"})
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
-            match=[query_string_matcher(qs)],
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=404,
             content_type="application/json",
         )
@@ -517,38 +453,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "Something unexpected happened. Continuing execution.",
             )
         ]
-
-    @patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
-    )
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
-    @responses.activate
-    def test_codecov_new_endpoint(self, mock_integration):
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=200,
-            json={
-                "line_coverage": self.expected_line_coverage,
-                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-            content_type="application/json",
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-        assert response.data["codecov"]["lineCoverage"] == self.expected_line_coverage
-        assert response.data["codecov"]["status"] == 200
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

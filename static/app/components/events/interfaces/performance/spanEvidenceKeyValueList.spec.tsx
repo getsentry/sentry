@@ -16,6 +16,7 @@ import {
 describe('SpanEvidenceKeyValueList', () => {
   describe('N+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
+    builder.getEvent().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -51,6 +52,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -74,6 +81,7 @@ describe('SpanEvidenceKeyValueList', () => {
 
   describe('MN+1 Database Queries', () => {
     const builder = new TransactionEventBuilder('a1', '/');
+    builder.getEvent().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -109,6 +117,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Parent Span'})).toBeInTheDocument();
       expect(
@@ -136,6 +150,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES
     );
+    builder.getEvent().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -177,6 +192,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Starting Span'})).toBeInTheDocument();
       expect(
@@ -209,6 +230,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS
     );
+    builder.getEvent().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -251,6 +273,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Repeating Spans (2)'})).toBeInTheDocument();
       expect(
@@ -350,6 +378,7 @@ describe('SpanEvidenceKeyValueList', () => {
       '/',
       IssueType.PERFORMANCE_SLOW_DB_QUERY
     );
+    builder.getEvent().projectID = '123';
 
     const parentSpan = new MockSpan({
       startTimestamp: 0,
@@ -375,6 +404,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Slow DB Query'})).toBeInTheDocument();
       expect(
@@ -394,6 +429,7 @@ describe('SpanEvidenceKeyValueList', () => {
         fcp: 2500,
       }
     );
+    builder.getEvent().projectID = '123';
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
@@ -412,6 +448,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(
@@ -439,6 +481,7 @@ describe('SpanEvidenceKeyValueList', () => {
         duration: 0.931, // in seconds
       }
     );
+    builder.getEvent().projectID = '123';
 
     const offenderSpan = new MockSpan({
       startTimestamp: 0,
@@ -460,6 +503,12 @@ describe('SpanEvidenceKeyValueList', () => {
       expect(
         screen.getByTestId('span-evidence-key-value-list.transaction')
       ).toHaveTextContent('/');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.transaction').querySelector('a')
+      ).toHaveAttribute(
+        'href',
+        `/organizations/org-slug/performance/summary/?project=123&referrer=performance-transaction-summary&transaction=%2F&unselectedSeries=p100%28%29`
+      );
 
       expect(screen.getByRole('cell', {name: 'Slow Resource Span'})).toBeInTheDocument();
       expect(

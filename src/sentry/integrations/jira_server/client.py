@@ -35,7 +35,6 @@ class JiraServerClient(ApiClient):
     SERVER_INFO_URL = "/rest/api/2/serverInfo"
     ASSIGN_URL = "/rest/api/2/issue/%s/assignee"
     TRANSITION_URL = "/rest/api/2/issue/%s/transitions"
-    EMAIL_URL = "/rest/api/3/user/email"
     AUTOCOMPLETE_URL = "/rest/api/2/jql/autocompletedata/suggestions"
     PROPERTIES_URL = "/rest/api/3/issue/%s/properties/%s"
 
@@ -187,10 +186,6 @@ class JiraServerClient(ApiClient):
         properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:{module_key}:status"
         data = {"type": "badge", "value": {"label": badge_num}}
         return self.put(self.PROPERTIES_URL % (issue_key, properties_key), data=data)
-
-    def get_email(self, account_id):
-        user = self.get_cached(self.EMAIL_URL, params={"accountId": account_id})
-        return user.get("email")
 
     def get_field_autocomplete(self, name, value):
         if name.startswith(CUSTOMFIELD_PREFIX):

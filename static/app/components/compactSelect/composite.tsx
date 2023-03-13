@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
+import {EmptyMessage} from './styles';
 import {SelectOption} from './types';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {
@@ -83,6 +85,7 @@ function CompositeSelect({
   // Control props
   grid,
   disabled,
+  emptyMessage,
   size = 'md',
   closeOnSelect,
   ...controlProps
@@ -106,6 +109,9 @@ function CompositeSelect({
               />
             );
           })}
+
+          {/* Only displayed when all lists (regions) are empty */}
+          <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
         </RegionsWrap>
       </FocusScope>
     </Control>

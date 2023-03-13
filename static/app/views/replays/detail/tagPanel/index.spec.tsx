@@ -10,6 +10,8 @@ const replayReaderParams = TestStubs.ReplayReaderParams({
     tags: {
       'browser.name': ['Chrome'],
       'sdk.version': ['7.13.0', '7.13.2'],
+      foo: ['bar'],
+      'my custom tag': ['a wordy value'],
     },
   },
 });
@@ -31,6 +33,14 @@ describe('TagPanel', () => {
     expect(screen.getByTestId('replay-tags-loading-placeholder')).toBeInTheDocument();
   });
 
+  it('should snapshot empty state', async () => {
+    const {container} = renderComponent(null);
+
+    await waitFor(() => {
+      expect(container).toSnapshot();
+    });
+  });
+
   it('should show the tags correctly inside ReplayTagsTableRow component with single item array', () => {
     renderComponent(mockReplay);
 
@@ -46,15 +56,25 @@ describe('TagPanel', () => {
     expect(screen.getByText('7.13.2')).toBeInTheDocument();
   });
 
-  it('should snaptshot empty state', async () => {
-    const {container} = renderComponent(null);
+  it('should link known tags to their proper field names', () => {
+    renderComponent(mockReplay);
 
-    await waitFor(() => {
-      expect(container).toSnapshot();
-    });
+    expect(screen.getByText('bar').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=tags%5B%22foo%22%5D%3A%22bar%22'
+    );
   });
 
-  it('should snaptshot state with tags', async () => {
+  it('should link user-submitted tags with the tags[] syntax', () => {
+    renderComponent(mockReplay);
+
+    expect(screen.getByText('a wordy value').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=tags%5B%22my%20custom%20tag%22%5D%3A%22a%20wordy%20value%22'
+    );
+  });
+
+  it('should snapshot state with tags', async () => {
     const {container} = renderComponent(mockReplay);
 
     await waitFor(() => {
@@ -63,9 +83,7 @@ describe('TagPanel', () => {
   });
 
   it('should show not found message when no tags are found', () => {
-    if (mockReplay) {
-      mockReplay.getReplay = jest.fn().mockReturnValue({tags: {}});
-    }
+    mockReplay!.getReplay = jest.fn().mockReturnValue({tags: {}});
 
     renderComponent(mockReplay);
 

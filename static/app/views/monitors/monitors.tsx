@@ -16,6 +16,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -29,7 +30,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import AsyncView from 'sentry/views/asyncView';
 
-import CronsFeedbackButton from './cronsFeedbackButton';
+import CronsFeedbackButton from './components/cronsFeedbackButton';
 import {MonitorRow} from './row';
 import {Monitor} from './types';
 
@@ -117,8 +118,10 @@ class Monitors extends AsyncView<Props, State> {
           </Layout.HeaderContent>
           <Layout.HeaderActions>
             <ButtonBar gap={1}>
-              <NewMonitorButton size="sm">{t('Set Up Cron Monitor')}</NewMonitorButton>
               <CronsFeedbackButton />
+              <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
+                {t('Add monitor')}
+              </NewMonitorButton>
             </ButtonBar>
           </Layout.HeaderActions>
         </Layout.Header>
@@ -146,11 +149,11 @@ class Monitors extends AsyncView<Props, State> {
                 >
                   {monitorList?.map(monitor => (
                     <MonitorRow
-                      key={monitor.id}
+                      key={monitor.slug}
                       monitor={monitor}
                       onDelete={() => {
                         this.setState({
-                          monitorList: monitorList.filter(m => m.id !== monitor.id),
+                          monitorList: monitorList.filter(m => m.slug !== monitor.slug),
                         });
                       }}
                       organization={organization}

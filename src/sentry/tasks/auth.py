@@ -94,7 +94,7 @@ class OrganizationComplianceTask(abc.ABC):
                     ip_address=ip_address,
                     event=audit_log.get_event_id("MEMBER_PENDING"),
                     data=member.get_audit_log_data(),
-                    organization=org,
+                    organization_id=org.id,
                     target_object=org.id,
                     target_user=user,
                 )

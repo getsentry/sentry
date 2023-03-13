@@ -30,6 +30,10 @@ export const ListWrap = styled('ul')`
     padding-top: 0;
   }
 
+  &:empty {
+    padding: 0;
+  }
+
   /* Should scroll if it's in a non-composite select */
   :only-of-type {
     min-height: 0;
@@ -138,4 +142,17 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
   height: 1.4em;
   padding-bottom: 1px;
   pointer-events: none;
+`;
+
+export const EmptyMessage = styled('p')`
+  text-align: center;
+  color: ${p => p.theme.subText};
+  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  margin: 0;
+
+  /* Message should only be displayed when _all_ preceding lists are empty */
+  display: block;
+  ul:not(:empty) ~ & {
+    display: none;
+  }
 `;

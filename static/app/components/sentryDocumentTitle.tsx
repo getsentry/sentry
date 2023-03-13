@@ -1,7 +1,7 @@
 import {createContext, useContext, useEffect, useMemo} from 'react';
 
 type Props = {
-  children?: React.ReactChild;
+  children?: React.ReactNode;
   /**
    * Should the ` - Sentry` suffix be excluded?
    */

@@ -176,6 +176,7 @@ def format_options(attrs: defaultdict(dict)):
             "sentry:performance_issue_creation_rate"
         ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -877,7 +878,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"

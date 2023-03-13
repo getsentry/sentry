@@ -4,6 +4,7 @@ import pytest
 
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
     create_event,
@@ -31,7 +32,7 @@ class ConsecutiveDbDetectorTest(TestCase):
         run_detector_on_data(detector, event)
         return list(detector.stored_problems.values())
 
-    def create_issue_event(self, span_duration=2000):
+    def create_issue_spans(self, span_duration=2000) -> List[Span]:
         spans = [
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
@@ -42,26 +43,24 @@ class ConsecutiveDbDetectorTest(TestCase):
             create_span(
                 "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
             ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint4", "hash4"
-            ),
-            create_span(
-                "http.client", span_duration, "GET /api/0/organizations/endpoint5", "hash5"
-            ),
         ]
         spans = [
             modify_span_start(span, span_duration * spans.index(span)) for span in spans
         ]  # ensure spans don't overlap
 
+        return spans
+
+    def create_issue_event(self, span_duration=2000):
+        spans = self.create_issue_spans(span_duration)
         return create_event(spans)
 
-    def test_detects_conseucitve_http_issue(self):
+    def test_detects_consecutive_http_issue(self):
         event = self.create_issue_event()
         problems = self.find_problems(event)
 
         assert problems == [
             PerformanceProblem(
-                fingerprint="1-1009-e3d915e5dd423874d4bee287a277fafeb6e3245d",
+                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
                 op="http",
                 desc="GET /api/0/organizations/endpoint1",
                 type=PerformanceConsecutiveHTTPQueriesGroupType,
@@ -71,14 +70,70 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
+                ],
+            )
+        ]
+
+    def test_does_not_detect_consecutive_http_issue_with_low_duration(self):
+        event = self.create_issue_event(100)
+        problems = self.find_problems(event)
+
+        assert problems == []
+
+    def test_detects_consecutive_with_non_http_between_http_spans(self):
+        spans = self.create_issue_spans()
+
+        spans.insert(
+            1, modify_span_start(create_span("resource.script", 500, "/static/js/bundle.js"), 2000)
+        )
+
+        event = create_event(spans)
+
+        problems = self.find_problems(event)
+
+        assert problems == [
+            PerformanceProblem(
+                fingerprint="1-1009-30ce2c8eaf7cae732346206dcd23c3f016e75f64",
+                op="http",
+                desc="GET /api/0/organizations/endpoint1",
+                type=PerformanceConsecutiveHTTPQueriesGroupType,
+                parent_span_ids=None,
+                cause_span_ids=[],
+                offender_span_ids=[
+                    "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
             )
         ]
 
-    def test_does_not_detect_conseucitve_http_issue_with_low_duration(self):
-        event = self.create_issue_event(500)
-        problems = self.find_problems(event)
+    def test_does_not_detect_nextjs_asset(self):
+        spans = self.create_issue_spans()
+        assert len(self.find_problems(create_event(spans))) == 1
 
-        assert problems == []
+        spans[0] = modify_span_start(
+            create_span("http.client", 2000, "GET /_next/static/css/file-hash-abc.css", "hash4"),
+            0,
+        )
+
+        assert self.find_problems(create_event(spans)) == []
+
+    def test_does_not_detect_with_high_duration_between_spans(self):
+        span_duration = 2000
+        spans = [
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint1", "hash1"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint2", "hash2"
+            ),
+            create_span(
+                "http.client", span_duration, "GET /api/0/organizations/endpoint3", "hash3"
+            ),
+        ]
+
+        spans = [
+            modify_span_start(span, (10000 + span_duration) * spans.index(span)) for span in spans
+        ]  # ensure spans don't overlap
+
+        assert self.find_problems(create_event(spans)) == []
