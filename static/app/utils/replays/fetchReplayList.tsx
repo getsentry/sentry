@@ -10,18 +10,6 @@ import type {ReplayListRecord} from 'sentry/views/replays/types';
 
 export const DEFAULT_SORT = '-started_at';
 
-export const REPLAY_LIST_FIELDS = [
-  'activity',
-  'count_errors',
-  'duration',
-  'finished_at',
-  'id',
-  'project_id',
-  'started_at',
-  'urls',
-  'user',
-];
-
 type State = {
   fetchError: undefined | RequestError;
   pageLinks: null | string;
