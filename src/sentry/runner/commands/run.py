@@ -433,6 +433,7 @@ def post_process_forwarder(**options):
     is_flag=True,
     help="Switches to the new arroyo consumer implementation.",
 )
+@strict_offset_reset_option()
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
@@ -454,6 +455,9 @@ def query_subscription_consumer(**options):
         subscriber = get_query_subscription_consumer(
             topic=options["topic"],
             group_id=options["group"],
+            strict_offset_reset=options["strict_offset_reset"],
+            initial_offset_reset=options["initial_offset_reset"],
+            force_offset_reset=options["force_offset_reset"],
         )
 
     run_processor_with_signals(subscriber)

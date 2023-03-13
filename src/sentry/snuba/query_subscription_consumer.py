@@ -238,7 +238,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 partition = value.partition.index
                 try:
                     handle_message(
-                        str(message.payload.value),
+                        message.payload.value,
                         offset,
                         partition,
                         self.topic,
@@ -262,6 +262,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def get_query_subscription_consumer(
     topic: str,
     group_id: str,
+    strict_offset_reset: bool,
+    initial_offset_reset: str = "earliest",
+    force_offset_reset: Optional[str] = None,
 ) -> StreamProcessor[KafkaPayload]:
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
@@ -269,6 +272,9 @@ def get_query_subscription_consumer(
         build_kafka_consumer_configuration(
             cluster_options,
             group_id=group_id,
+            strict_offset_reset=strict_offset_reset,
+            initial_offset_reset=initial_offset_reset,
+            force_offset_reset=force_offset_reset,
         )
     )
     metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
