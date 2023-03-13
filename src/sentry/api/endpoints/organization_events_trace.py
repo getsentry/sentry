@@ -87,9 +87,15 @@ class TraceError(TypedDict):
     level: str
 
 
-class TracePerformanceIssue(TraceError):
-    suspect_spans: Dict[str, Any]
+class TracePerformanceIssue(TypedDict):
+    event_id: str
+    issue_id: int
     span: List[str]
+    suspect_spans: List[str]
+    project_id: int
+    project_slug: str
+    title: str
+    level: str
 
 
 LightResponse = TypedDict(
@@ -144,7 +150,7 @@ class TraceEvent:
         event: SnubaTransaction,
         parent: Optional[str],
         generation: Optional[int],
-        light: Optional[bool] = False,
+        light: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
@@ -177,29 +183,29 @@ class TraceEvent:
             if group is None:
                 continue
 
+            suspect_spans: List[str] = []
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
-                suspect_spans = []
             else:
-                if self.nodestore_event is None:
-                    span = self.event["trace.span"]
-                hashes = self.nodestore_event.get_hashes().hashes
-                problems = [
-                    eventproblem.problem
-                    for eventproblem in EventPerformanceProblem.fetch_multi(
-                        [(self.nodestore_event, event_hash) for event_hash in hashes]
-                    )
-                ]
-                unique_spans = set()
-                for problem in problems:
-                    unique_spans = unique_spans.union(problem.parent_span_ids)
-                span = list(unique_spans)
-                suspect_spans = []
-                for event_span in self.nodestore_event.data.get("spans", []):
+                if self.nodestore_event is not None:
+                    hashes = self.nodestore_event.get_hashes().hashes
+                    problems = [
+                        eventproblem.problem
+                        for eventproblem in EventPerformanceProblem.fetch_multi(
+                            [(self.nodestore_event, event_hash) for event_hash in hashes]
+                        )
+                    ]
+                    unique_spans: Set[str] = set()
                     for problem in problems:
-                        if event_span.get("span_id") in problem.offender_span_ids:
-                            suspect_spans.append(event_span.get("span_id"))
+                        unique_spans = unique_spans.union(problem.parent_span_ids)
+                    span = list(unique_spans)
+                    for event_span in self.nodestore_event.data.get("spans", []):
+                        for problem in problems:
+                            if event_span.get("span_id") in problem.offender_span_ids:
+                                suspect_spans.append(event_span.get("span_id"))
+                else:
+                    span = [self.event["trace.span"]]
 
             self.performance_issues.append(
                 {
@@ -275,7 +281,7 @@ def is_root(item: SnubaTransaction) -> bool:
 
 
 def child_sort_key(item: TraceEvent) -> List[int]:
-    if item.fetched_nodestore:
+    if item.fetched_nodestore is not None and item.nodestore_event is not None:
         return [
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
@@ -297,7 +303,7 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
         Function("sum", [Function("length", [Column("group_ids")])], "total_groups")
     )
     count = transaction_query.run_query("api.trace-view.count-performance-issues")
-    return count["data"][0].get("total_groups", 0)
+    return cast(int, count["data"][0].get("total_groups", 0))
 
 
 def query_trace_data(
@@ -697,7 +703,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             del parent_map[to_remove["trace.parent_span"]]
                     to_check = deque()
 
-                spans: NodeSpans = previous_event.nodestore_event.data.get("spans", [])
+                spans: NodeSpans = (
+                    previous_event.nodestore_event.data.get("spans", [])
+                    if previous_event.nodestore_event
+                    else []
+                )
 
                 # Need to include the transaction as a span as well
                 #
