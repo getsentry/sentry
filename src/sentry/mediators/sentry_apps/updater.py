@@ -130,7 +130,7 @@ class Updater(Mediator, SentryAppMixin):
         if webhook_url and self.sentry_app.is_internal and not hooks:
             installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
             service_hooks.Creator.run(
-                application=self.sentry_app.application,
+                application_id=self.sentry_app.application_id,
                 actor=installation,
                 projects=[],
                 organization=self.sentry_app.owner,
