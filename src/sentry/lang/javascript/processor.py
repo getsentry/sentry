@@ -714,7 +714,8 @@ class Fetcher:
                 source_file_type=source_file_type.value if source_file_type is not None else None,
             )
             .order_by("-date_added")
-            .select_related("artifact_bundle__file")[:1][0]
+            .select_related("artifact_bundle__file")
+            .first()[0]
         )
 
     @staticmethod
@@ -880,15 +881,23 @@ class Fetcher:
 
         # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
         #  we have permissions on not all the bundles.
-        return (
+        entries = (
             ReleaseArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 release_name=self.release.version,
                 dist_name=self.dist.name if self.dist else NULL_STRING,
             )
             .order_by("-date_added")
-            .select_related("artifact_bundle__file")[:MAX_ARTIFACTS_NUMBER]
+            .select_related("artifact_bundle__file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
+
+        if len(entries) == MAX_ARTIFACTS_NUMBER + 1:
+            logger.debug(
+                f"The number of artifact bundles for the release {self.release.version}"
+                f"is more than {MAX_ARTIFACTS_NUMBER}"
+            )
+
+        return entries[:MAX_ARTIFACTS_NUMBER]
 
     def _open_archive_by_url(self, url):
         """
