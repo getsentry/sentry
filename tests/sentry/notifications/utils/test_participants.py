@@ -168,7 +168,9 @@ class GetSendToTeamTest(_ParticipantsTest):
             NotificationSettingOptionValues.ALWAYS,
             team=self.team,
         )
-        assert self.get_send_to_team() == {ExternalProviders.SLACK: {self.team}}
+        assert self.get_send_to_team() == {
+            ExternalProviders.SLACK: {RpcActor.from_orm_team(self.team)}
+        }
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.SLACK,
@@ -176,7 +178,7 @@ class GetSendToTeamTest(_ParticipantsTest):
             NotificationSettingOptionValues.NEVER,
             team=self.team,
         )
-        assert self.get_send_to_team() == self.build_expected_recipients([self.user])
+        assert self.get_send_to_team() == self.build_expected_recipients([self.user.id])
 
     def test_other_project_team(self):
         user_2 = self.create_user()
