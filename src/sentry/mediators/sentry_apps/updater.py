@@ -114,7 +114,7 @@ class Updater(Mediator, SentryAppMixin):
         self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self):
-        hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
+        hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application_id)
         # sentry_app.webhook_url will be updated at this point
         webhook_url = self.sentry_app.webhook_url
         for hook in hooks:
