@@ -22,7 +22,6 @@ class NotificationActionTest(TestCase):
         )
         self.illegal_trigger = (-1, "sandevistan")
         self.illegal_service = (-1, "braindance")
-        # Reset registers for tests
 
     @patch.object(NotificationActionLogger, "error")
     def test_register_handler_for_fire(self, mock_error_logger):

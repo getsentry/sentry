@@ -45,12 +45,12 @@ class ActionService(FlexibleIntEnum):
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
-            (cls.EMAIL, "email"),
-            (cls.PAGERDUTY, "pagerduty"),
-            (cls.SLACK, "slack"),
-            (cls.MSTEAMS, "msteams"),
-            (cls.SENTRY_APP, "sentry_app"),
-            (cls.SENTRY_NOTIFICATION, "sentry_notification"),
+            (cls.EMAIL.value, "email"),
+            (cls.PAGERDUTY.value, "pagerduty"),
+            (cls.SLACK.value, "slack"),
+            (cls.MSTEAMS.value, "msteams"),
+            (cls.SENTRY_APP.value, "sentry_app"),
+            (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
         )
 
 
@@ -71,10 +71,10 @@ class ActionTarget(FlexibleIntEnum):
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
-            (cls.SPECIFIC, "specific"),
-            (cls.USER, "user"),
-            (cls.TEAM, "team"),
-            (cls.SENTRY_APP, "sentry_app"),
+            (cls.SPECIFIC.value, "specific"),
+            (cls.USER.value, "user"),
+            (cls.TEAM.value, "team"),
+            (cls.SENTRY_APP.value, "sentry_app"),
         )
 
 
@@ -97,7 +97,7 @@ class AbstractNotificationAction(Model):
     target_display = models.TextField(null=True)
 
     @property
-    def service_type(self) -> ActionService:
+    def service_type(self) -> int:
         """
         Used for disambiguity of self.type
         """
@@ -117,7 +117,7 @@ class ActionTrigger(FlexibleIntEnum):
 
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
-        return ((cls.AUDIT_LOG, "audit-log"),)
+        return ((cls.AUDIT_LOG.value, "audit-log"),)
 
 
 class TriggerGenerator:
@@ -168,7 +168,7 @@ class NotificationAction(AbstractNotificationAction):
         "sentry.SentryApp", blank=True, null=True, on_delete="CASCADE"
     )
 
-    # The type of trigger which controls when the actions will go off (e.g. spike-protecion)
+    # The type of trigger which controls when the actions will go off (e.g. spike-protection)
     trigger_type = models.SmallIntegerField(choices=TriggerGenerator())
 
     class Meta:
@@ -185,13 +185,13 @@ class NotificationAction(AbstractNotificationAction):
         This method is used for adding trigger types to this model from getsentry.
         If the trigger is relevant to sentry as well, directly modify ActionTrigger.
         """
-        cls._trigger_types = cls._trigger_types + ((value, display_text),)
+        cls._trigger_types: List[Tuple[int, str]] = cls._trigger_types + ((value, display_text),)
 
     @classmethod
     def register_handler(
         cls,
-        trigger_type: ActionTrigger,
-        service_type: ActionService,
+        trigger_type: int,
+        service_type: int,
     ):
         def inner(handler):
             if service_type not in cls._handlers[trigger_type]:
