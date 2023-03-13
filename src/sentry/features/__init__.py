@@ -152,7 +152,6 @@ default_manager.add("organizations:required-email-verification", OrganizationFea
 default_manager.add("organizations:rule-page", OrganizationFeature)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, True)
 default_manager.add("organizations:scaleable-codeowners-search", OrganizationFeature)
-default_manager.add("organizations:scim-orgmember-roles", OrganizationFeature, True)
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, True)
 default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, True)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, False)
