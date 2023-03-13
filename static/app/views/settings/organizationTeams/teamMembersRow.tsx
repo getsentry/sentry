@@ -7,7 +7,8 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, TeamMember, User} from 'sentry/types';
+import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
+import {getTopOrgRole} from 'sentry/utils';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -18,19 +19,21 @@ const TeamMembersRow = (props: {
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
+  team: Team;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
-  teamOrgRole?: string;
 }) => {
   const {
     organization,
-    teamOrgRole,
+    team,
     member,
     user,
     hasWriteAccess,
     removeMember,
     updateMemberRole,
   } = props;
+
+  const orgRoleFromTeam = team.orgRole ?? undefined;
 
   return (
     <TeamRolesPanelItem key={member.id}>
@@ -42,7 +45,7 @@ const TeamMembersRow = (props: {
           hasWriteAccess={hasWriteAccess}
           updateMemberRole={updateMemberRole}
           organization={organization}
-          teamOrgRole={teamOrgRole}
+          orgRoleFromTeam={orgRoleFromTeam}
           member={member}
         />
       </div>
@@ -63,9 +66,9 @@ const TeamRoleSelect = (props: {
   member: TeamMember;
   organization: Organization;
   updateMemberRole: (member: TeamMember, newRole: string) => void;
-  teamOrgRole?: string;
+  orgRoleFromTeam?: string;
 }) => {
-  const {hasWriteAccess, organization, teamOrgRole, member, updateMemberRole} = props;
+  const {hasWriteAccess, organization, orgRoleFromTeam, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
     return null;
@@ -74,19 +77,11 @@ const TeamRoleSelect = (props: {
   // determine the team role, including if the current team has an org role
   // and if adding the user to the team changes their minimum team role
   const {orgRolesFromTeams: orgRolesFromTeams} = member;
-
-  const memberOrgRoles = [member.orgRole, teamOrgRole];
-  if (orgRolesFromTeams && orgRolesFromTeams.length > 0) {
-    memberOrgRoles.push(orgRolesFromTeams[0].role.id);
-  }
-  // sort by ascending index
-  memberOrgRoles.sort((a, b) =>
-    orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
-      ? 1
-      : -1
+  const topOrgRole = getTopOrgRole(
+    [member.orgRole],
+    [orgRolesFromTeams ? orgRolesFromTeams[0].role.id : undefined, orgRoleFromTeam],
+    orgRoleList
   );
-
-  const topOrgRole = orgRoleList.find(r => r.id === memberOrgRoles[0]);
 
   const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];

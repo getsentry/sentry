@@ -3,7 +3,7 @@ import isArray from 'lodash/isArray';
 import isObject from 'lodash/isObject';
 import isString from 'lodash/isString';
 
-import {Project} from 'sentry/types';
+import {OrgRole, Project} from 'sentry/types';
 import {EventTag} from 'sentry/types/event';
 import {appendTagCondition} from 'sentry/utils/queryString';
 
@@ -333,4 +333,25 @@ export const isFunction = (value: any): value is Function => typeof value === 'f
 // NOTE: only escapes a " if it's not already escaped
 export function escapeDoubleQuotes(str: string) {
   return str.replace(/\\([\s\S])|(")/g, '\\$1$2');
+}
+
+export function getTopOrgRole(
+  memberOrgRoles: string[],
+  possibleOrgRoles: (string | undefined)[],
+  orgRoleList: OrgRole[]
+) {
+  // array contains possibly undefined values; filter them out
+  possibleOrgRoles.forEach(orgRole => {
+    if (orgRole) {
+      memberOrgRoles.push(orgRole);
+    }
+  });
+  // sort by ascending index
+  memberOrgRoles.sort((a, b) =>
+    orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
+      ? 1
+      : -1
+  );
+
+  return orgRoleList.find(r => r.id === memberOrgRoles[0]);
 }
