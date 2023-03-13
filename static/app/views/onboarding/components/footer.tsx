@@ -147,14 +147,16 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     const selectedProjectId = projects.find(project => project.slug === projectSlug)?.id;
 
+    let pathname = `/organizations/${organization.slug}/issues/?`;
+    if (selectedProjectId) {
+      pathname += `project=${selectedProjectId}&`;
+    }
+
     openChangeRouteModal({
       router,
       nextLocation: {
         ...router.location,
-        pathname:
-          `/organizations/${organization.slug}/issues/?` +
-          (selectedProjectId ? `project=${selectedProjectId}&` : '') +
-          `referrer=onboarding-first-event-footer-skip`,
+        pathname: (pathname += `referrer=onboarding-first-event-footer-skip`),
       },
       setClientState,
       clientState,

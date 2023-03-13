@@ -196,7 +196,7 @@ function Onboarding(props: Props) {
     });
 
     // from selected platform to welcome
-    if (stepIndex === onboardingSteps.length - 2) {
+    if (onboardingSteps[stepIndex].id === 'welcome') {
       setClientState({
         platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
         selectedPlatforms: [],
@@ -207,7 +207,7 @@ function Onboarding(props: Props) {
 
     // from setup docs to selected platform
     if (
-      stepIndex === onboardingSteps.length - 1 &&
+      onboardingSteps[stepIndex].id === 'setup-docs' &&
       projectDeletionOnBackClick &&
       selectedProject
     ) {
@@ -218,22 +218,26 @@ function Onboarding(props: Props) {
         sessionStorage.status === undefined ||
         sessionStorage.status === OnboardingStatus.WAITING;
 
+      let platformToProjectIdMap = clientState?.platformToProjectIdMap ?? {};
+
       if (projectShallBeRemoved) {
         deleteProject(selectedProjectSlug);
-      }
 
-      setClientState({
-        url: 'select-platform/',
-        state: 'projects_selected',
-        selectedPlatforms: [selectedProject.slug as PlatformKey],
-        platformToProjectIdMap: Object.keys(
+        platformToProjectIdMap = Object.keys(
           clientState?.platformToProjectIdMap ?? {}
         ).reduce((acc, platform) => {
           if (!acc[platform] && platform !== selectedProject.slug) {
             acc[platform] = platform;
           }
           return acc;
-        }, {}),
+        }, {});
+      }
+
+      setClientState({
+        url: 'select-platform/',
+        state: 'projects_selected',
+        selectedPlatforms: [selectedProject.slug as PlatformKey],
+        platformToProjectIdMap,
       });
     }
 
