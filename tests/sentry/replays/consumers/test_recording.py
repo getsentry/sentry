@@ -31,9 +31,10 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
             lambda x, force=False: None, None
         )
         segment_id = 0
+        segment_bytes = zlib.compress(b"[]")
         consumer_messages = [
             {
-                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + zlib.compress(b"test"),
+                "payload": f'{{"segment_id":{segment_id}}}\n'.encode() + segment_bytes[0:5],
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -42,9 +43,10 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "org_id": self.organization.id,
                 "received": time.time(),
                 "key_id": 123,
+                "retention_days": 30,
             },
             {
-                "payload": zlib.compress(b"foobar"),
+                "payload": segment_bytes[5:],
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -52,6 +54,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "type": "replay_recording_chunk",
                 "org_id": self.organization.id,
                 "received": time.time(),
+                "retention_days": 30,
             },
             {
                 "type": "replay_recording",
@@ -63,6 +66,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
                 "org_id": self.organization.id,
                 "received": time.time(),
+                "retention_days": 30,
             },
         ]
         for message in consumer_messages:
@@ -83,10 +87,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         recording = File.objects.get(name=recording_file_name)
 
         assert recording
-        assert (
-            recording.checksum
-            == sha1(zlib.compress(b"test") + zlib.compress(b"foobar")).hexdigest()
-        )
+        assert recording.checksum == sha1(segment_bytes).hexdigest()
         assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
 
         self.project.refresh_from_db()
@@ -114,7 +115,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         segment_id = 0
         consumer_messages = [
             {
-                "payload": f'{{"segment_id":{segment_id}}}\ntest',
+                "payload": f'{{"segment_id":{segment_id}}}\n[',
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -123,9 +124,10 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "org_id": self.organization.id,
                 "received": time.time(),
                 "key_id": 123,
+                "retention_days": 30,
             },
             {
-                "payload": "foobar",
+                "payload": "]",
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
@@ -133,6 +135,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "type": "replay_recording_chunk",
                 "org_id": self.organization.id,
                 "received": time.time(),
+                "retention_days": 30,
             },
             {
                 "type": "replay_recording",
@@ -144,6 +147,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "project_id": self.project.id,
                 "org_id": self.organization.id,
                 "received": time.time(),
+                "retention_days": 30,
             },
         ]
         for message in consumer_messages:
@@ -164,9 +168,9 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         recording = File.objects.get(name=recording_file_name)
 
         assert recording
-        assert recording.checksum == sha1(b"testfoobar").hexdigest()
+        assert recording.checksum == sha1(b"[]").hexdigest()
         segment = ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
-        assert segment.size == len(b"testfoobar")
+        assert segment.size == len(b"[]")
 
         self.project.refresh_from_db()
         assert self.project.flags.has_replays
@@ -178,20 +182,22 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         segment_id = 0
         consumer_messages = [
             {
-                "payload": f'{{"segment_id":{segment_id}}}\ntest'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\n[]'.encode(),
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
                 "chunk_index": 0,
                 "type": "replay_recording_chunk",
+                "retention_days": 30,
             },
             {
-                "payload": f'{{"segment_id":{segment_id}}}\nduplicatedyadada'.encode(),
+                "payload": f'{{"segment_id":{segment_id}}}\n[]'.encode(),
                 "replay_id": self.replay_id,
                 "project_id": self.project.id,
                 "id": self.replay_recording_id,
                 "chunk_index": 0,
                 "type": "replay_recording_chunk",
+                "retention_days": 30,
             },
             {
                 "type": "replay_recording",
@@ -204,6 +210,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                 "key_id": 123,
                 "received": time.time(),
                 "project_id": self.project.id,
+                "retention_days": 30,
             },
         ]
         for message in consumer_messages:
@@ -247,7 +254,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                                 "key_id": 123,
                                 "project_id": self.project.id,
                                 "received": time.time(),
-                                "payload": b'{"segment_id":0}\n' + zlib.compress(b"test"),
+                                "retention_days": 30,
+                                "payload": b'{"segment_id":0}\n' + zlib.compress(b"[]"),
                             }
                         ),
                         [("should_drop", b"1")],
@@ -265,7 +273,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         recording = File.objects.get(name=recording_file_name)
 
         assert recording
-        assert recording.checksum == sha1(zlib.compress(b"test")).hexdigest()
+        assert recording.checksum == sha1(zlib.compress(b"[]")).hexdigest()
         assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
 
         self.project.refresh_from_db()
@@ -307,7 +315,8 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
                                 "key_id": 123,
                                 "project_id": self.project.id,
                                 "received": time.time(),
-                                "payload": b'{"segment_id":0}\n' + b"test",
+                                "retention_days": 30,
+                                "payload": b'{"segment_id":0}\n' + b"[]",
                             }
                         ),
                         [("should_drop", b"1")],
@@ -325,7 +334,7 @@ class TestRecordingsConsumerEndToEnd(TransactionTestCase):
         recording = File.objects.get(name=recording_file_name)
 
         assert recording
-        assert recording.checksum == sha1(b"test").hexdigest()
+        assert recording.checksum == sha1(b"[]").hexdigest()
         assert ReplayRecordingSegment.objects.get(replay_id=self.replay_id)
 
         self.project.refresh_from_db()

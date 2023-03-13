@@ -15,6 +15,7 @@ from sentry.models import File
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
+from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -43,6 +44,7 @@ class RecordingSegmentChunkMessage(TypedDict):
 
 
 class RecordingSegmentMessage(TypedDict):
+    retention_days: int
     replay_id: str  # the uuid of the encompassing replay event
     org_id: int
     project_id: int
@@ -52,6 +54,7 @@ class RecordingSegmentMessage(TypedDict):
 
 
 class RecordingMessage(TypedDict):
+    retention_days: int
     replay_id: str
     key_id: int | None
     org_id: int
@@ -66,6 +69,7 @@ class MissingRecordingSegmentHeaders(ValueError):
 
 @dataclasses.dataclass
 class RecordingIngestMessage:
+    retention_days: int
     replay_id: str
     key_id: int | None
     org_id: int | None
@@ -100,6 +104,7 @@ def ingest_recording_chunked(
             return None
 
         message = RecordingIngestMessage(
+            retention_days=message_dict["retention_days"],
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
             org_id=message_dict.get("org_id"),
@@ -122,6 +127,7 @@ def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Sp
         description="ingest_recording_not_chunked",
     ):
         message = RecordingIngestMessage(
+            retention_days=message_dict["retention_days"],
             replay_id=message_dict["replay_id"],
             key_id=message_dict.get("key_id"),
             org_id=message_dict.get("org_id"),
@@ -191,8 +197,14 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         # Cleanup the blob.
         file.delete()
 
-    # TODO: how to handle failures in the above calls. what should happen?
-    # also: handling same message twice?
+    # Emit DOM search metadata to Clickhouse.
+    parse_and_emit_replay_actions(
+        project_id=message.project_id,
+        replay_id=message.replay_id,
+        segment_id=headers["segment_id"],
+        retention_days=message.retention_days,
+        segment_bytes=recording_segment,
+    )
 
     # TODO: in join wait for outcomes producer to flush possibly,
     # or do this in a separate arroyo step
