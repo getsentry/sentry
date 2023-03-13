@@ -5,13 +5,12 @@ import logging
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Type
 
 from sentry.db.models import Model
-from sentry.models import Team
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.role_based_recipient_strategy import (
     RoleBasedRecipientStrategy,
 )
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -49,7 +48,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return ""
 
     def build_notification_footer(self, recipient: RpcActor, provider: ExternalProviders) -> str:
-        if isinstance(recipient, Team):
+        if recipient.actor_type == ActorType.TEAM:
             raise NotImplementedError
 
         settings_url = self.format_url(
@@ -66,7 +65,7 @@ class OrganizationRequestNotification(BaseNotification, abc.ABC):
         return None
 
     def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
-        if isinstance(recipient, Team):
+        if recipient.actor_type == ActorType.TEAM:
             raise NotImplementedError
 
         return {
