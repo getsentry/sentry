@@ -43,7 +43,11 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
-                int(params["duration"] * 1000) if params.get("duration") is not None else None
+                # Duration is specified in seconds from the client, it is
+                # stored in the checkin model as miliseconds
+                int(params["duration"] * 1000)
+                if params.get("duration") is not None
+                else None
             )
 
             try:
@@ -63,7 +67,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 # Note that the clock of this worker may be off from what Relay is reporting.
                 date_added = start_time
                 if duration is not None:
-                    date_added -= datetime.timedelta(seconds=duration)
+                    date_added -= datetime.timedelta(milliseconds=duration)
 
                 check_in = MonitorCheckIn.objects.create(
                     project_id=project_id,
