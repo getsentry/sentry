@@ -6,6 +6,7 @@ import logging
 import random
 import re
 import time
+import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from hashlib import md5
@@ -26,6 +27,7 @@ from typing import (
 )
 
 import sentry_sdk
+from confluent_kafka import Producer
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
@@ -78,6 +80,7 @@ from sentry.grouping.api import (
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory, reduce_noise
+from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -132,6 +135,7 @@ from sentry.utils.cache import cache_key_for_event
 from sentry.utils.canonical import CanonicalKeyDict
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.event import has_event_minified_stack_trace
+from sentry.utils.kafka_config import get_kafka_producer_cluster_options
 from sentry.utils.metrics import MutableTags
 from sentry.utils.outcomes import Outcome, track_outcome
 from sentry.utils.performance_issues.performance_detection import (
@@ -2455,6 +2459,63 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
                 EventPerformanceProblem(event, performance_problems_by_hash[problem_hash]).save()
 
 
+@metrics.wraps("save_event.send_occurrence_to_platform")
+def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
+    for job in jobs:
+        event = job["event"]
+        project = event.project
+        event_id = event.event_id
+
+        # add a system wide option here as well
+        # add a custom project option here
+        # per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
+        # if per_project_rate > random.random():
+        performance_problems = job["performance_problems"]
+        for problem in performance_problems:
+            # double check if it makes sense to do this
+            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
+            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
+            problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
+
+            occurrence = IssueOccurrence(
+                id=uuid.uuid4().hex,
+                resource_id=None,
+                project_id=project.id,
+                event_id=event_id,
+                fingerprint=[problem.fingerprint],
+                type=problem.type,
+                issue_title=problem.title,
+                subtitle=event.transaction,
+                # TODO use this to set metadata.value="problem.desc"
+                evidence_data={"value": problem.desc},
+                evidence_display=[
+                    IssueEvidence(
+                        name="parent_span_ids", value=problem.parent_span_ids, important=True
+                    ),
+                    IssueEvidence(
+                        name="cause_span_ids", value=problem.cause_span_ids, important=False
+                    ),
+                    IssueEvidence(
+                        name="offender_span_ids", value=problem.offender_span_ids, important=False
+                    ),
+                ],
+                detection_time=event.datetime,
+                level="info",
+            )
+
+            topic = settings.KAFKA_INGEST_OCCURRENCES
+            cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
+            cluster_options = get_kafka_producer_cluster_options(cluster_name)
+            producer = Producer(cluster_options)
+
+            producer.produce(
+                topic=topic,
+                key=None,
+                value=json.dumps(occurrence.to_dict(), default=str),
+            )
+            producer.flush()
+
+
 @metrics.wraps("event_manager.save_transaction_events")
 def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Sequence[Job]:
     with metrics.timer("event_manager.save_transactions.collect_organization_ids"):
@@ -2493,6 +2554,7 @@ def save_transaction_events(jobs: Sequence[Job], projects: ProjectsMapping) -> S
     _nodestore_save_many(jobs)
     _eventstream_insert_many(jobs)
     _track_outcome_accepted_many(jobs)
+    _send_occurrence_to_platform(jobs, projects)
     return jobs
 
 
