@@ -7,12 +7,13 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 
 class GetSettingMappingFromMappingTest(TestCase):
     def setUp(self):
-        self.user = User(id=1)
+        self.user = RpcActor.from_orm_user(User(id=1))
 
     def test_get_setting_mapping_from_mapping_issue_alerts(self):
         notification_settings = {
