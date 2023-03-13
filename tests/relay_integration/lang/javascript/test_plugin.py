@@ -2108,6 +2108,9 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
         release.add_project(project)
         dist = release.add_dist("android")
+        # We want to also add debug_id information inside the manifest but not in the stack trace to replicate a
+        # real edge case that we can incur in.
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
 
         compressed = BytesIO()
         with zipfile.ZipFile(compressed, mode="w") as zip_file:
@@ -2130,6 +2133,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                 "headers": {
                                     "content-type": "application/json",
                                     "sourcemap": "file.wc.sourcemap.js",
+                                    "debug-id": debug_id,
                                 },
                             },
                             "files/_/_/file1.js": {
@@ -2158,9 +2162,19 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
                                 "type": "source_map",
                                 "headers": {
                                     "content-type": "application/json",
+                                    "debug-id": debug_id,
                                 },
                             },
-                        }
+                        },
+                        "debug_meta": {
+                            "images": [
+                                {
+                                    "type": "sourcemap",
+                                    "debug_id": debug_id,
+                                    "code_file": "http://example.com/file.min.js",
+                                }
+                            ]
+                        },
                     }
                 ),
             )
@@ -2359,4 +2373,120 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             "type": "js_missing_sources_content",
             "source": "http://example.com/file.min.js",
             "sourcemap": "http://example.com/file.sourcemap.js",
+        }
+
+    def test_expansion_with_release_dist_pair_and_malformed_sourcemap(self):
+        project = self.project
+        release = Release.objects.create(organization_id=project.organization_id, version="abc")
+        release.add_project(project)
+        dist = release.add_dist("android")
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            zip_file.writestr("files/_/_/file.min.js", load_fixture("file.min.js"))
+            zip_file.writestr("files/_/_/file1.js", load_fixture("file1.js"))
+            zip_file.writestr("files/_/_/file2.js", load_fixture("file2.js"))
+            zip_file.writestr("files/_/_/empty.js", load_fixture("empty.js"))
+            zip_file.writestr(
+                "files/_/_/file.malformed.sourcemap.js", load_fixture("file.malformed.sourcemap.js")
+            )
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        "files": {
+                            "files/_/_/file.min.js": {
+                                "url": "~/file.min.js",
+                                "type": "minified_source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                    "sourcemap": "file.malformed.sourcemap.js",
+                                },
+                            },
+                            "files/_/_/file1.js": {
+                                "url": "~/file1.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file2.js": {
+                                "url": "~/file2.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/empty.js": {
+                                "url": "~/empty.js",
+                                "type": "source",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                            "files/_/_/file.malformed.sourcemap.js": {
+                                "url": "~/file.malformed.sourcemap.js",
+                                "type": "source_map",
+                                "headers": {
+                                    "content-type": "application/json",
+                                },
+                            },
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name="bundle.zip", type="artifact.bundle")
+        file.putfile(compressed)
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle,
+        )
+
+        data = {
+            "timestamp": self.min_ago,
+            "message": "hello",
+            "platform": "javascript",
+            "release": release.version,
+            "dist": dist.name,
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "stacktrace": {
+                            "frames": [
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 39,
+                                },
+                                {
+                                    "abs_path": "http://example.com/file.min.js",
+                                    "filename": "file.min.js",
+                                    "lineno": 1,
+                                    "colno": 79,
+                                },
+                            ]
+                        },
+                    }
+                ]
+            },
+        }
+
+        event = self.post_and_retrieve_event(data)
+
+        assert len(event.data["errors"]) == 1
+        assert event.data["errors"][0] == {
+            "type": "js_invalid_source",
+            "url": "http://example.com/file.malformed.sourcemap.js",
         }

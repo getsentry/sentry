@@ -1399,7 +1399,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
 
         url_new_errors = self.fetch_by_url_new_errors.get(frame["abs_path"])
         if url_new_errors:
-            url_new_errors.extend(url_new_errors)
+            all_errors.extend(url_new_errors)
 
         debug_id_errors = self.fetch_by_debug_id_errors.get(debug_id)
         if debug_id_errors is not None:
