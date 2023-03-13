@@ -230,7 +230,6 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  display: flex;
   margin-right: 5px;
 `;
 
