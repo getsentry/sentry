@@ -897,6 +897,7 @@ class Fetcher:
             )
 
         try:
+            # We want to first lookup in all existing open archives, just to save us an expensive query.
             cached_open_archive = self._lookup_in_open_archives(file_by_url_candidates_lookup)
             if cached_open_archive:
                 return cached_open_archive

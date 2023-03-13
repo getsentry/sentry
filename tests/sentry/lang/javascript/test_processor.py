@@ -1307,6 +1307,14 @@ class FetchByUrlNewTest(FetchTest):
             assert fetcher.open_archives[key] == INVALID_ARCHIVE
         fetcher.close()
 
+    def test_no_release_artifact_bundles_entries(self):
+        dist = self.release.add_dist("android")
+
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result is None
+        assert len(fetcher.open_archives) == 0
+
 
 class FetchByDebugIdTest(FetchTest):
     def test_fetch_by_debug_id_with_valid_params(self):
