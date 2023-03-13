@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 from django.http import HttpResponseNotAllowed
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
@@ -282,5 +283,8 @@ def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
     def dispatcher(request, *args, **kwargs):  # type: ignore[no-untyped-def]
         handler = dispatch_mapping.get(request.method, invalid_method)
         return handler(request, *args, **kwargs)
+
+    if dispatch_mapping.get("csrf_exempt"):
+        return csrf_exempt(dispatcher)
 
     return dispatcher
