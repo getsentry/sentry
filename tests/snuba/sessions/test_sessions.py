@@ -8,7 +8,6 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.release_health.metrics_legacy import MetricsReleaseHealthLegacyBackend
 from sentry.release_health.sessions import SessionsReleaseHealthBackend
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.sessions import _make_stats
@@ -28,15 +27,6 @@ def parametrize_backend(cls):
 
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
-
-    class MetricsLegacyTest(BaseMetricsTestCase, cls):
-        __doc__ = f"Repeat tests from {cls} with metrics"
-        backend = MetricsReleaseHealthLegacyBackend()
-        adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
-
-    MetricsLegacyTest.__name__ = f"{cls.__name__}MetricsLegacy"
-
-    globals()[MetricsLegacyTest.__name__] = MetricsLegacyTest
 
     class MetricsLayerTest(BaseMetricsTestCase, cls):
         __doc__ = f"Repeat tests from {cls} with metrics layer"
