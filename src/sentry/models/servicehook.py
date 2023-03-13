@@ -1,4 +1,5 @@
 import hmac
+from functools import cached_property
 from hashlib import sha256
 from uuid import uuid4
 
@@ -12,12 +13,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    region_silo_only_model,
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models import SentryApp
+from sentry.services.hybrid_cloud.app import app_service
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -27,12 +28,12 @@ SERVICE_HOOK_EVENTS = [
 ]
 
 
-@control_silo_only_model
+@region_silo_only_model
 class ServiceHookProject(Model):
     __include_in_export__ = False
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
-    project_id = HybridCloudForeignKey("sentry.Project", on_delete="CASCADE")
+    project_id = BoundedBigIntegerField(null=True)
 
     class Meta:
         app_label = "sentry"
@@ -44,16 +45,16 @@ def generate_secret():
     return uuid4().hex + uuid4().hex
 
 
-@control_silo_only_model
+@region_silo_only_model
 class ServiceHook(Model):
     __include_in_export__ = True
 
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user
-    application = FlexibleForeignKey("sentry.ApiApplication", null=True)
+    application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="CASCADE")
     actor_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True, null=True)
-    organization_id = HybridCloudForeignKey("sentry.Organization", null=True, on_delete="CASCADE")
+    organization_id = BoundedBigIntegerField(null=True)
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
@@ -73,14 +74,11 @@ class ServiceHook(Model):
 
     @property
     def created_by_sentry_app(self):
-        return self.application_id and self.sentry_app
+        return self.application_id and bool(self.sentry_app)
 
-    @property
+    @cached_property
     def sentry_app(self):
-        try:
-            return SentryApp.objects.get(application_id=self.application_id)
-        except SentryApp.DoesNotExist:
-            return
+        return app_service.find_service_hook_sentry_app(api_application_id=self.application_id)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

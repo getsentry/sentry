@@ -4,7 +4,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
-from sentry.models import Integration, OutboxCategory, User, process_control_outbox
+from sentry.models import ApiApplication, Integration, OutboxCategory, User, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
 
 
@@ -20,3 +20,10 @@ def process_integration_updates(object_identifier: int, **kwds: Any):
     if (integration := maybe_process_tombstone(Integration, object_identifier)) is None:
         return
     integration  # Currently we do not sync any other integration changes, but if we did, you can use this variable.
+
+
+@receiver(process_control_outbox, sender=OutboxCategory.API_APPLICATION_UPDATE)
+def process_api_application_updates(object_identifier: int, **kwds: Any):
+    if (api_application := maybe_process_tombstone(ApiApplication, object_identifier)) is None:
+        return
+    api_application  # Currently we do not sync any other api application changes, but if we did, you can use this variable.
