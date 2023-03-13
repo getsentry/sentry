@@ -23,23 +23,31 @@ class Migration(CheckedMigration):
         ("sentry", "0379_create_notificationaction_model"),
     ]
 
-    operations = [
-        migrations.SeparateDatabaseAndState(
-            state_operations=[
-                migrations.AlterField(
-                    model_name="servicehook",
-                    name="organization_id",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Organization", db_index=True, null=True, on_delete="CASCADE"
-                    ),
-                ),
-                migrations.AlterField(
-                    model_name="servicehookproject",
-                    name="project_id",
-                    field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
-                        "sentry.Project", db_index=True, on_delete="CASCADE"
-                    ),
-                ),
-            ]
-        )
+    database_operations = [
+        migrations.AlterField(
+            model_name="servicehook",
+            name="application",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                to="sentry.ApiApplication", db_constraint=False, db_index=True, null=True
+            ),
+        ),
+    ]
+
+    state_operations = [
+        migrations.AlterField(
+            model_name="servicehook",
+            name="application",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.ApiApplication", db_index=True, on_delete="CASCADE", null=True
+            ),
+        ),
+        migrations.RenameField(
+            model_name="servicehook",
+            old_name="application",
+            new_name="application_id",
+        ),
+    ]
+
+    operations = database_operations + [
+        migrations.SeparateDatabaseAndState(state_operations=state_operations)
     ]

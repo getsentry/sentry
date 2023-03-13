@@ -33,7 +33,7 @@ class ServiceHookProject(Model):
     __include_in_export__ = False
 
     service_hook = FlexibleForeignKey("sentry.ServiceHook")
-    project_id = BoundedBigIntegerField(null=True)
+    project_id = BoundedBigIntegerField(db_index=True)
 
     class Meta:
         app_label = "sentry"
@@ -54,7 +54,7 @@ class ServiceHook(Model):
     application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="CASCADE")
     actor_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField(db_index=True, null=True)
-    organization_id = BoundedBigIntegerField(null=True)
+    organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
     secret = models.TextField(default=generate_secret)
     events = ArrayField(of=models.TextField)
