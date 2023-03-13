@@ -21,7 +21,7 @@ function useReplayFromIssue({
 }) {
   const api = useApi();
 
-  const [replayIds, setReplayIds] = useState<string[]>([]);
+  const [replayIds, setReplayIds] = useState<string[]>();
 
   const [fetchError, setFetchError] = useState();
 
@@ -46,7 +46,7 @@ function useReplayFromIssue({
   }, [api, organization.slug, group.id, group.project.id]);
 
   const eventView = useMemo(() => {
-    if (!replayIds.length) {
+    if (!replayIds) {
       return null;
     }
     return EventView.fromSavedQuery({
