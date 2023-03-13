@@ -541,12 +541,15 @@ def run_post_process_job(job: PostProcessJob):
     ):
         return
 
-    if group_event.group.issue_type.type_id in get_group_types_by_category(
-        GroupCategory.PERFORMANCE.value
-    ) and options.get("performance.issues.send_to_issues_platform", False):
-        project = group_event.project
-        if project.get_option("sentry:performance_issue_send_to_issues_platform", False):
-            return
+    if (
+        group_event.group.issue_type.type_id
+        in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        and options.get("performance.issues.send_to_issues_platform", False)
+        and group_event.project.get_option(
+            "sentry:performance_issue_send_to_issues_platform", False
+        )
+    ):
+        return
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE
