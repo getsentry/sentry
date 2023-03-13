@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMappi
 
 from sentry.models import User
 from sentry.notifications.notifications.base import BaseNotification
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviders
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 Notifiable = Callable[
     [
         BaseNotification,
-        Iterable[Union["Team", "User"]],
+        Iterable[Union[RpcActor, "Team", "User", "RpcUser"]],
         Mapping[str, Any],
         Optional[Mapping[int, Mapping[str, Any]]],
     ],

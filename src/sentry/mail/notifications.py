@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Iterable, Mapping, MutableMapping
+from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 import sentry_sdk
 from django.utils.encoding import force_text
@@ -17,6 +17,9 @@ from sentry.utils.email import MessageBuilder, group_id_to_email
 from sentry.utils.linksign import generate_signed_link
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def get_headers(notification: BaseNotification) -> Mapping[str, Any]:
@@ -69,14 +72,14 @@ def get_unsubscribe_link(
     return signed_link
 
 
-def log_message(notification: BaseNotification, recipient: RpcActor) -> None:
+def _log_message(notification: BaseNotification, recipient: RpcActor) -> None:
     extra = notification.get_log_params(recipient)
     logger.info("mail.adapter.notify.mail_user", extra={**extra})
 
 
 def get_context(
     notification: BaseNotification,
-    recipient: RpcActor,
+    recipient: RpcActor | Team | RpcUser,
     shared_context: Mapping[str, Any],
     extra_context: Mapping[str, Any],
 ) -> Mapping[str, Any]:
@@ -85,17 +88,22 @@ def get_context(
     generic HTML/text templates only render the unsubscribe link if one is
     present in the context, so don't automatically add it to every message.
     """
+    recipient_actor = RpcActor.from_object(recipient)
     context = {
         **shared_context,
-        **notification.get_recipient_context(recipient, extra_context),
+        **notification.get_recipient_context(recipient_actor, extra_context),
     }
     # TODO(mgaeta): The unsubscribe system relies on `user_id` so it doesn't
     #  work with Teams. We should add the `actor_id` to the signed link.
     unsubscribe_key = notification.get_unsubscribe_key()
-    if recipient.actor_type == ActorType.USER and unsubscribe_key:
+    if recipient_actor.actor_type == ActorType.USER and unsubscribe_key:
         key, resource_id, referrer = unsubscribe_key
         context.update(
-            {"unsubscribe_link": get_unsubscribe_link(recipient.id, resource_id, key, referrer)}
+            {
+                "unsubscribe_link": get_unsubscribe_link(
+                    recipient_actor.id, resource_id, key, referrer
+                )
+            }
         )
 
     return context
@@ -104,16 +112,17 @@ def get_context(
 @register_notification_provider(ExternalProviders.EMAIL)
 def send_notification_as_email(
     notification: BaseNotification,
-    recipients: Iterable[RpcActor],
+    recipients: Iterable[RpcActor | Team | RpcUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
     for recipient in recipients:
+        recipient_actor = RpcActor.from_object(recipient)
         with sentry_sdk.start_span(op="notification.send_email", description="one_recipient"):
-            if isinstance(recipient, Team):
+            if recipient_actor.actor_type == ActorType.TEAM:
                 # TODO(mgaeta): MessageBuilder only works with Users so filter out Teams for now.
                 continue
-            log_message(notification, recipient)
+            _log_message(notification, recipient_actor)
 
             with sentry_sdk.start_span(op="notification.send_email", description="build_message"):
                 msg = MessageBuilder(
@@ -129,12 +138,12 @@ def send_notification_as_email(
                     add_users_kwargs["project"] = notification.project
                 msg.add_users([recipient.id], **add_users_kwargs)
                 msg.send_async()
-            notification.record_notification_sent(recipient, ExternalProviders.EMAIL)
+            notification.record_notification_sent(recipient_actor, ExternalProviders.EMAIL)
 
 
 def get_builder_args(
     notification: BaseNotification,
-    recipient: RpcActor,
+    recipient: RpcActor | RpcUser,
     shared_context: Mapping[str, Any] | None = None,
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> Mapping[str, Any]:
