@@ -25,7 +25,12 @@ class RpcActor:
     id: int
     actor_id: Optional[int]
     actor_type: ActorType
+    slug: Optional[str] = None
     is_superuser: bool = False
+
+    def __post_init__(self) -> None:
+        if self.actor_type != ActorType.TEAM and self.slug is not None:
+            raise ValueError
 
     @classmethod
     def from_object(cls, obj: Union["RpcActor", "User", "Team", "RpcUser"]) -> "RpcActor":
@@ -61,4 +66,4 @@ class RpcActor:
 
     @classmethod
     def from_orm_team(cls, team: "Team") -> "RpcActor":
-        return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM)
+        return cls(id=team.id, actor_id=team.actor_id, actor_type=ActorType.TEAM, slug=team.slug)
