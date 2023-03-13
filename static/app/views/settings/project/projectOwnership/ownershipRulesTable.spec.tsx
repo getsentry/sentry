@@ -71,8 +71,8 @@ describe('OwnershipRulesTable', () => {
     expect(screen.getByText('filepath')).toBeInTheDocument();
     expect(screen.queryByText('mytag')).not.toBeInTheDocument();
 
-    userEvent.clear(searchbar);
     // Change the filter to mytag
+    userEvent.clear(searchbar);
     userEvent.paste(searchbar, 'mytag');
 
     expect(screen.getByText('mytag')).toBeInTheDocument();
