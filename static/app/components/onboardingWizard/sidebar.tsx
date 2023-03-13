@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef} from 'react';
+import {useCallback, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
@@ -70,12 +70,12 @@ const upcomingTasksHeading = (
 );
 const completedTasksHeading = <Heading key="complete">{t('Completed')}</Heading>;
 
-export const useGetTasks = (
+export const useOnboardingTasks = (
   organization: Organization,
   projects: Project[],
   onboardingState: OnboardingState | null
 ) => {
-  const callback = useCallback(() => {
+  return useMemo(() => {
     const all = getMergedTasks({
       organization,
       projects,
@@ -90,7 +90,6 @@ export const useGetTasks = (
       complete: filteredTasks.filter(findCompleteTasks),
     };
   }, [organization, projects, onboardingState]);
-  return callback;
 };
 
 function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Props) {
@@ -115,9 +114,12 @@ function OnboardingWizardSidebar({collapsed, orientation, onClose, projects}: Pr
       markCompletionSeenTimeout.current = window.setTimeout(resolve, time);
     });
   }
-  const getOnboardingTasks = useGetTasks(organization, projects, onboardingState);
 
-  const {allTasks, customTasks, active, upcoming, complete} = getOnboardingTasks();
+  const {allTasks, customTasks, active, upcoming, complete} = useOnboardingTasks(
+    organization,
+    projects,
+    onboardingState
+  );
 
   const markTasksAsSeen = useCallback(
     async function () {
