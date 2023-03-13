@@ -156,10 +156,6 @@ export function debugFramesEnabled({
     return false;
   }
 
-  if (!organization.features.includes('fix-source-map-cta')) {
-    return false;
-  }
-
   return ALLOWED_SDKS.includes(sdkName);
 }
 

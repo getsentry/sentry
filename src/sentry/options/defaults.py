@@ -1,3 +1,5 @@
+import os
+
 from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
@@ -14,6 +16,7 @@ from sentry.utils.types import Any, Bool, Dict, Int, Sequence, String
 # register('cache.backend', flags=FLAG_NOSTORE)
 # register('cache.options', type=Dict, flags=FLAG_NOSTORE)
 
+
 # System
 register("system.admin-email", flags=FLAG_REQUIRED)
 register("system.support-email", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
@@ -23,26 +26,42 @@ register("system.databases", type=Dict, flags=FLAG_NOSTORE)
 register("system.rate-limit", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.event-retention-days", default=0, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 register("system.secret-key", flags=FLAG_CREDENTIAL | FLAG_NOSTORE)
-# Absolute URL to the sentry root directory. Should not include a trailing slash.
-register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
-register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
-register("system.base-hostname", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
-register(
-    "system.organization-base-hostname",
-    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
-)
-register(
-    "system.organization-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register(
-    "system.region-api-url-template", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE
-)
-register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 register("system.root-api-key", flags=FLAG_PRIORITIZE_DISK)
 register("system.logging-format", default=LoggingFormat.HUMAN, flags=FLAG_NOSTORE)
 # This is used for the chunk upload endpoint
 register("system.upload-url-prefix", flags=FLAG_PRIORITIZE_DISK)
 register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
+
+# URL configuration
+# Absolute URL to the sentry root directory. Should not include a trailing slash.
+register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+# Base hostname that account domains are subdomains of.
+register(
+    "system.base-hostname",
+    default=os.environ.get("SENTRY_SYSTEM_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The template for organization subdomain hostnames.
+register(
+    "system.organization-base-hostname",
+    default=os.environ.get("SENTRY_ORGANIZATION_BASE_HOSTNAME"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for organization URL including protocol
+register(
+    "system.organization-url-template",
+    default=os.environ.get("SENTRY_ORGANIZATION_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# Template for region based API URL
+register(
+    "system.region-api-url-template",
+    default=os.environ.get("SENTRY_REGION_API_URL_TEMPLATE"),
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE,
+)
+# The region that this instance is currently running in.
+register("system.region", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_NOSTORE)
 
 # Redis
 register(
@@ -186,6 +205,25 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Options
+#
+# Replay storage backend configuration (only applicable if the direct-storage driver is used)
+register("replay.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "replay.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
+# on organization-id.
+register(
+    "replay.storage.direct-storage-sample-rate",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -302,6 +340,10 @@ register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, defaul
 register("symbolicator.minidump-refactor-projects-opt-out", type=Sequence, default=[])  # unused
 register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unused
 
+# Enable use of Symbolicator Source Maps processing for specific projects.
+register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator Source Maps processing for fraction of projects.
+register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -607,6 +649,9 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# controls how many orgs will be queried by the prioritise by transaction task
+# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
+register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)

@@ -5,7 +5,13 @@ from datetime import timedelta
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import Organization, Project
 
-from ..base import DetectorType, PerformanceDetector, fingerprint_spans, get_span_duration
+from ..base import (
+    DetectorType,
+    PerformanceDetector,
+    fingerprint_spans,
+    get_duration_between_spans,
+    get_span_duration,
+)
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
@@ -45,7 +51,19 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
             for span in self.consecutive_http_spans
         )
 
-        if exceeds_count_threshold and exceeds_span_duration_threshold:
+        exceeds_duration_between_spans_threshold = all(
+            get_duration_between_spans(
+                self.consecutive_http_spans[idx - 1], self.consecutive_http_spans[idx]
+            )
+            < self.settings.get("max_duration_between_spans")
+            for idx in range(1, len(self.consecutive_http_spans))
+        )
+
+        if (
+            exceeds_count_threshold
+            and exceeds_span_duration_threshold
+            and exceeds_duration_between_spans_threshold
+        ):
             self._store_performance_problem()
 
     def _store_performance_problem(self) -> None:
@@ -97,6 +115,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         if (
             not description.strip().upper().startswith(("GET", "POST", "DELETE", "PUT", "PATCH"))
         ):  # Just using all methods to see if anything interesting pops up
+            return False
+
+        if any([x in description for x in ["_next/static/", "_next/data/"]]):
             return False
 
         return True
