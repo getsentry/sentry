@@ -19,7 +19,6 @@ from sentry.utils.samples import load_data
 @region_silo_endpoint
 class IssueOccurrenceEndpoint(Endpoint):
     permission_classes = (SuperuserPermission,)
-    private = True
 
     def post(self, request: Request) -> Response:
         """
