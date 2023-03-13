@@ -58,14 +58,12 @@ def save_issue_occurrence(
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
 
-        if occurrence.type.type_id in get_group_types_by_category(
-            GroupCategory.PERFORMANCE.value
-        ) and options.get("performance.issues.send_to_issues_platform", False):
-            per_project_option = event.project.get_option(
-                "sentry:performance_issue_send_to_issues_platform", False
-            )
-            if per_project_option:
-                return
+        if (
+            occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+            and options.get("performance.issues.send_to_issues_platform", False)
+            and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
+        ):
+            return
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
