@@ -2,7 +2,7 @@ import logging
 import re
 import time
 from random import random
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union, cast
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, cast
 
 import jsonschema
 import pytz
@@ -262,25 +262,17 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 def get_query_subscription_consumer(
     topic: str,
     group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    force_topic: Union[str, None],
-    initial_offset_reset: str = "earliest",
 ) -> StreamProcessor[KafkaPayload]:
-    topic = force_topic or topic
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)
     consumer = KafkaConsumer(
         build_kafka_consumer_configuration(
             cluster_options,
-            auto_offset_reset=auto_offset_reset,
             group_id=group_id,
-            strict_offset_reset=strict_offset_reset,
         )
     )
     metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
     configure_metrics(metrics_wrapper)
-
     return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),

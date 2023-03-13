@@ -441,7 +441,7 @@ def query_subscription_consumer(**options):
         get_query_subscription_consumer,
     )
 
-    if not options["use-arroyo-consumer"]:
+    if not options["use_arroyo_consumer"]:
         subscriber = QuerySubscriptionConsumer(
             group_id=options["group"],
             topic=options["topic"],
@@ -451,7 +451,10 @@ def query_subscription_consumer(**options):
             force_offset_reset=options["force_offset_reset"],
         )
     else:
-        subscriber = get_query_subscription_consumer(**options)
+        subscriber = get_query_subscription_consumer(
+            topic=options["topic"],
+            group_id=options["group"],
+        )
 
     run_processor_with_signals(subscriber)
 
