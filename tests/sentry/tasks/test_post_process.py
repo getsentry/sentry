@@ -164,7 +164,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 @apply_feature_flag_on_cls("organizations:derive-code-mappings")
-@apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _call_post_process_group(self, data: Dict[str, str]) -> None:
         event = self.create_event(data=data, project_id=self.project.id)
