@@ -2,6 +2,7 @@
 import csv
 import typing
 import uuid
+from collections import UserDict, defaultdict
 from datetime import datetime, timedelta
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
@@ -32,12 +33,32 @@ if typing.TYPE_CHECKING:
 
 MIGRATION_NAME = "0378_backfill_perf_issue_events_issue_platform"
 
+
 # TODO: figure out how to parameterize this to the RunPython call
 DRY_RUN = False
 WRITE_TO_FILE = False
 
 START_DATETIME = datetime(2008, 5, 8)
 END_DATETIME = datetime.now() + timedelta(days=1)
+
+# TODO: update this to the appropriate date when we actually run this script
+#       this is important to set to avoid unnecessarily scanning the full 90 retention period
+#       when there's no data before this date
+ISSUE_PLATFORM_INGEST_START_DATETIME = datetime(2023, 3, 13) - timedelta(days=1)
+
+PROGRESS_SUCCESS_PATH_PREFIX = "success"
+PROGRESS_ERROR_PATH_PREFIX = "error"
+
+PERFORMANCE_TYPES = (
+    PerformanceSlowDBQueryGroupType.type_id,
+    PerformanceRenderBlockingAssetSpanGroupType.type_id,
+    PerformanceNPlusOneGroupType.type_id,
+    PerformanceConsecutiveDBQueriesGroupType.type_id,
+    PerformanceFileIOMainThreadGroupType.type_id,
+    PerformanceNPlusOneAPICallsGroupType.type_id,
+    PerformanceMNPlusOneDBQueriesGroupType.type_id,
+    PerformanceUncompressedAssetsGroupType.type_id,
+)
 
 
 class TransactionRow(typing.TypedDict):
@@ -62,44 +83,6 @@ class BackfillEventError(typing.Protocol):
         pass
 
 
-def save_success_to_file(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
-    write_to_file(
-        created_group.project_id,
-        "success",
-        created_group.id,
-        [mapped_occurrence["id"], mapped_occurrence["event_id"], mapped_occurrence["fingerprint"]],
-    )
-
-
-def save_error_to_file(
-    attempted_row: Mapping[str, Any],
-    exc: Exception,
-    occurrence_nodestore_saved: bool,
-    occurrence_eventstream_sent: bool,
-) -> None:
-    write_to_file(
-        attempted_row["project_id"],
-        "error",
-        attempted_row["group_id"],
-        [attempted_row["event_id"], exc, occurrence_nodestore_saved, occurrence_eventstream_sent],
-    )
-
-
-def write_to_file(
-    project_id: int, path_suffix: str, group_id: int, data: typing.Iterable[Any]
-) -> None:
-    from pathlib import Path
-
-    # TODO: optimize this to avoid opening and closing file handles repeatedly
-    # TODO: need to verify the relative path
-    path = f"{MIGRATION_NAME}/{path_suffix}/{project_id}"
-    Path(path).mkdir(parents=True, exist_ok=True)
-
-    with open(f"{path}/{group_id}.csv", "a") as f:
-        writer = csv.writer(f)
-        writer.writerow(data)
-
-
 def print_success(created_group: "Group", mapped_occurrence: IssueOccurrenceData) -> None:
     print(  # noqa: S002
         f"project_id={created_group.project_id}, group_id={created_group.id}, event_id={mapped_occurrence['event_id']}, occurrence_id={mapped_occurrence['id']}, fingerprint={mapped_occurrence['fingerprint']}"
@@ -113,7 +96,7 @@ def print_exception_on_error(
     occurrence_eventstream_sent: bool,
 ) -> None:
     print(  # noqa: S002
-        f"row={attempted_row}, exception={exc}, nodestore_save={occurrence_nodestore_saved}, evenstream_sent={occurrence_eventstream_sent}"
+        f"row={attempted_row}, exception={exc}, nodestore_saved={occurrence_nodestore_saved}, eventstream_sent={occurrence_eventstream_sent}"
     )
 
 
@@ -124,11 +107,14 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
     2. For each project with a performance issue:
          a. Query snuba for the transactions backing a perf issue. We only need (project_id, group_id, event_id).
             This is paginated with a limit of 10000 transactions per page to avoid pull in too much data into memory.
-         b. For each transaction:
+         b. Query snuba for generic events backing a perf issue (we'll be dual-writing to both tables, so we need
+            to ensure the event doesn't already exist in search_issues).
+         c. For each transaction:
               i. Retrieve the Group row from postgres.
               ii. Retrieve the GroupHash row from postgres.
               iii. Retrieve the entire raw Transaction from node store.
-              iv. Map the Transaction event to an instance of IssueOccurrenceData.
+              iv.
+              v. Map the Transaction event to an instance of IssueOccurrenceData.
               v. Save the IssueOccurrence to node store. Normally this step would also save the appropriate models to
                  postgres like Group, GroupHash, GroupEnvironment, GroupRelease, and increment Release counts, but
                  we aren't doing that on this backfill since they should already exist when the transaction was already
@@ -141,18 +127,7 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
     GroupHash = apps.get_model("sentry", "GroupHash")
 
     projects_with_perf_issues = (
-        Group.objects.filter(
-            type__in=(
-                PerformanceSlowDBQueryGroupType.type_id,
-                PerformanceRenderBlockingAssetSpanGroupType.type_id,
-                PerformanceNPlusOneGroupType.type_id,
-                PerformanceConsecutiveDBQueriesGroupType.type_id,
-                PerformanceFileIOMainThreadGroupType.type_id,
-                PerformanceNPlusOneAPICallsGroupType.type_id,
-                PerformanceMNPlusOneDBQueriesGroupType.type_id,
-                PerformanceUncompressedAssetsGroupType.type_id,
-            )
-        )
+        Group.objects.filter(type__in=PERFORMANCE_TYPES)
         .values("project_id")
         .order_by("project_id")
         .distinct()
@@ -162,27 +137,232 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
         backfill_by_project(project_perf_issue["project_id"], Group, GroupHash, DRY_RUN)
 
 
+class SuccessProgress(typing.TypedDict):
+    occurrence_id: str
+    event_id: str
+    fingerprint: str
+
+
+class ErrorProgress(typing.TypedDict):
+    event_id: str
+    exception: str
+    nodestore_saved: bool
+    eventstream_sent: bool
+
+
+class ProjectGroupTotalProgress:
+    """
+    1 success row ~= 150 bytes
+    1 error row ~= 150 bytes
+
+    The performance issue with the most events is around 9M transactions. So the largest file for a group should
+    be capped at around 1.28 GB ...
+    """
+
+    success: typing.MutableMapping[str, SuccessProgress]  # key: event_id
+    error: typing.MutableMapping[str, ErrorProgress]  # key: event_id
+    success_file: typing.TextIO
+    error_file: typing.TextIO
+
+    SUCCESS_FIELD_NAMES: Sequence[str] = ["occurrence_id", "event_id", "fingerprint"]
+    ERROR_FIELD_NAMES: Sequence[str] = [
+        "event_id",
+        "exception",
+        "nodestore_saved",
+        "eventstream_sent",
+    ]
+
+    def __init__(self, project_id: int, group_id: int) -> None:
+        self.project_id = project_id
+        self.group_id = group_id
+        self.success = {}
+        self.error = {}
+
+    def __enter__(self) -> "ProjectGroupTotalProgress":
+        self.success_file = self.__get_file_handle(
+            self.project_id, PROGRESS_SUCCESS_PATH_PREFIX, self.group_id
+        )
+        self.error_file = self.__get_file_handle(
+            self.project_id, PROGRESS_ERROR_PATH_PREFIX, self.group_id
+        )
+
+        self.__parse_success_file()
+        self.__parse_error_file()
+
+        return self
+
+    def __exit__(self) -> None:
+        self.close()
+
+    def is_processed(self, event_id: str) -> Tuple[bool, bool]:
+        return event_id in self.success, event_id in self.error
+
+    def close(self) -> None:
+        try:
+            self.success_file.close()
+            self.error_file.close()
+        except ValueError:
+            pass
+
+    def save_success_to_file(
+        self, created_group: "Group", mapped_occurrence: IssueOccurrenceData
+    ) -> None:
+        writer = csv.DictWriter(self.success_file, fieldnames=self.SUCCESS_FIELD_NAMES)
+        writer.writerow(
+            {
+                self.SUCCESS_FIELD_NAMES[0]: mapped_occurrence["id"],
+                self.SUCCESS_FIELD_NAMES[1]: mapped_occurrence["event_id"],
+                self.SUCCESS_FIELD_NAMES[2]: mapped_occurrence["fingerprint"][0],
+            }
+        )
+
+    def save_error_to_file(
+        self,
+        attempted_row: TransactionRow,
+        exc: Exception,
+        occurrence_nodestore_saved: bool,
+        occurrence_eventstream_sent: bool,
+    ) -> None:
+        writer = csv.DictWriter(self.error_file, fieldnames=self.ERROR_FIELD_NAMES)
+        writer.writerow(
+            {
+                self.ERROR_FIELD_NAMES[0]: attempted_row["event_id"],
+                self.ERROR_FIELD_NAMES[1]: type(exc).__name__,
+                # save a little disk space by serializing the bool as a 1/0
+                self.ERROR_FIELD_NAMES[2]: "1" if occurrence_nodestore_saved is True else "0",
+                self.ERROR_FIELD_NAMES[3]: "1" if occurrence_eventstream_sent is True else "0",
+            }
+        )
+
+    def __parse_success_file(self) -> None:
+        reader = csv.DictReader(self.success_file, fieldnames=self.SUCCESS_FIELD_NAMES)
+        for row in reader:
+            self.success[row["event_id"]] = {
+                "occurrence_id": row[self.SUCCESS_FIELD_NAMES[0]],
+                "event_id": row[self.SUCCESS_FIELD_NAMES[1]],
+                "fingerprint": row[self.SUCCESS_FIELD_NAMES[2]],
+            }
+        self.success_file.close()
+
+    def __parse_error_file(self) -> None:
+        reader = csv.DictReader(self.error_file, fieldnames=self.ERROR_FIELD_NAMES)
+        for row in reader:
+            self.error[row["event_id"]] = {
+                "event_id": row[self.ERROR_FIELD_NAMES[0]],
+                "exception": row[self.ERROR_FIELD_NAMES[1]],
+                "nodestore_saved": True if row[self.ERROR_FIELD_NAMES[2]] == "1" else False,
+                "eventstream_sent": True if row[self.ERROR_FIELD_NAMES[3]] == "1" else False,
+            }
+        self.error_file.close()
+
+    def __get_file_path(self, project_id: int, path_suffix: str, group_id: int) -> str:
+        from pathlib import Path
+
+        # TODO: need to verify the relative path
+        path = f"{MIGRATION_NAME}/{path_suffix}/{project_id}"
+        Path(path).mkdir(parents=True, exist_ok=True)
+
+        return f"{path}/{group_id}.csv"
+
+    def __get_file_handle(self, project_id: int, path_suffix: str, group_id: int) -> typing.TextIO:
+        # TODO: fix this for reads
+        return open(self.__get_file_path(project_id, path_suffix, group_id), "a")
+
+
+class FileBackedProjectProgress(UserDict[int, ProjectGroupTotalProgress]):
+    """
+    Holds the file handles for maintaining the progress of migrations for a project. Hopefully, we shouldn't hit
+    the OS limit on open handles since the project with the most performance issues is around 9k. So this class
+    should only be holding at most 2 * 9k file handles before this migration moves on to the next project.
+
+    """
+
+    def __init__(self, project_id: int) -> None:
+        super().__init__()
+        self.project_id = project_id
+
+    def __enter__(self) -> "FileBackedProjectProgress":
+        return self
+
+    def __exit__(self, *args: Any, **kwargs: Any) -> None:
+        try:
+            for progress in self.values():
+                progress.close()
+        except ValueError:
+            pass
+
+    def get_or_init(self, group_id: int) -> ProjectGroupTotalProgress:
+        if self.get(group_id):
+            return self[group_id]
+        else:
+            progress = ProjectGroupTotalProgress(self.project_id, group_id)
+            self[group_id] = progress
+            return progress
+
+
 def backfill_by_project(project_id: int, Group: Any, GroupHash: Any, dry_run: bool) -> None:
     next_offset: Optional[int] = 0
 
-    while next_offset is not None:
-        rows, next_offset = _query_performance_issue_events(
-            project_id=project_id,
-            start=START_DATETIME,
-            end=END_DATETIME,
-            offset=next_offset,
+    already_processed_events: Mapping[int, typing.Set[str]] = defaultdict(
+        set
+    )  # group_id: Set[event_id]
+
+    # it's probably ok to query all the events here instead of paginating since we should be running this script
+    # closely after we cut-over
+    for issue_platform_events in _query_issue_platform_events(
+        project_id, start=ISSUE_PLATFORM_INGEST_START_DATETIME, end=END_DATETIME
+    ):
+        already_processed_events[issue_platform_events["group_id"]].add(
+            issue_platform_events["event_id"]
         )
 
-        for row in rows:
-            backfill_perf_issue_occurrence(
-                row,
-                Group,
-                GroupHash,
-                print_success,
-                # print_success if not WRITE_TO_FILE else save_success_to_file,
-                # print_exception_on_error if not WRITE_TO_FILE else save_error_to_file,
-                dry_run=dry_run,
+    with FileBackedProjectProgress(project_id) as previous_progress:
+        while next_offset is not None:
+            rows, next_offset = _query_performance_issue_events(
+                project_id=project_id,
+                start=START_DATETIME,
+                end=END_DATETIME,
+                offset=next_offset,
             )
+
+            for row in rows:
+                group_id = row["group_id"]
+                event_id = row["event_id"]
+
+                # avoid re-ingesting the same transaction since we'll be dual-writing
+                if event_id not in already_processed_events[group_id]:
+                    group_progress: ProjectGroupTotalProgress = previous_progress.get_or_init(
+                        group_id
+                    )
+                    processed = group_progress.is_processed(event_id)
+                    previously_succeeded = processed[0]
+                    previously_errored = processed[1]
+
+                    if (
+                        previously_succeeded and not previously_errored
+                    ):  # previous run was successful so skip it
+                        continue
+                    elif (
+                        previously_succeeded and previously_errored
+                    ):  # ??? shouldn't be possible, maybe a degenerate case
+                        pass
+                    elif (
+                        not previously_succeeded and previously_errored
+                    ):  # errored out previously, retry on this run
+                        pass
+                    else:  # fresh run, business as usual
+                        backfill_perf_issue_occurrence(
+                            row,
+                            Group,
+                            GroupHash,
+                            print_success
+                            if not WRITE_TO_FILE
+                            else group_progress.save_success_to_file,
+                            print_exception_on_error
+                            if not WRITE_TO_FILE
+                            else group_progress.save_error_to_file,
+                            dry_run=dry_run,
+                        )
 
 
 def backfill_perf_issue_occurrence(
@@ -193,6 +373,7 @@ def backfill_perf_issue_occurrence(
     on_exception: BackfillEventError = lambda *args: None,
     dry_run: bool = True,
 ) -> None:
+    # TODO: need to query from search_issues to make sure we're not submitting the same (project_id, group, event_id)
     occurrence_nodestore_saved = False
     occurrence_eventstream_sent = False
 
@@ -266,7 +447,6 @@ def __save_issue_occurrence(
 def _query_performance_issue_events(
     project_id: int, start: datetime, end: datetime, offset: int = 0
 ) -> Tuple[Sequence[TransactionRow], Optional[int]]:
-    # TODO: need to make sure we're not querying any dupes, verify uniqueness on (project_id, group_id, event_id)
     page_limit = 10000
 
     snuba_request = Request(
@@ -309,6 +489,44 @@ def _query_performance_issue_events(
     next_offset = None if not result_data else offset + page_limit
 
     return result_data, next_offset
+
+
+def _query_issue_platform_events(
+    project_id: int, start: datetime, end: datetime
+) -> Sequence[Mapping[str, Any]]:
+    snuba_request = Request(
+        dataset=Dataset.IssuePlatform.value,
+        app_id="migration",
+        query=Query(
+            match=Entity(EntityKey.IssuePlatform.value),
+            select=[
+                Column("group_id"),
+                Column("event_id"),
+            ],
+            where=[
+                Condition(Column("group_ids"), Op.IS_NOT_NULL),
+                Condition(Column("project_id"), Op.EQ, project_id),
+                Condition(Column("occurrence_type_id"), Op.IN, PERFORMANCE_TYPES),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("timestamp"), Op.LT, end),
+            ],
+            groupby=[
+                Column("group_id"),
+                Column("project_id"),
+                Column("occurrence_type_id"),
+                Column("event_id"),
+            ],
+        ),
+    )
+    from sentry.utils.snuba import raw_snql_query
+
+    result_snql = raw_snql_query(
+        snuba_request,
+        referrer=f"{MIGRATION_NAME}._query_performance_issue_events",
+        use_cache=False,
+    )
+
+    return result_snql["data"]  # type: ignore[no-any-return]
 
 
 class Migration(CheckedMigration):  # type: ignore[misc]
