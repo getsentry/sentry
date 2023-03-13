@@ -205,6 +205,25 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Options
+#
+# Replay storage backend configuration (only applicable if the direct-storage driver is used)
+register("replay.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "replay.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
+# on organization-id.
+register(
+    "replay.storage.direct-storage-sample-rate",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -622,6 +641,9 @@ register("performance.issues.render_blocking_assets.fcp_minimum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_maximum_threshold", default=10000.0)
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
+
+# System-wise option for performance issue creation through issues platform
+register("performance.issues.send_to_issues_platform", default=False)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases

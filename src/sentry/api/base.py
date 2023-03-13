@@ -121,8 +121,6 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    # end user of endpoint must set private to true, or define public endpoints
-    private: Optional[bool] = None
     public: Optional[HTTP_METHODS_SET] = None
 
     rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG

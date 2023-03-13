@@ -42,7 +42,7 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
     # integration platform
     "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-authorizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
     # integrations
     "sentry-extensions-jira-issue-hook": 0.05,
     "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
