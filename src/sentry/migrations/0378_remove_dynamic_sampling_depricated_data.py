@@ -38,7 +38,7 @@ class Migration(CheckedMigration):
     atomic = False
 
     dependencies = [
-        ("sentry", "0375_remove_nullable_from_field"),
+        ("sentry", "0377_groupedmesssage_type_individual_index"),
     ]
 
     operations = [
