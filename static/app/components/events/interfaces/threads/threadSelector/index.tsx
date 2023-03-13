@@ -4,6 +4,7 @@ import partition from 'lodash/partition';
 
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
+import {getMappedThreadState} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {t} from 'sentry/locale';
 import {Event, ExceptionType, Thread} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -33,13 +34,19 @@ const ThreadSelector = ({
   onChange,
   fullWidth = false,
 }: Props) => {
-  const hasThreadStates = threads.some(thread => defined(thread.state));
+  const hasThreadStates = threads.some(thread =>
+    defined(getMappedThreadState(thread.state))
+  );
 
   const getDropDownItem = (thread: Thread) => {
-    const {label, filename, crashedInfo} = filterThreadInfo(event, thread, exception);
-    const threadInfo = {label, filename, state: thread.state};
+    const {label, filename, crashedInfo, state} = filterThreadInfo(
+      event,
+      thread,
+      exception
+    );
+    const threadInfo = {label, filename, state};
     return {
-      value: `#${thread.id}: ${thread.name} ${label} ${filename} (${thread.state})`,
+      value: `#${thread.id}: ${thread.name} ${label} ${filename}`,
       threadInfo,
       thread,
       label: (
@@ -49,7 +56,6 @@ const ThreadSelector = ({
           name={thread.name}
           crashed={thread.crashed}
           crashedInfo={crashedInfo}
-          state={thread.state}
           hasThreadStates={hasThreadStates}
         />
       ),
