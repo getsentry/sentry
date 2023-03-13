@@ -765,7 +765,7 @@ DEVICE_CLASS = {
 }
 
 
-def map_device_class_level(device_class: str) -> str:
+def map_device_class_level(device_class: str) -> Optional[str]:
     for key, value in DEVICE_CLASS.items():
         if device_class in value:
             return key
