@@ -2474,7 +2474,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
             if per_project_option:
                 performance_problems = job["performance_problems"]
                 for problem in performance_problems:
-                    # handle N+1
+                    # handle only N+1 db query detector first
                     if problem.type.type_id == PerformanceNPlusOneGroupType.type_id:
                         occurrence = IssueOccurrence(
                             id=uuid.uuid4().hex,
