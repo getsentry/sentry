@@ -1284,8 +1284,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
         # which is discovered by looking at the minified source.
         self.minified_source_url_to_sourcemap_url = {}
-        # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap debug id
-        # which is contained within 'debug_meta.images'.
+        # Contains a mapping between the debug id and the sourcemap url resolved with that debug id.
         self.sourcemap_debug_id_to_sourcemap_url = {}
 
         # Component responsible for fetching the files.
@@ -1851,7 +1850,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                     op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_debug_id.SmCache.from_bytes"
                 ):
                     # We want to keep track of the sourcemap url of the sourcemap resolved with this specific debug id.
-                    self.sourcemap_debug_id_to_sourcemap_url = result.url
+                    self.sourcemap_debug_id_to_sourcemap_url[debug_id] = result.url
                     # This is an expensive operation that should be executed as few times as possible.
                     return SmCache.from_bytes(
                         minified_sourceview.get_source().encode("utf-8"), result.body
@@ -1859,7 +1858,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             except Exception as exc:
                 # This is in debug because the product shows an error already.
                 logger.debug(str(exc), exc_info=True)
-                raise UnparseableSourcemap({"debug_id": urlify_debug_id(debug_id)})
+                raise UnparseableSourcemap({"debug_id": result.url})
 
         return None
 

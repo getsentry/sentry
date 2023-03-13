@@ -1855,7 +1855,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert event.data["errors"][0] == {
             "type": "js_missing_sources_content",
             "source": "http://example.com/file.min.js",
-            "sourcemap": f"debug-id:{debug_id}",
+            "sourcemap": f"debug-id://{debug_id}/~/file.sourcemap.js",
         }
 
     def test_expansion_with_debug_id_and_malformed_sourcemap(self):
@@ -1984,7 +1984,7 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
         assert len(event.data["errors"]) == 1
         assert event.data["errors"][0] == {
             "type": "js_invalid_source",
-            "debug_id": f"debug-id:{debug_id}",
+            "debug_id": f"debug-id://{debug_id}/~/file.malformed.sourcemap.js",
         }
 
     def test_expansion_with_debug_id_not_found(self):
