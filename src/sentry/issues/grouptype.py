@@ -172,6 +172,7 @@ class ErrorGroupType(GroupType):
     slug = "error"
     description = "Error"
     category = GroupCategory.ERROR.value
+    released = True
 
 
 # used as an additional superclass for Performance GroupType defaults
