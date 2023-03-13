@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
@@ -7,39 +9,45 @@ from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
 
-class NotificationActionSerializer(Serializer):
+class OutgoingNotificationActionSerializer(Serializer):
     def serialize(self, obj: NotificationAction, attrs, user):
-        return {
-            "id": str(obj.id),
-            "organizationId": obj.organization_id,
-            "integrationId": obj.integration_id,
-            "triggerType": obj.triggerType,
-            "targetType": obj.triggerType,
-            "targetIdentifier": obj.target_identifier,
-            "targetDisplay": obj.target_display,
-            "targetConfig": obj.target_config,
-        }
+        return {}
 
 
 @region_silo_endpoint
 class NotificationActionsDetailsEndpoint(BaseNotificationActionsEndpoint):
-    def get(self, request, organization: Organization, action_id: int):
+    def get(
+        self, request, organization: Organization, action_trigger: Tuple[int, str], action_id: int
+    ):
+        trigger_type, _ = action_trigger
         try:
-            action = NotificationAction.objects.get(id=action_id, organization_id=organization.id)
+            action = NotificationAction.objects.get(
+                id=action_id, organization_id=organization.id, trigger_type=trigger_type
+            )
         except NotificationAction.DoesNotExist:
             return Response(status=404)
-        return Response(serialize(action, request.user, NotificationActionSerializer()))
+        return Response(serialize(action, request.user, OutgoingNotificationActionSerializer()))
 
-    def put(self, request, organization: Organization, action_id: int):
+    def put(
+        self, request, organization: Organization, action_trigger: Tuple[int, str], action_id: int
+    ):
+        trigger_type, _ = action_trigger
         try:
-            NotificationAction.objects.get(id=action_id, organization_id=organization.id)
+            NotificationAction.objects.get(
+                id=action_id, organization_id=organization.id, trigger_type=trigger_type
+            )
         except NotificationAction.DoesNotExist:
             return Response(status=404)
         return Response(status=201)
 
-    def delete(self, request, organization: Organization, action_id: int):
+    def delete(
+        self, request, organization: Organization, action_trigger: Tuple[int, str], action_id: int
+    ):
+        trigger_type, _ = action_trigger
         try:
-            action = NotificationAction.objects.get(id=action_id, organization_id=organization.id)
+            action = NotificationAction.objects.get(
+                id=action_id, organization_id=organization.id, trigger_type=trigger_type
+            )
         except NotificationAction.DoesNotExist:
             return Response(status=404)
         action.delete()
