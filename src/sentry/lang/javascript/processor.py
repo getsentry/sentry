@@ -714,7 +714,7 @@ class Fetcher:
                 source_file_type=source_file_type.value if source_file_type is not None else None,
             )
             .order_by("-date_added")
-            .select_related("artifact_bundle__file")[:1]
+            .select_related("artifact_bundle__file")[:1][0]
         )
 
     @staticmethod
