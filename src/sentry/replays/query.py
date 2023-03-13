@@ -29,6 +29,7 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    UUIDField,
     all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
@@ -383,7 +384,7 @@ class ReplayQueryConfig(QueryConfig):
     activity = Number()
 
     # String filters.
-    replay_id = String(field_alias="id")
+    replay_id = UUIDField(field_alias="id")
     replay_type = String(query_alias="replay_type")
     platform = String()
     releases = ListField()
@@ -575,7 +576,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 # match the column's query alias.
 
 QUERY_ALIAS_COLUMN_MAP = {
-    "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
+    "replay_id": Column("replay_id"),
     "project_id": Column("project_id"),
     "trace_ids": Function(
         "arrayMap",
