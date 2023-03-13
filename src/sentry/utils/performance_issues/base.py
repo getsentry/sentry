@@ -180,7 +180,7 @@ def fingerprint_spans(spans: List[Span], unique_only: bool = False):
     for span in spans:
         hash = str(span.get("hash", "") or "")
         if not unique_only or hash not in span_hashes:
-            span_hashes.append(str(hash))
+            span_hashes.append(hash)
     joined_hashes = "-".join(span_hashes)
     return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
