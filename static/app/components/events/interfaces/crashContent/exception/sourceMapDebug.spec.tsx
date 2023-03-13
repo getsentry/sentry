@@ -14,7 +14,7 @@ import {
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('SourceMapDebug', () => {
-  const organization = TestStubs.Organization({features: ['fix-source-map-cta']});
+  const organization = TestStubs.Organization({});
   const project = TestStubs.Project();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [
