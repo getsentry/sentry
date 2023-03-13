@@ -1334,6 +1334,7 @@ ORGANIZATION_URLS = [
         method_dispatch(
             GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
             POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
@@ -1349,6 +1350,7 @@ ORGANIZATION_URLS = [
         method_dispatch(
             GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
             POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-attachment",
     ),
