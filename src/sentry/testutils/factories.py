@@ -234,11 +234,13 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-def _patch_artifact_manifest(path, org, release, project=None, extra_files=None):
+def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
         manifest = json.load(fp)
-    manifest["org"] = org
-    manifest["release"] = release
+    if org:
+        manifest["org"] = org
+    if release:
+        manifest["release"] = release
     if project:
         manifest["project"] = project
     for path in extra_files or {}:
@@ -501,7 +503,7 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        org, release, project=None, extra_files=None, fixture_path="artifact_bundle"
+        org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
         import zipfile
 
@@ -597,10 +599,14 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_commit_author(organization_id=None, project=None, user=None):
+    def create_commit_author(organization_id=None, project=None, user=None, email=None):
+        if email:
+            user_email = email
+        else:
+            user_email = user.email if user else f"{make_word()}@example.com"
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else f"{make_word()}@example.com",
+            email=user_email,
             defaults={"name": user.name if user else make_word()},
         )[0]
 

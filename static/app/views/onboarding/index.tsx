@@ -183,7 +183,10 @@ function Onboarding(props: Props) {
     // The user is going back to select a new platform,
     // so we silently delete the last created project
     if (projectDeletionOnBackClick && stepIndex === onboardingSteps.length - 1) {
-      if (sessionStorage.status === OnboardingStatus.WAITING) {
+      if (
+        sessionStorage.status === OnboardingStatus.WAITING ||
+        sessionStorage.status === undefined
+      ) {
         try {
           await removeProject(api, organization.slug, selectedProjectSlug);
         } catch (error) {
@@ -198,9 +201,10 @@ function Onboarding(props: Props) {
           state: 'projects_selected',
           selectedPlatforms: [selectedProjectSlugs[0] as PlatformKey],
           platformToProjectIdMap:
-            sessionStorage.status === OnboardingStatus.WAITING
+            sessionStorage.status === OnboardingStatus.WAITING ||
+            sessionStorage.status === undefined
               ? Object.keys(platformToProjectIdMap).reduce((acc, value) => {
-                  if (value !== selectedProjectSlugs[0] && !acc[value]) {
+                  if (value !== selectedProjectSlug && !acc[value]) {
                     acc[value] = value;
                   }
                   return acc;

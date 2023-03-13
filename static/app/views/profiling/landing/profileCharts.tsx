@@ -17,6 +17,7 @@ import useRouter from 'sentry/utils/useRouter';
 
 interface ProfileChartsProps {
   query: string;
+  compact?: boolean;
   hideCount?: boolean;
   selection?: PageFilters;
 }
@@ -26,7 +27,12 @@ interface ProfileChartsProps {
 // cover it up.
 const SERIES_ORDER = ['count()', 'p99()', 'p95()', 'p75()'] as const;
 
-export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps) {
+export function ProfileCharts({
+  query,
+  selection,
+  hideCount,
+  compact = false,
+}: ProfileChartsProps) {
   const router = useRouter();
   const theme = useTheme();
 
@@ -102,12 +108,12 @@ export function ProfileCharts({query, selection, hideCount}: ProfileChartsProps)
         <StyledPanel>
           <TitleContainer>
             {!hideCount && (
-              <StyledHeaderTitle>{t('Profiles by Count')}</StyledHeaderTitle>
+              <StyledHeaderTitle compact>{t('Profiles by Count')}</StyledHeaderTitle>
             )}
-            <StyledHeaderTitle>{t('Profiles by Percentiles')}</StyledHeaderTitle>
+            <StyledHeaderTitle compact>{t('Profiles by Percentiles')}</StyledHeaderTitle>
           </TitleContainer>
           <AreaChart
-            height={300}
+            height={compact ? 150 : 300}
             series={series}
             grid={[
               {
@@ -192,7 +198,8 @@ const TitleContainer = styled('div')`
   flex-direction: row;
 `;
 
-const StyledHeaderTitle = styled(HeaderTitle)`
+const StyledHeaderTitle = styled(HeaderTitle)<{compact?: boolean}>`
   flex-grow: 1;
   margin-left: ${space(2)};
+  font-size: ${p => (p.compact ? p.theme.fontSizeSmall : undefined)};
 `;

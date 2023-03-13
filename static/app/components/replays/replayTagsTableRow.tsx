@@ -7,20 +7,17 @@ import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
-import {EventTag} from 'sentry/types/event';
-
-type Tag = {key: string; value: string[]};
 
 interface Props {
-  tag: Tag;
-  generateUrl?: (tag: EventTag) => LocationDescriptor;
-  query?: string;
+  name: string;
+  values: string[];
+  generateUrl?: (name: string, value: string) => LocationDescriptor;
 }
 
-function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
+function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   const renderTagValue = useMemo(() => {
-    if (tag.key === 'release') {
-      return tag.value.map((value, index) => {
+    if (name === 'release') {
+      return values.map((value, index) => {
         return (
           <Fragment key={value}>
             {index > 0 && ', '}
@@ -30,9 +27,8 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
       });
     }
 
-    return tag.value.map((value, index) => {
-      const valueInQuery = query?.includes(`${tag.key}:${value}`);
-      const target = valueInQuery ? undefined : generateUrl?.({key: tag.key, value});
+    return values.map((value, index) => {
+      const target = generateUrl?.(name, value);
 
       return (
         <Fragment key={value}>
@@ -41,13 +37,13 @@ function ReplayTagsTableRow({tag, query, generateUrl}: Props) {
         </Fragment>
       );
     });
-  }, [tag, query, generateUrl]);
+  }, [name, values, generateUrl]);
 
   return (
     <KeyValueTableRow
       keyName={
-        <StyledTooltip title={tag.key} showOnlyOnOverflow>
-          {tag.key}
+        <StyledTooltip title={name} showOnlyOnOverflow>
+          {name}
         </StyledTooltip>
       }
       value={
