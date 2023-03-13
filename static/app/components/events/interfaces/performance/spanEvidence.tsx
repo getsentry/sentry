@@ -58,7 +58,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
     >
-      <SpanEvidenceKeyValueList event={event} />
+      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
       {hasProfilingPreviewsFeature ? (
         <ProfilesProvider
           orgSlug={organization.slug}
