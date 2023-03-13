@@ -542,9 +542,8 @@ def is_data_uri(url):
     return url[:BASE64_PREAMBLE_LENGTH] == BASE64_SOURCEMAP_PREAMBLE
 
 
-def debug_id_urlify(debug_id):
-    # TODO(iambriccardo): This function should also take the original filename and concatenate them.
-    return f"debug-id:{debug_id}"
+def urlify_debug_id(debug_id, file_url=""):
+    return f"debug-id://{debug_id}/{file_url}"
 
 
 def generate_module(src):
@@ -838,7 +837,6 @@ class Fetcher:
 
         try:
             # Now we actually read the wanted file.
-            # TODO(iambriccardo): Return matched file url from this call.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
             logger.error(
@@ -852,8 +850,11 @@ class Fetcher:
         else:
             # We decided to reuse the existing function but without caching in order to reuse some logic but in reality
             # the code could be inlined and simplified.
+            self.last_url_resolved_with_debug_id = urlify_debug_id(
+                debug_id, archive.get_file_url_by_debug_id(debug_id, source_file_type)
+            )
             result = fetch_and_cache_artifact(
-                debug_id_urlify(debug_id),
+                self.last_url_resolved_with_debug_id,
                 lambda: fp,
                 None,
                 None,
@@ -1208,6 +1209,16 @@ class Fetcher:
 
 
 class FetcherSource(Enum):
+    """
+    Source of the data returned from the fetcher.
+
+    We use this enumerator to determine the source from which the Fetcher fetched the data. This can't be inferred
+    directly from the result of the function call because we always return the same UrlObject irrespectively of the
+    data source. The need for the fetching source is because we want to change our processing behavior based on the
+    source from which the data has been fetched (e.g., if we fetched through debug_id, we need to enforce the
+    'sourcesContent' in the sourcemap).
+    """
+
     NONE = 0
     URL = 1
     URL_NEW = 2
@@ -1273,6 +1284,9 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap url
         # which is discovered by looking at the minified source.
         self.minified_source_url_to_sourcemap_url = {}
+        # Contains a mapping between the minified source url ('abs_path' of the frame) and the sourcemap debug id
+        # which is contained within 'debug_meta.images'.
+        self.sourcemap_debug_id_to_sourcemap_url = {}
 
         # Component responsible for fetching the files.
         self.fetcher = Fetcher(
@@ -1393,14 +1407,12 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
         if debug_id_errors is not None:
             all_errors.extend(debug_id_errors)
 
-        # We get the url that we discovered for the sourcemap which we use down in the processing pipeline.
-        # In case we resolved the sourcemap with the debug_id, the url will be the debug_id.
-        sourcemap_url = (
-            # TODO(iambricardo): debug-id://12334/mysourcemap.json
-            debug_id_urlify(debug_id)
-            if resolved_smc_with == FetcherSource.DEBUG_ID
-            else self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
-        )
+        # We want to compute the sourcemap url for logging purposes based on which resolution source we used.
+        if resolved_smc_with == FetcherSource.DEBUG_ID:
+            sourcemap_url = self.sourcemap_debug_id_to_sourcemap_url.get(debug_id)
+        else:
+            sourcemap_url = self.minified_source_url_to_sourcemap_url.get(frame["abs_path"])
+        # We keep track of how many sourcemaps we touched.
         self.sourcemaps_touched.add(sourcemap_url)
 
         source_context = None
@@ -1838,6 +1850,8 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
                 with sentry_sdk.start_span(
                     op="JavaScriptStacktraceProcessor.fetch_sourcemap_view_by_debug_id.SmCache.from_bytes"
                 ):
+                    # We want to keep track of the sourcemap url of the sourcemap resolved with this specific debug id.
+                    self.sourcemap_debug_id_to_sourcemap_url = result.url
                     # This is an expensive operation that should be executed as few times as possible.
                     return SmCache.from_bytes(
                         minified_sourceview.get_source().encode("utf-8"), result.body
@@ -1845,7 +1859,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             except Exception as exc:
                 # This is in debug because the product shows an error already.
                 logger.debug(str(exc), exc_info=True)
-                raise UnparseableSourcemap({"debug_id": debug_id_urlify(debug_id)})
+                raise UnparseableSourcemap({"debug_id": urlify_debug_id(debug_id)})
 
         return None
 

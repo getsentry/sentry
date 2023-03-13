@@ -157,7 +157,11 @@ class ArtifactBundleArchive:
                     and (source_file_type := SourceFileType.from_lowercase_key(file_type))
                     is not None
                 ):
-                    self._entries_by_debug_id[(debug_id, source_file_type)] = (file_path, info)
+                    self._entries_by_debug_id[(debug_id, source_file_type)] = (
+                        file_path,
+                        info.get("url"),
+                        info,
+                    )
 
             # Building the map for url lookup.
             self._entries_by_url[info.get("url")] = (file_path, info)
@@ -169,5 +173,14 @@ class ArtifactBundleArchive:
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
     ) -> Tuple[IO, dict]:
-        file_path, info = self._entries_by_debug_id[debug_id, source_file_type]
+        file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
+
+    def get_file_url_by_debug_id(
+        self, debug_id: str, source_file_type: SourceFileType
+    ) -> Optional[str]:
+        entry = self._entries_by_debug_id.get((debug_id, source_file_type))
+        if entry is not None:
+            return entry[1]
+
+        return None

@@ -1358,7 +1358,7 @@ class FetchByDebugIdTest(FetchTest):
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
-        assert result.url == f"debug-id:{debug_id}"
+        assert result.url == f"debug-id://{debug_id}/~/index.js.map"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
@@ -1370,7 +1370,7 @@ class FetchByDebugIdTest(FetchTest):
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
         )
-        assert result.url == f"debug-id:{debug_id}"
+        assert result.url == f"debug-id://{debug_id}/~/index.js"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
         assert result.headers == {
