@@ -10,8 +10,8 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
-    migrate_from = "0377_groupedmesssage_type_individual_index"
-    migrate_to = "0378_backfill_monitor_env_initial"
+    migrate_from = "0378_backfill_monitor_env_initial"
+    migrate_to = "0379_backfill_monitor_env_initial"
 
     def setup_before_migration(self, apps):
         self.monitor = Monitor.objects.create(
