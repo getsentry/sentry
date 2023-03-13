@@ -11,17 +11,16 @@ import type {Actor} from 'sentry/types';
 interface Props {
   actors: Actor[];
   handleChangeFilter: (activeFilters: string[]) => void;
+  isMyTeams: boolean;
   selectedTeams: string[];
 }
 
-const suggestedOptions = [
-  {
-    label: t('My Teams'),
-    value: 'myteams',
-  },
-];
-
-export function OwnershipOwnerFilter({selectedTeams, handleChangeFilter, actors}: Props) {
+export function OwnershipOwnerFilter({
+  selectedTeams,
+  handleChangeFilter,
+  actors,
+  isMyTeams,
+}: Props) {
   const actorOptions = useMemo(
     () =>
       actors.map(actor => ({
@@ -32,16 +31,22 @@ export function OwnershipOwnerFilter({selectedTeams, handleChangeFilter, actors}
     [actors]
   );
 
-  const [triggerIcon, triggerLabel] = useMemo(() => {
-    const firstSelectedSuggestion =
-      selectedTeams[0] && suggestedOptions.find(opt => opt.value === selectedTeams[0]);
-
-    if (firstSelectedSuggestion) {
-      return [<IconUser key={0} />, firstSelectedSuggestion.label];
+  const label = useMemo(() => {
+    if (isMyTeams) {
+      return t('My Teams');
+    }
+    if (selectedTeams.length === 0) {
+      return t('Everyone');
     }
 
-    return [<IconUser key={0} />, t('All Teams')];
-  }, [selectedTeams]);
+    const firstActor = selectedTeams[0];
+    const actor = actors.find(({type, id}) => `${type}:${id}` === firstActor);
+    if (!actor) {
+      return t('Unknown');
+    }
+
+    return actor.type === 'team' ? `#${actor.name}` : actor.name;
+  }, [selectedTeams, actors, isMyTeams]);
 
   return (
     <CompactSelect
@@ -60,13 +65,13 @@ export function OwnershipOwnerFilter({selectedTeams, handleChangeFilter, actors}
       }}
       triggerLabel={
         <Fragment>
-          {triggerLabel}
-          {selectedTeams.length > 1 && (
+          {label}
+          {!isMyTeams && selectedTeams.length > 1 && (
             <StyledBadge text={`+${selectedTeams.length - 1}`} />
           )}
         </Fragment>
       }
-      triggerProps={{icon: triggerIcon}}
+      triggerProps={{icon: <IconUser />}}
     />
   );
 }
