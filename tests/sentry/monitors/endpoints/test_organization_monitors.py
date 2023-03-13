@@ -4,31 +4,25 @@ from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from sentry.monitors.models import Monitor, MonitorStatus, MonitorType, ScheduleType
-from sentry.testutils import APITestCase
+from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
-class OrganizationMonitorsTestBase(APITestCase):
+@region_silo_test(stable=True)
+class ListOrganizationMonitorsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitors"
 
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
 
-
-@region_silo_test(stable=True)
-class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
     def check_valid_response(self, response, expected_monitors):
         assert [str(monitor.guid) for monitor in expected_monitors] == [
             str(monitor_resp["id"]) for monitor_resp in response.data
         ]
 
     def test_simple(self):
-        monitor = Monitor.objects.create(
-            project_id=self.project.id,
-            organization_id=self.organization.id,
-            name="My Monitor",
-        )
+        monitor = self._create_monitor()
         response = self.get_success_response(self.organization.slug)
         self.check_valid_response(response, [monitor])
 
@@ -37,9 +31,7 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
         last_checkin_older = datetime.now() - timedelta(minutes=5)
 
         def add_status_monitor(status_key: str, date: datetime | None = None):
-            return Monitor.objects.create(
-                project_id=self.project.id,
-                organization_id=self.organization.id,
+            return self._create_monitor(
                 status=getattr(MonitorStatus, status_key),
                 last_checkin=date or last_checkin,
                 name=status_key,
@@ -68,8 +60,13 @@ class ListOrganizationMonitorsTest(OrganizationMonitorsTestBase):
 
 
 @region_silo_test(stable=True)
-class CreateOrganizationMonitorTest(OrganizationMonitorsTestBase):
+class CreateOrganizationMonitorTest(MonitorTestCase):
+    endpoint = "sentry-api-0-organization-monitors"
     method = "post"
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(self.user)
 
     @patch("sentry.analytics.record")
     def test_simple(self, mock_record):

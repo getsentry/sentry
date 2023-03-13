@@ -4,10 +4,10 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
+from sentry.api.authentication import ApiKeyAuthentication, DSNAuthentication, TokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
-from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
 from sentry.models import Organization, Project, ProjectStatus
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
@@ -32,21 +32,12 @@ class ProjectMonitorPermission(ProjectPermission):
     }
 
 
-class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
-    scope_map = ProjectMonitorPermission.scope_map
-
-    def has_object_permission(self, request: Request, view, project):
-        result = super().has_object_permission(request, view, project)
-
-        # Allow attachment uploads via DSN
-        if request.method == "POST":
-            return True
-
-        return result
-
-
 class MonitorEndpoint(Endpoint):
     permission_classes = (ProjectMonitorPermission,)
+
+    # TODO(epurkhiser): This should be vastly simplified to not deal with
+    # missing organization_slug. Only endpoints that extend the
+    # MonitorIngestEndpoint need to deal with that (it should not extend this)
 
     def convert_args(
         self,
@@ -127,6 +118,62 @@ class MonitorCheckInEndpoint(MonitorEndpoint):
         args, kwargs = super().convert_args(request, monitor_id, *args, **kwargs)
 
         monitor = kwargs["monitor"]
+        # we support the magic keyword of "latest" to grab the most recent check-in
+        # which is unfinished (thus still mutable)
+        if checkin_id == "latest":
+            checkin = (
+                MonitorCheckIn.objects.filter(monitor=monitor)
+                .exclude(status__in=CheckInStatus.FINISHED_VALUES)
+                .order_by("-date_added")
+                .first()
+            )
+            if not checkin:
+                raise ResourceDoesNotExist
+        else:
+            try:
+                UUID(checkin_id)
+            except ValueError:
+                raise ParameterValidationError("Invalid check-in UUID")
+
+            try:
+                checkin = MonitorCheckIn.objects.get(monitor=monitor, guid=checkin_id)
+            except MonitorCheckIn.DoesNotExist:
+                raise ResourceDoesNotExist
+
+        kwargs.update({"checkin": checkin})
+        return args, kwargs
+
+
+class MonitorIngestEndpoint(MonitorEndpoint):
+    """
+    This type of endpont explicitly only allows for DSN and Token / Key based authentication.
+
+    [!!]: These endpoints are legacy and will be replaced by relay based
+          checkin ingestion in the very near future.
+    """
+
+    # TODO(epurkhiser): This should not extend MonitorEndpoint, that base class
+    # is designed for frontend API endpoints
+
+    authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
+
+    # TODO(dcramer): this code needs shared with other endpoints as its security focused
+    # TODO(dcramer): this doesnt handle is_global roles
+    def convert_args(
+        self,
+        request: Request,
+        monitor_id: str,
+        checkin_id: str | None = None,
+        *args,
+        **kwargs,
+    ):
+        args, kwargs = super().convert_args(request, monitor_id, *args, **kwargs)
+
+        monitor = kwargs["monitor"]
+
+        if checkin_id is None:
+            return args, kwargs
+
         # we support the magic keyword of "latest" to grab the most recent check-in
         # which is unfinished (thus still mutable)
         if checkin_id == "latest":

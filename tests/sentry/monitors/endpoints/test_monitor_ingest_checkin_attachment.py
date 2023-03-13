@@ -7,17 +7,13 @@ from django.utils import timezone
 
 from sentry.models import File
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorType
-from sentry.testutils import APITestCase
+from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
+class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
-
-    def setUp(self):
-        super().setUp()
-        self.login_as(self.user)
 
     def get_path(self, monitor, checkin):
         return reverse(self.endpoint, args=[self.organization.slug, monitor.guid, checkin.guid])
@@ -50,6 +46,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
                 ),
             },
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 200, resp.content
@@ -75,6 +72,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             path,
             {},
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 400
@@ -101,6 +99,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
                 ),
             },
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 400
@@ -124,6 +123,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
                 ),
             },
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 200, resp.content
@@ -143,6 +143,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
                 ),
             },
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 400
@@ -162,6 +163,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(APITestCase):
             path,
             {"file": "invalid_file"},
             format="multipart",
+            **self.token_auth_headers,
         )
 
         assert resp.status_code == 400

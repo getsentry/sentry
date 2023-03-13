@@ -7,7 +7,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import ratelimits
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -31,7 +30,7 @@ from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.utils import metrics
 
-from .base import MonitorEndpoint
+from .base import MonitorIngestEndpoint
 
 CHECKIN_QUOTA_LIMIT = 5
 CHECKIN_QUOTA_WINDOW = 60
@@ -39,8 +38,7 @@ CHECKIN_QUOTA_WINDOW = 60
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorIngestCheckInIndexEndpoint(MonitorEndpoint):
-    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
+class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     public = {"POST"}
 
     @extend_schema(

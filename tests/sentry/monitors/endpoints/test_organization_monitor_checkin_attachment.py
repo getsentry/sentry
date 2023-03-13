@@ -1,34 +1,17 @@
-from datetime import timedelta
-
 from django.core.files.base import ContentFile
-from django.urls import reverse
-from django.utils import timezone
 
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorType
-from sentry.testutils import APITestCase
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn
+from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class OrganizationMonitorCheckInAttachmentEndpointTest(APITestCase):
+class OrganizationMonitorCheckInAttachmentEndpointTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
     def setUp(self):
         super().setUp()
         self.login_as(self.user)
-
-    def _path_func(self, monitor, checkin):
-        return reverse(self.endpoint, args=[self.organization.slug, monitor.guid, checkin.guid])
-
-    def _create_monitor(self):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *"},
-            date_added=timezone.now() - timedelta(minutes=1),
-        )
 
     def test_download(self):
         file = self.create_file(name="log.txt", type="checkin.attachment")
