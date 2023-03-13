@@ -30,8 +30,18 @@ jest.mock('screenfull', () => ({
 }));
 
 // Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({});
-const mockReplay = ReplayReader.factory(replayReaderParams);
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({
+    browser: {
+      name: 'Chrome',
+      version: '110.0.0',
+    },
+  }),
+  errors: [],
+  attachments: TestStubs.ReplaySegmentInit({
+    timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+  }),
+});
 
 // Mock useReplayData hook to return the mocked replay data
 jest.mock('sentry/utils/replays/hooks/useReplayData', () => {
