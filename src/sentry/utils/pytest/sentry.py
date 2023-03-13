@@ -143,10 +143,7 @@ def pytest_configure(config):
 
     settings.SENTRY_OPTIONS.update(
         {
-            "redis.clusters": {
-                "default": {"hosts": {0: {"db": TEST_REDIS_DB}}},
-                "rc": {"is_redis_cluster": True, "hosts": {"host": "127.0.0.1"}},
-            },
+            "redis.clusters": {"default": {"hosts": {0: {"db": TEST_REDIS_DB}}}},
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.base-hostname": "testserver",
