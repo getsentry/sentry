@@ -55,6 +55,9 @@ export function OwnershipRulesTable({
     return [...projectRules, ...codeownerRulesWithId];
   }, [projectRules, codeowners]);
 
+  /**
+   * All unique actors from both codeowners and project rules
+   */
   const allActors = useMemo(() => {
     const actors = combinedRules
       .flatMap(rule => rule.owners)
@@ -93,6 +96,9 @@ export function OwnershipRulesTable({
     }
   }, [myTeams]);
 
+  /**
+   * Rules chunked into pages
+   */
   const chunkedRules = useMemo(() => {
     const filteredRules: MixedOwnershipRule[] = combinedRules.filter(
       rule =>
