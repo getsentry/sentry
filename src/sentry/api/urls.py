@@ -1320,17 +1320,17 @@ ORGANIZATION_URLS = [
     ),
     # Notification Actions
     url(
-        r"^(?P<organization_slug>[^\/]+)/notifications/(?P<action_trigger>[^\/]+)/available-actions/$",
+        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
         NotificationActionsAvailableEndpoint.as_view(),
         name="sentry-api-0-organization-notification-available-actions",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/notifications/(?P<action_trigger>[^\/]+)/actions/$",
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/$",
         NotificationActionsIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/notifications/(?P<action_trigger>[^\/]+)/actions/(?P<action_id>[^\/]+)/$",
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
         NotificationActionsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions-details",
     ),
