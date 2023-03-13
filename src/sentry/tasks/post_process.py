@@ -8,7 +8,7 @@ import sentry_sdk
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features
+from sentry import features, options
 from sentry.exceptions import PluginError
 from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -533,12 +533,20 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
+
     if group_event.group.issue_type.type_id in get_group_types_by_category(
         GroupCategory.PROFILE.value
     ) and not features.has(
         "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
     ):
         return
+
+    if group_event.group.issue_type.type_id in get_group_types_by_category(
+        GroupCategory.PERFORMANCE.value
+    ) and options.get("performance.issues.send_to_issues_platform", False):
+        project = group_event.project
+        if project.get_option("sentry:performance_issue_send_to_issues_platform", False):
+            return
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues
         pipeline = GENERIC_POST_PROCESS_PIPELINE

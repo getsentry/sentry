@@ -9,7 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 
-from sentry import eventstream
+from sentry import eventstream, options
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.event_manager import (
     GroupInfo,
@@ -21,6 +21,7 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
@@ -56,6 +57,15 @@ def save_issue_occurrence(
     group_info = save_issue_from_occurrence(occurrence, event, release)
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
+
+        if occurrence.type.type_id in get_group_types_by_category(
+            GroupCategory.PERFORMANCE.value
+        ) and options.get("performance.issues.send_to_issues_platform", False):
+            per_project_option = event.project.get_option(
+                "sentry:performance_issue_send_to_issues_platform", False
+            )
+            if per_project_option:
+                return
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
         _increment_release_associated_counts(
@@ -213,6 +223,12 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
+    skip_consume = (
+        occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        and options.get("performance.issues.send_to_issues_platform", False)
+        and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
+    )
+
     eventstream.insert(
         event=group_event,
         is_new=group_info.is_new,
@@ -220,7 +236,7 @@ def send_issue_occurrence_to_eventstream(
         is_new_group_environment=group_info.is_new_group_environment,
         primary_hash=occurrence.fingerprint[0],
         received_timestamp=group_event.data.get("received") or group_event.datetime,
-        skip_consume=False,
+        skip_consume=skip_consume,
         group_states=[
             {
                 "id": group_info.group.id,
