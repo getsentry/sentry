@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import chunk from 'lodash/chunk';
 import uniqBy from 'lodash/uniqBy';
 
@@ -56,16 +55,34 @@ export function OwnershipRulesTable({
     const actors = combinedRules
       .flatMap(rule => rule.owners)
       .map(owner => ({...owner, id: `${owner.id}`}));
-    return uniqBy(actors, actor => `${actor.type}:${actor.id}`).sort();
+    return (
+      uniqBy(actors, actor => `${actor.type}:${actor.id}`)
+        // Sort by type, then by name
+        // Teams first, then users
+        .sort((a, b) => {
+          if (a.type === 'team' && b.type === 'user') {
+            return -1;
+          }
+          if (a.type === 'user' && b.type === 'team') {
+            return 1;
+          }
+          return a.name.localeCompare(b.name);
+        })
+    );
   }, [combinedRules]);
 
   const chunkedRules = useMemo(() => {
     const filteredRules: MixedOwnershipRule[] = combinedRules.filter(
-      rule => rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)
+      rule =>
+        // Filter by query
+        (rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)) &&
+        // Filter by selected actors
+        (selectedActors.length === 0 ||
+          rule.owners.some(owner => selectedActors.includes(`${owner.type}:${owner.id}`)))
     );
 
     return chunk(filteredRules, PAGE_LIMIT);
-  }, [combinedRules, search]);
+  }, [combinedRules, search, selectedActors]);
 
   const hasNextPage = chunkedRules[page + 1] !== undefined;
   const hasPrevPage = page !== 0;
@@ -94,7 +111,6 @@ export function OwnershipRulesTable({
           actors={allActors}
           selectedTeams={selectedActors}
           handleChangeFilter={handleChangeFilter}
-          showMyTeamsDescription
         />
         <StyledSearchBar
           name="ownershipSearch"
@@ -126,7 +142,7 @@ export function OwnershipRulesTable({
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
               <RowItem>
-                <Tag type="highlight">{capitalize(rule.matcher.type)}</Tag>
+                <Tag type="highlight">{rule.matcher.type}</Tag>
               </RowItem>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <RowItem>

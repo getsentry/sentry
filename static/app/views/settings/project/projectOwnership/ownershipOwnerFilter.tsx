@@ -12,14 +12,6 @@ interface Props {
   actors: Actor[];
   handleChangeFilter: (activeFilters: string[]) => void;
   selectedTeams: string[];
-  /**
-   * only show teams user is a member of
-   */
-  showIsMemberTeams?: boolean;
-  /**
-   * show My Teams as the default dropdown description
-   */
-  showMyTeamsDescription?: boolean;
 }
 
 const suggestedOptions = [
@@ -29,12 +21,7 @@ const suggestedOptions = [
   },
 ];
 
-export function OwnershipOwnerFilter({
-  selectedTeams,
-  handleChangeFilter,
-  showMyTeamsDescription = false,
-  actors,
-}: Props) {
+export function OwnershipOwnerFilter({selectedTeams, handleChangeFilter, actors}: Props) {
   const actorOptions = useMemo(
     () =>
       actors.map(actor => ({
@@ -53,11 +40,8 @@ export function OwnershipOwnerFilter({
       return [<IconUser key={0} />, firstSelectedSuggestion.label];
     }
 
-    return [
-      <IconUser key={0} />,
-      showMyTeamsDescription ? t('My Teams') : t('All Teams'),
-    ];
-  }, [selectedTeams, showMyTeamsDescription]);
+    return [<IconUser key={0} />, t('All Teams')];
+  }, [selectedTeams]);
 
   return (
     <CompactSelect
