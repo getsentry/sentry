@@ -36,6 +36,7 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
+from sentry.utils import json
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 
@@ -66,7 +67,7 @@ def try_mark_onboarding_complete(organization_id):
                 OrganizationOption.objects.create(
                     organization_id=organization_id,
                     key="onboarding:complete",
-                    value={"updated": timezone.now()},
+                    value={"updated": json.datetime_to_str(timezone.now())},
                 )
         except IntegrityError:
             pass
