@@ -72,3 +72,38 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             **{"start": startOneDayAgo.isoformat(), "end": end.isoformat()},
         )
         assert resp.data[0]["id"] == str(checkin.guid)
+
+    def test_simple_environment(self):
+        self.login_as(self.user)
+
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitorenvironment(monitor, name="jungle")
+        checkin1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+        checkin2 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "jungle"}
+        )
+        assert len(resp.data) == 2
+
+        # Newest first
+        assert resp.data[0]["id"] == str(checkin2.guid)
+        assert resp.data[1]["id"] == str(checkin1.guid)
+
+    def test_bad_environment(self):
+        pass
+
+    def test_back_monitorenvironment(self):
+        pass
