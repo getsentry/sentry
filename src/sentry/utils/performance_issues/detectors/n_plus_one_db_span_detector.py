@@ -53,6 +53,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "source_span",
         "n_hash",
         "n_spans",
+        "transaction",
     )
 
     type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
@@ -217,7 +218,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 evidence_display=[
                     IssueEvidence(
                         name="Transaction Name",
-                        value="",
+                        value=self._event.get("transaction", ""),
                         important=True,
                     ),
                     IssueEvidence(
