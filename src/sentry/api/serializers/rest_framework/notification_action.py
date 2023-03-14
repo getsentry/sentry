@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Tuple, TypedDict
 
 from rest_framework import serializers
 
@@ -10,11 +10,22 @@ from sentry.models.notificationaction import (
     NotificationAction,
     TriggerGenerator,
 )
+from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 
 
 def format_choices_text(choices: List[Tuple[int, str]]):
     return ", ".join([f"'{display_text}'" for (_, display_text) in choices])
+
+
+class NotificationActionInputData(TypedDict):
+    integration_id: int
+    projects: List[Project]
+    service_type: int
+    trigger_type: int
+    target_type: int
+    target_identifier: str
+    target_display: str
 
 
 class NotificationActionSerializer(CamelSnakeModelSerializer):
@@ -72,17 +83,9 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
 
     class Meta:
         model = NotificationAction
-        fields = [
-            "integration_id",
-            "projects",
-            "service_type",
-            "target_type",
-            "target_identifier",
-            "target_display",
-            "trigger_type",
-        ]
+        fields = list(NotificationActionInputData.__annotations__.keys())
 
-    def create(self, validated_data):
+    def create(self, validated_data: NotificationActionInputData) -> NotificationAction:
         projects = validated_data.pop("projects")
         service_type = validated_data.pop("service_type")
         action = NotificationAction(
@@ -94,7 +97,9 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         action.projects.set(projects)
         return action
 
-    def update(self, instance: NotificationAction, validated_data):
+    def update(
+        self, instance: NotificationAction, validated_data: NotificationActionInputData
+    ) -> NotificationAction:
         projects = validated_data.pop("projects")
         service_type = validated_data.pop("service_type")
         for key, value in validated_data.items():

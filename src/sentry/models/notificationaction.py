@@ -151,9 +151,7 @@ class NotificationAction(AbstractNotificationAction):
     __include_in_export__ = True
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
-    _handlers: MutableMapping[ActionTrigger, MutableMapping[ActionTarget, Callable]] = defaultdict(
-        dict
-    )
+    _handlers: MutableMapping[int, MutableMapping[int, Callable]] = defaultdict(dict)
     _trigger_types: List[Tuple[int, str]] = ActionTrigger.as_choices()
 
     organization = FlexibleForeignKey("sentry.Organization")
