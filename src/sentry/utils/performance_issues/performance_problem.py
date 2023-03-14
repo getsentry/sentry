@@ -55,7 +55,10 @@ class PerformanceProblem:
             data["cause_span_ids"],
             data["offender_span_ids"],
             data.get("evidence_data", {}),
-            data.get("evidence_display", []),
+            [
+                IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
+                for evidence in data["evidence_display"]
+            ],
         )
 
     def __eq__(self, other):
