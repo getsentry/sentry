@@ -236,7 +236,7 @@ const UncompressedAssetSpanEvidence = ({
   />
 );
 
-const DefaultSpanEvidence = ({
+export const DefaultSpanEvidence = ({
   event,
   offendingSpans,
   orgSlug,

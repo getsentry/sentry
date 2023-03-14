@@ -22,6 +22,17 @@ export type EventLite = {
   'transaction.duration': number;
 };
 
+export type PerformanceIssue = {
+  event_id: string;
+  issue_id: number;
+  level: keyof Theme['level'];
+  project_id: number;
+  project_slug: string;
+  span: string[];
+  suspect_spans: string[];
+  title: string;
+};
+
 export type TraceError = {
   event_id: string;
   issue: string;
@@ -37,6 +48,7 @@ export type TraceLite = EventLite[];
 
 export type QuickTraceEvent = EventLite & {
   errors?: TraceError[];
+  performance_issues?: PerformanceIssue[];
 };
 
 /**

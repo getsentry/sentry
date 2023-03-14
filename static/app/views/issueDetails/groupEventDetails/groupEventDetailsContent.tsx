@@ -15,6 +15,7 @@ import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventTagsAndScreenshot} from 'sentry/components/events/eventTagsAndScreenshot';
 import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventGroupingInfo} from 'sentry/components/events/groupingInfo';
+import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -67,6 +68,7 @@ const GroupEventDetailsContent = ({
   const organization = useOrganization();
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
+  const isANR = event?.tags?.find(({key}) => key === 'mechanism')?.value === 'ANR';
 
   if (!event) {
     return (
@@ -107,6 +109,7 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
+      {isANR && <AnrRootCause event={event} organization={organization} />}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection
           event={event as EventTransaction}
