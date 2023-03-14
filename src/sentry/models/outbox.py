@@ -3,7 +3,6 @@ from __future__ import annotations
 import abc
 import contextlib
 import datetime
-import sys
 from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
