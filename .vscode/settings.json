@@ -85,5 +85,5 @@
   "python.testing.pytestArgs": [
     "tests"
   ],
-  "python.analysis.typeCheckingMode": "basic"
+  "python.analysis.typeCheckingMode": "off"
 }
