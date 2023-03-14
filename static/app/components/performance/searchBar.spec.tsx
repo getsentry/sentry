@@ -136,7 +136,7 @@ describe('SearchBar', () => {
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
+    expect(onSearch).toHaveBeenCalledWith('transaction:"clients.fetch"');
   });
 
   it('Submits wildcard searches as raw text searches', async () => {
@@ -191,7 +191,7 @@ describe('SearchBar', () => {
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
 
-  it('wraps queries with quotes if they contain a space', async () => {
+  it('properly formats transaction queries that include a space', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -209,9 +209,10 @@ describe('SearchBar', () => {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
+    userEvent.keyboard('{Down}');
     userEvent.keyboard('{Enter}');
 
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenCalledWith('"GET /my-endpoint"');
+    expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');
   });
 });
