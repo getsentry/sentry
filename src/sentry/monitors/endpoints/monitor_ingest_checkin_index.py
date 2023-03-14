@@ -53,7 +53,6 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         },
     )
 
-
     @extend_schema(
         operation_id="Create a new check-in",
         parameters=[
