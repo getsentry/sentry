@@ -1,4 +1,6 @@
-- Replay Event
+# Replays Snuba Consumer
+
+## Replay Event
 
 ```json
 {
@@ -72,7 +74,7 @@
 }
 ```
 
-- Replay Actions Event
+## Replay Actions Event
 
 ```json
 {
@@ -85,7 +87,21 @@
     "type": "replay_actions",
     "replay_id": "e5e062bf2e1d4afd96fd2f90b6770431",
     "segment_id": 0,
-    "actions": []
+    "actions": [
+      {
+        "dom_action": "click",
+        "dom_element": "div",
+        "dom_id": "id",
+        "dom_classes": ["class1", "class2"],
+        "dom_aria_label": "test",
+        "dom_aria_role": "aria-button",
+        "dom_role": "button",
+        "dom_text_content": "text",
+        "dom_node_id": 59,
+        "timestamp": 1678478346,
+        "event_hash": "df3c3aa2daae465e89f1169e49139827"
+      }
+    ]
   }
 }
 ```
