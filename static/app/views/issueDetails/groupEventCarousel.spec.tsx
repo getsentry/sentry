@@ -54,8 +54,7 @@ describe('GroupEventCarousel', () => {
   it('can copy event ID', () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: /copy event id/i}));
+    userEvent.click(screen.getByText(testEvent.id));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
   });

@@ -5,12 +5,14 @@ import moment from 'moment-timezone';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Clipboard from 'sentry/components/clipboard';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
+  IconCopy,
   IconEllipsis,
   IconNext,
   IconPrevious,
@@ -99,7 +101,17 @@ export const GroupEventCarousel = ({
         />
         <EventLabelContainer>
           <div>
-            <strong>Event ID:</strong> {getShortEventId(event.id)}{' '}
+            <strong>Event ID:</strong>{' '}
+            <Tooltip title={event.id}>
+              <Clipboard value={event.id}>
+                <EventId>
+                  {getShortEventId(event.id)}
+                  <CopyIconContainer>
+                    <IconCopy size="xs" />
+                  </CopyIconContainer>
+                </EventId>
+              </Clipboard>
+            </Tooltip>{' '}
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
                 (
@@ -155,11 +167,6 @@ export const GroupEventCarousel = ({
               copyToClipboard(
                 window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`)
               ),
-          },
-          {
-            key: 'copy-event-id',
-            label: t('Copy Event ID'),
-            onAction: () => copyToClipboard(event.id),
           },
           {
             key: 'json',
@@ -228,6 +235,7 @@ const StyledButtonBar = styled(ButtonBar)`
 `;
 
 const EventLabelContainer = styled('div')`
+  background: ${p => p.theme.background};
   display: flex;
   border-top: 1px solid ${p => p.theme.button.default.border};
   border-bottom: 1px solid ${p => p.theme.button.default.border};
@@ -246,4 +254,26 @@ const StyledIconWarning = styled(IconWarning)`
   margin-left: ${space(0.25)};
   position: relative;
   top: 1px;
+`;
+
+const EventId = styled('span')`
+  position: relative;
+  cursor: pointer;
+
+  &:hover {
+    > span {
+      display: flex;
+    }
+  }
+`;
+
+const CopyIconContainer = styled('span')`
+  display: none;
+  align-items: center;
+  padding: ${space(0.25)};
+  background: ${p => p.theme.background};
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
 `;
