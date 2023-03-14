@@ -457,7 +457,6 @@ def query_subscription_consumer(**options):
             group_id=options["group"],
             strict_offset_reset=options["strict_offset_reset"],
             initial_offset_reset=options["initial_offset_reset"],
-            force_offset_reset=options["force_offset_reset"],
         )
 
     run_processor_with_signals(subscriber)

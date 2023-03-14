@@ -166,5 +166,10 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.run_test(consumer)
 
     def test_arroyo(self):
-        consumer = get_query_subscription_consumer(self.topic, "hi", False)
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        create_topics(kafka_cluster, [self.topic])
+
+        consumer = get_query_subscription_consumer(self.topic, "hi", True)
         self.run_test(consumer)
