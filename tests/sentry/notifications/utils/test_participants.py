@@ -24,7 +24,6 @@ from sentry.notifications.utils.participants import (
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -53,9 +52,7 @@ class _ParticipantsTest(TestCase):
         email: Iterable[int] = (), slack: Iterable[int] = ()
     ) -> Mapping[ExternalProviders, Set[RpcActor]]:
         return {
-            provider: {
-                RpcActor.from_rpc_user(user_service.get_user(user_id)) for user_id in user_ids
-            }
+            provider: {RpcActor.from_orm_user(user_id) for user_id in user_ids}
             for (provider, user_ids) in [
                 (ExternalProviders.EMAIL, email),
                 (ExternalProviders.SLACK, slack),
@@ -850,12 +847,9 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         event = self.store_event("admin.lol", self.project)
         # Check that the notified users are only the 2 active users.
-        expected_notified_users = {
-            user_service.get_user(user.id) for user in [self.user, self.user2]
-        }
         assert self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
-        ) == self.build_expected_recipients([user.id for user in expected_notified_users])
+        ) == self.build_expected_recipients([user.id for user in [self.user, self.user2]])
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
@@ -876,9 +870,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {
-            RpcActor.from_rpc_user(user_service.get_user(user.id)) for user in notifiable_users
-        }
+        expected_notified_users = {RpcActor.from_orm_user(user) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
@@ -905,9 +897,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {
-            RpcActor.from_rpc_user(user_service.get_user(user.id)) for user in notifiable_users
-        }
+        expected_notified_users = {RpcActor.from_orm_user(user) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]

@@ -6,7 +6,6 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils.cases import ActivityTestCase
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
@@ -41,9 +40,7 @@ class NoteTestCase(ActivityTestCase):
         participants = self.email.get_participants_with_group_subscription_reason()
         actual = dict(participants.get_participants_by_provider(ExternalProviders.EMAIL))
         expected = {
-            RpcActor.from_rpc_user(
-                user_service.get_user(self.user.id)
-            ): GroupSubscriptionReason.implicit,
+            RpcActor.from_orm_user(self.user): GroupSubscriptionReason.implicit,
         }
         assert actual == expected
 
