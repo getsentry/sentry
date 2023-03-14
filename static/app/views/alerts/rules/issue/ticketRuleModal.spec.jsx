@@ -124,7 +124,7 @@ describe('ProjectAlerts -> TicketRuleModal', function () {
   };
 
   describe('Create Rule', function () {
-    it('should render the Ticket Rule modal', async function () {
+    it('should render the Ticket Rule modal', function () {
       renderComponent();
 
       expect(screen.getByRole('button', {name: 'Apply Changes'})).toBeInTheDocument();

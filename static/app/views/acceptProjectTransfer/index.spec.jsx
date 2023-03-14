@@ -25,7 +25,7 @@ describe('AcceptProjectTransfer', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(
       <AcceptProjectTransfer
         location={{

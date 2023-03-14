@@ -237,7 +237,7 @@ describe('IssueListActions', function () {
     });
   });
 
-  it('can resolve but not merge issues from different projects', async function () {
+  it('can resolve but not merge issues from different projects', function () {
     jest
       .spyOn(SelectedGroupStore, 'getSelectedIds')
       .mockImplementation(() => new Set(['1', '2', '3']));
@@ -288,7 +288,7 @@ describe('IssueListActions', function () {
       expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
     });
 
-    it('mark reviewed disabled for group that is already reviewed', async function () {
+    it('mark reviewed disabled for group that is already reviewed', function () {
       SelectedGroupStore.add(['1']);
       SelectedGroupStore.toggleSelectAll();
       GroupStore.loadInitialData([TestStubs.Group({id: '1', inbox: null})]);

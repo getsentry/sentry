@@ -30,7 +30,7 @@ describe('ProjectKeys', function () {
     });
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/keys/`,

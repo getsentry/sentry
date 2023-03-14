@@ -5,12 +5,12 @@ import PlatformList from 'sentry/components/platformList';
 describe('PlatformList', function () {
   const platforms = ['java', 'php', 'javascript', 'cocoa', 'ruby'];
 
-  it('renders max of three icons from platforms', async function () {
+  it('renders max of three icons from platforms', function () {
     render(<PlatformList platforms={platforms} />);
     expect(screen.getAllByRole('img')).toHaveLength(3);
   });
 
-  it('renders default if no platforms', async function () {
+  it('renders default if no platforms', function () {
     render(<PlatformList platforms={[]} />);
     expect(screen.getByRole('img')).toBeInTheDocument();
   });
@@ -26,7 +26,7 @@ describe('PlatformList', function () {
     expect(await screen.findByText('2 other platforms')).toBeInTheDocument();
   });
 
-  it('displays counter according to the max value', async function () {
+  it('displays counter according to the max value', function () {
     const max = 2;
     render(<PlatformList platforms={platforms} max={max} showCounter />);
     const icons = screen.getAllByRole('img');

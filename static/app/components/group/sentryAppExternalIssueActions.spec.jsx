@@ -158,7 +158,7 @@ describe('SentryAppExternalIssueActions', () => {
     );
   });
 
-  it('renders with an external issue linked', async () => {
+  it('renders with an external issue linked', () => {
     render(
       <SentryAppExternalIssueActions
         group={group}

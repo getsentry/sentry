@@ -23,7 +23,7 @@ describe('Discover > ChartFooter', function () {
 
   afterEach(function () {});
 
-  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', async function () {
+  it('renders yAxis option using OptionCheckboxSelector using entire yAxisValue', function () {
     const organization = TestStubs.Organization({
       features: [...features],
     });
@@ -65,7 +65,7 @@ describe('Discover > ChartFooter', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders display limits with default limit when top 5 mode is selected', async function () {
+  it('renders display limits with default limit when top 5 mode is selected', function () {
     const organization = TestStubs.Organization({
       features,
     });

@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ArrayValue from 'sentry/utils/discover/arrayValue';
 
 describe('Discover > ArrayValue', function () {
-  it('renders an expand link', async function () {
+  it('renders an expand link', function () {
     render(<ArrayValue value={['one', 'two', 'three']} />);
 
     // Should have a button
@@ -33,14 +33,14 @@ describe('Discover > ArrayValue', function () {
     expect(screen.getByText('(empty string)')).toBeInTheDocument();
   });
 
-  it('hides toggle on 1 element', async function () {
+  it('hides toggle on 1 element', function () {
     render(<ArrayValue value={['one']} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
     expect(screen.getByText('one')).toBeInTheDocument();
   });
 
-  it('hides toggle on 0 elements', async function () {
+  it('hides toggle on 0 elements', function () {
     render(<ArrayValue value={[]} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();

@@ -103,7 +103,7 @@ describe('TeamMisery', () => {
     expect(screen.getAllByText('0% change')).toHaveLength(noChangeItems);
   });
 
-  it('should render empty state', async () => {
+  it('should render empty state', () => {
     render(
       <TeamMisery
         organization={TestStubs.Organization()}

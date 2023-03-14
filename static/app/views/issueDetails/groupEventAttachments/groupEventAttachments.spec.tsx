@@ -52,7 +52,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     );
   });
 
-  it('does not render screenshots tab if not mobile platform', async function () {
+  it('does not render screenshots tab if not mobile platform', function () {
     project.platform = 'javascript';
     renderGroupEventAttachments();
     expect(screen.queryByText('Screenshots')).not.toBeInTheDocument();
@@ -64,7 +64,7 @@ describe('GroupEventAttachments > Screenshots', function () {
     expect(openModal).toHaveBeenCalled();
   });
 
-  it('links event id to event detail', async function () {
+  it('links event id to event detail', function () {
     renderGroupEventAttachments();
     expect(
       screen.getByText('12345678901234567890123456789012').closest('a')

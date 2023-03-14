@@ -148,7 +148,7 @@ describe('Performance > Landing > Index', function () {
     }
   });
 
-  it('renders basic UI elements', async function () {
+  it('renders basic UI elements', function () {
     const data = initializeData();
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
@@ -156,7 +156,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-landing-v3')).toBeInTheDocument();
   });
 
-  it('renders frontend pageload view', async function () {
+  it('renders frontend pageload view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
@@ -176,7 +176,7 @@ describe('Performance > Landing > Index', function () {
     expect(titles[4]).toHaveTextContent('FCP Distribution');
   });
 
-  it('renders frontend other view', async function () {
+  it('renders frontend other view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_OTHER},
     });
@@ -185,7 +185,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders backend view', async function () {
+  it('renders backend view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.BACKEND},
     });
@@ -194,7 +194,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('performance-table')).toBeInTheDocument();
   });
 
-  it('renders mobile view', async function () {
+  it('renders mobile view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.MOBILE},
     });
@@ -282,7 +282,7 @@ describe('Performance > Landing > Index', function () {
     );
   });
 
-  it('Updating projects switches performance view', async function () {
+  it('Updating projects switches performance view', function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD},
     });
@@ -301,7 +301,7 @@ describe('Performance > Landing > Index', function () {
     expect(screen.getByTestId('all-transactions-view')).toBeInTheDocument();
   });
 
-  it('View correctly defaults based on project without url param', async function () {
+  it('View correctly defaults based on project without url param', function () {
     const data = initializeData({
       projects: [TestStubs.Project({id: 99, platform: 'javascript-react'})],
       selectedProject: 99,

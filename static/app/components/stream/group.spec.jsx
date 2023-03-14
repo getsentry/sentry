@@ -38,7 +38,7 @@ describe('StreamGroup', function () {
     GroupStore.reset();
   });
 
-  it('renders with anchors', async function () {
+  it('renders with anchors', function () {
     const {routerContext, organization} = initializeOrg();
     const wrapper = render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
       context: routerContext,
@@ -49,7 +49,7 @@ describe('StreamGroup', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('marks as reviewed', async function () {
+  it('marks as reviewed', function () {
     const {routerContext, organization} = initializeOrg();
     render(
       <StreamGroup
@@ -69,7 +69,7 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', async function () {
+  it('marks as resolved', function () {
     const {routerContext, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
       context: routerContext,

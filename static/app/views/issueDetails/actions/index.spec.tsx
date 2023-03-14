@@ -43,7 +43,7 @@ describe('GroupActions', function () {
   });
 
   describe('render()', function () {
-    it('renders correctly', async function () {
+    it('renders correctly', function () {
       const wrapper = render(
         <GroupActions
           group={group}

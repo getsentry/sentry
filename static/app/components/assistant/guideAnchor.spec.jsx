@@ -102,7 +102,7 @@ describe('GuideAnchor', function () {
     expect(screen.queryByText('Identify Your Issues')).not.toBeInTheDocument();
   });
 
-  it('renders no container when inactive', async function () {
+  it('renders no container when inactive', function () {
     render(
       <GuideAnchor target="target 1">
         <span data-test-id="child-div" />
@@ -113,7 +113,7 @@ describe('GuideAnchor', function () {
     expect(screen.getByTestId('child-div')).toBeInTheDocument();
   });
 
-  it('renders children when disabled', async function () {
+  it('renders children when disabled', function () {
     render(
       <GuideAnchor disabled target="exception">
         <div data-test-id="child-div" />

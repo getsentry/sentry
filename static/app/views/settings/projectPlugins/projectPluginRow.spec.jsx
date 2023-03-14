@@ -9,7 +9,7 @@ describe('ProjectPluginRow', function () {
   const params = {orgId: org.slug, projectId: project.slug};
   const routerContext = TestStubs.routerContext([{organization: org, project}]);
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <ProjectPluginRow {...params} {...plugin} project={project} />,
       {

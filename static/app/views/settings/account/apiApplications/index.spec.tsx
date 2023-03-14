@@ -4,7 +4,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ApiApplications from 'sentry/views/settings/account/apiApplications';
 
 describe('ApiApplications', function () {
-  it('renders empty', async function () {
+  it('renders empty', function () {
     const {router} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -28,7 +28,7 @@ describe('ApiApplications', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {router} = initializeOrg();
 
     const requestMock = MockApiClient.addMockResponse({

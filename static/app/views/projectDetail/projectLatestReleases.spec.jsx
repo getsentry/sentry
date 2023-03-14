@@ -30,7 +30,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a list', async function () {
+  it('renders a list', function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -107,7 +107,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('calls API with the right params', async function () {
+  it('calls API with the right params', function () {
     render(
       <ProjectLatestReleases
         organization={organization}
@@ -129,7 +129,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
     );
   });
 
-  it('does not call API if project is not stabilized yet', async function () {
+  it('does not call API if project is not stabilized yet', function () {
     render(
       <ProjectLatestReleases
         organization={organization}

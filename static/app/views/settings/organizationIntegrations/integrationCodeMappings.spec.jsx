@@ -78,7 +78,7 @@ describe('IntegrationCodeMappings', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows the paths', async () => {
+  it('shows the paths', () => {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
 
     for (const repo of repos) {

@@ -143,7 +143,7 @@ describe('OrganizationGeneralSettings', function () {
     });
   });
 
-  it('disables the entire form if user does not have write access', async function () {
+  it('disables the entire form if user does not have write access', function () {
     render(
       <OrganizationGeneralSettings
         {...defaultProps}
@@ -168,7 +168,7 @@ describe('OrganizationGeneralSettings', function () {
     ).toBeInTheDocument();
   });
 
-  it('does not have remove organization button without org:admin permission', async function () {
+  it('does not have remove organization button without org:admin permission', function () {
     render(
       <OrganizationGeneralSettings
         {...defaultProps}

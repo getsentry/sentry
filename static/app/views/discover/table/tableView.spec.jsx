@@ -108,7 +108,7 @@ describe('TableView > CellActions', function () {
     ProjectsStore.reset();
   });
 
-  it('updates sort order on equation fields', async function () {
+  it('updates sort order on equation fields', function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -121,7 +121,7 @@ describe('TableView > CellActions', function () {
     );
   });
 
-  it('updates sort order on non-equation fields', async function () {
+  it('updates sort order on non-equation fields', function () {
     const view = eventView.clone();
     renderComponent(initialData, rows, view);
 
@@ -330,7 +330,7 @@ describe('TableView > CellActions', function () {
     });
   });
 
-  it('has title on integer value greater than 999', async function () {
+  it('has title on integer value greater than 999', function () {
     rows.data[0]['count()'] = 1000;
     renderComponent(initialData, rows, eventView);
 
@@ -340,7 +340,7 @@ describe('TableView > CellActions', function () {
     expect(within(emptyValueCell).getByText('1k')).toHaveAttribute('title', '1,000');
   });
 
-  it('renders size columns correctly', async function () {
+  it('renders size columns correctly', function () {
     const orgWithFeature = TestStubs.Organization({
       projects: [TestStubs.Project()],
     });

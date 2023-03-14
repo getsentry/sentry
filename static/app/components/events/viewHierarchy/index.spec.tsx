@@ -116,7 +116,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('can render multiple windows together', async function () {
+  it('can render multiple windows together', function () {
     MOCK_DATA.windows = [
       ...MOCK_DATA.windows,
       {
@@ -137,7 +137,7 @@ describe('View Hierarchy', function () {
     expect(screen.getByText('Second Window Child')).toBeInTheDocument();
   });
 
-  it('does not render the wireframe for the Unity platform', async function () {
+  it('does not render the wireframe for the Unity platform', function () {
     const mockUnityProject = TestStubs.Project({platform: 'unity'});
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={mockUnityProject} />);
 
@@ -164,7 +164,7 @@ describe('View Hierarchy', function () {
     expect(context.fillRect).toHaveBeenCalledWith(210, 11, 3, 4);
   });
 
-  it('does not render a wireframe selection initially', async function () {
+  it('does not render a wireframe selection initially', function () {
     render(<ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />);
 
     const canvas = screen.getByTestId(
@@ -180,7 +180,7 @@ describe('View Hierarchy', function () {
     expect(context.fillRect).not.toHaveBeenCalled();
   });
 
-  it('renders an empty state if there is no data in windows to visualize', async function () {
+  it('renders an empty state if there is no data in windows to visualize', function () {
     render(
       <ViewHierarchy
         viewHierarchy={{rendering_system: 'This can be anything', windows: []}}
@@ -193,7 +193,7 @@ describe('View Hierarchy', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders with depth markers', async function () {
+  it('renders with depth markers', function () {
     const {container} = render(
       <ViewHierarchy viewHierarchy={MOCK_DATA} project={project} />
     );

@@ -57,7 +57,7 @@ describe('InviteRequestRow', function () {
     teams: ['myteam'],
   });
 
-  it('renders request to be invited', async function () {
+  it('renders request to be invited', function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -74,7 +74,7 @@ describe('InviteRequestRow', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders request to join', async function () {
+  it('renders request to join', function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -137,7 +137,7 @@ describe('InviteRequestRow', function () {
     expect(mockApprove).not.toHaveBeenCalled();
   });
 
-  it('non-admin can not approve or deny invite request', async function () {
+  it('non-admin can not approve or deny invite request', function () {
     render(
       <InviteRequestRow
         orgId={orgId}
@@ -192,7 +192,7 @@ describe('InviteRequestRow', function () {
     TeamStore.reset();
   });
 
-  it('cannot be approved when invitee role is not allowed', async function () {
+  it('cannot be approved when invitee role is not allowed', function () {
     const ownerInviteRequest = TestStubs.Member({
       user: null,
       inviterName: TestStubs.User().name,

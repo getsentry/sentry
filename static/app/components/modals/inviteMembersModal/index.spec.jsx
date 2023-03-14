@@ -55,7 +55,7 @@ describe('InviteMembersModal', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
   });
 
-  it('renders without organization.access', async function () {
+  it('renders without organization.access', function () {
     const organization = TestStubs.Organization({access: undefined});
     render(<InviteMembersModal {...modalProps} organization={organization} />);
 
@@ -254,7 +254,7 @@ describe('InviteMembersModal', function () {
   });
 
   describe('member invite request mode', function () {
-    it('has adjusted wording', async function () {
+    it('has adjusted wording', function () {
       render(<InviteMembersModal {...modalProps} organization={noWriteOrg} />);
 
       expect(

@@ -56,7 +56,7 @@ describe('OrganizationTeamProjects', function () {
     Client.clearMockResponses();
   });
 
-  it('fetches linked and unlinked projects', async function () {
+  it('fetches linked and unlinked projects', function () {
     render(
       <OrganizationTeamProjects
         api={new MockApiClient()}

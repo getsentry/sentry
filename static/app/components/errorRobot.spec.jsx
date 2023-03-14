@@ -33,7 +33,7 @@ describe('ErrorRobot', function () {
       );
     }
 
-    it('Renders a button for creating an event', async function () {
+    it('Renders a button for creating an event', function () {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeEnabled();
@@ -57,14 +57,14 @@ describe('ErrorRobot', function () {
       );
     }
 
-    it('Renders a disabled create event button', async function () {
+    it('Renders a disabled create event button', function () {
       createWrapper();
       const button = screen.getByRole('button', {name: 'Create a sample event'});
       expect(button).toBeDisabled();
       expect(getIssues).toHaveBeenCalledTimes(0);
     });
 
-    it('does not display install instructions', async function () {
+    it('does not display install instructions', function () {
       createWrapper();
       expect(screen.queryByText('Installation Instructions')).not.toBeInTheDocument();
     });

@@ -527,7 +527,7 @@ describe('Dashboards > WidgetCard', function () {
     );
   });
 
-  it('calls release queries', async function () {
+  it('calls release queries', function () {
     const widget: Widget = {
       title: 'Release Widget',
       interval: '5m',

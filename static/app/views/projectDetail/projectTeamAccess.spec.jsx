@@ -6,7 +6,7 @@ import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 describe('ProjectDetail > ProjectTeamAccess', function () {
   const {organization, routerContext} = initializeOrg();
 
-  it('renders a list', async function () {
+  it('renders a list', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -19,7 +19,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
   });
 
-  it('links to a team settings', async function () {
+  it('links to a team settings', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -34,7 +34,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state with access', async function () {
+  it('display the right empty state with access', function () {
     render(
       <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
       {context: routerContext}
@@ -46,7 +46,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     );
   });
 
-  it('display the right empty state without access', async function () {
+  it('display the right empty state without access', function () {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
@@ -85,7 +85,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 
-  it('sorts teams alphabetically', async function () {
+  it('sorts teams alphabetically', function () {
     render(
       <ProjectTeamAccess
         organization={organization}

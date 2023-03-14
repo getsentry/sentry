@@ -38,7 +38,7 @@ describe('TeamAccessRequestModal', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = renderComponent();
 
     expect(container).toHaveTextContent(

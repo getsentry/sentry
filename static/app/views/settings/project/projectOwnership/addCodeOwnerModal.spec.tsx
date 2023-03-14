@@ -42,7 +42,7 @@ describe('AddCodeOwnerModal', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(
       <AddCodeOwnerModal
         Body={ModalBody}

@@ -36,7 +36,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('has inputs for redirectUrl and verifyInstall', async () => {
+    it('has inputs for redirectUrl and verifyInstall', () => {
       renderComponent();
 
       expect(
@@ -46,7 +46,7 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows empty scopes and no credentials', async function () {
+    it('shows empty scopes and no credentials', function () {
       renderComponent();
 
       expect(screen.getByText('Permissions')).toBeInTheDocument();
@@ -57,7 +57,7 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('checkbox', {name: 'comment'})).not.toBeChecked();
     });
 
-    it('does not show logo upload fields', async function () {
+    it('does not show logo upload fields', function () {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
@@ -132,14 +132,14 @@ describe('Sentry Application Details', function () {
       );
     }
 
-    it('does not show logo upload fields', async function () {
+    it('does not show logo upload fields', function () {
       renderComponent();
 
       expect(screen.queryByText('Logo')).not.toBeInTheDocument();
       expect(screen.queryByText('Small Icon')).not.toBeInTheDocument();
     });
 
-    it('no inputs for redirectUrl and verifyInstall', async () => {
+    it('no inputs for redirectUrl and verifyInstall', () => {
       renderComponent();
 
       expect(
@@ -174,14 +174,14 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows logo upload fields', async function () {
+    it('shows logo upload fields', function () {
       renderComponent();
 
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('has inputs for redirectUrl and verifyInstall', async () => {
+    it('has inputs for redirectUrl and verifyInstall', () => {
       renderComponent();
 
       expect(
@@ -191,14 +191,14 @@ describe('Sentry Application Details', function () {
       expect(screen.getByRole('textbox', {name: 'Redirect URL'})).toBeInTheDocument();
     });
 
-    it('shows application data', async function () {
+    it('shows application data', function () {
       renderComponent();
 
       selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
       expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
     });
 
-    it('renders clientId and clientSecret for public apps', async function () {
+    it('renders clientId and clientSecret for public apps', function () {
       renderComponent();
 
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
@@ -231,7 +231,7 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('no inputs for redirectUrl and verifyInstall', async () => {
+    it('no inputs for redirectUrl and verifyInstall', () => {
       renderComponent();
 
       expect(
@@ -243,14 +243,14 @@ describe('Sentry Application Details', function () {
       ).not.toBeInTheDocument();
     });
 
-    it('shows logo upload fields', async function () {
+    it('shows logo upload fields', function () {
       renderComponent();
 
       expect(screen.getByText('Logo')).toBeInTheDocument();
       expect(screen.getByText('Small Icon')).toBeInTheDocument();
     });
 
-    it('shows tokens', async function () {
+    it('shows tokens', function () {
       renderComponent();
 
       expect(screen.getByText('Tokens')).toBeInTheDocument();
@@ -259,7 +259,7 @@ describe('Sentry Application Details', function () {
       );
     });
 
-    it('shows just clientSecret', async function () {
+    it('shows just clientSecret', function () {
       renderComponent();
 
       expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
@@ -293,12 +293,12 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('shows masked tokens', async function () {
+    it('shows masked tokens', function () {
       renderComponent();
       expect(screen.getByRole('textbox', {name: 'Token value'})).toHaveValue(maskedValue);
     });
 
-    it('shows masked clientSecret', async function () {
+    it('shows masked clientSecret', function () {
       renderComponent();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toHaveValue(
         maskedValue

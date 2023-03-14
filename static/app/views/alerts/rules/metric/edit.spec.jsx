@@ -255,7 +255,7 @@ describe('MetricRulesEdit', function () {
     );
   });
 
-  it('renders 404', async function () {
+  it('renders 404', function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/1234/`,

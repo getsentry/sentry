@@ -203,7 +203,7 @@ describe('ThreadsV2', function () {
         projectSlug: project.slug,
       };
 
-      it('renders', async function () {
+      it('renders', function () {
         const {container} = render(<ThreadsV2 {...props} />, {
           organization: org,
         });
@@ -856,7 +856,7 @@ describe('ThreadsV2', function () {
         projectSlug: project.slug,
       };
 
-      it('renders', async function () {
+      it('renders', function () {
         const {container} = render(<ThreadsV2 {...props} />, {organization: org});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();

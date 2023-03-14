@@ -22,7 +22,7 @@ describe('IssueAlertOptions', function () {
     jest.clearAllMocks();
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on empty response:[]', async () => {
+  it('should render only the `Default Rule` and `Create Later` option on empty response:[]', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: [],
@@ -32,7 +32,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on empty response:{}', async () => {
+  it('should render only the `Default Rule` and `Create Later` option on empty response:{}', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: {},
@@ -42,7 +42,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', async () => {
+  it('should render only the `Default Rule` and `Create Later` option on responses with different allowable intervals', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_INTERVALS,
@@ -52,7 +52,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getAllByRole('radio')).toHaveLength(2);
   });
 
-  it('should render all(three) options on responses with different placeholder values', async () => {
+  it('should render all(three) options on responses with different placeholder values', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_INCONSISTENT_PLACEHOLDERS,
@@ -78,7 +78,7 @@ describe('IssueAlertOptions', function () {
     );
   });
 
-  it('should render all(three) options on a valid response', async () => {
+  it('should render all(three) options on a valid response', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
@@ -105,7 +105,7 @@ describe('IssueAlertOptions', function () {
     );
   });
 
-  it('should not pre-fill threshold value after a valid server response', async () => {
+  it('should not pre-fill threshold value after a valid server response', () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,

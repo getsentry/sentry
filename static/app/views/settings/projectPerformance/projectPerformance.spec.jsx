@@ -51,7 +51,7 @@ describe('projectPerformance', function () {
     });
   });
 
-  it('renders the fields', async function () {
+  it('renders the fields', function () {
     render(
       <ProjectPerformance
         params={{orgId: org.slug, projectId: project.slug}}
@@ -105,7 +105,7 @@ describe('projectPerformance', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('does not get performance issues settings without the feature flag', async function () {
+  it('does not get performance issues settings without the feature flag', function () {
     const orgWithoutPerfIssues = TestStubs.Organization({
       features: ['performance-view'],
     });

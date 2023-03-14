@@ -182,7 +182,7 @@ describe('OrganizationMemberDetail', function () {
       );
     });
 
-    it('cannot leave idp-provisioned team', async function () {
+    it('cannot leave idp-provisioned team', function () {
       render(<OrganizationMemberDetail params={{memberId: idpTeamMember.id}} />, {
         context: routerContext,
       });
@@ -238,7 +238,7 @@ describe('OrganizationMemberDetail', function () {
       ).toBeInTheDocument();
     });
 
-    it('cannot change roles if member is idp-provisioned', async function () {
+    it('cannot change roles if member is idp-provisioned', function () {
       const roleRestrictedMember = TestStubs.Member({
         roles: TestStubs.OrgRoleList(),
         dateCreated: new Date(),
@@ -287,7 +287,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('can not change roles, teams, or save', async function () {
+    it('can not change roles, teams, or save', function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
       });
@@ -328,7 +328,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('display pending status', async function () {
+    it('display pending status', function () {
       render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
         context: routerContext,
       });
@@ -336,7 +336,7 @@ describe('OrganizationMemberDetail', function () {
       expect(screen.getByTestId('member-status')).toHaveTextContent('Invitation Pending');
     });
 
-    it('display expired status', async function () {
+    it('display expired status', function () {
       render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
         context: routerContext,
       });
@@ -372,7 +372,7 @@ describe('OrganizationMemberDetail', function () {
       });
     });
 
-    it('shows for pending', async function () {
+    it('shows for pending', function () {
       render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
         context: routerContext,
       });
@@ -380,7 +380,7 @@ describe('OrganizationMemberDetail', function () {
       expect(screen.getByRole('button', {name: 'Resend Invite'})).toBeInTheDocument();
     });
 
-    it('does not show for expired', async function () {
+    it('does not show for expired', function () {
       render(<OrganizationMemberDetail params={{memberId: expiredMember.id}} />, {
         context: routerContext,
       });
@@ -484,7 +484,7 @@ describe('OrganizationMemberDetail', function () {
       expect(await screen.findByText(title)).toBeInTheDocument();
     };
 
-    it('does not show for pending member', async function () {
+    it('does not show for pending member', function () {
       render(<OrganizationMemberDetail params={{memberId: pendingMember.id}} />, {
         context: routerContext,
       });
@@ -626,7 +626,7 @@ describe('OrganizationMemberDetail', function () {
       expect(teamRoleSelect).toHaveTextContent('Team Admin');
     });
 
-    it('overwrite team-roles for org admin/manager/owner', async () => {
+    it('overwrite team-roles for org admin/manager/owner', () => {
       function testForOrgRole(testMember) {
         cleanup();
         render(<OrganizationMemberDetail params={{memberId: testMember.id}} />, {

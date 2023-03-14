@@ -18,7 +18,7 @@ describe('OrganizationJoinRequest', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(<OrganizationJoinRequest params={{orgId: org.slug}} />);
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();

@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import NotAvailable from 'sentry/components/notAvailable';
 
 describe('NotAvailable', function () {
-  it('renders', async function () {
+  it('renders', function () {
     render(<NotAvailable />);
     expect(screen.getByText('\u2014')).toBeInTheDocument();
   });

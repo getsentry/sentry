@@ -48,7 +48,7 @@ describe('OrganizationTeams', function () {
       );
     });
 
-    it('can join team and have link to details', async function () {
+    it('can join team and have link to details', function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: true,
@@ -90,7 +90,7 @@ describe('OrganizationTeams', function () {
       expect(getOrgMock).toHaveBeenCalledTimes(1);
     });
 
-    it('cannot leave idp-provisioned team', async function () {
+    it('cannot leave idp-provisioned team', function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
       ];
@@ -100,7 +100,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByRole('button', {name: 'Leave Team'})).toBeDisabled();
     });
 
-    it('cannot join idp-provisioned team', async function () {
+    it('cannot join idp-provisioned team', function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
       ];
@@ -133,7 +133,7 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('can request access to team and does not have link to details', async function () {
+    it('can request access to team and does not have link to details', function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: false,
@@ -149,7 +149,7 @@ describe('OrganizationTeams', function () {
       expect(screen.queryByTestId('team-link')).not.toBeInTheDocument();
     });
 
-    it('can leave team when you are a member', async function () {
+    it('can leave team when you are a member', function () {
       const mockTeams = [
         TestStubs.Team({
           hasAccess: true,
@@ -164,7 +164,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByLabelText('Leave Team')).toBeInTheDocument();
     });
 
-    it('cannot request to join idp-provisioned team', async function () {
+    it('cannot request to join idp-provisioned team', function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: false}),
       ];
@@ -176,7 +176,7 @@ describe('OrganizationTeams', function () {
       expect(screen.getByRole('button', {name: 'Request Access'})).toBeDisabled();
     });
 
-    it('cannot leave idp-provisioned team', async function () {
+    it('cannot leave idp-provisioned team', function () {
       const mockTeams = [
         TestStubs.Team({flags: {'idp:provisioned': true}, isMember: true}),
       ];
@@ -220,7 +220,7 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('renders team request panel', async function () {
+    it('renders team request panel', function () {
       createWrapper();
 
       expect(screen.getByText('Pending Team Requests')).toBeInTheDocument();
@@ -286,7 +286,7 @@ describe('OrganizationTeams', function () {
     const features = new Set(['team-roles']);
     const access = new Set();
 
-    it('does not render alert without feature flag', async function () {
+    it('does not render alert without feature flag', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
@@ -301,7 +301,7 @@ describe('OrganizationTeams', function () {
       expect(screen.queryByText('a minimum team-level role of')).not.toBeInTheDocument();
     });
 
-    it('renders alert with elevated org role', async function () {
+    it('renders alert with elevated org role', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'admin'}});
       render(
         <OrganizationTeams
@@ -321,7 +321,7 @@ describe('OrganizationTeams', function () {
       ).toBeInTheDocument();
     });
 
-    it('does not render alert with lowest org role', async function () {
+    it('does not render alert with lowest org role', function () {
       const {organization, project} = initializeOrg({organization: {orgRole: 'member'}});
       render(
         <OrganizationTeams

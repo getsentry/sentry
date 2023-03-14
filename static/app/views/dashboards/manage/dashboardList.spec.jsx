@@ -125,7 +125,7 @@ describe('Dashboards > DashboardList', function () {
     dashboardUpdateMock = jest.fn();
   });
 
-  it('renders an empty list', async function () {
+  it('renders an empty list', function () {
     render(
       <DashboardList
         organization={organization}
@@ -138,7 +138,7 @@ describe('Dashboards > DashboardList', function () {
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
   });
 
-  it('renders dashboard list', async function () {
+  it('renders dashboard list', function () {
     render(
       <DashboardList
         organization={organization}
@@ -152,7 +152,7 @@ describe('Dashboards > DashboardList', function () {
     expect(screen.getByText('Dashboard 2')).toBeInTheDocument();
   });
 
-  it('returns landing page url for dashboards', async function () {
+  it('returns landing page url for dashboards', function () {
     render(
       <DashboardList
         organization={organization}
@@ -173,7 +173,7 @@ describe('Dashboards > DashboardList', function () {
     );
   });
 
-  it('persists global selection headers', async function () {
+  it('persists global selection headers', function () {
     render(
       <DashboardList
         organization={organization}

@@ -78,7 +78,7 @@ describe('IssueListSetAsDefault', () => {
     });
   });
 
-  it('does not render anything when on default search and no pinned search', async () => {
+  it('does not render anything when on default search and no pinned search', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [TestStubs.Search({isPinned: false, query: 'browser:firefox'})],

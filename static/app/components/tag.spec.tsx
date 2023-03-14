@@ -5,12 +5,12 @@ import {IconFire} from 'sentry/icons';
 
 describe('Tag', () => {
   const routerContext = TestStubs.routerContext();
-  it('basic', async () => {
+  it('basic', () => {
     render(<Tag>Text</Tag>);
     expect(screen.getByText('Text')).toBeInTheDocument();
   });
 
-  it('with icon', async () => {
+  it('with icon', () => {
     render(
       <Tag icon={<IconFire data-test-id="icon-fire" />} type="error">
         Error
@@ -48,7 +48,7 @@ describe('Tag', () => {
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 
-  it('with internal link', async () => {
+  it('with internal link', () => {
     const to = '/organizations/sentry/issues/';
     render(
       <Tag type="highlight" to={to}>
@@ -61,7 +61,7 @@ describe('Tag', () => {
     expect(screen.getByRole('link', {name: 'Internal link'})).toHaveAttribute('href', to);
   });
 
-  it('with external link', async () => {
+  it('with external link', () => {
     const href = 'https://sentry.io/';
     render(
       <Tag type="highlight" href={href}>
@@ -75,7 +75,7 @@ describe('Tag', () => {
     expect(link).toHaveAttribute('target', '_blank');
   });
 
-  it('overrides a link default icon', async () => {
+  it('overrides a link default icon', () => {
     render(
       <Tag href="#" icon={<IconFire data-test-id="icon-fire" />}>
         3

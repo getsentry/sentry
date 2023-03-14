@@ -31,7 +31,7 @@ describe('TimeRangeSelector', function () {
     onChange.mockReset();
   });
 
-  it('renders when given relative period not in dropdown', async function () {
+  it('renders when given relative period not in dropdown', function () {
     render(
       <TimeRangeSelector
         organization={organization}
@@ -44,7 +44,7 @@ describe('TimeRangeSelector', function () {
     expect(screen.getByText('Last 9 days')).toBeInTheDocument();
   });
 
-  it('renders when given an invalid relative period', async function () {
+  it('renders when given an invalid relative period', function () {
     render(
       <TimeRangeSelector
         organization={organization}

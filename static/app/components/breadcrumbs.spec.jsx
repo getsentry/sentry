@@ -31,13 +31,13 @@ describe('Breadcrumbs', () => {
     );
   }
 
-  it('returns null when 0 crumbs', async () => {
+  it('returns null when 0 crumbs', () => {
     const empty = render(<Breadcrumbs crumbs={[]} />);
 
     expect(empty.container).toBeEmptyDOMElement();
   });
 
-  it('renders crumbs with icon', async () => {
+  it('renders crumbs with icon', () => {
     const wrapper = createWrapper();
     expect(wrapper.container).toSnapshot();
   });

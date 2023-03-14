@@ -107,7 +107,7 @@ describe('SentryAppRuleModal', function () {
   };
 
   describe('Create UI Alert Rule', function () {
-    it('should render the Alert Rule modal with the config fields', async function () {
+    it('should render the Alert Rule modal with the config fields', function () {
       createWrapper();
       const {required_fields, optional_fields} = defaultConfig;
       const allFields = [...required_fields, ...optional_fields];

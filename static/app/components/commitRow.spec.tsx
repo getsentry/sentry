@@ -44,7 +44,7 @@ const baseCommit: Commit = {
 
 // static/app/components/hovercard.tsx
 describe('commitRow', () => {
-  it('renders custom avatar', async () => {
+  it('renders custom avatar', () => {
     render(<CommitRow commit={baseCommit} customAvatar="Custom Avatar" />);
     expect(screen.getByText(/Custom Avatar/)).toBeInTheDocument();
   });
@@ -75,7 +75,7 @@ describe('commitRow', () => {
     );
   });
 
-  it('renders commit info', async () => {
+  it('renders commit info', () => {
     const commit: Commit = {
       ...baseCommit,
       author: {

@@ -967,7 +967,7 @@ describe('IssueList', function () {
       fetchDataMock.mockReset();
     });
 
-    it('fetches data on selection change', async function () {
+    it('fetches data on selection change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         context: routerContext,
       });
@@ -983,7 +983,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenCalled();
     });
 
-    it('fetches data on savedSearch change', async function () {
+    it('fetches data on savedSearch change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         context: routerContext,
       });
@@ -999,7 +999,7 @@ describe('IssueList', function () {
       expect(fetchDataMock).toHaveBeenCalled();
     });
 
-    it('uses correct statsPeriod when fetching issues list and no datetime given', async function () {
+    it('uses correct statsPeriod when fetching issues list and no datetime given', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         context: routerContext,
       });
@@ -1016,7 +1016,7 @@ describe('IssueList', function () {
   });
 
   describe('componentDidUpdate fetching members', function () {
-    it('fetches memberlist and tags list on project change', async function () {
+    it('fetches memberlist and tags list on project change', function () {
       const {rerender} = render(<IssueListOverview {...routerProps} {...props} />, {
         context: routerContext,
       });
@@ -1036,7 +1036,7 @@ describe('IssueList', function () {
   });
 
   describe('render states', function () {
-    it('displays the loading icon when saved searches are loading', async function () {
+    it('displays the loading icon when saved searches are loading', function () {
       render(<IssueListOverview {...routerProps} {...props} savedSearchLoading />, {
         context: routerContext,
       });
@@ -1310,7 +1310,7 @@ describe('IssueList', function () {
     });
   });
 
-  it('displays a count that represents the current page', async function () {
+  it('displays a count that represents the current page', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [...new Array(25)].map((_, i) => ({id: i})),
@@ -1369,7 +1369,7 @@ describe('IssueList', function () {
       act(() => ProjectsStore.reset());
     });
 
-    it('does not render event processing alert', async function () {
+    it('does not render event processing alert', function () {
       act(() => ProjectsStore.loadInitialData([project]));
 
       render(<IssueListOverview {...props} />, {
@@ -1380,7 +1380,7 @@ describe('IssueList', function () {
     });
 
     describe('renders alert', function () {
-      it('for one project', async function () {
+      it('for one project', function () {
         act(() =>
           ProjectsStore.loadInitialData([
             {...project, eventProcessing: {symbolicationDegraded: true}},
@@ -1396,7 +1396,7 @@ describe('IssueList', function () {
         ).toBeInTheDocument();
       });
 
-      it('for multiple projects', async function () {
+      it('for multiple projects', function () {
         const projectBar = TestStubs.ProjectDetails({
           id: '3560',
           name: 'Bar Project',

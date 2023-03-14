@@ -40,7 +40,7 @@ describe('ProjectEnvironments', function () {
   });
 
   describe('render active', function () {
-    it('renders empty message', async function () {
+    it('renders empty message', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -55,7 +55,7 @@ describe('ProjectEnvironments', function () {
       expect(container).toSnapshot();
     });
 
-    it('renders environment list', async function () {
+    it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(false),
@@ -68,7 +68,7 @@ describe('ProjectEnvironments', function () {
   });
 
   describe('render hidden', function () {
-    it('renders empty message', async function () {
+    it('renders empty message', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: [],
@@ -83,7 +83,7 @@ describe('ProjectEnvironments', function () {
       expect(container).toSnapshot();
     });
 
-    it('renders environment list', async function () {
+    it('renders environment list', function () {
       MockApiClient.addMockResponse({
         url: '/projects/org-slug/project-slug/environments/',
         body: TestStubs.Environments(true),
@@ -178,7 +178,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('does not have "All Environments" rows', async function () {
+    it('does not have "All Environments" rows', function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(true),

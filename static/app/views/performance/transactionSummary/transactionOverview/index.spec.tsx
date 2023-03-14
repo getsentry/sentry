@@ -522,7 +522,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', async function () {
+    it('renders feature flagged UI elements', function () {
       const {organization, router, routerContext} = initializeData({
         features: ['incidents'],
       });
@@ -582,7 +582,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
-    it('fetches transaction threshold', async function () {
+    it('fetches transaction threshold', function () {
       const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({
@@ -936,7 +936,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByText('Status Breakdown')).toBeInTheDocument();
     });
 
-    it('renders feature flagged UI elements', async function () {
+    it('renders feature flagged UI elements', function () {
       const {organization, router, routerContext} = initializeData({
         features: ['incidents'],
       });
@@ -996,7 +996,7 @@ describe('Performance > TransactionSummary', function () {
       expect(screen.getByTestId('tpm-summary-value')).toHaveTextContent('100%');
     });
 
-    it('fetches transaction threshold', async function () {
+    it('fetches transaction threshold', function () {
       const {organization, router, routerContext} = initializeData();
 
       const getTransactionThresholdMock = MockApiClient.addMockResponse({

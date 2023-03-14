@@ -3,7 +3,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {CompactSelect} from 'sentry/components/compactSelect';
 
 describe('CompactSelect', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <CompactSelect
         options={[
@@ -15,7 +15,7 @@ describe('CompactSelect', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders disabled', async function () {
+  it('renders disabled', function () {
     render(
       <CompactSelect
         disabled
@@ -95,7 +95,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
     });
 
-    it('displays trigger button with prefix', async function () {
+    it('displays trigger button with prefix', function () {
       render(
         <CompactSelect
           triggerProps={{prefix: 'Prefix'}}
@@ -276,7 +276,7 @@ describe('CompactSelect', function () {
       expect(screen.getByRole('button', {name: 'Option One +1'})).toBeInTheDocument();
     });
 
-    it('displays trigger button with prefix', async function () {
+    it('displays trigger button with prefix', function () {
       render(
         <CompactSelect
           grid

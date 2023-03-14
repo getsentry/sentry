@@ -4,7 +4,7 @@ import {Button} from 'sentry/components/button';
 import {InputGroup} from 'sentry/components/inputGroup';
 
 describe('InputGroup', function () {
-  it('renders input', async function () {
+  it('renders input', function () {
     const {container} = render(
       <InputGroup>
         <InputGroup.Input value="Search" onChange={() => {}} />
@@ -17,7 +17,7 @@ describe('InputGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders disabled input', async function () {
+  it('renders disabled input', function () {
     const {container} = render(
       <InputGroup>
         <InputGroup.Input disabled />

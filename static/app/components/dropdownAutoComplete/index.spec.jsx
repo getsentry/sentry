@@ -18,7 +18,7 @@ describe('DropdownAutoComplete', function () {
     },
   ];
 
-  it('has actor wrapper', async function () {
+  it('has actor wrapper', function () {
     render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );

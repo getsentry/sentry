@@ -97,7 +97,7 @@ describe('ProjectKeyDetails', function () {
     );
   });
 
-  it('has stats box', async function () {
+  it('has stats box', function () {
     expect(screen.getByText('Key Details')).toBeInTheDocument();
     expect(statsMock).toHaveBeenCalled();
   });

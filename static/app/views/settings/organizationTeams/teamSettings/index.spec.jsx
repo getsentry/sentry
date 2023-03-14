@@ -111,7 +111,7 @@ describe('TeamSettings', function () {
     );
   });
 
-  it('needs team:admin in order to see an enabled Remove Team button', async function () {
+  it('needs team:admin in order to see an enabled Remove Team button', function () {
     const team = TestStubs.Team();
 
     const context = TestStubs.routerContext([
@@ -127,7 +127,7 @@ describe('TeamSettings', function () {
     expect(screen.getByRole('button', {name: 'Remove Team'})).toBeDisabled();
   });
 
-  it('needs org:admin in order to set team org role', async function () {
+  it('needs org:admin in order to set team org role', function () {
     const team = TestStubs.Team();
 
     const context = TestStubs.routerContext([
@@ -146,7 +146,7 @@ describe('TeamSettings', function () {
     expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();
   });
 
-  it('cannot set team org role for idp:provisioned team', async function () {
+  it('cannot set team org role for idp:provisioned team', function () {
     const team = TestStubs.Team({flags: {'idp:provisioned': true}});
 
     const context = TestStubs.routerContext([

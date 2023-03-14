@@ -35,7 +35,7 @@ describe('OrganizationApiKeys', function () {
     });
   });
 
-  it('fetches api keys', async function () {
+  it('fetches api keys', function () {
     render(
       <OrganizationApiKeys
         location={TestStubs.location()}

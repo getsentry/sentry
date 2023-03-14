@@ -568,7 +568,7 @@ describe('TraceView', () => {
     });
   });
 
-  it('should merge web vitals labels if they are too close together', async () => {
+  it('should merge web vitals labels if they are too close together', () => {
     data = initializeData({});
 
     const event = generateSampleEvent();
@@ -597,7 +597,7 @@ describe('TraceView', () => {
     expect(within(labelContainer!).getByText(/lcp/i)).toBeInTheDocument();
   });
 
-  it('should not merge web vitals labels if they are spaced away from each other', async () => {
+  it('should not merge web vitals labels if they are spaced away from each other', () => {
     data = initializeData({});
 
     const event = generateSampleEvent();

@@ -44,7 +44,7 @@ describe('ProjectPluginDetails', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <ProjectPluginDetailsContainer
         organization={organization}

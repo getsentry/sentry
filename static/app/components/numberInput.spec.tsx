@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import NumberInput from 'sentry/components/numberInput';
 
 describe('NumberInput', function () {
-  it('renders input', async function () {
+  it('renders input', function () {
     render(<NumberInput value={5} aria-label="Test" />);
 
     expect(screen.getByRole('textbox')).toHaveValue('5');

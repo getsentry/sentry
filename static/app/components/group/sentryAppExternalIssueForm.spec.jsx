@@ -81,7 +81,7 @@ describe('SentryAppExternalIssueForm', () => {
       );
     });
 
-    it('renders prepopulated defaults', async () => {
+    it('renders prepopulated defaults', () => {
       render(
         <SentryAppExternalIssueForm
           group={group}

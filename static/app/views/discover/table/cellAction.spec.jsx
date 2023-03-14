@@ -82,7 +82,7 @@ describe('Discover -> CellAction', function () {
   }
 
   describe('hover menu button', function () {
-    it('shows no menu by default', async function () {
+    it('shows no menu by default', function () {
       renderComponent(view);
       expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
@@ -376,7 +376,7 @@ describe('updateQuery()', function () {
     width: -1,
   };
 
-  it('modifies the query with has/!has', async function () {
+  it('modifies the query with has/!has', function () {
     let results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, null);
     expect(results.formatString()).toEqual('!has:a');
@@ -390,7 +390,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('!has:a');
   });
 
-  it('modifies the query with additions', async function () {
+  it('modifies the query with additions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
@@ -402,7 +402,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('b:1 a:2 a:1 a:3');
   });
 
-  it('modifies the query with exclusions', async function () {
+  it('modifies the query with exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.EXCLUDE, columnA, '1');
     expect(results.formatString()).toEqual('!a:1');
@@ -414,7 +414,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('!b:1 !a:1 !a:2 !a:3');
   });
 
-  it('modifies the query with a mix of additions and exclusions', async function () {
+  it('modifies the query with a mix of additions and exclusions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.ADD, columnA, '1');
     expect(results.formatString()).toEqual('a:1');
@@ -436,7 +436,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:5 b:6');
   });
 
-  it('modifies the query with greater/less than', async function () {
+  it('modifies the query with greater/less than', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.SHOW_GREATER_THAN, columnA, 1);
     expect(results.formatString()).toEqual('a:>1');
@@ -448,7 +448,7 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:<4');
   });
 
-  it('modifies the query with greater/less than on duration fields', async function () {
+  it('modifies the query with greater/less than on duration fields', function () {
     const columnADuration = {...columnA, type: 'duration'};
 
     const results = new MutableSearch([]);
@@ -462,14 +462,14 @@ describe('updateQuery()', function () {
     expect(results.formatString()).toEqual('a:<4.12ms');
   });
 
-  it('does not error for special actions', async function () {
+  it('does not error for special actions', function () {
     const results = new MutableSearch([]);
     updateQuery(results, Actions.TRANSACTION, columnA, '');
     updateQuery(results, Actions.RELEASE, columnA, '');
     updateQuery(results, Actions.DRILLDOWN, columnA, '');
   });
 
-  it('errors for unknown actions', async function () {
+  it('errors for unknown actions', function () {
     const results = new MutableSearch([]);
     expect(() => updateQuery(results, 'unknown', columnA, '')).toThrow();
   });

@@ -10,12 +10,12 @@ describe('Version', () => {
     jest.resetAllMocks();
   });
 
-  it('renders', async () => {
+  it('renders', () => {
     const {container} = render(<Version version={VERSION} />);
     expect(container).toSnapshot();
   });
 
-  it('shows correct parsed version', async () => {
+  it('shows correct parsed version', () => {
     // component uses @sentry/release-parser package for parsing versions
     render(<Version version={VERSION} />);
 

@@ -7,7 +7,7 @@ import {DisplayType} from 'sentry/views/dashboards/types';
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
 describe('widget builder overwrite modal', () => {
-  it('renders with the widget title and description', async () => {
+  it('renders with the widget title and description', () => {
     const widget = {
       title: 'Test title',
       description: 'Test description',

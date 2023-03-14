@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import ApiTokenRow from 'sentry/views/settings/account/apiTokenRow';
 
 describe('ApiTokenRow', () => {
-  it('renders', async () => {
+  it('renders', () => {
     const wrapper = render(
       <ApiTokenRow onRemove={() => {}} token={TestStubs.ApiToken()} />
     );

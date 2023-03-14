@@ -22,12 +22,12 @@ describe('TableField', function () {
   };
 
   describe('renders', function () {
-    it('renders without form context', async function () {
+    it('renders without form context', function () {
       const {container} = render(<TableField {...defaultProps} />);
       expect(container).toSnapshot();
     });
 
-    it('renders with form context', async function () {
+    it('renders with form context', function () {
       const {container} = render(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField {...defaultProps} />
@@ -36,7 +36,7 @@ describe('TableField', function () {
       expect(container).toSnapshot();
     });
 
-    it('renders button text', async function () {
+    it('renders button text', function () {
       render(
         <Form onSubmit={mockSubmit} model={model}>
           <TableField {...defaultProps} />

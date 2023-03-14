@@ -183,7 +183,7 @@ describe('Request entry', function () {
   });
 
   describe('getBodySection', function () {
-    it('should return plain-text when given unrecognized inferred Content-Type', async function () {
+    it('should return plain-text when given unrecognized inferred Content-Type', function () {
       const data: EntryRequest['data'] = {
         query: [],
         data: 'helloworld',
@@ -217,7 +217,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', async function () {
+    it('should return a KeyValueList element when inferred Content-Type is x-www-form-urlencoded', function () {
       const data: EntryRequest['data'] = {
         query: [],
         data: {foo: ['bar'], bar: ['baz']},
@@ -251,7 +251,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should return a ContextData element when inferred Content-Type is application/json', async function () {
+    it('should return a ContextData element when inferred Content-Type is application/json', function () {
       const data: EntryRequest['data'] = {
         query: [],
         data: {foo: 'bar'},
@@ -285,7 +285,7 @@ describe('Request entry', function () {
       ).toBeInTheDocument();
     });
 
-    it('should not blow up in a malformed uri', async function () {
+    it('should not blow up in a malformed uri', function () {
       // > decodeURIComponent('a%AFc')
       // URIError: URI malformed
       const data: EntryRequest['data'] = {
@@ -318,7 +318,7 @@ describe('Request entry', function () {
       ).not.toThrow();
     });
 
-    it("should not cause an invariant violation if data.data isn't a string", async function () {
+    it("should not cause an invariant violation if data.data isn't a string", function () {
       const data: EntryRequest['data'] = {
         query: [],
         data: [{foo: 'bar', baz: 1}],

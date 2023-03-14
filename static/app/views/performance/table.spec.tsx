@@ -225,7 +225,7 @@ describe('Performance > Table', function () {
       });
     });
 
-    it('hides cell actions when withStaticFilters is true', async function () {
+    it('hides cell actions when withStaticFilters is true', function () {
       const data = initializeData({
         query: 'event.type:transaction transaction:/api*',
       });
@@ -245,7 +245,7 @@ describe('Performance > Table', function () {
       expect(cellActionContainers).not.toBeInTheDocument();
     });
 
-    it('sends MEP param when setting enabled', async function () {
+    it('sends MEP param when setting enabled', function () {
       const data = initializeData(
         {
           query: 'event.type:transaction transaction:/api*',

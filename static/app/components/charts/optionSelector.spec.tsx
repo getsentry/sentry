@@ -56,7 +56,7 @@ describe('Charts > OptionSelector (Multiple)', function () {
     return render(<TestComponent />, {context: initialData.routerContext});
   };
 
-  it('renders yAxisOptions with yAxisValue selected', async function () {
+  it('renders yAxisOptions with yAxisValue selected', function () {
     renderComponent();
     expect(screen.getByRole('option', {name: 'count()'})).toHaveAttribute(
       'aria-selected',

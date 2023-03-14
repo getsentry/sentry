@@ -125,7 +125,7 @@ describe('ReleaseActions', function () {
     await waitFor(() => expect(refetchDataMock).toHaveBeenCalledTimes(1));
   });
 
-  it('navigates to a next/prev release', async function () {
+  it('navigates to a next/prev release', function () {
     const routerContext = TestStubs.routerContext();
     const {rerender} = render(
       <ReleaseActions

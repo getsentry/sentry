@@ -6,7 +6,7 @@ import Form from 'sentry/components/deprecatedforms/form';
 import SelectField from 'sentry/components/deprecatedforms/selectField';
 
 describe('SelectField', function () {
-  it('renders without form context', async function () {
+  it('renders without form context', function () {
     const {container} = render(
       <SelectField
         options={[
@@ -20,14 +20,14 @@ describe('SelectField', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with flat options', async function () {
+  it('renders with flat options', function () {
     const {container} = render(
       <SelectField choices={['a', 'b', 'c']} name="fieldName" />
     );
     expect(container).toSnapshot();
   });
 
-  it('renders with paired options', async function () {
+  it('renders with paired options', function () {
     const {container} = render(
       <SelectField
         options={[

@@ -53,7 +53,7 @@ describe('GroupTagValues', () => {
     });
   });
 
-  it('renders an error message if no tag values are returned because of environment selection', async () => {
+  it('renders an error message if no tag values are returned because of environment selection', () => {
     const {routerContext, project} = init('user');
 
     MockApiClient.addMockResponse({

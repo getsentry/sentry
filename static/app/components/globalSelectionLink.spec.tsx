@@ -35,7 +35,7 @@ describe('GlobalSelectionLink', function () {
     expect(context.context.router.push).toHaveBeenCalledWith({pathname: path, query});
   });
 
-  it('does not have global selection values in query', async function () {
+  it('does not have global selection values in query', function () {
     const {container} = render(
       <GlobalSelectionLink to={path}>Go somewhere!</GlobalSelectionLink>,
       {context: getContext()}

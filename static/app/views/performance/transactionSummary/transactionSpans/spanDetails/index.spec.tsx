@@ -91,7 +91,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       });
     });
 
-    it('renders empty when missing project param', async function () {
+    it('renders empty when missing project param', function () {
       const data = initializeData({query: {transaction: 'transaction'}});
 
       const {container} = render(
@@ -102,7 +102,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('renders empty when missing transaction param', async function () {
+    it('renders empty when missing transaction param', function () {
       const data = initializeData({query: {project: '1'}});
 
       const {container} = render(
@@ -375,7 +375,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
       });
 
-      it('renders a search bar', async function () {
+      it('renders a search bar', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -390,7 +390,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(searchBarNode).toBeInTheDocument();
       });
 
-      it('disables reset button when no min or max query parameters were set', async function () {
+      it('disables reset button when no min or max query parameters were set', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction'},
@@ -408,7 +408,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(resetButton).toBeDisabled();
       });
 
-      it('enables reset button when min and max are set', async function () {
+      it('enables reset button when min and max are set', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -425,7 +425,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(resetButton).toBeEnabled();
       });
 
-      it('clears min and max query parameters when reset button is clicked', async function () {
+      it('clears min and max query parameters when reset button is clicked', function () {
         const data = initializeData({
           features: FEATURES,
           query: {project: '1', transaction: 'transaction', min: '10', max: '100'},
@@ -583,7 +583,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         expect(nodes[0]).toBeInTheDocument();
       });
 
-      it('sends min and max to span example query', async function () {
+      it('sends min and max to span example query', function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans/',
           body: {},
@@ -609,7 +609,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         );
       });
 
-      it('sends min and max to suspect spans query', async function () {
+      it('sends min and max to suspect spans query', function () {
         const mock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events-spans-performance/',
           body: {},
@@ -639,7 +639,7 @@ describe('Performance > Transaction Spans > Span Summary', function () {
 });
 
 describe('spanDetailsRouteWithQuery', function () {
-  it('should encode slashes in span op', async function () {
+  it('should encode slashes in span op', function () {
     const target = spanDetailsRouteWithQuery({
       orgSlug: 'org-slug',
       transaction: 'transaction',

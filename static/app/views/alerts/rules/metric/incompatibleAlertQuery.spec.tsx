@@ -22,7 +22,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('should warn when project is not selected', async () => {
+  it('should warn when project is not selected', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -31,7 +31,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(screen.getByText('No project was selected')).toBeInTheDocument();
   });
 
-  it('should warn when all projects are selected (-1)', async () => {
+  it('should warn when all projects are selected (-1)', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
@@ -41,7 +41,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(screen.getByText('No project was selected')).toBeInTheDocument();
   });
 
-  it('should warn when event.type is not specified', async () => {
+  it('should warn when event.type is not specified', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: '',
@@ -53,7 +53,7 @@ describe('IncompatibleAlertQuery', () => {
     );
   });
 
-  it('should warn when yAxis is not allowed', async () => {
+  it('should warn when yAxis is not allowed', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),
@@ -69,7 +69,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(screen.getByText('count_unique(issue)')).toBeInTheDocument();
   });
 
-  it('should allow yAxis with a number as the parameter', async () => {
+  it('should allow yAxis with a number as the parameter', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:transaction',
@@ -82,7 +82,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('should allow yAxis with a measurement as the parameter', async () => {
+  it('should allow yAxis with a measurement as the parameter', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:transaction',
@@ -95,7 +95,7 @@ describe('IncompatibleAlertQuery', () => {
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('should warn with multiple errors, missing event.type and project', async () => {
+  it('should warn with multiple errors, missing event.type and project', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       ...ALL_VIEWS.find(view => view.name === 'Errors by URL'),

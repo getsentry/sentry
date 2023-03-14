@@ -24,7 +24,7 @@ describe('ProjectSourceMapsDetail', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async () => {
+  it('renders', () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [
@@ -41,7 +41,7 @@ describe('ProjectSourceMapsDetail', () => {
     expect(screen.getByText('abc')).toBeInTheDocument();
   });
 
-  it('renders empty', async () => {
+  it('renders empty', () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],
@@ -54,7 +54,7 @@ describe('ProjectSourceMapsDetail', () => {
     ).toBeInTheDocument();
   });
 
-  it('links to release', async () => {
+  it('links to release', () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],

@@ -64,7 +64,7 @@ describe('IntegrationExternalMappings', function () {
     });
   };
 
-  it('renders empty if not mappings are provided or found', async function () {
+  it('renders empty if not mappings are provided or found', function () {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/codeowners-associations/`,
       method: 'GET',

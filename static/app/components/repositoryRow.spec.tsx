@@ -36,7 +36,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays provider information', async function () {
+    it('displays provider information', function () {
       render(
         <RepositoryRow
           repository={repository}
@@ -56,7 +56,7 @@ describe('RepositoryRow', function () {
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
     });
 
-    it('displays cancel pending button', async function () {
+    it('displays cancel pending button', function () {
       render(
         <RepositoryRow
           repository={pendingRepo}
@@ -82,7 +82,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays disabled trash', async function () {
+    it('displays disabled trash', function () {
       render(
         <RepositoryRow
           repository={repository}
@@ -97,7 +97,7 @@ describe('RepositoryRow', function () {
       expect(screen.getByRole('button', {name: 'delete'})).toBeDisabled();
     });
 
-    it('displays disabled cancel', async function () {
+    it('displays disabled cancel', function () {
       render(
         <RepositoryRow
           repository={pendingRepo}
@@ -182,7 +182,7 @@ describe('RepositoryRow', function () {
     });
     const routerContext = TestStubs.routerContext([{organization}]);
 
-    it('displays edit button', async function () {
+    it('displays edit button', function () {
       render(
         <RepositoryRow
           repository={customRepo}
@@ -202,7 +202,7 @@ describe('RepositoryRow', function () {
       expect(screen.getByRole('button', {name: 'edit'})).toBeEnabled();
     });
 
-    it('disables edit button when cancel pending', async function () {
+    it('disables edit button when cancel pending', function () {
       render(
         <RepositoryRow
           repository={customPendingRepo}

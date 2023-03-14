@@ -29,7 +29,7 @@ function renderedComponent(
 }
 
 describe('StackTrace', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = renderedComponent({});
 
     // stack trace content
@@ -49,7 +49,7 @@ describe('StackTrace', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders the frame in the correct order', async function () {
+  it('renders the frame in the correct order', function () {
     renderedComponent({});
 
     // frame - filename
@@ -131,7 +131,7 @@ describe('StackTrace', function () {
     expect(screen.getAllByTestId('toggle-button-collapsed')).toHaveLength(3);
   });
 
-  it('if all in_app equals false, all the frames are showing by default', async function () {
+  it('if all in_app equals false, all the frames are showing by default', function () {
     renderedComponent({});
 
     // frame list
@@ -140,7 +140,7 @@ describe('StackTrace', function () {
   });
 
   describe('if there is a frame with in_app equal to true, display only in_app frames', function () {
-    it('displays crashed from only', async function () {
+    it('displays crashed from only', function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -170,7 +170,7 @@ describe('StackTrace', function () {
       expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
 
-    it('displays called from only', async function () {
+    it('displays called from only', function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -203,7 +203,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays crashed from and called from', async function () {
+    it('displays crashed from and called from', function () {
       const dataFrames = [...data.frames];
 
       const newData = {
@@ -237,7 +237,7 @@ describe('StackTrace', function () {
       );
     });
 
-    it('displays "occurred in" when event is not an error', async function () {
+    it('displays "occurred in" when event is not an error', function () {
       const dataFrames = [...data.frames];
 
       const newData = {

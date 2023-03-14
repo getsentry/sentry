@@ -10,7 +10,7 @@ describe('AccountSubscriptions', function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [],

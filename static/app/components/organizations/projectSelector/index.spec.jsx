@@ -1,9 +1,4 @@
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectSelector from 'sentry/components/organizations/projectSelector';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';

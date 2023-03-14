@@ -50,7 +50,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
-  it('disables the create alert button for members', async () => {
+  it('disables the create alert button for members', () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
     });
@@ -63,7 +63,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(screen.getByRole('button', {name: 'Create Alert'})).toBeDisabled();
   });
 
-  it('shows a guide for members', async () => {
+  it('shows a guide for members', () => {
     const noAccessOrg = {
       ...organization,
       access: [],
@@ -76,7 +76,7 @@ describe('CreateAlertFromViewButton', () => {
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_member']));
   });
 
-  it('shows a guide for owners/admins', async () => {
+  it('shows a guide for owners/admins', () => {
     const adminAccessOrg = {
       ...organization,
       access: ['org:write'],
@@ -102,7 +102,7 @@ describe('CreateAlertFromViewButton', () => {
     );
   });
 
-  it('redirects to alert wizard with a project', async () => {
+  it('redirects to alert wizard with a project', () => {
     renderSimpleComponent(organization, {
       projectSlug: 'proj-slug',
     });

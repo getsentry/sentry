@@ -18,7 +18,7 @@ describe('ExternalIssueActions', function () {
     const integration = TestStubs.GitHubIntegration({externalIssues: []});
     const configurations = [integration];
 
-    it('renders', async function () {
+    it('renders', function () {
       const {container} = render(
         <ExternalIssueActions
           key="github"
@@ -80,7 +80,7 @@ describe('ExternalIssueActions', function () {
     ];
     const integration = TestStubs.GitHubIntegration({externalIssues});
     const configurations = [integration];
-    it('renders', async function () {
+    it('renders', function () {
       render(
         <ExternalIssueActions
           key="github"

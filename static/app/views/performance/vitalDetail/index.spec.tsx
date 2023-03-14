@@ -435,7 +435,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('4.50s').closest('td')).toBeInTheDocument();
   });
 
-  it('correctly renders which browsers support LCP', async function () {
+  it('correctly renders which browsers support LCP', function () {
     render(<TestComponent />, {
       context: routerContext,
       organization: org,
@@ -444,7 +444,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.LCP);
   });
 
-  it('correctly renders which browsers support CLS', async function () {
+  it('correctly renders which browsers support CLS', function () {
     const newRouter = {
       ...router,
       location: {
@@ -463,7 +463,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.CLS);
   });
 
-  it('correctly renders which browsers support FCP', async function () {
+  it('correctly renders which browsers support FCP', function () {
     const newRouter = {
       ...router,
       location: {
@@ -487,7 +487,7 @@ describe('Performance > VitalDetail', function () {
     testSupportedBrowserRendering(WebVital.FCP);
   });
 
-  it('correctly renders which browsers support FID', async function () {
+  it('correctly renders which browsers support FID', function () {
     const newRouter = {
       ...router,
       location: {

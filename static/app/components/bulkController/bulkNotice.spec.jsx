@@ -14,12 +14,12 @@ const props = {
 };
 
 describe('BulkNotice', function () {
-  it('does not render if the whole page is not selected', async function () {
+  it('does not render if the whole page is not selected', function () {
     const wrapper = render(<BulkNotice {...props} />);
     expect(wrapper.container).toBeEmptyDOMElement();
   });
 
-  it('shows the right page summary', async function () {
+  it('shows the right page summary', function () {
     const wrapper = render(<BulkNotice {...props} isPageSelected />);
     expect(wrapper.container).toHaveTextContent(
       `${props.selectedRowsCount} items on this page selected. Select all ${props.allRowsCount} items.`
@@ -59,7 +59,7 @@ describe('BulkNotice', function () {
     expect(onUnselectAllRows).toHaveBeenCalled();
   });
 
-  it('show the right selected all across all pages summary', async function () {
+  it('show the right selected all across all pages summary', function () {
     const wrapper = render(
       <BulkNotice
         {...props}

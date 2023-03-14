@@ -372,7 +372,7 @@ describe('TeamMembers', function () {
     expect(admin).toBeInTheDocument();
   });
 
-  it('cannot add or remove members if team is idp:provisioned', async function () {
+  it('cannot add or remove members if team is idp:provisioned', function () {
     const team2 = TestStubs.Team({
       flags: {
         'idp:provisioned': true,

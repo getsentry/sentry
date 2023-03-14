@@ -178,7 +178,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('not shared event - without attachments', async function () {
+    it('not shared event - without attachments', function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
@@ -227,7 +227,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(container).toSnapshot();
     });
 
-    it('shared event - without attachments', async function () {
+    it('shared event - without attachments', function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}
@@ -248,7 +248,7 @@ describe('EventTagsAndScreenshot', function () {
       expect(container).toSnapshot();
     });
 
-    it('shared event - with attachments', async function () {
+    it('shared event - with attachments', function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}

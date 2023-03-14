@@ -316,7 +316,7 @@ describe('Custom Repositories', function () {
     await userEvent.click(screen.getByLabelText('Close Modal'));
   });
 
-  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', async function () {
+  it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
     const props = getProps();
 
     const newOrganization = {
@@ -440,7 +440,7 @@ describe('Custom Repositories', function () {
       await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(0));
     });
 
-    it('does not render', async function () {
+    it('does not render', function () {
       render(
         <TestComponent
           {...props}

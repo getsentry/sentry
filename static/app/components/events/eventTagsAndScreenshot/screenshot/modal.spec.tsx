@@ -183,7 +183,7 @@ describe('Modals -> ScreenshotModal', function () {
     expect(getAttachmentsMock).not.toHaveBeenCalled();
   });
 
-  it('does not render pagination buttons when only one screenshot', async function () {
+  it('does not render pagination buttons when only one screenshot', function () {
     const eventAttachment = TestStubs.EventAttachment();
     const attachments = [eventAttachment];
     render(

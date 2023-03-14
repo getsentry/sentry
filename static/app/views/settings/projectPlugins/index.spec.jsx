@@ -61,7 +61,7 @@ describe('ProjectPluginsContainer', function () {
     );
   });
 
-  it('calls `fetchPlugins` action creator after mount', async function () {
+  it('calls `fetchPlugins` action creator after mount', function () {
     expect(fetchPlugins).toHaveBeenCalled();
   });
 

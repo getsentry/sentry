@@ -44,7 +44,7 @@ describe('AccountSecurity', function () {
     );
   }
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [],
@@ -55,7 +55,7 @@ describe('AccountSecurity', function () {
     expect(screen.getByText('No available authenticators to add')).toBeInTheDocument();
   });
 
-  it('renders a primary interface that is enrolled', async function () {
+  it('renders a primary interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({configureButton: 'Info'})],
@@ -224,7 +224,7 @@ describe('AccountSecurity', function () {
     await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
 
-  it('renders a backup interface that is not enrolled', async function () {
+  it('renders a backup interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: false})],
@@ -239,7 +239,7 @@ describe('AccountSecurity', function () {
     expect(screen.getByText('Recovery Codes')).toBeInTheDocument();
   });
 
-  it('renders a primary interface that is not enrolled', async function () {
+  it('renders a primary interface that is not enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Totp({isEnrolled: false})],
@@ -254,7 +254,7 @@ describe('AccountSecurity', function () {
     expect(screen.getByText('Authenticator App')).toBeInTheDocument();
   });
 
-  it('does not render primary interface that disallows new enrollments', async function () {
+  it('does not render primary interface that disallows new enrollments', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -271,7 +271,7 @@ describe('AccountSecurity', function () {
     expect(screen.queryByText('Text Message')).not.toBeInTheDocument();
   });
 
-  it('renders primary interface if new enrollments are disallowed, but we are enrolled', async function () {
+  it('renders primary interface if new enrollments are disallowed, but we are enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [
@@ -285,7 +285,7 @@ describe('AccountSecurity', function () {
     expect(screen.getByText('Text Message')).toBeInTheDocument();
   });
 
-  it('renders a backup interface that is enrolled', async function () {
+  it('renders a backup interface that is enrolled', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: [TestStubs.Authenticators().Recovery({isEnrolled: true})],

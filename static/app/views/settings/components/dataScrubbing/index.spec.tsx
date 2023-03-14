@@ -20,7 +20,7 @@ describe('Data Scrubbing', function () {
     const additionalContext = 'These rules can be configured for each project.';
     const endpoint = `organization/${organization.slug}/`;
 
-    it('default render', async function () {
+    it('default render', function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -61,7 +61,7 @@ describe('Data Scrubbing', function () {
       expect(screen.getByRole('button', {name: 'Add Rule'})).toBeEnabled();
     });
 
-    it('render empty state', async function () {
+    it('render empty state', function () {
       render(
         <DataScrubbing
           endpoint={endpoint}
@@ -74,7 +74,7 @@ describe('Data Scrubbing', function () {
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
     });
 
-    it('render disabled actions', async function () {
+    it('render disabled actions', function () {
       render(
         <DataScrubbing
           additionalContext={additionalContext}
@@ -101,7 +101,7 @@ describe('Data Scrubbing', function () {
   });
 
   describe('Project level', function () {
-    it('default render', async function () {
+    it('default render', function () {
       const {organization, project} = initializeOrg();
 
       render(
@@ -120,7 +120,7 @@ describe('Data Scrubbing', function () {
       ).toBeInTheDocument();
     });
 
-    it('OrganizationRules has content', async function () {
+    it('OrganizationRules has content', function () {
       const {organization, project} = initializeOrg({
         ...initializeOrg(),
         organization: {

@@ -50,7 +50,7 @@ describe('TeamMembers', () => {
     expect(screen.queryByTestId('test')).not.toBeInTheDocument();
   });
 
-  it('displays children', async () => {
+  it('displays children', () => {
     const {routerContext} = initializeOrg({
       organization,
       router: {

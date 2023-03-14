@@ -18,7 +18,7 @@ describe('DropdownAutoCompleteMenu', function () {
     },
   ];
 
-  it('renders without a group', async function () {
+  it('renders without a group', function () {
     const {container} = render(
       <DropdownAutoCompleteMenu isOpen items={items}>
         {() => 'Click Me!'}
@@ -27,7 +27,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders with a group', async function () {
+  it('renders with a group', function () {
     const {container} = render(
       <DropdownAutoCompleteMenu
         isOpen
@@ -94,7 +94,7 @@ describe('DropdownAutoCompleteMenu', function () {
     );
   });
 
-  it('shows empty message when there are no items', async function () {
+  it('shows empty message when there are no items', function () {
     render(
       <DropdownAutoCompleteMenu
         items={[]}
@@ -142,7 +142,7 @@ describe('DropdownAutoCompleteMenu', function () {
     expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
-  it('hides filter with `hideInput` prop', async function () {
+  it('hides filter with `hideInput` prop', function () {
     render(
       <DropdownAutoCompleteMenu isOpen items={items} hideInput>
         {() => 'Click Me!'}

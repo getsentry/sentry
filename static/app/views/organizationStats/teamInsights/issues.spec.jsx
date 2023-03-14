@@ -140,7 +140,7 @@ describe('TeamStatsIssues', () => {
     });
   }
 
-  it('defaults to first team', async () => {
+  it('defaults to first team', () => {
     createWrapper();
 
     expect(screen.getByText('#backend')).toBeInTheDocument();
@@ -185,7 +185,7 @@ describe('TeamStatsIssues', () => {
     expect(screen.getByText('#internal')).toBeInTheDocument();
   });
 
-  it('shows users with no teams the join team button', async () => {
+  it('shows users with no teams the join team button', () => {
     createWrapper({
       projects: [{...project1, isMember: false}],
       teams: [],

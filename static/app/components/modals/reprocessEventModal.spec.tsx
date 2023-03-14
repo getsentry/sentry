@@ -17,7 +17,7 @@ const group = TestStubs.Group({
 });
 
 describe('ReprocessEventModal', function () {
-  it('form fields & info', async function () {
+  it('form fields & info', function () {
     const {organization} = initializeOrg({
       ...initializeOrg(),
       organization: {

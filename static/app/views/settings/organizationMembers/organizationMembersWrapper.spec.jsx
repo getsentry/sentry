@@ -62,7 +62,7 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('can not invite members without the invite-members feature', async function () {
+  it('can not invite members without the invite-members feature', function () {
     const org = TestStubs.Organization({
       features: [],
       access: ['member:admin', 'org:admin', 'member:write'],
@@ -90,7 +90,7 @@ describe('OrganizationMembersWrapper', function () {
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
-  it('renders member list', async function () {
+  it('renders member list', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',

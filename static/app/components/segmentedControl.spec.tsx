@@ -35,7 +35,7 @@ describe('SegmentedControl', function () {
     expect(onChange).toHaveBeenCalledWith('2');
   });
 
-  it('renders with controlled value', async function () {
+  it('renders with controlled value', function () {
     const {rerender} = render(
       <SegmentedControl aria-label="Test" value="2">
         <SegmentedControl.Item key="1">Option 1</SegmentedControl.Item>

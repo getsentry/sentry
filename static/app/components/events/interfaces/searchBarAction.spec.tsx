@@ -100,7 +100,7 @@ describe('SearchBarAction', () => {
     expect(container).toSnapshot();
   });
 
-  it('Without Options', async () => {
+  it('Without Options', () => {
     render(
       <SearchBarAction
         filterOptions={[]}

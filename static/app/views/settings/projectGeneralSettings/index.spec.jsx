@@ -78,7 +78,7 @@ describe('projectGeneralSettings', function () {
     jest.restoreAllMocks();
   });
 
-  it('renders form fields', async function () {
+  it('renders form fields', function () {
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
     expect(getField('textbox', 'Name')).toHaveValue('Project Name');
@@ -97,7 +97,7 @@ describe('projectGeneralSettings', function () {
     expect(getField('checkbox', 'Verify TLS/SSL')).toBeChecked();
   });
 
-  it('disables scrapeJavaScript when equivalent org setting is false', async function () {
+  it('disables scrapeJavaScript when equivalent org setting is false', function () {
     routerContext.context.organization.scrapeJavaScript = false;
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
       context: routerContext,
@@ -184,7 +184,7 @@ describe('projectGeneralSettings', function () {
     );
   });
 
-  it('displays transfer/remove message for non-admins', async function () {
+  it('displays transfer/remove message for non-admins', function () {
     routerContext.context.organization.access = ['org:read'];
 
     const {container} = render(
@@ -200,7 +200,7 @@ describe('projectGeneralSettings', function () {
     );
   });
 
-  it('disables the form for users without write permissions', async function () {
+  it('disables the form for users without write permissions', function () {
     routerContext.context.organization.access = ['org:read'];
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />, {
       context: routerContext,

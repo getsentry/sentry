@@ -37,7 +37,7 @@ describe('AccountSecurityEnroll', function () {
       });
     });
 
-    it('does not have enrolled circle indicator', async function () {
+    it('does not have enrolled circle indicator', function () {
       render(<AccountSecurityEnroll />, {context: routerContext});
 
       expect(
@@ -45,7 +45,7 @@ describe('AccountSecurityEnroll', function () {
       ).toBeInTheDocument();
     });
 
-    it('has qrcode component', async function () {
+    it('has qrcode component', function () {
       render(<AccountSecurityEnroll />, {context: routerContext});
 
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
@@ -73,7 +73,7 @@ describe('AccountSecurityEnroll', function () {
       );
     });
 
-    it('can redirect with already enrolled error', async function () {
+    it('can redirect with already enrolled error', function () {
       Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         body: {details: 'Already enrolled'},

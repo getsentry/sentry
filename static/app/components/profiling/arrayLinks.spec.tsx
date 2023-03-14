@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 
 describe('ArrayLinks', function () {
-  it('renders single item', async function () {
+  it('renders single item', function () {
     render(<ArrayLinks items={[{target: '/foo', value: 'foo'}]} />);
     expect(screen.getByText('foo')).toBeInTheDocument();
   });

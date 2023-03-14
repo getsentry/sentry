@@ -67,7 +67,7 @@ describe('RecoveryOptionsModal', function () {
     expect(closeModal).toHaveBeenCalled();
   });
 
-  it('skips backup phone setup if text message authenticator unavailable', async function () {
+  it('skips backup phone setup if text message authenticator unavailable', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/users/me/authenticators/',

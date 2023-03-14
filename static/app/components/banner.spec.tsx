@@ -13,7 +13,7 @@ describe('Banner', function () {
     expect(localStorage.getItem('test-banner-dismissed')).toBe('true');
   });
 
-  it('is not dismissable', async function () {
+  it('is not dismissable', function () {
     render(<Banner isDismissable={false} />);
     expect(screen.queryByLabelText('Close')).not.toBeInTheDocument();
   });

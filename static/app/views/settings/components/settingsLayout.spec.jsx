@@ -35,7 +35,7 @@ describe('SettingsLayout', function () {
     return screen.queryByRole('navigation', {name: 'Test Nav'});
   }
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <BreadcrumbContextProvider>
         <SettingsLayout router={TestStubs.router()} route={{}} routes={[]} />
@@ -45,7 +45,7 @@ describe('SettingsLayout', function () {
     expect(container).toSnapshot();
   });
 
-  it('can render navigation', async function () {
+  it('can render navigation', function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout

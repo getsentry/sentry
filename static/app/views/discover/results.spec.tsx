@@ -211,7 +211,7 @@ function renderMockRequests() {
 describe('Results', function () {
   describe('Events', function () {
     const features = ['discover-basic'];
-    it('loads data when moving from an invalid to valid EventView', async function () {
+    it('loads data when moving from an invalid to valid EventView', function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -437,7 +437,7 @@ describe('Results', function () {
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
     });
 
-    it('needs confirmation on long queries', async function () {
+    it('needs confirmation on long queries', function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -471,7 +471,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
     });
 
-    it('needs confirmation on long query with explicit projects', async function () {
+    it('needs confirmation on long query with explicit projects', function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -511,7 +511,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(0);
     });
 
-    it('does not need confirmation on short queries', async function () {
+    it('does not need confirmation on short queries', function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -545,7 +545,7 @@ describe('Results', function () {
       expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
     });
 
-    it('does not need confirmation with to few projects', async function () {
+    it('does not need confirmation with to few projects', function () {
       const organization = TestStubs.Organization({
         features: ['discover-basic'],
       });
@@ -687,7 +687,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever yAxis parameter changes', async function () {
+    it('updates chart whenever yAxis parameter changes', function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -759,7 +759,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever display parameter changes', async function () {
+    it('updates chart whenever display parameter changes', function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -831,7 +831,7 @@ describe('Results', function () {
       );
     });
 
-    it('updates chart whenever display and yAxis parameters change', async function () {
+    it('updates chart whenever display and yAxis parameters change', function () {
       const organization = TestStubs.Organization({
         features,
       });
@@ -1332,7 +1332,7 @@ describe('Results', function () {
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 
-    it('links back to the homepage through the Discover breadcrumb', async () => {
+    it('links back to the homepage through the Discover breadcrumb', () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',
@@ -1368,7 +1368,7 @@ describe('Results', function () {
       );
     });
 
-    it('links back to the Saved Queries through the Saved Queries breadcrumb', async () => {
+    it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',
@@ -1402,7 +1402,7 @@ describe('Results', function () {
       );
     });
 
-    it('allows users to Set As Default on the All Events query', async () => {
+    it('allows users to Set As Default on the All Events query', () => {
       const organization = TestStubs.Organization({
         features: [
           'discover-basic',

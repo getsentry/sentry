@@ -66,7 +66,7 @@ describe('CompactSelect', function () {
     );
   });
 
-  it('renders disabled trigger button', async function () {
+  it('renders disabled trigger button', function () {
     render(
       <CompositeSelect disabled>
         <CompositeSelect.Region

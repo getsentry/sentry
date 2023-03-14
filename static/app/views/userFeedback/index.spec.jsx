@@ -31,7 +31,7 @@ describe('UserFeedback', function () {
     ProjectsStore.reset();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const params = {
       organization: TestStubs.Organization(),
       location: {query: {}, search: ''},
@@ -51,7 +51,7 @@ describe('UserFeedback', function () {
     expect(screen.getByText('Something bad happened')).toBeInTheDocument();
   });
 
-  it('renders no project message', async function () {
+  it('renders no project message', function () {
     ProjectsStore.loadInitialData([]);
 
     const params = {
@@ -68,7 +68,7 @@ describe('UserFeedback', function () {
     ).toBeInTheDocument();
   });
 
-  it('renders empty state', async function () {
+  it('renders empty state', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -88,7 +88,7 @@ describe('UserFeedback', function () {
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders empty state with project query', async function () {
+  it('renders empty state with project query', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],
@@ -137,7 +137,7 @@ describe('UserFeedback', function () {
     );
   });
 
-  it('renders empty state with multi project query', async function () {
+  it('renders empty state with multi project query', function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/user-feedback/',
       body: [],

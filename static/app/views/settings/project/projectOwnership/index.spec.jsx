@@ -44,7 +44,7 @@ describe('Project Ownership', () => {
   });
 
   describe('without codeowners', () => {
-    it('renders', async () => {
+    it('renders', () => {
       const wrapper = render(
         <ProjectOwnership
           params={{projectId: project.slug}}
@@ -59,7 +59,7 @@ describe('Project Ownership', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('renders allows users to edit ownership rules', async () => {
+    it('renders allows users to edit ownership rules', () => {
       org = TestStubs.Organization({
         access: ['project:read'],
       });
@@ -141,7 +141,7 @@ describe('Project Ownership', () => {
       });
     });
 
-    it('should hide issue owners for issue-alert-fallback-targeting flag', async () => {
+    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
       const organization = {...org, features: ['issue-alert-fallback-targeting']};
       render(
         <ProjectOwnership

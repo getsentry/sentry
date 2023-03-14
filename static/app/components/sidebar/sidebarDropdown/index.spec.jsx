@@ -26,11 +26,11 @@ function renderDropdown(props) {
 }
 
 describe('SidebarDropdown', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = renderDropdown();
     expect(container).toSnapshot();
   });
-  it('renders without org links', async function () {
+  it('renders without org links', function () {
     const {container} = renderDropdown({hideOrgLinks: true});
     expect(container).toSnapshot();
   });

@@ -3,22 +3,22 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {Button} from 'sentry/components/button';
 
 describe('Button', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(<Button priority="primary">Button</Button>);
     expect(container).toSnapshot();
   });
 
-  it('renders react-router link', async function () {
+  it('renders react-router link', function () {
     const {container} = render(<Button to="/some/route">Router Link</Button>);
     expect(container).toSnapshot();
   });
 
-  it('renders normal link', async function () {
+  it('renders normal link', function () {
     const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
     expect(container).toSnapshot();
   });
 
-  it('renders disabled normal link', async function () {
+  it('renders disabled normal link', function () {
     const {container} = render(<Button href="/some/relative/url">Normal Link</Button>);
     expect(container).toSnapshot();
   });

@@ -33,7 +33,7 @@ describe('CreateProject', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('should block if you have access to no teams', async function () {
+  it('should block if you have access to no teams', function () {
     const wrapper = render(<CreateProject {...baseProps} />, {
       context: TestStubs.routerContext([{organization: {id: '1', slug: 'testOrg'}}]),
     });
@@ -73,7 +73,7 @@ describe('CreateProject', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('should fill in platform name if its provided by url', async function () {
+  it('should fill in platform name if its provided by url', function () {
     const props = {
       ...baseProps,
       location: {query: {platform: 'ruby-rails'}},
@@ -88,7 +88,7 @@ describe('CreateProject', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('should fill in category name if its provided by url', async function () {
+  it('should fill in category name if its provided by url', function () {
     const props = {
       ...baseProps,
       location: {query: {category: 'mobile'}},
@@ -102,7 +102,7 @@ describe('CreateProject', function () {
     expect(screen.queryByTestId('platform-ruby-rails')).not.toBeInTheDocument();
   });
 
-  it('should deal with incorrect platform name if its provided by url', async function () {
+  it('should deal with incorrect platform name if its provided by url', function () {
     const wrapper = render(<CreateProject {...baseProps} teams={[teamWithAccess]} />, {
       context: TestStubs.routerContext([
         {

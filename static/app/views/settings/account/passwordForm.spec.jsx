@@ -15,7 +15,7 @@ describe('PasswordForm', function () {
     });
   });
 
-  it('has 3 text inputs', async function () {
+  it('has 3 text inputs', function () {
     render(<PasswordForm />);
     expect(screen.getByRole('textbox', {name: 'Current Password'})).toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: 'New Password'})).toBeInTheDocument();

@@ -41,7 +41,7 @@ describe('Dashboards > Detail', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('denies access on missing feature', async function () {
+  it('denies access on missing feature', function () {
     render(
       <ManageDashboards
         organization={mockUnauthorizedOrg}
@@ -53,7 +53,7 @@ describe('Dashboards > Detail', function () {
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
   });
 
-  it('denies access on no projects', async function () {
+  it('denies access on no projects', function () {
     act(() => ProjectsStore.loadInitialData([]));
 
     render(

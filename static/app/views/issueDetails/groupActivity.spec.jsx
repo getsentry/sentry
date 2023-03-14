@@ -58,12 +58,12 @@ describe('GroupActivity', function () {
     );
   }
 
-  it('renders a NoteInput', async function () {
+  it('renders a NoteInput', function () {
     createWrapper();
     expect(screen.getByTestId('activity-note-body')).toBeInTheDocument();
   });
 
-  it('renders a marked reviewed activity', async function () {
+  it('renders a marked reviewed activity', function () {
     const user = TestStubs.User({name: 'Samwise'});
     createWrapper({
       activity: [{type: 'mark_reviewed', id: 'reviewed-1', data: {}, user}],
@@ -72,7 +72,7 @@ describe('GroupActivity', function () {
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
-  it('renders a pr activity', async function () {
+  it('renders a pr activity', function () {
     const user = TestStubs.User({name: 'Test User'});
     const repository = TestStubs.Repository();
     const pullRequest = TestStubs.PullRequest({message: 'Fixes ISSUE-1'});
@@ -103,7 +103,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders a assigned to self activity', async function () {
+  it('renders a assigned to self activity', function () {
     const user = TestStubs.User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
@@ -125,7 +125,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders an assigned via codeowners activity', async function () {
+  it('renders an assigned via codeowners activity', function () {
     createWrapper({
       activity: [
         {
@@ -148,7 +148,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('renders an assigned via slack activity', async function () {
+  it('renders an assigned via slack activity', function () {
     const user = TestStubs.User({id: '301', name: 'Mark'});
     createWrapper({
       activity: [
@@ -171,7 +171,7 @@ describe('GroupActivity', function () {
     expect(item).toHaveTextContent(/Assigned via Slack/);
   });
 
-  it('resolved in commit with no releases', async function () {
+  it('resolved in commit with no releases', function () {
     createWrapper({
       activity: [
         {
@@ -194,7 +194,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('resolved in commit with one release', async function () {
+  it('resolved in commit with one release', function () {
     createWrapper({
       activity: [
         {
@@ -223,7 +223,7 @@ describe('GroupActivity', function () {
     );
   });
 
-  it('resolved in commit with multiple releases', async function () {
+  it('resolved in commit with multiple releases', function () {
     createWrapper({
       activity: [
         {

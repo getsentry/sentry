@@ -24,7 +24,7 @@ describe('RadioGroupPanel', function () {
     expect(mock).toHaveBeenCalledWith(expect.any(String), expect.any(Object));
   });
 
-  it('Renders extra content', async function () {
+  it('Renders extra content', function () {
     const mock = jest.fn();
 
     render(

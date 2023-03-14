@@ -660,7 +660,7 @@ describe('Performance > Trends', function () {
     }
   });
 
-  it('Visiting trends with trends feature will update filters if none are set', async function () {
+  it('Visiting trends with trends feature will update filters if none are set', function () {
     const data = initializeTrendsData(undefined, {}, false);
 
     render(

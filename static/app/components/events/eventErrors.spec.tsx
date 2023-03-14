@@ -17,7 +17,7 @@ describe('EventErrors', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('does not render anything when no errors', async () => {
+  it('does not render anything when no errors', () => {
     const {container} = render(<EventErrors {...defaultProps} />);
 
     expect(container).toBeEmptyDOMElement();

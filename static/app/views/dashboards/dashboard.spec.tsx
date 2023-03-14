@@ -113,7 +113,7 @@ describe('Dashboards > Dashboard', () => {
     });
   });
 
-  it('fetches tags', async () => {
+  it('fetches tags', () => {
     render(
       <Dashboard
         paramDashboardId="1"
@@ -199,7 +199,7 @@ describe('Dashboards > Dashboard', () => {
     expect(mockCallbackToUnsetNewWidget).toHaveBeenCalled();
   });
 
-  it('dashboard does not try to add new widget if no newWidget', async () => {
+  it('dashboard does not try to add new widget if no newWidget', () => {
     const mockHandleAddCustomWidget = jest.fn();
     const mockCallbackToUnsetNewWidget = jest.fn();
     render(

@@ -23,7 +23,7 @@ describe('ProjectSourceMaps', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [
@@ -40,7 +40,7 @@ describe('ProjectSourceMaps', function () {
     expect(screen.getByText('1234')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],

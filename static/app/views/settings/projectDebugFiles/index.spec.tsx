@@ -36,7 +36,7 @@ describe('ProjectDebugFiles', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     render(<ProjectDebugFiles {...props} />);
 
     expect(screen.getByText('Debug Information Files')).toBeInTheDocument();
@@ -46,7 +46,7 @@ describe('ProjectDebugFiles', function () {
     expect(screen.getByText('libS.so')).toBeInTheDocument();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: [],

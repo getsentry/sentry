@@ -375,7 +375,7 @@ describe('OrganizationMembersList', function () {
       teams: [],
     });
 
-    it('disable buttons for no access', async function () {
+    it('disable buttons for no access', function () {
       const org = TestStubs.Organization({
         status: {
           id: 'active',

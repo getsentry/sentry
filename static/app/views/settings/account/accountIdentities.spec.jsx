@@ -15,7 +15,7 @@ describe('AccountIdentities', function () {
     Client.clearMockResponses();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',
@@ -26,7 +26,7 @@ describe('AccountIdentities', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders list', async function () {
+  it('renders list', function () {
     Client.addMockResponse({
       url: ENDPOINT,
       method: 'GET',

@@ -56,7 +56,7 @@ describe('Project Ownership', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders stacktrace suggestions', async () => {
+  it('renders stacktrace suggestions', () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}
@@ -76,7 +76,7 @@ describe('Project Ownership', () => {
     expect(screen.getByText('https://example.com/path')).toBeInTheDocument();
   });
 
-  it('renders streamline-targeting-context suggestions', async () => {
+  it('renders streamline-targeting-context suggestions', () => {
     render(
       <ProjectOwnershipModal
         issueId={issueId}

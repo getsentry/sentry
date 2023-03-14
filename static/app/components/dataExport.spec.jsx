@@ -23,21 +23,21 @@ const mockRouterContext = mockOrganization =>
   ]);
 
 describe('DataExport', function () {
-  it('should not render anything for an unauthorized organization', async function () {
+  it('should not render anything for an unauthorized organization', function () {
     render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockUnauthorizedOrg),
     });
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
-  it('should render the button for an authorized organization', async function () {
+  it('should render the button for an authorized organization', function () {
     render(<WrappedDataExport payload={mockPayload} />, {
       context: mockRouterContext(mockAuthorizedOrg),
     });
     expect(screen.getByText(/Export All to CSV/)).toBeInTheDocument();
   });
 
-  it('should render custom children if provided', async function () {
+  it('should render custom children if provided', function () {
     render(
       <WrappedDataExport payload={mockPayload}>
         This is an example string

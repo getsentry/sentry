@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 
 describe('RadioGroup', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <RadioGroup
         label="test"
@@ -19,7 +19,7 @@ describe('RadioGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders disabled', async function () {
+  it('renders disabled', function () {
     const {container} = render(
       <RadioGroup
         label="test"
@@ -59,7 +59,7 @@ describe('RadioGroup', function () {
     ).toBeInTheDocument();
   });
 
-  it('can select a different item', async function () {
+  it('can select a different item', function () {
     const {container} = render(
       <RadioGroup
         label="test"

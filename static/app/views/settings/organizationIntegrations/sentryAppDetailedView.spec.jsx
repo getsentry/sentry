@@ -103,7 +103,7 @@ describe('SentryAppDetailedView', function () {
       });
     });
 
-    it('renders a published sentry app', async () => {
+    it('renders a published sentry app', () => {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'clickup', orgId: org.slug}}
@@ -203,7 +203,7 @@ describe('SentryAppDetailedView', function () {
       });
     });
 
-    it('should get redirected to Developer Settings', async () => {
+    it('should get redirected to Developer Settings', () => {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'my-headband-washer-289499', orgId: org.slug}}
@@ -284,7 +284,7 @@ describe('SentryAppDetailedView', function () {
         },
       });
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'la-croix-monitor', orgId: org.slug}}
@@ -367,7 +367,7 @@ describe('SentryAppDetailedView', function () {
         method: 'POST',
       });
     });
-    it('shows the Integration name and install status', async function () {
+    it('shows the Integration name and install status', function () {
       render(
         <SentryAppDetailedView
           params={{integrationSlug: 'go-to-google', orgId: org.slug}}

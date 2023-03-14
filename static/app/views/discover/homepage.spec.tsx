@@ -186,7 +186,7 @@ describe('Discover > Homepage', () => {
     );
   });
 
-  it('does not show an editable header or author information', async () => {
+  it('does not show an editable header or author information', () => {
     render(
       <Homepage
         organization={organization}
@@ -246,7 +246,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('Set as Default')).not.toBeInTheDocument();
   });
 
-  it('Disables the Set as Default button when no saved homepage', async () => {
+  it('Disables the Set as Default button when no saved homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -317,7 +317,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText('14D')).not.toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when no homepage', async () => {
+  it('renders changes to the discover query when no homepage', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -378,7 +378,7 @@ describe('Discover > Homepage', () => {
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('renders changes to the discover query when loaded with valid event view in url params', async () => {
+  it('renders changes to the discover query when loaded with valid event view in url params', () => {
     initialData = initializeOrg({
       ...initializeOrg(),
       organization,
@@ -433,7 +433,7 @@ describe('Discover > Homepage', () => {
     expect(screen.getByText('event.type')).toBeInTheDocument();
   });
 
-  it('overrides homepage filters with pinned filters if they exist', async () => {
+  it('overrides homepage filters with pinned filters if they exist', () => {
     ProjectsStore.loadInitialData([TestStubs.Project({id: 2})]);
     jest.spyOn(pageFilterUtils, 'getPageFilterStorage').mockReturnValueOnce({
       pinnedFilters: new Set(['projects']),

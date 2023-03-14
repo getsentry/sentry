@@ -4,7 +4,7 @@ import {FrameRegisters} from 'sentry/components/events/interfaces/frame/frameReg
 import {FrameRegisterValue} from 'sentry/components/events/interfaces/frame/frameRegisters/value';
 
 describe('FrameRegisters', function () {
-  it('should render registers', async function () {
+  it('should render registers', function () {
     const registers = {
       r10: '0x00007fff9300bf70',
       r11: '0xffffffffffffffff',
@@ -15,7 +15,7 @@ describe('FrameRegisters', function () {
     expect(container).toSnapshot();
   });
 
-  it('should skip registers without a value', async function () {
+  it('should skip registers without a value', function () {
     const registers = {
       r10: '0x00007fff9300bf70',
       r11: null,
@@ -32,7 +32,7 @@ describe('FrameRegistersValue', function () {
   const numericValue = 10;
 
   describe('with string value', function () {
-    it('should display the hexadecimal value', async function () {
+    it('should display the hexadecimal value', function () {
       render(<FrameRegisterValue value={hexadecimalValue} />);
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
@@ -46,7 +46,7 @@ describe('FrameRegistersValue', function () {
   });
 
   describe('with numeric value', function () {
-    it('should display the hexadecimal value', async function () {
+    it('should display the hexadecimal value', function () {
       render(<FrameRegisterValue value={numericValue} />);
       expect(screen.getByText(hexadecimalValue)).toBeInTheDocument();
     });
@@ -62,7 +62,7 @@ describe('FrameRegistersValue', function () {
   describe('with unknown value', function () {
     const unknownValue = 'xyz';
 
-    it('should display the hexadecimal value', async function () {
+    it('should display the hexadecimal value', function () {
       render(<FrameRegisterValue value={unknownValue} />);
       expect(screen.getByText(unknownValue)).toBeInTheDocument();
     });

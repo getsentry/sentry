@@ -59,7 +59,7 @@ describe('DemoEndModal', function () {
     );
   });
 
-  it('opens sign up page on button click', async function () {
+  it('opens sign up page on button click', function () {
     renderGlobalModal();
 
     act(() =>

@@ -6,7 +6,7 @@ import Collapsible from 'sentry/components/collapsible';
 const items = [1, 2, 3, 4, 5, 6, 7].map(i => <div key={i}>Item {i}</div>);
 
 describe('Collapsible', function () {
-  it('collapses items', async function () {
+  it('collapses items', function () {
     render(<Collapsible>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
@@ -30,13 +30,13 @@ describe('Collapsible', function () {
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
 
-  it('respects maxVisibleItems prop', async function () {
+  it('respects maxVisibleItems prop', function () {
     render(<Collapsible maxVisibleItems={2}>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(2);
   });
 
-  it('does not collapse items below threshold', async function () {
+  it('does not collapse items below threshold', function () {
     render(<Collapsible maxVisibleItems={100}>{items}</Collapsible>);
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);

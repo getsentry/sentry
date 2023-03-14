@@ -25,7 +25,7 @@ describe('ProjectCspReports', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <ProjectCspReports
         route={{}}

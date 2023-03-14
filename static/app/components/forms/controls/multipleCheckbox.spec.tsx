@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox';
 
 describe('MultipleCheckbox', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <MultipleCheckbox name="test" value={[1]}>
         <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>

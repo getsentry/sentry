@@ -110,7 +110,7 @@ describe('IntegrationRepos', function () {
       expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
     });
 
-    it('does not disable add repo for members', async function () {
+    it('does not disable add repo for members', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/integrations/1/repos/`,
         body: {

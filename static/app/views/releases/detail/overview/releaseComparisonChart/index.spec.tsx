@@ -12,7 +12,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const releaseSessions = TestStubs.SessionUserCountByStatus();
   const allSessions = TestStubs.SessionUserCountByStatus2();
 
-  it('displays correct all/release/change data', async () => {
+  it('displays correct all/release/change data', () => {
     render(
       <ReleaseComparisonChart
         release={release}

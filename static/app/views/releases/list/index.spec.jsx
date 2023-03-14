@@ -414,7 +414,7 @@ describe('ReleasesList', () => {
     });
   });
 
-  it('calls api with only explicitly permitted query params', async () => {
+  it('calls api with only explicitly permitted query params', () => {
     render(<ReleasesList {...props} />, {
       context: routerContext,
       organization,

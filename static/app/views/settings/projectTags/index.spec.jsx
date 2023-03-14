@@ -27,7 +27,7 @@ describe('ProjectTags', function () {
     });
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <ProjectTags organization={org} params={{projectId: project.slug}} />
     );
@@ -35,7 +35,7 @@ describe('ProjectTags', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders empty', async function () {
+  it('renders empty', function () {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/tags/`,
@@ -47,7 +47,7 @@ describe('ProjectTags', function () {
     expect(screen.getByTestId('empty-message')).toBeInTheDocument();
   });
 
-  it('disables delete button for users without access', async function () {
+  it('disables delete button for users without access', function () {
     const context = {
       organization: TestStubs.Organization({access: []}),
     };

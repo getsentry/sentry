@@ -60,7 +60,7 @@ describe('BulkController', function () {
     jest.clearAllMocks();
   });
 
-  it('sets the defaults', async function () {
+  it('sets the defaults', function () {
     renderComponent();
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
@@ -102,12 +102,12 @@ describe('BulkController', function () {
   });
 
   describe('with default selectIds', function () {
-    it('sets the defaults', async function () {
+    it('sets the defaults', function () {
       renderComponent(pageIds, ['2']);
       expect(renderProp).toHaveBeenLastCalledWith(false, false, ['2']);
     });
 
-    it('page is selected by default', async function () {
+    it('page is selected by default', function () {
       renderComponent(pageIds, pageIds);
       expect(renderProp).toHaveBeenLastCalledWith(false, true, pageIds);
     });

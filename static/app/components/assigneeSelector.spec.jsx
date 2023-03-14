@@ -140,7 +140,7 @@ describe('AssigneeSelector', () => {
   });
 
   describe('putSessionUserFirst()', () => {
-    it('should place the session user at the top of the member list if present', async () => {
+    it('should place the session user at the top of the member list if present', () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '2',
@@ -151,7 +151,7 @@ describe('AssigneeSelector', () => {
       ConfigStore.get.mockRestore();
     });
 
-    it("should return the same member list if the session user isn't present", async () => {
+    it("should return the same member list if the session user isn't present", () => {
       render(<AssigneeSelectorComponent id={GROUP_1.id} />);
       jest.spyOn(ConfigStore, 'get').mockImplementation(() => ({
         id: '555',

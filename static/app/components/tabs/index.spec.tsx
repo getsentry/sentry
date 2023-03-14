@@ -1,5 +1,3 @@
-import {PointerEventsCheckLevel} from '@testing-library/user-event';
-
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
@@ -25,7 +23,7 @@ const TABS = [
 ];
 
 describe('Tabs', () => {
-  it('renders tabs list', async () => {
+  it('renders tabs list', () => {
     render(
       <Tabs>
         <TabList>
@@ -56,7 +54,7 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[0].content)).toBeInTheDocument();
   });
 
-  it('renders tabs list when disabled', async () => {
+  it('renders tabs list when disabled', () => {
     render(
       <Tabs disabled>
         <TabList>
@@ -177,7 +175,7 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
   });
 
-  it('renders disabled tabs', async () => {
+  it('renders disabled tabs', () => {
     render(
       <Tabs>
         <TabList>
@@ -203,7 +201,7 @@ describe('Tabs', () => {
     });
   });
 
-  it.only('renders tab links', async () => {
+  it('renders tab links', async () => {
     const routerContext = TestStubs.routerContext();
     render(
       <Tabs>

@@ -15,7 +15,7 @@ describe('Confirm', function () {
     ModalStore.reset();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const mock = jest.fn();
     const wrapper = render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -111,7 +111,7 @@ describe('Confirm', function () {
     expect(mock.mock.calls).toHaveLength(1);
   });
 
-  it('can stop propagation on the event', async function () {
+  it('can stop propagation on the event', function () {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock} stopPropagation>

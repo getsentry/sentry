@@ -37,7 +37,7 @@ describe('EventIdField', function () {
     expect(handleUpdateEventId).toHaveBeenCalled();
   });
 
-  it('LOADING status', async function () {
+  it('LOADING status', function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -50,7 +50,7 @@ describe('EventIdField', function () {
     expect(screen.getByTestId('saving')).toBeInTheDocument();
   });
 
-  it('LOADED status', async function () {
+  it('LOADED status', function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -86,7 +86,7 @@ describe('EventIdField', function () {
     ).toBeInTheDocument();
   });
 
-  it('INVALID status', async function () {
+  it('INVALID status', function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}
@@ -99,7 +99,7 @@ describe('EventIdField', function () {
     expect(screen.getByText('This event ID is invalid')).toBeInTheDocument();
   });
 
-  it('NOTFOUND status', async function () {
+  it('NOTFOUND status', function () {
     render(
       <EventIdField
         onUpdateEventId={jest.fn()}

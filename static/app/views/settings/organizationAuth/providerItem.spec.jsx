@@ -10,7 +10,7 @@ describe('ProviderItem', function () {
   });
   const routerContext = TestStubs.routerContext([{organization: org}]);
 
-  it('renders', async function () {
+  it('renders', function () {
     render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,
       {context: routerContext}
@@ -31,7 +31,7 @@ describe('ProviderItem', function () {
     expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 
-  it('renders a disabled Tag when disabled', async function () {
+  it('renders a disabled Tag when disabled', function () {
     const noFeatureRouterContext = TestStubs.routerContext();
     render(
       <ProviderItem organization={org} provider={provider} onConfigure={() => {}} />,

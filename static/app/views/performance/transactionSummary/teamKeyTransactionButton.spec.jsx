@@ -37,7 +37,7 @@ describe('TeamKeyTransactionButton', function () {
     act(() => void TeamStore.loadInitialData(teams, false, null));
   });
 
-  it('fetches key transactions with project param', async function () {
+  it('fetches key transactions with project param', function () {
     const getTeamKeyTransactionsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/key-transactions-list/',

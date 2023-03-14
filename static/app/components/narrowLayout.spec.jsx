@@ -10,12 +10,12 @@ describe('NarrowLayout', function () {
     window.location.assign.mockRestore();
   });
 
-  it('renders without logout', async function () {
+  it('renders without logout', function () {
     render(<NarrowLayout />);
     expect(screen.queryByText('Sign out')).not.toBeInTheDocument();
   });
 
-  it('renders with logout', async function () {
+  it('renders with logout', function () {
     render(<NarrowLayout showLogout />);
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });

@@ -30,7 +30,7 @@ describe('TeamNotificationSettings', () => {
     team = TestStubs.Team();
   });
 
-  it('should render empty message when there are no integrations', async () => {
+  it('should render empty message when there are no integrations', () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -54,7 +54,7 @@ describe('TeamNotificationSettings', () => {
     ).toBeInTheDocument();
   });
 
-  it('should render empty message when there are no externalTeams', async () => {
+  it('should render empty message when there are no externalTeams', () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({
@@ -76,7 +76,7 @@ describe('TeamNotificationSettings', () => {
     expect(screen.getByText('No teams have been linked yet.')).toBeInTheDocument();
   });
 
-  it('should render each externalTeam', async () => {
+  it('should render each externalTeam', () => {
     const {organization, routerContext} = initializeOrg();
 
     MockApiClient.addMockResponse({

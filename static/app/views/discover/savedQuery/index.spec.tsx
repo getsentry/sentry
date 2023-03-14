@@ -89,13 +89,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mockUtils.mockClear();
     });
 
-    it('renders disabled buttons when disabled prop is used', async () => {
+    it('renders disabled buttons when disabled prop is used', () => {
       mount(location, organization, router, errorsView, undefined, yAxis, true);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeDisabled();
     });
 
-    it('renders the correct set of buttons', async () => {
+    it('renders the correct set of buttons', () => {
       mount(location, organization, router, errorsView, undefined, yAxis);
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
     });
 
-    it('renders the correct set of buttons with the homepage query feature', async () => {
+    it('renders the correct set of buttons with the homepage query feature', () => {
       organization = TestStubs.Organization({
         features: [
           'discover-query',
@@ -214,7 +214,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mockUtils.mockClear();
     });
 
-    it('renders the correct set of buttons', async () => {
+    it('renders the correct set of buttons', () => {
       mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
@@ -225,7 +225,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('treats undefined yAxis the same as count() when checking for changes', async () => {
+    it('treats undefined yAxis the same as count() when checking for changes', () => {
       mount(
         location,
         organization,
@@ -243,7 +243,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
       expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
     });
 
-    it('converts string yAxis values to array when checking for changes', async () => {
+    it('converts string yAxis values to array when checking for changes', () => {
       mount(
         location,
         organization,
@@ -277,7 +277,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
   describe('modifying a saved query', () => {
     let mockUtils;
 
-    it('renders the correct set of buttons', async () => {
+    it('renders the correct set of buttons', () => {
       mount(
         location,
         organization,
@@ -373,7 +373,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
     });
   });
   describe('create alert from discover', () => {
-    it('renders create alert button when metrics alerts is enabled', async () => {
+    it('renders create alert button when metrics alerts is enabled', () => {
       const metricAlertOrg = {
         ...organization,
         features: ['incidents'],
@@ -382,7 +382,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       expect(screen.getByRole('button', {name: /create alert/i})).toBeInTheDocument();
     });
-    it('does not render create alert button without metric alerts', async () => {
+    it('does not render create alert button without metric alerts', () => {
       mount(location, organization, router, errorsViewModified, savedQuery, yAxis);
 
       expect(

@@ -36,7 +36,7 @@ describe('ProjectReleaseTracking', function () {
     });
   });
 
-  it('renders with token', async function () {
+  it('renders with token', function () {
     render(
       <ProjectReleaseTracking
         organization={org}
@@ -89,7 +89,7 @@ describe('ProjectReleaseTracking', function () {
     );
   });
 
-  it('fetches new plugins when project changes', async function () {
+  it('fetches new plugins when project changes', function () {
     const {rerender} = render(
       <ProjectReleaseTrackingContainer
         organization={org}

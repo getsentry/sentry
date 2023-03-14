@@ -23,7 +23,7 @@ describe('SubscriptionBox', () => {
     );
   }
 
-  it('renders resource checkbox', async () => {
+  it('renders resource checkbox', () => {
     const {container} = renderComponent();
     expect(container).toSnapshot();
   });
@@ -60,7 +60,7 @@ describe('SubscriptionBox', () => {
       ).toBeInTheDocument();
     });
 
-    it('checkbox visible with integrations-event-hooks flag', async () => {
+    it('checkbox visible with integrations-event-hooks flag', () => {
       org = TestStubs.Organization({features: ['integrations-event-hooks']});
       renderComponent({resource: 'error', organization: org});
 

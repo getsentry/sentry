@@ -30,7 +30,7 @@ describe('Tooltip', function () {
     jest.clearAllMocks();
   });
 
-  it('renders', async function () {
+  it('renders', function () {
     const {container} = render(
       <Tooltip delay={0} title="test">
         <span>My Button</span>

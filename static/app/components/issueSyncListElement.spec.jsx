@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import IssueSyncListElement from 'sentry/components/issueSyncListElement';
 
 describe('IssueSyncListElement', function () {
-  it('renders', async function () {
+  it('renders', function () {
     const wrapper = render(<IssueSyncListElement integrationType="github" />);
     expect(wrapper.container).toSnapshot();
   });

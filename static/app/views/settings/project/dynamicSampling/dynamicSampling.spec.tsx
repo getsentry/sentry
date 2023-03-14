@@ -29,7 +29,7 @@ function renderMockRequests(
 }
 
 describe('Dynamic Sampling', function () {
-  it('renders default ui', async function () {
+  it('renders default ui', function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [

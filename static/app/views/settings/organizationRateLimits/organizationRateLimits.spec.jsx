@@ -20,7 +20,7 @@ describe('Organization Rate Limits', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with initialData', async function () {
+  it('renders with initialData', function () {
     renderComponent();
 
     // XXX: Slider input values are associated to their step value
@@ -29,7 +29,7 @@ describe('Organization Rate Limits', function () {
     expect(screen.getByRole('slider', {name: 'Per-Project Limit'})).toHaveValue('75');
   });
 
-  it('renders with maxRate and maxRateInterval set', async function () {
+  it('renders with maxRate and maxRateInterval set', function () {
     const org = {
       ...organization,
       quota: {

@@ -79,7 +79,7 @@ describe('ProjectMapperField', () => {
     expect(defaultProps.onChange).toHaveBeenCalledWith([[24, 1]], []);
   });
 
-  it('allows a single Sentry project to map to multiple items but not the value', async () => {
+  it('allows a single Sentry project to map to multiple items but not the value', () => {
     render(<RenderField {...defaultProps} value={[[24, 1]]} />);
 
     // can find the same project again

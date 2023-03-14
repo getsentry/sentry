@@ -7,7 +7,7 @@ describe('Login', function () {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders a loading indicator', async function () {
+  it('renders a loading indicator', function () {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {},

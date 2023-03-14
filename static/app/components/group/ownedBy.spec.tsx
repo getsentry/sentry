@@ -8,7 +8,7 @@ import {buildTeamId, buildUserId} from 'sentry/utils';
 jest.mock('sentry/actionCreators/modal');
 
 describe('Group > OwnedBy', () => {
-  it('renders unowned', async () => {
+  it('renders unowned', () => {
     const group = TestStubs.Group();
     render(
       <OwnedBy
@@ -20,7 +20,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
-  it('renders team owner', async () => {
+  it('renders team owner', () => {
     const team = TestStubs.Team();
     const group = TestStubs.Group({
       owners: [
@@ -41,7 +41,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText(`#${team.slug}`)).toBeInTheDocument();
   });
 
-  it('renders member owner', async () => {
+  it('renders member owner', () => {
     const user = TestStubs.User();
     MemberListStore.loadInitialData([user]);
     const group = TestStubs.Group({
@@ -63,7 +63,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText(user.name)).toBeInTheDocument();
   });
 
-  it('does not render suspect commit', async () => {
+  it('does not render suspect commit', () => {
     const user = TestStubs.User();
     MemberListStore.loadInitialData([user]);
     const group = TestStubs.Group({

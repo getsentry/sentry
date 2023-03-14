@@ -3,14 +3,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import InactivePlugins from 'sentry/components/inactivePlugins';
 
 describe('InactivePlugins', function () {
-  it('renders null when no plugins', async function () {
+  it('renders null when no plugins', function () {
     const {container} = render(
       <InactivePlugins plugins={[]} onEnablePlugin={() => {}} />
     );
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('renders plugins list', async function () {
+  it('renders plugins list', function () {
     const {container} = render(
       <InactivePlugins onEnablePlugin={() => {}} plugins={TestStubs.Plugins()} />
     );

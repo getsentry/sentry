@@ -156,7 +156,7 @@ describe('Breadcrumbs', () => {
   });
 
   describe('render', function () {
-    it('should display the correct number of crumbs with no filter', async function () {
+    it('should display the correct number of crumbs with no filter', function () {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
@@ -181,7 +181,7 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should not crash if data contains a toString attribute', async function () {
+    it('should not crash if data contains a toString attribute', function () {
       // Regression test: A "toString" property in data should not falsely be
       // used to coerce breadcrumb data to string. This would cause a TypeError.
       const data = {nested: {toString: 'hello'}};
