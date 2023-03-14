@@ -193,6 +193,12 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string, asRawText: boolean) => {
     setSearchResults([]);
     setSearchString(query);
+
+    // Transactions with a space must be wrapped in quotes
+    if (query.includes(' ')) {
+      query = `"${query}"`;
+    }
+
     const fullQuery = asRawText ? query : `transaction:${query}`;
     onSearch(query ? fullQuery : '');
     closeDropdown();
