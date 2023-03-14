@@ -124,4 +124,41 @@ describe('OrganizationSettingsForm', function () {
       })
     );
   });
+
+  it('can enable codecov', function () {
+    putMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/`,
+      method: 'PUT',
+      body: {...organization, codecovAccess: true},
+    });
+
+    render(
+      <OrganizationSettingsForm
+        location={TestStubs.location()}
+        orgId={organization.slug}
+        access={new Set(['org:write'])}
+        initialData={TestStubs.Organization({codecovAccess: false})}
+        onSave={onSave}
+      />,
+      {
+        organization: {
+          ...organization,
+          features: ['codecov-stacktrace-integration', 'codecov-integration'],
+        },
+      }
+    );
+
+    userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/})
+    );
+
+    expect(putMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/',
+      expect.objectContaining({
+        data: {
+          codecovAccess: true,
+        },
+      })
+    );
+  });
 });
