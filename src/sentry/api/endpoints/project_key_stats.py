@@ -59,7 +59,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 interval=request.GET.get("resolution", "1d"),
             )
             results = massage_outcomes_result(
-                outcomes_query, [], run_outcomes_query_timeseries(outcomes_query)
+                outcomes_query,
+                [],
+                run_outcomes_query_timeseries(
+                    outcomes_query, tenant_ids={"organization_id": project.organization_id}
+                ),
             )
         except Exception:
             raise ParseError(detail="Invalid request data")
