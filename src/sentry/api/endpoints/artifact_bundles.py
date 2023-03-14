@@ -1,3 +1,4 @@
+from django.db import router
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -7,6 +8,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.utils.db import atomic_transaction
 
 
 @region_silo_endpoint
@@ -69,3 +71,39 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
             default_per_page=10,
             on_results=serialize_results,
         )
+
+    def delete(self, request: Request, project) -> Response:
+        """
+        Delete an Archive
+        ```````````````````````````````````````````````````
+
+        Delete all artifacts inside given archive.
+
+        :pparam string organization_slug: the slug of the organization the
+                                            archive belongs to.
+        :pparam string project_slug: the slug of the project to delete the
+                                        archive of.
+        :qparam string name: The name of the archive to delete.
+        :auth: required
+        """
+
+        bundle_id = request.GET.get("bundle_id")
+
+        if bundle_id:
+            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
+                artifact_bundle = ArtifactBundle.objects.get(
+                    organization_id=project.organization_id, bundle_id=bundle_id
+                )
+                if artifact_bundle is not None:
+                    # We want to delete all the connections to a project.
+                    project_artifact_bundles = ProjectArtifactBundle.objects.filter(
+                        artifact_bundle_id=artifact_bundle.id
+                    )
+                    project_artifact_bundles.delete()
+
+                    # We also delete the bundle itself.
+                    artifact_bundle.delete()
+
+                    return Response(status=204)
+
+        return Response(status=404)

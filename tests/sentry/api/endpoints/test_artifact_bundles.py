@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from sentry.models import ProjectArtifactBundle
+from sentry.models import ArtifactBundle, ProjectArtifactBundle
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -29,7 +29,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
@@ -51,8 +50,30 @@ class ArtifactBundlesEndpointTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
+
+    def test_artifact_bundles_delete(self):
+        project = self.create_project(name="foo")
+        artifact_bundle = self.create_artifact_bundle(self.organization)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.delete(url + f"?bundle_id={artifact_bundle.bundle_id}")
+
+        assert response.status_code == 204
+        assert not ArtifactBundle.objects.filter(id=artifact_bundle.id).exists()
+        assert not ProjectArtifactBundle.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
