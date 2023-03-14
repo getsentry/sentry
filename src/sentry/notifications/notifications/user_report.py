@@ -31,7 +31,7 @@ class UserReportNotification(ProjectNotification):
 
     def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
-        email_participants = data_by_provider.get_participants_by_providers(ExternalProviders.EMAIL)
+        email_participants = data_by_provider.get_participants_by_provider(ExternalProviders.EMAIL)
 
         result = ParticipantMap()
         for (actor, reason) in email_participants:

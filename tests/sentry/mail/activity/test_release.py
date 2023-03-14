@@ -90,7 +90,7 @@ class ReleaseTestCase(ActivityTestCase):
         # user5 committed with another email address and is still included.
 
         participants = (
-            email.get_participants_with_group_subscription_reason().get_participants_by_providers(
+            email.get_participants_with_group_subscription_reason().get_participants_by_provider(
                 ExternalProviders.EMAIL
             )
         )
@@ -149,7 +149,7 @@ class ReleaseTestCase(ActivityTestCase):
 
         # only user3 is included because they opted into all deploy emails
         participants = (
-            email.get_participants_with_group_subscription_reason().get_participants_by_providers(
+            email.get_participants_with_group_subscription_reason().get_participants_by_provider(
                 ExternalProviders.EMAIL
             )
         )
@@ -199,7 +199,7 @@ class ReleaseTestCase(ActivityTestCase):
         # user3 and user 6 are included because they oped into all deploy emails
         # (one on an org level, one as their default)
         participants = (
-            email.get_participants_with_group_subscription_reason().get_participants_by_providers(
+            email.get_participants_with_group_subscription_reason().get_participants_by_provider(
                 ExternalProviders.EMAIL
             )
         )

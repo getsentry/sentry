@@ -60,7 +60,7 @@ class ParticipantMap:
     def __init__(self) -> None:
         self._dict = defaultdict(dict)
 
-    def get_participants_by_providers(
+    def get_participants_by_provider(
         self, provider: ExternalProviders
     ) -> set[Tuple[RpcActor, int]]:
         return {(k, v) for k, v in self._dict.get(provider, {}).items()}
