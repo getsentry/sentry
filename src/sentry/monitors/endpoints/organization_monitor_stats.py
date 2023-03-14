@@ -13,9 +13,7 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 class OrganizationMonitorStatsEndpoint(MonitorEndpoint, StatsMixin):
     # TODO(dcramer): probably convert to tsdb
-    def get(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def get(self, request: Request, organization, project, monitor) -> Response:
         args = self._parse_args(request)
 
         stats = {}

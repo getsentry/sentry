@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.models import File
 
-from .base import MonitorCheckInEndpoint, ProjectMonitorPermission
+from .base import MonitorEndpoint, ProjectMonitorPermission
 
 
 class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
@@ -25,7 +25,7 @@ class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
 
 
 @region_silo_endpoint
-class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
+class OrganizationMonitorCheckInAttachmentEndpoint(MonitorEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
     permission_classes = (MonitorCheckInAttachmentPermission,)
 
@@ -40,7 +40,7 @@ class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
         response["Content-Disposition"] = f"attachment; filename={file.name}"
         return response
 
-    def get(self, request: Request, project, monitor, checkin) -> Response:
+    def get(self, request: Request, organization, project, monitor, checkin) -> Response:
         if checkin.attachment_id:
             return self.download(checkin.attachment_id)
         else:
