@@ -162,7 +162,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         assert len(result["teams"]) == 1
         assert len(result["projects"]) == 1
 
-    def test_disalbe_last_deploys_killswitch(self):
+    def test_disable_last_deploys_killswitch(self):
         self.team
         self.project
         self.release = self.create_release(self.project)
