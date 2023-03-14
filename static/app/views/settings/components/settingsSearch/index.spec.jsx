@@ -82,7 +82,7 @@ describe('SettingsSearch', function () {
       context: routerContext,
     });
 
-    await userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'bil');
 
     expect(orgsMock.mock.calls).toEqual([
       [
