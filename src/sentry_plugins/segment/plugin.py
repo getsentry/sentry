@@ -5,10 +5,9 @@ from sentry_plugins.base import CorePluginMixin
 from sentry_plugins.utils import get_secret_field_config
 
 DESCRIPTION = """
-Send Sentry events to Segment. This integration allows you to collect all your client-side data
-for Sentry automatically without the need to install the Sentry client library.
-Enable Sentry in your Segment settings to asynchronously load Raven.js onto your page without
-touching the code in your application.
+Send Sentry events to Segment.
+
+This integration allows you to collect all your client-side data for Sentry to send to Segment.
 
 Segment is a customer data platform (CDP) that helps you collect, clean, and control your customer data.
 """
