@@ -23,9 +23,9 @@ class FlaggedOrganizationEndpoint(OrganizationEndpoint):
             "Requires set 'feature_flags' property to restrict this endpoint."
         )
 
-    def convert_args(self, request: Request, organization_slug: str):
-        args, kwargs = super().convert_args(request, organization_slug)
-        organization: Organization = kwargs.get("organization")
+    def convert_args(self, request: Request, *args, **kwargs):
+        parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
+        organization: Organization = parsed_kwargs.get("organization")
         feature_gate = [
             features.has(feature, organization, actor=request.user)
             for feature in self.feature_flags
@@ -39,4 +39,4 @@ class FlaggedOrganizationEndpoint(OrganizationEndpoint):
         if not self.require_all_feature_flags and not any(feature_gate):
             raise ResourceDoesNotExist
 
-        return (args, kwargs)
+        return (parsed_args, parsed_kwargs)

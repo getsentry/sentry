@@ -29,7 +29,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
 
     integration_id = serializers.IntegerField(required=False)
-    projects = serializers.ListField(child=ProjectField(scope="project:read"))
+    projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
 
     service_type = serializers.CharField()
     target_type = serializers.CharField()
@@ -79,7 +79,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         fields = list(NotificationActionInputData.__annotations__.keys())
 
     def create(self, validated_data: NotificationActionInputData) -> NotificationAction:
-        projects = validated_data.pop("projects")
+        projects = validated_data.pop("projects", [])
         service_type = validated_data.pop("service_type")
         action = NotificationAction(
             type=service_type,
@@ -93,7 +93,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     def update(
         self, instance: NotificationAction, validated_data: NotificationActionInputData
     ) -> NotificationAction:
-        projects = validated_data.pop("projects")
+        projects = validated_data.pop("projects", [])
         service_type = validated_data.pop("service_type")
         for key, value in validated_data.items():
             setattr(instance, key, value)
