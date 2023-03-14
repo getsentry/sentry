@@ -11,11 +11,11 @@ logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+    name="sentry.tasks.auto_enable_codecov.schedule_organizations",
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def auto_enable_codecov(dry_run=False) -> None:
+def schedule_organizations(dry_run=False) -> None:
     """
     Queue tasks to enable codecov for each organization.
 
