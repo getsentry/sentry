@@ -2484,8 +2484,8 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                             fingerprint=[problem.fingerprint],
                             type=problem.type,
                             issue_title=problem.title,
-                            subtitle=event.transaction,
-                            # TODO need to set metadata.value="problem.desc"
+                            subtitle=problem.desc,
+                            # TODO need to send culprit=
                             evidence_data=problem.evidence_data,
                             evidence_display=problem.evidence_display,
                             detection_time=event.datetime,
