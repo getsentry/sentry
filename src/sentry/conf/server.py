@@ -881,7 +881,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
         "schedule": timedelta(hours=4),
         "options": {"expires": 3600},
     },
@@ -1035,8 +1035,6 @@ SENTRY_FEATURES = {
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
-    # Enables automatically deriving of code mappings as a dry run for early adopters
-    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
