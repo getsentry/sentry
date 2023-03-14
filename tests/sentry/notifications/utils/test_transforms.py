@@ -10,6 +10,8 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.notifications import NotificationsService
 from sentry.testutils.silo import control_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -38,6 +40,12 @@ class TransformTestCase(TestCase):
             ),
         ]
 
+        self.user_actor = RpcActor.from_orm_user(self.user)
+        self.rpc_notification_settings = [
+            NotificationsService.serialize_notification_setting(setting)
+            for setting in self.notification_settings
+        ]
+
 
 @control_silo_test
 class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
@@ -49,16 +57,16 @@ class TransformToNotificationSettingsByUserTestCase(TransformTestCase):
 
         assert (
             transform_to_notification_settings_by_recipient(
-                notification_settings=[], recipients=[self.user]
+                notification_settings=[], recipients=[self.user_actor]
             )
             == {}
         )
 
     def test_transform_to_notification_settings_by_recipient(self):
         assert transform_to_notification_settings_by_recipient(
-            notification_settings=self.notification_settings, recipients=[self.user]
+            notification_settings=self.rpc_notification_settings, recipients=[self.user_actor]
         ) == {
-            self.user: {
+            self.user_actor: {
                 NotificationScopeType.USER: {
                     ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS
                 },
@@ -75,7 +83,7 @@ class TransformToNotificationSettingsByScopeTestCase(TransformTestCase):
 
     def test_transform_to_notification_settings_by_scope(self):
         assert transform_to_notification_settings_by_scope(
-            notification_settings=self.notification_settings,
+            notification_settings=self.rpc_notification_settings,
         ) == {
             NotificationScopeType.USER: {
                 self.user.id: {ExternalProviders.SLACK: NotificationSettingOptionValues.ALWAYS},

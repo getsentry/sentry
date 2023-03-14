@@ -59,7 +59,8 @@ class NotificationsService(InterfaceWithLifecycle):
     ) -> List[RpcNotificationSetting]:
         pass
 
-    def _serialize_notification_settings(
+    @classmethod
+    def serialize_notification_setting(
         self, setting: "NotificationSetting"
     ) -> RpcNotificationSetting:
         return RpcNotificationSetting(

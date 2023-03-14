@@ -30,7 +30,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
         )
-        return [self._serialize_notification_settings(u) for u in settings]
+        return [self.serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
         self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
@@ -57,7 +57,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
             target__in=actor_ids,
         )
 
-        return [self._serialize_notification_settings(s) for s in notification_settings]
+        return [self.serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
@@ -69,7 +69,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         scope_type = get_scope_type(type)
         return [
-            self._serialize_notification_settings(s)
+            self.serialize_notification_setting(s)
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,
