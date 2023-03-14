@@ -211,7 +211,6 @@ from .endpoints.internal import (
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.notifications import (
-    NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
@@ -1319,11 +1318,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-invite-request-detail",
     ),
     # Notification Actions
-    url(
-        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
-        NotificationActionsAvailableEndpoint.as_view(),
-        name="sentry-api-0-organization-notification-available-actions",
-    ),
     url(
         r"^(?P<organization_slug>[^\/]+)/notifications/actions/$",
         NotificationActionsIndexEndpoint.as_view(),
