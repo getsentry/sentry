@@ -19,7 +19,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
-import {getTopOrgRole} from 'sentry/utils';
+import {getTopOrgRole} from 'sentry/utils/orgRole';
 import useTeams from 'sentry/utils/useTeams';
 import {
   hasOrgRoleOverwrite,
@@ -96,15 +96,19 @@ function TeamSelect({
   const slugsToFilter: string[] =
     selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
 
-  // determine if adding a team changes the minimum team role
+  // Determine if adding a team changes the minimum team-role
   // get teams with org roles, if any
   const orgRolesFromTeams = teams
     .filter(team => slugsToFilter.includes(team.slug) && team.orgRole !== null)
     .map(team => team.orgRole ?? '');
 
-  // sort them and to get the highest priority role
-  // highest prio role may change minimum team role
-  const topOrgRole = getTopOrgRole(orgRolesFromTeams, [selectedOrgRole], orgRoleList)?.id;
+  if (selectedOrgRole) {
+    orgRolesFromTeams.push(selectedOrgRole);
+  }
+
+  // Sort them and to get the highest priority role
+  // Highest prio role may change minimum team role
+  const topOrgRole = getTopOrgRole(orgRolesFromTeams, orgRoleList)?.id;
 
   const renderBody = () => {
     const numTeams = selectedTeams?.length || selectedTeamRoles?.length;

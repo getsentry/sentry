@@ -8,7 +8,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
-import {getTopOrgRole} from 'sentry/utils';
+import {getTopOrgRole} from 'sentry/utils/orgRole';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -74,14 +74,17 @@ const TeamRoleSelect = (props: {
     return null;
   }
 
-  // determine the team role, including if the current team has an org role
-  // and if adding the user to the team changes their minimum team role
+  // Determine the team-role, including if the current team has an org role
+  // and if adding the user to the current team changes their minimum team-role
   const {orgRolesFromTeams: orgRolesFromTeams} = member;
-  const topOrgRole = getTopOrgRole(
-    [member.orgRole],
-    [orgRolesFromTeams ? orgRolesFromTeams[0].role.id : undefined, orgRoleFromTeam],
-    orgRoleList
-  );
+  const memberOrgRoles = [member.orgRole];
+  if (orgRolesFromTeams) {
+    memberOrgRoles.push(orgRolesFromTeams[0].role.id);
+  }
+  if (orgRoleFromTeam) {
+    memberOrgRoles.push(orgRoleFromTeam);
+  }
+  const topOrgRole = getTopOrgRole(memberOrgRoles, orgRoleList);
 
   const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
