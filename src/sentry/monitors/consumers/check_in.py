@@ -62,7 +62,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
 
             monitor_environment = MonitorEnvironment.objects.get_or_create(
                 monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-            )
+            )[0]
 
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
