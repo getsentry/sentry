@@ -106,6 +106,11 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
 
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?sortBy=name")
+        assert response.status_code == 400
+        assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
+
     def test_delete_artifact_bundles(self):
         project = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
