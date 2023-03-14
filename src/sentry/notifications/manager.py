@@ -323,7 +323,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def get_notification_recipients(
         self, project: Project
-    ) -> Mapping[ExternalProviders, Iterable[RpcActor | Team | User]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
