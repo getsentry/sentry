@@ -648,7 +648,8 @@ def test_generate_rules_with_zero_base_sample_rate(get_blended_sample_rate, defa
 def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
     get_transactions_resampling_rates, get_blended_sample_rate, default_project, default_team
 ):
-    get_blended_sample_rate.return_value = 0.1
+    project_sample_rate = 0.1
+    get_blended_sample_rate.return_value = project_sample_rate
     get_transactions_resampling_rates.return_value = {
         "t1": 0.7,
     }, 0.037
@@ -687,7 +688,7 @@ def test_generate_rules_return_uniform_rules_and_low_volume_transactions_rules(
                 "op": "or",
             },
             "id": boost_low_transactions_id,
-            "samplingValue": {"type": "sampleRate", "value": 0.7},
+            "samplingValue": {"type": "factor", "value": 0.7 / project_sample_rate},
             "type": "transaction",
         },
         # effectively ignored uniform rule

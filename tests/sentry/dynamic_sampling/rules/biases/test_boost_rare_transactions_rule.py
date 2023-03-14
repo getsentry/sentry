@@ -47,7 +47,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
 
     expected = [
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.1},
+            "samplingValue": {"type": "factor", "value": 0.1 / rate},
             "type": "transaction",
             "condition": {
                 "op": "or",
@@ -63,7 +63,7 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates):
             "id": RESERVED_IDS[RuleType.BOOST_LOW_VOLUME_TRANSACTIONS],
         },
         {
-            "samplingValue": {"type": "sampleRate", "value": 0.2},
+            "samplingValue": {"type": "factor", "value": 0.2 / rate},
             "type": "transaction",
             "condition": {
                 "op": "or",

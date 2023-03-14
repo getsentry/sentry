@@ -34,11 +34,13 @@ class RareTransactionsRulesGenerator(BiasRulesGenerator):
 
         idx = 0
         for name, transaction_rate in transaction_map.items():
+            if sample_rate != 0:
+                transaction_rate /= sample_rate
             # add a rule for each rebalanced transaction
             ret_val.append(
                 {
                     "samplingValue": {
-                        "type": "sampleRate",
+                        "type": "factor",
                         "value": transaction_rate,
                     },
                     "type": "transaction",
