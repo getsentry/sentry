@@ -716,7 +716,14 @@ class JiraServerIntegration(IntegrationInstallation, IssueSyncMixin):
             project_id = jira_projects[0]["id"]
 
         client = self.get_client()
-        issue_type_choices = client.get_issue_types(project_id)
+        try:
+            issue_type_choices = client.get_issue_types(project_id)
+        except ApiError:
+            logger.info(
+                "jira_server.get_issues_types.api_error",
+                extra={"organization_id": self.organization_id, "jira_project": project_id},
+            )
+            raise IntegrationError("Failed to fetch issue types for the given project")
         issue_type_choices_formatted = [
             (choice["id"], choice["name"]) for choice in issue_type_choices["values"]
         ]
