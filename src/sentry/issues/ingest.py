@@ -163,7 +163,19 @@ def save_issue_from_occurrence(
         .select_related("group")
         .first()
     )
+
+    # This forces an early return to skip extra processing steps
+    # for performance issues because they are already created/updated in save_transaction
+    return_group_info_early = (
+        occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+        and options.get("performance.issues.send_to_issues_platform", False)
+        and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
+    )
+
     if not existing_grouphash:
+        if return_group_info_early:
+            return None
+
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
@@ -207,9 +219,12 @@ def save_issue_from_occurrence(
             return None
 
         is_new = False
-        # Note: This updates the message of the issue based on the event. Not sure what we want to
-        # store there yet, so we may need to revisit that.
-        is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
+        is_regression = False
+
+        if not return_group_info_early:
+            # Note: This updates the message of the issue based on the event. Not sure what we want to
+            # store there yet, so we may need to revisit that.
+            is_regression = _process_existing_aggregate(group, event, issue_kwargs, release)
         group_info = GroupInfo(group=group, is_new=is_new, is_regression=is_regression)
 
     return group_info
