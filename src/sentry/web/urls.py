@@ -753,6 +753,12 @@ urlpatterns += [
         DisabledMemberView.as_view(),
         name="sentry-customer-domain-organization-disabled-member",
     ),
+    # Newest performance issue
+    url(
+        r"^newest-performance-issue/$",
+        NewestPerformanceIssueView.as_view(),
+        name="sentry-customer-domain-organization-newest-performance-issue",
+    ),
     # Restore organization
     url(
         r"^restore/",

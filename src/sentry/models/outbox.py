@@ -4,11 +4,9 @@ import abc
 import contextlib
 import datetime
 import sys
-import time
 from enum import IntEnum
 from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
-import sentry_sdk
 from django.db import connections, models, router, transaction
 from django.db.models import Max
 from django.dispatch import Signal
@@ -25,7 +23,6 @@ from sentry.db.models import (
 )
 from sentry.silo import SiloMode
 from sentry.utils import metrics
-from sentry.utils.sdk import set_measurement
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
 
@@ -179,26 +176,24 @@ class OutboxBase(Model):
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
             _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
-
-            set_measurement(
+            tags = {"category": OutboxCategory(self.category).name}
+            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
-                "second",
+                tags=tags,
             )
 
     def process(self) -> bool:
-        with sentry_sdk.start_transaction(op="outbox.process", name="outboxprocess") as transaction:
-            transaction.set_tag("category_name", OutboxCategory(self.category).name)
-            transaction.set_data("shard", self.key_from(self.coalesced_columns))
-            with self.process_coalesced() as coalesced:
-                if coalesced is not None:
-                    start = time.monotonic()
-                    try:
-                        coalesced.send_signal()
-                    finally:
-                        set_measurement("send_signal_duration", time.monotonic() - start, "second")
-                    return True
-            return False
+        with self.process_coalesced() as coalesced:
+            if coalesced is not None:
+                with metrics.timer(
+                    "outbox.send_signal.duration",
+                    tags={"category": OutboxCategory(coalesced.category).name},
+                ):
+                    coalesced.send_signal()
+                return True
+        return False
 
     @abc.abstractmethod
     def send_signal(self):
