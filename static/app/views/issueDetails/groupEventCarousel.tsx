@@ -32,6 +32,7 @@ import {
   getAnalyticsDataForGroup,
   getShortEventId,
 } from 'sentry/utils/events';
+import getDynamicText from 'sentry/utils/getDynamicText';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -132,11 +133,16 @@ export const GroupEventCarousel = ({
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
                 (
-                <TimeSince
-                  date={event.dateCreated ?? event.dateReceived}
-                  tooltipBody={<EventCreatedTooltip event={event} />}
-                  unitStyle="short"
-                />
+                {getDynamicText({
+                  fixed: '1d ago',
+                  value: (
+                    <TimeSince
+                      date={event.dateCreated ?? event.dateReceived}
+                      tooltipBody={<EventCreatedTooltip event={event} />}
+                      unitStyle="short"
+                    />
+                  ),
+                })}
                 {isOverLatencyThreshold && (
                   <Tooltip title="High latency">
                     <StyledIconWarning size="xs" color="warningText" />
