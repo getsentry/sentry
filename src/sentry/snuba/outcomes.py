@@ -282,7 +282,7 @@ class QueryDefinition:
         query: QueryDict,
         params: Mapping[Any, Any],
         allow_minute_resolution: Optional[bool] = True,
-    ):
+    ) -> QueryDefinition:
         """
         Create a QueryDefinition from a Django request QueryDict
 
