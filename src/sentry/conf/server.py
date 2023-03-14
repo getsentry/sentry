@@ -1238,7 +1238,7 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
-    # Enable consecutive db performance issue type
+    # Enable consecutive http performance issue type
     "organizations:performance-consecutive-http-issue": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
