@@ -4,15 +4,16 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Optional, Sequence, Union, cast
+from typing import List, Sequence, cast
 
-from sentry.models import NotificationSetting, Team
+from sentry.models import NotificationSetting
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
@@ -26,20 +27,6 @@ class RpcNotificationSetting(RpcModel):
     provider: ExternalProviders = ExternalProviders.EMAIL
     type: NotificationSettingTypes = NotificationSettingTypes.WORKFLOW
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
-
-
-class RpcRecipient(RpcModel):
-    id: int
-    actor_id: Optional[int]
-    source_class: str
-
-    @classmethod
-    def of(cls, obj: Union[RpcUser, Team]) -> "RpcRecipient":
-        if isinstance(obj, RpcUser):
-            return cls(id=obj.id, actor_id=obj.actor_id, source_class="User")
-        if isinstance(obj, Team):
-            return cls(id=obj.id, actor_id=obj.actor_id, source_class="Team")
-        raise TypeError
 
 
 class NotificationsService(RpcService):
@@ -61,7 +48,7 @@ class NotificationsService(RpcService):
         *,
         type: NotificationSettingTypes,
         parent_id: int,
-        recipients: Sequence[RpcRecipient],
+        recipients: Sequence[RpcActor],
     ) -> List[RpcNotificationSetting]:
         pass
 
