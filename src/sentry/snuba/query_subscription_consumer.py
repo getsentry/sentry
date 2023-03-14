@@ -236,9 +236,10 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 assert isinstance(value, BrokerValue)
                 offset = value.offset
                 partition = value.partition.index
+                message_value = value.payload.value
                 try:
                     handle_message(
-                        message.payload.value,
+                        message_value,
                         offset,
                         partition,
                         self.topic,
@@ -252,7 +253,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                         extra={
                             "offset": offset,
                             "partition": partition,
-                            "value": message.value,
+                            "value": message_value,
                         },
                     )
 
@@ -273,8 +274,6 @@ def get_query_subscription_consumer(
             cluster_options,
             group_id=group_id,
             strict_offset_reset=strict_offset_reset,
-            initial_offset_reset=initial_offset_reset,
-            force_offset_reset=force_offset_reset,
         )
     )
     metrics_wrapper = MetricsWrapper(metrics.backend, name="query_subscription_consumer")
