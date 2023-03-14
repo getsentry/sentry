@@ -3,7 +3,7 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestOrgSlugMigration(TestMigrations):
-    migrate_from = "0380_backfill_monitor_env_install"
+    migrate_from = "0380_backfill_monitor_env_initial"
     migrate_to = "0381_fix_org_slug_casing"
 
     def setup_before_migration(self, apps):
