@@ -15,6 +15,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
     MonitorType,
+    ScheduleType,
 )
 from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
@@ -228,9 +229,25 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             assert resp.status_code == 404, resp.content
 
+    def test_with_token_auth_invalid_org(self):
+        org2 = self.create_organization()
+        project2 = self.create_project(organization=org2)
+        monitor = Monitor.objects.create(
+            organization_id=org2.id,
+            project_id=project2.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        path = reverse(self.endpoint, args=[monitor.slug])
+        resp = self.client.post(path, **self.token_auth_headers)
+
+        assert resp.status_code == 403
+
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        path = f"/api/0/organizations/asdf/monitors/{monitor.guid}/checkins/"
+        path = reverse(self.endpoint_with_org, args=["asdf", monitor.slug])
 
         resp = self.client.post(path, **self.token_auth_headers)
 

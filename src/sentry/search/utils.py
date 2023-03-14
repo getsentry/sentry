@@ -763,3 +763,10 @@ DEVICE_CLASS = {
     "medium": {"2"},
     "high": {"3"},
 }
+
+
+def map_device_class_level(device_class: str) -> Optional[str]:
+    for key, value in DEVICE_CLASS.items():
+        if device_class in value:
+            return key
+    return None

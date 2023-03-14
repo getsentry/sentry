@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0379_create_notificationaction_model"),
+        ("sentry", "0381_fix_org_slug_casing"),
     ]
 
     operations = [
