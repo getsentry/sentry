@@ -295,7 +295,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        raw_recipients: Iterable[RpcActor | Team | RpcUser],
+        recipients: Iterable[RpcActor | Team | RpcUser],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
     ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
@@ -303,17 +303,17 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
-        recipients = [RpcActor.from_object(r) for r in raw_recipients]
+        recipient_actors = [RpcActor.from_object(r) for r in recipients]
 
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=type, parent_id=parent.id, recipients=recipients
+            type=type, parent_id=parent.id, recipients=recipient_actors
         )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, recipients
+            notification_settings, recipient_actors
         )
 
         mapping = defaultdict(set)
-        for recipient in recipients:
+        for recipient in recipient_actors:
             providers = where_should_recipient_be_notified(
                 notification_settings_by_recipient, recipient, type
             )
