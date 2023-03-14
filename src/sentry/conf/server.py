@@ -1131,8 +1131,12 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Normalize transaction names during ingestion.
+    # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": False,
+    # Mark URL transactions scrubbed by regex patterns as "sanitized".
+    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
+    # Those are always marked as "sanitized".
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
     # Use a larger sample size & merge threshold for transaction clustering.
@@ -1291,10 +1295,10 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable a banner on the issue details page guiding the user to setup source maps
     "organizations:source-maps-cta": False,
+    # Enable a UI where users can see bundles and it's artefacts which only have debug ID's
+    "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by project
-    "organizations:ds-prioritise-by-project-bias": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
@@ -1320,8 +1324,6 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable org member role provisioning through scim
-    "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
@@ -2831,6 +2833,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
+    "sentry.monitors.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3112,6 +3115,13 @@ SINGLE_SERVER_SILO_MODE = False
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
 
+SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
+
 # Temporary allowlist for specially configured organizations to use the direct-storage
 # driver.
 SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
+
+SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
+    "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
+    "options": {"cluster": "default"},
+}

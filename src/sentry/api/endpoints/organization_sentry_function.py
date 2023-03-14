@@ -37,7 +37,7 @@ class SentryFunctionSerializer(CamelSnakeSerializer):
 
 @region_silo_endpoint
 class OrganizationSentryFunctionEndpoint(OrganizationEndpoint):
-    private = True
+
     # Creating a new sentry function
 
     def post(self, request, organization):

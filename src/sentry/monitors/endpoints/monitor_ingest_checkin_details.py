@@ -6,7 +6,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -18,49 +17,17 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorStatus
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
 
-from .base import MonitorCheckInEndpoint
+from .base import MonitorIngestEndpoint
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorCheckInDetailsEndpoint(MonitorCheckInEndpoint):
-    authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
-    public = {"GET", "PUT"}
-
-    @extend_schema(
-        operation_id="Retrieve a check-in",
-        parameters=[
-            GLOBAL_PARAMS.ORG_SLUG,
-            MONITOR_PARAMS.MONITOR_ID,
-            MONITOR_PARAMS.CHECKIN_ID,
-        ],
-        request=None,
-        responses={
-            201: inline_sentry_response_serializer(
-                "MonitorCheckIn", MonitorCheckInSerializerResponse
-            ),
-            401: RESPONSE_UNAUTHORIZED,
-            403: RESPONSE_FORBIDDEN,
-            404: RESPONSE_NOTFOUND,
-        },
-    )
-    def get(self, request: Request, project, monitor, checkin) -> Response:
-        """
-        Retrieves details for a check-in.
-
-        You may use `latest` for the `checkin_id` parameter in order to retrieve
-        the most recent (by creation date) check-in which is still mutable (not marked as finished).
-        """
-        # we don't allow read permission with DSNs
-        if isinstance(request.auth, ProjectKey):
-            return self.respond(status=401)
-
-        return self.respond(serialize(checkin, request.user))
+class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
+    public = {"PUT"}
 
     @extend_schema(
         operation_id="Update a check-in",
