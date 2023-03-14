@@ -190,4 +190,28 @@ describe('SearchBar', () => {
     userEvent.click(screen.getByTestId('some-div'));
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
+
+  it('wraps queries with quotes if they contain a space', async () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [{transaction: 'GET /my-endpoint'}],
+      },
+    });
+
+    render(<SearchBar {...testProps} onSearch={onSearch} />);
+
+    userEvent.type(screen.getByRole('textbox'), 'GET /my-endpoint');
+    expect(screen.getByRole('textbox')).toHaveValue('GET /my-endpoint');
+
+    act(jest.runAllTimers);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{Enter}');
+
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith('"GET /my-endpoint"');
+  });
 });
