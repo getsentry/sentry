@@ -101,7 +101,7 @@ export const GroupEventCarousel = ({
         />
         <EventLabelContainer>
           <div>
-            <strong>Event ID:</strong>{' '}
+            <EventIdLabel>Event ID:</EventIdLabel>{' '}
             <Tooltip title={event.id}>
               <Clipboard value={event.id}>
                 <EventId>
@@ -246,8 +246,20 @@ const EventLabelContainer = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
+const EventIdLabel = styled('span')`
+  font-weight: bold;
+
+  @media (max-width: 600px) {
+    display: none;
+  }
+`;
+
 const EventTimeLabel = styled('span')`
   color: ${p => p.theme.subText};
+
+  @media (max-width: 500px) {
+    display: none;
+  }
 `;
 
 const StyledIconWarning = styled(IconWarning)`

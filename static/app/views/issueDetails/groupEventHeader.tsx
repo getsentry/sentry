@@ -23,7 +23,7 @@ const GroupEventHeader = ({event, group, project}: GroupEventHeaderProps) => {
   const organization = useOrganization();
 
   return (
-    <Wrapper>
+    <DataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
       <QuickTrace
         event={event}
@@ -35,15 +35,9 @@ const GroupEventHeader = ({event, group, project}: GroupEventHeaderProps) => {
         project={project}
         organization={organization}
       />
-    </Wrapper>
+    </DataSection>
   );
 };
-
-const Wrapper = styled(DataSection)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
-`;
 
 const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
   margin: ${space(0.5)} 0;
