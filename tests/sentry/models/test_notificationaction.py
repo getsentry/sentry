@@ -7,8 +7,10 @@ from django.forms import ValidationError
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.notificationaction import logger as NotificationActionLogger
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 
 
+@region_silo_test(stable=True)
 @patch.dict(NotificationAction._handlers, defaultdict(dict))
 class NotificationActionTest(TestCase):
     def setUp(self):

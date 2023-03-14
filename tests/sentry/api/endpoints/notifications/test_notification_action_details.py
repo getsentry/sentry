@@ -8,7 +8,7 @@ from sentry.testutils.silo import region_silo_test
 NOTFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 
 
-@region_silo_test(stable=False)
+@region_silo_test(stable=True)
 class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
@@ -23,6 +23,13 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.notif_action = self.create_notification_action(
             organization=self.organization, projects=self.projects
         )
+        self.base_data = {
+            "serviceType": "slack",
+            "triggerType": "audit-log",
+            "targetType": "specific",
+            "targetDisplay": "@pyke",
+            "targetIdentifier": "555",
+        }
         self.login_as(user=self.user)
 
     def test_requires_feature(self):
@@ -42,11 +49,18 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             method="DELETE",
         )
 
-    def test_get_missing_action(self):
+    def test_get_invalid_action(self):
         with self.feature(NOTFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug, -1, status_code=status.HTTP_404_NOT_FOUND
             )
+            action = self.create_notification_action(organization=self.other_organization)
+            self.get_error_response(
+                self.organization.slug,
+                action.id,
+                status_code=status.HTTP_404_NOT_FOUND,
+            )
+            assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_get_simple(self):
         with self.feature(NOTFICATION_ACTION_FEATURE):
@@ -65,13 +79,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             )
 
     def test_put_missing_fields(self):
-        required_fields = [
-            "serviceType",
-            "triggerType",
-            "targetType",
-            "targetIdentifier",
-            "targetDisplay",
-        ]
+        required_fields = self.base_data.keys()
         with self.feature(NOTFICATION_ACTION_FEATURE):
             response = self.get_error_response(
                 self.organization.slug,
@@ -90,13 +98,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         }
         with self.feature(NOTFICATION_ACTION_FEATURE):
             for type_key, invalid_value in invalid_types.items():
-                data = {
-                    "serviceType": "slack",
-                    "triggerType": "audit-log",
-                    "targetType": "specific",
-                    "targetDisplay": "@pyke",
-                    "targetIdentifier": "555",
-                }
+                data = {**self.base_data}
                 data[type_key] = invalid_value
                 response = self.get_error_response(
                     self.organization.slug,
@@ -108,13 +110,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 assert type_key in response.data
 
     def test_put_invalid_integration(self):
-        data = {
-            "serviceType": "slack",
-            "triggerType": "audit-log",
-            "targetType": "specific",
-            "targetDisplay": "@lux",
-            "targetIdentifier": "99",
-        }
+        data = {**self.base_data}
         with self.feature(NOTFICATION_ACTION_FEATURE):
             # Unknown integration
             data["integrationId"] = -1
@@ -142,13 +138,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             assert "integrationId" in response.data
 
     def test_put_invalid_projects(self):
-        data = {
-            "serviceType": "slack",
-            "triggerType": "audit-log",
-            "targetType": "specific",
-            "targetDisplay": "@garen",
-            "targetIdentifier": "86",
-        }
+        data = {**self.base_data}
         with self.feature(NOTFICATION_ACTION_FEATURE):
             # Unknown project
             data["projects"] = ["piltover"]
@@ -173,13 +163,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             assert "projects" in response.data
 
     def test_put_simple(self):
-        data = {
-            "serviceType": "slack",
-            "triggerType": "audit-log",
-            "targetType": "specific",
-            "targetDisplay": "@illaoi",
-            "targetIdentifier": "420",
-        }
+        data = {**self.base_data}
         with self.feature(NOTFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug,
@@ -198,7 +182,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 action_id=self.notif_action.id
             ).exists()
 
-    def test_delete_missing_action(self):
+    def test_delete_invalid_action(self):
         with self.feature(NOTFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug,
@@ -206,6 +190,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 status_code=status.HTTP_404_NOT_FOUND,
                 method="DELETE",
             )
+            action = self.create_notification_action(organization=self.other_organization)
+            self.get_error_response(
+                self.organization.slug,
+                action.id,
+                status_code=status.HTTP_404_NOT_FOUND,
+                method="DELETE",
+            )
+            assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_delete_simple(self):
         with self.feature(NOTFICATION_ACTION_FEATURE):
