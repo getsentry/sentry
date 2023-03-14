@@ -320,7 +320,7 @@ def run_outcomes_query_totals(
 
 
 def run_outcomes_query_timeseries(
-    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None, referrer="outcomes.timeseries"
 ) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
@@ -334,7 +334,7 @@ def run_outcomes_query_timeseries(
     request = Request(
         dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
     )
-    result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
+    result_timeseries = raw_snql_query(request, referrer=referrer)
     return _format_rows(result_timeseries["data"], query)
 
 
