@@ -3,6 +3,7 @@ from unittest import TestCase
 from sentry.models import GroupSubscription, User
 from sentry.notifications.helpers import should_be_participating, where_should_be_participating
 from sentry.notifications.types import NotificationScopeType, NotificationSettingOptionValues
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 
@@ -52,7 +53,7 @@ class ShouldBeParticipatingTest(TestCase):
 
 class WhereShouldBeParticipatingTest(TestCase):
     def setUp(self) -> None:
-        self.user = User(id=1)
+        self.user = RpcActor.from_orm_user(User(id=1))
 
     def test_where_should_be_participating(self):
         subscription = GroupSubscription(is_active=True)
