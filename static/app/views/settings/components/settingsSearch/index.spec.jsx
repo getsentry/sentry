@@ -71,7 +71,7 @@ describe('SettingsSearch', function () {
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
   });
 
-  it('can focus when hotkey is pressed', async function () {
+  it('can focus when hotkey is pressed', function () {
     render(<SettingsSearch />);
     fireEvent.keyDown(document.body, {key: 'Slash', code: 'Slash', keyCode: 191});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
