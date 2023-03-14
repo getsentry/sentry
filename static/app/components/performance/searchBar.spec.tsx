@@ -1,12 +1,6 @@
 import {Fragment} from 'react';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
@@ -160,15 +154,10 @@ describe('SearchBar', () => {
 
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'GET /my-endpoint');
-    expect(screen.getByRole('textbox')).toHaveValue('GET /my-endpoint');
-
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.keyboard('{Down}');
-    userEvent.keyboard('{Enter}');
+    await userEvent.type(
+      screen.getByRole('textbox'),
+      'GET /my-endpoint{ArrowDown}{Enter}'
+    );
 
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');
