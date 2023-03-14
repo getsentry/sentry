@@ -145,7 +145,9 @@ describe('IssueListActions', function () {
 
         expect(modal).toSnapshot();
 
-        await userEvent.click(within(modal).getByRole('button', {name: 'Bulk resolve issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk resolve issues'})
+        );
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -202,7 +204,9 @@ describe('IssueListActions', function () {
 
         const modal = screen.getByRole('dialog');
 
-        await userEvent.clear(within(modal).getByRole('spinbutton', {name: 'Number of users'}));
+        await userEvent.clear(
+          within(modal).getByRole('spinbutton', {name: 'Number of users'})
+        );
         await userEvent.type(
           within(modal).getByRole('spinbutton', {name: 'Number of users'}),
           '300'
@@ -382,7 +386,9 @@ describe('IssueListActions', function () {
           within(modal).getByText(/deleting performance issues is not yet supported/i)
         ).toBeInTheDocument();
 
-        await userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk delete issues'})
+        );
 
         expect(bulkDeleteMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -419,7 +425,9 @@ describe('IssueListActions', function () {
 
         await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        await userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Merge Selected Issues'})
+        );
 
         const modal = screen.getByRole('dialog');
 
@@ -430,7 +438,9 @@ describe('IssueListActions', function () {
         // Wait for ProjectStore to update before closing the modal
         await act(tick);
 
-        await userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk merge issues'})
+        );
 
         expect(bulkMergeMock).toHaveBeenCalledWith(
           expect.anything(),

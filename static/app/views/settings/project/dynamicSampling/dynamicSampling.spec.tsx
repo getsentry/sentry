@@ -163,7 +163,9 @@ describe('Dynamic Sampling', function () {
 
     render(<DynamicSampling project={project} />, {organization});
 
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize new releases'})
+    );
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,

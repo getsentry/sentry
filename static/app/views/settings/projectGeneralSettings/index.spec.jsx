@@ -271,7 +271,10 @@ describe('projectGeneralSettings', function () {
       {context: routerContext}
     );
 
-    await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Project');
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Name'}),
+      'New Project'
+    );
 
     // Slug does not save on blur
     expect(putMock).not.toHaveBeenCalled();

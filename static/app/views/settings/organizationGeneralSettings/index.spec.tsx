@@ -208,7 +208,9 @@ describe('OrganizationGeneralSettings', function () {
     ).toBeInTheDocument();
     expect(within(modal).getByText('project')).toBeInTheDocument();
 
-    await userEvent.click(within(modal).getByRole('button', {name: /remove organization/i}));
+    await userEvent.click(
+      within(modal).getByRole('button', {name: /remove organization/i})
+    );
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(

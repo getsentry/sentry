@@ -32,7 +32,10 @@ describe('PasswordForm', function () {
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Current Password'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'test');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'test');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'test'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
   });
@@ -41,7 +44,10 @@ describe('PasswordForm', function () {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'test');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'nottest'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).not.toHaveBeenCalled();
   });
@@ -50,7 +56,10 @@ describe('PasswordForm', function () {
     render(<PasswordForm />);
     await userEvent.type(screen.getByRole('textbox', {name: 'Current Password'}), 'test');
     await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'nottest');
-    await userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'nottest'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Change password'}));
     expect(putMock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -82,7 +91,10 @@ describe('PasswordForm', function () {
     expect(screen.getByText('Passwords do not match')).toBeInTheDocument();
 
     await userEvent.clear(screen.getByRole('textbox', {name: 'Verify New Password'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Verify New Password'}), 'nottest');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Verify New Password'}),
+      'nottest'
+    );
 
     expect(screen.queryByText('Passwords do not match')).not.toBeInTheDocument();
   });

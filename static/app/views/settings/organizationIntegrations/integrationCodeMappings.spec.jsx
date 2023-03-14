@@ -112,8 +112,14 @@ describe('IntegrationCodeMappings', function () {
     await selectEvent.select(screen.getByText('Choose Sentry project'), projects[1].slug);
     await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
-    await userEvent.type(screen.getByRole('textbox', {name: 'Source Code Root'}), sourceRoot);
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Stack Trace Root'}),
+      stackRoot
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Source Code Root'}),
+      sourceRoot
+    );
     await userEvent.clear(screen.getByRole('textbox', {name: 'Branch'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Branch'}), defaultBranch);
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
@@ -157,7 +163,10 @@ describe('IntegrationCodeMappings', function () {
 
     await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
     await userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
-    await userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Stack Trace Root'}),
+      stackRoot
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitForModalToHide();

@@ -59,7 +59,9 @@ describe('ProjectDetail > ProjectCharts', () => {
   it('renders ANR options', async () => {
     renderProjectCharts(['anr-rate'], 'android');
 
-    await userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.getByText('Foreground ANR Rate')).toBeInTheDocument();
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
@@ -68,7 +70,9 @@ describe('ProjectDetail > ProjectCharts', () => {
   it('does not render ANR options for non-android platforms', async () => {
     renderProjectCharts(['anr-rate'], 'python');
 
-    await userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();

@@ -80,7 +80,10 @@ describe('RuleBuilder', function () {
     await userEvent.click(addButton);
     expect(handleAdd).not.toHaveBeenCalled();
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Rule pattern'}), 'some/path/*');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Rule pattern'}),
+      'some/path/*'
+    );
 
     expect(addButton).toBeDisabled();
 

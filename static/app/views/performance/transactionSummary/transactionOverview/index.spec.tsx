@@ -650,7 +650,10 @@ describe('Performance > TransactionSummary', function () {
       });
 
       // Fill out the search box, and submit it.
-      await userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+      await userEvent.type(
+        screen.getByLabelText('Search events'),
+        'user.email:uhoh*{enter}'
+      );
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);
@@ -1061,7 +1064,10 @@ describe('Performance > TransactionSummary', function () {
       });
 
       // Fill out the search box, and submit it.
-      await userEvent.type(screen.getByLabelText('Search events'), 'user.email:uhoh*{enter}');
+      await userEvent.type(
+        screen.getByLabelText('Search events'),
+        'user.email:uhoh*{enter}'
+      );
 
       // Check the navigation.
       expect(browserHistory.push).toHaveBeenCalledTimes(1);

@@ -107,7 +107,10 @@ describe('CreateSavedSearchModal', function () {
 
       render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
 
-      await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /name/i}),
+        'new search name'
+      );
 
       // Hovering over the visibility dropdown shows disabled reason
       await userEvent.hover(screen.getByText(/only me/i));

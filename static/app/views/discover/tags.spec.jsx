@@ -189,7 +189,9 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Expand color tag distribution'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Expand color tag distribution'})
+    );
     expect(
       screen.getByRole('link', {
         name: 'Other color tag values, 16% of all events. View other tags.',

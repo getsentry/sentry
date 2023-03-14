@@ -315,7 +315,10 @@ describe('AccountSecurity', function () {
       screen.getByRole('textbox', {name: 'Current Password'}),
       'oldpassword'
     );
-    await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'New Password'}),
+      'newpassword'
+    );
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Verify New Password'}),
       'newpassword'
@@ -349,7 +352,10 @@ describe('AccountSecurity', function () {
 
     renderComponent();
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'New Password'}), 'newpassword');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'New Password'}),
+      'newpassword'
+    );
     await userEvent.type(
       screen.getByRole('textbox', {name: 'Verify New Password'}),
       'newpassword'

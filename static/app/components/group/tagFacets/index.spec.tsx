@@ -184,7 +184,9 @@ describe('Tag Facets', function () {
       expect(
         screen.getByRole('button', {name: 'Collapse os tag distribution'})
       ).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Collapse os tag distribution'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Collapse os tag distribution'})
+      );
       expect(
         screen.getByRole('button', {name: 'Expand os tag distribution'})
       ).toBeInTheDocument();

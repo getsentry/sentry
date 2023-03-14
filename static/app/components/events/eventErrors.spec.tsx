@@ -45,7 +45,9 @@ describe('EventErrors', () => {
 
     render(<EventErrors {...defaultProps} event={eventWithErrors} />);
 
-    await userEvent.click(screen.getByText(/there were 2 problems processing this event/i));
+    await userEvent.click(
+      screen.getByText(/there were 2 problems processing this event/i)
+    );
     const errorItems = screen.getAllByTestId('event-error-item');
     expect(errorItems).toHaveLength(2);
     expect(within(errorItems[0]).getByText('logentry')).toBeInTheDocument();
@@ -77,7 +79,9 @@ describe('EventErrors', () => {
 
       render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
 
-      await userEvent.click(screen.getByText(/there was 1 problem processing this event/i));
+      await userEvent.click(
+        screen.getByText(/there was 1 problem processing this event/i)
+      );
 
       expect(mock).toHaveBeenCalled();
       await screen.findByText(

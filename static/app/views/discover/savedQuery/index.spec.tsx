@@ -144,7 +144,10 @@ describe('Discover > SaveQueryButtonGroup', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      await userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
+      await userEvent.type(
+        screen.getByPlaceholderText('Display name'),
+        'My New Query Name'
+      );
 
       // Click on Save in the Dropdown
       await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));
@@ -160,7 +163,10 @@ describe('Discover > SaveQueryButtonGroup', function () {
       await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
 
       // Fill in the Input
-      await userEvent.type(screen.getByPlaceholderText('Display name'), 'My New Query Name');
+      await userEvent.type(
+        screen.getByPlaceholderText('Display name'),
+        'My New Query Name'
+      );
 
       // Click on Save in the Dropdown
       await userEvent.click(screen.getByRole('button', {name: 'Save for Org'}));

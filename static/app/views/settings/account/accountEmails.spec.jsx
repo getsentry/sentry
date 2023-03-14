@@ -78,7 +78,9 @@ describe('AccountEmails', function () {
     render(<AccountEmails />);
     expect(mock).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getAllByRole('button', {name: 'Resend verification'})[0]);
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Resend verification'})[0]
+    );
 
     expect(mock).toHaveBeenCalledWith(
       `${ENDPOINT}confirm/`,

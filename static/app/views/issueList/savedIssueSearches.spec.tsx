@@ -262,7 +262,9 @@ describe('SavedIssueSearches', function () {
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-    await userEvent.click(screen.getByRole('button', {name: /create a new saved search/i}));
+    await userEvent.click(
+      screen.getByRole('button', {name: /create a new saved search/i})
+    );
 
     const modal = screen.getByRole('dialog');
 

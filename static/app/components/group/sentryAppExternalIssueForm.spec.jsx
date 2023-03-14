@@ -59,7 +59,10 @@ describe('SentryAppExternalIssueForm', () => {
       await userEvent.click(screen.getByText('one'));
 
       // Sets required fields
-      await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'ApiError: Broken');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: 'Title'}),
+        'ApiError: Broken'
+      );
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(externalIssueRequest).toHaveBeenCalledWith(
