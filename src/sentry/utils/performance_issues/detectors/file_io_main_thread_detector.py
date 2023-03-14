@@ -22,7 +22,7 @@ class FileIOMainThreadDetector(PerformanceDetector):
 
     __slots__ = ("spans_involved", "stored_problems")
 
-    IGNORED_EXTENSIONS = {".nib"}
+    IGNORED_EXTENSIONS = {".nib", ".plist"}
     type: DetectorType = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
 
