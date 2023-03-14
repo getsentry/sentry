@@ -7,7 +7,7 @@ import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
 import {Config} from 'sentry/types';
-import {addExtraMeasurements, LongTaskObserver} from 'sentry/utils/performanceForSentry';
+import {addExtraMeasurements} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const SPA_MODE_ALLOW_URLS = [
@@ -20,7 +20,7 @@ const SPA_MODE_ALLOW_URLS = [
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
+const shouldEnableBrowserProfiling = false; // window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
@@ -153,6 +153,4 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     Sentry.setTag('customerDomain.sentryUrl', customerDomain.sentryUrl);
     Sentry.setTag('customerDomain.subdomain', customerDomain.subdomain);
   }
-
-  LongTaskObserver.startPerformanceObserver();
 }
