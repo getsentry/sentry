@@ -182,15 +182,6 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
     font-weight: 300;
     color: ${p => p.theme.subText};
   }
-  ${p =>
-    !p.hasGroupingTreeUI
-      ? ''
-      : css`
-          > a:first-child {
-            display: inline-flex;
-            min-height: ${space(3)};
-          }
-        `}
 `;
 
 const LocationWrapper = styled('div')`
