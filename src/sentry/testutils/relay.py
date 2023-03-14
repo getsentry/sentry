@@ -71,20 +71,14 @@ class RelayStoreHelper:
         url = self.get_relay_security_url(self.project.id, self.projectkey.public_key)
         responses.add_passthru(url)
 
-        tenant_ids = {"organization_id": self.project.organization_id}
         event_ids = {
             event.event_id
-            for event in eventstore.get_events(
-                eventstore.Filter(project_ids=[self.project.id]),
-                tenant_ids=tenant_ids,
-            )
+            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id]))
         }
 
         def has_new_event():
             # Hack: security report endpoint does not return event ID
-            for event in eventstore.get_events(
-                eventstore.Filter(project_ids=[self.project.id]), tenant_ids=tenant_ids
-            ):
+            for event in eventstore.get_events(eventstore.Filter(project_ids=[self.project.id])):
                 if event.event_id not in event_ids:
                     return event
 
