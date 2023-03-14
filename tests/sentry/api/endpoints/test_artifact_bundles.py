@@ -10,13 +10,13 @@ class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
         project = self.create_project(name="foo")
 
-        artifact_bundle_1 = self.create_artifact_bundle(self.organization)
+        artifact_bundle_1 = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_1,
         )
-        artifact_bundle_2 = self.create_artifact_bundle(self.organization)
+        artifact_bundle_2 = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
@@ -57,7 +57,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
 
     def test_delete_artifact_bundles(self):
         project = self.create_project(name="foo")
-        artifact_bundle = self.create_artifact_bundle(self.organization)
+        artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,

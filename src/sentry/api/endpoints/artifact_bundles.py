@@ -91,20 +91,20 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
 
         if bundle_id:
             with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
-                artifact_bundle = ArtifactBundle.objects.get(
-                    organization_id=project.organization_id, bundle_id=bundle_id
-                )
-
-                if artifact_bundle is not None:
-                    # We want to delete all the connections to a project.
-                    project_artifact_bundles = ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle.id
+                try:
+                    artifact_bundle = ArtifactBundle.objects.get(
+                        organization_id=project.organization_id, bundle_id=bundle_id
                     )
-                    project_artifact_bundles.delete()
+                    # We want to delete all the connections to a project.
+                    ProjectArtifactBundle.objects.filter(
+                        artifact_bundle_id=artifact_bundle.id
+                    ).delete()
 
                     # We also delete the bundle itself.
                     artifact_bundle.delete()
 
                     return Response(status=204)
+                except ArtifactBundle.DoesNotExist:
+                    return Response(status=404)
 
         return Response(status=404)
