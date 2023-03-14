@@ -15,6 +15,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
+from sentry.models.groupowner import GroupOwner
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
 from sentry.types.activity import ActivityType
@@ -110,6 +111,8 @@ class GroupAssigneeManager(BaseManager):
         if affected > 0:
             Activity.objects.create_group_activity(group, ActivityType.UNASSIGNED, user=acting_user)
             record_group_history(group, GroupHistoryStatus.UNASSIGNED, actor=acting_user)
+
+            GroupOwner.invalidate_assignee_exists_cache(group.project.id)
 
             metrics.incr("group.assignee.change", instance="deassigned", skip_internal=True)
             # sync Sentry assignee to external issues
