@@ -97,6 +97,12 @@ from sentry.models import (
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -1405,3 +1411,30 @@ class Factories:
             owner = kwargs.pop("owner")
             kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_notification_action(
+        organization: Organization = None, projects: List[Project] = None, **kwargs
+    ):
+        if not organization:
+            organization = Factories.create_organization()
+
+        if not projects:
+            projects = []
+
+        action_kwargs = {
+            "organization": organization,
+            "type": ActionService.SENTRY_NOTIFICATION,
+            "target_type": ActionTarget.USER,
+            "target_identifier": 1,
+            "target_display": "Sentry User",
+            "trigger_type": ActionTrigger.AUDIT_LOG,
+            **kwargs,
+        }
+
+        action = NotificationAction.objects.create(**action_kwargs)
+        action.projects.add(*projects)
+        action.save()
+
+        return action

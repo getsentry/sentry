@@ -1343,6 +1343,7 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
         method_dispatch(
             PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
         ),
         name="sentry-api-0-organization-monitor-check-in-details",
     ),

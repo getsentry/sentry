@@ -175,6 +175,9 @@ def format_options(attrs: defaultdict(dict)):
         "sentry:performance_issue_creation_rate": options.get(
             "sentry:performance_issue_creation_rate"
         ),
+        "sentry:performance_issue_send_to_issues_platform": options.get(
+            "sentry:performance_issue_send_to_issues_platform"
+        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
         "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
@@ -881,6 +884,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"
+                ),
+                "performanceIssueCreationThroughPlatform": get_value_with_default(
+                    "sentry:performance_issue_send_to_issues_platform"
                 ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,

@@ -7,9 +7,11 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {Footer} from 'sentry/components/onboarding/footer';
+import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
+import {OnboardingStatus} from 'sentry/types';
 import * as useSessionStorage from 'sentry/utils/useSessionStorage';
-import {Footer, OnboardingStatus} from 'sentry/views/onboarding/components/footer';
 
 describe('Onboarding Footer', function () {
   it('waiting for error ui', async function () {
@@ -21,15 +23,18 @@ describe('Onboarding Footer', function () {
     });
 
     render(
-      <PersistedStoreProvider>
-        <Footer
-          projectSlug={project.slug}
-          location={router.location}
-          route={route}
-          router={router}
-          newOrg
-        />
-      </PersistedStoreProvider>,
+      <OnboardingContextProvider>
+        <PersistedStoreProvider>
+          <Footer
+            projectId={project.id}
+            projectSlug={project.slug}
+            location={router.location}
+            route={route}
+            router={router}
+            newOrg
+          />
+        </PersistedStoreProvider>
+      </OnboardingContextProvider>,
       {
         organization,
       }
@@ -63,23 +68,29 @@ describe('Onboarding Footer', function () {
     // Mock useSessionStorage hook to return the mocked session data
     jest.spyOn(useSessionStorage, 'useSessionStorage').mockImplementation(() => [
       {
-        status: OnboardingStatus.PROCESSING,
-        firstIssueId: undefined,
+        [project.id]: {
+          status: OnboardingStatus.PROCESSING,
+          firstIssueId: '1',
+          slug: project.slug,
+        },
       },
       jest.fn(),
       jest.fn(),
     ]);
 
     render(
-      <PersistedStoreProvider>
-        <Footer
-          projectSlug={project.slug}
-          location={router.location}
-          route={route}
-          router={router}
-          newOrg
-        />
-      </PersistedStoreProvider>,
+      <OnboardingContextProvider>
+        <PersistedStoreProvider>
+          <Footer
+            projectId={project.id}
+            projectSlug={project.slug}
+            location={router.location}
+            route={route}
+            router={router}
+            newOrg
+          />
+        </PersistedStoreProvider>
+      </OnboardingContextProvider>,
       {
         organization,
       }
@@ -107,23 +118,29 @@ describe('Onboarding Footer', function () {
     // Mock useSessionStorage hook to return the mocked session data
     jest.spyOn(useSessionStorage, 'useSessionStorage').mockImplementation(() => [
       {
-        status: OnboardingStatus.PROCESSED,
-        firstIssueId: '1',
+        [project.id]: {
+          status: OnboardingStatus.PROCESSED,
+          firstIssueId: '1',
+          slug: project.slug,
+        },
       },
       jest.fn(),
       jest.fn(),
     ]);
 
     render(
-      <PersistedStoreProvider>
-        <Footer
-          projectSlug={project.slug}
-          location={router.location}
-          route={route}
-          router={router}
-          newOrg
-        />
-      </PersistedStoreProvider>,
+      <OnboardingContextProvider>
+        <PersistedStoreProvider>
+          <Footer
+            projectId={project.id}
+            projectSlug={project.slug}
+            location={router.location}
+            route={route}
+            router={router}
+            newOrg
+          />
+        </PersistedStoreProvider>
+      </OnboardingContextProvider>,
       {
         organization,
       }

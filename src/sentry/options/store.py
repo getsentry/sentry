@@ -5,7 +5,7 @@ import dataclasses
 import logging
 from random import random
 from time import time
-from typing import Any
+from typing import Any, Optional
 
 from django.db.utils import OperationalError, ProgrammingError
 from django.utils import timezone
@@ -20,6 +20,14 @@ logger = logging.getLogger("sentry")
 
 
 @dataclasses.dataclass
+class GroupingInfo:
+    # Name of the group of options to include this option in
+    name: str
+    # Order of the option within the group
+    order: int
+
+
+@dataclasses.dataclass
 class Key:
     name: str
     default: Any
@@ -28,6 +36,7 @@ class Key:
     ttl: int
     grace: int
     cache_key: str
+    grouping_info: Optional[GroupingInfo]
 
 
 def _make_cache_value(key, value):
