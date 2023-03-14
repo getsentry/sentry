@@ -431,6 +431,7 @@ register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
 register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
 register("post_process.get-autoassign-owners", type=Sequence, default=[])
+register("api.organization.disable-last-deploys", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
