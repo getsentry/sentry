@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -671,8 +673,12 @@ def get_series(
     metrics_query: MetricsQuery,
     use_case_id: UseCaseKey,
     include_meta: bool = False,
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Get time series for the given query"""
+
+    organization_id = projects[0].organization_id if projects else None
+    tenant_ids = tenant_ids or {"organization_id": organization_id} if organization_id else None
 
     if metrics_query.interval is not None:
         interval = metrics_query.interval
@@ -767,7 +773,10 @@ def get_series(
             initial_snuba_query = next(iter(snuba_queries.values()))["totals"]
 
             request = Request(
-                dataset=Dataset.Metrics.value, app_id="default", query=initial_snuba_query
+                dataset=Dataset.Metrics.value,
+                app_id="default",
+                query=initial_snuba_query,
+                tenant_ids=tenant_ids,
             )
             initial_query_results = raw_snql_query(
                 request, use_cache=False, referrer="api.metrics.totals.initial_query"
@@ -806,7 +815,10 @@ def get_series(
                         snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
                     request = Request(
-                        dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                        dataset=Dataset.Metrics.value,
+                        app_id="default",
+                        query=snuba_query,
+                        tenant_ids=tenant_ids,
                     )
                     snuba_result = raw_snql_query(
                         request, use_cache=False, referrer=f"api.metrics.{key}.second_query"
@@ -835,7 +847,10 @@ def get_series(
                     snuba_query = _apply_group_limit_filters(snuba_query, group_limit_filters)
 
                 request = Request(
-                    dataset=Dataset.Metrics.value, app_id="default", query=snuba_query
+                    dataset=Dataset.Metrics.value,
+                    app_id="default",
+                    query=snuba_query,
+                    tenant_ids=tenant_ids,
                 )
                 snuba_result = raw_snql_query(
                     request,
