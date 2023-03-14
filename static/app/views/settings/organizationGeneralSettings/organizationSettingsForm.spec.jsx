@@ -20,7 +20,7 @@ describe('OrganizationSettingsForm', function () {
     onSave.mockReset();
   });
 
-  it.only('can change a form field', async function () {
+  it('can change a form field', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -125,7 +125,7 @@ describe('OrganizationSettingsForm', function () {
     );
   });
 
-  it('can enable codecov', function () {
+  it('can enable codecov', async function () {
     putMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
@@ -148,7 +148,7 @@ describe('OrganizationSettingsForm', function () {
       }
     );
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/})
     );
 
