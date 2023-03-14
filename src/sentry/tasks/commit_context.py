@@ -5,7 +5,7 @@ from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 from sentry_sdk import set_tag
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api.serializers.models.release import get_users_for_authors
 from sentry.integrations.utils.commit_context import find_commit_context_for_event
 from sentry.locks import locks
@@ -285,20 +285,19 @@ def process_commit_context(
     except UnableToAcquireLock:
         pass
     except MaxRetriesExceededError:
-        if features.has("organizations:commit-context-fallback", project.organization):
-            logger.info(
-                "process_commit_context.max_retries_exceeded",
-                extra={
-                    **basic_logging_details,
-                    "reason": "max_retries_exceeded",
-                },
-            )
+        logger.info(
+            "process_commit_context.max_retries_exceeded",
+            extra={
+                **basic_logging_details,
+                "reason": "max_retries_exceeded",
+            },
+        )
 
-            process_suspect_commits.delay(
-                event_id=event_id,
-                event_platform=event_platform,
-                event_frames=event_frames,
-                group_id=group_id,
-                project_id=project_id,
-                sdk_name=sdk_name,
-            )
+        process_suspect_commits.delay(
+            event_id=event_id,
+            event_platform=event_platform,
+            event_frames=event_frames,
+            group_id=group_id,
+            project_id=project_id,
+            sdk_name=sdk_name,
+        )

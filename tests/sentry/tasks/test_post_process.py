@@ -1100,7 +1100,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:commit-context-fallback")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value=github_blame_return_value,
