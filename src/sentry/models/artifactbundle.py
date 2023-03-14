@@ -57,14 +57,14 @@ class ArtifactBundle(Model):
     @classmethod
     def get_artifact_counts(cls, artifact_bundle_ids: List[int]) -> Dict[int, Tuple[UUID, int]]:
         artifact_bundles = ArtifactBundle.objects.filter(id__in=artifact_bundle_ids)
-        bundles = {}
+        bundles_with_counts = {}
         for artifact_bundle in artifact_bundles:
-            bundles[artifact_bundle.id] = (
+            bundles_with_counts[artifact_bundle.id] = (
                 artifact_bundle.bundle_id,
                 artifact_bundle.artifact_count,
             )
 
-        return bundles
+        return bundles_with_counts
 
 
 @region_silo_only_model
