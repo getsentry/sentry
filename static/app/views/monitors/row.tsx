@@ -29,7 +29,7 @@ function scheduleAsText(config: MonitorConfig) {
   // Crontab format uses cronstrue
   if (config.schedule_type === ScheduleType.CRONTAB) {
     const parsedSchedule = crontabAsText(config.schedule);
-    return parsedSchedule || t('Unknown schedule');
+    return parsedSchedule ?? t('Unknown schedule');
   }
 
   // Interval format is simpler
