@@ -57,7 +57,7 @@ FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
 class ParticipantMap:
     _dict: MutableMapping[ExternalProviders, MutableMapping[RpcActor, int]]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._dict = defaultdict(dict)
 
     def get_participants_by_providers(
