@@ -31,6 +31,7 @@ def consolidate_events(raw_events):
 class Creator(Mediator):
     application = Param("sentry.models.ApiApplication", required=False)
     actor = Param("sentry.db.models.BaseModel")
+    installation_id = Param(int, required=False)
     organization = Param("sentry.models.Organization")
     projects = Param(Iterable)
     events = Param(Iterable)
@@ -52,6 +53,7 @@ class Creator(Mediator):
             project_id=project_id,
             organization_id=self.organization.id,
             events=expand_events(self.events),
+            installation_id=self.installation_id,
             url=self.url,
         )
         for project in self.projects:
