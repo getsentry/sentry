@@ -55,6 +55,8 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
     ).transformRect(props.flamegraphView.configSpaceTransform);
   }, [props.flamegraphView, props.frame]);
 
+  const isCount = props.flamegraphRenderer.flamegraph.profile.unit === 'count';
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -67,6 +69,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {isCount && t('samples') + ' '}
         {formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
@@ -80,11 +83,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           </Fragment>
         )}
       </FlamegraphTooltipTimelineInfo>
-      {props.flamegraphRenderer.flamegraph.profile.unit === 'count' ? (
-        <FlamegraphTooltipTimelineInfo>
-          {props.frame.node.totalWeight} {t('samples')}
-        </FlamegraphTooltipTimelineInfo>
-      ) : (
+      {!isCount && (
         <FlamegraphTooltipTimelineInfo>
           {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
           {' \u2014 '}
