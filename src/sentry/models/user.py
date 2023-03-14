@@ -24,7 +24,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import LostPasswordHash
+from sentry.models import LostPasswordHash, UserAvatar
 from sentry.models.authenticator import Authenticator
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -181,6 +181,9 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
+    avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
+
     objects = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
@@ -262,10 +265,7 @@ class User(BaseModel, AbstractBaseUser):
         return first_name.capitalize()
 
     def get_avatar_type(self):
-        avatar = self.avatar.first()
-        if avatar:
-            return avatar.get_avatar_type_display()
-        return "letter_avatar"
+        return self.get_avatar_type_display()
 
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
