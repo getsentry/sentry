@@ -9,6 +9,7 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 def backfill_monitor_environments(apps, schema_editor):
+    Project = apps.get_model("sentry", "Project")
     Monitor = apps.get_model("sentry", "Monitor")
     Environment = apps.get_model("sentry", "Environment")
     EnvironmentProject = apps.get_model("sentry", "EnvironmentProject")
@@ -22,6 +23,12 @@ def backfill_monitor_environments(apps, schema_editor):
     )
 
     for monitor_id, organization_id, project_id, status, next_checkin, last_checkin in queryset:
+        # orphaned monitors with deleted projects may still exist
+        try:
+            Project.objects.get(id=project_id)
+        except Project.DoesNotExist:
+            continue
+
         environment = Environment.objects.get_or_create(
             name=DEFAULT_ENVIRONMENT_NAME, organization_id=organization_id
         )[0]
@@ -64,6 +71,7 @@ class Migration(CheckedMigration):
             migrations.RunPython.noop,
             hints={
                 "tables": [
+                    "sentry_project",
                     "sentry_monitor",
                     "sentry_monitorenvironment",
                     "sentry_environment",

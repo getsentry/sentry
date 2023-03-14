@@ -1,8 +1,9 @@
 from datetime import timedelta
 
+import pytest
 from django.utils import timezone
 
-from sentry.models import Environment, EnvironmentProject
+from sentry.models import Environment, EnvironmentProject, Project
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorType, ScheduleType
 from sentry.testutils.cases import TestMigrations
 
@@ -22,6 +23,20 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
+        self.deleted_project = self.create_project(
+            name="Delete", slug="delete", teams=[self.team], fire_project_created=True
+        )
+
+        self.orphaned_monitor = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.deleted_project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        self.deleted_project.delete()
+
     def test(self):
         environment = Environment.objects.get(name=DEFAULT_ENVIRONMENT_NAME)
 
@@ -39,3 +54,8 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
         assert monitor_environment.monitor == self.monitor
         assert monitor_environment.environment.name == "production"
         assert monitor_environment.status == self.monitor.status
+
+        with pytest.raises(Project.DoesNotExist):
+            Project.objects.get(id=self.orphaned_monitor.project_id)
+
+        assert len(MonitorEnvironment.objects.filter(monitor=self.orphaned_monitor)) == 0
