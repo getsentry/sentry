@@ -2486,22 +2486,27 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                             issue_title=problem.title,
                             subtitle=event.transaction,
                             # TODO use this to set metadata.value="problem.desc"
-                            evidence_data={"value": problem.desc},
+                            evidence_data={
+                                "value": problem.desc,
+                                "parent_span_ids": problem.parent_span_ids,
+                                "cause_span_ids": problem.cause_span_ids,
+                                "offender_span_ids": problem.offender_span_ids,
+                            },
                             evidence_display=[
                                 IssueEvidence(
-                                    name="parent_span_ids",
+                                    name="Transaction Name",
+                                    value=event.transaction,
+                                    important=True,
+                                ),
+                                IssueEvidence(
+                                    name="Parent Span",
                                     value=problem.parent_span_ids,
                                     important=True,
                                 ),
                                 IssueEvidence(
-                                    name="cause_span_ids",
-                                    value=problem.cause_span_ids,
-                                    important=False,
-                                ),
-                                IssueEvidence(
-                                    name="offender_span_ids",
+                                    name=f"Repeating Spans ({len(problem.offender_span_ids)})",
                                     value=problem.offender_span_ids,
-                                    important=False,
+                                    important=True,
                                 ),
                             ],
                             detection_time=event.datetime,
