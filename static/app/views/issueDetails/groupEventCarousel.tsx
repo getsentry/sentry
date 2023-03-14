@@ -27,7 +27,11 @@ import {defined, formatBytesBase2} from 'sentry/utils';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
-import {getShortEventId} from 'sentry/utils/events';
+import {
+  getAnalyticsDataForEvent,
+  getAnalyticsDataForGroup,
+  getShortEventId,
+} from 'sentry/utils/events';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
@@ -186,10 +190,16 @@ export const GroupEventCarousel = ({
           {
             key: 'copy-event-url',
             label: t('Copy Event Link'),
-            onAction: () =>
+            onAction: () => {
               copyToClipboard(
                 window.location.origin + normalizeUrl(`${baseEventsPath}${event.id}/`)
-              ),
+              );
+              trackAdvancedAnalyticsEvent('issue_details.copy_event_link_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
           },
           {
             key: 'json',
@@ -205,6 +215,13 @@ export const GroupEventCarousel = ({
               eventSlug: generateEventSlug({project: projectSlug, id: event.id}),
               orgSlug: organization.slug,
             }),
+            onAction: () => {
+              trackAdvancedAnalyticsEvent('issue_details.event_details_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
+            },
           },
           {
             key: 'full-trace',
