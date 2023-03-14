@@ -12,18 +12,17 @@ from sentry.monitors.models import (
     MonitorStatus,
     MonitorType,
 )
-from sentry.testutils import APITestCase
+from sentry.testutils import MonitorIngestTestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-class UpdateMonitorIngestCheckinTest(APITestCase):
+class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-monitor-ingest-check-in-details"
     endpoint_with_org = "sentry-api-0-organization-monitor-check-in-details"
 
     def setUp(self):
         super().setUp()
-        self.login_as(self.user)
         self.latest = lambda: None
         self.latest.guid = "latest"
 
@@ -75,7 +74,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func(monitor.guid, checkin.guid)
-            resp = self.client.put(path)
+            resp = self.client.put(path, **self.token_auth_headers)
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -94,7 +93,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func(monitor.guid, checkin.guid)
-            resp = self.client.put(path, data={"status": "ok"})
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -119,7 +118,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
         path = reverse(
             self.endpoint_with_org, args=[self.organization.slug, monitor.slug, checkin.guid]
         )
-        resp = self.client.put(path, data={"status": "ok"})
+        resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
         assert resp.status_code == 200, resp.content
 
         checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -137,7 +136,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func(monitor.guid, checkin.guid)
-            resp = self.client.put(path, data={"status": "error"})
+            resp = self.client.put(path, data={"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -180,7 +179,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func(monitor.guid, self.latest.guid)
-            resp = self.client.put(path, data={"status": "ok"})
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 200, resp.content
 
             checkin = MonitorCheckIn.objects.get(id=checkin.id)
@@ -216,7 +215,7 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func(monitor.guid, self.latest.guid)
-            resp = self.client.put(path, data={"status": "ok"})
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 404, resp.content
 
     def test_invalid_checkin_id(self):
@@ -232,5 +231,5 @@ class UpdateMonitorIngestCheckinTest(APITestCase):
             )
 
             path = path_func("invalid-guid", self.latest.guid)
-            resp = self.client.put(path, data={"status": "ok"})
+            resp = self.client.put(path, data={"status": "ok"}, **self.token_auth_headers)
             assert resp.status_code == 400, resp.content

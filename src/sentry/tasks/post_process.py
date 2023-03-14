@@ -179,6 +179,7 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
@@ -201,6 +202,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
@@ -759,22 +763,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org = event.project.organization
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
-            has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
-            has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-            if has_normal_run_flag:
+            if features.has("organizations:derive-code-mappings", org):
                 logger.info(
                     f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
-                derive_code_mappings.delay(project.id, event.data, dry_run=False)
-            # Derive code mappings with dry_run=True to validate the generated mappings.
-            elif has_dry_run_flag:
-                logger.info(
-                    f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
-                )
-                derive_code_mappings.delay(project.id, event.data, dry_run=True)
+                derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")

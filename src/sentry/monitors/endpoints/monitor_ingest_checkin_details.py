@@ -6,7 +6,6 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
@@ -23,13 +22,12 @@ from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, M
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
 
-from .base import MonitorCheckInEndpoint
+from .base import MonitorIngestEndpoint
 
 
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
-class MonitorIngestCheckInDetailsEndpoint(MonitorCheckInEndpoint):
-    authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
+class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
     public = {"PUT"}
 
     @extend_schema(

@@ -32,15 +32,19 @@ def process_message(message: Message[KafkaPayload]) -> None:
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
 
+    project = Project.objects.get_from_cache(id=project_id)
+
     # TODO: Same as the check-in endpoints. Keep in sync or factor out.
     try:
         with transaction.atomic():
             try:
                 monitor = Monitor.objects.select_for_update().get(
-                    guid=params["monitor_id"], project_id=project_id
+                    slug=params["monitor_slug"],
+                    project_id=project_id,
+                    organization_id=project.organization_id,
                 )
             except Monitor.DoesNotExist:
-                logger.debug("monitor does not exist: %s", params["monitor_id"])
+                logger.debug("monitor does not exist: %s", params["monitor_slug"])
                 return
 
             environment_name = params.get("environment")
@@ -94,7 +98,6 @@ def process_message(message: Message[KafkaPayload]) -> None:
                     date_updated=start_time,
                 )
 
-                project = Project.objects.get_from_cache(id=project_id)
                 if not project.flags.has_cron_checkins:
                     # Backfill users that already have cron monitors
                     if not project.flags.has_cron_monitors:
