@@ -490,6 +490,11 @@ export function generateFieldOptions({
     fieldKeys = fieldKeys.filter(item => !PROFILING_FIELDS.includes(item));
   }
 
+  // Strip device.class if the org doesn't have access.
+  if (!organization.features.includes('device-classification')) {
+    fieldKeys = fieldKeys.filter(item => item !== 'device.class');
+  }
+
   const fieldOptions: Record<string, SelectValue<FieldValue>> = {};
 
   // Index items by prefixed keys as custom tags can overlap both fields and
