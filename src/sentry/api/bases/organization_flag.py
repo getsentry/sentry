@@ -31,11 +31,11 @@ class FlaggedOrganizationEndpoint(OrganizationEndpoint):
             for feature in self.feature_flags
         ]
 
-        # If you need all flags, but don't have them all...
+        # If you need all the flags, but don't have them all...
         if self.require_all_feature_flags and not all(feature_gate):
             raise ResourceDoesNotExist
 
-        # If you don't need all, but don't have any...
+        # If you don't need all the flags, but don't have any...
         if not self.require_all_feature_flags and not any(feature_gate):
             raise ResourceDoesNotExist
 
