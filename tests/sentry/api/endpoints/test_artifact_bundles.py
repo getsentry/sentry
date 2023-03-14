@@ -1,0 +1,58 @@
+from django.urls import reverse
+
+from sentry.models import ProjectArtifactBundle
+from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
+
+
+@region_silo_test(stable=True)
+class ArtifactBundlesEndpointTest(APITestCase):
+    def test_artifact_bundles_with_multiple_bundles(self):
+        project = self.create_project(name="foo")
+
+        artifact_bundle_1 = self.create_artifact_bundle(self.organization)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle_1,
+        )
+        artifact_bundle_2 = self.create_artifact_bundle(self.organization)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+
+        # We expect the first bundle to be the most recent one.
+        assert response.data[0]["bundleId"] == artifact_bundle_2.bundle_id
+        assert response.data[0]["fileCount"] == 2
+
+        assert response.data[1]["bundleId"] == artifact_bundle_1.bundle_id
+        assert response.data[1]["fileCount"] == 2
+
+    def test_artifact_bundles_with_no_bundles(self):
+        project = self.create_project(name="foo")
+
+        url = reverse(
+            "sentry-api-0-artifact-bundles",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url)
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
