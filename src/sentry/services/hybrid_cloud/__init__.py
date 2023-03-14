@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import functools
 import inspect
 import logging
+import random
 import threading
 from abc import ABC, abstractmethod
 from typing import (
@@ -15,6 +17,7 @@ from typing import (
     Generic,
     List,
     Mapping,
+    MutableMapping,
     Type,
     TypeVar,
     cast,
@@ -22,6 +25,8 @@ from typing import (
 
 import sentry_sdk
 from rest_framework.request import Request
+from sentry_sdk import Hub
+from sentry_sdk.tracing import Transaction
 
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.pagination_factory import (
@@ -184,7 +189,60 @@ def silo_mode_delegation(
     Simply creates a DelegatedBySiloMode from a mapping object, but casts it as a ServiceInterface matching
     the mapping values.
     """
-    return cast(ServiceInterface, DelegatedBySiloMode(mapping))
+    new_mapping: MutableMapping[SiloMode, Callable[[], ServiceInterface]] = {}
+    for k, factory in mapping.items():
+        new_mapping[k] = _annotate_with_metrics(factory)
+    return cast(ServiceInterface, DelegatedBySiloMode(new_mapping))
+
+
+def _factory_decorator(
+    decorate_service: Callable[[ServiceInterface], None]
+) -> Callable[[Callable[[], ServiceInterface]], Callable[[], ServiceInterface]]:
+    """
+    Creates a decorator for service factories that decorates each instance with the given decorate_service callable.
+    Useful for say, adding metrics to service methods.
+    """
+
+    def decorator(factory: Callable[[], ServiceInterface]) -> Callable[[], ServiceInterface]:
+        def wrapper() -> ServiceInterface:
+            result: ServiceInterface = factory()
+            decorate_service(result)
+            return result
+
+        functools.update_wrapper(wrapper, factory)
+        return wrapper
+
+    return decorator
+
+
+@_factory_decorator
+def _annotate_with_metrics(service: ServiceInterface) -> None:
+    service_name = type(service).__name__
+    for Super in type(service).__bases__:
+        for attr in dir(Super):
+            base_val = getattr(Super, attr)
+            if getattr(base_val, "__isabstractmethod__", False):
+                setattr(
+                    service, attr, _wrap_with_metrics(getattr(service, attr), service_name, attr)
+                )
+
+
+def _wrap_with_metrics(
+    m: Callable[..., Any], service_class_name: str, method_name: str
+) -> Callable[..., Any]:
+    def wrapper(*args: Any, **kwds: Any) -> Any:
+        with sentry_sdk.start_transaction(
+            name=f"hybrid_cloud.services.{service_class_name}.{method_name}",
+            op="execute",
+            sampled=random.random() < 0.1,
+        ):
+            transaction: Transaction | None = Hub.current.scope.transaction
+            if transaction:
+                transaction.set_tag("silo_mode", SiloMode.get_current_mode().name)
+            return m(*args, **kwds)
+
+    functools.update_wrapper(wrapper, m)
+    return wrapper
 
 
 @dataclasses.dataclass
