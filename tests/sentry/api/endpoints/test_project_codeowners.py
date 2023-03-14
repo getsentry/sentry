@@ -214,8 +214,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"identifier": self.user.email, "type": "user", "id": self.user.id},
+                        {"identifier": self.team.slug, "type": "team", "id": self.team.id},
                     ],
                 }
             ],
@@ -234,8 +234,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"identifier": self.user.email, "type": "user", "id": self.user.id},
+                        {"identifier": self.team.slug, "type": "team", "id": self.team.id},
                     ],
                 }
             ],
@@ -254,8 +254,8 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
                 {
                     "matcher": {"pattern": "docs/*", "type": "codeowners"},
                     "owners": [
-                        {"identifier": self.user.email, "type": "user"},
-                        {"identifier": self.team.slug, "type": "team"},
+                        {"identifier": self.user.email, "type": "user", "id": self.user.id},
+                        {"identifier": self.team.slug, "type": "team", "id": self.team.id},
                     ],
                 }
             ],
@@ -313,3 +313,69 @@ class ProjectCodeOwnersEndpointTestCase(APITestCase):
         assert errors["missing_user_emails"] == []
         assert errors["teams_without_access"] == []
         assert set(errors["users_without_access"]) == {user_2.email}
+
+    def test_post_with_streamline_targeting(self):
+        with self.feature({"organizations:integrations-codeowners": True}):
+            with self.feature({"organizations:streamline-targeting-context": True}):
+                response = self.client.post(self.url, self.data)
+        assert response.status_code == 201
+        assert response.data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
+        assert response.data["codeMappingId"] == str(self.code_mapping.id)
+        assert response.data["schema"] == {
+            "$version": 1,
+            "rules": [
+                {
+                    "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                    "owners": [
+                        {"type": "user", "id": self.user.id, "identifier": "admin@sentry.io"},
+                        {"type": "team", "id": self.team.id, "identifier": "tiger-team"},
+                    ],
+                }
+            ],
+        }
+
+    def test_get(self):
+        # Test post + get without the streamline-targeting-context flag
+        with self.feature({"organizations:integrations-codeowners": True}):
+            self.client.post(self.url, self.data)
+            response_no_schema = self.client.get(self.url)
+            assert "schema" not in response_no_schema.data[0].keys()
+
+            # Test get after with the streamline-targeting-context flag
+            with self.feature({"organizations:streamline-targeting-context": True}):
+                self.client.get(self.url)
+                response = self.client.get(self.url)
+                response_data = response.data[0]
+                assert response.status_code == 200
+                assert (
+                    response_data["raw"] == "docs/*    @NisanthanNanthakumar   @getsentry/ecosystem"
+                )
+                assert response_data["codeMappingId"] == str(self.code_mapping.id)
+                assert response_data["schema"] == {
+                    "$version": 1,
+                    "rules": [
+                        {
+                            "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                            "owners": [
+                                {
+                                    "type": "user",
+                                    "id": self.user.id,
+                                    "name": "admin@sentry.io",
+                                },
+                                {"type": "team", "id": self.team.id, "name": "tiger-team"},
+                            ],
+                        }
+                    ],
+                }
+
+                # Assert that "identifier" is not renamed to "name" in the backend
+                ownership = ProjectCodeOwners.objects.get(project=self.project)
+                assert ownership.schema["rules"] == [
+                    {
+                        "matcher": {"type": "codeowners", "pattern": "docs/*"},
+                        "owners": [
+                            {"type": "user", "identifier": "admin@sentry.io", "id": self.user.id},
+                            {"type": "team", "identifier": "tiger-team", "id": self.team.id},
+                        ],
+                    }
+                ]

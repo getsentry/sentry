@@ -11,8 +11,8 @@ from sentry.models import create_files_from_dif_zip
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import FileIOMainThreadDetector
 from sentry.utils.performance_issues.performance_detection import (
-    FileIOMainThreadDetector,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
@@ -68,6 +68,12 @@ class FileIOMainThreadDetectorTest(TestCase):
     def test_does_not_detect_file_io_main_thread(self):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = False
+
+        assert self.find_problems(event) == []
+
+    def test_ignores_nib_files(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff.txt/blah/yup/ios.nib"
 
         assert self.find_problems(event) == []
 

@@ -423,7 +423,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id)
+    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
     objects = GroupManager(cache_fields=("id",))
 
