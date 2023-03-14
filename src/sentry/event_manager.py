@@ -2500,7 +2500,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                         producer.produce(
                             topic=topic,
                             key=None,
-                            value=json.dumps(occurrence.to_dict(), default=str),
+                            value=json.dumps(occurrence.to_dict()),
                         )
                         producer.flush()
 
