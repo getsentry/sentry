@@ -73,7 +73,7 @@ function Sidebar({location, organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
-  const {logExperiment} = useExperiment('APMSidebarExperiment', {
+  const {logExperiment, experimentAssignment} = useExperiment('APMSidebarExperiment', {
     logExperimentOnMount: false,
   });
 
@@ -193,9 +193,7 @@ function Sidebar({location, organization}: Props) {
         icon={<IconLightning size="md" />}
         label={
           <GuideAnchor target="performance">
-            {organization?.experiments?.APMSidebarExperiment
-              ? t('APM')
-              : t('Performance')}
+            {experimentAssignment === 1 ? t('APM') : t('Performance')}
           </GuideAnchor>
         }
         to={`/organizations/${organization.slug}/performance/`}
