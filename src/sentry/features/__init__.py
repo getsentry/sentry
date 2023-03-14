@@ -106,6 +106,7 @@ default_manager.add("organizations:anr-rate", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature, True)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
+default_manager.add("organizations:notification-actions", OrganizationFeature, True)
 default_manager.add("organizations:notification-all-recipients", OrganizationFeature, True)
 default_manager.add("organizations:onboarding", OrganizationFeature)  # Only enabled in sentry.io to enable onboarding flows.
 default_manager.add("organizations:org-subdomains", OrganizationFeature)

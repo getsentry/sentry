@@ -3,7 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization_flag import FlaggedOrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.models.notificationaction import NotificationAction
@@ -11,7 +11,9 @@ from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
-class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
+class NotificationActionsDetailsEndpoint(FlaggedOrganizationEndpoint):
+    feature_flags = ["organizations:notification-actions"]
+
     def get(self, request: Request, organization: Organization, action_id: int) -> Response:
         try:
             action = NotificationAction.objects.get(
