@@ -26,7 +26,7 @@ from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import metrics
 
-from ..utils import skip_group_processing
+from .utils import skip_group_processing
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
