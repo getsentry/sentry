@@ -136,4 +136,4 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False
+        return True
