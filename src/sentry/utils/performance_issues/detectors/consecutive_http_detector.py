@@ -132,7 +132,7 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return features.has(
-            "organizations:performance-consecutive-http-issue", organization, actor=None
+            "organizations:performance-consecutive-http-detector", organization, actor=None
         )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
