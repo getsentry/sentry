@@ -57,9 +57,9 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
             "last_checkin": monitor.last_checkin,
         }
 
-        return MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-        )[0]
+        return MonitorEnvironment.objects.create(
+            monitor=monitor, environment=environment, **monitorenvironment_defaults
+        )
 
     def test_noop_in_progress(self):
         monitor = self._create_monitor()
@@ -205,7 +205,6 @@ class UpdateMonitorIngestCheckinTest(MonitorIngestTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
         for path_func in self._get_path_functions():
-            monitor = self._create_monitor()
             MonitorCheckIn.objects.create(
                 monitor=monitor,
                 monitor_environment=monitor_environment,

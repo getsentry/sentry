@@ -88,7 +88,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
         if not environment_name:
             environment_name = "production"
 
-        environment = Environment.get_or_create(project=monitor.project, name=environment_name)
+        environment = Environment.get_or_create(project=project, name=environment_name)
 
         monitorenvironment_defaults = {
             "status": monitor.status,
@@ -98,7 +98,7 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
         monitor_environment = MonitorEnvironment.objects.get_or_create(
             monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-        )
+        )[0]
 
         if not checkin.monitor_environment:
             checkin.monitor_environment = monitor_environment
