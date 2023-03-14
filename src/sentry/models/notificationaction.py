@@ -26,7 +26,7 @@ class FlexibleIntEnum(IntEnum):
 
     @classmethod
     def get_value(cls, name: str) -> int | None:
-        invert_choices = {v: k for k, v in dict(cls.as_choices()).items()}
+        invert_choices = {v: k for k, v in cls.as_choices()}
         return invert_choices.get(name)
 
 

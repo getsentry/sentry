@@ -1,4 +1,4 @@
-from typing import List, Tuple, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 from rest_framework import serializers
 
@@ -70,12 +70,10 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         return target_type_value
 
     def validate_trigger_type(self, trigger_type: str) -> int:
-        valid_triggers = list(TriggerGenerator())
-        trigger_type_value = next(
-            (value for value, text in valid_triggers if text == trigger_type), None
-        )
+        valid_triggers: Dict[str, int] = {v: k for k, v in TriggerGenerator()}
+        trigger_type_value = valid_triggers.get(trigger_type)
         if trigger_type_value is None:
-            trigger_text = format_choices_text(valid_triggers)
+            trigger_text = format_choices_text(TriggerGenerator())
             raise serializers.ValidationError(
                 f"Invalid trigger selected. Choose from [{trigger_text}]"
             )

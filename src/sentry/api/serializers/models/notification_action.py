@@ -1,4 +1,4 @@
-from typing import Sequence
+from typing import Dict, Sequence
 
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.user import manytoone_to_dict
@@ -19,7 +19,7 @@ class NotificationActionSerializer(Serializer):
             NotificationActionProject.objects.filter(action_id__in=action_ids),
             "action_id",
         )
-        valid_triggers = dict(list(TriggerGenerator()))
+        valid_triggers: Dict[int, str] = dict(TriggerGenerator())
         return {
             item: {
                 "trigger_type": valid_triggers[item.trigger_type],
@@ -29,7 +29,7 @@ class NotificationActionSerializer(Serializer):
         }
 
     def serialize(self, obj: NotificationAction, attrs, user, **kwargs):
-        result = {
+        return {
             "id": obj.id,
             "organizationId": obj.organization_id,
             "integrationId": obj.integration_id,
@@ -41,5 +41,3 @@ class NotificationActionSerializer(Serializer):
             "targetIdentifier": obj.target_identifier,
             "targetDisplay": obj.target_display,
         }
-
-        return result
