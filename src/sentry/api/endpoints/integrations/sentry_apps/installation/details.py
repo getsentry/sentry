@@ -22,6 +22,13 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
 
     def delete(self, request: Request, installation) -> Response:
         with transaction.atomic():
+            try:
+                InstallationNotifier.run(
+                    install=installation, user=extract_lazy_object(request.user), action="deleted"
+                )
+            # if the error is from a request exception, log the error and continue
+            except RequestException as exc:
+                sentry_sdk.capture_exception(exc)
             deletions.exec_sync(installation)
             create_audit_entry(
                 request=request,
@@ -30,13 +37,6 @@ class SentryAppInstallationDetailsEndpoint(SentryAppInstallationBaseEndpoint):
                 event=audit_log.get_event_id("SENTRY_APP_UNINSTALL"),
                 data={"sentry_app": installation.sentry_app.name},
             )
-            try:
-                InstallationNotifier.run(
-                    install=installation, user=extract_lazy_object(request.user), action="deleted"
-                )
-            # if the error is from a request exception, log the error and continue
-            except RequestException as exc:
-                sentry_sdk.capture_exception(exc)
         analytics.record(
             "sentry_app.uninstalled",
             user_id=request.user.id,
