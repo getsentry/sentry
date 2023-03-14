@@ -283,3 +283,47 @@ class GroupTagsTest(APITestCase, SnubaTestCase):
         assert len(top_values) == 2
         assert top_values[0]["value"] == "android"
         assert top_values[1]["value"] == "iOS"
+
+    def test_device_class(self):
+        for _ in range(3):
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "tags": {"device.class": "1"},
+                    "timestamp": iso_format(before_now(minutes=1)),
+                },
+                project_id=self.project.id,
+            )
+        for _ in range(2):
+            self.store_event(
+                data={
+                    "fingerprint": ["group-1"],
+                    "tags": {"device.class": "2"},
+                    "timestamp": iso_format(before_now(minutes=1)),
+                },
+                project_id=self.project.id,
+            )
+        event = self.store_event(
+            data={
+                "fingerprint": ["group-1"],
+                "tags": {"device.class": "3"},
+                "timestamp": iso_format(before_now(minutes=1)),
+            },
+            project_id=self.project.id,
+        )
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{event.group.id}/tags/?limit=3&key=device.class"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["key"] == "device.class"
+        assert response.data[0]["totalValues"] == 6
+
+        top_values = sorted(response.data[0]["topValues"], key=lambda r: r["value"])
+        assert len(top_values) == 3
+        assert top_values[0]["value"] == "high"
+        assert top_values[1]["value"] == "low"
+        assert top_values[2]["value"] == "medium"
