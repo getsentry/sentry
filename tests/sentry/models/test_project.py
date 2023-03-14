@@ -21,6 +21,7 @@ from sentry.models import (
     UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
@@ -324,12 +325,11 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        assert (
-            NotificationSetting.objects.filter_to_accepting_recipients(self.project, users)[
-                ExternalProviders.EMAIL
-            ]
-            == expected_users
-        )
+        actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.project, users
+        )[ExternalProviders.EMAIL]
+        expected_recipients = {RpcActor.from_orm_user(user) for user in expected_users}
+        assert actual_recipients == expected_recipients
 
     def test(self):
         self.run_test([self.user], {self.user})
