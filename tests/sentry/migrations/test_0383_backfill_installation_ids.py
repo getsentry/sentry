@@ -10,13 +10,18 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
     migrate_to = "0383_backfill_installation_ids"
 
     def setup_before_migration(self, apps):
+        app = self.create_sentry_app(slug="helloworld")
         sentry_app_installations.Creator.run(
-            organization=self.organization, slug="buggabugga", user=self.user, notify=False
+            organization=self.organization, slug=app.slug, user=self.user, notify=False
         )
         self.installation_hook = ServiceHook.objects.last()
         assert self.installation_hook
         self.project_hook = service_hooks.Creator.run(
-            actor=self.user, projects=[self.project], events=[], url="https://www.example.org"
+            actor=self.user,
+            projects=[self.project],
+            events=[],
+            url="https://www.example.org",
+            organization=self.organization,
         )
         assert self.project_hook != self.installation_hook
 
