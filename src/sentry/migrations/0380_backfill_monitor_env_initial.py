@@ -2,9 +2,11 @@
 
 from django.db import migrations
 
+from sentry.monitors.models import MonitorStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
+TERMINAL_STATES = [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
 DEFAULT_ENVIRONMENT_NAME = "production"
 
 
@@ -16,7 +18,9 @@ def backfill_monitor_environments(apps, schema_editor):
     MonitorEnvironment = apps.get_model("sentry", "MonitorEnvironment")
 
     queryset = RangeQuerySetWrapperWithProgressBar(
-        Monitor.objects.filter(monitorenvironment__isnull=True).values_list(
+        Monitor.objects.filter(monitorenvironment__isnull=True)
+        .exclude(status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS])
+        .values_list(
             "id", "organization_id", "project_id", "status", "next_checkin", "last_checkin"
         ),
         result_value_getter=lambda item: item[0],
