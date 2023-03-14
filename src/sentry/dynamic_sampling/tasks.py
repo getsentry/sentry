@@ -183,7 +183,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     project = Project.objects.get_from_cache(id=project_id)
     sample_rate = quotas.get_blended_sample_rate(project)
 
-    if sample_rate is None:
+    if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
         return
 
