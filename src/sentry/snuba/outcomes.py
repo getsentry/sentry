@@ -322,6 +322,11 @@ def run_outcomes_query_totals(
 def run_outcomes_query_timeseries(
     query: QueryDefinition, tenant_ids: dict[str, Any] | None = None, referrer="outcomes.timeseries"
 ) -> ResultSet:
+    """
+    Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
+    unless there is a very specific reason to do so. Eg. getsentry uses this function for billing
+    metrics, so the referrer is different as it's no longer a "product" query.
+    """
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
