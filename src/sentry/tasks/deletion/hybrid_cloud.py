@@ -23,8 +23,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models import TombstoneBase
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, redis
-from sentry.utils.sdk import set_measurement
+from sentry.utils import json, metrics, redis
 
 
 def deletion_silo_modes() -> List[SiloMode]:
@@ -60,8 +59,14 @@ def set_watermark(
             get_watermark_key(prefix, field),
             json.dumps((value, sha1(prev_transaction_id.encode("utf8")).hexdigest())),
         )
-
-    set_measurement("low_bound", value)
+    metrics.gauge(
+        "deletion.hybrid_cloud.low_bound",
+        value,
+        tags=dict(
+            field_name=f"{field.model._meta.db_table}.{field.name}",
+            watermark=prefix,
+        ),
+    )
 
 
 def chunk_watermark_batch(
@@ -171,62 +176,59 @@ def _process_tombstone_reconciliation(
         watermark_manager: Manager = field.model.objects
         watermark_target = "r"
 
-    with sentry_sdk.start_transaction(
-        name="deletion.hybrid_cloud.process_tombstone_reconciliation", op="process"
-    ) as transaction:
-        transaction.set_tag("field_name", f"{model._meta.db_table}.{field.name}")
-        transaction.set_tag("watermark", prefix)
+    low, up, has_more, tid = chunk_watermark_batch(
+        prefix, field, watermark_manager, batch_size=get_batch_size()
+    )
+    to_delete_ids: List[int] = []
+    if low < up:
+        oldest_seen: datetime.datetime = timezone.now()
 
-        low, up, has_more, tid = chunk_watermark_batch(
-            prefix, field, watermark_manager, batch_size=get_batch_size()
-        )
-        to_delete_ids: List[int] = []
-        if low < up:
-            oldest_seen: datetime.datetime = timezone.now()
+        with connections[router.db_for_read(model)].cursor() as conn:
+            conn.execute(
+                f"""
+                SELECT r.id, t.created_at FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
+                    ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
+                    WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
+            """,
+                {
+                    "table_name": field.foreign_table_name,
+                    "low": low,
+                    "up": up,
+                },
+            )
 
-            with connections[router.db_for_read(model)].cursor() as conn:
-                conn.execute(
-                    f"""
-                    SELECT r.id, t.created_at FROM {model._meta.db_table} r JOIN {tombstone_cls._meta.db_table} t
-                        ON t.table_name = %(table_name)s AND t.object_identifier = r.{field.name}
-                        WHERE {watermark_target}.id > %(low)s AND {watermark_target}.id <= %(up)s
-                """,
-                    {
-                        "table_name": field.foreign_table_name,
-                        "low": low,
-                        "up": up,
-                    },
-                )
+            for (row_id, tomb_created) in conn.fetchall():
+                to_delete_ids.append(row_id)
+                oldest_seen = min(oldest_seen, tomb_created)
 
-                for (row_id, tomb_created) in conn.fetchall():
-                    to_delete_ids.append(row_id)
-                    oldest_seen = min(oldest_seen, tomb_created)
+        if field.on_delete == "CASCADE":
+            task = deletions.get(
+                model=model,
+                query={"id__in": to_delete_ids},
+                transaction_id=tid,
+            )
 
-            if field.on_delete == "CASCADE":
-                task = deletions.get(
-                    model=model,
-                    query={"id__in": to_delete_ids},
-                    transaction_id=tid,
-                )
-
-                if task.chunk():
-                    has_more = True  # The current batch is not complete, rerun this task again
-                else:
-                    set_watermark(prefix, field, up, tid)
-
-            elif field.on_delete == "SET_NULL":
-                model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
+            if task.chunk():
+                has_more = True  # The current batch is not complete, rerun this task again
+            else:
                 set_watermark(prefix, field, up, tid)
 
-            else:
-                raise ValueError(
-                    f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
-                )
+        elif field.on_delete == "SET_NULL":
+            model.objects.filter(id__in=to_delete_ids).update(**{field.name: None})
+            set_watermark(prefix, field, up, tid)
 
-            set_measurement(
-                "processing_lag",
-                datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
-                "second",
+        else:
+            raise ValueError(
+                f"{field.model.__name__}.{field.name} has unexpected on_delete={field.on_delete}, could not process delete!"
             )
+
+        metrics.timing(
+            "deletion.hybrid_cloud.processing_lag",
+            datetime.datetime.now().timestamp() - oldest_seen.timestamp(),
+            tags=dict(
+                field_name=f"{model._meta.db_table}.{field.name}",
+                watermark=prefix,
+            ),
+        )
 
     return has_more
