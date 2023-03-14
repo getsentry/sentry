@@ -51,6 +51,7 @@ class ServiceHook(Model):
     # hooks may be bound to an api application, or simply registered by a user
     application = FlexibleForeignKey("sentry.ApiApplication", null=True)
     actor_id = BoundedBigIntegerField(db_index=True)
+    installation_id = BoundedBigIntegerField(db_index=True, null=True)
     project_id = BoundedBigIntegerField(db_index=True, null=True)
     organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
