@@ -247,6 +247,60 @@ describe('SpanEvidenceKeyValueList', () => {
     });
   });
 
+  describe('Consecutive HTTP', () => {
+    const builder = new TransactionEventBuilder(
+      'a1',
+      '/',
+      IssueType.PERFORMANCE_CONSECUTIVE_HTTP
+    );
+    builder.getEvent().projectID = '123';
+
+    const parentSpan = new MockSpan({
+      startTimestamp: 0,
+      endTimestamp: 0.65,
+      op: 'http.client',
+      problemSpan: ProblemSpan.PARENT,
+    });
+
+    parentSpan.addChild({
+      startTimestamp: 0.1,
+      endTimestamp: 0.2,
+      op: 'http.client',
+      description: 'GET /endpoint1',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+    parentSpan.addChild({
+      startTimestamp: 0.2,
+      endTimestamp: 0.3,
+      op: 'http.client',
+      description: 'GET /endpoint2',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+    parentSpan.addChild({
+      startTimestamp: 0.3,
+      endTimestamp: 0.4,
+      op: 'http.client',
+      description: 'GET /endpoint3',
+      problemSpan: ProblemSpan.OFFENDER,
+    });
+
+    builder.addSpan(parentSpan);
+
+    it('Renders relevant fields', () => {
+      render(
+        <SpanEvidenceKeyValueList event={builder.getEvent()} projectSlug={projectSlug} />
+      );
+
+      const parallelizableSpanKeyValue = screen.getByTestId(
+        'span-evidence-key-value-list.offending-spans'
+      );
+
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint1');
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint2');
+      expect(parallelizableSpanKeyValue).toHaveTextContent('GET /endpoint3');
+    });
+  });
+
   describe('N+1 API Calls', () => {
     const builder = new TransactionEventBuilder(
       'a1',
