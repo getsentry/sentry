@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
-import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
@@ -20,6 +19,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import AddCodeOwnerModal from 'sentry/views/settings/project/projectOwnership/addCodeOwnerModal';
 import {CodeOwnerErrors} from 'sentry/views/settings/project/projectOwnership/codeownerErrors';
+import {CodeOwnerFileTable} from 'sentry/views/settings/project/projectOwnership/codeOwnerFileTable';
 import CodeOwnersPanel from 'sentry/views/settings/project/projectOwnership/codeowners';
 import {OwnershipRulesTable} from 'sentry/views/settings/project/projectOwnership/ownshipRulesTable';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
@@ -137,6 +137,7 @@ tags.sku_class:enterprise #enterprise`;
     const hasStreamlineTargetingContext = organization.features?.includes(
       'streamline-targeting-context'
     );
+    const hasCodeowners = organization.features?.includes('integrations-codeowners');
 
     return (
       <Fragment>
@@ -172,7 +173,7 @@ tags.sku_class:enterprise #enterprise`;
                   {t('View Issues')}
                 </Button>
               )}
-              <Feature features={['integrations-codeowners']}>
+              {hasCodeowners && (
                 <Access access={['org:integrations']}>
                   {({hasAccess}) =>
                     hasAccess ? (
@@ -187,7 +188,7 @@ tags.sku_class:enterprise #enterprise`;
                     ) : null
                   }
                 </Access>
-              </Feature>
+              )}
             </Fragment>
           }
         />
@@ -209,7 +210,7 @@ tags.sku_class:enterprise #enterprise`;
             />
           </ErrorBoundary>
         )}
-        {ownership && (
+        {!hasStreamlineTargetingContext && ownership && (
           <RulesPanel
             data-test-id="issueowners-panel"
             type="issueowners"
@@ -236,15 +237,24 @@ tags.sku_class:enterprise #enterprise`;
           />
         )}
         <PermissionAlert />
-        <Feature features={['integrations-codeowners']}>
-          <CodeOwnersPanel
-            codeowners={codeowners || []}
-            onDelete={this.handleCodeOwnerDeleted}
-            onUpdate={this.handleCodeOwnerUpdated}
-            disabled={disabled}
-            {...this.props}
-          />
-        </Feature>
+        {hasCodeowners &&
+          (hasStreamlineTargetingContext ? (
+            <CodeOwnerFileTable
+              project={project}
+              codeowners={codeowners ?? []}
+              onDelete={this.handleCodeOwnerDeleted}
+              onUpdate={this.handleCodeOwnerUpdated}
+              disabled={disabled}
+            />
+          ) : (
+            <CodeOwnersPanel
+              codeowners={codeowners || []}
+              onDelete={this.handleCodeOwnerDeleted}
+              onUpdate={this.handleCodeOwnerUpdated}
+              disabled={disabled}
+              {...this.props}
+            />
+          ))}
         {ownership && (
           <Form
             apiEndpoint={`/projects/${organization.slug}/${project.slug}/ownership/`}

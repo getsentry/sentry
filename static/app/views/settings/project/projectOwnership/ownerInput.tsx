@@ -7,6 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import TextArea from 'sentry/components/forms/controls/textarea';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
+import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -22,6 +23,7 @@ const defaultProps = {
 };
 
 type Props = {
+  dateUpdated: string | null;
   initialText: string;
   onCancel: () => void;
   organization: Organization;
@@ -151,7 +153,8 @@ class OwnerInput extends Component<Props, State> {
   };
 
   render() {
-    const {project, organization, disabled, urls, paths, initialText} = this.props;
+    const {project, organization, disabled, urls, paths, initialText, dateUpdated} =
+      this.props;
     const {hasChanges, text, error} = this.state;
 
     const hasStreamlineTargetingFeature = organization.features.includes(
@@ -179,7 +182,15 @@ class OwnerInput extends Component<Props, State> {
           }}
         >
           <Panel>
-            <PanelHeader>{t('Ownership Rules')}</PanelHeader>
+            <PanelHeader>
+              {t('Ownership Rules')}
+
+              {dateUpdated && (
+                <SyncDate>
+                  {t('Last Edited')} <TimeSince date={dateUpdated} />
+                </SyncDate>
+              )}
+            </PanelHeader>
             <PanelBody>
               <StyledTextArea
                 aria-label={t('Ownership Rules')}
@@ -264,6 +275,11 @@ const InvalidOwners = styled('div')`
   color: ${p => p.theme.error};
   font-weight: bold;
   margin-top: 12px;
+`;
+
+const SyncDate = styled('div')`
+  font-weight: normal;
+  text-transform: none;
 `;
 
 export default OwnerInput;
