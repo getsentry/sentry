@@ -61,7 +61,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             )
         else:
             try:
-                environment = Environment.object.get(name=environment_param)
+                environment = Environment.objects.get(name=environment_param)
                 monitor_env = MonitorEnvironment.objects.get(
                     monitor=monitor, environment=environment
                 )
