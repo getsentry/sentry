@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
+from sentry.issues.issue_occurrence import IssueEvidence
 
 
 @dataclass
@@ -15,6 +16,12 @@ class PerformanceProblem:
     cause_span_ids: Optional[Sequence[str]]
     # The actual bad spans
     offender_span_ids: Sequence[str]
+    # Evidence to be used for the group
+    # TODO make it required once all detectors have been migrated to platform
+    evidence_data: Optional[Mapping[str, Any]]
+    # User-friendly evidence to be displayed directly
+    # TODO make it required once all detectors have been migrated to platform
+    evidence_display: Optional[Sequence[IssueEvidence]]
 
     def to_dict(
         self,
@@ -27,6 +34,8 @@ class PerformanceProblem:
             "parent_span_ids": self.parent_span_ids,
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
+            "evidence_data": self.evidence_data,
+            "evidence_display": self.evidence_display,
         }
 
     @property
@@ -43,6 +52,8 @@ class PerformanceProblem:
             data["parent_span_ids"],
             data["cause_span_ids"],
             data["offender_span_ids"],
+            data["evidence_data"],
+            data["evidence_display"],
         )
 
     def __eq__(self, other):

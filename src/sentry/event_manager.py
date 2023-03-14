@@ -80,7 +80,7 @@ from sentry.grouping.api import (
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType, reduce_noise
-from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -2485,30 +2485,9 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                             type=problem.type,
                             issue_title=problem.title,
                             subtitle=event.transaction,
-                            # TODO use this to set metadata.value="problem.desc"
-                            evidence_data={
-                                "value": problem.desc,
-                                "parent_span_ids": problem.parent_span_ids,
-                                "cause_span_ids": problem.cause_span_ids,
-                                "offender_span_ids": problem.offender_span_ids,
-                            },
-                            evidence_display=[
-                                IssueEvidence(
-                                    name="Transaction Name",
-                                    value=event.transaction,
-                                    important=True,
-                                ),
-                                IssueEvidence(
-                                    name="Parent Span",
-                                    value=problem.parent_span_ids,
-                                    important=True,
-                                ),
-                                IssueEvidence(
-                                    name=f"Repeating Spans ({len(problem.offender_span_ids)})",
-                                    value=problem.offender_span_ids,
-                                    important=True,
-                                ),
-                            ],
+                            # TODO need to set metadata.value="problem.desc"
+                            evidence_data=problem.evidence_data,
+                            evidence_display=problem.evidence_display,
                             detection_time=event.datetime,
                             level="info",
                         )
