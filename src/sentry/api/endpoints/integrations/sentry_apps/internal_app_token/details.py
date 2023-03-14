@@ -48,7 +48,7 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
         analytics.record(
             "sentry_app_installation_token.deleted",
             user_id=request.user.id,
-            organization_id=sentry_app_installation.organization.organization_id,
+            organization_id=sentry_app_installation.organization_id,
             sentry_app_installation_id=sentry_app_installation.id,
             sentry_app=sentry_app.slug,
         )
