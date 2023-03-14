@@ -25,7 +25,11 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.snuba.query_subscription_consumer import (
+    QuerySubscriptionConsumer,
+    get_query_subscription_consumer,
+    subscriber_registry,
+)
 from sentry.testutils import TestCase
 from sentry.utils import json
 
@@ -93,7 +97,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def topic(self):
         return uuid4().hex
 
-    def test(self):
+    def run_test(self, consumer):
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in an incident being created.
@@ -120,8 +124,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             return Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value, alert_rule=self.rule
             ).exclude(status=IncidentStatus.CLOSED.value)
-
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
 
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
 
@@ -158,3 +160,11 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert out.subject == message.subject
         built_message = message.build(self.user.email)
         assert out.body == built_message.body
+
+    def test(self):
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
+        self.run_test(consumer)
+
+    def test_arroyo(self):
+        consumer = get_query_subscription_consumer(self.topic, "hi", False)
+        self.run_test(consumer)
