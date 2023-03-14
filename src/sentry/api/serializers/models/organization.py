@@ -10,6 +10,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -588,7 +589,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
 
-        collapse_projects = {}
+        collapse_projects: Set[str] = set()
         if killswitch_matches_context(
             "api.organization.disable-last-deploys",
             {
