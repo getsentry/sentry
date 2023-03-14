@@ -125,4 +125,6 @@ class NewestPerformanceIssueViewTest(TestCase):
 
     def test_no_performance_issue(self):
         resp = self.client.get(self.path, follow=True)
-        assert resp.redirect_chain == [(f"/organizations/{self.org.slug}/issues/", 302)]
+        assert resp.redirect_chain == [
+            (f"http://testserver/organizations/{self.org.slug}/issues/", 302)
+        ]
