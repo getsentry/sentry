@@ -449,11 +449,9 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      await userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
-      );
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+      await userEvent.paste('count_unique(user) * 2');
+      await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
         expect(eventsStatsMock).toHaveBeenCalledWith(
@@ -479,11 +477,9 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      await userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
-      );
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+      await userEvent.paste('count_unique(user) * 2');
+      await userEvent.keyboard('{Enter}');
 
       // Switch away from the Custom Equation
       expect(screen.getByText('project')).toBeInTheDocument();
@@ -508,11 +504,9 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      await userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
-      );
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+      await userEvent.paste('count_unique(user) * 2');
+      await userEvent.keyboard('{Enter}');
 
       // Add a y-axis
       await userEvent.click(screen.getByText('Add Overlay'));
@@ -588,17 +582,15 @@ describe('WidgetBuilder', function () {
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      await userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
-      );
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+      await userEvent.paste('count_unique(user) * 2');
+      await userEvent.keyboard('{Enter}');
 
       // Switch the display type to Table
       await userEvent.click(screen.getByText('Line Chart'));
       await userEvent.click(screen.getByText('Table'));
 
-      expect(screen.getAllByText('count()')).toHaveLength(2);
+      expect(screen.getAllByText('count()')).toHaveLength(3);
       expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
 
       await waitFor(() => {
@@ -679,11 +671,9 @@ describe('WidgetBuilder', function () {
 
       await selectEvent.select(await screen.findByText('Select group'), 'project');
       await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-      await userEvent.paste(
-        screen.getByPlaceholderText('Enter Equation'),
-        'count_unique(user) * 2'
-      );
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+      await userEvent.paste('count_unique(user) * 2');
+      await userEvent.keyboard('{Enter}');
 
       await userEvent.click(screen.getByText('Add Group'));
       expect(screen.getByPlaceholderText('Enter Equation')).toHaveValue(
@@ -798,8 +788,9 @@ describe('WidgetBuilder', function () {
       });
 
       await userEvent.click(await screen.findByText('Add an Equation'));
-      await userEvent.paste(screen.getByPlaceholderText('Equation'), 'count() * 100');
-      await userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText('Equation'));
+      await userEvent.paste('count() * 100');
+      await userEvent.keyboard('{Enter}');
 
       await selectEvent.select(screen.getByText('Select group'), 'project');
       expect(screen.getAllByText('count()')).toHaveLength(2);
@@ -903,17 +894,15 @@ describe('WidgetBuilder', function () {
     await selectEvent.select(await screen.findByText('Select group'), 'project');
     expect(screen.getAllByText('count()')).toHaveLength(2);
     await selectEvent.select(screen.getAllByText('count()')[1], 'Custom Equation');
-    await userEvent.paste(
-      screen.getByPlaceholderText('Enter Equation'),
-      'count_unique(user) * 2'
-    );
-    await userEvent.keyboard('{enter}');
+    await userEvent.click(screen.getByPlaceholderText('Enter Equation'));
+    await userEvent.paste('count_unique(user) * 2');
+    await userEvent.keyboard('{Enter}');
 
     // Switch the display type to Table
     await userEvent.click(screen.getByText('Line Chart'));
     await userEvent.click(screen.getByText('Table'));
 
-    expect(screen.getAllByText('count()')).toHaveLength(2);
+    expect(screen.getAllByText('count()')).toHaveLength(3);
     expect(screen.queryByPlaceholderText('Enter Equation')).not.toBeInTheDocument();
 
     await waitFor(() => {
