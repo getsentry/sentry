@@ -1200,9 +1200,7 @@ class FetchByUrlNewTest(FetchTest):
             artifact_bundle_1.id,
             artifact_bundle_2.id,
         ]
-        assert (
-            fetcher.open_archives[sorted(list(fetcher.open_archives.keys()))[1]] == INVALID_ARCHIVE
-        )
+        assert fetcher.open_archives[artifact_bundle_2.id] == INVALID_ARCHIVE
         fetcher.close()
 
         # Fetching source with absent url.
@@ -1212,9 +1210,7 @@ class FetchByUrlNewTest(FetchTest):
             artifact_bundle_1.id,
             artifact_bundle_2.id,
         ]
-        assert (
-            fetcher.open_archives[sorted(list(fetcher.open_archives.keys()))[1]] == INVALID_ARCHIVE
-        )
+        assert fetcher.open_archives[artifact_bundle_2.id] == INVALID_ARCHIVE
         fetcher.close()
 
     def test_multiple_broken_archives_with_release_dist_pair(self):

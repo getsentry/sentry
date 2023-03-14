@@ -714,8 +714,7 @@ class Fetcher:
                 source_file_type=source_file_type.value if source_file_type is not None else None,
             )
             .order_by("-date_added")
-            .select_related("artifact_bundle__file")
-            .first()[0]
+            .select_related("artifact_bundle__file")[:1][0]
         )
 
     @staticmethod
@@ -891,10 +890,10 @@ class Fetcher:
             .select_related("artifact_bundle__file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
-        if len(entries) == MAX_ARTIFACTS_NUMBER + 1:
+        if len(entries) > MAX_ARTIFACTS_NUMBER:
             logger.debug(
                 f"The number of artifact bundles for the release {self.release.version}"
-                f"is more than {MAX_ARTIFACTS_NUMBER}"
+                f"is more than the default {MAX_ARTIFACTS_NUMBER}."
             )
 
         return entries[:MAX_ARTIFACTS_NUMBER]
@@ -1742,7 +1741,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             self.fetch_by_url_errors.setdefault(url, []).append(
                 {"type": EventError.JS_TOO_MANY_REMOTE_SOURCES}
             )
-            return None, False
+            return None, FetcherSource.NONE
 
         if debug_id is not None:
             logger.debug("Attempting to cache source with debug id %r", debug_id)
@@ -1842,7 +1841,7 @@ class JavaScriptStacktraceProcessor(StacktraceProcessor):
             if sourcemap_cache is not None:
                 return sourcemap_cache, FetcherSource.URL
 
-        return None, False
+        return None, FetcherSource.NONE
 
     def _handle_debug_id_sourcemap_lookup(self, debug_id):
         minified_sourceview = self.fetch_by_debug_id_sourceviews.get(
