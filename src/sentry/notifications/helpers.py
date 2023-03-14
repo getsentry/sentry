@@ -600,22 +600,15 @@ def get_providers_for_recipient(
     recipient = RpcActor.from_object(raw_recipient)
     possible_providers = NOTIFICATION_SETTING_DEFAULTS.keys()
     if recipient.actor_type == ActorType.TEAM:
-        return list(
-            map(
-                get_provider_enum,
-                ExternalActor.objects.filter(
-                    actor_id=recipient.actor_id, provider__in=possible_providers
-                ).values_list("provider", flat=True),
-            )
-        )
+        team_providers = ExternalActor.objects.filter(
+            actor_id=recipient.actor_id, provider__in=possible_providers
+        ).values_list("provider", flat=True)
+        return [get_provider_enum(provider) for provider in team_providers]
 
-    return list(
-        map(
-            get_provider_enum_from_string,
-            Identity.objects.filter(
-                user=recipient, idp__type__in=list(map(get_provider_name, possible_providers))
-            ).values_list("idp__type", flat=True),
-        )
-    ) + [
-        ExternalProviders.EMAIL
-    ]  # always add in email as an option
+    provider_names = [get_provider_name(provider) for provider in possible_providers]
+    idp_types = Identity.objects.filter(
+        user__id=recipient.id, idp__type__in=provider_names
+    ).values_list("idp__type", flat=True)
+    user_providers = [get_provider_enum_from_string(idp_type) for idp_type in idp_types]
+    user_providers.append(ExternalProviders.EMAIL)  # always add in email as an option
+    return user_providers
