@@ -92,7 +92,7 @@ function Sidebar({location, organization}: Props) {
     if (organization?.features.includes('performance-view')) {
       logExperiment();
     }
-  });
+  }, [logExperiment, organization?.features]);
 
   // Add classname to body
   useEffect(() => {
