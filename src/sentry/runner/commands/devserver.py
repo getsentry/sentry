@@ -194,6 +194,7 @@ and run `sentry devservices up kafka zookeeper`.
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
     # Configure URL prefixes for customer-domains.
+    os.environ["SENTRY_SYSTEM_URL_PREFIX"] = f"http://localhost:{port}"
     os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
     os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
     os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
