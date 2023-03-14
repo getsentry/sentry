@@ -1276,7 +1276,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.DOM_TITLE]: {
-    desc: t('`tag` of an element that was clicked'),
+    desc: t('`title` of an element that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
