@@ -14,8 +14,8 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
-from sentry.monitors.models import MonitorCheckIn
+from sentry.models import Environment, ProjectKey
+from sentry.monitors.models import MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
@@ -56,9 +56,25 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         if start is None or end is None:
             raise ParseError(detail="Invalid date range")
 
-        queryset = MonitorCheckIn.objects.filter(
-            monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
-        )
+        environment_param = request.GET.get("environment")
+        if not environment_param:
+            queryset = MonitorCheckIn.objects.filter(
+                monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
+            )
+        else:
+            try:
+                environment = Environment.object.get(name=environment_param)
+                monitor_env = MonitorEnvironment.objects.get(
+                    monitor=monitor, environment=environment
+                )
+            except Environment.DoesNotExist:
+                raise ParseError(detail="Environment does not exist")
+            except MonitorEnvironment.DoesNotExist:
+                raise ParseError(detail="Monitor has not received checkins for that Environment")
+
+            queryset = MonitorCheckIn.objects.filter(
+                monitor_environment_id=monitor_env.id, date_added__gte=start, date_added__lte=end
+            )
 
         return self.paginate(
             request=request,
