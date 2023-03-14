@@ -2375,6 +2375,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                {},
+                [],
             )
 
     @override_options({"performance.issues.all.problem-detection": 1.0})

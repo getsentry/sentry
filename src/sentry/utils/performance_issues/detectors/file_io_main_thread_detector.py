@@ -102,6 +102,8 @@ class FileIOMainThreadDetector(PerformanceDetector):
                     type=PerformanceFileIOMainThreadGroupType,
                     cause_span_ids=[],
                     offender_span_ids=[span["span_id"] for span in span_list if "span_id" in span],
+                    evidence_data={},
+                    evidence_display=[],
                 )
 
     def _fingerprint(self, span_list) -> str:

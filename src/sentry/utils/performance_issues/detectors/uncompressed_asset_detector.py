@@ -79,6 +79,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
                 type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],
                 offender_span_ids=[span.get("span_id", None)],
+                evidence_data={},
+                evidence_display=[],
             )
 
     def _fingerprint(self, span) -> str:
