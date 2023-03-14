@@ -320,7 +320,9 @@ def run_outcomes_query_totals(
 
 
 def run_outcomes_query_timeseries(
-    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None, referrer="outcomes.timeseries"
+    query: QueryDefinition,
+    tenant_ids: dict[str, Any] | None = None,
+    referrer: str = "outcomes.timeseries",
 ) -> ResultSet:
     """
     Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
