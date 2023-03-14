@@ -1,16 +1,32 @@
+from typing import Dict
+
 from rest_framework import status
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
+from sentry.models.notificationaction import NotificationAction, TriggerGenerator
 from sentry.models.organization import Organization
 
 
 @region_silo_endpoint
 class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     def get(self, request, organization: Organization):
-        return Response(status=200)
+        queryset = NotificationAction.objects.filter(organization_id=organization.id)
+
+        project_id_query = request.GET.getlist("projectId")
+        if project_id_query:
+            queryset = queryset.filter(projects__in=project_id_query)
+
+        trigger_type_query = request.GET.getlist("triggerType")
+        if trigger_type_query:
+            triggers: Dict[str, int] = {v: k for k, v in TriggerGenerator()}
+            trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
+            queryset = queryset.filter(trigger_type__in=trigger_types)
+
+        return Response(serialize(list(queryset), request.user))
 
     def post(self, request, organization: Organization):
         serializer = NotificationActionSerializer(
@@ -22,6 +38,6 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
             data=request.data,
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         serializer.save()
         return Response(status=status.HTTP_201_CREATED)
