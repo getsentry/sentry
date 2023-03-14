@@ -55,7 +55,15 @@ FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
 
 
 class ParticipantMap:
-    _dict: MutableMapping[ExternalProviders, MutableMapping[RpcActor, int]] = defaultdict(dict)
+    _dict: MutableMapping[ExternalProviders, MutableMapping[RpcActor, int]]
+
+    def __init__(self):
+        self._dict = defaultdict(dict)
+
+    def get_participants_by_providers(
+        self, provider: ExternalProviders
+    ) -> set[Tuple[RpcActor, int]]:
+        return {(k, v) for k, v in self._dict.get(provider, {}).items()}
 
     def add(self, provider: ExternalProviders, participant: RpcActor, reason: int) -> None:
         self._dict[provider][participant] = reason
