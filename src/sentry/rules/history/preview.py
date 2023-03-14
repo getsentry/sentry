@@ -251,7 +251,9 @@ def get_top_groups(
             },
             has_issue_state_condition,
         )
-        query_params.append(SnubaQueryParams(**kwargs))
+        query_params.append(
+            SnubaQueryParams(**kwargs, tenant_ids={"organization_id": project.organization_id})
+        )
 
     groups = []
     for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
@@ -518,7 +520,10 @@ def get_frequency_buckets(
         },
     )
     bucket_counts = raw_query(
-        **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
+        **kwargs,
+        use_cache=True,
+        referrer="preview.get_frequency_buckets",
+        tenant_ids={"organization_id": project.organization_id},
     ).get("data", [])
 
     for bucket in bucket_counts:
