@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0381_fix_org_slug_casing"),
+        ("sentry", "0382_add_installation_id_to_service_hook"),
     ]
 
     operations = [
