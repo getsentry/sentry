@@ -11,19 +11,20 @@ export const unassignedValue = -1;
 /**
  * Frontend experiment configuration object
  */
-export const experimentList: {
-  assignments: number[];
-  key: string;
-  parameter: string;
-  type: ExperimentType;
-}[] = [
+export const experimentList = [
   {
     key: 'SavedIssueSearchesLocationExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
   },
-];
+  {
+    key: 'APMSidebarExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
+] as const;
 
 export const experimentConfig = experimentList.reduce(
   (acc, exp) => ({...acc, [exp.key]: exp}),
