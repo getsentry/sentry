@@ -186,7 +186,7 @@ function Onboarding(props: Props) {
     });
 
     // from selected platform to welcome
-    if (onboardingSteps[stepIndex].id === 'welcome') {
+    if (onboardingSteps[stepIndex].id === 'select-platform') {
       setClientState({
         platformToProjectIdMap: clientState?.platformToProjectIdMap ?? {},
         selectedPlatforms: [],
