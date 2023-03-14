@@ -73,6 +73,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 check_in = MonitorCheckIn.objects.select_for_update().get(
                     guid=params["check_in_id"],
                     project_id=project_id,
+                    monitor=monitor,
                 )
 
                 if duration is None:
