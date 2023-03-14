@@ -46,7 +46,7 @@ async function openChangeRouteModal({
   router: RouteComponentProps<{}, {}>['router'];
   setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 }) {
-  const mod = await import('sentry/views/onboarding/components/changeRouteModal');
+  const mod = await import('sentry/components/onboarding/changeRouteModal');
 
   const {ChangeRouteModal} = mod;
 
