@@ -75,7 +75,7 @@ class HerokuReleaseHook(ReleaseHook):
 
         commit = slug.get("commit")
         app_name = data.get("app", {}).get("name")
-        if data.get("action") == "update":
+        if body.get("action") == "update":
             if app_name:
                 self.finish_release(
                     version=commit,
