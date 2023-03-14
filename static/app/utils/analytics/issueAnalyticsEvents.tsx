@@ -34,6 +34,7 @@ export type IssueEventParameters = {
   'issue.shared_publicly': {};
   'issue_details.copy_event_link_clicked': GroupEventParams;
   'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -230,4 +231,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
 };

@@ -250,6 +250,11 @@ export const GroupEventCarousel = ({
               if (breadcrumbsHeader) {
                 breadcrumbsHeader.scrollIntoView({behavior: 'smooth'});
               }
+              trackAdvancedAnalyticsEvent('issue_details.header_view_replay_clicked', {
+                organization,
+                ...getAnalyticsDataForGroup(group),
+                ...getAnalyticsDataForEvent(event),
+              });
             },
           },
         ]}
