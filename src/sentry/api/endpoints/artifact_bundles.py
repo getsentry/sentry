@@ -94,6 +94,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
                 artifact_bundle = ArtifactBundle.objects.get(
                     organization_id=project.organization_id, bundle_id=bundle_id
                 )
+
                 if artifact_bundle is not None:
                     # We want to delete all the connections to a project.
                     project_artifact_bundles = ProjectArtifactBundle.objects.filter(

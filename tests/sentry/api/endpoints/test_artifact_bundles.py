@@ -7,7 +7,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test(stable=True)
 class ArtifactBundlesEndpointTest(APITestCase):
-    def test_artifact_bundles_with_multiple_bundles(self):
+    def test_get_artifact_bundles_with_multiple_bundles(self):
         project = self.create_project(name="foo")
 
         artifact_bundle_1 = self.create_artifact_bundle(self.organization)
@@ -41,7 +41,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.data[1]["bundleId"] == artifact_bundle_1.bundle_id
         assert response.data[1]["fileCount"] == 2
 
-    def test_artifact_bundles_with_no_bundles(self):
+    def test_get_artifact_bundles_with_no_bundles(self):
         project = self.create_project(name="foo")
 
         url = reverse(
@@ -55,7 +55,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-    def test_artifact_bundles_delete(self):
+    def test_delete_artifact_bundles(self):
         project = self.create_project(name="foo")
         artifact_bundle = self.create_artifact_bundle(self.organization)
         ProjectArtifactBundle.objects.create(
