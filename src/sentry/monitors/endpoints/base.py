@@ -9,7 +9,7 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.models import Organization, Project, ProjectStatus
+from sentry.models import Organization, Project, ProjectKey, ProjectStatus
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.utils.sdk import bind_organization_context, configure_scope
 
@@ -123,6 +123,15 @@ class MonitorIngestEndpoint(Endpoint):
     authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
     permission_classes = (ProjectMonitorPermission,)
 
+    allow_auto_create_monitors = False
+    """
+    Loosens the base endpoint such that a monitor with the provided monitor_id
+    does not need to exist. This is used for initial checkin creation with
+    monitor upsert.
+
+    [!!]: This will ONLY work when using DSN auth.
+    """
+
     # TODO(dcramer): this code needs shared with other endpoints as its security focused
     # TODO(dcramer): this doesnt handle is_global roles
     def convert_args(
@@ -136,6 +145,10 @@ class MonitorIngestEndpoint(Endpoint):
     ):
         organization = None
         monitor = None
+
+        # Include monitor_id in kwargs when upsert is enabled
+        if self.allow_auto_create_monitors:
+            kwargs["monitor_id"] = monitor_id
 
         # The only monitor endpoints that do not have the org slug in their
         # parameters are the GUID-style checkin endpoints
@@ -153,19 +166,37 @@ class MonitorIngestEndpoint(Endpoint):
             # Validate GUIDs
             try:
                 UUID(monitor_id)
+                # When looking up by guid we don't include the org conditional
+                # (since GUID lookup allows orgless routes), we will validate
+                # permissions later in this function
+                try:
+                    monitor = Monitor.objects.get(guid=monitor_id)
+                except Monitor.DoesNotExist:
+                    monitor = None
             except ValueError:
-                # This error is a bit confusing, because this may also mean
-                # that we've failed to lookup their monitor by slug.
-                raise ParameterValidationError("Invalid monitor UUID")
-            # When looking up by guid we don't include the org conditional
-            # (since GUID lookup allows orgless routes), we will validate
-            # permissions later in this function
-            try:
-                monitor = Monitor.objects.get(guid=monitor_id)
-            except Monitor.DoesNotExist:
-                raise ResourceDoesNotExist
+                # If it's an invalid GUID it could mean the user wants to
+                # create this monitor, we can't raise an error in that case
+                if not self.allow_auto_create_monitors:
+                    # This error is a bit confusing, because this may also mean
+                    # that we've failed to lookup their monitor by slug.
+                    raise ParameterValidationError("Invalid monitor UUID")
 
-        project = Project.objects.get_from_cache(id=monitor.project_id)
+        if not monitor and not self.allow_auto_create_monitors:
+            raise ResourceDoesNotExist
+
+        # Monitor ingestion supports upsert of monitors This is currently only
+        # supported when using DSN auth.
+        if not monitor and not isinstance(request.auth, ProjectKey):
+            raise ResourceDoesNotExist
+
+        # No monitor is allowed when using DSN auth. Use the project from the
+        # DSN auth and allow the monitor to be empty. This should be handled in
+        # the endpoint
+        if not monitor:
+            project = request.auth.project
+        else:
+            project = Project.objects.get_from_cache(id=monitor.project_id)
+
         if project.status != ProjectStatus.VISIBLE:
             raise ResourceDoesNotExist
 
@@ -174,7 +205,7 @@ class MonitorIngestEndpoint(Endpoint):
         if hasattr(request.auth, "project_id") and project.id != request.auth.project_id:
             raise ResourceDoesNotExist
 
-        # When looking up via GUID we do not check the organiation slug,
+        # When looking up via GUID we do not check the organization slug,
         # validate that the slug matches the org of the monitors project
         if organization_slug and project.organization.slug != organization_slug:
             raise ResourceDoesNotExist
