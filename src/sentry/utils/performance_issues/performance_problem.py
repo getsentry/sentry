@@ -37,7 +37,7 @@ class PerformanceProblem:
             "cause_span_ids": self.cause_span_ids,
             "offender_span_ids": self.offender_span_ids,
             "evidence_data": self.evidence_data,
-            "evidence_display": self.evidence_display,
+            "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
         }
 
     @property

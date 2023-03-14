@@ -2485,7 +2485,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                             type=problem.type,
                             issue_title=problem.title,
                             subtitle=problem.desc,
-                            # TODO need to send culprit=
+                            # TODO need to send culprit=event.transaction
                             evidence_data=problem.evidence_data,
                             evidence_display=problem.evidence_display,
                             detection_time=event.datetime,
