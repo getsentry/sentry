@@ -17,10 +17,12 @@ class PerformanceProblem:
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
-    # TODO make it required once all detectors have been migrated to platform
+    # TODO make evidence_data and evidence_display required once all detectors have been migrated to platform
+    # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
+    # since there's legacy data in there that won't have these fields.
+    # So until we disable transaction based perf issues we'll need to keep this optional.
     evidence_data: Optional[Mapping[str, Any]]
     # User-friendly evidence to be displayed directly
-    # TODO make it required once all detectors have been migrated to platform
     evidence_display: Optional[Sequence[IssueEvidence]]
 
     def to_dict(
@@ -52,8 +54,8 @@ class PerformanceProblem:
             data["parent_span_ids"],
             data["cause_span_ids"],
             data["offender_span_ids"],
-            data["evidence_data"],
-            data["evidence_display"],
+            data.get("evidence_data", {}),
+            data.get("evidence_display", []),
         )
 
     def __eq__(self, other):
