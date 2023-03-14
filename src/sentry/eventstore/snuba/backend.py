@@ -286,7 +286,12 @@ class SnubaEventStorage(EventStorage):
         filter.conditions.extend(get_after_event_condition(event))
         filter.start = event.datetime
         dataset = self._get_dataset_for_event(event)
-        return self.__get_event_id_from_filter(filter=filter, orderby=ASC_ORDERING, dataset=dataset)
+        return self.__get_event_id_from_filter(
+            filter=filter,
+            orderby=ASC_ORDERING,
+            dataset=dataset,
+            tenant_ids={"organization_id": event.project.organization_id},
+        )
 
     def get_prev_event_id(self, event, filter):
         """
@@ -306,13 +311,18 @@ class SnubaEventStorage(EventStorage):
         filter.end = event.datetime + timedelta(seconds=1)
         dataset = self._get_dataset_for_event(event)
         return self.__get_event_id_from_filter(
-            filter=filter, orderby=DESC_ORDERING, dataset=dataset
+            filter=filter,
+            orderby=DESC_ORDERING,
+            dataset=dataset,
+            tenant_ids={"organization_id": event.project.organization_id},
         )
 
     def __get_columns(self, dataset: Dataset):
         return [col.value.event_name for col in EventStorage.minimal_columns[dataset]]
 
-    def __get_event_id_from_filter(self, filter=None, orderby=None, dataset=snuba.Dataset.Discover):
+    def __get_event_id_from_filter(
+        self, filter=None, orderby=None, dataset=snuba.Dataset.Discover, tenant_ids=None
+    ):
         columns = [Columns.EVENT_ID.value.alias, Columns.PROJECT_ID.value.alias]
         try:
             # This query uses the discover dataset to enable
