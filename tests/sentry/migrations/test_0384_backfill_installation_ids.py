@@ -2,12 +2,10 @@ from sentry.mediators import sentry_app_installations, service_hooks
 from sentry.models import ServiceHook
 from sentry.testutils.cases import TestMigrations
 
-DEFAULT_ENVIRONMENT_NAME = "production"
 
-
-class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
-    migrate_from = "0382_add_installation_id_to_service_hook"
-    migrate_to = "0383_backfill_installation_ids"
+class BackfillInstallationIdsTest(TestMigrations):
+    migrate_from = "0383_mv_user_avatar"
+    migrate_to = "0384_backfill_installation_ids"
 
     def setup_before_migration(self, apps):
         app = self.create_sentry_app(slug="helloworld")
