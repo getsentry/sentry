@@ -16,7 +16,7 @@ from sentry.issues.grouptype import (
 )
 from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
-from sentry.search.utils import convert_user_tag_to_query
+from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
@@ -72,6 +72,7 @@ def get_tags_with_meta(event):
         query = convert_user_tag_to_query(tag["key"], tag["value"])
         if query:
             tag["query"] = query
+    map_device_class_tags(tags)
 
     tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
 
@@ -418,6 +419,7 @@ class SimpleEventSerializer(EventSerializer):
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
+        map_device_class_tags(tags)
 
         user = obj.get_minimal_user()
 
@@ -456,6 +458,7 @@ class ExternalEventSerializer(EventSerializer):
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
+        map_device_class_tags(tags)
 
         user = obj.get_minimal_user()
 
@@ -474,3 +477,15 @@ class ExternalEventSerializer(EventSerializer):
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
+
+
+def map_device_class_tags(tags):
+    """
+    If device.class tag exists, set the value to high, medium, low
+    """
+    for tag in tags:
+        if tag["key"] == "device.class":
+            if device_class := map_device_class_level(tag["value"]):
+                tag["value"] = device_class
+            continue
+    return tags
