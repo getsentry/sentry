@@ -270,17 +270,17 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content) minmax(
-      74px,
-      max-content
-    );
+  grid-template-columns:
+    minmax(120px, 1fr) minmax(120px, max-content) minmax(242px, max-content)
+    minmax(74px, max-content);
 
   > * {
     :nth-child(-n + 4) {
       :nth-child(4n-1) {
-       cursor: pointer;
+        cursor: pointer;
       }
     }
+  }
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
