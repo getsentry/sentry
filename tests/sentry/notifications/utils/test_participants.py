@@ -261,6 +261,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             team=self.team2,
         )
 
+        self.integration.add_organization(self.project.organization, self.user)
+
     def create_sample_commit(self, user: User) -> Commit:
         return self.create_commit(
             project=self.project,

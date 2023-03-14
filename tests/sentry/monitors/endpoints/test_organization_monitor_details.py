@@ -9,8 +9,8 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
     endpoint = "sentry-api-0-organization-monitor-details"
 
     def setUp(self):
-        self.login_as(user=self.user)
         super().setUp()
+        self.login_as(user=self.user)
 
     def test_simple(self):
         monitor = self._create_monitor()
