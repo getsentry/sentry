@@ -1,4 +1,5 @@
 import {useContext} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
@@ -13,6 +14,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconChevron,
   IconCopy,
+  IconDownload,
   IconEllipsis,
   IconNext,
   IconPrevious,
@@ -28,6 +30,7 @@ import {eventDetailsRoute, generateEventSlug} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
@@ -57,14 +60,15 @@ export const GroupEventCarousel = ({
   group,
   projectSlug,
 }: GroupEventCarouselProps) => {
+  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
+  const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const groupId = group.id;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isReplayEnabled = organization.features.includes('session-replay');
   const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
-  const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -73,6 +77,15 @@ export const GroupEventCarousel = ({
 
   const hasPreviousEvent = defined(event.previousEventID);
   const hasNextEvent = defined(event.nextEventID);
+
+  const downloadJson = () => {
+    const jsonUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${event.id}/json/`;
+    window.open(jsonUrl);
+    trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
+      organization,
+      group_id: parseInt(`${event.groupID}`, 10),
+    });
+  };
 
   const quickTrace = useContext(QuickTraceContext);
 
@@ -151,6 +164,16 @@ export const GroupEventCarousel = ({
           disabled={!hasNextEvent}
         />
       </StyledButtonBar>
+      {xlargeViewport && (
+        <Button
+          size={BUTTON_SIZE}
+          icon={<IconDownload size={BUTTON_ICON_SIZE} />}
+          aria-label="Newest"
+          onClick={downloadJson}
+        >
+          JSON
+        </Button>
+      )}
       <DropdownMenu
         position="bottom-end"
         triggerProps={{
@@ -171,13 +194,8 @@ export const GroupEventCarousel = ({
           {
             key: 'json',
             label: `JSON (${formatBytesBase2(event.size)})`,
-            onAction: () => {
-              window.open(jsonUrl);
-              trackAdvancedAnalyticsEvent('issue_details.event_json_clicked', {
-                organization,
-                group_id: parseInt(`${event.groupID}`, 10),
-              });
-            },
+            onAction: downloadJson,
+            hidden: xlargeViewport,
           },
           {
             key: 'full-event-discover',
@@ -227,6 +245,7 @@ const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
   gap: ${space(0.75)};
   margin-bottom: ${space(0.5)};
+  max-width: 900px;
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
