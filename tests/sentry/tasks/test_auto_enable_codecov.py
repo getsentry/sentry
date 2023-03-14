@@ -38,7 +38,7 @@ class AutoEnableCodecovTest(TestCase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value={"repositories": [{"full_name": "testgit/abc"}]},
     )
     def test_has_codecov_integration(self, mock_get_repositories):
         AuditLogEntry.objects.all().delete()
@@ -58,7 +58,7 @@ class AutoEnableCodecovTest(TestCase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["fakegit/abc"],
+        return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     def test_no_codecov_integration(self, mock_get_repositories):
         assert not self.org_1.flags.codecov_access.is_set
