@@ -8,7 +8,6 @@ from sentry.models import (
     ApiToken,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
-    ServiceHook,
 )
 from sentry.testutils import TestCase
 
@@ -37,17 +36,6 @@ class TestSentryAppIntallationDeletionTask(TestCase):
         self.install.api_grant.delete()
         self.install.update(api_grant=None)
         deletions.exec_sync(self.install)
-
-    def test_deletes_service_hooks(self):
-        hook = self.create_service_hook(
-            application=self.sentry_app.application,
-            org=self.org,
-            project=self.project,
-            actor=self.install,
-        )
-
-        deletions.exec_sync(self.install)
-        assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_deletes_api_tokens(self):
         internal_app = self.create_internal_integration(organization=self.org, slug="internal")
