@@ -179,6 +179,7 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
@@ -201,6 +202,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
