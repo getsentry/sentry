@@ -21,11 +21,12 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import metrics
+
+from ..utils import skip_group_processing
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -58,11 +59,7 @@ def save_issue_occurrence(
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
 
-        if (
-            occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
-            and options.get("performance.issues.send_to_issues_platform", False)
-            and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
-        ):
+        if skip_group_processing(occurrence, options, event.project):
             return
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
@@ -166,11 +163,7 @@ def save_issue_from_occurrence(
 
     # This forces an early return to skip extra processing steps
     # for performance issues because they are already created/updated in save_transaction
-    return_group_info_early = (
-        occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
-        and options.get("performance.issues.send_to_issues_platform", False)
-        and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
-    )
+    return_group_info_early = skip_group_processing(occurrence, options, project)
 
     if not existing_grouphash:
         if return_group_info_early:
@@ -236,11 +229,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    skip_consume = (
-        occurrence.type.type_id in get_group_types_by_category(GroupCategory.PERFORMANCE.value)
-        and options.get("performance.issues.send_to_issues_platform", False)
-        and event.project.get_option("sentry:performance_issue_send_to_issues_platform", False)
-    )
+    skip_consume = skip_group_processing(occurrence, options, event.project)
 
     eventstream.insert(
         event=group_event,
