@@ -81,6 +81,7 @@ export function SpanEvidenceKeyValueList({
       [IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES]: ConsecutiveDBQueriesSpanEvidence,
       [IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET]: RenderBlockingAssetSpanEvidence,
       [IssueType.PERFORMANCE_UNCOMPRESSED_ASSET]: UncompressedAssetSpanEvidence,
+      [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: ConsecutiveHTTPSpanEvidence,
     }[performanceProblem.issueType] ?? DefaultSpanEvidence;
 
   return (
@@ -113,6 +114,25 @@ const ConsecutiveDBQueriesSpanEvidence = ({
         makeRow(
           t('Duration Impact'),
           getDurationImpact(event, getConsecutiveDbTimeSaved(causeSpans, offendingSpans))
+        ),
+      ].filter(Boolean) as KeyValueListData
+    }
+  />
+);
+
+const ConsecutiveHTTPSpanEvidence = ({
+  event,
+  offendingSpans,
+  orgSlug,
+  projectSlug,
+}: SpanEvidenceKeyValueListProps) => (
+  <PresortedKeyValueList
+    data={
+      [
+        makeTransactionNameRow(event, orgSlug, projectSlug),
+        makeRow(
+          'Offending Spans',
+          offendingSpans.map(span => span.description)
         ),
       ].filter(Boolean) as KeyValueListData
     }

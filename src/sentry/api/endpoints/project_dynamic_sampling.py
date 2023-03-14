@@ -40,7 +40,7 @@ class DynamicSamplingPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectDynamicSamplingDistributionEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (DynamicSamplingPermission,)
 
     @staticmethod

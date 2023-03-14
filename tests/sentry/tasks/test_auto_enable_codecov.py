@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log, options
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
-from sentry.tasks.auto_enable_codecov import auto_enable_codecov, enable_for_organization
+from sentry.tasks.auto_enable_codecov import enable_for_organization, schedule_organizations
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
@@ -71,6 +71,6 @@ class AutoEnableCodecovTest(TestCase):
 
     @patch("sentry.tasks.auto_enable_codecov.enable_for_organization.delay")
     def test_schedules_for_orgs(self, mock_enable_for_organization):
-        auto_enable_codecov()
+        schedule_organizations()
 
         assert mock_enable_for_organization.call_count == 3
