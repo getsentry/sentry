@@ -7,7 +7,6 @@ from sentry.models.notificationaction import (
     ActionTarget,
     NotificationAction,
     NotificationActionProject,
-    TriggerGenerator,
 )
 
 
@@ -19,7 +18,7 @@ class NotificationActionSerializer(Serializer):
             NotificationActionProject.objects.filter(action_id__in=action_ids),
             "action_id",
         )
-        valid_triggers: Dict[int, str] = dict(TriggerGenerator())
+        valid_triggers: Dict[int, str] = dict(NotificationAction.get_trigger_types())
         return {
             item: {
                 "trigger_type": valid_triggers[item.trigger_type],

@@ -4,12 +4,7 @@ from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
-from sentry.models.notificationaction import (
-    ActionService,
-    ActionTarget,
-    NotificationAction,
-    TriggerGenerator,
-)
+from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
 
@@ -70,10 +65,10 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         return target_type_value
 
     def validate_trigger_type(self, trigger_type: str) -> int:
-        valid_triggers: Dict[str, int] = {v: k for k, v in TriggerGenerator()}
+        valid_triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
         trigger_type_value = valid_triggers.get(trigger_type)
         if trigger_type_value is None:
-            trigger_text = format_choices_text(TriggerGenerator())
+            trigger_text = format_choices_text(NotificationAction.get_trigger_types())
             raise serializers.ValidationError(
                 f"Invalid trigger selected. Choose from [{trigger_text}]"
             )

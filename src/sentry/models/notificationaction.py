@@ -202,6 +202,14 @@ class NotificationAction(AbstractNotificationAction):
 
         return inner
 
+    @classmethod
+    def get_handlers(cls):
+        return cls._handlers
+
+    @classmethod
+    def get_trigger_types(cls):
+        return cls._trigger_types
+
     def fire(self, *args, **kwargs):
         handler = NotificationAction._handlers[self.trigger_type].get(self.service_type)
         if handler:
