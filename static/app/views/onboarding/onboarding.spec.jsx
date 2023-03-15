@@ -4,7 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {PersistedStoreProvider} from 'sentry/stores/persistedStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import Onboarding from 'sentry/views/onboarding';
+import Onboarding from 'sentry/views/onboarding/onboarding';
 
 describe('Onboarding', function () {
   afterEach(function () {

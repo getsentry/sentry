@@ -1,5 +1,9 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {
+  getMappedThreadState,
+  ThreadStates,
+} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
+import {
   EntryData,
   Event,
   ExceptionType,
@@ -17,7 +21,7 @@ type ThreadInfo = {
   crashedInfo?: EntryData;
   filename?: string;
   label?: string;
-  state?: Thread['state'];
+  state?: ThreadStates;
 };
 
 function filterThreadInfo(
@@ -26,7 +30,7 @@ function filterThreadInfo(
   exception?: Required<ExceptionType>
 ): ThreadInfo {
   const threadInfo: ThreadInfo = {};
-  threadInfo.state = thread.state;
+  threadInfo.state = getMappedThreadState(thread.state);
 
   let stacktrace: StacktraceType | undefined = getThreadStacktrace(false, thread);
 
