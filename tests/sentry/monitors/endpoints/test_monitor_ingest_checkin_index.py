@@ -293,6 +293,12 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
         assert resp.status_code == 404
 
+    def test_with_dsn_and_missing_monitor_without_create(self):
+        path = reverse(self.endpoint, args=["my-missing-monitor"])
+        resp = self.client.post(path, {"status": "ok"}, **self.dsn_auth_headers)
+
+        assert resp.status_code == 404
+
     def test_rate_limit(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
