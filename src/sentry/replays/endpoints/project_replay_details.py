@@ -24,7 +24,7 @@ class ReplayDetailsPermission(ProjectPermission):
 
 @region_silo_endpoint
 class ProjectReplayDetailsEndpoint(ProjectEndpoint):
-    private = True
+
     permission_classes = (ReplayDetailsPermission,)
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:

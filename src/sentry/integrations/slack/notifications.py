@@ -51,8 +51,8 @@ def get_attachments(
 ) -> List[SlackAttachment]:
     extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
     context = get_context(notification, recipient, shared_context, extra_context)
-    klass = get_message_builder(notification.message_builder)
-    attachments = klass(notification, context, recipient).build()
+    cls = get_message_builder(notification.message_builder)
+    attachments = cls(notification, context, recipient).build()
     if isinstance(attachments, List):
         return attachments
     return [attachments]

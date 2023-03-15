@@ -140,6 +140,12 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if getattr(self.event, "occurrence", None):
+            context["issue_title"] = self.event.occurrence.issue_title
+            context["subtitle"] = self.event.occurrence.subtitle
+            context["culprit"] = self.event.occurrence.culprit
+
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:

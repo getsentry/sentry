@@ -30,9 +30,7 @@ describe('CodeownerErrors', () => {
       )
     );
     expect(
-      screen.getByText(
-        `The following teams do not have an association in the organization: ${org.slug}`
-      )
+      screen.getByText(`There’s a problem linking teams and members from an integration`)
     ).toBeInTheDocument();
     expect(screen.getByText('@getsentry/something')).toBeInTheDocument();
   });

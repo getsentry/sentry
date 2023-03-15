@@ -1,3 +1,5 @@
+import type {ReplayRecord} from 'sentry/views/replays/types';
+
 type SimpleStub<T = any> = () => T;
 
 type OverridableStub<T = any> = (params?: Partial<T>) => T;
@@ -97,7 +99,15 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReplayReaderParams: OverridableStub;
+  ReplayError: OverridableStub;
+  ReplayRRWebDivHelloWorld: OverridableStub;
+  ReplayRRWebNode: OverridableStub;
+  ReplayRecord: OverridableStub<ReplayRecord>;
+  ReplaySegmentBreadcrumb: OverridableStub;
+  ReplaySegmentConsole: OverridableStub;
+  ReplaySegmentFullsnapshot: OverridableStub;
+  ReplaySegmentInit: OverridableStub;
+  ReplaySegmentNavigation: OverridableStub;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;

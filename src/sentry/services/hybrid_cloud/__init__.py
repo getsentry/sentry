@@ -43,6 +43,9 @@ T = TypeVar("T")
 
 ArgumentDict = Mapping[str, Any]
 
+IDEMPOTENCY_KEY_LENGTH = 48
+REGION_NAME_LENGTH = 48
+
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod

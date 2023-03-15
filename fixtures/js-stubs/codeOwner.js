@@ -1,6 +1,14 @@
 import {GitHubIntegration} from './githubIntegration';
+import {Project} from './project';
+import {Repository} from './repository';
+import {RepositoryProjectPathConfig} from './repositoryProjectPathConfig';
 
-export function CodeOwner(params = {}) {
+export function CodeOwner({
+  project = Project(),
+  repo = Repository(),
+  integration = GitHubIntegration(),
+  ...params
+} = {}) {
   return {
     id: '1225',
     raw: '',
@@ -8,7 +16,7 @@ export function CodeOwner(params = {}) {
     dateUpdated: '2023-02-24T18:43:08.729490Z',
     codeMappingId: '11',
     provider: 'github',
-    codeMapping: GitHubIntegration(),
+    codeMapping: RepositoryProjectPathConfig({project, repo, integration}),
     ownershipSyntax: '',
     errors: {
       missing_user_emails: [],

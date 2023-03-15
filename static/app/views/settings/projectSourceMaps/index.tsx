@@ -1,20 +1,23 @@
-import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import {Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import ProjectSourceMapsList from 'sentry/views/settings/projectSourceMaps/list';
+import {ProjectSourceMaps} from 'sentry/views/settings/projectSourceMaps/projectSourceMaps';
 
-type Props = RouteComponentProps<{}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   children: React.ReactNode;
-  organization: Organization;
   project: Project;
 };
 
-function ProjectSourceMapsContainer(props: Props) {
-  const {children, organization, project} = props;
-  return isValidElement(children)
-    ? cloneElement<any>(children, {organization, project})
-    : null;
-}
+export function ProjectSourceMapsContainer(props: Props) {
+  const organization = useOrganization();
 
-export default withOrganization(ProjectSourceMapsContainer);
+  const sourceMapsDebugIds = organization.features.includes('source-maps-debug-ids');
+
+  if (sourceMapsDebugIds) {
+    return <ProjectSourceMaps {...props} />;
+  }
+
+  return <ProjectSourceMapsList {...props} organization={organization} />;
+}

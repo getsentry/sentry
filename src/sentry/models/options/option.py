@@ -17,7 +17,7 @@ class Option(Model):  # type: ignore
 
     __include_in_export__ = True
 
-    key = models.CharField(max_length=64, unique=True)
+    key = models.CharField(max_length=128, unique=True)
     value = PickledObjectField()
     last_updated = models.DateTimeField(default=timezone.now)
 

@@ -126,3 +126,9 @@ interface OnboardingTaskWithExternal
 }
 
 export type OnboardingTask = OnboardingTaskWithAction | OnboardingTaskWithExternal;
+
+export enum OnboardingStatus {
+  WAITING = 'waiting',
+  PROCESSING = 'processing',
+  PROCESSED = 'processed',
+}

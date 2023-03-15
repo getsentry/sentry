@@ -2,8 +2,7 @@ import logging
 from datetime import datetime
 
 import pytz
-from django.db import IntegrityError, transaction
-from django.db.models import F, Q
+from django.db.models import F
 from django.utils import timezone
 
 from sentry import analytics
@@ -12,9 +11,9 @@ from sentry.models import (
     OnboardingTaskStatus,
     Organization,
     OrganizationOnboardingTask,
-    OrganizationOption,
     Project,
 )
+from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases import IssueTrackingPlugin, IssueTrackingPlugin2
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
@@ -36,7 +35,6 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
-from sentry.utils import json
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 
@@ -47,30 +45,6 @@ logger = logging.getLogger("sentry")
 START_DATE_TRACKING_FIRST_EVENT_WITH_MINIFIED_STACK_TRACE_PER_PROJ = datetime(
     2022, 12, 14, tzinfo=pytz.UTC
 )
-
-
-def try_mark_onboarding_complete(organization_id):
-    if OrganizationOption.objects.filter(
-        organization_id=organization_id, key="onboarding:complete"
-    ).exists():
-        return
-
-    completed = set(
-        OrganizationOnboardingTask.objects.filter(
-            Q(organization_id=organization_id)
-            & (Q(status=OnboardingTaskStatus.COMPLETE) | Q(status=OnboardingTaskStatus.SKIPPED))
-        ).values_list("task", flat=True)
-    )
-    if completed >= OrganizationOnboardingTask.REQUIRED_ONBOARDING_TASKS:
-        try:
-            with transaction.atomic():
-                OrganizationOption.objects.create(
-                    organization_id=organization_id,
-                    key="onboarding:complete",
-                    value={"updated": json.datetime_to_str(timezone.now())},
-                )
-        except IntegrityError:
-            pass
 
 
 @project_created.connect(weak=False)

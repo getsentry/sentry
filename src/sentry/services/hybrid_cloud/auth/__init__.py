@@ -62,6 +62,7 @@ def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
 
 
 class RpcAuthentication(BaseAuthentication):  # type: ignore
+    www_authenticate_realm = "api"
     types: List[RpcAuthenticatorType]
 
     def __init__(self, types: List[RpcAuthenticatorType]):
@@ -76,6 +77,12 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
             return response.user, response.auth
 
         return None
+
+    # What does this do you may ask?  Actually, it tricks the django request_framework to returning the correct 401
+    # over 403 in unauthenticated cases, due to some deep library code nonsense.  Tests fail if you remove.
+    # Otherwise, this authenticate header value means absolutely nothing to clients.
+    def authenticate_header(self, request: Request) -> str:
+        return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 class RpcMemberSsoState(RpcModel):
