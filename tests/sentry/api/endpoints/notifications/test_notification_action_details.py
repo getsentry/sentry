@@ -5,7 +5,7 @@ from sentry.models.notificationaction import NotificationAction, NotificationAct
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
-NOTFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
+NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 
 
 @region_silo_test(stable=True)
