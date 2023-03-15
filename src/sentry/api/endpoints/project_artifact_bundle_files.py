@@ -50,7 +50,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                                           release belongs to.
         :pparam string project_slug: the slug of the project to list the
                                      release files of.
-        :pparam string bundle_id: id of the artifact bundle to read contents from.
+        :pparam string bundle_id: bundle_id of the artifact bundle to read contents from.
         """
 
         try:
