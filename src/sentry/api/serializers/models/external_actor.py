@@ -48,10 +48,10 @@ class ExternalActorSerializer(Serializer):  # type: ignore
         # each actor id maps to an object
         resolved_actors: MutableMapping[int, Any] = {}
         for type_str, type_id in ACTOR_TYPES.items():
-            klass = actor_type_to_class(type_id)
+            cls = actor_type_to_class(type_id)
             actor_ids = actor_ids_by_type[type_str]
 
-            for model in fetch_actors_by_actor_ids(klass, actor_ids):
+            for model in fetch_actors_by_actor_ids(cls, actor_ids):
                 resolved_actors[model.actor_id] = {type_str: model}
 
         # create a mapping of external actor to a set of attributes. Those attributes are either {"user": User} or {"team": Team}.
