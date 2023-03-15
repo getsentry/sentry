@@ -4,8 +4,9 @@ import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 
-from sentry import eventstore, eventstream, models, nodestore
+from sentry import eventstore, eventstream, nodestore
 from sentry.eventstore.models import Event
+from sentry.models import Project
 from sentry.reprocessing2 import buffered_delete_old_primary_hash
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.process_buffer import buffer_incr
@@ -64,7 +65,9 @@ def reprocess_group(
         batch_size=settings.SENTRY_REPROCESSING_PAGE_SIZE,
         state=query_state,
         referrer="reprocessing2.reprocess_group",
-        tenant_ids={"organization_id": models.Project.objects.get(id=project_id).organization_id},
+        tenant_ids={
+            "organization_id": Project.objects.get_from_cache(id=project_id).organization_id
+        },
     )
 
     if not events:
