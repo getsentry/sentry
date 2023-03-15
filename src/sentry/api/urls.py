@@ -1543,6 +1543,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-sentry-apps",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/sentry-app-components/$",
+        OrganizationSentryAppComponentsEndpoint.as_view(),
+        name="sentry-api-0-organization-sentry-app-components",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/stats/$",
         OrganizationStatsEndpoint.as_view(),
         name="sentry-api-0-organization-stats",
@@ -2614,11 +2619,6 @@ urlpatterns = [
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-apps-stats",
-    ),
-    url(
-        r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",
-        OrganizationSentryAppComponentsEndpoint.as_view(),
-        name="sentry-api-0-org-sentry-app-components",
     ),
     # Document Integrations
     url(

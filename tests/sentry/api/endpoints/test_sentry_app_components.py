@@ -50,7 +50,7 @@ class SentryAppComponentsTest(APITestCase):
 
 @region_silo_test
 class OrganizationSentryAppComponentsTest(APITestCase):
-    endpoint = "sentry-api-0-org-sentry-app-components"
+    endpoint = "sentry-api-0-organization-sentry-app-components"
 
     def setUp(self):
         self.user = self.create_user()
