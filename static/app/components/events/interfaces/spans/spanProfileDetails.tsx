@@ -145,7 +145,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     <Fragment>
       <SpanDetails>
         <SpanDetailsItem grow>
-          <SectionHeading>{t('Top Contributors to this Span')}</SectionHeading>
+          <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
