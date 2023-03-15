@@ -5,7 +5,11 @@ import pytest
 
 from sentry import projectoptions
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, PerformanceSlowDBQueryGroupType
+from sentry.issues.grouptype import (
+    PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.performance_issues.event_generators import get_event
@@ -170,6 +174,41 @@ class PerformanceDetectionTest(TestCase):
 
         perf_problems = _detect_performance_problems(n_plus_one_event, sdk_span_mock, self.project)
         assert perf_problems == []
+
+    @override_options({"performance.issues.consecutive_http.flag_disabled": True})
+    def test_boolean_system_option_disables_detector_issue_creation(self):
+        event = get_event("consecutive-http/consecutive-http-basic")
+        sdk_span_mock = Mock()
+
+        with self.feature("organizations:performance-consecutive-http-detector"):
+            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+            assert perf_problems == []
+
+    @override_options({"performance.issues.consecutive_http.flag_disabled": False})
+    def test_boolean_system_option_enables_detector_issue_creation(self):
+        event = get_event("consecutive-http/consecutive-http-basic")
+        sdk_span_mock = Mock()
+
+        with self.feature("organizations:performance-consecutive-http-detector"):
+            perf_problems = _detect_performance_problems(event, sdk_span_mock, self.project)
+            assert perf_problems == [
+                PerformanceProblem(
+                    fingerprint="1-1009-c5e048717e2f5ca1a251cbbfbcfd82aee7e89cd9",
+                    op="http",
+                    desc="GET https://my-api.io/api/users?page=1",
+                    type=PerformanceConsecutiveHTTPQueriesGroupType,
+                    parent_span_ids=None,
+                    cause_span_ids=[],
+                    offender_span_ids=[
+                        "96e0ae187b5481a1",
+                        "8d22b49a27b18270",
+                        "b2bc2ebb42248c74",
+                        "9336922774fd35bc",
+                        "a307ceb77c702cea",
+                        "ac1e90ff646617e7",
+                    ],
+                )
+            ]
 
     @override_options(BASE_DETECTOR_OPTIONS)
     def test_system_option_used_when_project_option_is_default(self):
