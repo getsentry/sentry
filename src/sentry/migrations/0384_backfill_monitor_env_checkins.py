@@ -38,7 +38,7 @@ def backfill_monitor_checkins(apps, schema_editor):
 
         try:
             monitor_environment = MonitorEnvironment.objects.filter(monitor_id=monitor_id)[0]
-        except MonitorEnvironment.DoesNotExist:
+        except IndexError:
             continue  # test me
 
         batch.append((monitor_checkin_id, monitor_environment.id))
@@ -61,7 +61,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = False
+    is_dangerous = True
 
     dependencies = [
         ("sentry", "0383_mv_user_avatar"),
