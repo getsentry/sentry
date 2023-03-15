@@ -7,7 +7,6 @@ from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 BATCH_SIZE = 100
-DEFAULT_ENVIRONMENT_NAME = "production"
 
 UPDATE_QUERY = """
     UPDATE sentry_monitorcheckin
@@ -17,31 +16,43 @@ UPDATE_QUERY = """
 
 
 def backfill_monitor_checkins(apps, schema_editor):
+    Monitor = apps.get_model("sentry", "MonitorCheckIn")
     MonitorCheckIn = apps.get_model("sentry", "MonitorCheckIn")
     MonitorEnvironment = apps.get_model("sentry", "MonitorEnvironment")
+
+    monitor_mappings = {}
+    monitor_queryset = RangeQuerySetWrapperWithProgressBar(
+        Monitor.objects.all().values_list(
+            "id",
+        ),
+        result_value_getter=lambda item: item[0],
+    )
+
+    for monitor_id in monitor_queryset:
+        try:
+            monitor_environment = MonitorEnvironment.objects.filter(monitor_id=monitor_id)[0]
+            monitor_mappings[monitor_id] = monitor_environment.id
+        except IndexError:
+            continue
 
     queryset = RangeQuerySetWrapperWithProgressBar(
         MonitorCheckIn.objects.all().values_list(
             "id",
-            "project_id",
-            "monitor",
-            "monitor_environment",
+            "monitor_id",
+            "monitor_environment_id",
         ),
         result_value_getter=lambda item: item[0],
     )
 
     cursor = connection.cursor()
     batch = []
-    for monitor_checkin_id, project_id, monitor_id, monitor_environment_id in queryset:
+    for monitor_checkin_id, monitor_id, monitor_environment_id in queryset:
         if monitor_environment_id:
             continue
 
-        try:
-            monitor_environment = MonitorEnvironment.objects.filter(monitor_id=monitor_id)[0]
-        except IndexError:
-            continue
+        monitor_environment_id = monitor_mappings[monitor_id]
 
-        batch.append((monitor_checkin_id, monitor_environment.id))
+        batch.append((monitor_checkin_id, monitor_environment_id))
         if len(batch) >= BATCH_SIZE:
             execute_values(cursor, UPDATE_QUERY, batch, page_size=BATCH_SIZE)
             batch = []
@@ -73,7 +84,8 @@ class Migration(CheckedMigration):
             migrations.RunPython.noop,
             hints={
                 "tables": [
-                    "sentry_monitor" "sentry_monitorcheckin",
+                    "sentry_monitor",
+                    "sentry_monitorcheckin",
                     "sentry_monitorenvironment",
                 ]
             },
