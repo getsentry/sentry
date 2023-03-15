@@ -3,6 +3,7 @@ from functools import cached_property
 from uuid import uuid4
 
 from confluent_kafka import Producer
+from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
@@ -31,7 +32,8 @@ from sentry.snuba.query_subscription_consumer import (
     subscriber_registry,
 )
 from sentry.testutils import TestCase
-from sentry.utils import json
+from sentry.utils import json, kafka_config
+from sentry.utils.batching_kafka_consumer import create_topics
 
 
 @freeze_time()
@@ -44,11 +46,21 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)
 
+        cluster_options = kafka_config.get_kafka_admin_cluster_options(
+            "default", {"allow.auto.create.topics": "true"}
+        )
+        self.admin_client = AdminClient(cluster_options)
+
+        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        create_topics(kafka_cluster, [self.topic])
+
     def tearDown(self):
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
+
+        self.admin_client.delete_topics([self.topic])
 
     @cached_property
     def subscription(self):
@@ -166,10 +178,5 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.run_test(consumer)
 
     def test_arroyo(self):
-        from sentry.utils.batching_kafka_consumer import create_topics
-
-        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
-        create_topics(kafka_cluster, [self.topic])
-
         consumer = get_query_subscription_consumer(self.topic, "hi", True)
         self.run_test(consumer)
