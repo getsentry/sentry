@@ -67,10 +67,10 @@ class UserFeature(Feature):
 
 class FeatureHandlerStrategy(Enum):
     """
-    This controls whether the feature flag is evaulated statically,
-    or if it's managed by a feature flag service.
+    This controls whether the feature flag is evaluated statically,
+    or if it's managed by a remote feature flag service.
     See https://develop.sentry.dev/feature-flags/
     """
 
-    STATIC = 1
-    MANAGED = 2
+    INTERNAL = 1
+    REMOTE = 2
