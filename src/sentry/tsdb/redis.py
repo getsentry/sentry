@@ -456,6 +456,7 @@ class RedisTSDB(BaseTSDB):
         use_cache=False,
         jitter_value=None,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         Count distinct items during a time range.
