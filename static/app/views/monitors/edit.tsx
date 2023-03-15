@@ -1,57 +1,57 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import {browserHistory} from 'react-router';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import {useQuery} from 'sentry/utils/queryClient';
+import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withOrganization from 'sentry/utils/withOrganization';
-import AsyncView from 'sentry/views/asyncView';
 
 import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
-type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorSlug: string}, {}> & {
-    organization: Organization;
-  };
+export default function EditMonitor() {
+  const {monitorSlug} = useParams();
+  const organization = useOrganization();
 
-type State = AsyncView['state'] & {
-  monitor: Monitor | null;
-};
+  const {
+    isLoading,
+    isError,
+    data: monitor,
+    refetch,
+  } = useQuery<Monitor>(
+    [`/organizations/${organization.slug}/monitors/${monitorSlug}/`],
+    {
+      staleTime: 0,
+    }
+  );
 
-class EditMonitor extends AsyncView<Props, State> {
-  get orgSlug() {
-    return this.props.organization.slug;
-  }
-
-  getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
-    return [
-      ['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`],
-    ];
-  }
-
-  onSubmitSuccess = (data: Monitor) =>
+  const onSubmitSuccess = (data: Monitor) =>
     browserHistory.push(
-      normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.slug}/`)
+      normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
     );
 
-  getTitle() {
-    if (this.state.monitor) {
-      return `${this.state.monitor.name} - Crons - ${this.orgSlug}`;
+  const getTitle = () => {
+    if (monitor) {
+      return `${monitor.name} - Crons - ${organization.slug}`;
     }
-    return `Crons - ${this.orgSlug}`;
+    return `Crons - ${organization.slug}`;
+  };
+
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  renderBody() {
-    const {monitor} = this.state;
+  if (isError) {
+    return <LoadingError onRetry={refetch} message="Failed to load monitor." />;
+  }
 
-    if (monitor === null) {
-      return null;
-    }
-
-    return (
+  return (
+    <SentryDocumentTitle title={getTitle()}>
       <Layout.Page>
         <Layout.Header>
           <Layout.HeaderContent>
@@ -59,7 +59,7 @@ class EditMonitor extends AsyncView<Props, State> {
               crumbs={[
                 {
                   label: t('Crons'),
-                  to: `/organizations/${this.orgSlug}/crons/`,
+                  to: `/organizations/${organization.slug}/crons/`,
                 },
                 {
                   label: t('Editing %s', monitor.name),
@@ -74,14 +74,12 @@ class EditMonitor extends AsyncView<Props, State> {
             <MonitorForm
               monitor={monitor}
               apiMethod="PUT"
-              apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.slug}/`}
-              onSubmitSuccess={this.onSubmitSuccess}
+              apiEndpoint={`/organizations/${organization.slug}/monitors/${monitor.slug}/`}
+              onSubmitSuccess={onSubmitSuccess}
             />
           </Layout.Main>
         </Layout.Body>
       </Layout.Page>
-    );
-  }
+    </SentryDocumentTitle>
+  );
 }
-
-export default withOrganization(EditMonitor);
