@@ -25,8 +25,8 @@ export const ListWrap = styled('ul')`
 
   /* Remove top padding if preceded by search input, since search input already has
   vertical padding */
-  div[data-select-overlay] input ~ &&:first-of-type,
-  div[data-select-overlay] input ~ div > &&:first-of-type {
+  input ~ &&:first-of-type,
+  input ~ div > &&:first-of-type {
     padding-top: 0;
   }
 
