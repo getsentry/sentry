@@ -178,5 +178,5 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.run_test(consumer)
 
     def test_arroyo(self):
-        consumer = get_query_subscription_consumer(self.topic, "hi", True)
+        consumer = get_query_subscription_consumer(self.topic, "hi", True, "earliest")
         self.run_test(consumer)
