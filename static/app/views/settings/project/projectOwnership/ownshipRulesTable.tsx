@@ -41,7 +41,7 @@ export function OwnershipRulesTable({
 }: OwnershipRulesTableProps) {
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(0);
-  const [selectedActors, setSelectedActors] = useState<string[]>([]);
+  const [selectedActors, setSelectedActors] = useState<string[] | null>(null);
   const {teams} = useTeams({provideUserTeams: true});
 
   const combinedRules = useMemo(() => {
@@ -52,7 +52,7 @@ export function OwnershipRulesTable({
       }))
     );
 
-    return [...projectRules, ...codeownerRulesWithId];
+    return [...codeownerRulesWithId, ...projectRules];
   }, [projectRules, codeowners]);
 
   /**
@@ -91,10 +91,10 @@ export function OwnershipRulesTable({
   }, [allActors, teams]);
 
   useEffect(() => {
-    if (myTeams.length > 0) {
+    if (myTeams.length > 0 && selectedActors === null) {
       setSelectedActors(myTeams.map(actor => `${actor.type}:${actor.id}`));
     }
-  }, [myTeams]);
+  }, [myTeams, selectedActors]);
 
   /**
    * Rules chunked into pages
@@ -104,8 +104,10 @@ export function OwnershipRulesTable({
       rule =>
         // Filter by query
         (rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)) &&
-        // Filter by selected actors
-        (selectedActors.length === 0 ||
+        // Selected actors not set
+        (selectedActors === null ||
+          // Selected actors was cleared
+          selectedActors.length === 0 ||
           rule.owners.some(owner => selectedActors.includes(`${owner.type}:${owner.id}`)))
     );
 
@@ -137,9 +139,10 @@ export function OwnershipRulesTable({
       <SearchAndSelectorWrapper>
         <OwnershipOwnerFilter
           actors={allActors}
-          selectedTeams={selectedActors}
+          selectedTeams={selectedActors ?? []}
           handleChangeFilter={handleChangeFilter}
           isMyTeams={
+            !!selectedActors &&
             selectedActors.length > 0 &&
             isEqual(
               selectedActors,

@@ -887,8 +887,13 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 1 hour
-        "schedule": crontab(minute=0),
+        # Run job every 5 minutes
+        "schedule": timedelta(minutes=5),
+    },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run job every 4 hours at min 10
+        "schedule": crontab(minute=10, hour="*/4"),
     },
 }
 
@@ -1187,6 +1192,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
     # Enable the dynamic sampling "Transaction Name" priority in the UI
     "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1295,7 +1302,7 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable a banner on the issue details page guiding the user to setup source maps
     "organizations:source-maps-cta": False,
-    # Enable a UI where users can see bundles and it's artefacts which only have debug ID's
+    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
@@ -1307,6 +1314,8 @@ SENTRY_FEATURES = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
+    "organizations:onboarding-heartbeat-footer-with-view-sample-error": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,

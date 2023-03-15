@@ -116,7 +116,7 @@ class TestUpdater(TestCase):
         updater = Updater(sentry_app=sentry_app, events=("issue",), user=self.user)
         updater.call()
         assert set(sentry_app.events) == expand_events(["issue"])
-        service_hook = ServiceHook.objects.filter(application=sentry_app.application)[0]
+        service_hook = ServiceHook.objects.filter(application_id=sentry_app.application_id)[0]
         assert set(service_hook.events) == expand_events(["issue"])
 
     def test_updates_webhook_url(self):
@@ -132,7 +132,7 @@ class TestUpdater(TestCase):
         )
         updater.call()
         assert sentry_app.webhook_url == "http://example.com/hooks"
-        service_hook = ServiceHook.objects.get(application=sentry_app.application)
+        service_hook = ServiceHook.objects.get(application_id=sentry_app.application_id)
         assert service_hook.url == "http://example.com/hooks"
         assert set(service_hook.events) == expand_events(["event.alert"])
 
@@ -187,12 +187,12 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url=None, scopes=("event:read",)
         )
-        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
+        assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0
         updater = Updater(sentry_app=internal_app, user=self.user)
         updater.webhook_url = "https://sentry.io/hook"
         updater.events = ("issue",)
         updater.call()
-        service_hook = ServiceHook.objects.get(application=internal_app.application)
+        service_hook = ServiceHook.objects.get(application_id=internal_app.application_id)
         assert service_hook.url == "https://sentry.io/hook"
         assert set(service_hook.events) == expand_events(["issue"])
 
@@ -201,8 +201,8 @@ class TestUpdater(TestCase):
         internal_app = self.create_internal_integration(
             name="Internal", organization=self.org, webhook_url="https://sentry.io/hook"
         )
-        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 1
+        assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 1
         updater = Updater(sentry_app=internal_app, user=self.user)
         updater.webhook_url = ""
         updater.call()
-        assert len(ServiceHook.objects.filter(application=internal_app.application)) == 0
+        assert len(ServiceHook.objects.filter(application_id=internal_app.application_id)) == 0

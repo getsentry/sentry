@@ -30,6 +30,7 @@ def consolidate_events(raw_events):
 
 class Creator(Mediator):
     application = Param("sentry.models.ApiApplication", required=False)
+    application_id = Param(int, required=False)
     actor = Param("sentry.db.models.BaseModel")
     installation_id = Param(int, required=False)
     organization = Param("sentry.models.Organization")
@@ -42,7 +43,7 @@ class Creator(Mediator):
         return self.hook
 
     def _create_service_hook(self):
-        application_id = self.application.id if self.application else None
+        application_id = self.application.id if self.application else self.application_id
 
         # nullable for sentry apps
         project_id = self.projects[0].id if self.projects else None
