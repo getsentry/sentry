@@ -23,6 +23,12 @@ export const experimentList: {
     parameter: 'exposed',
     assignments: [0, 1],
   },
+  {
+    key: 'OnboardingNewFooterExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'scenario',
+    assignments: [0, 1, 2],
+  },
 ];
 
 export const experimentConfig = experimentList.reduce(
