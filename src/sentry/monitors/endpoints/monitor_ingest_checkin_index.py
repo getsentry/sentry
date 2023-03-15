@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Project, ProjectKey
+from sentry.models import ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -26,9 +26,9 @@ from sentry.monitors.models import (
     MonitorStatus,
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
+from sentry.monitors.utils import signal_first_checkin
 from sentry.monitors.validators import MonitorCheckInValidator
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
@@ -166,15 +166,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 status=getattr(CheckInStatus, result["status"].upper()),
             )
 
-            if not project.flags.has_cron_checkins:
-                # Backfill users that already have cron monitors
-                if not project.flags.has_cron_monitors:
-                    first_cron_monitor_created.send_robust(
-                        project=project, user=None, sender=Project
-                    )
-                first_cron_checkin_received.send_robust(
-                    project=project, monitor_id=str(monitor.guid), sender=Project
-                )
+            signal_first_checkin(project, monitor)
 
             if checkin.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor_failed = monitor.mark_failed(last_checkin=checkin.date_added)
