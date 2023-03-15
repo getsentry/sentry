@@ -54,7 +54,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                     Outcome.RATE_LIMITED.api_name(),
                 ],
                 group_by=["outcome"],
-                category="error",
+                category=["error"],
                 key_id=key.id,
                 interval=request.GET.get("resolution", "1d"),
             )

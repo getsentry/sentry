@@ -238,7 +238,7 @@ class QueryDefinition:
         outcome: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
         query: Optional[Mapping[str, Any]] = None,
-        category: Optional[str] = None,
+        category: Optional[List[str]] = None,
         reason: Optional[str] = None,
         allow_minute_resolution: bool = True,
     ) -> QueryDefinition:
@@ -258,13 +258,13 @@ class QueryDefinition:
             query_dict.setlist("groupBy", group_by)
         if outcome is not None:
             query_dict.setlist("outcome", outcome)
+        if category is not None:
+            query_dict.setlist("category", category)
 
         if interval is not None:
             query_dict["interval"] = interval
         if reason is not None:
             query_dict["reason"] = reason
-        if category is not None:
-            query_dict["category"] = category
         if query is not None:
             query_dict["query"] = query
         if key_id is not None:
