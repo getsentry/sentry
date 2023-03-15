@@ -22,7 +22,7 @@ class RpcOrganizationMapping:
     slug: str = ""
     name: str = ""
     region_name: str = ""
-    date_created: datetime = field(default_factory=lambda: timezone.now())
+    date_created: datetime = field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
 
