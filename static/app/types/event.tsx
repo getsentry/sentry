@@ -147,6 +147,7 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
+  lockReason?: string | null;
   name?: string | null;
   state?: string | null;
 }

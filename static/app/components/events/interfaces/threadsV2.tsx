@@ -1,9 +1,12 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   EntryType,
   Event,
@@ -112,7 +115,14 @@ export function ThreadsV2({
   }
 
   function renderPills() {
-    const {id, name, current, crashed} = activeThread ?? {};
+    const {
+      id,
+      name,
+      current,
+      crashed,
+      state: threadState,
+      lockReason,
+    } = activeThread ?? {};
 
     if (isNil(id) || !name) {
       return null;
@@ -128,6 +138,8 @@ export function ThreadsV2({
             {crashed ? t('yes') : t('no')}
           </Pill>
         )}
+        {!isNil(threadState) && <Pill name={t('state')} value={threadState} />}
+        {!isNil(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
   }
@@ -201,82 +213,96 @@ export function ThreadsV2({
   const platform = getPlatform();
 
   return (
-    <TraceEventDataSection
-      type={EntryType.THREADS}
-      stackType={STACK_TYPE.ORIGINAL}
-      projectSlug={projectSlug}
-      eventId={event.id}
-      recentFirst={isStacktraceNewestFirst()}
-      fullStackTrace={stackView === STACK_VIEW.FULL}
-      title={
-        hasMoreThanOneThread && activeThread ? (
-          <ThreadSelector
-            threads={threads}
-            activeThread={activeThread}
-            event={event}
-            onChange={thread => {
-              setState({
-                ...state,
-                activeThread: thread,
-              });
-            }}
-            exception={exception}
-            fullWidth
-          />
-        ) : (
-          <PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>
-        )
-      }
-      platform={platform}
-      hasMinified={
-        !!exception?.values?.find(value => value.rawStacktrace) ||
-        !!activeThread?.rawStacktrace
-      }
-      hasVerboseFunctionNames={
-        !!exception?.values?.some(
-          value =>
-            !!value.stacktrace?.frames?.some(
-              frame =>
-                !!frame.rawFunction &&
-                !!frame.function &&
-                frame.rawFunction !== frame.function
-            )
-        ) ||
-        !!activeThread?.stacktrace?.frames?.some(
-          frame =>
-            !!frame.rawFunction &&
-            !!frame.function &&
-            frame.rawFunction !== frame.function
-        )
-      }
-      hasAbsoluteFilePaths={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
-      }
-      hasAbsoluteAddresses={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-      }
-      hasAppOnlyFrames={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
-      }
-      hasNewestFirst={
-        !!exception?.values?.some(value => (value.stacktrace?.frames ?? []).length > 1) ||
-        (activeThread?.stacktrace?.frames ?? []).length > 1
-      }
-      stackTraceNotFound={stackTraceNotFound}
-      wrapTitle={false}
-    >
-      {childrenProps => (
-        <Fragment>
+    <Fragment>
+      {hasMoreThanOneThread && (
+        <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+          {activeThread && (
+            <Wrapper>
+              <ThreadSelector
+                threads={threads}
+                activeThread={activeThread}
+                event={event}
+                onChange={thread => {
+                  setState({
+                    ...state,
+                    activeThread: thread,
+                  });
+                }}
+                exception={exception}
+              />
+            </Wrapper>
+          )}
           {renderPills()}
-          {renderContent(childrenProps)}
-        </Fragment>
+        </EventDataSection>
       )}
-    </TraceEventDataSection>
+      <TraceEventDataSection
+        type={EntryType.THREADS}
+        stackType={STACK_TYPE.ORIGINAL}
+        projectSlug={projectSlug}
+        eventId={event.id}
+        recentFirst={isStacktraceNewestFirst()}
+        fullStackTrace={stackView === STACK_VIEW.FULL}
+        title={
+          <PermalinkTitle>
+            {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+          </PermalinkTitle>
+        }
+        platform={platform}
+        hasMinified={
+          !!exception?.values?.find(value => value.rawStacktrace) ||
+          !!activeThread?.rawStacktrace
+        }
+        hasVerboseFunctionNames={
+          !!exception?.values?.some(
+            value =>
+              !!value.stacktrace?.frames?.some(
+                frame =>
+                  !!frame.rawFunction &&
+                  !!frame.function &&
+                  frame.rawFunction !== frame.function
+              )
+          ) ||
+          !!activeThread?.stacktrace?.frames?.some(
+            frame =>
+              !!frame.rawFunction &&
+              !!frame.function &&
+              frame.rawFunction !== frame.function
+          )
+        }
+        hasAbsoluteFilePaths={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
+        }
+        hasAbsoluteAddresses={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        }
+        hasAppOnlyFrames={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        }
+        hasNewestFirst={
+          !!exception?.values?.some(
+            value => (value.stacktrace?.frames ?? []).length > 1
+          ) || (activeThread?.stacktrace?.frames ?? []).length > 1
+        }
+        stackTraceNotFound={stackTraceNotFound}
+        wrapTitle={false}
+      >
+        {childrenProps => <Fragment>{renderContent(childrenProps)}</Fragment>}
+      </TraceEventDataSection>
+    </Fragment>
   );
 }
+
+const Wrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  justify-content: flex-start;
+  padding-bottom: ${space(2)};
+`;
