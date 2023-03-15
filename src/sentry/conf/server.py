@@ -887,8 +887,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 1 hour
-        "schedule": crontab(minute=0),
+        # Run job every 5 minutes
+        "schedule": timedelta(minutes=5),
     },
 }
 
