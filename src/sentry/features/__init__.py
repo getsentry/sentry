@@ -104,6 +104,7 @@ default_manager.add("organizations:minute-resolution-sessions", OrganizationFeat
 default_manager.add("organizations:mobile-view-hierarchies", OrganizationFeature, True)
 default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, True)
 default_manager.add("organizations:anr-rate", OrganizationFeature, True)
+default_manager.add("organizations:device-classification", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature, True)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
