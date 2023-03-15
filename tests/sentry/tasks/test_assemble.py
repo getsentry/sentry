@@ -199,7 +199,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         super().setUp()
 
     def test_artifacts_with_debug_ids(self):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -268,7 +268,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
             ProjectArtifactBundle.objects.all().delete()
 
     def test_artifacts_without_debug_ids(self):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
@@ -320,7 +320,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     assert release_file.file.headers == {"Sourcemap": "index.js.map"}
 
     def test_artifacts_invalid_org(self):
-        bundle_file = self.create_artifact_bundle(org="invalid", release=self.release.version)
+        bundle_file = self.create_artifact_bundle_zip(org="invalid", release=self.release.version)
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -338,7 +338,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         assert status == ChunkFileState.ERROR
 
     def test_artifacts_invalid_release(self):
-        bundle_file = self.create_artifact_bundle(org=self.organization.slug, release="invalid")
+        bundle_file = self.create_artifact_bundle_zip(org=self.organization.slug, release="invalid")
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -375,7 +375,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
     @patch("sentry.tasks.assemble.update_artifact_index", side_effect=RuntimeError("foo"))
     def test_failing_update(self, _):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         blob1 = FileBlob.from_file(ContentFile(bundle_file))
