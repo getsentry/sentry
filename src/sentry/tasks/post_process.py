@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
