@@ -882,7 +882,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
-        "schedule": timedelta(hours=4),
+        # Run job every 4 hours at min 20
+        "schedule": crontab(minute=20, hour="*/4"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
