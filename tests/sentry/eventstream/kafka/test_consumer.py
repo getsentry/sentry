@@ -156,4 +156,4 @@ class PostProcessForwarderTest(TestCase):
             occurrence_id=None,
         )
 
-        consumer.signal_shutdown()
+        consumer._shutdown()
