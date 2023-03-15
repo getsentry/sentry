@@ -1145,7 +1145,6 @@ enum ReplayFieldKey {
   CLICK_LABEL = 'replay_click.label',
   CLICK_ROLE = 'replay_click.role',
   CLICK_TAG = 'replay_click.tag',
-  CLICK_TESTID = 'replay_click.testid',
   CLICK_TEXT_CONTENT = 'replay_click.textContent',
   CLICK_TITLE = 'replay_click.title',
   COUNT_ERRORS = 'count_errors',
@@ -1176,7 +1175,6 @@ export const REPLAY_FIELDS = [
   ReplayFieldKey.CLICK_LABEL,
   ReplayFieldKey.CLICK_ROLE,
   ReplayFieldKey.CLICK_TAG,
-  ReplayFieldKey.CLICK_TESTID,
   ReplayFieldKey.CLICK_TEXT_CONTENT,
   ReplayFieldKey.CLICK_TITLE,
   ReplayFieldKey.COUNT_ERRORS,
@@ -1248,11 +1246,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   },
   [ReplayFieldKey.CLICK_TAG]: {
     desc: t('`tag` of an element that was clicked'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.CLICK_TESTID]: {
-    desc: t('`data-test-id` or `data-testid` of an element that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
