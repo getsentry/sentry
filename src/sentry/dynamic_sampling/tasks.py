@@ -22,8 +22,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
-CHUNK_SIZE = 1000
-MAX_SECONDS = 60
 CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 
 # TODO RaduW validate assumptions
@@ -180,7 +178,7 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
     project = Project.objects.get_from_cache(id=project_id)
     sample_rate = quotas.get_blended_sample_rate(project)
 
-    if sample_rate is None:
+    if sample_rate is None or sample_rate == 1.0:
         # no sampling => no rebalancing
         return
 
