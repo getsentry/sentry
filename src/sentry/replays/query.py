@@ -162,8 +162,8 @@ def query_replays_dataset(
             groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
-            tenant_ids=tenant_ids,
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
 
