@@ -283,7 +283,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features={[]}>
+        <Feature features={['organizations:performance-issues-dev']}>
           <Fragment>
             <Form
               saveOnBlur
