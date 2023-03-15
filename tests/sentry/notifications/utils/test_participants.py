@@ -24,6 +24,7 @@ from sentry.notifications.utils.participants import (
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
 from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -52,7 +53,9 @@ class _ParticipantsTest(TestCase):
         email: Iterable[int] = (), slack: Iterable[int] = ()
     ) -> Mapping[ExternalProviders, Set[RpcActor]]:
         return {
-            provider: {RpcActor.from_orm_user(user_id) for user_id in user_ids}
+            provider: {
+                RpcActor.from_rpc_user(user_service.get_user(user_id)) for user_id in user_ids
+            }
             for (provider, user_ids) in [
                 (ExternalProviders.EMAIL, email),
                 (ExternalProviders.SLACK, slack),
