@@ -257,7 +257,6 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /src/sentry/digests/                                                 @getsentry/ecosystem
 /src/sentry/identity/                                                @getsentry/ecosystem
-/src/sentry/identity/                                                @getsentry/ecosystem
 /src/sentry/integrations/                                            @getsentry/ecosystem
 /src/sentry/mail/                                                    @getsentry/ecosystem
 /src/sentry/mediators/                                               @getsentry/ecosystem
@@ -292,9 +291,6 @@ yarn.lock                                                @getsentry/owners-js-de
 *sentryapp*.py                                                       @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 *docintegration*.py                                                  @getsentry/ecosystem
-
-/api-docs/                                                           @getsentry/ecosystem
-/tests/apidocs/                                                      @getsentry/ecosystem
 
 /src/sentry/middleware/ratelimit.py                                  @getsentry/ecosystem
 /src/sentry/middleware/access_log.py                                 @getsentry/ecosystem
