@@ -125,11 +125,12 @@ class ProjectArtifactBundle(Model):
 class ArtifactBundleArchive:
     """Read-only view of uploaded ZIP artifact bundle."""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self._build_entries_by_debug_id_map()
+        if build_memory_map:
+            self._build_entries_by_debug_id_map()
 
     def close(self):
         self._zip_file.close()
@@ -146,11 +147,11 @@ class ArtifactBundleArchive:
         return json.loads(manifest_bytes.decode("utf-8"))
 
     @staticmethod
-    def _normalize_headers(headers: dict) -> dict:
+    def normalize_headers(headers: dict) -> dict:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    def normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
         try:
             return normalize_debug_id(debug_id)
         except SymbolicError:
@@ -162,9 +163,9 @@ class ArtifactBundleArchive:
         # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
-            headers = self._normalize_headers(info.get("headers", {}))
+            headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id", None)) is not None:
-                debug_id = self._normalize_debug_id(debug_id)
+                debug_id = self.normalize_debug_id(debug_id)
                 file_type = info.get("type", None)
                 if (
                     debug_id is not None
@@ -179,3 +180,9 @@ class ArtifactBundleArchive:
     ) -> Tuple[IO, dict]:
         file_path, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
+
+    def get_file_info(self, file_path) -> Optional[zipfile.ZipInfo]:
+        try:
+            return self._zip_file.getinfo(file_path)
+        except KeyError:
+            return None
