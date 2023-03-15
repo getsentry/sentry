@@ -1,3 +1,5 @@
+import logging
+
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -9,6 +11,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
+
+logger = logging.getLogger(__name__)
 
 
 @region_silo_endpoint
@@ -39,6 +43,10 @@ class NotificationActionsDetailsEndpoint(FlaggedOrganizationEndpoint):
     def get(
         self, request: Request, organization: Organization, action: NotificationAction
     ) -> Response:
+        logger.info(
+            "notification_action.get_one",
+            extra={"organization_id": organization.id, "action_id": action.id},
+        )
         return Response(serialize(action, request.user))
 
     def put(
@@ -57,10 +65,18 @@ class NotificationActionsDetailsEndpoint(FlaggedOrganizationEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         action = serializer.save()
+        logger.info(
+            "notification_action.update",
+            extra={"organization_id": organization.id, "action_id": action.id},
+        )
         return Response(serialize(action, user=request.user), status=status.HTTP_202_ACCEPTED)
 
     def delete(
         self, request: Request, organization: Organization, action: NotificationAction
     ) -> Response:
+        logger.info(
+            "notification_action.delete",
+            extra={"organization_id": organization.id, "action_data": serialize(action)},
+        )
         action.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

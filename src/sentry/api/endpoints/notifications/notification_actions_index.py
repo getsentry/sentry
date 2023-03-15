@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 
 from rest_framework import status
@@ -12,6 +13,8 @@ from sentry.api.serializers.rest_framework.notification_action import Notificati
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
+logger = logging.getLogger(__name__)
+
 
 @region_silo_endpoint
 class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
@@ -25,8 +28,8 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
-
-        if len(request.GET.getlist("project")):
+        project_query = request.GET.getlist("project")
+        if project_query:
             queryset = queryset.filter(projects__in=self.get_projects(request, organization))
 
         trigger_type_query = request.GET.getlist("triggerType")
@@ -35,6 +38,14 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
             trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
             queryset = queryset.filter(trigger_type__in=trigger_types)
 
+        logger.info(
+            "notification_action.get_all",
+            extra={
+                "organization_id": organization.id,
+                "project_query": project_query,
+                "trigger_type_query": trigger_type_query,
+            },
+        )
         return self.paginate(
             request=request,
             queryset=queryset,
@@ -53,4 +64,8 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         action = serializer.save()
+        logger.info(
+            "notification_action.create",
+            extra={"organization_id": organization.id, "action_id": action.id},
+        )
         return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
