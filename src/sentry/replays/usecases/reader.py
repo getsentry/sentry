@@ -260,10 +260,8 @@ def download_segment(segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
     """Return the segment blob data."""
     driver = FilestoreBlob() if segment.file_id else StorageBlob()
     result = driver.get(segment)
-    if result is None:
-        return None
-
-    return decompress(result)
+    if result is not None:
+        return decompress(result)
 
 
 def decompress(buffer: bytes) -> bytes:
