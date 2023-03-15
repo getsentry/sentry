@@ -97,7 +97,7 @@ def get_integrations_by_channel_by_recipient(
     organization: Organization,
     recipients: Iterable[RpcActor | Team | User],
     provider: ExternalProviders,
-) -> MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]]:
+) -> Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]]:
     output: MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]] = defaultdict(dict)
     for recipient in (RpcActor.from_object(r) for r in recipients):
         channels_to_integrations = None

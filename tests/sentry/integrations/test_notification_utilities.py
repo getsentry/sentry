@@ -1,5 +1,11 @@
+from __future__ import annotations
+
+from typing import Mapping
+
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.models import Integration, User
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.types.integrations import ExternalProviders
@@ -24,6 +30,13 @@ class TestNotificationUtilities(TestCase):
         )
         self.api_integration2 = integration_service._serialize_integration(self.integration2)
 
+    def _assert_integrations_are(
+        self,
+        actual: Mapping[RpcActor, Mapping[str, RpcIntegration | Integration]],
+        expected: Mapping[User, Mapping[str, RpcIntegration | Integration]],
+    ):
+        assert actual == {RpcActor.from_rpc_user(k): v for (k, v) in expected.items()}
+
     def test_simple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
             self.notification.organization,
@@ -31,9 +44,10 @@ class TestNotificationUtilities(TestCase):
             ExternalProviders.SLACK,
         )
 
-        assert {
-            self.user: {self.external_user_id_1: self.api_integration}
-        } == integrations_by_channel_by_recipient
+        self._assert_integrations_are(
+            integrations_by_channel_by_recipient,
+            {self.user: {self.external_user_id_1: self.api_integration}},
+        )
 
     def test_matching_idp_and_identity_external_id(self):
         """
@@ -45,7 +59,7 @@ class TestNotificationUtilities(TestCase):
             ExternalProviders.SLACK,
         )
 
-        assert {self.user_2: {}} == integrations_by_channel_by_recipient
+        self._assert_integrations_are(integrations_by_channel_by_recipient, {self.user_2: {}})
 
     def test_multiple(self):
         integrations_by_channel_by_recipient = get_integrations_by_channel_by_recipient(
@@ -54,7 +68,10 @@ class TestNotificationUtilities(TestCase):
             ExternalProviders.SLACK,
         )
 
-        assert {
-            self.user: {self.external_user_id_1: self.api_integration},
-            self.user_2: {},
-        } == integrations_by_channel_by_recipient
+        self._assert_integrations_are(
+            integrations_by_channel_by_recipient,
+            {
+                self.user: {self.external_user_id_1: self.api_integration},
+                self.user_2: {},
+            },
+        )
