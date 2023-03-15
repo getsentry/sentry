@@ -39,6 +39,14 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
     offset = 0
     sample_rate = int(options.get("dynamic-sampling.prioritise_projects.sample_rate") * 100)
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+    where = [
+        Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
+        Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+        Condition(Column("metric_id"), Op.EQ, metric_id),
+    ]
+    if sample_rate != 100:
+        where += [Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate)]
+
     while (time.time() - start_time) < MAX_SECONDS:
         query = (
             Query(
@@ -49,12 +57,7 @@ def fetch_projects_with_total_volumes() -> Mapping[OrganizationId, Sequence[Tupl
                     Column("project_id"),
                 ],
                 groupby=[Column("org_id"), Column("project_id")],
-                where=[
-                    Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, sample_rate),
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
-                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                    Condition(Column("metric_id"), Op.EQ, metric_id),
-                ],
+                where=where,
                 granularity=Granularity(3600),
                 orderby=[
                     OrderBy(Column("org_id"), Direction.ASC),
