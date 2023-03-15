@@ -307,7 +307,7 @@ function EventNodeSelector({
     );
   }
 
-  const isError = currentEvent.groupID !== null;
+  const isError = currentEvent.hasOwnProperty('groupID') && currentEvent.groupID !== null;
   // make sure to exclude the current event from the dropdown
   events = events.filter(
     event =>
