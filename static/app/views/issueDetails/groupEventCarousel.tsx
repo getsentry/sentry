@@ -97,7 +97,7 @@ export const GroupEventCarousel = ({
   return (
     <CarouselAndButtonsWrapper>
       <StyledButtonBar merged>
-        <Button
+        <EventNavigationButton
           size={BUTTON_SIZE}
           icon={<IconPrevious size={BUTTON_ICON_SIZE} />}
           aria-label="Oldest"
@@ -107,7 +107,7 @@ export const GroupEventCarousel = ({
           }}
           disabled={!hasPreviousEvent}
         />
-        <Button
+        <EventNavigationButton
           size={BUTTON_SIZE}
           icon={<IconChevron direction="left" size={BUTTON_ICON_SIZE} />}
           aria-label="Older"
@@ -151,7 +151,7 @@ export const GroupEventCarousel = ({
             )}
           </div>
         </EventLabelContainer>
-        <Button
+        <EventNavigationButton
           size={BUTTON_SIZE}
           icon={<IconChevron direction="right" size={BUTTON_ICON_SIZE} />}
           aria-label="Newer"
@@ -161,7 +161,7 @@ export const GroupEventCarousel = ({
           }}
           disabled={!hasNextEvent}
         />
-        <Button
+        <EventNavigationButton
           size={BUTTON_SIZE}
           icon={<IconNext size={BUTTON_ICON_SIZE} />}
           aria-label="Newest"
@@ -276,6 +276,10 @@ const CarouselAndButtonsWrapper = styled('div')`
 const StyledButtonBar = styled(ButtonBar)`
   grid-template-columns: auto auto 1fr auto auto;
   flex: 1;
+`;
+
+const EventNavigationButton = styled(Button)`
+  width: 42px;
 `;
 
 const EventLabelContainer = styled('div')`
