@@ -29,6 +29,12 @@ export const experimentList: {
     parameter: 'exposed',
     assignments: [0, 1],
   },
+  {
+    key: 'ExtendTrialByInvitingMemberExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'exposed',
+    assignments: [0, 1],
+  },
 ];
 
 export const experimentConfig = experimentList.reduce(
