@@ -1305,6 +1305,8 @@ SENTRY_FEATURES = {
     "organizations:mobile-view-hierarchies": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
