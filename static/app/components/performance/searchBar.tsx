@@ -193,7 +193,9 @@ function SearchBar(props: SearchBarProps) {
   const handleSearch = (query: string, asRawText: boolean) => {
     setSearchResults([]);
     setSearchString(query);
-    const fullQuery = asRawText ? query : `transaction:${query}`;
+    query = new MutableSearch(query).formatString();
+
+    const fullQuery = asRawText ? query : `transaction:"${query}"`;
     onSearch(query ? fullQuery : '');
     closeDropdown();
   };

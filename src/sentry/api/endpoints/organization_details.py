@@ -39,6 +39,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
@@ -428,7 +429,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]

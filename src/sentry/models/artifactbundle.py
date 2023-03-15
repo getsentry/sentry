@@ -1,6 +1,7 @@
 import zipfile
 from enum import Enum
-from typing import IO, List, Optional, Tuple
+from typing import IO, Dict, List, Optional, Tuple
+from uuid import UUID
 
 from django.db import models
 from django.utils import timezone
@@ -40,7 +41,9 @@ class ArtifactBundle(Model):
     __include_in_export__ = False
 
     organization_id = BoundedBigIntegerField(db_index=True)
-    bundle_id = models.UUIDField(null=True)
+    # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
+    # with nullable fields, since NULL != NULL.
+    bundle_id = models.UUIDField(default="00000000-00000000-00000000-00000000")
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -51,6 +54,18 @@ class ArtifactBundle(Model):
 
         unique_together = (("organization_id", "bundle_id"),)
 
+    @classmethod
+    def get_artifact_counts(cls, artifact_bundle_ids: List[int]) -> Dict[int, Tuple[UUID, int]]:
+        artifact_bundles = ArtifactBundle.objects.filter(id__in=artifact_bundle_ids)
+        bundles_with_counts = {}
+        for artifact_bundle in artifact_bundles:
+            bundles_with_counts[artifact_bundle.id] = (
+                artifact_bundle.bundle_id,
+                artifact_bundle.artifact_count,
+            )
+
+        return bundles_with_counts
+
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
@@ -58,7 +73,9 @@ class ReleaseArtifactBundle(Model):
 
     organization_id = BoundedBigIntegerField(db_index=True)
     release_name = models.CharField(max_length=250)
-    dist_name = models.CharField(max_length=64, null=True)
+    # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
+    # NULL != NULL.
+    dist_name = models.CharField(max_length=64, default="")
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 

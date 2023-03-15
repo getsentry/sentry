@@ -186,6 +186,7 @@ default_manager.add("organizations:commit-context-fallback", OrganizationFeature
 # self-hosted and single-tenant are aligned with sentry.io. Features here should
 # also be listed in SubscriptionPlanFeatureHandler in getsentry so that sentry.io
 # behaves correctly.
+
 default_manager.add("organizations:advanced-search", OrganizationFeature, FeatureHandlerStrategy.STATIC)
 default_manager.add("organizations:app-store-connect-multiple", OrganizationFeature, FeatureHandlerStrategy.STATIC)
 default_manager.add("organizations:change-alerts", OrganizationFeature, FeatureHandlerStrategy.STATIC)

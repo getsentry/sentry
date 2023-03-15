@@ -16,8 +16,6 @@ from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):  # type: ignore
-    private = True
-
     def get_profiling_params(self, request: Request, organization: Organization) -> Dict[str, Any]:
         try:
             params: Dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))

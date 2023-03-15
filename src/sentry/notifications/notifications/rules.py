@@ -26,11 +26,7 @@ from sentry.notifications.utils import (
     has_alert_integration,
     has_integrations,
 )
-from sentry.notifications.utils.participants import (
-    get_owner_reason,
-    get_send_to,
-    should_use_issue_alert_fallback,
-)
+from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
@@ -111,19 +107,12 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             fallthrough_choice=self.fallthrough_choice,
         )
-        fallback_params: MutableMapping[str, str] = {}
-        # Piggybacking off of notification_reason that already determines if we're using the fallback
-        if notification_reason and self.fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-            _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
-            fallback_params = {"ref_fallback": fallback_experiment}
 
         context = {
             "project_label": self.project.get_full_name(),
             "group": self.group,
             "event": self.event,
-            "link": get_group_settings_link(
-                self.group, environment, rule_details, None, **fallback_params
-            ),
+            "link": get_group_settings_link(self.group, environment, rule_details),
             "rules": rule_details,
             "has_integrations": has_integrations(self.organization, self.project),
             "enhanced_privacy": enhanced_privacy,
@@ -151,6 +140,12 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if getattr(self.event, "occurrence", None):
+            context["issue_title"] = self.event.occurrence.issue_title
+            context["subtitle"] = self.event.occurrence.subtitle
+            context["culprit"] = self.event.occurrence.culprit
+
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:
@@ -218,10 +213,8 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
-        _, fallback_experiment = should_use_issue_alert_fallback(org=self.organization)
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "fallback_experiment": fallback_experiment,
             **super().get_log_params(recipient),
         }

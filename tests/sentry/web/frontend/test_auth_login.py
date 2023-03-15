@@ -45,7 +45,10 @@ class AuthLoginTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/login.html")
-        assert len(resp.context["messages"]) == 1
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Your session has expired."
 
     def test_login_invalid_password(self):
         # load it once for test cookie

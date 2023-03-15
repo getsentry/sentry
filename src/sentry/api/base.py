@@ -121,8 +121,6 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    # end user of endpoint must set private to true, or define public endpoints
-    private: Optional[bool] = None
     public: Optional[HTTP_METHODS_SET] = None
 
     rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
@@ -604,3 +602,6 @@ region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 # that the test will fail if a new endpoint is added with no decorator at all.
 # Eventually we should replace all instances of this decorator and delete it.
 pending_silo_endpoint = EndpointSiloLimit()
+
+# This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
+all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)

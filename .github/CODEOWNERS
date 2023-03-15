@@ -95,24 +95,10 @@ yarn.lock                                                @getsentry/owners-js-de
 
 ## Crons
 /static/app/views/monitors                                   @getsentry/crons
-/src/sentry/models/monitor.py                                @getsentry/crons
-/src/sentry/models/monitorcheckin.py                         @getsentry/crons
-/src/sentry/models/monitorenvironment.py                     @getsentry/crons
-/src/sentry/models/monitorlocation.py                        @getsentry/crons
-/src/sentry/api/validators/monitor.py                        @getsentry/crons
-/src/sentry/api/bases/monitor.py                             @getsentry/crons
-/src/sentry/api/endpoints/monitor_stats.py                   @getsentry/crons
-/src/sentry/api/endpoints/organization_monitors.py           @getsentry/crons
-/src/sentry/api/endpoints/monitor_checkins.py                @getsentry/crons
-/src/sentry/api/endpoints/monitor_checkin_details.py         @getsentry/crons
-/src/sentry/tasks/check_monitors.py                          @getsentry/crons
-/tests/sentry/api/endpoints/test_organization_monitors.py    @getsentry/crons
-/tests/sentry/api/endpoints/test_monitor_checkins.py         @getsentry/crons
-/tests/sentry/api/endpoints/test_monitor_checkin_details.py  @getsentry/crons
-/tests/sentry/models/test_monitor.py                         @getsentry/crons
-/tests/sentry/models/test_monitorenvironment.py              @getsentry/crons
+/src/sentry/monitors                                         @getsentry/crons
+/tests/sentry/monitors                                       @getsentry/crons
+/src/sentry/utils/monitors.py                                @getsentry/crons
 /tests/sentry/utils/test_monitors.py                         @getsentry/crons
-/tests/sentry/tasks/test_check_monitors.py                   @getsentry/crons
 
 
 # Owners by product feature
@@ -271,7 +257,6 @@ yarn.lock                                                @getsentry/owners-js-de
 
 /src/sentry/digests/                                                 @getsentry/ecosystem
 /src/sentry/identity/                                                @getsentry/ecosystem
-/src/sentry/identity/                                                @getsentry/ecosystem
 /src/sentry/integrations/                                            @getsentry/ecosystem
 /src/sentry/mail/                                                    @getsentry/ecosystem
 /src/sentry/mediators/                                               @getsentry/ecosystem
@@ -306,9 +291,6 @@ yarn.lock                                                @getsentry/owners-js-de
 *sentryapp*.py                                                       @getsentry/ecosystem
 *doc_integration*.py                                                 @getsentry/ecosystem
 *docintegration*.py                                                  @getsentry/ecosystem
-
-/api-docs/                                                           @getsentry/ecosystem
-/tests/apidocs/                                                      @getsentry/ecosystem
 
 /src/sentry/middleware/ratelimit.py                                  @getsentry/ecosystem
 /src/sentry/middleware/access_log.py                                 @getsentry/ecosystem
