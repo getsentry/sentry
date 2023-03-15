@@ -38,6 +38,7 @@ def override_options(options):
     new_options = settings.SENTRY_OPTIONS.copy()
     new_options.update(options)
     with override_settings(SENTRY_OPTIONS=new_options):
-        with patch.object(default_manager.store, "get", side_effect=new_get):
-            with patch("sentry.options.OptionsManager.lookup_key", new=new_lookup):
-                yield
+        with patch.object(default_manager.store, "get", side_effect=new_get), patch(
+            "sentry.options.OptionsManager.lookup_key", new=new_lookup
+        ):
+            yield
