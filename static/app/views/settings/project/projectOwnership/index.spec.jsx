@@ -97,10 +97,10 @@ describe('Project Ownership', () => {
       );
 
       // Renders button
-      expect(screen.getByRole('button', {name: 'Add CODEOWNERS'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
 
       // Opens modal
-      userEvent.click(screen.getByRole('button', {name: 'Add CODEOWNERS'}));
+      userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
   });
