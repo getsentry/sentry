@@ -799,7 +799,7 @@ class Fetcher:
             # from the source.
             artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
         except Exception as exc:
-            logger.error(
+            logger.debug(
                 "Failed to load the artifact bundle for debug_id %s and source_file_type %s",
                 debug_id,
                 source_file_type,
@@ -819,7 +819,7 @@ class Fetcher:
                 self.open_archives[artifact_bundle_id] = archive
             except Exception as exc:
                 artifact_bundle_file.seek(0)
-                logger.error(
+                logger.debug(
                     "Failed to initialize archive for the artifact bundle file",
                     exc_info=exc,
                     extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
@@ -844,7 +844,7 @@ class Fetcher:
             # Now we actually read the wanted file.
             fp, headers = archive.get_file_by_debug_id(debug_id, source_file_type)
         except Exception as exc:
-            logger.error(
+            logger.debug(
                 "File with debug id %s and source type %s not found in artifact bundle",
                 debug_id,
                 source_file_type,
@@ -876,7 +876,7 @@ class Fetcher:
         # In case we don't have a release set, we don't even want to try and run the query because we won't be able
         # to look for the bundle we want.
         if self.release is None:
-            return None
+            return []
 
         # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
         #  we have permissions on not all the bundles.
@@ -940,7 +940,7 @@ class Fetcher:
                     artifact_bundle_file = self._fetch_artifact_bundle_file(artifact_bundle)
                     artifact_bundle_files.append((artifact_bundle.id, artifact_bundle_file))
                 except Exception as exc:
-                    logger.error(
+                    logger.debug(
                         "Failed to fetch artifact bundle %s", artifact_bundle.id, exc_info=exc
                     )
                     failed_artifact_bundle_ids.add(artifact_bundle.id)
@@ -952,7 +952,7 @@ class Fetcher:
                     "Failed to fetch at least one artifact bundle given a release/dist pair"
                 )
         except Exception as exc:
-            logger.error(
+            logger.debug(
                 "Failed to load the artifact bundles for release %s and dist %s",
                 self.release,
                 self.dist,
@@ -972,7 +972,7 @@ class Fetcher:
                     self.open_archives[artifact_bundle_id] = archive
                 except Exception as exc:
                     artifact_bundle_file.seek(0)
-                    logger.error(
+                    logger.debug(
                         "Failed to initialize archive for the artifact bundle file",
                         exc_info=exc,
                         extra={"contents": base64.b64encode(artifact_bundle_file.read(256))},
@@ -1020,7 +1020,7 @@ class Fetcher:
                         compress_fn=compress,
                     )
                 except Exception as exc:
-                    logger.error(
+                    logger.debug(
                         "Failed to open file with base url %s in artifact bundle", url, exc_info=exc
                     )
 
