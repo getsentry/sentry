@@ -27,6 +27,7 @@ export default function EditMonitor() {
     [`/organizations/${organization.slug}/monitors/${monitorSlug}/`],
     {
       staleTime: 0,
+      cacheTime: 0,
     }
   );
 
