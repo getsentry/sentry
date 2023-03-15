@@ -54,7 +54,7 @@ export function ChangeRouteModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={closeModal}>{t('Continue Configurating SDK')}</Button>
+          <Button onClick={closeModal}>{t('Continue Configuring SDK')}</Button>
           <Button priority="primary" onClick={handleSetUpLater}>
             {t('Skip Onboarding')}
           </Button>
