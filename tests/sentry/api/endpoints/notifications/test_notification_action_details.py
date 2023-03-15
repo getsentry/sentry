@@ -50,7 +50,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         )
 
     def test_get_invalid_action(self):
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug, -1, status_code=status.HTTP_404_NOT_FOUND
             )
@@ -63,14 +63,14 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_get_simple(self):
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug, self.notif_action.id, status_code=status.HTTP_200_OK
             )
             assert response.data == serialize(self.notif_action)
 
     def test_put_missing_action(self):
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug,
                 -1,
@@ -80,7 +80,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     def test_put_missing_fields(self):
         required_fields = self.base_data.keys()
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_error_response(
                 self.organization.slug,
                 self.notif_action.id,
@@ -96,7 +96,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             "triggerType": "ruination",
             "targetType": "igl",
         }
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             for type_key, invalid_value in invalid_types.items():
                 data = {**self.base_data}
                 data[type_key] = invalid_value
@@ -111,7 +111,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     def test_put_invalid_integration(self):
         data = {**self.base_data}
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             # Unknown integration
             data["integrationId"] = -1
             response = self.get_error_response(
@@ -139,7 +139,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     def test_put_invalid_projects(self):
         data = {**self.base_data}
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             # Unknown project
             data["projects"] = ["piltover"]
             response = self.get_error_response(
@@ -164,7 +164,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
     def test_put_simple(self):
         data = {**self.base_data}
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug,
                 self.notif_action.id,
@@ -183,7 +183,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             ).exists()
 
     def test_delete_invalid_action(self):
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug,
                 -1,
@@ -200,7 +200,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_delete_simple(self):
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             assert NotificationAction.objects.filter(id=self.notif_action.id).exists()
             self.get_success_response(
                 self.organization.slug,

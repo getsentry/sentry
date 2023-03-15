@@ -7,7 +7,7 @@ from sentry.models.notificationaction import NotificationAction, NotificationAct
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
-NOTFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
+NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 
 
 @region_silo_test(stable=True)
@@ -45,7 +45,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             self.create_notification_action(organization=self.organization),
         ]
         other_notif_action = self.create_notification_action(organization=self.other_organization)
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
@@ -75,7 +75,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         project_actions = {na2, na3}
         teacher_actions = {na1, na2}
 
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
@@ -113,7 +113,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     def test_post_missing_fields(self):
         required_fields = self.base_data.keys()
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_error_response(
                 self.organization.slug,
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -128,7 +128,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             "triggerType": "ascension",
             "targetType": "shade",
         }
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             for type_key, invalid_value in invalid_types.items():
                 data = {**self.base_data}
                 data[type_key] = invalid_value
@@ -142,7 +142,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     def test_post_invalid_integration(self):
         data = {**self.base_data}
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             # Unknown integration
             data["integrationId"] = -1
             response = self.get_error_response(
@@ -168,7 +168,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     def test_post_invalid_projects(self):
         data = {**self.base_data}
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             # Unknown project
             data["projects"] = ["deep nest"]
             response = self.get_error_response(
@@ -194,7 +194,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
-        with self.feature(NOTFICATION_ACTION_FEATURE):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_201_CREATED,
