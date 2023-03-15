@@ -3,7 +3,7 @@ Outbox messages are how we propagate state changes between Silos
 
 Region & Control Silos can publish outbox messages which are propagated asynchronously to
 the 'other' silo. This means that outbox messages created on a Region Silo are pushed to
-Control Silo, and outbox messages created on Control Silo are pushed to relevant Region Silos.
+the Control Silo, and outbox messages created on the Control Silo are pushed to relevant Region Silos.
 
 Messages are considered relevant to a Region Silo if there is a chance that a region has
 a record that relies on the outbox message. Often this boils down to relations to organizations
