@@ -2,12 +2,8 @@
 
 from django.db import migrations
 
-from sentry.monitors.models import MonitorStatus
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
-
-TERMINAL_STATES = [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
-DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 def backfill_installation_ids(apps, schema_editor):
@@ -16,20 +12,10 @@ def backfill_installation_ids(apps, schema_editor):
     # The actor id for all ServiceHooks where a project id is not specified is the installation id,
     # but other actor ids are user ids.
     queryset = RangeQuerySetWrapperWithProgressBar(
-        ServiceHook.objects.filter(project_id__isnull=True).values_list(
-            "id",
-            "actor_id",
-        ),
-        result_value_getter=lambda item: item[0],
+        ServiceHook.objects.filter(project_id__isnull=True)
     )
-
-    for service_hook_id, actor_id in queryset:
-        try:
-            hook = ServiceHook.objects.get(id=service_hook_id)
-        except ServiceHook.DoesNotExist:
-            # Could happen from concurrent deletes, not a big deal.
-            continue
-        hook.installation_id = actor_id
+    for hook in queryset:
+        hook.installation_id = hook.actor_id
         hook.save()
 
 
@@ -44,7 +30,7 @@ class Migration(CheckedMigration):
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_dangerous = False
 
     dependencies = [
         ("sentry", "0383_mv_user_avatar"),
