@@ -130,7 +130,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert group.issue_type == occurrence.type
         assert group.first_release is None
         assert group.title == occurrence.issue_title
-        assert group.data["value"] == occurrence.subtitle
+        assert group.data["metadata"]["value"] == occurrence.subtitle
         assert group.culprit == occurrence.culprit
         assert group.location() == event.location
 
@@ -152,7 +152,7 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert not updated_group_info.is_new
         assert not updated_group_info.is_regression
         assert updated_group.title == new_occurrence.issue_title
-        assert updated_group.data["value"] == new_occurrence.subtitle
+        assert updated_group.data["metadata"]["value"] == new_occurrence.subtitle
         assert updated_group.culprit == new_occurrence.culprit
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
@@ -217,9 +217,8 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
             "type": "default",
-            "value": occurrence.subtitle,
             "culprit": occurrence.culprit,
-            "metadata": {"title": occurrence.issue_title},
+            "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": event.datetime,
