@@ -52,7 +52,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 environment_name = "production"
 
             # TODO: assume these objects exist once backfill is completed
-            environment = Environment.get_or_create(project=monitor.project, name=environment_name)
+            environment = Environment.get_or_create(project=project, name=environment_name)
 
             monitorenvironment_defaults = {
                 "status": monitor.status,

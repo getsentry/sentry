@@ -135,6 +135,7 @@ class Updater(Mediator, SentryAppMixin):
                 projects=[],
                 organization=self.sentry_app.owner,
                 events=self.sentry_app.events,
+                installation_id=installation.id,
                 url=webhook_url,
             )
 
