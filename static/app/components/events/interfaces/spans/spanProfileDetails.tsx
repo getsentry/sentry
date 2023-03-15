@@ -197,9 +197,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           registers: null,
           frames,
         }}
-        nativeV2
         stackView={STACK_VIEW.APP}
-        hideIcon
+        nativeV2
+        inlined
       />
     </Fragment>
   );
