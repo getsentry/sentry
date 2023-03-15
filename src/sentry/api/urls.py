@@ -1,5 +1,6 @@
 from django.conf.urls import include, url
 
+from sentry.api.utils import method_dispatch
 from sentry.data_export.endpoints.data_export import DataExportEndpoint
 from sentry.data_export.endpoints.data_export_details import DataExportDetailsEndpoint
 from sentry.discover.endpoints.discover_homepage_query import DiscoverHomepageQueryEndpoint
@@ -54,6 +55,12 @@ from sentry.monitors.endpoints.monitor_ingest_checkin_details import (
     MonitorIngestCheckInDetailsEndpoint,
 )
 from sentry.monitors.endpoints.monitor_ingest_checkin_index import MonitorIngestCheckInIndexEndpoint
+from sentry.monitors.endpoints.organization_monitor_checkin_attachment import (
+    OrganizationMonitorCheckInAttachmentEndpoint,
+)
+from sentry.monitors.endpoints.organization_monitor_checkin_index import (
+    OrganizationMonitorCheckInIndexEndpoint,
+)
 from sentry.monitors.endpoints.organization_monitor_details import (
     OrganizationMonitorDetailsEndpoint,
 )
@@ -86,6 +93,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
+from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -1322,20 +1330,30 @@ ORGANIZATION_URLS = [
         OrganizationMonitorStatsEndpoint.as_view(),
         name="sentry-api-0-organization-monitor-stats",
     ),
-    # Monitor checkin org-level ingestion
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/$",
-        MonitorIngestCheckInIndexEndpoint.as_view(),
+        method_dispatch(
+            GET=OrganizationMonitorCheckInIndexEndpoint.as_view(),
+            POST=MonitorIngestCheckInIndexEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
+        ),
         name="sentry-api-0-organization-monitor-check-in-index",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/$",
-        MonitorIngestCheckInDetailsEndpoint.as_view(),
+        method_dispatch(
+            PUT=MonitorIngestCheckInDetailsEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
+        ),
         name="sentry-api-0-organization-monitor-check-in-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/(?P<monitor_id>[^\/]+)/checkins/(?P<checkin_id>[^\/]+)/attachment/$",
-        MonitorIngestCheckinAttachmentEndpoint.as_view(),
+        method_dispatch(
+            GET=OrganizationMonitorCheckInAttachmentEndpoint.as_view(),
+            POST=MonitorIngestCheckinAttachmentEndpoint.as_view(),  # Legacy ingest endpoint
+            csrf_exempt=True,
+        ),
         name="sentry-api-0-organization-monitor-check-in-attachment",
     ),
     # Pinned and saved search
@@ -1826,6 +1844,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/source-maps/$",
         SourceMapsEndpoint.as_view(),
         name="sentry-api-0-source-maps",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/artifact-bundles/$",
+        ArtifactBundlesEndpoint.as_view(),
+        name="sentry-api-0-artifact-bundles",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",

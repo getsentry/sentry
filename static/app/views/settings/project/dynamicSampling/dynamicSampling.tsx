@@ -19,6 +19,7 @@ import {DynamicSamplingBias, DynamicSamplingBiasType} from 'sentry/types/samplin
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import useApi from 'sentry/utils/useApi';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -53,20 +54,34 @@ export const knowDynamicSamplingBiases = {
     help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
   },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
-    label: t('Ignore health checks'),
-    help: t('Discards your health checks transactions'),
+    label: t('Deprioritize health checks'),
+    help: t('Captures fewer of your health checks transactions'),
   },
 };
 
 export function DynamicSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
+  const {logExperiment, experimentAssignment} = useExperiment(
+    'OnboardingNewFooterExperiment',
+    {
+      logExperimentOnMount: false,
+    }
+  );
 
   const hasTransactionNamePriorityFlag = organization.features.includes(
     'dynamic-sampling-transaction-name-priority'
   );
   const hasAccess = organization.access.includes('project:write');
   const biases = project.dynamicSamplingBiases ?? [];
+
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    // we are testing this on the dynamic sampling page but it will be removed soon
+    if (organization?.features.includes('onboarding-heartbeat-footer')) {
+      logExperiment();
+    }
+  }, [logExperiment, organization?.features]);
 
   useEffect(() => {
     trackAdvancedAnalyticsEvent('dynamic_sampling_settings.viewed', {
@@ -126,6 +141,16 @@ export function DynamicSampling({project}: Props) {
   return (
     <SentryDocumentTitle title={t('Dynamic Sampling')}>
       <Fragment>
+        {organization?.features.includes('onboarding-heartbeat-footer') && (
+          <div>
+            The Heartbeat is active and you are participating in the experiment: &nbsp;
+            {experimentAssignment === 'baseline'
+              ? '(Baseline) No change'
+              : experimentAssignment === 'variant1'
+              ? '(Variant 1) New design with “Explore Sentry“ button disabled while “waiting for error“'
+              : '(Variant 2) New design with existing “View Sample Error“ button instead while “waiting for error“'}
+          </div>
+        )}
         <SettingsPageHeader
           title={
             <Fragment>

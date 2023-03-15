@@ -4,19 +4,20 @@ import {Provider as ReplayContextProvider} from 'sentry/components/replays/repla
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
-// Get replay data with the mocked replay reader params
-const replayReaderParams = TestStubs.ReplayReaderParams({
-  replayRecord: {
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({
+    browser: {
+      name: 'Chrome',
+      version: '110.0.0',
+    },
     tags: {
-      'browser.name': ['Chrome'],
-      'sdk.version': ['7.13.0', '7.13.2'],
-      foo: ['bar'],
+      foo: ['bar', 'baz'],
       'my custom tag': ['a wordy value'],
     },
-  },
+  }),
+  errors: [],
+  attachments: [],
 });
-
-const mockReplay = ReplayReader.factory(replayReaderParams);
 
 const renderComponent = (replay: ReplayReader | null) => {
   return render(
@@ -51,9 +52,9 @@ describe('TagPanel', () => {
   it('should show the tags correctly inside ReplayTagsTableRow component with multiple items array', () => {
     renderComponent(mockReplay);
 
-    expect(screen.getByText('sdk.version')).toBeInTheDocument();
-    expect(screen.getByText('7.13.0')).toBeInTheDocument();
-    expect(screen.getByText('7.13.2')).toBeInTheDocument();
+    expect(screen.getByText('foo')).toBeInTheDocument();
+    expect(screen.getByText('bar')).toBeInTheDocument();
+    expect(screen.getByText('baz')).toBeInTheDocument();
   });
 
   it('should link known tags to their proper field names', () => {
@@ -62,6 +63,10 @@ describe('TagPanel', () => {
     expect(screen.getByText('bar').closest('a')).toHaveAttribute(
       'href',
       '/organizations/org-slug/replays/?query=tags%5B%22foo%22%5D%3A%22bar%22'
+    );
+    expect(screen.getByText('baz').closest('a')).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/replays/?query=tags%5B%22foo%22%5D%3A%22baz%22'
     );
   });
 

@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 import chunk from 'lodash/chunk';
+import isEqual from 'lodash/isEqual';
+import uniqBy from 'lodash/uniqBy';
 
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
 import {Button} from 'sentry/components/button';
@@ -12,10 +13,13 @@ import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import TeamStore from 'sentry/stores/teamStore';
 import space from 'sentry/styles/space';
 import {CodeOwner, ParsedOwnershipRule} from 'sentry/types';
+import useTeams from 'sentry/utils/useTeams';
+import {OwnershipOwnerFilter} from 'sentry/views/settings/project/projectOwnership/ownershipOwnerFilter';
 
 interface OwnershipRulesTableProps {
   codeowners: CodeOwner[];
@@ -37,20 +41,79 @@ export function OwnershipRulesTable({
 }: OwnershipRulesTableProps) {
   const [search, setSearch] = useState<string>('');
   const [page, setPage] = useState<number>(0);
+  const [selectedActors, setSelectedActors] = useState<string[] | null>(null);
+  const {teams} = useTeams({provideUserTeams: true});
 
-  const chunkedRules = useMemo(() => {
+  const combinedRules = useMemo(() => {
     const codeownerRulesWithId = codeowners.flatMap<MixedOwnershipRule>(owners =>
       (owners.schema?.rules ?? []).map(rule => ({
         ...rule,
         codeownersId: owners.id,
       }))
     );
-    const rules: MixedOwnershipRule[] = [...projectRules, ...codeownerRulesWithId].filter(
-      rule => rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)
+
+    return [...codeownerRulesWithId, ...projectRules];
+  }, [projectRules, codeowners]);
+
+  /**
+   * All unique actors from both codeowners and project rules
+   */
+  const allActors = useMemo(() => {
+    const actors = combinedRules
+      .flatMap(rule => rule.owners)
+      .map(owner => ({...owner, id: `${owner.id}`}));
+    return (
+      uniqBy(actors, actor => `${actor.type}:${actor.id}`)
+        // Sort by type, then by name
+        // Teams first, then users
+        .sort((a, b) => {
+          if (a.type === 'team' && b.type === 'user') {
+            return -1;
+          }
+          if (a.type === 'user' && b.type === 'team') {
+            return 1;
+          }
+          return a.name.localeCompare(b.name);
+        })
+    );
+  }, [combinedRules]);
+
+  const myTeams = useMemo(() => {
+    const user = ConfigStore.get('user');
+    const memberTeamsIds = teams.filter(team => team.isMember).map(team => team.id);
+    return allActors.filter(actor => {
+      if (actor.type === 'user') {
+        return actor.id === user.id;
+      }
+
+      return memberTeamsIds.includes(actor.id);
+    });
+  }, [allActors, teams]);
+
+  useEffect(() => {
+    if (myTeams.length > 0 && selectedActors === null) {
+      setSelectedActors(myTeams.map(actor => `${actor.type}:${actor.id}`));
+    }
+  }, [myTeams, selectedActors]);
+
+  /**
+   * Rules chunked into pages
+   */
+  const chunkedRules = useMemo(() => {
+    const filteredRules: MixedOwnershipRule[] = combinedRules.filter(
+      rule =>
+        // Filter by query
+        (rule.matcher.type.includes(search) || rule.matcher.pattern.includes(search)) &&
+        // Selected actors not set
+        (selectedActors === null ||
+          // Selected actors was cleared
+          selectedActors.length === 0 ||
+          rule.owners.some(owner => selectedActors.includes(`${owner.type}:${owner.id}`)))
     );
 
-    return chunk(rules, PAGE_LIMIT);
-  }, [projectRules, codeowners, search]);
+    return chunk(filteredRules, PAGE_LIMIT);
+  }, [combinedRules, search, selectedActors]);
+
   const hasNextPage = chunkedRules[page + 1] !== undefined;
   const hasPrevPage = page !== 0;
 
@@ -61,6 +124,10 @@ export function OwnershipRulesTable({
     }
   }, [chunkedRules, page]);
 
+  const handleChangeFilter = (activeFilters: string[]) => {
+    setSelectedActors(activeFilters.length > 0 ? activeFilters : []);
+  };
+
   const handleSearch = (value: string) => {
     setSearch(value);
     setPage(0);
@@ -69,14 +136,27 @@ export function OwnershipRulesTable({
 
   return (
     <RulesTableWrapper>
-      <div>
-        <SearchBar
+      <SearchAndSelectorWrapper>
+        <OwnershipOwnerFilter
+          actors={allActors}
+          selectedTeams={selectedActors ?? []}
+          handleChangeFilter={handleChangeFilter}
+          isMyTeams={
+            !!selectedActors &&
+            selectedActors.length > 0 &&
+            isEqual(
+              selectedActors,
+              myTeams.map(actor => `${actor.type}:${actor.id}`)
+            )
+          }
+        />
+        <StyledSearchBar
           name="ownershipSearch"
           placeholder={t('Search by type or rule')}
           query={search}
           onChange={handleSearch}
         />
-      </div>
+      </SearchAndSelectorWrapper>
 
       <StyledPanelTable
         headers={[t('Type'), t('Rule'), t('Owner')]}
@@ -100,7 +180,7 @@ export function OwnershipRulesTable({
           return (
             <Fragment key={`${rule.matcher.type}:${rule.matcher.pattern}-${index}`}>
               <RowItem>
-                <Tag type="highlight">{capitalize(rule.matcher.type)}</Tag>
+                <Tag type="highlight">{rule.matcher.type}</Tag>
               </RowItem>
               <RowRule>{rule.matcher.pattern}</RowRule>
               <RowItem>
@@ -144,6 +224,16 @@ export function OwnershipRulesTable({
     </RulesTableWrapper>
   );
 }
+
+const SearchAndSelectorWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
+`;
+
+const StyledSearchBar = styled(SearchBar)`
+  flex-grow: 1;
+`;
 
 const RulesTableWrapper = styled('div')`
   display: flex;

@@ -1,10 +1,11 @@
 import styled from '@emotion/styled';
 
+import {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconFire} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {EntryData, Thread} from 'sentry/types';
+import {EntryData} from 'sentry/types';
 import {ColorOrAlias} from 'sentry/utils/theme';
 
 import {Grid, GridCell} from './styles';
@@ -16,23 +17,15 @@ type Props = {
   crashed?: boolean;
   crashedInfo?: EntryData;
   name?: string | null;
-  state?: Thread['state'];
 };
 
 type ThreadInfo = {
   filename?: string;
   label?: string;
+  state?: ThreadStates;
 };
 
-const Option = ({
-  id,
-  details,
-  name,
-  crashed,
-  crashedInfo,
-  state,
-  hasThreadStates,
-}: Props) => {
+const Option = ({id, details, name, crashed, crashedInfo, hasThreadStates}: Props) => {
   const label = details.label ?? `<${t('unknown')}>`;
   const optionName = name || `<${t('unknown')}>`;
 
@@ -82,8 +75,8 @@ const Option = ({
       {hasThreadStates && (
         <GridCell>
           <InnerCell>
-            <Tooltip title={state} position="top">
-              <TextOverflow>{state}</TextOverflow>
+            <Tooltip title={details.state} position="top">
+              <TextOverflow>{details.state}</TextOverflow>
             </Tooltip>
           </InnerCell>
         </GridCell>

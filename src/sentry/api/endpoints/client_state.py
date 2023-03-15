@@ -14,8 +14,6 @@ from sentry.utils.client_state import STATE_CATEGORIES, get_client_state_key, ge
 
 @pending_silo_endpoint
 class ClientStateListEndpoint(OrganizationEndpoint):
-    private = True
-
     def __init__(self, **options) -> None:
         cluster_key = getattr(settings, "SENTRY_CLIENT_STATE_REDIS_CLUSTER", "default")
         self.client = redis.redis_clusters.get(cluster_key)
@@ -33,8 +31,6 @@ class ClientStateListEndpoint(OrganizationEndpoint):
 
 @pending_silo_endpoint
 class ClientStateEndpoint(OrganizationEndpoint):
-    private = True
-
     def __init__(self, **options) -> None:
         self.client = get_redis_client()
         super().__init__(**options)
