@@ -145,7 +145,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     <Fragment>
       <SpanDetails>
         <SpanDetailsItem grow>
-          <SectionHeading>{t('Top Contributors to this Span')}</SectionHeading>
+          <SectionHeading>{t('Most Frequent Stacks in this Span')}</SectionHeading>
         </SpanDetailsItem>
         <SpanDetailsItem>
           <SectionSubtext>
@@ -197,9 +197,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
           registers: null,
           frames,
         }}
-        nativeV2
         stackView={STACK_VIEW.APP}
-        hideIcon
+        nativeV2
+        inlined
       />
     </Fragment>
   );

@@ -20,10 +20,10 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -262,12 +262,8 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            allowed_group_types = get_group_types_by_category(GroupCategory.PROFILE.value).union(
-                get_group_types_by_category(GroupCategory.PERFORMANCE.value)
-            )
-            if occurrence_data["type"] not in allowed_group_types or not features.has(
-                "organizations:profile-blocked-main-thread-ingest", organization
-            ):
+            group_type = get_group_type_by_type_id(occurrence_data["type"])
+            if not group_type.allow_ingest(organization):
                 metrics.incr(
                     "occurrence_ingest.dropped_feature_disabled",
                     sample_rate=1.0,
