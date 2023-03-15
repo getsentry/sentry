@@ -148,7 +148,7 @@ class FeatureManager(RegisteredFeatureManager):
         self,
         name: str,
         cls: Type[Feature] = Feature,
-        entity_feature_strategy: FeatureHandlerStrategy | bool = FeatureHandlerStrategy.STATIC,
+        entity_feature_strategy: FeatureHandlerStrategy | bool = FeatureHandlerStrategy.INTERNAL,
     ) -> None:
         """
         Register a feature.
@@ -161,13 +161,13 @@ class FeatureManager(RegisteredFeatureManager):
         # temporarily allow boolean values for entity_feature_strategy
         # so flags set via getsentry are backwards compatible
         if entity_feature_strategy is True:
-            entity_feature_strategy = FeatureHandlerStrategy.MANAGED
+            entity_feature_strategy = FeatureHandlerStrategy.REMOTE
         elif entity_feature_strategy is False:
-            entity_feature_strategy = FeatureHandlerStrategy.STATIC
+            entity_feature_strategy = FeatureHandlerStrategy.INTERNAL
 
-        if entity_feature_strategy == FeatureHandlerStrategy.MANAGED:
+        if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
             if name.startswith("users:"):
-                raise NotImplementedError("User flags not allowed with a managed feature handler")
+                raise NotImplementedError("User flags not allowed with a remote feature handler")
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
