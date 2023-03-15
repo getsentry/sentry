@@ -502,13 +502,27 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route
-        path="source-maps/"
-        name={t('Source Maps')}
-        component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-      >
+      <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSourceMaps/list'))}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        />
+        <Route
+          path="debug-id-bundles/"
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
         />
         <Route
           path=":name/"
@@ -1301,8 +1315,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/'
-              : '/organizations/:orgId/crons/:monitorId/'
+              ? '/crons/:monitorSlug/'
+              : '/organizations/:orgId/crons/:monitorSlug/'
           }
           component={make(() => import('sentry/views/monitors/details'))}
           key={
@@ -1312,8 +1326,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/edit/'
-              : '/organizations/:orgId/crons/:monitorId/edit/'
+              ? '/crons/:monitorSlug/edit/'
+              : '/organizations/:orgId/crons/:monitorSlug/edit/'
           }
           component={make(() => import('sentry/views/monitors/edit'))}
           key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}

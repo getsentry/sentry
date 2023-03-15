@@ -127,6 +127,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -618,6 +619,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
                     "performanceIssueCreationRate"
                 ]
+        if "performanceIssueCreationThroughPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_send_to_issues_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
+                    "performanceIssueCreationThroughPlatform"
+                ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
             options = request.data.get("options", {})
@@ -694,6 +703,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:reprocessing_active",
                     bool(options["sentry:reprocessing_active"]),
+                )
+            if "filters:react-hydration-errors" in options:
+                project.update_option(
+                    "filters:react-hydration-errors",
+                    bool(options["filters:react-hydration-errors"]),
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(

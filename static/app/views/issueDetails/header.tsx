@@ -76,7 +76,7 @@ function GroupHeaderTabs({
   const hasSimilarView = projectFeatures.has('similarity-view');
   const hasEventAttachments = organizationFeatures.has('event-attachments');
   const hasSessionReplay =
-    organizationFeatures.has('session-replay-ui') && projectSupportsReplay(project);
+    organizationFeatures.has('session-replay') && projectSupportsReplay(project);
 
   const issueTypeConfig = getConfigForIssueType(group);
 
@@ -258,6 +258,14 @@ function GroupHeader({
         >
           <StyledShortId shortId={group.shortId} />
         </Tooltip>
+        {group.issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES && (
+          <FeatureBadge
+            type="alpha"
+            title={t(
+              'Consecutive HTTP Performance Issues are in active development and may change'
+            )}
+          />
+        )}
         {group.issueType === IssueType.PERFORMANCE_SLOW_DB_QUERY && (
           <FeatureBadge
             type="alpha"

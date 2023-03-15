@@ -11,7 +11,6 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
 from sentry.testutils import TestCase
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import get_frame_paths
@@ -389,7 +388,6 @@ class TestCommitContext(TestCase):
         side_effect=ApiError(text="integration_failed"),
     )
     @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
-    @with_feature("organizations:commit-context-fallback")
     def test_fallback_if_max_retries_exceeded(self, mock_suspect_commits, mock_get_commit_context):
         def after_return(self, status, retval, task_id, args, kwargs, einfo):
             raise MaxRetriesExceededError()

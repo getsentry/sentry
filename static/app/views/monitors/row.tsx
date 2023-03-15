@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import cronstrue from 'cronstrue';
 
 import {deleteMonitor} from 'sentry/actionCreators/monitors';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -13,11 +12,11 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {shouldUse24Hours} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
-import {MonitorBadge} from './monitorBadge';
+import {MonitorBadge} from './components/monitorBadge';
 import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
 
 interface MonitorRowProps {
@@ -29,11 +28,8 @@ interface MonitorRowProps {
 function scheduleAsText(config: MonitorConfig) {
   // Crontab format uses cronstrue
   if (config.schedule_type === ScheduleType.CRONTAB) {
-    return cronstrue.toString(config.schedule, {
-      verbose: true,
-      throwExceptionOnParseError: false,
-      use24HourTimeFormat: shouldUse24Hours(),
-    });
+    const parsedSchedule = crontabAsText(config.schedule);
+    return parsedSchedule ?? t('Unknown schedule');
   }
 
   // Interval format is simpler
@@ -70,7 +66,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     {
       key: 'edit',
       label: t('Edit'),
-      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.id}/edit/`),
+      to: normalizeUrl(`/organizations/${organization.slug}/crons/${monitor.slug}/edit/`),
     },
     {
       key: 'delete',
@@ -79,7 +75,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
       onAction: () => {
         openConfirmModal({
           onConfirm: async () => {
-            await deleteMonitor(api, organization.slug, monitor.id);
+            await deleteMonitor(api, organization.slug, monitor.slug);
             onDelete();
           },
           header: t('Delete Monitor?'),
@@ -97,7 +93,7 @@ function MonitorRow({monitor, organization, onDelete}: MonitorRowProps) {
     <Fragment>
       <MonitorName>
         <MonitorBadge status={monitor.status} />
-        <Link to={`/organizations/${organization.slug}/crons/${monitor.id}/`}>
+        <Link to={`/organizations/${organization.slug}/crons/${monitor.slug}/`}>
           {monitor.name}
         </Link>
       </MonitorName>

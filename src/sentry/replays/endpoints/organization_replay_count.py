@@ -35,7 +35,6 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     then verify that they exist in the replays dataset, and return the count.
     """
 
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {

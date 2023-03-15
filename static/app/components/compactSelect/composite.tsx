@@ -3,10 +3,12 @@ import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
+import {EmptyMessage} from './styles';
 import {SelectOption} from './types';
 
 interface BaseCompositeSelectRegion<Value extends React.Key> {
@@ -83,6 +85,7 @@ function CompositeSelect({
   // Control props
   grid,
   disabled,
+  emptyMessage,
   size = 'md',
   closeOnSelect,
   ...controlProps
@@ -106,6 +109,9 @@ function CompositeSelect({
               />
             );
           })}
+
+          {/* Only displayed when all lists (regions) are empty */}
+          <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
         </RegionsWrap>
       </FocusScope>
     </Control>
@@ -202,13 +208,13 @@ const RegionsWrap = styled('div')`
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
-  div[data-select-overlay][data-has-header='true'] > div > & {
+  [data-menu-has-header='true'] > div > & {
     padding-top: calc(${space(0.5)} + 1px);
   }
 
   /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
   shadow border */
-  div[data-select-overlay][data-has-footer='true'] > div > & {
+  [data-menu-has-footer='true'] > div > & {
     padding-bottom: calc(${space(0.5)} + 1px);
   }
 

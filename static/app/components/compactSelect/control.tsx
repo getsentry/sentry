@@ -68,6 +68,10 @@ export interface ControlProps extends UseOverlayProps {
   clearable?: boolean;
   disabled?: boolean;
   /**
+   * Message to be displayed when all options have been filtered out (via search).
+   */
+  emptyMessage?: string;
+  /**
    * Whether to render a grid list rather than a list box.
    *
    * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
@@ -363,10 +367,9 @@ export function Control({
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
-            data-has-header={!!menuTitle || clearable}
-            data-has-search={searchable}
-            data-has-footer={!!menuFooter}
-            data-select-overlay
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-search={searchable}
+            data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
@@ -435,7 +438,7 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
 
-  div[data-select-overlay][data-has-search='true'] > & {
+  [data-menu-has-search='true'] > & {
     padding-bottom: 0;
     box-shadow: none;
   }
@@ -474,7 +477,7 @@ const ClearButton = styled(Button)`
   font-weight: 400;
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
-  margin: 0 -${space(0.5)};
+  margin: -${space(0.25)} -${space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
@@ -494,6 +497,12 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
   /* Subtract 1px to account for border width */
   padding: ${p => searchVerticalPadding[p.visualSize]} calc(${space(1)} - 1px);
   margin: ${space(0.5)} ${space(0.5)};
+
+  /* Add 1px to top margin if immediately preceded by menu header, to account for the
+  header's shadow border */
+  [data-menu-has-header='true'] > & {
+    margin-top: calc(${space(0.5)} + 1px);
+  }
 
   &:focus,
   &.focus-visible {

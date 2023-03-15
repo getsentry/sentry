@@ -1,5 +1,5 @@
 ---
-created: '2023-01-17T00:14:26.238135Z'
+created: '2023-02-28T14:42:13.731011Z'
 creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
@@ -11,9 +11,9 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: frustrated
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner:
@@ -23,18 +23,18 @@ source: tests/sentry/relay/test_config.py
     op: and
   tagValue: tolerated
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner: []
     op: and
   tagValue: satisfied
   targetMetrics:
-  - s:transactions/user@none
   - d:transactions/duration@millisecond
   - d:transactions/measurements.lcp@millisecond
+  - s:transactions/user@none
   targetTag: satisfaction
 - condition:
     inner:
@@ -893,8 +893,8 @@ source: tests/sentry/relay/test_config.py
   tagValue: inlier
   targetMetrics:
   - d:transactions/duration@millisecond
-  - d:transactions/measurements.lcp@millisecond
   - d:transactions/measurements.fcp@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier
 - condition:
     inner: []
@@ -902,6 +902,6 @@ source: tests/sentry/relay/test_config.py
   tagValue: outlier
   targetMetrics:
   - d:transactions/duration@millisecond
-  - d:transactions/measurements.lcp@millisecond
   - d:transactions/measurements.fcp@millisecond
+  - d:transactions/measurements.lcp@millisecond
   targetTag: histogram_outlier

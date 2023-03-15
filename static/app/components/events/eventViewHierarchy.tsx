@@ -96,10 +96,7 @@ function EventViewHierarchyContent({event, project}: Props) {
 function EventViewHierarchy(props: Props) {
   const organization = useOrganization();
 
-  if (
-    !organization.features?.includes('mobile-view-hierarchies') ||
-    !organization.features.includes('event-attachments')
-  ) {
+  if (!organization.features.includes('event-attachments')) {
     return null;
   }
 

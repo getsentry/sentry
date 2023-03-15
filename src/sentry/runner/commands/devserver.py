@@ -193,12 +193,19 @@ and run `sentry devservices up kafka zookeeper`.
     # for this magic constant
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
+    # Configure URL prefixes for customer-domains.
+    os.environ["SENTRY_SYSTEM_URL_PREFIX"] = f"http://localhost:{port}"
+    os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
+    os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{port}"
+
     from django.conf import settings
 
     from sentry import options
     from sentry.services.http import SentryHTTPServer
 
-    url_prefix = options.get("system.url-prefix", "")
+    url_prefix = options.get("system.url-prefix")
     parsed_url = urlparse(url_prefix)
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024

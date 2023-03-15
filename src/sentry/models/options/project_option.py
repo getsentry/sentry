@@ -52,6 +52,7 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
+        "sentry:performance_issue_send_to_issues_platform",
         "sentry:transaction_name_cluster_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
@@ -59,6 +60,7 @@ OPTION_KEYS = frozenset(
         "digests:mail:maximum_delay",
         "mail:subject_prefix",
         "mail:subject_template",
+        "filters:react-hydration-errors",
     ]
 )
 

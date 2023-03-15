@@ -2,9 +2,10 @@ from unittest.mock import patch
 
 import responses
 
-from sentry import options
+from sentry import audit_log, options
+from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
-from sentry.tasks.auto_enable_codecov import auto_enable_codecov, enable_for_organization
+from sentry.tasks.auto_enable_codecov import enable_for_organization, schedule_organizations
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
@@ -37,9 +38,10 @@ class AutoEnableCodecovTest(TestCase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value={"repositories": [{"full_name": "testgit/abc"}]},
     )
     def test_has_codecov_integration(self, mock_get_repositories):
+        AuditLogEntry.objects.all().delete()
         assert not self.org_1.flags.codecov_access.is_set
         enable_for_organization(self.org_1.id)
 
@@ -48,10 +50,15 @@ class AutoEnableCodecovTest(TestCase):
         org = Organization.objects.get(id=self.org_1.id)
         assert org.flags.codecov_access
 
+        audit = AuditLogEntry.objects.filter(
+            organization_id=org.id, event=audit_log.get_event_id("ORG_EDIT")
+        )
+        assert audit.exists()
+
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["fakegit/abc"],
+        return_value={"repositories": [{"full_name": "fakegit/abc"}]},
     )
     def test_no_codecov_integration(self, mock_get_repositories):
         assert not self.org_1.flags.codecov_access.is_set
@@ -64,6 +71,6 @@ class AutoEnableCodecovTest(TestCase):
 
     @patch("sentry.tasks.auto_enable_codecov.enable_for_organization.delay")
     def test_schedules_for_orgs(self, mock_enable_for_organization):
-        auto_enable_codecov()
+        schedule_organizations()
 
         assert mock_enable_for_organization.call_count == 3

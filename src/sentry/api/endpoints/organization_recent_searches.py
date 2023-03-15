@@ -67,8 +67,8 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             created = RecentSearch.objects.create_or_update(
-                organization=organization,
-                user=request.user,
+                organization_id=organization.id,
+                user_id=request.user.id,
                 type=result["type"],
                 query=result["query"],
                 values={"last_seen": timezone.now()},

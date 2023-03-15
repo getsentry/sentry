@@ -24,6 +24,7 @@ from sentry.services.hybrid_cloud.user import (
     UserFilterArgs,
     UserSerializeType,
     UserService,
+    UserUpdateArgs,
 )
 
 
@@ -121,6 +122,16 @@ class DatabaseBackedUserService(
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         return [self._serialize_rpc(u) for u in self._base_query().filter(actor_id__in=actor_ids)]
 
+    def update_user(
+        self,
+        *,
+        user_id: int,
+        attrs: UserUpdateArgs,
+    ) -> Any:
+        if len(attrs):
+            User.objects.filter(id=user_id).update(**attrs)
+        return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
+
     def close(self) -> None:
         pass
 
@@ -200,7 +211,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
             id=avatar.id,
             file_id=avatar.file_id,
             ident=avatar.ident,
-            avatar_type=avatar.avatar_type,
+            avatar_type=avatar.get_avatar_type_display(),
         )
     args["avatar"] = avatar
     authenticators: FrozenSet[RpcAuthenticator] = frozenset()

@@ -28,7 +28,7 @@ describe('UrlWalker', () => {
   });
 
   describe('CrumbWalker', () => {
-    const {replayRecord} = TestStubs.ReplayReaderParams();
+    const replayRecord = TestStubs.ReplayRecord({});
 
     const PAGELOAD_CRUMB = TestStubs.Breadcrumb({
       id: 4,

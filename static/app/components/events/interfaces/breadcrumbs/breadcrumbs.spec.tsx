@@ -11,7 +11,11 @@ import {
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 
-const mockReplay = ReplayReader.factory(TestStubs.ReplayReaderParams());
+const mockReplay = ReplayReader.factory({
+  replayRecord: TestStubs.ReplayRecord({}),
+  errors: [],
+  attachments: TestStubs.ReplaySegmentInit({}),
+});
 
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
 
@@ -219,7 +223,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -244,7 +248,7 @@ describe('Breadcrumbs', () => {
             tags: [],
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );
@@ -273,7 +277,7 @@ describe('Breadcrumbs', () => {
             platform: 'javascript',
           })}
           organization={TestStubs.Organization({
-            features: ['session-replay', 'session-replay-ui'],
+            features: ['session-replay'],
           })}
         />
       );

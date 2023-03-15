@@ -68,7 +68,11 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
                 {"organization_id": project.organization_id},
             )
             results = massage_outcomes_result(
-                query_definition, [], run_outcomes_query_timeseries(query_definition)
+                query_definition,
+                [],
+                run_outcomes_query_timeseries(
+                    query_definition, tenant_ids={"organization_id": project.organization_id}
+                ),
             )
         except Exception:
             raise ParseError(detail="Invalid request data")

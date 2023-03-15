@@ -46,6 +46,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     include_transactions=request.GET.get("includeTransactions") == "1",
                     include_sessions=request.GET.get("includeSessions") == "1",
                     include_replays=request.GET.get("includeReplays") == "1",
+                    tenant_ids={"organization_id": organization.id},
                 )
 
         return self.paginate(

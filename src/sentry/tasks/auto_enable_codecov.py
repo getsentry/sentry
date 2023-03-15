@@ -1,20 +1,21 @@
 import logging
 
-from sentry import features
+from sentry import audit_log, features
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.tasks.base import instrumented_task
+from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
 logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
 
 
 @instrumented_task(
-    name="sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+    name="sentry.tasks.auto_enable_codecov.schedule_organizations",
     queue="auto_enable_codecov",
     max_retries=0,
 )  # type: ignore
-def auto_enable_codecov(dry_run=False) -> None:
+def schedule_organizations(dry_run=False) -> None:
     """
     Queue tasks to enable codecov for each organization.
 
@@ -46,16 +47,28 @@ def enable_for_organization(organization_id: int, dry_run=False) -> None:
     Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
     try:
+        logger.debug(f"Attempting to enable codecov for organization {organization_id}")
         organization = Organization.objects.get(id=organization_id)
         has_integration, _ = has_codecov_integration(organization)
         if not has_integration:
+            logger.debug(f"No codecov integration exists for organization {organization_id}")
             return
 
         if organization.flags.codecov_access.is_set:
+            logger.debug(f"Codecov Access flag already set to {organization.flags.codecov_access}")
             return
 
         organization.flags.codecov_access = True
+        logger.debug(f"Setting Codecov Access flag for organization {organization_id}")
         organization.save()
+
+        create_system_audit_entry(
+            organization=organization,
+            target_object=organization.id,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            data={"codecov_access": "to True"},
+        )
+
     except Organization.DoesNotExist:
         logger.exception(
             "Organization does not exist.",
