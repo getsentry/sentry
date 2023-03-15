@@ -94,21 +94,20 @@ def _get_channel_and_integration_by_team(
 
 
 def get_integrations_by_channel_by_recipient(
-    organization: Organization, recipients: Iterable[Team | User], provider: ExternalProviders
-) -> MutableMapping[Team | User, Mapping[str, RpcIntegration | Integration]]:
-    output: MutableMapping[Team | User, Mapping[str, RpcIntegration | Integration]] = defaultdict(
-        dict
-    )
-    for recipient in recipients:
-        recipient_actor = RpcActor.from_object(recipient)
+    organization: Organization,
+    recipients: Iterable[RpcActor | Team | User],
+    provider: ExternalProviders,
+) -> MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]]:
+    output: MutableMapping[RpcActor, Mapping[str, RpcIntegration | Integration]] = defaultdict(dict)
+    for recipient in (RpcActor.from_object(r) for r in recipients):
         channels_to_integrations = None
-        if recipient_actor.actor_type == ActorType.USER:
+        if recipient.actor_type == ActorType.USER:
             channels_to_integrations = _get_channel_and_integration_by_user(
-                recipient_actor.id, organization, provider
+                recipient.id, organization, provider
             )
-        elif recipient_actor.actor_type == ActorType.TEAM and recipient_actor.actor_id is not None:
+        elif recipient.actor_type == ActorType.TEAM and recipient.actor_id is not None:
             channels_to_integrations = _get_channel_and_integration_by_team(
-                recipient_actor.actor_id, organization, provider
+                recipient.actor_id, organization, provider
             )
         if channels_to_integrations is not None:
             output[recipient] = channels_to_integrations
