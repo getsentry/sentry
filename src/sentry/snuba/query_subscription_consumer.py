@@ -264,7 +264,7 @@ def get_query_subscription_consumer(
     topic: str,
     group_id: str,
     strict_offset_reset: bool,
-    initial_offset_reset: str = "earliest",
+    initial_offset_reset: str,
 ) -> StreamProcessor[KafkaPayload]:
     cluster_name = settings.KAFKA_TOPICS[topic]["cluster"]
     cluster_options = kafka_config.get_kafka_consumer_cluster_options(cluster_name)

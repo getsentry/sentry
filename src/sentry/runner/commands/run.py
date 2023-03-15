@@ -448,7 +448,7 @@ def query_subscription_consumer(**options):
             topic=options["topic"],
             commit_batch_size=options["commit_batch_size"],
             commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
-            initial_offset_reset=options["initial_offset_reset"],
+            initial_offset_reset=options.get("initial_offset_reset", "earliest"),
             force_offset_reset=options["force_offset_reset"],
         )
     else:
