@@ -4,6 +4,7 @@ from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -649,8 +650,8 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
-# System-wise option for performance issue creation through issues platform
-register("performance.issues.send_to_issues_platform", default=False)
+# System-wide option for performance issue creation through issues platform
+register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
