@@ -298,7 +298,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value={"repositories": [{"full_name": "testgit/abc"}]},
     )
     @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
