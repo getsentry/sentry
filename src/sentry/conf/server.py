@@ -890,6 +890,11 @@ CELERYBEAT_SCHEDULE = {
         # Run job every 5 minutes
         "schedule": timedelta(minutes=5),
     },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run job every 4 hours at min 10
+        "schedule": crontab(minute=10, hour="*/4"),
+    },
 }
 
 BGTASKS = {
