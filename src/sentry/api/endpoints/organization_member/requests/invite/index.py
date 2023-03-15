@@ -12,6 +12,9 @@ from sentry.api.serializers.models.organization_member import OrganizationMember
 from sentry.models import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
 from sentry.notifications.utils.tasks import async_send_notification
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 
 from ... import save_team_assignments
 from ...index import OrganizationMemberSerializer
@@ -79,7 +82,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=result["role"],
-                inviter=request.user,
+                inviter_id=request.user.id,
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
@@ -97,6 +100,19 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 data=om.get_audit_log_data(),
                 event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
             )
+
+            organizationmember_mapping_service.create(
+                organization_id=organization.id,
+                email=result["email"],
+                role=result["role"],
+                inviter_id=request.user.id,
+                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            )
+
+            outbox = OrganizationMember.outbox_for_update(
+                org_id=organization.id, org_member_id=om.id
+            )
+            outbox.save()
 
         async_send_notification(InviteRequestNotification, om, request.user)
 
