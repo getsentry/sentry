@@ -1404,6 +1404,7 @@ class SnubaTagStorage(TagStorage):
                 end=end,
                 environment=filters.get("environment"),
                 tag_key=key,
+                tenant_ids=tenant_ids,
             )
             results = {
                 d["tag_value"]: {

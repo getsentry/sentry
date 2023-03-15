@@ -233,6 +233,7 @@ class SnubaEventStorage(EventStorage):
                     filter_keys={"project_id": [project_id], "event_id": [event_id]},
                     limit=1,
                     referrer="eventstore.get_event_by_id_nodestore",
+                    tenant_ids={"organization_id": event.project.organization_id},
                     **raw_query_kwargs,
                 )
             except snuba.QueryOutsideRetentionError:
@@ -338,6 +339,7 @@ class SnubaEventStorage(EventStorage):
                 referrer="eventstore.get_next_or_prev_event_id",
                 orderby=orderby,
                 dataset=dataset,
+                tenant_ids=tenant_ids,
             )
         except (snuba.QueryOutsideRetentionError, snuba.QueryOutsideGroupActivityError):
             # This can happen when the date conditions for paging
