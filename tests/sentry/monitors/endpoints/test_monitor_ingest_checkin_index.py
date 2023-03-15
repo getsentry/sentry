@@ -123,14 +123,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     def test_disabled(self):
         for path_func in self._get_path_functions():
-            monitor = Monitor.objects.create(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                next_checkin=timezone.now() - timedelta(minutes=1),
-                type=MonitorType.CRON_JOB,
-                status=MonitorStatus.DISABLED,
-                config={"schedule": "* * * * *"},
-            )
+            monitor = self._create_monitor(status=MonitorStatus.DISABLED)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -152,14 +145,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            status=MonitorStatus.PENDING_DELETION,
-            config={"schedule": "* * * * *"},
-        )
+        monitor = self._create_monitor(status=MonitorStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -168,14 +154,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert resp.status_code == 404
 
     def test_deletion_in_progress(self):
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            status=MonitorStatus.DELETION_IN_PROGRESS,
-            config={"schedule": "* * * * *"},
-        )
+        monitor = self._create_monitor(status=MonitorStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
