@@ -262,9 +262,12 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            if occurrence_data["type"] not in get_group_types_by_category(
-                GroupCategory.PROFILE.value
-            ) or not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+            allowed_group_types = get_group_types_by_category(GroupCategory.PROFILE.value).union(
+                get_group_types_by_category(GroupCategory.PERFORMANCE.value)
+            )
+            if occurrence_data["type"] not in allowed_group_types or not features.has(
+                "organizations:profile-blocked-main-thread-ingest", organization
+            ):
                 metrics.incr(
                     "occurrence_ingest.dropped_feature_disabled",
                     sample_rate=1.0,
