@@ -472,10 +472,12 @@ class SentryAppStatus:
     PUBLISHED = 1
     INTERNAL = 2
     PUBLISH_REQUEST_INPROGRESS = 3
+    DELETION_IN_PROGRESS = 4
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
     PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
+    DELETION_IN_PROGRESS_STR = "deletion_in_progress"
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
@@ -484,6 +486,7 @@ class SentryAppStatus:
             (cls.PUBLISHED, cls.PUBLISHED_STR),
             (cls.INTERNAL, cls.INTERNAL_STR),
             (cls.PUBLISH_REQUEST_INPROGRESS, cls.PUBLISH_REQUEST_INPROGRESS_STR),
+            (cls.DELETION_IN_PROGRESS, cls.DELETION_IN_PROGRESS_STR),
         )
 
     @classmethod
@@ -496,6 +499,8 @@ class SentryAppStatus:
             return cls.INTERNAL_STR
         elif status == cls.PUBLISH_REQUEST_INPROGRESS:
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
+        elif status == cls.DELETION_IN_PROGRESS:
+            return cls.DELETION_IN_PROGRESS_STR
         else:
             return None
 
@@ -509,6 +514,8 @@ class SentryAppStatus:
             return cls.INTERNAL
         elif status == cls.PUBLISH_REQUEST_INPROGRESS_STR:
             return cls.PUBLISH_REQUEST_INPROGRESS
+        elif status == cls.DELETION_IN_PROGRESS_STR:
+            return cls.DELETION_IN_PROGRESS
         else:
             return None
 

@@ -23,7 +23,7 @@ class TestCreator(TestCase):
         self.creator.call()
 
         service_hook = ServiceHook.objects.get(
-            application=self.sentry_app.application,
+            application_id=self.sentry_app.application_id,
             actor_id=self.sentry_app.proxy_user.id,
             url=self.sentry_app.webhook_url,
         )

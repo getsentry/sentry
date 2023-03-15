@@ -12,6 +12,7 @@ from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
 from sentry.services.hybrid_cloud.app import (
     AppService,
+    RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,
     RpcSentryAppInstallation,
@@ -155,6 +156,14 @@ class DatabaseBackedAppService(
             fields=fields,
         )
         return result
+
+    def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
+        try:
+            return self.serialize_sentry_app(
+                SentryApp.objects.get(application_id=api_application_id)
+            )
+        except SentryApp.DoesNotExist:
+            return None
 
     def close(self) -> None:
         pass

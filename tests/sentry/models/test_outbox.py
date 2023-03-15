@@ -7,7 +7,6 @@ from freezegun import freeze_time
 from pytest import raises
 
 from sentry.models import (
-    MONOLITH_REGION_NAME,
     ControlOutbox,
     Organization,
     OrganizationMember,
@@ -21,6 +20,7 @@ from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.types.region import MONOLITH_REGION_NAME
 
 
 @pytest.mark.django_db(transaction=True)

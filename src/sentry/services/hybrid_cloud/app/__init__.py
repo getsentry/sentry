@@ -41,6 +41,7 @@ class RpcSentryApp:
     slug: str = ""
     uuid: str = ""
     events: List[str] = field(default_factory=list)
+    webhook_url: str = ""
 
 
 @dataclass
@@ -142,7 +143,12 @@ class AppService(
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
+            webhook_url=app.webhook_url,
         )
+
+    @abc.abstractmethod
+    def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
+        pass
 
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
