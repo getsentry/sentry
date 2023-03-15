@@ -166,7 +166,7 @@ class AuthProvider(Model):
         )
 
     def disable_scim(self, user):
-        from sentry.mediators.sentry_apps import Destroyer
+        from sentry import deletions
         from sentry.models import SentryAppInstallationForProvider
 
         if self.flags.scim_enabled:
@@ -177,7 +177,11 @@ class AuthProvider(Model):
             # We run this update before the app is uninstalled to avoid ending up in a situation where there are
             # members locked out because we failed to drop the IDP flag
             self._reset_idp_flags()
-            Destroyer.run(sentry_app=install.sentry_app_installation.sentry_app, user=user)
+            sentry_app = install.sentry_app_installation.sentry_app
+            assert (
+                sentry_app.is_internal
+            ), "scim sentry apps should always be internal, thus deleting them without triggering InstallationNotifier is correct."
+            deletions.exec_sync(sentry_app)
             self.flags.scim_enabled = False
 
     def get_audit_log_data(self):

@@ -1,4 +1,5 @@
 import hmac
+from functools import cached_property
 from hashlib import sha256
 from uuid import uuid4
 
@@ -16,7 +17,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.models import SentryApp
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.services.hybrid_cloud.app import app_service
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -49,9 +51,11 @@ class ServiceHook(Model):
 
     guid = models.CharField(max_length=32, unique=True, null=True)
     # hooks may be bound to an api application, or simply registered by a user
-    application = FlexibleForeignKey("sentry.ApiApplication", null=True)
+    application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="CASCADE")
     actor_id = BoundedBigIntegerField(db_index=True)
-    installation_id = BoundedBigIntegerField(db_index=True, null=True)
+    installation_id = HybridCloudForeignKey(
+        "sentry.SentryAppInstallation", null=True, on_delete="CASCADE"
+    )
     project_id = BoundedBigIntegerField(db_index=True, null=True)
     organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
@@ -73,14 +77,11 @@ class ServiceHook(Model):
 
     @property
     def created_by_sentry_app(self):
-        return self.application_id and self.sentry_app
+        return self.application_id and bool(self.sentry_app)
 
-    @property
+    @cached_property
     def sentry_app(self):
-        try:
-            return SentryApp.objects.get(application_id=self.application_id)
-        except SentryApp.DoesNotExist:
-            return
+        return app_service.find_service_hook_sentry_app(api_application_id=self.application_id)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

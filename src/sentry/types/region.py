@@ -1,15 +1,18 @@
 from __future__ import annotations
 
 import functools
+import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Organization
+
+MONOLITH_REGION_NAME = "--monolith--"
 
 
 class RegionCategory(Enum):
@@ -128,7 +131,7 @@ def get_local_region() -> Region:
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         # This is a dummy value used to make region.to_url work
         return Region(
-            name="monolith",
+            name=MONOLITH_REGION_NAME,
             id=0,
             address="/",
             category=RegionCategory.MULTI_TENANT,
@@ -140,3 +143,48 @@ def get_local_region() -> Region:
     if not settings.SENTRY_REGION:
         raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
     return get_region_by_name(settings.SENTRY_REGION)
+
+
+def _find_orgs_for_user(user_id: int) -> Set[int]:
+    # TODO: This must be changed to the org member mapping in the control silo eventually.
+    from sentry.models import OrganizationMember
+
+    return {
+        m["organization_id"]
+        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
+    }
+
+
+def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
+    from sentry.models import OrganizationMapping
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {
+            MONOLITH_REGION_NAME,
+        }
+    else:
+        return {
+            t["region_name"]
+            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
+                "region_name"
+            )
+        }
+
+
+def find_regions_for_user(user_id: int) -> Set[str]:
+    org_ids: Set[int]
+    if "pytest" in sys.modules:
+        from sentry.testutils.silo import exempt_from_silo_limits
+
+        with exempt_from_silo_limits():
+            org_ids = _find_orgs_for_user(user_id)
+    else:
+        org_ids = _find_orgs_for_user(user_id)
+
+    return find_regions_for_orgs(org_ids)
+
+
+def find_all_region_names() -> Iterable[str]:
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {MONOLITH_REGION_NAME}
+    return _load_global_regions().by_name.keys()

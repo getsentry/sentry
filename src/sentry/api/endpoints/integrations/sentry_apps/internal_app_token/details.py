@@ -1,12 +1,13 @@
+from django.db import transaction
 from django.http import Http404
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics, deletions
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
-from sentry.mediators.sentry_app_installation_tokens import Destroyer
-from sentry.models import ApiToken
+from sentry.models import ApiToken, SentryAppInstallationToken
 
 
 @pending_silo_endpoint
@@ -35,6 +36,21 @@ class SentryInternalAppTokenDetailsEndpoint(SentryAppBaseEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        Destroyer.run(api_token=api_token, user=request.user, request=request)
+        with transaction.atomic():
+            try:
+                install_token = SentryAppInstallationToken.objects.get(api_token=api_token)
+                sentry_app_installation = install_token.sentry_app_installation
+            except SentryAppInstallationToken.DoesNotExist:
+                raise Http404
+
+            deletions.exec_sync(install_token)
+
+        analytics.record(
+            "sentry_app_installation_token.deleted",
+            user_id=request.user.id,
+            organization_id=sentry_app_installation.organization_id,
+            sentry_app_installation_id=sentry_app_installation.id,
+            sentry_app=sentry_app.slug,
+        )
 
         return Response(status=204)
