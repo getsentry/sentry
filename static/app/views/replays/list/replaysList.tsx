@@ -3,7 +3,6 @@ import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -16,7 +15,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
-import ReplaysFilters from 'sentry/views/replays/filters';
 import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
@@ -48,24 +46,14 @@ function ReplaysList() {
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
-  const child =
-    hasSessionReplay && !fetching && hasSentOneReplay ? (
-      <ReplaysListTable
-        eventView={eventView}
-        location={location}
-        organization={organization}
-      />
-    ) : (
-      <ReplayOnboardingPanel />
-    );
-
-  return (
-    <Layout.Body>
-      <Layout.Main fullWidth>
-        <ReplaysFilters />
-        {child}
-      </Layout.Main>
-    </Layout.Body>
+  return hasSessionReplay && !fetching && hasSentOneReplay ? (
+    <ReplaysListTable
+      eventView={eventView}
+      location={location}
+      organization={organization}
+    />
+  ) : (
+    <ReplayOnboardingPanel />
   );
 }
 
