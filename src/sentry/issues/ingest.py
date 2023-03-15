@@ -94,10 +94,8 @@ def _create_issue_kwargs(
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
-        # TODO: Not sure what to put here
-        # "logger": job["logger_name"],
         "level": LOG_LEVELS_MAP.get(occurrence.level),
-        "culprit": occurrence.subtitle,
+        "culprit": occurrence.culprit,
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
@@ -127,13 +125,13 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     event_metadata["title"] = occurrence.issue_title
+    event_metadata["value"] = occurrence.subtitle
 
     return {
         "type": event_type.key,
-        # Not totally sure if this makes sense?
-        "culprit": occurrence.subtitle,
-        "metadata": event_metadata,
         "title": occurrence.issue_title,
+        "culprit": occurrence.culprit,
+        "metadata": event_metadata,
         "location": event.location,
         "last_received": event.datetime,
     }

@@ -37,6 +37,7 @@ class OccurrenceTestMixin:
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
+            "culprit": "api/123",
             "resource_id": "1234",
             "evidence_data": {"Test": 123},
             "evidence_display": [

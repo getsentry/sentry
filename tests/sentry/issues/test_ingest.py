@@ -129,8 +129,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert group.active_at == event.datetime
         assert group.issue_type == occurrence.type
         assert group.first_release is None
-        assert group.data["culprit"] == occurrence.subtitle
-        assert group.data["title"] == occurrence.issue_title
+        assert group.title == occurrence.issue_title
+        assert group.data["metadata"]["value"] == occurrence.subtitle
+        assert group.culprit == occurrence.culprit
         assert group.location() == event.location
 
     def test_existing_group(self) -> None:
@@ -150,8 +151,9 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
         assert updated_group_info.group.id == updated_group.id
         assert not updated_group_info.is_new
         assert not updated_group_info.is_regression
-        assert updated_group.culprit == new_occurrence.subtitle
         assert updated_group.title == new_occurrence.issue_title
+        assert updated_group.data["metadata"]["value"] == new_occurrence.subtitle
+        assert updated_group.culprit == new_occurrence.culprit
         assert updated_group.location() == event.location
         assert updated_group.times_seen == 2
 
@@ -199,7 +201,7 @@ class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore
             "platform": event.platform,
             "message": event.search_message,
             "level": LOG_LEVELS_MAP.get(occurrence.level),
-            "culprit": occurrence.subtitle,
+            "culprit": occurrence.culprit,
             "last_seen": event.datetime,
             "first_seen": event.datetime,
             "active_at": event.datetime,
@@ -215,9 +217,8 @@ class MaterializeMetadataTest(OccurrenceTestMixin, TestCase):  # type: ignore
         event = self.store_event(data={}, project_id=self.project.id)
         assert materialize_metadata(occurrence, event) == {
             "type": "default",
-            # Not totally sure if this makes sense?
-            "culprit": occurrence.subtitle,
-            "metadata": {"title": occurrence.issue_title},
+            "culprit": occurrence.culprit,
+            "metadata": {"title": occurrence.issue_title, "value": occurrence.subtitle},
             "title": occurrence.issue_title,
             "location": event.location,
             "last_received": event.datetime,

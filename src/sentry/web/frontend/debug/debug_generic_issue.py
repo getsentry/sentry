@@ -39,6 +39,7 @@ class DebugGenericIssueEmailView(View):
                 "project_label": project.slug,
                 "commits": json.loads(COMMIT_EXAMPLE),
                 "issue_title": event.occurrence.issue_title,
-                "subtitle": event.title,
+                "subtitle": event.occurrence.subtitle,
+                "culprit": event.occurrence.culprit,
             },
         ).render(request)
