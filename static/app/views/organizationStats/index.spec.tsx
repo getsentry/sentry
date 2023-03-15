@@ -118,6 +118,7 @@ describe('OrganizationStats', function () {
         statsPeriod: '5m',
         interval: '1m',
         groupBy: ['category', 'outcome'],
+        project: [-1],
         field: ['sum(quantity)'],
       },
       UsageStatsProjects: {
