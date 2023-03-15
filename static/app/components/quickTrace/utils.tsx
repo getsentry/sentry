@@ -14,6 +14,7 @@ import {
   EventLite,
   QuickTraceEvent,
   TraceError,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -78,7 +79,7 @@ function generateDiscoverEventTarget(
 }
 
 export function generateSingleErrorTarget(
-  event: TraceError,
+  event: TraceError | TracePerformanceIssue,
   organization: OrganizationSummary,
   location: Location,
   destination: ErrorDestination
