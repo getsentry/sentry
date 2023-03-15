@@ -1,7 +1,7 @@
 import {Location, Query} from 'history';
 
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 
 export function generateTagsRoute({orgSlug}: {orgSlug: string}): string {
@@ -13,11 +13,7 @@ export function decodeSelectedTagKey(location: Location): string | undefined {
 }
 
 export function trackTagPageInteraction(organization: Organization) {
-  trackAnalyticsEvent({
-    eventKey: 'performance_views.tags.interaction',
-    eventName: 'Performance Views: Tag Page - Interaction',
-    organization_id: parseInt(organization.id, 10),
-  });
+  trackAdvancedAnalyticsEvent('performance_views.tags.interaction', {organization});
 }
 
 export function tagsRouteWithQuery({
