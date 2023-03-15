@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from enum import IntEnum
-from typing import Callable, Iterable, List, Tuple
+from typing import Callable, Dict, Iterable, List, Tuple
 
 from django.db import models
 from pyparsing import MutableMapping
@@ -209,6 +209,17 @@ class NotificationAction(AbstractNotificationAction):
     @classmethod
     def get_trigger_types(cls):
         return cls._trigger_types
+
+    @classmethod
+    def get_trigger_text(self, trigger_type: int) -> str:
+        return dict(NotificationAction.get_trigger_types())[trigger_type]
+
+    def get_audit_log_data(self) -> Dict[str, str]:
+        """
+        Returns audit log data for NOTIFICATION_ACTION_ADD, NOTIFICATION_ACTION_EDIT
+        and NOTIFICATION_ACTION_REMOVE events
+        """
+        return {"trigger": NotificationAction.get_trigger_text(self.trigger_type)}
 
     def fire(self, *args, **kwargs):
         handler = NotificationAction._handlers[self.trigger_type].get(self.service_type)

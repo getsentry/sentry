@@ -313,3 +313,27 @@ default_manager.add(
         template='disabled dynamic sampling priority "{name}"',
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=165,
+        name="NOTIFICATION_ACTION_ADD",
+        api_name="notification_action.create",
+        template="added an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=166,
+        name="NOTIFICATION_ACTION_EDIT",
+        api_name="notification_action.edit",
+        template="edited an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=167,
+        name="NOTIFICATION_ACTION_REMOVE",
+        api_name="notification_action.remove",
+        template="removed an action with the '{trigger}' trigger",
+    )
+)

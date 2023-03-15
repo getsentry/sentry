@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_flag import FlaggedOrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
@@ -67,5 +68,12 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
         logger.info(
             "notification_action.create",
             extra={"organization_id": organization.id, "action_id": action.id},
+        )
+        self.create_audit_entry(
+            request=request,
+            organization=organization,
+            target_object=action.id,
+            event=audit_log.get_event_id("NOTIFICATION_ACTION_ADD"),
+            data=action.get_audit_log_data(),
         )
         return Response(serialize(action, request.user), status=status.HTTP_201_CREATED)
