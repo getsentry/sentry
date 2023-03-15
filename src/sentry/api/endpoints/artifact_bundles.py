@@ -40,7 +40,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
             return {
                 "type": "artifact_bundle",
                 "bundleId": str(bundle_id),
-                "date": artifact_bundle["date_added"],
+                "dateCreated": artifact_bundle["date_added"].isoformat().replace("+00:00", "Z"),
                 "fileCount": artifact_count,
             }
 
