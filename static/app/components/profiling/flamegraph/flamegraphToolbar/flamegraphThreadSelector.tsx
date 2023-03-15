@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
@@ -69,6 +69,26 @@ function FlamegraphThreadSelector({
     },
     [onThreadIdChange]
   );
+
+  useEffect(() => {
+    function handleThreadCycling(event: KeyboardEvent) {
+      const index = profileOptions.findIndex(option => option.value === threadId);
+
+      if (event.key === 'ArrowRight' && event.shiftKey) {
+        const nextIndex = (index + 1) % profileOptions.length;
+        onThreadIdChange(profileOptions[nextIndex].value);
+      } else if (event.key === 'ArrowLeft' && event.shiftKey) {
+        const nextIndex = Math.abs((index - 1) % profileOptions.length);
+        onThreadIdChange(profileOptions[nextIndex].value);
+      }
+    }
+
+    document.addEventListener('keydown', handleThreadCycling);
+
+    return () => {
+      document.removeEventListener('keydown', handleThreadCycling);
+    };
+  }, [profileOptions, onThreadIdChange, threadId]);
 
   return (
     <CompactSelect
