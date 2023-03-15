@@ -22,8 +22,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils import metrics
 
-CHUNK_SIZE = 1000
-MAX_SECONDS = 60
 CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 
 # TODO RaduW validate assumptions
