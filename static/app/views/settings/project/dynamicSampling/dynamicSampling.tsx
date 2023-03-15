@@ -144,9 +144,9 @@ export function DynamicSampling({project}: Props) {
         {organization?.features.includes('onboarding-heartbeat-footer') && (
           <div>
             The Heartbeat is active and you are participating in the experiment: &nbsp;
-            {experimentAssignment === 0
+            {experimentAssignment === 'baseline'
               ? '(Baseline) No change'
-              : experimentAssignment === 1
+              : experimentAssignment === 'variant1'
               ? '(Variant 1) New design with “Explore Sentry“ button disabled while “waiting for error“'
               : '(Variant 2) New design with existing “View Sample Error“ button instead while “waiting for error“'}
           </div>
