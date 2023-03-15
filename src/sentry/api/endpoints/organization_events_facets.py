@@ -7,6 +7,7 @@ from rest_framework.response import Response
 from sentry import tagstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba import discover
 
 
@@ -42,6 +43,7 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                         "count": row.count,
                     }
                 )
+
             if "project" in resp:
                 # Replace project ids with slugs as that is what we generally expose to users
                 # and filter out projects that the user doesn't have access too.
@@ -54,5 +56,18 @@ class OrganizationEventsFacetsEndpoint(OrganizationEventsV2EndpointBase):
                         filtered_values.append(v)
 
                 resp["project"]["topValues"] = filtered_values
+
+            if "device.class" in resp:
+                # Map device.class tag values to low, medium, or high
+                filtered_values = []
+                for v in resp["device.class"]["topValues"]:
+                    for key, value in DEVICE_CLASS.items():
+                        if v["value"] in value:
+                            name = key
+                            v.update({"name": name})
+                            filtered_values.append(v)
+                            continue
+
+                resp["device.class"]["topValues"] = filtered_values
 
         return Response(list(resp.values()))

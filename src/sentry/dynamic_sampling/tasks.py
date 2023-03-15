@@ -61,11 +61,8 @@ def process_projects_sample_rates(
     """
     Takes a single org id and a list of project ids
     """
-    organization = Organization.objects.get_from_cache(id=org_id)
-    # Check if feature flag is enabled:
-    if features.has("organizations:ds-prioritise-by-project-bias", organization):
-        with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_sample_rates.core"):
-            adjust_sample_rates(org_id, projects_with_tx_count)
+    with metrics.timer("sentry.tasks.dynamic_sampling.process_projects_sample_rates.core"):
+        adjust_sample_rates(org_id, projects_with_tx_count)
 
 
 def adjust_sample_rates(

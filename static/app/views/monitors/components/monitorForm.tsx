@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -25,6 +25,7 @@ import {SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
   IntervalConfig,
@@ -104,6 +105,11 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const [crontabInput, setCrontabInput] = useState(
+    monitor?.config.schedule_type === ScheduleType.CRONTAB
+      ? monitor?.config.schedule
+      : null
+  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -133,6 +139,8 @@ function MonitorForm({
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
+
+  const parsedSchedule = crontabAsText(crontabInput);
 
   return (
     <Form
@@ -235,6 +243,7 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
+                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -245,6 +254,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
+                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
                   </ScheduleGroupInputs>
                 );
               }
@@ -376,4 +386,11 @@ const LabeledInputs = styled('div')`
 
 const ScheduleGroupInputs = styled(LabeledInputs)<{interval?: boolean}>`
   grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
+`;
+
+const CronstrueText = styled(LabelText)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  grid-column: auto / span 2;
 `;

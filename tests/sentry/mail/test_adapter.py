@@ -205,6 +205,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
             "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
@@ -254,6 +255,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
             "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence

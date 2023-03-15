@@ -164,7 +164,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 @apply_feature_flag_on_cls("organizations:derive-code-mappings")
-@apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _call_post_process_group(self, data: Dict[str, str]) -> None:
         event = self.create_event(data=data, project_id=self.project.id)
@@ -1101,7 +1100,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:commit-context-fallback")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value=github_blame_return_value,
