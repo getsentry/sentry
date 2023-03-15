@@ -132,7 +132,6 @@ export const GroupEventCarousel = ({
             </Tooltip>{' '}
             {(event.dateCreated ?? event.dateReceived) && (
               <EventTimeLabel>
-                (
                 {getDynamicText({
                   fixed: '1d ago',
                   value: (
@@ -148,7 +147,6 @@ export const GroupEventCarousel = ({
                     <StyledIconWarning size="xs" color="warningText" />
                   </Tooltip>
                 )}
-                )
               </EventTimeLabel>
             )}
           </div>
@@ -271,7 +269,7 @@ export const GroupEventCarousel = ({
 
 const CarouselAndButtonsWrapper = styled('div')`
   display: flex;
-  gap: ${space(0.75)};
+  gap: ${space(1)};
   margin-bottom: ${space(0.5)};
 `;
 
