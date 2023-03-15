@@ -21,6 +21,7 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
@@ -72,6 +73,11 @@ def save_issue_occurrence(
 
 
 def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:
+    # Do not hash fingerprints for performance issues because they're already
+    # hashed in save_aggregate_performance
+    # This check should be removed once perf issues are created through the platform
+    if occurrence_data["type"] in get_group_types_by_category(GroupCategory.PERFORMANCE.value):
+        return
     # Hash fingerprints to make sure they're a consistent length
     occurrence_data["fingerprint"] = [
         md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
