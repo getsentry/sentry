@@ -200,6 +200,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
         stackView={STACK_VIEW.APP}
         nativeV2
         inlined
+        maxDepth={MAX_STACK_DEPTH}
       />
     </Fragment>
   );
@@ -285,10 +286,7 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
   const frames: Frame[] = [];
 
-  let framesCount = 0;
-  let prevFrame: ProfilingFrame | null = null;
-
-  while (framesCount < MAX_STACK_DEPTH && node && !node.isRoot()) {
+  while (node && !node.isRoot()) {
     const frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
@@ -310,24 +308,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
       vars: null,
     };
 
-    if (
-      // Recursive frames get collapsed into 1, so only count the
-      // entire recursive group once.
-      node.frame !== prevFrame &&
-      // In app frames are not collapsed so count it.
-      (node.frame.is_application ||
-        // Only count non in app frames if the previous frame is in app.
-        // This is because a group of non in app frames will be collapsed
-        // into a single frame, so we only count the entire group once.
-        prevFrame?.is_application)
-    ) {
-      framesCount += 1;
-    }
-
     frames.push(frame);
-
-    prevFrame = node.frame;
-
     node = node.parent;
   }
 
