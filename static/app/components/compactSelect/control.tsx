@@ -274,6 +274,23 @@ export function Control({
   });
 
   /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = useCallback(
+    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
+    [overlayRef]
+  );
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = useCallback(
+    () => !search && setMenuFullWidth(undefined),
+    [search]
+  );
+
+  /**
    * A list of selected options across all select regions, to be used to generate the
    * trigger label.
    */
@@ -363,7 +380,7 @@ export function Control({
           {...overlayProps}
         >
           <StyledOverlay
-            width={menuWidth}
+            width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
@@ -388,6 +405,8 @@ export function Control({
                 <SearchInput
                   placeholder={searchPlaceholder}
                   value={search}
+                  onFocus={onSearchFocus}
+                  onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
@@ -509,7 +528,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{
   maxHeightProp: string | number;
   maxHeight?: string | number;
@@ -522,12 +541,12 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
+  ${p => p.width && `width: ${withUnits(p.width)};`}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
       : withUnits(p.maxHeightProp)};
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.maxWidth && `max-width: ${withUnits(p.maxWidth)};`}
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
