@@ -72,8 +72,11 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 status=400,
             )
 
-        # We open the archive to fetch the number of files.
-        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+        try:
+            # We open the archive to fetch the number of files.
+            archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+        except Exception:
+            return Response({"error": "The artifact bundle archive can't be opened"})
 
         def expose_artifact_bundle_file(file_path, info):
             headers = archive.normalize_headers(info.get("headers", {}))
