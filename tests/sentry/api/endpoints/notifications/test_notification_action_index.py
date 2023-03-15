@@ -11,7 +11,7 @@ NOTFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 
 
 @region_silo_test(stable=True)
-class NotificationActionsDetailsEndpointTest(APITestCase):
+class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
     def setUp(self):
