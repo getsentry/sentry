@@ -881,7 +881,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
+        "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
         "schedule": timedelta(hours=4),
         "options": {"expires": 3600},
     },
@@ -1035,8 +1035,6 @@ SENTRY_FEATURES = {
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
-    # Enables automatically deriving of code mappings as a dry run for early adopters
-    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1238,6 +1236,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-consecutive-http-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
@@ -1295,12 +1295,10 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable a banner on the issue details page guiding the user to setup source maps
     "organizations:source-maps-cta": False,
-    # Enable a UI where users can see bundles and it's artefacts which only have debug ID's
+    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by project
-    "organizations:ds-prioritise-by-project-bias": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page

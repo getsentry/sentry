@@ -27,7 +27,9 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from .base import MonitorIngestEndpoint
@@ -40,6 +42,16 @@ CHECKIN_QUOTA_WINDOW = 60
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     public = {"POST"}
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(40 * 60, 60),
+                RateLimitCategory.USER: RateLimit(40 * 60, 60),
+                RateLimitCategory.ORGANIZATION: RateLimit(40 * 60, 60),
+            }
+        },
+    )
 
     @extend_schema(
         operation_id="Create a new check-in",

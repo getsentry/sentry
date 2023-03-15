@@ -34,7 +34,13 @@ register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
-register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register(
+    "system.url-prefix",
+    ttl=60,
+    grace=3600,
+    default=os.environ.get("SENTRY_SYSTEM_URL_PREFIX"),
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
+)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 # Base hostname that account domains are subdomains of.
 register(
@@ -431,6 +437,7 @@ register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
 register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
 register("post_process.get-autoassign-owners", type=Sequence, default=[])
+register("api.organization.disable-last-deploys", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
