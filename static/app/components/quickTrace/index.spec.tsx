@@ -34,6 +34,7 @@ describe('Quick Trace', function () {
             : parentId === null
             ? `s${generation - 1}${parentId}`
             : `s${parentId}`,
+        performance_issues: [],
       });
     }
     return events;
