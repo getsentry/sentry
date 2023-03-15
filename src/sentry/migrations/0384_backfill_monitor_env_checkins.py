@@ -34,12 +34,12 @@ def backfill_monitor_checkins(apps, schema_editor):
     batch = []
     for monitor_checkin_id, project_id, monitor_id, monitor_environment_id in queryset:
         if monitor_environment_id:
-            continue  # test me
+            continue
 
         try:
             monitor_environment = MonitorEnvironment.objects.filter(monitor_id=monitor_id)[0]
         except IndexError:
-            continue  # test me
+            continue
 
         batch.append((monitor_checkin_id, monitor_environment.id))
         if len(batch) >= BATCH_SIZE:
