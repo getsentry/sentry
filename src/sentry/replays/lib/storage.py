@@ -9,7 +9,7 @@ import logging
 from abc import ABC, abstractmethod
 from datetime import datetime
 from io import BytesIO
-from typing import Optional, Union
+from typing import List, Optional, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
@@ -149,9 +149,21 @@ def make_filename(segment: RecordingSegmentStorageMeta) -> str:
 
 def make_storage_driver(organization_id: int) -> Union[FilestoreBlob, StorageBlob]:
     """Return a storage driver instance."""
-    if organization_id % 100 < options.get("replay.storage.direct-storage-sample-rate"):
+    return _make_storage_driver(
+        organization_id,
+        options.get("replay.storage.direct-storage-sample-rate"),
+        settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST,
+    )
+
+
+def _make_storage_driver(
+    organization_id: int,
+    sample_rate: int,
+    allow_list: List[int],
+) -> Union[FilestoreBlob, StorageBlob]:
+    if organization_id in allow_list:
         return storage
-    elif organization_id in settings.SENTRY_REPLAYS_STORAGE_ALLOWLIST:
+    elif organization_id % 100 < sample_rate:
         return storage
     else:
         return filestore
