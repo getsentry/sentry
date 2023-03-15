@@ -15,9 +15,10 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
     def setUp(self):
-        self.user = self.create_user("thepale@king.com", is_superuser=True)
+        self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
+        self.team = self.create_team(name="pale beings", organization=self.organization)
         self.projects = [
             self.create_project(name="greenpath", organization=self.organization),
             self.create_project(name="dirtmouth", organization=self.organization),
@@ -79,7 +80,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
-                qs_params={"projectId": project.id},
+                qs_params={"project": project.id},
             )
             assert len(response.data) == len(project_actions)
             for action in project_actions:
@@ -97,7 +98,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
-                qs_params={"projectId": project.id, "triggerType": "teacher"},
+                qs_params={"project": project.id, "triggerType": "teacher"},
             )
             intersection = project_actions.intersection(teacher_actions)
             assert len(response.data) == len(intersection)
@@ -188,6 +189,22 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 **data,
             )
             assert "projects" in response.data
+
+    def test_post_no_project_access(self):
+        user = self.create_user("hornet@hk.com")
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects],
+        }
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
+            self.get_error_response(
+                self.organization.slug,
+                status_code=status.HTTP_403_FORBIDDEN,
+                method="POST",
+                **data,
+            )
 
     def test_post_simple(self):
         data = {

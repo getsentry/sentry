@@ -16,6 +16,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.user = self.create_user("summoner@rift.io", is_superuser=True)
         self.organization = self.create_organization(name="league", owner=self.user)
         self.other_organization = self.create_organization(name="wild-rift", owner=self.user)
+        self.team = self.create_team(name="games", organization=self.organization)
         self.projects = [
             self.create_project(name="bilgewater", organization=self.organization),
             self.create_project(name="demacia", organization=self.organization),
@@ -161,6 +162,23 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 **data,
             )
             assert "projects" in response.data
+
+    def test_put_no_project_access(self):
+        user = self.create_user("tft@rift.com")
+        self.create_member(user=user, organization=self.organization)
+        self.login_as(user)
+        data = {
+            **self.base_data,
+            "projects": [p.slug for p in self.projects],
+        }
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
+            self.get_error_response(
+                self.organization.slug,
+                self.notif_action.id,
+                status_code=status.HTTP_403_FORBIDDEN,
+                method="PUT",
+                **data,
+            )
 
     def test_put_simple(self):
         data = {**self.base_data}

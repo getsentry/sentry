@@ -26,9 +26,8 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
 
-        project_id_query = request.GET.getlist("projectId")
-        if project_id_query:
-            queryset = queryset.filter(projects__in=project_id_query)
+        if len(request.GET.getlist("project")):
+            queryset = queryset.filter(projects__in=self.get_projects(request, organization))
 
         trigger_type_query = request.GET.getlist("triggerType")
         if trigger_type_query:
