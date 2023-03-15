@@ -352,7 +352,7 @@ class Organization(Model, SnowflakeIdMixin):
     def get_members_with_org_roles(
         self,
         roles: Collection[str],
-        include_null_users: Optional[bool] = False,
+        include_null_users: bool = False,
     ):
         members_with_role = self.member_set.filter(
             role__in=roles,
