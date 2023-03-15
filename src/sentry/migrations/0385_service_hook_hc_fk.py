@@ -20,7 +20,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0381_fix_org_slug_casing"),
+        ("sentry", "0384_backfill_installation_ids"),
     ]
 
     database_operations = [
@@ -29,6 +29,13 @@ class Migration(CheckedMigration):
             name="application",
             field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
                 to="sentry.ApiApplication", db_constraint=False, db_index=True, null=True
+            ),
+        ),
+        migrations.AlterField(
+            model_name="servicehook",
+            name="installation_id",
+            field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
+                "sentry.SentryAppInstallation", db_index=True, on_delete="CASCADE", null=True
             ),
         ),
     ]

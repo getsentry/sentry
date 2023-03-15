@@ -8,8 +8,11 @@ from sentry.models import (
     ApiToken,
     SentryAppInstallation,
     SentryAppInstallationForProvider,
+    ServiceHook,
 )
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
+from sentry.testutils.outbox import outbox_runner
 
 
 class TestSentryAppIntallationDeletionTask(TestCase):
@@ -53,6 +56,23 @@ class TestSentryAppIntallationDeletionTask(TestCase):
         deletions.exec_sync(self.install)
 
         assert not SentryAppInstallationForProvider.objects.filter()
+
+    def test_deletes_service_hooks(self):
+        hook = self.create_service_hook(
+            application=self.sentry_app.application,
+            org=self.org,
+            actor=self.install,
+            installation_id=self.install.id,
+        )
+
+        with outbox_runner():
+            deletions.exec_sync(self.install)
+        assert ServiceHook.objects.filter(pk=hook.id).exists()
+
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        assert not ServiceHook.objects.filter(pk=hook.id).exists()
 
     def test_soft_deletes_installation(self):
         deletions.exec_sync(self.install)

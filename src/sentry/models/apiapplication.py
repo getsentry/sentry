@@ -85,7 +85,7 @@ class ApiApplication(Model):
         return [
             ControlOutbox(
                 shard_scope=OutboxScope.APP_SCOPE,
-                shard_identifier=0,  # App configuration is sent to all regions sequentially
+                shard_identifier=self.id,
                 object_identifier=self.id,
                 category=OutboxCategory.API_APPLICATION_UPDATE,
                 region_name=region_name,

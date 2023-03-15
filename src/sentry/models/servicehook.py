@@ -53,7 +53,9 @@ class ServiceHook(Model):
     # hooks may be bound to an api application, or simply registered by a user
     application_id = HybridCloudForeignKey("sentry.ApiApplication", null=True, on_delete="CASCADE")
     actor_id = BoundedBigIntegerField(db_index=True)
-    installation_id = BoundedBigIntegerField(db_index=True, null=True)
+    installation_id = HybridCloudForeignKey(
+        "sentry.SentryAppInstallation", null=True, on_delete="CASCADE"
+    )
     project_id = BoundedBigIntegerField(db_index=True, null=True)
     organization_id = BoundedBigIntegerField(db_index=True, null=True)
     url = models.URLField(max_length=512)
