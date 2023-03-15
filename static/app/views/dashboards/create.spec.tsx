@@ -91,7 +91,8 @@ describe('Dashboards > Create', function () {
 
       // Add a custom widget to the dashboard
       await userEvent.click(await screen.findByText('Custom Widget'));
-      await userEvent.paste(screen.getByTestId('widget-title-input'), 'Widget Title');
+      await userEvent.click(screen.getByTestId('widget-title-input'));
+      await userEvent.paste('Widget Title');
       await userEvent.click(screen.getByText('Save'));
 
       // Committing dashboard should complete without throwing error

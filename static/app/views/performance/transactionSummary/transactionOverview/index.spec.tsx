@@ -688,9 +688,7 @@ describe('Performance > TransactionSummary', function () {
       // Click the key transaction button
       await userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-      await userEvent.click(screen.getByText('team1'), undefined, {
-        skipPointerEventsCheck: true,
-      });
+      await userEvent.click(screen.getByText('team1'));
 
       // Ensure request was made.
       expect(mockUpdate).toHaveBeenCalled();
@@ -1102,9 +1100,7 @@ describe('Performance > TransactionSummary', function () {
       // Click the key transaction button
       await userEvent.click(screen.getByRole('button', {name: 'Star for Team'}));
 
-      await userEvent.click(screen.getByText('team1'), undefined, {
-        skipPointerEventsCheck: true,
-      });
+      await userEvent.click(screen.getByText('team1'));
 
       // Ensure request was made.
       expect(mockUpdate).toHaveBeenCalled();

@@ -69,7 +69,7 @@ function enterSearch(el, text) {
 
 // Might swap on/off the skiphover to check perf later.
 async function clickEl(el) {
-  await userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
+  await userEvent.click(el, {skipHover: true});
 }
 
 function _initializeData(
