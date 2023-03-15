@@ -112,7 +112,6 @@ class OccurrenceMetadata(TypedDict):
     culprit: str
     metadata: Mapping[str, Any]
     title: str
-    value: str
     location: Optional[str]
     last_received: datetime
 
