@@ -1,0 +1,150 @@
+import {ReactNode, useMemo} from 'react';
+import {browserHistory} from 'react-router';
+import {useTheme} from '@emotion/react';
+import {Location} from 'history';
+
+import Feature from 'sentry/components/acl/feature';
+import * as Layout from 'sentry/components/layouts/thirds';
+import Pagination from 'sentry/components/pagination';
+import type {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {DEFAULT_SORT} from 'sentry/utils/replays/fetchReplayList';
+import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
+import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
+import useOrganization from 'sentry/utils/useOrganization';
+import ReplaysFilters from 'sentry/views/replays/filters';
+import ReplayOnboardingPanel from 'sentry/views/replays/list/replayOnboardingPanel';
+import ReplayTable from 'sentry/views/replays/replayTable';
+import {ReplayColumns} from 'sentry/views/replays/replayTable/types';
+import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
+
+function ReplaysList() {
+  const location = useLocation<ReplayListLocationQuery>();
+
+  const eventView = useMemo(() => {
+    const query = decodeScalar(location.query.query, '');
+    const conditions = new MutableSearch(query);
+
+    return EventView.fromNewQueryWithLocation(
+      {
+        id: '',
+        name: '',
+        version: 2,
+        fields: REPLAY_LIST_FIELDS,
+        projects: [],
+        query: conditions.formatString(),
+        orderby: decodeScalar(location.query.sort, DEFAULT_SORT),
+      },
+      location
+    );
+  }, [location]);
+
+  return <ReplaysListFetcher eventView={eventView} location={location} />;
+}
+
+function ReplaysListFetcher({
+  eventView,
+  location,
+}: {
+  eventView: EventView;
+  location: Location;
+}) {
+  const organization = useOrganization();
+
+  const hasSessionReplay = organization.features.includes('session-replay');
+  const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
+
+  if (hasSessionReplay && !fetching && hasSentOneReplay) {
+    return (
+      <ReplaysListTable
+        eventView={eventView}
+        location={location}
+        organization={organization}
+      />
+    );
+  }
+  return (
+    <Page>
+      <ReplayOnboardingPanel />
+    </Page>
+  );
+}
+
+function Page({children}: {children: ReactNode}) {
+  const organization = useOrganization();
+
+  return (
+    <Layout.Body>
+      <Layout.Main fullWidth>
+        <ReplaysFilters />
+        <Feature
+          features={['session-replay']}
+          organization={organization}
+          renderDisabled={() => <ReplayOnboardingPanel />}
+        >
+          {children}
+        </Feature>
+      </Layout.Main>
+    </Layout.Body>
+  );
+}
+
+function ReplaysListTable({
+  eventView,
+  location,
+  organization,
+}: {
+  eventView: EventView;
+  location: Location;
+  organization: Organization;
+}) {
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.small})`);
+
+  const {replays, pageLinks, isFetching, fetchError} = useReplayList({
+    eventView,
+    location,
+    organization,
+  });
+
+  return (
+    <Page>
+      <ReplayTable
+        fetchError={fetchError}
+        isFetching={isFetching}
+        replays={replays}
+        sort={eventView.sorts[0]}
+        visibleColumns={[
+          ReplayColumns.session,
+          ...(hasRoomForColumns
+            ? [ReplayColumns.projectId, ReplayColumns.startedAt]
+            : []),
+          ReplayColumns.duration,
+          ReplayColumns.countErrors,
+          ReplayColumns.activity,
+        ]}
+      />
+      <Pagination
+        pageLinks={pageLinks}
+        onCursor={(cursor, path, searchQuery) => {
+          trackAdvancedAnalyticsEvent('replay.list-paginated', {
+            organization,
+            direction: cursor?.endsWith(':1') ? 'prev' : 'next',
+          });
+          browserHistory.push({
+            pathname: path,
+            query: {...searchQuery, cursor},
+          });
+        }}
+      />
+    </Page>
+  );
+}
+
+export default ReplaysList;
