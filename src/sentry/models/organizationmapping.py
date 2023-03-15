@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from sentry.db.models import BoundedBigIntegerField, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
 
 @control_silo_only_model
@@ -26,8 +27,8 @@ class OrganizationMapping(Model):
     verified = models.BooleanField(default=False)
     # If a record already exists with the same slug, the organization_id can only be
     # updated IF the idempotency key is identical.
-    idempotency_key = models.CharField(max_length=48)
-    region_name = models.CharField(max_length=48)
+    idempotency_key = models.CharField(max_length=IDEMPOTENCY_KEY_LENGTH)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     class Meta:
         app_label = "sentry"

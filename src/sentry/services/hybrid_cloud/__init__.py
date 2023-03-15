@@ -39,6 +39,9 @@ if TYPE_CHECKING:
     from sentry.api.base import Endpoint
 T = TypeVar("T")
 
+IDEMPOTENCY_KEY_LENGTH = 48
+REGION_NAME_LENGTH = 48
+
 
 class InterfaceWithLifecycle(ABC):
     @abstractmethod
