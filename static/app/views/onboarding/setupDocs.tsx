@@ -152,9 +152,7 @@ function SetupDocs({search, route, router, location}: Props) {
 
   const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(
-    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
-  );
+  const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
