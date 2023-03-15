@@ -2,6 +2,7 @@ from copy import deepcopy
 from functools import cached_property
 from uuid import uuid4
 
+from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
@@ -61,6 +62,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
         subscriber_registry.update(self.orig_registry)
 
         self.admin_client.delete_topics([self.topic])
+        metrics._metrics_backend = None
 
     @cached_property
     def subscription(self):
