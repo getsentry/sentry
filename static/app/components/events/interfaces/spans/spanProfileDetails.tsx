@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {SectionHeading} from 'sentry/components/charts/styles';
 import StackTrace from 'sentry/components/events/interfaces/crashContent/stackTrace';
-import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -133,8 +133,6 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       },
     });
 
-  const threadName = profile ? profile.name ?? `tid(${profile.threadId})` : t('unknown');
-
   if (!defined(profile) || !defined(profileTarget) || !defined(spanTarget)) {
     return null;
   }
@@ -147,49 +145,45 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     <Fragment>
       <SpanDetails>
         <SpanDetailsItem grow>
-          <Label>
-            {tct('Thread [name] - Top Stacks ([index] of [total])', {
-              name: <Link to={profileTarget}>{threadName}</Link>,
-              index: index + 1,
-              total: maxNodes,
-            })}
-          </Label>
+          <SectionHeading>{t('Top Contributors to this Span')}</SectionHeading>
         </SpanDetailsItem>
         <SpanDetailsItem>
-          <Label>
+          <SectionSubtext>
             <Tooltip title={t('%s out of %s samples', nodes[index].count, totalWeight)}>
-              {tct('[percentage]', {
+              {tct('Showing stacks [index] of [total] ([percentage])', {
+                index: index + 1,
+                total: maxNodes,
                 percentage: formatPercentage(nodes[index].count / totalWeight),
               })}
             </Tooltip>
-          </Label>
-        </SpanDetailsItem>
-        <SpanDetailsItem>
-          <Button icon={<IconProfiling />} to={spanTarget} size="sm">
-            {t('View Profile')}
-          </Button>
+          </SectionSubtext>
         </SpanDetailsItem>
         <SpanDetailsItem>
           <ButtonBar merged>
             <Button
-              icon={<IconChevron direction="left" size="sm" />}
+              icon={<IconChevron direction="left" size="xs" />}
               aria-label={t('Previous')}
-              size="sm"
+              size="xs"
               disabled={!hasPrevious}
               onClick={() => {
                 setIndex(prevIndex => prevIndex - 1);
               }}
             />
             <Button
-              icon={<IconChevron direction="right" size="sm" />}
+              icon={<IconChevron direction="right" size="xs" />}
               aria-label={t('Next')}
-              size="sm"
+              size="xs"
               disabled={!hasNext}
               onClick={() => {
                 setIndex(prevIndex => prevIndex + 1);
               }}
             />
           </ButtonBar>
+        </SpanDetailsItem>
+        <SpanDetailsItem>
+          <Button icon={<IconProfiling />} to={spanTarget} size="xs">
+            {t('View Profile')}
+          </Button>
         </SpanDetailsItem>
       </SpanDetails>
       <StackTrace
@@ -230,9 +224,9 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
     const stack: CallTreeNode[] = [sample];
     let node: CallTreeNode | null = sample;
 
-    while (node && node.parent && !node.parent.isRoot()) {
-      node = node.parent;
+    while (node && !node.isRoot()) {
       stack.push(node);
+      node = node.parent;
     }
 
     let tree = callTree;
@@ -292,7 +286,7 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
   const frames: Frame[] = [];
 
   let framesCount = 0;
-  let prevFrame: Frame | null = null;
+  let prevFrame: ProfilingFrame | null = null;
 
   while (framesCount < MAX_STACK_DEPTH && node && !node.isRoot()) {
     const frame = {
@@ -317,19 +311,22 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
     };
 
     if (
+      // Recursive frames get collapsed into 1, so only count the
+      // entire recursive group once.
+      node.frame !== prevFrame &&
       // In app frames are not collapsed so count it.
-      frame.inApp ||
-      // Only count non in app frames if the previous frame is in app.
-      // This is because a group of non in app frames will be collapsed
-      // into a single frame, so we only count the entire group once.
-      prevFrame?.inApp
+      (node.frame.is_application ||
+        // Only count non in app frames if the previous frame is in app.
+        // This is because a group of non in app frames will be collapsed
+        // into a single frame, so we only count the entire group once.
+        prevFrame?.is_application)
     ) {
       framesCount += 1;
     }
 
     frames.push(frame);
 
-    prevFrame = frame;
+    prevFrame = node.frame;
 
     node = node.parent;
   }
@@ -344,10 +341,11 @@ const SpanDetails = styled('div')`
   gap: ${space(1)};
 `;
 
-const Label = styled('span')`
-  font-size: ${p => p.theme.fontSizeExtraLarge};
-`;
-
 const SpanDetailsItem = styled('span')<{grow?: boolean}>`
   ${p => (p.grow ? 'flex: 1 2 auto' : 'flex: 0 1 auto')}
+`;
+
+const SectionSubtext = styled('span')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
