@@ -2,10 +2,10 @@ from rest_framework import status
 
 from sentry.testutils import APITestCase
 from sentry.testutils.asserts import assert_status_code
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import all_silo_test
 
 
-@control_silo_test
+@all_silo_test(stable=True)
 class CatchallTestCase(APITestCase):
     def setUp(self):
         super().setUp()
