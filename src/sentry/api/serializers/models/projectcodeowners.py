@@ -37,16 +37,14 @@ class ProjectCodeOwnersSerializer(Serializer):
                 item.repository_project_path_config.organization_integration.organization_id
             )
             codeowners_url = "unknown"
-            try:
-                codeowners_url = (
-                    install.get_codeowner_file(
+            if item.repository_project_path_config.organization_integration:
+                try:
+                    codeowners_url = install.get_codeowner_file(
                         code_mapping.repository, ref=code_mapping.default_branch
                     )["html_url"]
-                    if item.repository_project_path_config.organization_integration
-                    else "unknown"
-                )
-            except Exception:
-                logger.exception("Could not get CODEOWNERS URL. Continuing execution.")
+
+                except Exception:
+                    logger.exception("Could not get CODEOWNERS URL. Continuing execution.")
 
             attrs[item] = {
                 "provider": integration.provider
