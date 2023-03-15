@@ -1,6 +1,7 @@
 from croniter import croniter
 from django.core.exceptions import ValidationError
 from django.utils.timezone import pytz
+from django.utils.translation import ugettext_lazy as _
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -89,19 +90,28 @@ class CronJobValidator(serializers.Serializer):
 class MonitorValidator(serializers.Serializer):
     project = ProjectField(scope="project:read")
     name = serializers.CharField()
-    slug = serializers.RegexField(r"^[a-z0-9_\-]+$", max_length=50, required=False)
+    slug = serializers.RegexField(
+        r"^[a-zA-Z0-9_-]+$",
+        max_length=50,
+        required=False,
+        error_messages={
+            "invalid": _("Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+")
+        },
+    )
     status = serializers.ChoiceField(
-        choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())), default="active"
+        choices=list(zip(MONITOR_STATUSES.keys(), MONITOR_STATUSES.keys())),
+        default="active",
     )
     type = serializers.ChoiceField(choices=list(zip(MONITOR_TYPES.keys(), MONITOR_TYPES.keys())))
     config = ObjectField()
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
-        type = self.instance["type"] if self.instance else self.initial_data.get("type")
-        if type in MONITOR_TYPES:
-            type = MONITOR_TYPES[type]
-        if type == MonitorType.CRON_JOB:
+        monitor_type = self.instance["type"] if self.instance else self.initial_data.get("type")
+
+        if monitor_type in MONITOR_TYPES:
+            monitor_type = MONITOR_TYPES[monitor_type]
+        if monitor_type == MonitorType.CRON_JOB:
             validator = CronJobValidator(
                 instance=self.instance.get("config", {}) if self.instance else {},
                 data=attrs.get("config", {}),
@@ -109,7 +119,7 @@ class MonitorValidator(serializers.Serializer):
             )
             validator.is_valid(raise_exception=True)
             attrs["config"] = validator.validated_data
-        elif not type:
+        elif not monitor_type:
             return attrs
         else:
             raise NotImplementedError
@@ -147,3 +157,35 @@ class MonitorCheckInValidator(serializers.Serializer):
     )
     duration = EmptyIntegerField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
+    config = ObjectField(required=False)
+
+    def validate(self, attrs):
+        attrs = super().validate(attrs)
+
+        # Support specifying monitor configuration via a check-in
+        #
+        # NOTE: Most monitor attributes are contextual, the monitor config is
+        #       passed in via this checkin searializers config attribute.
+        monitor_config = attrs.get("config")
+        if monitor_config:
+            project = self.context["project"]
+
+            # Use context to complete the full monitor validator object
+            monitor_validator = MonitorValidator(
+                data={
+                    "type": "cron_job",
+                    "name": self.context["monitor_id"],
+                    "slug": self.context["monitor_id"],
+                    "project": project.slug,
+                    "config": monitor_config,
+                },
+                context={
+                    "organization": project.organization,
+                    "access": self.context["request"].access,
+                },
+            )
+            monitor_validator.is_valid(raise_exception=True)
+            attrs["monitor"] = monitor_validator.validated_data
+            del attrs["config"]
+
+        return attrs

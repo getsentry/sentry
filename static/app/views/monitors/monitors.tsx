@@ -120,7 +120,7 @@ class Monitors extends AsyncView<Props, State> {
             <ButtonBar gap={1}>
               <CronsFeedbackButton />
               <NewMonitorButton size="sm" icon={<IconAdd isCircled size="xs" />}>
-                {t('Add monitor')}
+                {t('Add Monitor')}
               </NewMonitorButton>
             </ButtonBar>
           </Layout.HeaderActions>

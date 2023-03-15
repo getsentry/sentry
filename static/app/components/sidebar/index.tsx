@@ -36,6 +36,7 @@ import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useMedia from 'sentry/utils/useMedia';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -72,6 +73,9 @@ function Sidebar({location, organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {logExperiment, experimentAssignment} = useExperiment('APMSidebarExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -82,6 +86,13 @@ function Sidebar({location, organization}: Props) {
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
+
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    if (organization?.features.includes('performance-view')) {
+      logExperiment();
+    }
+  }, [logExperiment, organization?.features]);
 
   // Add classname to body
   useEffect(() => {
@@ -180,7 +191,11 @@ function Sidebar({location, organization}: Props) {
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconLightning size="md" />}
-        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance">
+            {experimentAssignment === 1 ? t('APM') : t('Performance')}
+          </GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/performance/`}
         id="performance"
       />

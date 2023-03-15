@@ -4,6 +4,7 @@ from uuid import uuid4
 import pytest
 from django.urls import NoReverseMatch, reverse
 
+from sentry import options
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
@@ -11,7 +12,10 @@ from sentry.utils.samples import load_data
 
 
 class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
-    FEATURES = ["organizations:performance-view"]
+    FEATURES = [
+        "organizations:performance-view",
+        "organizations:performance-file-io-main-thread-detector",
+    ]
 
     def get_start_end(self, duration):
         return self.day_ago, self.day_ago + timedelta(milliseconds=duration)
@@ -27,6 +31,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
         duration=4000,
         span_id=None,
         measurements=None,
+        file_io_performance_issue=False,
         **kwargs,
     ):
         start, end = self.get_start_end(duration)
@@ -46,7 +51,13 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 data["measurements"][key]["value"] = value
         if tags is not None:
             data["tags"] = tags
-        return self.store_event(data, project_id=project_id, **kwargs)
+        if file_io_performance_issue:
+            span = data["spans"][0]
+            if "data" not in span:
+                span["data"] = {}
+            span["data"].update({"duration": 1, "blocked_main_thread": True})
+        with self.feature(self.FEATURES):
+            return self.store_event(data, project_id=project_id, **kwargs)
 
     def setUp(self):
         """
@@ -62,6 +73,8 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 gen2-2
         """
         super().setUp()
+        options.set("performance.issues.all.problem-detection", 1.0)
+        options.set("performance.issues.file_io_main_thread.problem-creation", 1.0)
         self.login_as(user=self.user)
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
@@ -92,6 +105,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
                 "fcp": 750,
             },
             parent_span_id=None,
+            file_io_performance_issue=True,
             project_id=self.project.id,
             duration=3000,
         )
@@ -636,6 +650,8 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
         assert root["generation"] == 0
         assert root["transaction.duration"] == 3000
         assert len(root["children"]) == 3
+        assert len(root["performance_issues"]) == 1
+        assert root["performance_issues"][0]["suspect_spans"][0] == self.root_span_ids[0]
 
         for i, gen1 in enumerate(root["children"]):
             self.assert_event(gen1, self.gen1_events[i], f"gen1_{i}")
@@ -1187,6 +1203,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 0
         assert data["transactions"] == 0
         assert data["errors"] == 0
+        assert data["performance_issues"] == 0
 
         # Invalid trace id
         with pytest.raises(NoReverseMatch):
@@ -1211,6 +1228,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 0
+        assert data["performance_issues"] == 1
 
     def test_with_errors(self):
         self.load_trace()
@@ -1226,6 +1244,7 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 2
+        assert data["performance_issues"] == 1
 
     def test_with_default(self):
         self.load_trace()
@@ -1241,3 +1260,4 @@ class OrganizationEventsTraceMetaEndpointTest(OrganizationEventsTraceEndpointBas
         assert data["projects"] == 4
         assert data["transactions"] == 8
         assert data["errors"] == 1
+        assert data["performance_issues"] == 1
