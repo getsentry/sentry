@@ -194,7 +194,7 @@ class ProjectDebugFile(Model):  # type: ignore
             return ".bcsymbolmap"
         if self.file_format == "uuidmap":
             return ".plist"
-        if self.file_format == "il2cpp":
+        if self.file_format == "il2cpp" or self.file_format == "dartsymbols":
             return ".json"
 
         return ""
@@ -281,6 +281,7 @@ def create_dif_from_id(
         "bcsymbolmap",
         "uuidmap",
         "il2cpp",
+        "dartsymbols",
     ):
         object_name = meta.name
     elif meta.file_format == "breakpad":
@@ -428,6 +429,7 @@ class DifKind(enum.Enum):
     BcSymbolMap = enum.auto()
     UuidMap = enum.auto()
     Il2Cpp = enum.auto()
+    DartSymbols = enum.auto()
     # TODO(flub): should we include proguard?  The tradeoff is that we'd be matching the
     # regex of it twice.  That cost is probably not too great to worry about.
 
@@ -445,6 +447,8 @@ def determine_dif_kind(path: str) -> DifKind:
             return DifKind.UuidMap
         elif data.startswith(b"{"):  # lol
             return DifKind.Il2Cpp
+        elif data.startswith(b"["):
+            return DifKind.DartSymbols
         else:
             return DifKind.Object
 
@@ -535,6 +539,22 @@ def detect_dif_from_path(
             logger.debug("File loaded as il2cpp: %s", path)
             return [
                 DifMeta(file_format="il2cpp", arch="any", debug_id=debug_id, name=name, path=path)
+            ]
+    elif dif_kind == DifKind.DartSymbols:
+        if debug_id is None:
+            raise BadDif("Missing debug_id for dartsymbols")
+        try:
+            with open(path, "rb") as fp:
+                json.load(fp)
+        except json.JSONDecodeError as e:
+            logger.debug("File failed to load as dartsymbols: %s", path)
+            raise BadDif("Invalid dartsymbols: %s" % e)
+        else:
+            logger.debug("File loaded as dartsymbols: %s", path)
+            return [
+                DifMeta(
+                    file_format="dartsymbols", arch="any", debug_id=debug_id, name=name, path=path
+                )
             ]
     else:
         # native debug information files (MachO, ELF or Breakpad)

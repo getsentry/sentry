@@ -31,6 +31,7 @@ CHUNK_UPLOAD_ACCEPT = (
     "bcsymbolmaps",  # BCSymbolMaps and associated PLists/UuidMaps
     "il2cpp",  # Il2cpp LineMappingJson files
     "portablepdbs",  # Portable PDB debug file
+    "dartsymbols",  # JSON file containing obfuscated and deobfuscated Dart symbols
     # TODO: This is currently turned on by a feature flag
     # "artifact_bundles",  # Artifact bundles containing source maps.
 )
