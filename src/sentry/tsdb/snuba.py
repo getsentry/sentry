@@ -463,7 +463,7 @@ class SnubaTSDB(BaseTSDB):
             referrer = f"tsdb-modelid:{model.value}"
 
             if referrer_suffix:
-                referrer += f"{referrer}:{referrer_suffix}"
+                referrer += f".{referrer_suffix}"
 
             query_result = raw_snql_query(snql_request, referrer, use_cache=use_cache)
             if manual_group_on_time:
@@ -599,7 +599,7 @@ class SnubaTSDB(BaseTSDB):
             referrer = f"tsdb-modelid:{model.value}"
 
             if referrer_suffix:
-                referrer += f"{referrer}:{referrer_suffix}"
+                referrer += f".{referrer_suffix}"
 
             query_func_without_selected_columns = functools.partial(
                 snuba.query,
