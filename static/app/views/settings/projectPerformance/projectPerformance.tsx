@@ -165,6 +165,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
           'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
         ),
       },
+      {
+        name: 'performanceIssueCreationThroughPlatform',
+        type: 'boolean',
+        label: t('Send Occurrences To Platform'),
+        defaultValue: false,
+        help: t(
+          'This determines whether performance issue occurrences are sent to the issues platform.'
+        ),
+      },
     ];
   }
 
@@ -274,7 +283,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features={['organizations:performance-issues-dev']}>
+        <Feature features={[]}>
           <Fragment>
             <Form
               saveOnBlur
