@@ -7,10 +7,12 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.utils.strings import oxfordize_list
 
 
 def format_choices_text(choices: List[Tuple[int, str]]):
-    return ", ".join([f"'{display_text}'" for (_, display_text) in choices])
+    choices_as_display_text = [f"'{display_text}'" for (_, display_text) in choices]
+    return oxfordize_list(choices_as_display_text)
 
 
 class NotificationActionInputData(TypedDict):
@@ -25,7 +27,7 @@ class NotificationActionInputData(TypedDict):
 
 class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
-    Django Rest Framework serializer for incoming NotificationAction payloads to the API.
+    Django Rest Framework serializer for incoming NotificationAction API payloads
     """
 
     integration_id = serializers.IntegerField(required=False)
@@ -51,7 +53,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if service_type_value is None:
             service_text = format_choices_text(ActionService.as_choices())
             raise serializers.ValidationError(
-                f"Invalid service selected. Choose from [{service_text}]"
+                f"Invalid service selected. Choose from {service_text}."
             )
         return service_type_value
 
@@ -60,7 +62,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if target_type_value is None:
             target_text = format_choices_text(ActionTarget.as_choices())
             raise serializers.ValidationError(
-                f"Invalid target selected. Choose from [{target_text}]"
+                f"Invalid target selected. Choose from {target_text}."
             )
         return target_type_value
 
@@ -70,7 +72,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         if trigger_type_value is None:
             trigger_text = format_choices_text(NotificationAction.get_trigger_types())
             raise serializers.ValidationError(
-                f"Invalid trigger selected. Choose from [{trigger_text}]"
+                f"Invalid trigger selected. Choose from {trigger_text}."
             )
         return trigger_type_value
 

@@ -1,17 +1,24 @@
 from typing import Dict, Sequence
 
+from django.contrib.auth.models import AnonymousUser
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.models.user import manytoone_to_dict
 from sentry.models.notificationaction import (
     ActionService,
     ActionTarget,
+    ActionTrigger,
     NotificationAction,
     NotificationActionProject,
 )
 
 
 @register(NotificationAction)
-class NotificationActionSerializer(Serializer):
+class OutgoingNotificationActionSerializer(Serializer):
+    """
+    Model serializer for outgoing NotificationAction API payloads
+    """
+
     def get_attrs(self, item_list: Sequence[NotificationAction], user):
         action_ids = {i.id for i in item_list}
         projects_by_action_id = manytoone_to_dict(
@@ -40,3 +47,28 @@ class NotificationActionSerializer(Serializer):
             "targetIdentifier": obj.target_identifier,
             "targetDisplay": obj.target_display,
         }
+
+    @classmethod
+    def get_example(cls, **action_kwargs):
+        """
+        Create example serialized response for documentation.
+        Any kwargs will be applied to the NotificationAction.
+        """
+        action = NotificationAction(
+            **{
+                "id": 27,
+                "organization_id": 721,
+                "integration_id": 916,
+                "type": ActionService.SLACK.value,
+                "trigger_type": ActionTrigger.AUDIT_LOG.value,
+                "target_type": ActionTarget.SPECIFIC.value,
+                "target_identifier": "C0123S456AL",
+                "target_display": "#sentry-audit-log",
+                **action_kwargs,
+            }
+        )
+        attrs = {
+            "projects": [503, 1209],
+            "trigger_type": ActionTrigger.get_name(action.trigger_type),
+        }
+        return cls().serialize(action, attrs=attrs, user=AnonymousUser())

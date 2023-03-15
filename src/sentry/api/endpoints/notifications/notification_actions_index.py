@@ -6,6 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_flag import FlaggedOrganizationEndpoint
+from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.serializers.rest_framework.notification_action import NotificationActionSerializer
 from sentry.models.notificationaction import NotificationAction
@@ -14,6 +15,12 @@ from sentry.models.organization import Organization
 
 @region_silo_endpoint
 class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
+    """
+    View existing NotificationActions or create a new one.
+    GET: Returns paginated, serialized NotificationActions for an organization
+    POST: Create a new NotificationAction
+    """
+
     feature_flags = ["organizations:notification-actions"]
 
     def get(self, request: Request, organization: Organization) -> Response:
@@ -29,14 +36,18 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
             trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
             queryset = queryset.filter(trigger_type__in=trigger_types)
 
-        return Response(serialize(list(queryset), request.user))
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            on_results=lambda action: serialize(action, request.user),
+            paginator_cls=OffsetPaginator,
+        )
 
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = NotificationActionSerializer(
             context={
                 "access": request.access,
                 "organization": organization,
-                "user": request.user,
             },
             data=request.data,
         )
