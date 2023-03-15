@@ -7,7 +7,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -25,7 +24,6 @@ from .base import MonitorEndpoint
 @region_silo_endpoint
 @extend_schema(tags=["Crons"])
 class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
-    authentication_classes = MonitorEndpoint.authentication_classes + (DSNAuthentication,)
     public = {"GET"}
 
     @extend_schema(
@@ -44,9 +42,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def get(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def get(self, request: Request, organization, project, monitor) -> Response:
         """
         Retrieve a list of check-ins for a monitor
         """

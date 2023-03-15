@@ -92,7 +92,12 @@ def get_participants_for_group(
         # Optionally remove the actor that created the activity from the recipients list.
         providers = get_providers_from_which_to_remove_user(user, participants_by_provider)
         for provider in providers:
-            del participants_by_provider[provider][user]
+            participants = participants_by_provider[provider]
+            participants_by_provider[provider] = {
+                participant: value
+                for (participant, value) in participants.items()
+                if not (participant.class_name() == "User" and participant.id == user.id)
+            }
 
     return participants_by_provider
 

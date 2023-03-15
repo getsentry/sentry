@@ -15,10 +15,9 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
     def setUp(self):
         super().setUp()
+        self.login_as(user=self.user)
 
     def test_simple(self):
-        self.login_as(self.user)
-
         monitor = self._create_monitor()
         checkin1 = MonitorCheckIn.objects.create(
             monitor=monitor,
@@ -43,8 +42,6 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         assert resp.data[1]["id"] == str(checkin1.guid)
 
     def test_statsperiod_constraints(self):
-        self.login_as(self.user)
-
         monitor = self._create_monitor()
 
         checkin = MonitorCheckIn.objects.create(

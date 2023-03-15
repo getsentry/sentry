@@ -13,9 +13,14 @@ export const ListWrap = styled('ul')`
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
-  div[data-header] ~ &:first-of-type,
-  div[data-header] ~ div > &:first-of-type {
+  [data-menu-has-header='true'] > div > &:first-of-type {
     padding-top: calc(${space(0.5)} + 1px);
+  }
+
+  /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
+  shadow border */
+  [data-menu-has-footer='true'] > div > &:last-of-type {
+    padding-bottom: calc(${space(0.5)} + 1px);
   }
 
   /* Remove top padding if preceded by search input, since search input already has

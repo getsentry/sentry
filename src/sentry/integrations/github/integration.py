@@ -202,7 +202,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             # make sure installation has access to this specific repo
             # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
-            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            # https://docs.github.com/en/rest/webhooks/repo-config#list-hooks
             client.repo_hooks(repo.config["name"])
         except ApiError:
             return False

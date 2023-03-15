@@ -1,3 +1,6 @@
+import random
+
+import sentry_sdk
 from django.conf import settings
 
 import django_picklefield
@@ -5,6 +8,24 @@ from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
 PICKLE_WRITE_JSON = False
+VALIDATE_JSON_SAMPLE_RATE = 0.01
+
+
+def _validate_roundtrip(o: object) -> None:
+    try:
+        s = json.dumps(o, default=jsonfield.default)
+    except Exception:
+        raise TypeError(
+            "Tried to serialize a pickle field with a value that cannot be serialized as JSON"
+        )
+    else:
+        rt = json.loads(s)
+        if o != rt:
+            raise TypeError(
+                f"json serialized database value was not the same after deserializing:\n"
+                f"- {type(o)=}\n"
+                f"- {type(rt)=}"
+            )
 
 
 class PickledObjectField(django_picklefield.PickledObjectField):
@@ -32,25 +53,18 @@ class PickledObjectField(django_picklefield.PickledObjectField):
             if value is None and self.null:
                 return None
             return json.dumps(value, default=jsonfield.default)
-        elif (
+
+        if not self.disable_pickle_validation and (
             settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE
-            and not self.disable_pickle_validation
+            or random.random() < VALIDATE_JSON_SAMPLE_RATE
         ):
             try:
-                s = json.dumps(value, default=jsonfield.default)
+                _validate_roundtrip(value)
             except Exception as e:
-                raise TypeError(
-                    "Tried to serialize a pickle field with a value that cannot be serialized as JSON: %s"
-                    % (e,)
-                )
-            else:
-                rt = json.loads(s)
-                if value != rt:
-                    raise TypeError(
-                        f"json serialized database value was not the same after deserializing:\n"
-                        f"- {type(value)=}\n"
-                        f"- {type(rt)=}"
-                    )
+                if settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE:
+                    raise
+                else:
+                    sentry_sdk.capture_exception(e)
 
         return super().get_db_prep_value(value, *args, **kwargs)
 

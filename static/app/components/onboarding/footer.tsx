@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useState} from 'react';
 import {RouteComponentProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
@@ -8,27 +8,20 @@ import {Location} from 'history';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
+import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 import {IconCheckmark, IconCircle, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Group, Project} from 'sentry/types';
+import {Group, OnboardingStatus, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {useSessionStorage} from 'sentry/utils/useSessionStorage';
-
-import {usePersistedOnboardingState} from '../utils';
-
-import GenericFooter from './genericFooter';
-
-export enum OnboardingStatus {
-  WAITING = 'waiting',
-  PROCESSING = 'processing',
-  PROCESSED = 'processed',
-}
+import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
   status: OnboardingStatus;
@@ -54,7 +47,7 @@ async function openChangeRouteModal({
   router: RouteComponentProps<{}, {}>['router'];
   setClientState: ReturnType<typeof usePersistedOnboardingState>[1];
 }) {
-  const mod = await import('sentry/views/onboarding/components/changeRouteModal');
+  const mod = await import('sentry/components/onboarding/changeRouteModal');
 
   const {ChangeRouteModal} = mod;
 
@@ -76,22 +69,15 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const [firstIssue, setFirstIssue] = useState<Group | undefined>(undefined);
   const [clientState, setClientState] = usePersistedOnboardingState();
   const {projects} = useProjects();
-
-  const onboarding_sessionStorage_key = `onboarding-${projectId}`;
-
-  const [sessionStorage, setSessionStorage] = useSessionStorage<OnboardingState>(
-    onboarding_sessionStorage_key,
-    {
-      status: OnboardingStatus.WAITING,
-      firstIssueId: undefined,
-    }
-  );
+  const onboardingContext = useContext(OnboardingContext);
+  const projectData = projectId ? onboardingContext.data[projectId] : undefined;
+  const selectedProject = projects.find(project => project.slug === projectSlug);
 
   useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
     refetchInterval: DEFAULT_POLL_INTERVAL,
     enabled:
-      !!projectSlug && !firstError && sessionStorage.status === OnboardingStatus.WAITING, // Fetch only if the project is available and we have not yet received an error,
+      !!projectSlug && !firstError && projectData?.status === OnboardingStatus.WAITING, // Fetch only if the project is available and we have not yet received an error,
     onSuccess: data => {
       setFirstError(data.firstEvent);
     },
@@ -104,37 +90,139 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   useQuery<Group[]>([`/projects/${organization.slug}/${projectSlug}/issues/`], {
     staleTime: 0,
     enabled:
-      !!firstError &&
-      !firstIssue &&
-      sessionStorage.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
+      !!firstError && !firstIssue && projectData?.status === OnboardingStatus.PROCESSING, // Only fetch if an error event is received and we have not yet located the first issue,
     onSuccess: data => {
       setFirstIssue(data.find((issue: Group) => issue.firstSeen === firstError));
     },
   });
 
+  useEffect(() => {
+    if (!projectId || !!projectData) {
+      return;
+    }
+
+    onboardingContext.setProjectData({
+      projectId,
+      projectSlug,
+      status: OnboardingStatus.WAITING,
+    });
+  }, [projectData, onboardingContext, projectSlug, projectId]);
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    if (!firstError) {
+      return;
+    }
+
+    if (projectData?.status !== OnboardingStatus.WAITING) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
+      organization,
+      new_organization: !!newOrg,
+      project_slug: projectSlug,
+    });
+
+    onboardingContext.setProjectData({
+      projectId,
+      projectSlug,
+      status: OnboardingStatus.PROCESSING,
+    });
+
+    addSuccessMessage(t('First error received'));
+  }, [
+    firstError,
+    newOrg,
+    organization,
+    projectId,
+    projectData,
+    onboardingContext,
+    projectSlug,
+  ]);
+
+  useEffect(() => {
+    if (!projectId) {
+      return;
+    }
+
+    if (!firstIssue) {
+      return;
+    }
+
+    if (projectData?.status !== OnboardingStatus.PROCESSING) {
+      return;
+    }
+
+    trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
+      organization,
+      new_organization: !!newOrg,
+      project_slug: projectSlug,
+    });
+
+    onboardingContext.setProjectData({
+      projectId,
+      projectSlug,
+      status: OnboardingStatus.PROCESSED,
+      firstIssueId: firstIssue.id,
+    });
+
+    addSuccessMessage(t('First error processed'));
+  }, [
+    firstIssue,
+    newOrg,
+    organization,
+    projectData,
+    projectId,
+    onboardingContext,
+    projectSlug,
+  ]);
+
   // The explore button is only showed if Sentry has not yet received any errors OR the issue is still being processed
   const handleExploreSentry = useCallback(() => {
-    if (sessionStorage.status === OnboardingStatus.WAITING) {
+    if (!projectId) {
+      return;
+    }
+
+    if (onboardingContext.data[projectId].status === OnboardingStatus.WAITING) {
       return;
     }
 
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
+      project_slug: projectSlug,
     });
 
-    openChangeRouteModal({
-      router,
-      nextLocation: {
-        ...router.location,
-        pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
-      },
-      setClientState,
-      clientState,
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
+    }
+
+    router.push({
+      ...router.location,
+      pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
     });
-  }, [router, organization, sessionStorage.status, setClientState, clientState]);
+  }, [
+    organization,
+    projectId,
+    onboardingContext,
+    clientState,
+    router,
+    setClientState,
+    projectSlug,
+  ]);
 
   const handleSkipOnboarding = useCallback(() => {
-    if (sessionStorage.status !== OnboardingStatus.WAITING) {
+    if (!projectId) {
+      return;
+    }
+
+    if (onboardingContext.data[projectId].status !== OnboardingStatus.WAITING) {
       return;
     }
 
@@ -143,16 +231,18 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       source: 'targeted_onboarding_first_event_footer',
     });
 
-    const selectedProjectId = projects.find(project => project.slug === projectSlug)?.id;
+    const selectedProjectId = selectedProject?.id;
+
+    let pathname = `/organizations/${organization.slug}/issues/?`;
+    if (selectedProjectId) {
+      pathname += `project=${selectedProjectId}&`;
+    }
 
     openChangeRouteModal({
       router,
       nextLocation: {
         ...router.location,
-        pathname:
-          `/organizations/${organization.slug}/issues/?` +
-          (selectedProjectId ? `project=${selectedProjectId}&` : '') +
-          `referrer=onboarding-first-event-footer-skip`,
+        pathname: (pathname += `referrer=onboarding-first-event-footer-skip`),
       },
       setClientState,
       clientState,
@@ -160,77 +250,62 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   }, [
     router,
     organization,
-    sessionStorage.status,
     setClientState,
     clientState,
-    projects,
-    projectSlug,
+    selectedProject,
+    onboardingContext,
+    projectId,
   ]);
 
-  useEffect(() => {
-    if (!firstError) {
-      return;
-    }
-
-    if (sessionStorage.status !== OnboardingStatus.WAITING) {
-      return;
-    }
-
-    trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
-      organization,
-      new_organization: !!newOrg,
-    });
-
-    setSessionStorage({status: OnboardingStatus.PROCESSING});
-    addSuccessMessage(t('First error received'));
-  }, [firstError, newOrg, organization, setSessionStorage, sessionStorage]);
-
-  useEffect(() => {
-    if (!firstIssue) {
-      return;
-    }
-
-    if (sessionStorage.status !== OnboardingStatus.PROCESSING) {
-      return;
-    }
-
-    trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
-      organization,
-      new_organization: !!newOrg,
-    });
-
-    setSessionStorage({status: OnboardingStatus.PROCESSED, firstIssueId: firstIssue.id});
-    addSuccessMessage(t('First error processed'));
-  }, [firstIssue, newOrg, organization, setSessionStorage, sessionStorage]);
-
   const handleViewError = useCallback(() => {
+    if (!projectId) {
+      return;
+    }
+
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
+      project_slug: projectSlug,
     });
+
+    if (clientState) {
+      setClientState({
+        ...clientState,
+        state: 'finished',
+      });
+    }
 
     router.push({
       ...router.location,
-      pathname: `/organizations/${organization.slug}/issues/${sessionStorage.firstIssueId}/?referrer=onboarding-first-event-footer`,
+      pathname: `/organizations/${organization.slug}/issues/${onboardingContext.data[projectId].firstIssueId}/?referrer=onboarding-first-event-footer`,
     });
-  }, [organization, newOrg, router, sessionStorage]);
+  }, [
+    organization,
+    newOrg,
+    router,
+    clientState,
+    setClientState,
+    onboardingContext,
+    projectId,
+    projectSlug,
+  ]);
 
   return (
     <Wrapper newOrg={!!newOrg} sidebarCollapsed={!!preferences.collapsed}>
       <Column>
-        {sessionStorage.status === OnboardingStatus.WAITING && newOrg && (
+        {projectData?.status === OnboardingStatus.WAITING && newOrg && (
           <Button onClick={handleSkipOnboarding} priority="link">
             {t('Skip Onboarding')}
           </Button>
         )}
       </Column>
       <StatusesColumn>
-        {sessionStorage.status === OnboardingStatus.WAITING ? (
+        {projectData?.status === OnboardingStatus.WAITING ? (
           <WaitingForErrorStatus>
             <IconCircle size="sm" />
             {t('Waiting for error')}
           </WaitingForErrorStatus>
-        ) : sessionStorage.status === OnboardingStatus.PROCESSED ? (
+        ) : projectData?.status === OnboardingStatus.PROCESSED ? (
           <ErrorProcessedStatus>
             <IconCheckmark isCircled size="sm" color="green300" />
             {t('Error Processed!')}
@@ -243,17 +318,34 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
         )}
       </StatusesColumn>
       <ActionsColumn>
-        {sessionStorage.status === OnboardingStatus.PROCESSED ? (
+        {projectData?.status === OnboardingStatus.PROCESSED ? (
           <Button priority="primary" onClick={handleViewError}>
             {t('View Error')}
           </Button>
+        ) : organization.features.includes(
+            'onboarding-heartbeat-footer-with-view-sample-error'
+          ) ? (
+          <CreateSampleEventButton
+            project={selectedProject}
+            source="targted-onboarding-heartbeat-footer"
+            priority="primary"
+            onCreateSampleGroup={() => {
+              trackAdvancedAnalyticsEvent('onboarding.view_sample_error_button_clicked', {
+                new_organization: !!newOrg,
+                project_slug: projectSlug,
+                organization,
+              });
+            }}
+          >
+            {t('View Sample Error')}
+          </CreateSampleEventButton>
         ) : (
           <Button
             priority="primary"
-            disabled={sessionStorage.status === OnboardingStatus.WAITING}
+            disabled={projectData?.status === OnboardingStatus.WAITING}
             onClick={handleExploreSentry}
             title={
-              sessionStorage.status === OnboardingStatus.WAITING
+              projectData?.status === OnboardingStatus.WAITING
                 ? t('Waiting for error')
                 : undefined
             }

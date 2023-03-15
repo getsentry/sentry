@@ -93,6 +93,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
+from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -1258,6 +1259,7 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-count/$",
         OrganizationIssuesCountEndpoint.as_view(),
+        name="sentry-api-0-organization-issues-count",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
@@ -1277,10 +1279,12 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-repos",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-issues",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
@@ -1858,6 +1862,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/source-maps/$",
         SourceMapsEndpoint.as_view(),
         name="sentry-api-0-source-maps",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/artifact-bundles/$",
+        ArtifactBundlesEndpoint.as_view(),
+        name="sentry-api-0-artifact-bundles",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",

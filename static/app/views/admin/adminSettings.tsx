@@ -53,7 +53,6 @@ const optionsAvailable = [
   'profile.issues.blocked_main_thread-ppg.la-rollout',
   'profile.issues.blocked_main_thread-ppg.ea-rollout',
   'profile.issues.blocked_main_thread-ppg.ga-rollout',
-  'processing.view-hierarchies-deobfuscation-general-availability',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -206,7 +205,6 @@ export default class AdminSettings extends AsyncView<{}, State> {
           <Feature features={['organizations:view-hierarchies-options-dev']}>
             <Panel>
               <PanelHeader>View Hierarchy</PanelHeader>
-              {fields['processing.view-hierarchies-deobfuscation-general-availability']}
             </Panel>
           </Feature>
         </Form>

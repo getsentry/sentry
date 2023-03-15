@@ -1,7 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization} from 'sentry/types';
 
 export type StepData = {
   platform?: PlatformKey | null;
@@ -17,7 +16,6 @@ export type StepProps = Pick<
   jumpToSetupProject: () => void;
   onComplete: () => void;
   orgId: string;
-  organization: Organization;
   search: string;
   stepIndex: number;
 };

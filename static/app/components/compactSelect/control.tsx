@@ -89,6 +89,12 @@ export interface ControlProps extends UseOverlayProps {
   maxMenuHeight?: number | string;
   maxMenuWidth?: number | string;
   /**
+   * Footer to be rendered at the bottom of the menu.
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -150,6 +156,7 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuFooter,
 
   // Select props
   size = 'md',
@@ -267,6 +274,23 @@ export function Control({
   });
 
   /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = useCallback(
+    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
+    [overlayRef]
+  );
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = useCallback(
+    () => !search && setMenuFullWidth(undefined),
+    [search]
+  );
+
+  /**
    * A list of selected options across all select regions, to be used to generate the
    * trigger label.
    */
@@ -356,14 +380,16 @@ export function Control({
           {...overlayProps}
         >
           <StyledOverlay
-            width={menuWidth}
+            width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
-                <MenuHeader size={size} data-header>
+                <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
@@ -379,12 +405,21 @@ export function Control({
                 <SearchInput
                   placeholder={searchPlaceholder}
                   value={search}
+                  onFocus={onSearchFocus}
+                  onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
                 />
               )}
               <OptionsWrap>{children}</OptionsWrap>
+              {menuFooter && (
+                <MenuFooter>
+                  {typeof menuFooter === 'function'
+                    ? menuFooter({closeOverlay: overlayState.close})
+                    : menuFooter}
+                </MenuFooter>
+              )}
             </FocusScope>
           </StyledOverlay>
         </StyledPositionWrapper>
@@ -477,7 +512,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
-  div[data-header] + & {
+  [data-menu-has-header='true'] > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 
@@ -493,7 +528,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{
   maxHeightProp: string | number;
   maxHeight?: string | number;
@@ -506,12 +541,12 @@ const StyledOverlay = styled(Overlay, {
   flex-direction: column;
   overflow: hidden;
 
+  ${p => p.width && `width: ${withUnits(p.width)};`}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
       : withUnits(p.maxHeightProp)};
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.maxWidth && `max-width: ${withUnits(p.maxWidth)};`}
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
@@ -525,4 +560,10 @@ const OptionsWrap = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 0;
+`;
+
+const MenuFooter = styled('div')`
+  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${space(1)} ${space(1.5)};
+  z-index: 2;
 `;

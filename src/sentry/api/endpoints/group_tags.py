@@ -11,6 +11,7 @@ from sentry.api.bases.group import GroupEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.mobile import get_readable_device_name
 from sentry.api.serializers import serialize
+from sentry.search.utils import DEVICE_CLASS
 
 if TYPE_CHECKING:
     from sentry.models import Group
@@ -52,6 +53,8 @@ class GroupTagsEndpoint(GroupEndpoint):  # type: ignore
         if show_readable_tag_values:
             add_readable_tag_values(data)
 
+        map_device_class(data)
+
         return Response(data)
 
 
@@ -63,4 +66,17 @@ def add_readable_tag_values(data: Any) -> None:
                 readable_value = get_readable_device_name(top_device["value"])
                 if readable_value:
                     top_device["readable"] = readable_value
+            break
+
+
+def map_device_class(data: Any) -> None:
+    # Map device.class tag value to high, medium, low
+    for tag in data:
+        if tag["key"] == "device.class":
+            for top_device_class in tag["topValues"]:
+                for key, value in DEVICE_CLASS.items():
+                    if top_device_class["value"] in value:
+                        top_device_class["value"] = key
+                        top_device_class["name"] = key
+                        break
             break
