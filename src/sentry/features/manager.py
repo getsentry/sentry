@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-__all__ = ["FeatureManager", "FeatureHandlerStrategy"]
+__all__ = ["FeatureManager"]
 
 import abc
 from collections import defaultdict
@@ -22,7 +22,7 @@ from typing import (
 import sentry_sdk
 from django.conf import settings
 
-from .base import Feature, FeatureHandlerStrategy
+from .base import Feature
 from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
@@ -144,12 +144,7 @@ class FeatureManager(RegisteredFeatureManager):
         """
         return {k: v for k, v in self._feature_registry.items() if v == feature_type}
 
-    def add(
-        self,
-        name: str,
-        cls: Type[Feature] = Feature,
-        entity_feature_strategy: FeatureHandlerStrategy | bool = FeatureHandlerStrategy.INTERNAL,
-    ) -> None:
+    def add(self, name: str, cls: Type[Feature] = Feature, entity_feature: bool = False) -> None:
         """
         Register a feature.
 
@@ -158,16 +153,9 @@ class FeatureManager(RegisteredFeatureManager):
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
-        # temporarily allow boolean values for entity_feature_strategy
-        # so flags set via getsentry are backwards compatible
-        if entity_feature_strategy is True:
-            entity_feature_strategy = FeatureHandlerStrategy.REMOTE
-        elif entity_feature_strategy is False:
-            entity_feature_strategy = FeatureHandlerStrategy.INTERNAL
-
-        if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
+        if entity_feature:
             if name.startswith("users:"):
-                raise NotImplementedError("User flags not allowed with a remote feature handler")
+                raise NotImplementedError("User flags not allowed with entity_feature=True")
             self.entity_features.add(name)
         self._feature_registry[name] = cls
 
