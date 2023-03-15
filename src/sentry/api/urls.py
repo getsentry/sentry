@@ -1255,6 +1255,7 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-count/$",
         OrganizationIssuesCountEndpoint.as_view(),
+        name="sentry-api-0-organization-issues-count",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
@@ -1274,10 +1275,12 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-repos",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-issues",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
