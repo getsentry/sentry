@@ -24,6 +24,12 @@ export const experimentList: {
     assignments: [0, 1],
   },
   {
+    key: 'OnboardingNewFooterExperiment',
+    type: ExperimentType.Organization,
+    parameter: 'scenario',
+    assignments: [0, 1, 2],
+  },
+  {
     key: 'APMSidebarExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',

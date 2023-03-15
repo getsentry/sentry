@@ -111,7 +111,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         assert response.data["state"] == ChunkFileState.NOT_FOUND
 
     def test_assemble_with_invalid_projects(self):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
@@ -137,7 +137,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
@@ -173,7 +173,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_with_version_and_no_dist(self, mock_assemble_artifacts):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
@@ -211,7 +211,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_with_version_and_dist(self, mock_assemble_artifacts):
         dist = "android"
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
@@ -248,7 +248,7 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
         )
 
     def test_assemble_response(self):
-        bundle_file = self.create_artifact_bundle(
+        bundle_file = self.create_artifact_bundle_zip(
             org=self.organization.slug, release=self.release.version
         )
         total_checksum = sha1(bundle_file).hexdigest()
