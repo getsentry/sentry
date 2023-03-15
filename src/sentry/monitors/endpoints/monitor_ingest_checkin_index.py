@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Environment, Project, ProjectKey
+from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -150,20 +150,9 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
             if update_monitor and monitor_data["config"] != monitor.config:
                 monitor.update(config=monitor_data["config"])
 
-            environment_name = result.get("environment")
-            if not environment_name:
-                environment_name = "production"
-
-            environment = Environment.get_or_create(project=project, name=environment_name)
-
-            monitorenvironment_defaults = {
-                "status": monitor.status,
-                "next_checkin": monitor.next_checkin,
-                "last_checkin": monitor.last_checkin,
-            }
-            monitor_environment = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-            )[0]
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, result.get("environment")
+            )
 
             checkin = MonitorCheckIn.objects.create(
                 project_id=project.id,
