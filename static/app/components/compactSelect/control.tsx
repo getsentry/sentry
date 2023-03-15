@@ -89,6 +89,12 @@ export interface ControlProps extends UseOverlayProps {
   maxMenuHeight?: number | string;
   maxMenuWidth?: number | string;
   /**
+   * Footer to be rendered at the bottom of the menu.
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
+  /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
   menuTitle?: React.ReactNode;
@@ -150,6 +156,7 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuFooter,
 
   // Select props
   size = 'md',
@@ -360,10 +367,12 @@ export function Control({
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
-                <MenuHeader size={size} data-header>
+                <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
@@ -385,6 +394,13 @@ export function Control({
                 />
               )}
               <OptionsWrap>{children}</OptionsWrap>
+              {menuFooter && (
+                <MenuFooter>
+                  {typeof menuFooter === 'function'
+                    ? menuFooter({closeOverlay: overlayState.close})
+                    : menuFooter}
+                </MenuFooter>
+              )}
             </FocusScope>
           </StyledOverlay>
         </StyledPositionWrapper>
@@ -477,7 +493,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
-  div[data-header] + & {
+  [data-menu-has-header='true'] > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 
@@ -525,4 +541,10 @@ const OptionsWrap = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 0;
+`;
+
+const MenuFooter = styled('div')`
+  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${space(1)} ${space(1.5)};
+  z-index: 2;
 `;
