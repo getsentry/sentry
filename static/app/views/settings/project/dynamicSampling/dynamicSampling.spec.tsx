@@ -74,12 +74,12 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeEnabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeEnabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeEnabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
 
     // Prioritize low-volume transactions is not available
     expect(
@@ -137,12 +137,12 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeDisabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeDisabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeDisabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
   });
 
   it('user can toggle option', function () {
