@@ -12,7 +12,7 @@ export const unassignedValue = -1;
  * Frontend experiment configuration object
  */
 export const experimentList: {
-  assignments: string[];
+  assignments: number[] | string[];
   key: string;
   parameter: string;
   type: ExperimentType;
