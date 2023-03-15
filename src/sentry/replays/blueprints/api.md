@@ -55,7 +55,6 @@ This document is structured by resource with each resource having actions that c
 
     | Field      | Type          | Description                          |
     | ---------- | ------------- | ------------------------------------ |
-    | action     | enum[string]  | Choices: click                       |
     | tag        | string        | Valid HTML5 tag name.                |
     | id         | string        | The ID of an HTML element.           |
     | classes    | array[string] | An array of HTML element classes.    |
