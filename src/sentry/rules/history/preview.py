@@ -251,7 +251,9 @@ def get_top_groups(
             },
             has_issue_state_condition,
         )
-        query_params.append(SnubaQueryParams(**kwargs))
+        query_params.append(
+            SnubaQueryParams(**kwargs, tenant_ids={"organization_id": project.organization_id})
+        )
 
     groups = []
     for result in bulk_raw_query(query_params, use_cache=True, referrer="preview.get_top_groups"):
@@ -313,6 +315,7 @@ def get_events(
     events = []
 
     query_params = []
+    tenant_ids = {"organization_id": project.organization_id}
     # query events by group_id (first event for each group)
     for dataset, ids in group_ids.items():
         if dataset not in columns or dataset == Dataset.Transactions:
@@ -332,7 +335,7 @@ def get_events(
                 "selected_columns": columns[dataset] + ["group_id"],
             },
         )
-        query_params.append(SnubaQueryParams(**kwargs))
+        query_params.append(SnubaQueryParams(**kwargs, tenant_ids=tenant_ids))
 
     # query events by event_id
     for dataset, ids in event_ids.items():
@@ -346,6 +349,7 @@ def get_events(
                 filter_keys={"project_id": [project.id]},
                 conditions=[("event_id", "IN", ids)],
                 selected_columns=columns[dataset],
+                tenant_ids=tenant_ids,
             )
         )
 
@@ -516,7 +520,10 @@ def get_frequency_buckets(
         },
     )
     bucket_counts = raw_query(
-        **kwargs, use_cache=True, referrer="preview.get_frequency_buckets"
+        **kwargs,
+        use_cache=True,
+        referrer="preview.get_frequency_buckets",
+        tenant_ids={"organization_id": project.organization_id},
     ).get("data", [])
 
     for bucket in bucket_counts:

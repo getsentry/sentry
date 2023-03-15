@@ -216,6 +216,7 @@ def get_processor(data_export, environment_id):
                 group_id=payload["group"],
                 key=payload["key"],
                 environment_id=environment_id,
+                tenant_ids={"organization_id": data_export.organization_id},
             )
         elif data_export.query_type == ExportQueryType.DISCOVER:
             processor = DiscoverProcessor(

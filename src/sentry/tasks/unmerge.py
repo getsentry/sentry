@@ -489,6 +489,7 @@ def unmerge(*posargs, **kwargs):
         batch_size=args.batch_size,
         state=last_event,
         referrer="unmerge",
+        tenant_ids={"organization_id": source.project.organization_id},
     )
 
     # If there are no more events to process, we're done with the migration.
