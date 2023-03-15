@@ -4,7 +4,7 @@ from typing import Set
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import analytics
+from sentry import analytics, deletions
 from sentry.constants import SentryAppStatus
 from sentry.coreapi import APIError
 from sentry.mediators import Mediator, Param, service_hooks
@@ -114,7 +114,7 @@ class Updater(Mediator, SentryAppMixin):
         self.sentry_app.events = expand_events(self.events)
 
     def _update_service_hooks(self):
-        hooks = ServiceHook.objects.filter(application=self.sentry_app.application)
+        hooks = ServiceHook.objects.filter(application_id=self.sentry_app.application_id)
         # sentry_app.webhook_url will be updated at this point
         webhook_url = self.sentry_app.webhook_url
         for hook in hooks:
@@ -125,12 +125,12 @@ class Updater(Mediator, SentryAppMixin):
                 )
             # if no url, then the service hook is no longer active in which case we need to delete it
             else:
-                service_hooks.Destroyer.run(service_hook=hook)
+                deletions.exec_sync(hook)
         # if we don't have hooks but we have a webhook url now, need to create it for an internal integration
         if webhook_url and self.sentry_app.is_internal and not hooks:
             installation = SentryAppInstallation.objects.get(sentry_app_id=self.sentry_app.id)
             service_hooks.Creator.run(
-                application=self.sentry_app.application,
+                application_id=self.sentry_app.application_id,
                 actor=installation,
                 projects=[],
                 organization=self.sentry_app.owner,
