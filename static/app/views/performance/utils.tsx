@@ -89,7 +89,9 @@ export enum PROJECT_PERFORMANCE_TYPE {
 
 // The native SDK is equally used on clients and end-devices as on
 // backend, the default view should be "All Transactions".
-const FRONTEND_PLATFORMS: string[] = [...frontend];
+const FRONTEND_PLATFORMS: string[] = [...frontend].filter(
+  platform => platform !== 'javascript-nextjs' // Next has both frontend and backend transactions.
+);
 const BACKEND_PLATFORMS: string[] = backend.filter(platform => platform !== 'native');
 const MOBILE_PLATFORMS: string[] = [...mobile];
 
