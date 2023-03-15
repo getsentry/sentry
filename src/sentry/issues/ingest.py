@@ -126,11 +126,11 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     event_metadata["title"] = occurrence.issue_title
+    event_metadata["value"] = occurrence.subtitle
 
     return {
         "type": event_type.key,
         "title": occurrence.issue_title,
-        "value": occurrence.subtitle,
         "culprit": occurrence.culprit,
         "metadata": event_metadata,
         "location": event.location,
