@@ -30,17 +30,18 @@ export default function EditMonitor() {
     }
   );
 
-  const onSubmitSuccess = (data: Monitor) =>
+  function onSubmitSuccess(data: Monitor) {
     browserHistory.push(
       normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
     );
+  }
 
-  const getTitle = () => {
+  function getTitle() {
     if (monitor) {
       return `${monitor.name} - Crons - ${organization.slug}`;
     }
     return `Crons - ${organization.slug}`;
-  };
+  }
 
   if (isLoading) {
     return <LoadingIndicator />;
