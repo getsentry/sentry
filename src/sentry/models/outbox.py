@@ -20,6 +20,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
 
@@ -269,7 +270,7 @@ class ControlOutbox(OutboxBase):
         "object_identifier",
     )
 
-    region_name = models.CharField(max_length=48)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     def send_signal(self):
         process_control_outbox.send(
