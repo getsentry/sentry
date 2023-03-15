@@ -52,7 +52,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
         """
         Return API request that fetches last ~30 commits
-        see https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
+        see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
         # Explicitly typing to satisfy mypy.
@@ -63,7 +63,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> JSONData:
         """
-        See https://developer.github.com/v3/repos/commits/#compare-two-commits
+        See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
         # Explicitly typing to satisfy mypy.
@@ -71,21 +71,33 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return diff
 
     def repo_hooks(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
+        """
         # Explicitly typing to satisfy mypy.
         hooks: Sequence[JSONData] = self.get(f"/repos/{repo}/hooks")
         return hooks
 
     def get_commits(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/commits/commits#list-commits
+        """
         # Explicitly typing to satisfy mypy.
         commits: Sequence[JSONData] = self.get(f"/repos/{repo}/commits")
         return commits
 
     def get_commit(self, repo: str, sha: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/commits/commits#get-a-commit
+        """
         # Explicitly typing to satisfy mypy.
         commit: JSONData = self.get_cached(f"/repos/{repo}/commits/{sha}")
         return commit
 
     def get_repo(self, repo: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/repos/repos#get-a-repository
+        """
         # Explicitly typing to satisfy mypy.
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
@@ -306,8 +318,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
-        """Find repositories matching a query.
-        NOTE: This API is rate limited to 30 requests/minute"""
+        """
+        Find repositories matching a query.
+        NOTE: This API is rate limited to 30 requests/minute
+
+        https://docs.github.com/en/rest/search#search-repositories
+        """
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
             "/search/repositories", params={"q": query}
@@ -315,6 +331,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repositories
 
     def get_assignees(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/issues/assignees#list-assignees
+        """
         # Explicitly typing to satisfy mypy.
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
@@ -373,6 +392,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        """
+        https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
+        """
         # Explicitly typing to satisfy mypy.
         issues: Mapping[str, Sequence[Mapping[str, Any]]] = self.get(
             "/search/issues", params={"q": query}
@@ -380,17 +402,29 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return issues
 
     def get_issue(self, repo: str, number: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/issues#get-an-issue
+        """
         return self.get(f"/repos/{repo}/issues/{number}")
 
     def create_issue(self, repo: str, data: Mapping[str, Any]) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/issues#create-an-issue
+        """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
     def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
     def get_user(self, gh_username: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/users/users#get-a-user
+        """
         return self.get(f"/users/{gh_username}")
 
     # subclassing BaseApiClient request method
