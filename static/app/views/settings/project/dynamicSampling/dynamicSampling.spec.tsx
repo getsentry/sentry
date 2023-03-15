@@ -1,18 +1,18 @@
-import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import { initializeOrg } from 'sentry-test/initializeOrg';
+import { render, screen, userEvent } from 'sentry-test/reactTestingLibrary';
 
-import {Organization, Project} from 'sentry/types';
-import {DynamicSamplingBiasType} from 'sentry/types/sampling';
+import { Organization, Project } from 'sentry/types';
+import { DynamicSamplingBiasType } from 'sentry/types/sampling';
 
 import DynamicSampling from '.';
 
 const ORG_FEATURES = ['dynamic-sampling'];
 
 const dynamicSamplingBiases = [
-  {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
-  {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
-  {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
-  {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+  { id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true },
+  { id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true },
+  { id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true },
+  { id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true },
 ];
 
 function renderMockRequests(
@@ -25,12 +25,12 @@ function renderMockRequests(
     body: {},
   });
 
-  return {projectDetails};
+  return { projectDetails };
 }
 
 describe('Dynamic Sampling', function () {
   it('renders default ui', function () {
-    const {project, organization} = initializeOrg({
+    const { project, organization } = initializeOrg({
       ...initializeOrg(),
       projects: [
         TestStubs.Project({
@@ -45,9 +45,9 @@ describe('Dynamic Sampling', function () {
 
     renderMockRequests(organization.slug, project.slug);
 
-    render(<DynamicSampling project={project} />, {organization});
+    render(<DynamicSampling project={project} />, { organization });
 
-    expect(screen.getByRole('heading', {name: /Dynamic Sampling/})).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Dynamic Sampling/ })).toBeInTheDocument();
 
     expect(screen.getAllByRole('checkbox')).toHaveLength(4);
 
@@ -74,21 +74,21 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeEnabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeEnabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeEnabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
 
     // Prioritize low-volume transactions is not available
     expect(
-      screen.queryByRole('checkbox', {name: 'Prioritize low-volume transactions'})
+      screen.queryByRole('checkbox', { name: 'Prioritize low-volume transactions' })
     ).not.toBeInTheDocument();
   });
 
   it('renders disabled default UI, when user has not permission to edit', async function () {
-    const {project, organization} = initializeOrg({
+    const { project, organization } = initializeOrg({
       ...initializeOrg(),
       projects: [
         TestStubs.Project({
@@ -104,7 +104,7 @@ describe('Dynamic Sampling', function () {
 
     renderMockRequests(organization.slug, project.slug);
 
-    render(<DynamicSampling project={project} />, {organization});
+    render(<DynamicSampling project={project} />, { organization });
 
     expect(
       screen.getByText(
@@ -137,16 +137,16 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeDisabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeDisabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeDisabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
   });
 
   it('user can toggle option', function () {
-    const {project, organization} = initializeOrg({
+    const { project, organization } = initializeOrg({
       ...initializeOrg(),
       projects: [
         TestStubs.Project({
@@ -161,19 +161,19 @@ describe('Dynamic Sampling', function () {
 
     const mockRequests = renderMockRequests(organization.slug, project.slug);
 
-    render(<DynamicSampling project={project} />, {organization});
+    render(<DynamicSampling project={project} />, { organization });
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
+    userEvent.click(screen.getByRole('checkbox', { name: 'Prioritize new releases' }));
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
       expect.objectContaining({
         data: {
           dynamicSamplingBiases: [
-            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false},
-            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
-            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
-            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+            { id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: false },
+            { id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true },
+            { id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true },
+            { id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true },
           ],
         },
       })
@@ -181,13 +181,13 @@ describe('Dynamic Sampling', function () {
   });
 
   it('render and toggle "Prioritize low-volume transactions" option', function () {
-    const {project, organization} = initializeOrg({
+    const { project, organization } = initializeOrg({
       ...initializeOrg(),
       projects: [
         TestStubs.Project({
           dynamicSamplingBiases: [
             ...dynamicSamplingBiases,
-            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
+            { id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false },
           ],
         }),
       ],
@@ -199,7 +199,7 @@ describe('Dynamic Sampling', function () {
 
     const mockRequests = renderMockRequests(organization.slug, project.slug);
 
-    render(<DynamicSampling project={project} />, {organization});
+    render(<DynamicSampling project={project} />, { organization });
 
     const prioritizeTransactionNames = screen.getByRole('checkbox', {
       name: 'Prioritize low-volume transactions',
@@ -209,7 +209,7 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeTransactionNames).not.toBeChecked();
 
     userEvent.click(
-      screen.getByRole('checkbox', {name: 'Prioritize low-volume transactions'})
+      screen.getByRole('checkbox', { name: 'Prioritize low-volume transactions' })
     );
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
@@ -217,11 +217,11 @@ describe('Dynamic Sampling', function () {
       expect.objectContaining({
         data: {
           dynamicSamplingBiases: [
-            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
-            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
-            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
-            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
-            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: true},
+            { id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true },
+            { id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true },
+            { id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true },
+            { id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true },
+            { id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: true },
           ],
         },
       })
