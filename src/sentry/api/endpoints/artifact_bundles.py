@@ -39,7 +39,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
 
             return {
                 "type": "artifact_bundle",
-                "bundleId": bundle_id,
+                "bundleId": str(bundle_id),
                 "date": artifact_bundle["date_added"],
                 "fileCount": artifact_count,
             }
@@ -63,10 +63,16 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
                 request.user,
             )
 
+        sort_by = request.GET.get("sortBy", "-date_added")
+        if sort_by not in {"-date_added", "date_added"}:
+            return Response(
+                {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
+            )
+
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="-date_added",
+            order_by=sort_by,
             paginator_cls=OffsetPaginator,
             default_per_page=10,
             on_results=serialize_results,
@@ -87,24 +93,25 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         :auth: required
         """
 
-        bundle_id = request.GET.get("bundle_id")
+        bundle_id = request.GET.get("bundleId")
 
         if bundle_id:
-            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
+            try:
                 artifact_bundle = ArtifactBundle.objects.get(
                     organization_id=project.organization_id, bundle_id=bundle_id
                 )
+            except ArtifactBundle.DoesNotExist:
+                return Response(
+                    {"error": f"Couldn't find a bundle with bundle_id {bundle_id}"}, status=404
+                )
 
-                if artifact_bundle is not None:
-                    # We want to delete all the connections to a project.
-                    project_artifact_bundles = ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=artifact_bundle.id
-                    )
-                    project_artifact_bundles.delete()
+            with atomic_transaction(using=router.db_for_write(ArtifactBundle)):
+                # We want to delete all the connections to a project.
+                ProjectArtifactBundle.objects.filter(artifact_bundle_id=artifact_bundle.id).delete()
 
-                    # We also delete the bundle itself.
-                    artifact_bundle.delete()
+                # We also delete the bundle itself.
+                artifact_bundle.delete()
 
-                    return Response(status=204)
+                return Response(status=204)
 
-        return Response(status=404)
+        return Response({"error": f"Supplied an invalid bundle_id {bundle_id}"}, status=404)

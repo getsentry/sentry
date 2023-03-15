@@ -1,9 +1,13 @@
+from typing import Any, Tuple
+
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.fields import AvatarField
 from sentry.api.serializers import serialize
+from sentry.api.serializers.base import Serializer
+from sentry.models.avatars.base import AvatarBase
 
 
 class AvatarSerializer(serializers.Serializer):
@@ -16,8 +20,12 @@ class AvatarSerializer(serializers.Serializer):
         attrs = super().validate(attrs)
         if attrs.get("avatar_type") == "upload":
             model_type = self.context["type"]
+            kwargs_copy = self.context["kwargs"].copy()
+            if "user" in kwargs_copy:
+                user = kwargs_copy.pop("user")
+                kwargs_copy["user_id"] = user.id
             has_existing_file = model_type.objects.filter(
-                file_id__isnull=False, **self.context["kwargs"]
+                file_id__isnull=False, **kwargs_copy
             ).exists()
             if not has_existing_file and not attrs.get("avatar_photo"):
                 raise serializers.ValidationError(
@@ -41,19 +49,18 @@ class AvatarMixin:
     def get_avatar_filename(self, obj):
         return f"{obj.id}.png"
 
-    def put(self, request: Request, **kwargs) -> Response:
+    def parse(self, request: Request, **kwargs) -> Tuple[Any, Serializer]:
         obj = kwargs.pop(self.object_type, None)
 
         serializer = self.serializer_cls(
             data=request.data, context=self.get_serializer_context(obj)
         )
+        return (obj, serializer)
 
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    def save_avatar(self, obj: Any, serializer: Serializer, **kwargs) -> AvatarBase:
         result = serializer.validated_data
 
-        self.model.save_avatar(
+        return self.model.save_avatar(
             relation={self.object_type: obj},
             type=result["avatar_type"],
             avatar=result.get("avatar_photo"),
@@ -61,4 +68,10 @@ class AvatarMixin:
             color=result.get("color"),
         )
 
+    def put(self, request: Request, **kwargs) -> Response:
+        obj, serializer = self.parse(request, **kwargs)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        self.save_avatar(obj, serializer)
+        obj = kwargs.pop(self.object_type, None)  # serialize doesn't like these params
         return Response(serialize(obj, request.user, **kwargs))

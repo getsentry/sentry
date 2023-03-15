@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
@@ -298,7 +300,9 @@ class QueryDefinition:
         return query_conditions
 
 
-def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
+def run_outcomes_query_totals(
+    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -308,12 +312,16 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
+    request = Request(
+        dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
+    )
     result = raw_snql_query(request, referrer="outcomes.totals")
     return _format_rows(result["data"], query)
 
 
-def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
+def run_outcomes_query_timeseries(
+    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -323,7 +331,9 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
+    request = Request(
+        dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
+    )
     result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
     return _format_rows(result_timeseries["data"], query)
 
