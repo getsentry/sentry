@@ -33,8 +33,6 @@ const TeamMembersRow = (props: {
     updateMemberRole,
   } = props;
 
-  const orgRoleFromTeam = team.orgRole ?? undefined;
-
   return (
     <TeamRolesPanelItem key={member.id}>
       <div>
@@ -45,7 +43,7 @@ const TeamMembersRow = (props: {
           hasWriteAccess={hasWriteAccess}
           updateMemberRole={updateMemberRole}
           organization={organization}
-          orgRoleFromTeam={orgRoleFromTeam}
+          team={team}
           member={member}
         />
       </div>
@@ -65,10 +63,10 @@ const TeamRoleSelect = (props: {
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
+  team: Team;
   updateMemberRole: (member: TeamMember, newRole: string) => void;
-  orgRoleFromTeam?: string;
 }) => {
-  const {hasWriteAccess, organization, orgRoleFromTeam, member, updateMemberRole} = props;
+  const {hasWriteAccess, organization, team, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
     return null;
@@ -76,15 +74,14 @@ const TeamRoleSelect = (props: {
 
   // Determine the team-role, including if the current team has an org role
   // and if adding the user to the current team changes their minimum team-role
-  const {orgRolesFromTeams} = member;
-  const memberOrgRoles = [member.orgRole];
-  if (orgRolesFromTeams) {
-    memberOrgRoles.push(orgRolesFromTeams[0].role.id);
+  const possibleOrgRoles = [member.orgRole];
+  if (member.orgRolesFromTeams) {
+    possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
   }
-  if (orgRoleFromTeam) {
-    memberOrgRoles.push(orgRoleFromTeam);
+  if (team.orgRole) {
+    possibleOrgRoles.push(team.orgRole);
   }
-  const topOrgRole = getTopOrgRole(memberOrgRoles, orgRoleList);
+  const topOrgRole = getTopOrgRole(possibleOrgRoles, orgRoleList);
 
   const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];

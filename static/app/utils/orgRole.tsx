@@ -2,11 +2,11 @@ import {OrgRole} from 'sentry/types';
 
 export function getTopOrgRole(memberOrgRoles: string[], orgRoleList: OrgRole[]) {
   // sort by ascending index
-  memberOrgRoles.sort((a, b) =>
-    orgRoleList.findIndex(r => r.id === a) < orgRoleList.findIndex(r => r.id === b)
-      ? 1
-      : -1
-  );
+  const orgRoleMap = orgRoleList.reduce((acc, role, index) => {
+    acc[role.id] = {index, role};
+    return acc;
+  }, {});
+  memberOrgRoles.sort((a, b) => orgRoleMap[b].index - orgRoleMap[a].index);
 
-  return orgRoleList.find(r => r.id === memberOrgRoles[0]);
+  return orgRoleMap[memberOrgRoles[0]] ? orgRoleMap[memberOrgRoles[0]].role : undefined;
 }

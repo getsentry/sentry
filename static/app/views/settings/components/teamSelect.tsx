@@ -99,7 +99,7 @@ function TeamSelect({
   // Determine if adding a team changes the minimum team-role
   // get teams with org roles, if any
   const orgRolesFromTeams = teams
-    .filter(team => slugsToFilter.includes(team.slug) && team.orgRole !== null)
+    .filter(team => slugsToFilter.includes(team.slug) && team.orgRole)
     .map(team => team.orgRole ?? '');
 
   if (selectedOrgRole) {
