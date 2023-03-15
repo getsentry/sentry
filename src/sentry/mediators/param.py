@@ -137,8 +137,8 @@ class Param:
             >>> self._eval_string_type()
             sentry.models.project.Project
         """
-        mod, klass = self._type.rsplit(".", 1)
-        return getattr(sys.modules[mod], klass)
+        mod, cls = self._type.rsplit(".", 1)
+        return getattr(sys.modules[mod], cls)
 
     def _missing_value(self, value):
         return self.is_required and value is None and not self.has_default
