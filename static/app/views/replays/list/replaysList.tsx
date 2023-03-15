@@ -1,9 +1,8 @@
-import {ReactNode, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {Location} from 'history';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import type {Organization} from 'sentry/types';
@@ -26,6 +25,7 @@ import {REPLAY_LIST_FIELDS} from 'sentry/views/replays/types';
 
 function ReplaysList() {
   const location = useLocation<ReplayListLocationQuery>();
+  const organization = useOrganization();
 
   const eventView = useMemo(() => {
     const query = decodeScalar(location.query.query, '');
@@ -45,51 +45,25 @@ function ReplaysList() {
     );
   }, [location]);
 
-  return <ReplaysListFetcher eventView={eventView} location={location} />;
-}
-
-function ReplaysListFetcher({
-  eventView,
-  location,
-}: {
-  eventView: EventView;
-  location: Location;
-}) {
-  const organization = useOrganization();
-
   const hasSessionReplay = organization.features.includes('session-replay');
   const {hasSentOneReplay, fetching} = useHaveSelectedProjectsSentAnyReplayEvents();
 
-  if (hasSessionReplay && !fetching && hasSentOneReplay) {
-    return (
+  const child =
+    hasSessionReplay && !fetching && hasSentOneReplay ? (
       <ReplaysListTable
         eventView={eventView}
         location={location}
         organization={organization}
       />
-    );
-  }
-  return (
-    <Page>
+    ) : (
       <ReplayOnboardingPanel />
-    </Page>
-  );
-}
-
-function Page({children}: {children: ReactNode}) {
-  const organization = useOrganization();
+    );
 
   return (
     <Layout.Body>
       <Layout.Main fullWidth>
         <ReplaysFilters />
-        <Feature
-          features={['session-replay']}
-          organization={organization}
-          renderDisabled={() => <ReplayOnboardingPanel />}
-        >
-          {children}
-        </Feature>
+        {child}
       </Layout.Main>
     </Layout.Body>
   );
@@ -114,7 +88,7 @@ function ReplaysListTable({
   });
 
   return (
-    <Page>
+    <Fragment>
       <ReplayTable
         fetchError={fetchError}
         isFetching={isFetching}
@@ -143,7 +117,7 @@ function ReplaysListTable({
           });
         }}
       />
-    </Page>
+    </Fragment>
   );
 }
 

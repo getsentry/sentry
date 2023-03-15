@@ -47,7 +47,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
         headers={tableHeaders}
         isLoading={false}
         visibleColumns={visibleColumns}
-        data-test-id="replayTable"
+        data-test-id="replay-table"
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
