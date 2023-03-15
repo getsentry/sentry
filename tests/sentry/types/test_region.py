@@ -5,6 +5,7 @@ from sentry.silo import SiloMode
 from sentry.testutils import TestCase
 from sentry.testutils.region import override_regions
 from sentry.types.region import (
+    MONOLITH_REGION_NAME,
     Region,
     RegionCategory,
     RegionContextError,
@@ -49,5 +50,10 @@ class RegionMappingTest(TestCase):
                 assert get_local_region() == regions[0]
 
             with override_settings(SILO_MODE=SiloMode.MONOLITH):
-                with pytest.raises(RegionContextError):
-                    get_local_region()
+                # The relative address and the 0 id are the only important parts of this region value
+                assert get_local_region() == Region(
+                    name=MONOLITH_REGION_NAME,
+                    id=0,
+                    address="/",
+                    category=RegionCategory.MULTI_TENANT,
+                )
