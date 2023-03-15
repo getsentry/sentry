@@ -9,11 +9,11 @@ import msgpack
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
 
-# from sentry import options
+from sentry import options
 from sentry.models import File
 from sentry.models.organizationonboardingtask import OnboardingTask, OnboardingTaskStatus
 from sentry.replays.consumers.recording import ProcessReplayRecordingStrategyFactory
-from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
+from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta, StorageBlob
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.testutils import TransactionTestCase
 
@@ -246,31 +246,31 @@ class FilestoreRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
         return FilestoreBlob().get(recording_segment)
 
 
-# class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
-#     def setUp(self):
-#         self.replay_id = uuid.uuid4().hex
-#         self.replay_recording_id = uuid.uuid4().hex
-#         options.set("replay.storage.direct-storage-sample-rate", 100)
+class StorageRecordingTestCase(RecordingTestCaseMixin, TransactionTestCase):
+    def setUp(self):
+        self.replay_id = uuid.uuid4().hex
+        self.replay_recording_id = uuid.uuid4().hex
+        options.set("replay.storage.direct-storage-sample-rate", 100)
 
-#     def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
-#         # Assert no recording segment is written for direct-storage.  Direct-storage does not
-#         # use a metadata database.
-#         recording_segment = ReplayRecordingSegment.objects.first()
-#         assert recording_segment is None
+    def assert_replay_recording_segment(self, segment_id: int, compressed: bool):
+        # Assert no recording segment is written for direct-storage.  Direct-storage does not
+        # use a metadata database.
+        recording_segment = ReplayRecordingSegment.objects.first()
+        assert recording_segment is None
 
-#         bytes = self.get_recording_data(segment_id)
+        bytes = self.get_recording_data(segment_id)
 
-#         # Assert (depending on compression) that the bytes are equal to our default mock value.
-#         if compressed:
-#             assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
-#         else:
-#             assert bytes == b'[{"hello":"world"}]'
+        # Assert (depending on compression) that the bytes are equal to our default mock value.
+        if compressed:
+            assert zlib.decompress(bytes) == b'[{"hello":"world"}]'
+        else:
+            assert bytes == b'[{"hello":"world"}]'
 
-#     def get_recording_data(self, segment_id):
-#         recording_segment = RecordingSegmentStorageMeta(
-#             project_id=self.project.id,
-#             replay_id=self.replay_id,
-#             segment_id=segment_id,
-#             retention_days=30,
-#         )
-#         return StorageBlob().get(recording_segment)
+    def get_recording_data(self, segment_id):
+        recording_segment = RecordingSegmentStorageMeta(
+            project_id=self.project.id,
+            replay_id=self.replay_id,
+            segment_id=segment_id,
+            retention_days=30,
+        )
+        return StorageBlob().get(recording_segment)

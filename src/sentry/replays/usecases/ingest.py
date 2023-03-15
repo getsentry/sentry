@@ -10,10 +10,7 @@ from sentry_sdk.tracing import Span
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
-from sentry.replays.lib.storage import (  # make_storage_driver,
-    FilestoreBlob,
-    RecordingSegmentStorageMeta,
-)
+from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
 from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -169,13 +166,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
 
     # Using a blob driver ingest the recording-segment bytes.  The storage location is unknown
     # within this scope.
-    #
-    # Temporarily commented out write behavior.  We'll continue writing as normal and test that
-    # the read behavior has no regressions.
-    #
-    # driver = make_storage_driver(message.org_id)
-    # driver.set(segment_data, recording_segment)
-    driver = FilestoreBlob()
+    driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
