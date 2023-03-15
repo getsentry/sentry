@@ -20,6 +20,7 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
+import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
@@ -70,6 +71,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
   const {projects} = useProjects();
   const onboardingContext = useContext(OnboardingContext);
   const projectData = projectId ? onboardingContext.data[projectId] : undefined;
+  const selectedProject = projects.find(project => project.slug === projectSlug);
 
   useQuery<Project>([`/projects/${organization.slug}/${projectSlug}/`], {
     staleTime: 0,
@@ -122,6 +124,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
+      project_slug: projectSlug,
     });
 
     onboardingContext.setProjectData({
@@ -157,6 +160,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
+      project_slug: projectSlug,
     });
 
     onboardingContext.setProjectData({
@@ -189,6 +193,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
+      project_slug: projectSlug,
     });
 
     if (clientState) {
@@ -202,7 +207,15 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       ...router.location,
       pathname: `/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer`,
     });
-  }, [organization, projectId, onboardingContext, clientState, router, setClientState]);
+  }, [
+    organization,
+    projectId,
+    onboardingContext,
+    clientState,
+    router,
+    setClientState,
+    projectSlug,
+  ]);
 
   const handleSkipOnboarding = useCallback(() => {
     if (!projectId) {
@@ -218,7 +231,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
       source: 'targeted_onboarding_first_event_footer',
     });
 
-    const selectedProjectId = projects.find(project => project.slug === projectSlug)?.id;
+    const selectedProjectId = selectedProject?.id;
 
     let pathname = `/organizations/${organization.slug}/issues/?`;
     if (selectedProjectId) {
@@ -239,8 +252,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     organization,
     setClientState,
     clientState,
-    projects,
-    projectSlug,
+    selectedProject,
     onboardingContext,
     projectId,
   ]);
@@ -253,6 +265,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
+      project_slug: projectSlug,
     });
 
     if (clientState) {
@@ -274,6 +287,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     setClientState,
     onboardingContext,
     projectId,
+    projectSlug,
   ]);
 
   return (
@@ -308,6 +322,23 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
           <Button priority="primary" onClick={handleViewError}>
             {t('View Error')}
           </Button>
+        ) : organization.features.includes(
+            'onboarding-heartbeat-footer-with-view-sample-error'
+          ) ? (
+          <CreateSampleEventButton
+            project={selectedProject}
+            source="targted-onboarding-heartbeat-footer"
+            priority="primary"
+            onCreateSampleGroup={() => {
+              trackAdvancedAnalyticsEvent('onboarding.view_sample_error_button_clicked', {
+                new_organization: !!newOrg,
+                project_slug: projectSlug,
+                organization,
+              });
+            }}
+          >
+            {t('View Sample Error')}
+          </CreateSampleEventButton>
         ) : (
           <Button
             priority="primary"

@@ -20,6 +20,7 @@ type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
   source: string;
+  onCreateSampleGroup?: () => void;
   project?: Project;
 } & ButtonProps;
 
@@ -94,17 +95,21 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project} = this.props;
+    const {api, organization, project, onCreateSampleGroup} = this.props;
     let eventData;
 
     if (!project) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
-      platform: project.platform,
-      organization,
-    });
+    if (onCreateSampleGroup) {
+      onCreateSampleGroup();
+    } else {
+      trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+        platform: project.platform,
+        organization,
+      });
+    }
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
@@ -168,6 +173,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       source: _source,
       ...props
     } = this.props;
+
     const {creating} = this.state;
 
     return (
