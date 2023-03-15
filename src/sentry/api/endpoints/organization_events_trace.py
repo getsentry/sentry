@@ -198,7 +198,8 @@ class TraceEvent:
                     ]
                     unique_spans: Set[str] = set()
                     for problem in problems:
-                        unique_spans = unique_spans.union(problem.parent_span_ids)
+                        if problem.parent_span_ids is not None:
+                            unique_spans = unique_spans.union(problem.parent_span_ids)
                     span = list(unique_spans)
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
