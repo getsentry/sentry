@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {WithRouterProps} from 'react-router';
 
 import AlertLink from 'sentry/components/alertLink';
 import AsyncComponent from 'sentry/components/asyncComponent';
@@ -22,22 +23,32 @@ import type {
   SentryAppInstallation,
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import localStorage from 'sentry/utils/localStorage';
 import withOrganization from 'sentry/utils/withOrganization';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
+import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-type Props = AsyncComponent['props'] & {
-  components: SentryAppComponent[];
-  event: Event;
-  group: Group;
-  organization: Organization;
-  project: Project;
-};
+type Props = AsyncComponent['props'] &
+  WithRouterProps & {
+    components: SentryAppComponent[];
+    event: Event;
+    group: Group;
+    organization: Organization;
+    project: Project;
+  };
 
 type State = AsyncComponent['state'] & {
   externalIssues: PlatformExternalIssue[];
   integrations: GroupIntegration[];
   sentryAppInstallations: SentryAppInstallation[];
+  /**
+   * Filter external issues by integration key
+   * Used for demos to limit the number of integrations shown
+   */
+  issueTrackingFilter?: string;
 };
+
+const issueTrackingFilterKey = 'issueTrackingFilter';
 
 type ExternalIssueComponent = {
   component: React.ReactNode;
@@ -56,9 +67,21 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
 
   constructor(props: Props) {
     super(props, {});
+
+    // Check for issueTracking query parameter and save to localStorage
+    const issueTracking =
+      this.props.location.query.issueTracking ??
+      localStorage.getItem(issueTrackingFilterKey);
+    if (typeof issueTracking === 'string') {
+      localStorage.setItem(issueTrackingFilterKey, issueTracking.toLowerCase());
+    }
+
     this.state = Object.assign({}, this.state, {
       sentryAppInstallations: SentryAppInstallationStore.getInitialState(),
       externalIssues: ExternalIssueStore.getInitialState(),
+      issueTrackingFilter: ['', 'all'].includes(issueTracking)
+        ? undefined
+        : issueTracking,
     });
   }
 
@@ -233,6 +256,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   }
 
   renderBody() {
+    const {issueTrackingFilter} = this.state;
     const sentryAppIssues = this.renderSentryAppIssues();
     const integrationIssues = this.renderIntegrationIssues();
     const pluginIssues = this.renderPluginIssues();
@@ -242,7 +266,7 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
       ...integrationIssues,
       ...pluginIssues,
       ...pluginActions,
-    ];
+    ].filter(action => !issueTrackingFilter || action.key === issueTrackingFilter);
     const showSetup = actions.length === 0;
 
     return (
@@ -272,6 +296,9 @@ class ExternalIssueList extends AsyncComponent<Props, State> {
   }
 }
 
-export default withSentryAppComponents(withOrganization(ExternalIssueList), {
-  componentType: 'issue-link',
-});
+export default withSentryAppComponents(
+  withOrganization(withSentryRouter(ExternalIssueList)),
+  {
+    componentType: 'issue-link',
+  }
+);
