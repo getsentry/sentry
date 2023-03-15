@@ -532,6 +532,9 @@ class GroupSerializerBase(Serializer, ABC):
                 start=start,
                 orderby="group_id",
                 referrer="group.unhandled-flag",
+                tenant_ids={"organization_id": item_list[0].project.organization_id}
+                if item_list
+                else None,
             )
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
@@ -811,8 +814,12 @@ class GroupSerializer(GroupSerializerBase):
 
         project_id = issue_list[0].project_id
         item_ids = [g.id for g in issue_list]
+        tenant_ids = {"organization_id": issue_list[0].project.organization_id}
         user_counts: Mapping[int, int] = user_counts_func(
-            [project_id], item_ids, environment_ids=environment and [environment.id]
+            [project_id],
+            item_ids,
+            environment_ids=environment and [environment.id],
+            tenant_ids=tenant_ids,
         )
         first_seen: MutableMapping[int, datetime] = {}
         last_seen: MutableMapping[int, datetime] = {}
@@ -820,7 +827,12 @@ class GroupSerializer(GroupSerializerBase):
 
         if environment is not None:
             environment_seen_stats = environment_seen_stats_func(
-                [project_id], item_ids, [environment.id], "environment", environment.name
+                [project_id],
+                item_ids,
+                [environment.id],
+                "environment",
+                environment.name,
+                tenant_ids=tenant_ids,
             )
             for item_id, value in environment_seen_stats.items():
                 first_seen[item_id] = value.first_seen
@@ -1008,9 +1020,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        org_id = item_list[0].project.organization_id if item_list else None
-        tenant_ids = {"organization_id": org_id} if org_id else dict()
-
         return aliased_query(
             dataset=Dataset.Events,
             start=start,
@@ -1020,7 +1029,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=tenant_ids,
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1051,6 +1062,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1077,6 +1091,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod

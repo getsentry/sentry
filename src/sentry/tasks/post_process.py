@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -179,6 +179,7 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
@@ -201,6 +202,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
@@ -403,12 +407,15 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
-            record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
+            record_transaction_name as record_transaction_name_for_clustering,
         )
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
         if occurrence_id is None:
+            # We use the data being present/missing in the processing store
+            # to ensure that we don't duplicate work should the forwarding consumers
+            # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
                 logger.info(
@@ -680,7 +687,7 @@ def process_snoozes(job: PostProcessJob) -> None:
                 project=group.project,
                 group=group,
                 type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
+                user_id=None,
                 data={"event_id": job["event"].event_id},
             )
 
@@ -688,7 +695,7 @@ def process_snoozes(job: PostProcessJob) -> None:
             group.update(status=GroupStatus.UNRESOLVED)
             issue_unignored.send_robust(
                 project=group.project,
-                user=None,
+                user_id=None,
                 group=group,
                 transition_type="automatic",
                 sender="process_snoozes",
@@ -756,22 +763,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org = event.project.organization
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
-            has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
-            has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-            if has_normal_run_flag:
+            if features.has("organizations:derive-code-mappings", org):
                 logger.info(
                     f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
-                derive_code_mappings.delay(project.id, event.data, dry_run=False)
-            # Derive code mappings with dry_run=True to validate the generated mappings.
-            elif has_dry_run_flag:
-                logger.info(
-                    f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
-                )
-                derive_code_mappings.delay(project.id, event.data, dry_run=True)
+                derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
@@ -813,15 +811,9 @@ def process_commits(job: PostProcessJob) -> None:
                     organizations=event.project.organization,
                     provider__in=["github", "gitlab"],
                 )
-                use_fallback = (
-                    features.has(
-                        "organizations:commit-context-fallback", event.project.organization
-                    )
-                    and not integrations.exists()
-                )
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and not use_fallback
+                    and integrations.exists()
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):

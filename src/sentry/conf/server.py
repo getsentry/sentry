@@ -363,6 +363,7 @@ INSTALLED_APPS = (
     "sentry.discover",
     "sentry.analytics.events",
     "sentry.nodestore",
+    "sentry.monitors",
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
@@ -381,6 +382,7 @@ INSTALLED_APPS = (
     "sentry.eventstream",
     "sentry.auth.providers.google.apps.Config",
     "django.contrib.staticfiles",
+    "sentry.issues.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
@@ -589,6 +591,7 @@ CELERY_IMPORTS = (
     "sentry.incidents.tasks",
     "sentry.snuba.tasks",
     "sentry.replays.tasks",
+    "sentry.monitors.tasks",
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -596,7 +599,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.auto_resolve_issues",
     "sentry.tasks.beacon",
     "sentry.tasks.check_auth",
-    "sentry.tasks.check_monitors",
     "sentry.tasks.clear_expired_snoozes",
     "sentry.tasks.codeowners.code_owners_auto_sync",
     "sentry.tasks.codeowners.update_code_owners_schema",
@@ -783,7 +785,7 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 30},
     },
     "check-monitors": {
-        "task": "sentry.tasks.check_monitors",
+        "task": "sentry.monitors.tasks.check_monitors",
         "schedule": timedelta(minutes=1),
         "options": {"expires": 60},
     },
@@ -879,14 +881,19 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
-        "schedule": timedelta(hours=24),
+        "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
+        "schedule": timedelta(hours=4),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 1 hour
-        "schedule": crontab(minute=0),
+        # Run job every 5 minutes
+        "schedule": timedelta(minutes=5),
+    },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run job every 4 hours at min 10
+        "schedule": crontab(minute=10, hour="*/4"),
     },
 }
 
@@ -1033,8 +1040,6 @@ SENTRY_FEATURES = {
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
-    # Enables automatically deriving of code mappings as a dry run for early adopters
-    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1129,10 +1134,16 @@ SENTRY_FEATURES = {
     "organizations:metric-alert-chartcuterie": False,
     # Extract metrics for sessions during ingestion.
     "organizations:metrics-extraction": False,
-    # Normalize transaction names during ingestion.
+    # Normalize URL transaction names during ingestion.
     "organizations:transaction-name-normalize": False,
+    # Mark URL transactions scrubbed by regex patterns as "sanitized".
+    # NOTE: This flag does not concern transactions rewritten by clusterer rules.
+    # Those are always marked as "sanitized".
+    "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
+    # Use a larger sample size & merge threshold for transaction clustering.
+    "organizations:transaction-name-clusterer-2x": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1181,6 +1192,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
     # Enable the dynamic sampling "Transaction Name" priority in the UI
     "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1230,6 +1243,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-consecutive-http-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
@@ -1249,6 +1264,8 @@ SENTRY_FEATURES = {
     "organizations:sentry-functions": False,
     # Enable experimental session replay backend APIs
     "organizations:session-replay": False,
+    # Enable Session Replay showing in the sidebar
+    "organizations:session-replay-ui": True,
     # Enabled for those orgs who participated in the Replay Beta program
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
@@ -1285,10 +1302,10 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable a banner on the issue details page guiding the user to setup source maps
     "organizations:source-maps-cta": False,
+    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
+    "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by project
-    "organizations:ds-prioritise-by-project-bias": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable View Hierarchies in issue details page
@@ -1297,6 +1314,8 @@ SENTRY_FEATURES = {
     "organizations:view-hierarchies-options-dev": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
+    "organizations:onboarding-heartbeat-footer-with-view-sample-error": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
@@ -1314,14 +1333,10 @@ SENTRY_FEATURES = {
     "organizations:u2f-superuser-form": False,
     # Enable setting team-level roles and receiving permissions from them
     "organizations:team-roles": False,
-    # Enable org member role provisioning through scim
-    "organizations:scim-orgmember-roles": False,
     # Enable team member role provisioning through scim
     "organizations:scim-team-roles": False,
     # Enable the setting of org roles for team
     "organizations:org-roles-for-teams": False,
-    # Enable the in-app source map debugging feature
-    "organizations:fix-source-map-cta": False,
     # Enable new JS SDK Dynamic Loader
     "organizations:js-sdk-dynamic-loader": False,
     # Adds additional filters and a new section to issue alert rules.
@@ -2648,7 +2663,9 @@ KAFKA_CLUSTERS = {
 #     pick up the change.
 
 KAFKA_EVENTS = "events"
+KAFKA_EVENTS_COMMIT_LOG = "snuba-commit-log"
 KAFKA_TRANSACTIONS = "transactions"
+KAFKA_TRANSACTIONS_COMMIT_LOG = "snuba-transactions-commit-log"
 KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
@@ -2673,6 +2690,7 @@ KAFKA_INGEST_OCCURRENCES = "ingest-occurrences"
 KAFKA_INGEST_MONITORS = "ingest-monitors"
 KAFKA_REGION_TO_CONTROL = "region-to-control"
 KAFKA_EVENTSTREAM_GENERIC = "generic-events"
+KAFKA_GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"
 
 # topic for testing multiple indexer backends in parallel
 # in production. So far just testing backends for the perf data,
@@ -2691,7 +2709,9 @@ KAFKA_SUBSCRIPTION_RESULT_TOPICS = {
 # Cluster configuration for each Kafka topic by name.
 KAFKA_TOPICS = {
     KAFKA_EVENTS: {"cluster": "default"},
+    KAFKA_EVENTS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_TRANSACTIONS: {"cluster": "default"},
+    KAFKA_TRANSACTIONS_COMMIT_LOG: {"cluster": "default"},
     KAFKA_OUTCOMES: {"cluster": "default"},
     # When OUTCOMES_BILLING is None, it inherits from OUTCOMES and does not
     # create a separate producer. Check ``track_outcome`` for details.
@@ -2725,6 +2745,7 @@ KAFKA_TOPICS = {
     # Region to Control Silo messaging - eg UserIp and AuditLog
     KAFKA_REGION_TO_CONTROL: {"cluster": "default"},
     KAFKA_EVENTSTREAM_GENERIC: {"cluster": "default"},
+    KAFKA_GENERIC_EVENTS_COMMIT_LOG: {"cluster": "default"},
 }
 
 
@@ -2821,6 +2842,7 @@ SENTRY_REQUEST_METRIC_ALLOWED_PATHS = (
     "sentry.discover.endpoints",
     "sentry.incidents.endpoints",
     "sentry.replays.endpoints",
+    "sentry.monitors.endpoints",
 )
 SENTRY_MAIL_ADAPTER_BACKEND = "sentry.mail.adapter.MailAdapter"
 
@@ -3101,3 +3123,14 @@ SINGLE_SERVER_SILO_MODE = False
 
 # Set the URL for signup page that we redirect to for the setup wizard if signup=1 is in the query params
 SENTRY_SIGNUP_URL = None
+
+SENTRY_ORGANIZATION_ONBOARDING_TASK = "sentry.onboarding_tasks.backends.organization_onboarding_task.OrganizationOnboardingTaskBackend"
+
+# Temporary allowlist for specially configured organizations to use the direct-storage
+# driver.
+SENTRY_REPLAYS_STORAGE_ALLOWLIST = []
+
+SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS = {
+    "path": "sentry.models.featureadoption.FeatureAdoptionRedisBackend",
+    "options": {"cluster": "default"},
+}

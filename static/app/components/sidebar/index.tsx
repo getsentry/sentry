@@ -6,7 +6,6 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -37,6 +36,7 @@ import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useMedia from 'sentry/utils/useMedia';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -48,11 +48,6 @@ import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
-
-const SidebarOverride = HookOrDefault({
-  hookName: 'sidebar:item-override',
-  defaultComponent: ({children}) => <Fragment>{children({})}</Fragment>,
-});
 
 type Props = {
   location?: Location;
@@ -78,6 +73,9 @@ function Sidebar({location, organization}: Props) {
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+  const {logExperiment, experimentAssignment} = useExperiment('APMSidebarExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -88,6 +86,13 @@ function Sidebar({location, organization}: Props) {
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
+
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    if (organization?.features.includes('performance-view')) {
+      logExperiment();
+    }
+  }, [logExperiment, organization?.features]);
 
   // Add classname to body
   useEffect(() => {
@@ -183,18 +188,17 @@ function Sidebar({location, organization}: Props) {
       features={['performance-view']}
       organization={organization}
     >
-      <SidebarOverride id="performance-override">
-        {(overideProps: Partial<React.ComponentProps<typeof SidebarItem>>) => (
-          <SidebarItem
-            {...sidebarItemProps}
-            icon={<IconLightning size="md" />}
-            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-            to={`/organizations/${organization.slug}/performance/`}
-            id="performance"
-            {...overideProps}
-          />
-        )}
-      </SidebarOverride>
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconLightning size="md" />}
+        label={
+          <GuideAnchor target="performance">
+            {experimentAssignment === 1 ? t('APM') : t('Performance')}
+          </GuideAnchor>
+        }
+        to={`/organizations/${organization.slug}/performance/`}
+        id="performance"
+      />
     </Feature>
   );
 
@@ -242,7 +246,12 @@ function Sidebar({location, organization}: Props) {
   );
 
   const replays = hasOrganization && (
-    <Feature features={['session-replay']} organization={organization}>
+    <Feature
+      hookName="feature-disabled:replay-sidebar-item"
+      features={['session-replay-ui']}
+      organization={organization}
+      requireAll={false}
+    >
       <SidebarItem
         {...sidebarItemProps}
         icon={<IconPlay size="md" />}

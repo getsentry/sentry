@@ -1,5 +1,7 @@
 import logging
+from typing import cast
 
+from django.conf import settings
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
@@ -13,7 +15,8 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.utils import redis
+from sentry.utils.redis import get_dynamic_cluster_from_options
+from sentry.utils.services import build_instance_from_options
 
 logger = logging.getLogger(__name__)
 
@@ -114,37 +117,55 @@ manager.add(91, "deploy_created", "Create Deploy Using API", "api")
 manager.add(92, "metric_alert_rules", "Metric Alert Rules", "web", prerequisite=["first_event"])
 
 
-class FeatureAdoptionManager(BaseManager):
+class FeatureAdoptionRedisBackend:
+    def __init__(self, key_tpl=FEATURE_ADOPTION_REDIS_KEY, **options):
+        self.key_tpl = key_tpl
+        self.is_redis_cluster, self.cluster, _config = get_dynamic_cluster_from_options(
+            "SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS", options
+        )
+
+    def get_client(self, key):
+        # WARN: Carefully as this works only for single key operations.
+        if self.is_redis_cluster:
+            return self.cluster
+        else:
+            return self.cluster.get_local_client_for_key(key)
+
     def in_cache(self, organization_id, feature_id):
-        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        feature_matches = []
-        with redis.clusters.get("default").map() as client:
-            feature_matches.append(client.sismember(org_key, feature_id))
-
-        return any([p.value for p in feature_matches])
-
-    def set_cache(self, organization_id, feature_id):
-        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        with redis.clusters.get("default").map() as client:
-            client.sadd(org_key, feature_id)
-        return True
+        org_key = self.key_tpl.format(organization_id)
+        return self.get_client(org_key).sismember(org_key, feature_id)
 
     def get_all_cache(self, organization_id):
-        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        result = []
-        with redis.clusters.get("default").map() as client:
-            result.append(client.smembers(org_key))
-
-        return {int(x) for x in set.union(*(p.value for p in result))}
+        org_key = self.key_tpl.format(organization_id)
+        return {int(v) for v in self.get_client(org_key).smembers(org_key)}
 
     def bulk_set_cache(self, organization_id, *args):
         if not args:
             return False
 
-        org_key = FEATURE_ADOPTION_REDIS_KEY.format(organization_id)
-        with redis.clusters.get("default").map() as client:
-            client.sadd(org_key, *args)
+        org_key = self.key_tpl.format(organization_id)
+        self.get_client(org_key).sadd(org_key, *args)
         return True
+
+
+class FeatureAdoptionManager(BaseManager):
+
+    cache_backend: FeatureAdoptionRedisBackend = cast(
+        FeatureAdoptionRedisBackend,
+        build_instance_from_options(settings.SENTRY_FEATURE_ADOPTION_CACHE_OPTIONS),
+    )
+
+    def in_cache(self, organization_id, feature_id):
+        return self.cache_backend.in_cache(organization_id, feature_id)
+
+    def set_cache(self, organization_id, feature_id):
+        return self.bulk_set_cache(organization_id, feature_id)
+
+    def get_all_cache(self, organization_id):
+        return self.cache_backend.get_all_cache(organization_id)
+
+    def bulk_set_cache(self, organization_id, *args):
+        return self.cache_backend.bulk_set_cache(organization_id, *args)
 
     def record(self, organization_id, feature_slug, **kwargs):
         try:

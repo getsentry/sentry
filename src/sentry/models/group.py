@@ -421,7 +421,7 @@ class Group(Model):
     is_public = models.NullBooleanField(default=False, null=True)
     data = GzippedDictField(blank=True, null=True)
     short_id = BoundedBigIntegerField(null=True)
-    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id)
+    type = BoundedPositiveIntegerField(default=ErrorGroupType.type_id, db_index=True)
 
     objects = GroupManager(cache_fields=("id",))
 
@@ -627,7 +627,11 @@ class Group(Model):
 
     def count_users_seen(self):
         return tagstore.get_groups_user_counts(
-            [self.project_id], [self.id], environment_ids=None, start=self.first_seen
+            [self.project_id],
+            [self.id],
+            environment_ids=None,
+            start=self.first_seen,
+            tenant_ids={"organization_id": self.project.organization_id},
         )[self.id]
 
     @classmethod

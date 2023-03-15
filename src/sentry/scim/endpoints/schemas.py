@@ -187,7 +187,6 @@ SCIM_SCHEMA_LIST = [SCIM_USER_ATTRIBUTES_SCHEMA, SCIM_GROUP_ATTRIBUTES_SCHEMA]
 @region_silo_endpoint
 class OrganizationSCIMSchemaIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
-    private = True
 
     def get(self, request: Request, organization) -> Response:
         query_params = self.get_query_parameters(request)

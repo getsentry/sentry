@@ -94,7 +94,7 @@ def save_event_from_occurrence(
     project_id = data.pop("project_id")
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
-        manager = EventManager(data)
+        manager = EventManager(data, remove_other=False)
         event = manager.save(project_id=project_id)
 
         return event
@@ -186,6 +186,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 optional_params = [
                     "breadcrumbs",
                     "contexts",
+                    "debug_meta",
                     "dist",
                     "environment",
                     "extra",

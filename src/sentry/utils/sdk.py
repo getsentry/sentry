@@ -42,7 +42,7 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
     # integration platform
     "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-authorizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
     # integrations
     "sentry-extensions-jira-issue-hook": 0.05,
     "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
@@ -116,7 +116,7 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.check_monitors": 1.0,
+    "sentry.monitors.tasks.check_monitors": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
 }
 

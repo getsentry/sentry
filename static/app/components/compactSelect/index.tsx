@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
 
 import {Control, ControlProps} from './control';
 import {List, MultipleListProps, SingleListProps} from './list';
+import {EmptyMessage} from './styles';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -58,6 +60,7 @@ function CompactSelect<Value extends React.Key>({
   // Control props
   grid,
   disabled,
+  emptyMessage,
   size = 'md',
   closeOnSelect,
   triggerProps,
@@ -78,7 +81,10 @@ function CompactSelect<Value extends React.Key>({
     () =>
       options.map((item, i) => ({
         ...item,
-        key: 'options' in item ? item.key ?? i : item.value,
+        // options key has to be unique to the current list of options,
+        // else we risk of a duplicate key error and end up confusing react
+        // which ultimately fails to call the correct item handlers
+        key: 'options' in item ? item.key ?? `options-${i}` : item.value,
       })),
     [options]
   );
@@ -124,6 +130,9 @@ function CompactSelect<Value extends React.Key>({
           );
         }}
       </List>
+
+      {/* Only displayed when List is empty */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
 }

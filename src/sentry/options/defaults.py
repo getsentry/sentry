@@ -34,7 +34,13 @@ register("system.maximum-file-size", default=2**31, flags=FLAG_PRIORITIZE_DISK)
 
 # URL configuration
 # Absolute URL to the sentry root directory. Should not include a trailing slash.
-register("system.url-prefix", ttl=60, grace=3600, flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK)
+register(
+    "system.url-prefix",
+    ttl=60,
+    grace=3600,
+    default=os.environ.get("SENTRY_SYSTEM_URL_PREFIX"),
+    flags=FLAG_REQUIRED | FLAG_PRIORITIZE_DISK,
+)
 register("system.internal-url-prefix", flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
 # Base hostname that account domains are subdomains of.
 register(
@@ -205,6 +211,25 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
 )
 
+# Replay Options
+#
+# Replay storage backend configuration (only applicable if the direct-storage driver is used)
+register("replay.storage.backend", default=None, flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK)
+register(
+    "replay.storage.options",
+    type=Dict,
+    default=None,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+# The sample rate at which to allow direct-storage access.  This is deterministic sampling based
+# on organization-id.
+register(
+    "replay.storage.direct-storage-sample-rate",
+    type=Int,
+    default=0,
+    flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK,
+)
+
 # Analytics
 register("analytics.backend", default="noop", flags=FLAG_NOSTORE)
 register("analytics.options", default={}, flags=FLAG_NOSTORE)
@@ -321,6 +346,10 @@ register("symbolicator.minidump-refactor-projects-opt-in", type=Sequence, defaul
 register("symbolicator.minidump-refactor-projects-opt-out", type=Sequence, default=[])  # unused
 register("symbolicator.minidump-refactor-random-sampling", default=0.0)  # unused
 
+# Enable use of Symbolicator Source Maps processing for specific projects.
+register("symbolicator.sourcemaps-processing-projects", type=Sequence, default=[])
+# Enable use of Symbolicator Source Maps processing for fraction of projects.
+register("symbolicator.sourcemaps-processing-sample-rate", default=0.0)
 
 # Normalization after processors
 register("store.normalize-after-processing", default=0.0)  # unused
@@ -408,6 +437,7 @@ register("store.load-shed-symbolicate-event-projects", type=Any, default=[])
 register("store.symbolicate-event-lpq-never", type=Sequence, default=[])
 register("store.symbolicate-event-lpq-always", type=Sequence, default=[])
 register("post_process.get-autoassign-owners", type=Sequence, default=[])
+register("api.organization.disable-last-deploys", type=Sequence, default=[])
 
 # Switch for more performant project counter incr
 register("store.projectcounter-modern-upsert-sample-rate", default=0.0)
@@ -619,6 +649,9 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
+# System-wise option for performance issue creation through issues platform
+register("performance.issues.send_to_issues_platform", default=False)
+
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases
 register("dynamic-sampling:enabled-biases", default=True)
@@ -626,6 +659,9 @@ register("dynamic-sampling:enabled-biases", default=True)
 # project config computation. This is temporary option to monitor the performance of this feature.
 register("dynamic-sampling:boost-latest-release", default=False)
 register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
+# controls how many orgs will be queried by the prioritise by transaction task
+# 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
+register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)

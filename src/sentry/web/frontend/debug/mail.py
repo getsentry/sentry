@@ -689,7 +689,7 @@ def org_delete_confirm(request):
 
     org = Organization.get_default()
     entry = AuditLogEntry(
-        organization=org, actor=request.user, ip_address=request.META["REMOTE_ADDR"]
+        organization_id=org.id, actor=request.user, ip_address=request.META["REMOTE_ADDR"]
     )
 
     return MailPreview(
