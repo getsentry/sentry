@@ -281,7 +281,7 @@ def is_root(item: SnubaTransaction) -> bool:
 
 
 def child_sort_key(item: TraceEvent) -> List[int]:
-    if item.fetched_nodestore is not None and item.nodestore_event is not None:
+    if item.fetched_nodestore and item.nodestore_event is not None:
         return [
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
