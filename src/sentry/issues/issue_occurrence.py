@@ -33,6 +33,7 @@ class IssueOccurrenceData(TypedDict):
     type: int
     detection_time: float
     level: Optional[str]
+    culprit: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -83,6 +84,7 @@ class IssueOccurrence:
     type: Type[GroupType]
     detection_time: datetime
     level: str
+    culprit: str
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -104,6 +106,7 @@ class IssueOccurrence:
             "type": self.type.type_id,
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
+            "culprit": self.culprit,
         }
 
     @classmethod
@@ -112,6 +115,9 @@ class IssueOccurrence:
         level = data.get("level")
         if not level:
             level = DEFAULT_LEVEL
+        culprit = data.get("culprit")
+        if not culprit:
+            culprit = ""
         return cls(
             data["id"],
             data["project_id"],
@@ -129,6 +135,7 @@ class IssueOccurrence:
             get_group_type_by_type_id(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
             level,
+            culprit,
         )
 
     @property

@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -25,6 +25,7 @@ import {SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
   IntervalConfig,
@@ -35,8 +36,8 @@ import {
 } from '../types';
 
 const SCHEDULE_OPTIONS: RadioOption<string>[] = [
-  [ScheduleType.INTERVAL, t('Interval')],
   [ScheduleType.CRONTAB, t('Crontab')],
+  [ScheduleType.INTERVAL, t('Interval')],
 ];
 
 const DEFAULT_MONITOR_TYPE = 'cron_job';
@@ -104,6 +105,11 @@ function MonitorForm({
   const form = useRef(new FormModel({transformData}));
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+  const [crontabInput, setCrontabInput] = useState(
+    monitor?.config.schedule_type === ScheduleType.CRONTAB
+      ? monitor?.config.schedule
+      : null
+  );
 
   function formDataFromConfig(type: MonitorType, config: MonitorConfig) {
     const rv = {};
@@ -133,6 +139,8 @@ function MonitorForm({
   const selectedProject = selectedProjectId
     ? projects.find(p => p.id === selectedProjectId + '')
     : null;
+
+  const parsedSchedule = crontabAsText(crontabInput);
 
   return (
     <Form
@@ -173,6 +181,7 @@ function MonitorForm({
           <StyledSentryProjectSelectorField
             name="project"
             projects={projects.filter(project => project.isMember)}
+            placeholder={t('Choose Project')}
             disabled={!!monitor}
             disabledReason={t('Existing monitors cannot be moved between projects')}
             valueIsSlug
@@ -189,7 +198,7 @@ function MonitorForm({
 
         <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
         <ListItemSubText>
-          {tct('You can use our simple schedule or [link:the crontab syntax].', {
+          {tct('You can use [link:the crontab syntax] or our interval schedule.', {
             link: <ExternalLink href="https://en.wikipedia.org/wiki/Cron" />,
           })}
         </ListItemSubText>
@@ -235,6 +244,7 @@ function MonitorForm({
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
                       required
                       stacked
+                      onChange={setCrontabInput}
                       inline={false}
                     />
                     <StyledSelectField
@@ -245,6 +255,7 @@ function MonitorForm({
                       stacked
                       inline={false}
                     />
+                    {parsedSchedule && <CronstrueText>"{parsedSchedule}"</CronstrueText>}
                   </ScheduleGroupInputs>
                 );
               }
@@ -264,6 +275,7 @@ function MonitorForm({
                       options={getIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
+                      placeholder="minute"
                       required
                       stacked
                       inline={false}
@@ -277,35 +289,29 @@ function MonitorForm({
         </InputGroup>
         <StyledListItem>{t('Set a missed status')}</StyledListItem>
         <ListItemSubText>
-          {t('How long to wait before we consider a check-in as missed.')}
+          {t("The number of minutes we'll wait before we consider a check-in as missed.")}
         </ListItemSubText>
         <InputGroup>
-          <LabeledInputs>
-            <StyledNumberField
-              name="config.checkin_margin"
-              placeholder="e.g. 30"
-              stacked
-              inline={false}
-            />
-            <LabelText>{t('Minutes')}</LabelText>
-          </LabeledInputs>
+          <StyledNumberField
+            name="config.checkin_margin"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
         </InputGroup>
         <StyledListItem>{t('Set a failed status')}</StyledListItem>
         <ListItemSubText>
           {t(
-            "How long a check-in is allowed to run before it's considered failed. If the job encounters an error it will also fail."
+            "The number of minutes a check-in is allowed to run before it's considered failed."
           )}
         </ListItemSubText>
         <InputGroup>
-          <LabeledInputs>
-            <StyledNumberField
-              name="config.max_runtime"
-              placeholder="e.g. 30"
-              stacked
-              inline={false}
-            />
-            <LabelText>{t('Minutes')}</LabelText>
-          </LabeledInputs>
+          <StyledNumberField
+            name="config.max_runtime"
+            placeholder="e.g. 30"
+            stacked
+            inline={false}
+          />
         </InputGroup>
       </StyledList>
     </Form>
@@ -315,7 +321,7 @@ function MonitorForm({
 export default MonitorForm;
 
 const StyledList = styled(List)`
-  width: 500px;
+  width: 600px;
 `;
 
 const StyledTextCopyInput = styled(TextCopyInput)`
@@ -367,13 +373,16 @@ const InputGroup = styled('div')`
   gap: ${space(1)};
 `;
 
-const LabeledInputs = styled('div')`
+const ScheduleGroupInputs = styled('div')<{interval?: boolean}>`
   display: grid;
-  grid-template-columns: 1fr auto;
   align-items: center;
   gap: ${space(1)};
+  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
 `;
 
-const ScheduleGroupInputs = styled(LabeledInputs)<{interval?: boolean}>`
-  grid-template-columns: ${p => p.interval && 'auto'} 1fr 2fr;
+const CronstrueText = styled(LabelText)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-family: ${p => p.theme.text.familyMono};
+  grid-column: auto / span 2;
 `;

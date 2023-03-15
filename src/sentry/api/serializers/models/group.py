@@ -532,6 +532,9 @@ class GroupSerializerBase(Serializer, ABC):
                 start=start,
                 orderby="group_id",
                 referrer="group.unhandled-flag",
+                tenant_ids={"organization_id": item_list[0].project.organization_id}
+                if item_list
+                else None,
             )
             for x in rv["data"]:
                 unhandled[x["group_id"]] = x["unhandled"]
@@ -1017,9 +1020,6 @@ class GroupSerializerSnuba(GroupSerializerBase):
         if environment_ids:
             filters["environment"] = environment_ids
 
-        org_id = item_list[0].project.organization_id if item_list else None
-        tenant_ids = {"organization_id": org_id} if org_id else dict()
-
         return aliased_query(
             dataset=Dataset.Events,
             start=start,
@@ -1029,7 +1029,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_error_seen_stats_query",
-            tenant_ids=tenant_ids,
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1060,6 +1062,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_perf_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod
@@ -1086,6 +1091,9 @@ class GroupSerializerSnuba(GroupSerializerBase):
             filter_keys=filters,
             aggregations=aggregations,
             referrer="serializers.GroupSerializerSnuba._execute_generic_seen_stats_query",
+            tenant_ids={"organization_id": item_list[0].project.organization_id}
+            if item_list
+            else None,
         )
 
     @staticmethod

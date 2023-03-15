@@ -4,18 +4,29 @@ from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.authentication import DSNAuthentication
 from sentry.api.base import region_silo_endpoint
+from sentry.api.endpoints.event_attachment_details import EventAttachmentDetailsPermission
 from sentry.models import File
 
-from .base import MonitorCheckInAttachmentPermission, MonitorCheckInEndpoint
+from .base import MonitorEndpoint, ProjectMonitorPermission
+
+
+class MonitorCheckInAttachmentPermission(EventAttachmentDetailsPermission):
+    scope_map = ProjectMonitorPermission.scope_map
+
+    def has_object_permission(self, request: Request, view, project):
+        result = super().has_object_permission(request, view, project)
+
+        # Allow attachment uploads via DSN
+        if request.method == "POST":
+            return True
+
+        return result
 
 
 @region_silo_endpoint
-class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
+class OrganizationMonitorCheckInAttachmentEndpoint(MonitorEndpoint):
     # TODO(davidenwang): Add documentation after uploading feature is complete
-
-    authentication_classes = MonitorCheckInEndpoint.authentication_classes + (DSNAuthentication,)
     permission_classes = (MonitorCheckInAttachmentPermission,)
 
     def download(self, file_id):
@@ -29,7 +40,7 @@ class OrganizationMonitorCheckInAttachmentEndpoint(MonitorCheckInEndpoint):
         response["Content-Disposition"] = f"attachment; filename={file.name}"
         return response
 
-    def get(self, request: Request, project, monitor, checkin) -> Response:
+    def get(self, request: Request, organization, project, monitor, checkin) -> Response:
         if checkin.attachment_id:
             return self.download(checkin.attachment_id)
         else:

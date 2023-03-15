@@ -7,8 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {} from 'sentry/components/text';
 import {t} from 'sentry/locale';
-
-import {usePersistedOnboardingState} from '../utils';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 type Props = {
   clientState: ReturnType<typeof usePersistedOnboardingState>[0];
@@ -55,9 +54,9 @@ export function ChangeRouteModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button onClick={handleSetUpLater}>{t('On second thought\u2026')}</Button>
-          <Button priority="primary" onClick={closeModal}>
-            {t('Go away')}
+          <Button onClick={closeModal}>{t('Continue Configuring SDK')}</Button>
+          <Button priority="primary" onClick={handleSetUpLater}>
+            {t('Skip Onboarding')}
           </Button>
         </ButtonBar>
       </Footer>

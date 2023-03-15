@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -179,6 +179,7 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
@@ -201,6 +202,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
@@ -809,15 +813,9 @@ def process_commits(job: PostProcessJob) -> None:
                     organizations=event.project.organization,
                     provider__in=["github", "gitlab"],
                 )
-                use_fallback = (
-                    features.has(
-                        "organizations:commit-context-fallback", event.project.organization
-                    )
-                    and not integrations.exists()
-                )
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and not use_fallback
+                    and integrations.exists()
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):

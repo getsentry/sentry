@@ -192,8 +192,8 @@ class Fixtures:
             release_id = self.release.id
         return Factories.create_release_file(release_id, file, name, dist_id)
 
-    def create_artifact_bundle(self, org=None, release=None, *args, **kwargs):
-        return Factories.create_artifact_bundle(org, release, *args, **kwargs)
+    def create_artifact_bundle_zip(self, org=None, release=None, *args, **kwargs):
+        return Factories.create_artifact_bundle_zip(org, release, *args, **kwargs)
 
     def create_release_archive(self, org=None, release=None, *args, **kwargs):
         if org is None:
@@ -201,6 +201,11 @@ class Fixtures:
         if release is None:
             release = self.release.version
         return Factories.create_release_archive(org, release, *args, **kwargs)
+
+    def create_artifact_bundle(self, org=None, *args, **kwargs):
+        if org is None:
+            org = self.organization
+        return Factories.create_artifact_bundle(org, *args, **kwargs)
 
     def create_code_mapping(self, project=None, repo=None, organization_integration=None, **kwargs):
         if project is None:

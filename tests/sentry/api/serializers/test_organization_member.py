@@ -36,14 +36,19 @@ class OrganizationMemberAllRolesSerializerTest(OrganizationMemberSerializerTest)
     def test_all_org_roles(self):
         manager_team = self.create_team(organization=self.org, org_role="manager")
         manager_team2 = self.create_team(organization=self.org, org_role="manager")
+        owner_team = self.create_team(organization=self.org, org_role="owner")
         member = self.create_member(
-            organization=self.org, user=self.create_user(), teams=[manager_team, manager_team2]
+            organization=self.org,
+            user=self.create_user(),
+            teams=[manager_team, manager_team2, owner_team],
         )
         result = serialize(member, self.user_2, OrganizationMemberSerializer())
 
-        assert len(result["orgRolesFromTeams"]) == 2
-        assert result["orgRolesFromTeams"][0]["role"]["id"] == "manager"
+        assert len(result["orgRolesFromTeams"]) == 3
+        assert result["orgRolesFromTeams"][0]["role"]["id"] == "owner"
+        assert result["orgRolesFromTeams"][0]["teamSlug"] == owner_team.slug
         assert result["orgRolesFromTeams"][1]["role"]["id"] == "manager"
+        assert result["orgRolesFromTeams"][2]["role"]["id"] == "manager"
 
 
 @region_silo_test(stable=True)

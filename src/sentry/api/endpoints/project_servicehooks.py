@@ -107,6 +107,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
                 actor=request.user,
                 events=result.get("events"),
                 application=getattr(request.auth, "application", None) if request.auth else None,
+                installation_id=None,  # Just being explicit here.
             )
 
             self.create_audit_entry(
