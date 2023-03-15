@@ -224,6 +224,75 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
+    @classmethod
+    def build(
+        cls,
+        *,
+        fields: List[str],
+        start: str,
+        end: str,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        key_id: Optional[int] = None,
+        interval: Optional[str] = None,
+        outcome: Optional[List[str]] = None,
+        group_by: Optional[List[str]] = None,
+        query: Optional[Mapping[str, Any]] = None,
+        category: Optional[str] = None,
+        reason: Optional[str] = None,
+        allow_minute_resolution: bool = True,
+    ) -> QueryDefinition:
+        """
+        Factory method for building a `QueryDefintion` from python primitives.
+
+        Ideally this would be the constructor, but we have cross repository dependencies
+        that need to be addressed first.
+        """
+        # TODO(mark) this is a workaround because __init__() uses QueryDict
+        # and I wanted to make smaller changes.
+        query_dict = QueryDict("", mutable=True)
+        query_dict.setlist("field", fields)
+        query_dict["start"] = start
+        query_dict["end"] = end
+        if group_by is not None:
+            query_dict.setlist("groupBy", group_by)
+        if outcome is not None:
+            query_dict.setlist("outcome", outcome)
+
+        if interval is not None:
+            query_dict["interval"] = interval
+        if reason is not None:
+            query_dict["reason"] = reason
+        if category is not None:
+            query_dict["category"] = category
+        if query is not None:
+            query_dict["query"] = query
+        if key_id is not None:
+            query_dict["key_id"] = key_id
+
+        params: MutableMapping[str, Any] = {"organization_id": organization_id}
+        if project_ids is not None:
+            params["project_id"] = project_ids
+
+        return cls(query_dict, params=params, allow_minute_resolution=allow_minute_resolution)
+
+    @classmethod
+    def from_query_dict(
+        cls,
+        query: QueryDict,
+        params: Mapping[Any, Any],
+        allow_minute_resolution: Optional[bool] = True,
+    ) -> QueryDefinition:
+        """
+        Create a QueryDefinition from a Django request QueryDict
+
+        Useful when you want to convert request data into an outcomes.QueryDefinition.
+        """
+        # TODO(mark) Move __init__ logic here so that __init__ can work with python primitives.
+        return QueryDefinition(
+            query=query, params=params, allow_minute_resolution=allow_minute_resolution
+        )
+
     def __init__(
         self,
         query: QueryDict,
