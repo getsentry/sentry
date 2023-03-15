@@ -146,6 +146,10 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                     },
                 )
 
+            # Monitor does not exist and we have not created one
+            if not monitor:
+                return self.respond(status=404)
+
             # Update monitor configuration during checkin if config is changed
             if update_monitor and monitor_data["config"] != monitor.config:
                 monitor.update(config=monitor_data["config"])
