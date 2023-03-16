@@ -1,9 +1,8 @@
-import {ComponentProps, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import Breadcrumbs from 'sentry/components/breadcrumbs';
 import BaseBadge from 'sentry/components/idBadge/baseBadge';
-import Placeholder from 'sentry/components/placeholder';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {t} from 'sentry/locale';
 import EventView from 'sentry/utils/discover/eventView';
@@ -30,7 +29,7 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
       <ReplaysFeatureBadge />
     </Fragment>
   ) : (
-    <HeaderPlaceholder width="500px" height="24px" />
+    <HeaderPlaceholder width="100%" height="16px" />
   );
 
   return (
@@ -54,11 +53,5 @@ function DetailsPageBreadcrumbs({orgSlug, replayRecord}: Props) {
     />
   );
 }
-
-const HeaderPlaceholder = styled((props: ComponentProps<typeof Placeholder>) => (
-  <Placeholder width="100%" height="19px" {...props} />
-))`
-  background-color: ${p => p.theme.background};
-`;
 
 export default DetailsPageBreadcrumbs;

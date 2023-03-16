@@ -4,16 +4,15 @@ import styled from '@emotion/styled';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import DeleteButton from 'sentry/components/replays/deleteButton';
+import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import ReplayMetaData, {
-  HeaderPlaceholder,
-} from 'sentry/views/replays/detail/replayMetaData';
+import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -59,7 +58,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
           }
         />
       ) : (
-        <HeaderPlaceholder />
+        <HeaderPlaceholder width="100%" height="58px" />
       )}
 
       <ReplayMetaData replayRecord={replayRecord} />

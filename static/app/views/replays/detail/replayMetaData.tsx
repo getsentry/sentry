@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
-import Placeholder from 'sentry/components/placeholder';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/errorCount';
+import ErrorCount from 'sentry/components/replays/header/errorCount';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,7 +55,7 @@ function ReplayMetaData({replayRecord}: Props) {
             <TimeSince date={replayRecord.started_at} unitStyle="regular" />
           </Fragment>
         ) : (
-          <HeaderPlaceholder />
+          <HeaderPlaceholder width="80px" height="16px" />
         )}
       </KeyMetricData>
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
@@ -65,20 +65,12 @@ function ReplayMetaData({replayRecord}: Props) {
             <ErrorCount countErrors={replayRecord.count_errors} />
           </StyledLink>
         ) : (
-          <HeaderPlaceholder />
+          <HeaderPlaceholder width="80px" height="16px" />
         )}
       </KeyMetricData>
     </KeyMetrics>
   );
 }
-
-export const HeaderPlaceholder = styled(
-  (props: React.ComponentProps<typeof Placeholder>) => (
-    <Placeholder width="80px" height="19px" {...props} />
-  )
-)`
-  background-color: ${p => p.theme.background};
-`;
 
 const KeyMetrics = styled('dl')`
   display: grid;
@@ -89,6 +81,7 @@ const KeyMetrics = styled('dl')`
   align-items: center;
   color: ${p => p.theme.gray300};
   margin: 0;
+  justify-self: flex-end;
 `;
 
 const KeyMetricLabel = styled('dt')`

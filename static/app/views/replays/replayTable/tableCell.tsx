@@ -4,7 +4,7 @@ import Avatar from 'sentry/components/avatar';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
-import ErrorCount from 'sentry/components/replays/errorCount';
+import ErrorCount from 'sentry/components/replays/header/errorCount';
 import {formatTime} from 'sentry/components/replays/utils';
 import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
