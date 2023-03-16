@@ -513,17 +513,52 @@ function buildRoutes() {
             };
           })}
         />
-        <Route
-          path="debug-id-bundles/"
-          component={make(async () => {
-            const {ProjectSourceMapsContainer} = await import(
-              'sentry/views/settings/projectSourceMaps'
-            );
-            return {
-              default: ProjectSourceMapsContainer,
-            };
-          })}
-        />
+        <Route path="debug-id-bundles/">
+          <IndexRoute
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+          <Route
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
+        <Route path="release-bundles/">
+          <IndexRoute
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+          <Route
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
         <Route
           path=":name/"
           name={t('Archive')}

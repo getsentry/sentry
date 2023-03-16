@@ -12,10 +12,7 @@ import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -28,11 +25,8 @@ import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import recreateRoute from 'sentry/utils/recreateRoute';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 enum SORT_BY {
   ASC = 'date_added',
@@ -41,18 +35,18 @@ enum SORT_BY {
 
 type Props = RouteComponentProps<{}, {}> & {
   project: Project;
+  tab: 'release' | 'debug-id';
 };
 
-export function ProjectSourceMaps({routes, params, location, router, project}: Props) {
+export function ProjectSourceMaps({location, router, project, tab}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const baseUrl = recreateRoute('', {routes, params, stepBack: -1});
-  const tabDebugIdBundlesActive = location.pathname.endsWith('debug-id-bundles/');
   const query = decodeScalar(location.query.query);
   const sortBy = location.query.sort ?? SORT_BY.DESC;
   const cursor = location.query.cursor ?? '';
   const sourceMapsEndpoint = `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
   const debugIdBundlesEndpoint = `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`;
+  const tabDebugIdBundlesActive = tab === 'debug-id';
 
   const {
     data: archivesData,
@@ -151,29 +145,6 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
 
   return (
     <Fragment>
-      <SettingsPageHeader title={t('Source Maps')} />
-      <TextBlock>
-        {tct(
-          `These source map archives help Sentry identify where to look when Javascript is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].`,
-          {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/sourcemaps/" />
-            ),
-          }
-        )}
-      </TextBlock>
-      <NavTabs underlined>
-        <ListLink to={baseUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink
-          to={`${baseUrl}debug-id-bundles/`}
-          index
-          isActive={() => tabDebugIdBundlesActive}
-        >
-          {t('Debug ID Bundles')}
-        </ListLink>
-      </NavTabs>
       <SearchBarWithMarginBottom
         placeholder={t('Search')}
         onSearch={handleSearch}
@@ -214,16 +185,20 @@ export function ProjectSourceMaps({routes, params, location, router, project}: P
         isEmpty={data.length === 0}
         isLoading={loading}
       >
-        {data.map(({name, date, fileCount}) => {
+        {data.map(({date, fileCount, ...d}) => {
+          const name = tabDebugIdBundlesActive ? d.bundleId : d.name;
+          const link = tabDebugIdBundlesActive
+            ? `/settings/${organization.slug}/projects/${
+                project.slug
+              }/source-maps/debug-id-bundles/${encodeURIComponent(name)}`
+            : `/settings/${organization.slug}/projects/${
+                project.slug
+              }/source-maps/release-bundles/${encodeURIComponent(name)}`;
           return (
             <Fragment key={name}>
               <Column>
                 <TextOverflow>
-                  <Link
-                    to={`/settings/${organization.slug}/projects/${
-                      project.slug
-                    }/source-maps/${encodeURIComponent(name)}`}
-                  >
+                  <Link to={link}>
                     <Version version={name} anchor={false} tooltipRawVersion truncate />
                   </Link>
                 </TextOverflow>
@@ -283,13 +258,11 @@ const StyledPanelTable = styled(PanelTable)`
   }
 `;
 
-const SearchBarWithMarginBottom = styled(SearchBar)`
-  margin-bottom: ${space(3)};
-`;
-
 const ArtifactsColumn = styled('div')`
   text-align: right;
   justify-content: flex-end;
+  align-items: center;
+  display: flex;
 `;
 
 const DateUploadedColumn = styled('div')`
@@ -306,4 +279,8 @@ const Column = styled('div')`
 
 const ActionsColumn = styled(Column)`
   justify-content: flex-end;
+`;
+
+const SearchBarWithMarginBottom = styled(SearchBar)`
+  margin-bottom: ${space(3)};
 `;
