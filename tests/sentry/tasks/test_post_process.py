@@ -964,7 +964,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             event=event,
         )
 
-        assignee = assignee = (
+        assignee = (
             GroupOwner.objects.filter()
             .exclude(user_id__isnull=True, team_id__isnull=True)
             .order_by("type")
