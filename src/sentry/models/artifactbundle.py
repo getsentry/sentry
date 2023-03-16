@@ -181,7 +181,10 @@ class ArtifactBundleArchive:
         file_path, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file_info(self, file_path) -> Optional[zipfile.ZipInfo]:
+    def get_files_by_file_path(self, file_path: Optional[str]):
+        pass
+
+    def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
         try:
             return self._zip_file.getinfo(file_path)
         except KeyError:
