@@ -504,7 +504,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.DEVICE_CLASS]: {
     desc: t('The estimated performance level of the device, graded low, medium, or high'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
+    valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
