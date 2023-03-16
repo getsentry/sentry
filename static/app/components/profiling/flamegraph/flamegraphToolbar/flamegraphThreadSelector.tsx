@@ -148,7 +148,11 @@ const DetailsContainer = styled('div')`
 `;
 
 const StyledCompactSelect = styled(CompactSelect)`
-  max-width: 28ch;
-  width: auto;
+  width: 14ch;
+  min-width: 14ch;
+
+  > button {
+    width: 100%;
+  }
 `;
 export {FlamegraphThreadSelector};
