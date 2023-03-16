@@ -2,7 +2,12 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForElementToBeRemoved,
+} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -703,6 +708,7 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Transaction Summary');
+      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
 
       // Open the transaction filter dropdown
       await userEvent.click(
@@ -1106,7 +1112,7 @@ describe('Performance > TransactionSummary', function () {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it.only('triggers a navigation on transaction filter', async function () {
+    it('triggers a navigation on transaction filter', async function () {
       const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -1115,13 +1121,12 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Transaction Summary');
+      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
 
       // Open the transaction filter dropdown
       await userEvent.click(
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
-
-      screen.debug(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
