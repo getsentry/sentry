@@ -4,6 +4,7 @@ from sentry.logging import LoggingFormat
 from sentry.options import (
     FLAG_ALLOW_EMPTY,
     FLAG_IMMUTABLE,
+    FLAG_MODIFIABLE_BOOL,
     FLAG_NOSTORE,
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
@@ -400,9 +401,6 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
-# Flag for enabling deobfuscation for ProGuard files in ingest consumer
-register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
-
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -649,8 +647,8 @@ register("performance.issues.render_blocking_assets.fcp_maximum_threshold", defa
 register("performance.issues.render_blocking_assets.fcp_ratio_threshold", default=0.33)
 register("performance.issues.render_blocking_assets.size_threshold", default=1000000)
 
-# System-wise option for performance issue creation through issues platform
-register("performance.issues.send_to_issues_platform", default=False)
+# System-wide option for performance issue creation through issues platform
+register("performance.issues.send_to_issues_platform", default=False, flags=FLAG_MODIFIABLE_BOOL)
 
 # Dynamic Sampling system wide options
 # Killswitch to disable new dynamic sampling behavior specifically new dynamic sampling biases

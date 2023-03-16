@@ -12,16 +12,16 @@ export const unassignedValue = -1;
  * Frontend experiment configuration object
  */
 export const experimentList: {
-  assignments: number[];
+  assignments: number[] | string[];
   key: string;
   parameter: string;
   type: ExperimentType;
 }[] = [
   {
-    key: 'SavedIssueSearchesLocationExperiment',
+    key: 'OnboardingNewFooterExperiment',
     type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
+    parameter: 'scenario',
+    assignments: ['baseline', 'variant1', 'variant2'],
   },
 ];
 

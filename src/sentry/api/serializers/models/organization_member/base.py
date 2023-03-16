@@ -91,7 +91,7 @@ class OrganizationMemberSerializer(Serializer):  # type: ignore
             "inviterName": obj.inviter.get_display_name() if obj.inviter else None,
             "orgRolesFromTeams": [
                 {
-                    "slug": slug,
+                    "teamSlug": slug,
                     "role": serialize(
                         role, serializer=OrganizationRoleSerializer(organization=obj.organization)
                     ),

@@ -3,6 +3,9 @@ from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
     BoostKeyTransactionsBias,
 )
 from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
+from sentry.dynamic_sampling.rules.biases.boost_rare_transactions_rule import (
+    RareTransactionsRulesBias,
+)
 from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 from sentry.dynamic_sampling.rules.biases.uniform_bias import UniformBias
 from sentry.dynamic_sampling.rules.combinators.base import BiasesCombinator
@@ -18,6 +21,7 @@ def get_relay_biases_combinator() -> BiasesCombinator:
 
     default_combinator.add(RuleType.BOOST_ENVIRONMENTS_RULE, BoostEnvironmentsBias())
     default_combinator.add(RuleType.BOOST_LATEST_RELEASES_RULE, BoostLatestReleasesBias())
+    default_combinator.add(RuleType.BOOST_LOW_VOLUME_TRANSACTIONS, RareTransactionsRulesBias())
     default_combinator.add(RuleType.UNIFORM_RULE, UniformBias())
 
     return default_combinator

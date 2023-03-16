@@ -882,13 +882,19 @@ CELERYBEAT_SCHEDULE = {
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
-        "schedule": timedelta(hours=4),
+        # Run job every 4 hours at min 20
+        "schedule": crontab(minute=20, hour="*/4"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 1 hour
-        "schedule": crontab(minute=0),
+        # Run job every 5 minutes
+        "schedule": timedelta(minutes=5),
+    },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run job every 4 hours at min 10
+        "schedule": crontab(minute=10, hour="*/4"),
     },
 }
 
@@ -1187,6 +1193,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
     # Enable the dynamic sampling "Transaction Name" priority in the UI
     "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1301,10 +1309,10 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
-    # Enable View Hierarchies in issue details page
-    "organizations:mobile-view-hierarchies": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button

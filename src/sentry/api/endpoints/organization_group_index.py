@@ -280,7 +280,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 direct_hit_projects = (
                     set(project_ids) | request.access.project_ids_with_team_membership
                 )
-                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        direct_hit_projects,
+                        event_id,
+                        tenant_ids={"organization_id": organization.id},
+                    )
+                )
                 if len(groups) == 1:
                     serialized_groups = serialize(groups, request.user, serializer())
                     if event_id:
