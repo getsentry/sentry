@@ -53,14 +53,17 @@ This document is structured by resource with each resource having actions that c
 
     Additionally, you can filter by these hidden fields.
 
-    | Field                   | Type          | Description                          |
-    | ----------------------- | ------------- | ------------------------------------ |
-    | replay_click.tag        | string        | Valid HTML5 tag name.                |
-    | replay_click.id         | string        | The ID of an HTML element.           |
-    | replay_click.classes    | array[string] | An array of HTML element classes.    |
-    | replay_click.role       | string        | The role of an HTML element.         |
-    | replay_click.aria_label | string        | The aria-label of an HTML element.   |
-    | replay_click.text       | string        | The text-content of an HTML element. |
+    | Field               | Type          | Description                                                    |
+    | --------------------| ------------- | -------------------------------------------------------------- |
+    | replay_click.alt    | string        | The alt attribute of the HTML element.                         |
+    | replay_click.class  | array[string] | An array of HTML element classes.                              |
+    | replay_click.id     | string        | The ID of an HTML element.                                     |
+    | replay_click.label  | string        | The aria-label attribute of an HTML element.                   |
+    | replay_click.role   | string        | The role of an HTML element.                                   |
+    | replay_click.tag    | string        | Valid HTML5 tag name.                                          |
+    | replay_click.testid | string        | The data-testid of an HTML element. (omitted from public docs) |
+    | replay_click.text   | string        | The text-content of an HTML element.                           |
+    | replay_click.title  | string        | The title attribute of an HTML element.                        |
 
 ### Browse Replays [GET]
 
