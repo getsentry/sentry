@@ -1,5 +1,6 @@
 import logging
 
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,10 +30,19 @@ class NotificationActionsDetailsEndpoint(FlaggedOrganizationEndpoint):
 
     def convert_args(self, request: Request, action_id: int, *args, **kwargs):
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
+        organization = parsed_kwargs["organization"]
+        accessible_projects = self.get_projects(request, organization, project_ids={-1})
         try:
-            action = NotificationAction.objects.get(
-                id=action_id,
-                organization_id=parsed_kwargs["organization"].id,
+            # It must either have no project affiliation, or be accessible to the user...
+            action = (
+                NotificationAction.objects.filter(
+                    Q(projects=None) | Q(projects__in=accessible_projects),
+                ).distinct()
+                # and must belong to the organization
+                .get(
+                    id=action_id,
+                    organization_id=organization.id,
+                )
             )
         except NotificationAction.DoesNotExist:
             raise ResourceDoesNotExist

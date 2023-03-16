@@ -13,7 +13,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions-details"
 
     def setUp(self):
-        self.user = self.create_user("summoner@rift.io", is_superuser=True)
+        self.user = self.create_user("summoner@rift.io")
         self.organization = self.create_organization(name="league", owner=self.user)
         self.other_organization = self.create_organization(name="wild-rift", owner=self.user)
         self.team = self.create_team(name="games", organization=self.organization)
@@ -34,34 +34,45 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         self.login_as(user=self.user)
 
     def test_requires_feature(self):
-        self.get_error_response(
-            self.organization.slug, self.notif_action.id, status_code=status.HTTP_404_NOT_FOUND
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_404_NOT_FOUND,
-            method="PUT",
-        )
-        self.get_error_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_404_NOT_FOUND,
-            method="DELETE",
-        )
-
-    def test_get_invalid_action(self):
-        with self.feature(NOTIFICATION_ACTION_FEATURE):
+        for method in ["GET", "PUT", "DELETE"]:
             self.get_error_response(
-                self.organization.slug, -1, status_code=status.HTTP_404_NOT_FOUND
+                self.organization.slug,
+                self.notif_action.id,
+                status_code=status.HTTP_404_NOT_FOUND,
+                method=method,
             )
-            action = self.create_notification_action(organization=self.other_organization)
+
+    def test_requires_organization_access(self):
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
+            for method in ["GET", "PUT", "DELETE"]:
+                self.get_error_response(
+                    self.other_organization.slug,
+                    self.notif_action.id,
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    method=method,
+                )
+
+    def test_requires_project_access(self):
+        """
+        This only tests 'GET' since members aren't granted project:write scopes so they 403 before
+        reaching any endpoint logic (for PUT/DELETE)
+        """
+        self.organization.flags = 0
+        self.organization.save()
+        action = self.create_notification_action(
+            organization=self.organization,
+            projects=[self.create_project(organization=self.organization)],
+        )
+        user = self.create_user("ruinedking@rift.com")
+        self.create_member(user=user, organization=self.organization, role="admin")
+        self.login_as(user=user)
+
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
             self.get_error_response(
                 self.organization.slug,
                 action.id,
                 status_code=status.HTTP_404_NOT_FOUND,
             )
-            assert NotificationAction.objects.filter(id=action.id).exists()
 
     def test_get_simple(self):
         with self.feature(NOTIFICATION_ACTION_FEATURE):
