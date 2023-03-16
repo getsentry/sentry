@@ -52,7 +52,7 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
-    tenant_ids: dict[str, Any],
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     conditions = []
