@@ -116,7 +116,7 @@ def query_replays_dataset(
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
-    tenant_ids: dict[str, Any],
+    tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
 
