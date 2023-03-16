@@ -129,7 +129,8 @@ export function FooterWithViewSampleErrorButton({
     trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -147,6 +148,7 @@ export function FooterWithViewSampleErrorButton({
     projectData,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   useEffect(() => {
@@ -165,7 +167,8 @@ export function FooterWithViewSampleErrorButton({
     trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -184,6 +187,7 @@ export function FooterWithViewSampleErrorButton({
     projectId,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   const handleSkipOnboarding = useCallback(() => {
@@ -234,7 +238,8 @@ export function FooterWithViewSampleErrorButton({
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -256,7 +261,7 @@ export function FooterWithViewSampleErrorButton({
     setClientState,
     onboardingContext,
     projectId,
-    projectSlug,
+    selectedProject,
   ]);
 
   return (
@@ -297,9 +302,13 @@ export function FooterWithViewSampleErrorButton({
             source="targted-onboarding-heartbeat-footer"
             priority="primary"
             onCreateSampleGroup={() => {
+              if (!projectId) {
+                return;
+              }
               trackAdvancedAnalyticsEvent('onboarding.view_sample_error_button_clicked', {
                 new_organization: !!newOrg,
-                project_slug: projectSlug,
+                project_id: projectId,
+                platform: selectedProject?.platform ?? 'other',
                 organization,
               });
             }}
