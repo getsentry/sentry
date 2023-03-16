@@ -35,25 +35,42 @@ class ArtifactBundlesEndpointTest(APITestCase):
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
 
+        # We test without search.
         self.login_as(user=self.user)
-        response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
+        response = self.client.get(url)
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2
         # By default we return the most recent bundle.
         assert response.data == [
             {
-                "bundleId": str(artifact_bundle_2.bundle_id),
-                "dateCreated": "2023-03-15T01:00:00Z",
+                "name": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
                 "type": "artifact_bundle",
             },
             {
-                "bundleId": str(artifact_bundle_1.bundle_id),
-                "dateCreated": "2023-03-15T00:00:00Z",
+                "name": str(artifact_bundle_1.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
                 "type": "artifact_bundle",
             },
+        ]
+
+        # We test the search with a full bundle id.
+        self.login_as(user=self.user)
+        response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "name": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
+                "fileCount": 2,
+                "type": "artifact_bundle",
+            }
         ]
 
     def test_get_artifact_bundles_with_no_bundles(self):
@@ -116,12 +133,12 @@ class ArtifactBundlesEndpointTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=date_added")
         assert response.status_code == 200, response.content
-        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids
+        assert list(map(lambda value: value["name"], response.data)) == bundle_ids
 
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=-date_added")
         assert response.status_code == 200, response.content
-        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
+        assert list(map(lambda value: value["name"], response.data)) == bundle_ids[::-1]
 
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=name")

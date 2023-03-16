@@ -41,32 +41,21 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
             query_q = Q(artifact_bundle__bundle_id__icontains=query)
             queryset = queryset.filter(query_q)
 
-        def expose_artifact_bundle(artifact_bundle, artifact_bundle_meta):
-            bundle_id, artifact_count = artifact_bundle_meta
+        def expose_artifact_bundle(debug_id_artifact_bundle):
+            artifact_bundle = debug_id_artifact_bundle.artifact_bundle
 
             return {
                 "type": "artifact_bundle",
-                "name": str(bundle_id),
-                "date": artifact_bundle["date_added"].isoformat()[:19] + "Z",
-                "fileCount": artifact_count,
+                "name": str(artifact_bundle.bundle_id),
+                "date": debug_id_artifact_bundle.date_added.isoformat()[:19] + "Z",
+                "fileCount": artifact_bundle.artifact_count,
             }
 
         def serialize_results(results):
-            artifact_bundle_counts = ArtifactBundle.get_artifact_counts(
-                [r["artifact_bundle_id"] for r in results]
-            )
-
             # We want to maintain the -date_added ordering, thus we index the metadata by using the id fetched with the
             # first query.
             return serialize(
-                [
-                    expose_artifact_bundle(
-                        artifact_bundle=r,
-                        artifact_bundle_meta=artifact_bundle_counts[r["artifact_bundle_id"]],
-                    )
-                    for r in results
-                    if r["artifact_bundle_id"] in artifact_bundle_counts
-                ],
+                [expose_artifact_bundle(debug_id_artifact_bundle=r) for r in results],
                 request.user,
             )
 
