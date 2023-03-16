@@ -10,6 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
+import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -19,6 +20,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
@@ -28,7 +30,6 @@ import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
-
 /**
  * The documentation will include the following string should it be missing the
  * verification example, which currently a lot of docs are.
@@ -111,13 +112,19 @@ function SetupDocs({search, route, router, location}: Props) {
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
-
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
+  const {logExperiment, experimentAssignment} = useExperiment(
+    'OnboardingNewFooterExperiment',
+    {
+      logExperimentOnMount: false,
+    }
   );
 
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
+  );
+
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
   );
 
   const selectedPlatforms = clientState?.selectedPlatforms || [];
@@ -197,6 +204,13 @@ function SetupDocs({search, route, router, location}: Props) {
     fetchData();
   }, [fetchData]);
 
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    if (heartbeatFooter) {
+      logExperiment();
+    }
+  }, [logExperiment, heartbeatFooter]);
+
   if (!project) {
     return null;
   }
@@ -267,8 +281,17 @@ function SetupDocs({search, route, router, location}: Props) {
         </MainContent>
       </Wrapper>
 
-      {project &&
-        (heartbeatFooter ? (
+      {heartbeatFooter ? (
+        experimentAssignment === 'variant2' ? (
+          <FooterWithViewSampleErrorButton
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : experimentAssignment === 'variant1' ? (
           <Footer
             projectSlug={project.slug}
             projectId={project.id}
@@ -313,7 +336,44 @@ function SetupDocs({search, route, router, location}: Props) {
               setHasFirstEventMap(newHasFirstEventMap);
             }}
           />
-        ))}
+        )
+      ) : (
+        <FirstEventFooter
+          project={project}
+          organization={organization}
+          isLast={!nextProject}
+          hasFirstEvent={checkProjectHasFirstEvent(project)}
+          onClickSetupLater={() => {
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
+            );
+            if (!project.platform || !clientState) {
+              browserHistory.push(orgIssuesURL);
+              return;
+            }
+            // if we have a next project, switch to that
+            if (nextProject) {
+              setNewProject(nextProject.id);
+            } else {
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
+            }
+          }}
+          handleFirstIssueReceived={() => {
+            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+            setHasFirstEventMap(newHasFirstEventMap);
+          }}
+        />
+      )}
     </Fragment>
   );
 }

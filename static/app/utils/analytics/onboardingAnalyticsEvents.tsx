@@ -4,23 +4,28 @@ export type OnboardingEventParameters = {
     to: string;
   };
   'onboarding.explore_sentry_button_clicked': {
-    project_slug: string;
+    platform: string;
+    project_id: string;
   };
   'onboarding.first_error_processed': {
     new_organization: boolean;
-    project_slug: string;
+    platform: string;
+    project_id: string;
   };
   'onboarding.first_error_received': {
     new_organization: boolean;
-    project_slug: string;
+    platform: string;
+    project_id: string;
   };
   'onboarding.view_error_button_clicked': {
     new_organization: boolean;
-    project_slug: string;
+    platform: string;
+    project_id: string;
   };
   'onboarding.view_sample_error_button_clicked': {
     new_organization: boolean;
-    project_slug: string;
+    platform: string;
+    project_id: string;
   };
 };
 
