@@ -29,7 +29,7 @@ class RpcActor:
     is_superuser: bool = False
 
     def __post_init__(self) -> None:
-        if self.actor_type != ActorType.TEAM and self.slug is not None:
+        if (self.actor_type == ActorType.TEAM) == (self.slug is None):
             raise ValueError
 
     @classmethod
