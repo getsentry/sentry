@@ -8,7 +8,9 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
+import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, Organization, Outcome, Project} from 'sentry/types';
@@ -21,7 +23,6 @@ type Props = {
   dataCategory: DataCategoryInfo['plural'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
-
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
     nextState: {
@@ -31,6 +32,7 @@ type Props = {
     },
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
+  isSingleProject: boolean;
   loadingProjects: boolean;
   organization: Organization;
   projectIds: number[];
@@ -91,7 +93,7 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
-    const {dataDatetime, dataCategory, projectIds} = this.props;
+    const {dataDatetime, dataCategory, projectIds, isSingleProject} = this.props;
 
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
@@ -110,7 +112,8 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
       interval: getSeriesApiInterval(dataDatetime),
       groupBy: ['outcome', 'project'],
       field: ['sum(quantity)'],
-      project: projectIds,
+      // If only one project is in selected, display the entire project list
+      project: isSingleProject ? [ALL_ACCESS_PROJECTS] : projectIds,
       category: dataCategory.slice(0, -1), // backend is singular
     };
   }
@@ -418,11 +421,26 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects} = this.props;
+    const {dataCategory, loadingProjects, tableQuery, isSingleProject} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
       <Fragment>
+        {isSingleProject && (
+          <PanelHeading>
+            <Title>{t('All Projects')}</Title>
+          </PanelHeading>
+        )}
+        {!isSingleProject && (
+          <Container>
+            <SearchBar
+              defaultQuery=""
+              query={tableQuery}
+              placeholder={t('Filter your projects')}
+              onSearch={this.handleSearch}
+            />
+          </Container>
+        )}
         <Container data-test-id="usage-stats-table">
           <UsageTable
             isLoading={loading || loadingProjects}
@@ -444,4 +462,19 @@ export default withProjects(UsageStatsProjects);
 
 const Container = styled('div')`
   margin-bottom: ${space(2)};
+`;
+
+const Title = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray400};
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const PanelHeading = styled('div')`
+  display: flex;
+  margin-bottom: ${space(2)};
+  align-items: center;
 `;

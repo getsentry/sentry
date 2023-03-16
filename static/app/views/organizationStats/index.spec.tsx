@@ -186,6 +186,16 @@ describe('OrganizationStats', function () {
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
+    const inputQuery = 'proj-1';
+    userEvent.type(
+      screen.getByPlaceholderText('Filter your projects'),
+      `${inputQuery}{enter}`
+    );
+    expect(router.push).toHaveBeenCalledWith(
+      expect.objectContaining({
+        query: {query: inputQuery},
+      })
+    );
   });
 
   it('does not leak query params onto next page links', () => {
