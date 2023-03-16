@@ -217,6 +217,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       location,
       event,
       groupReprocessingStatus,
+      loadingEvent,
+      eventError,
     } = this.props;
 
     const eventWithMeta = withMeta(event);
@@ -236,7 +238,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       >
         <VisuallyCompleteWithData
           id="IssueDetails-EventBody"
-          hasData={defined(eventWithMeta)}
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
         >
           <StyledLayoutBody data-test-id="group-event-details">
             {hasReprocessingV2Feature &&
