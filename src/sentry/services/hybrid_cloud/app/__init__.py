@@ -154,7 +154,7 @@ class AppService(
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
-            webhook_url=app.webhook_url,
+            webhook_url=app.webhook_url or "",
         )
 
     @rpc_method
