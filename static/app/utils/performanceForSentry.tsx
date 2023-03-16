@@ -117,7 +117,7 @@ export class PerformanceInteraction {
   }
 }
 
-export const CustomerProfiler = ({id, children}: {children: ReactNode; id: string}) => {
+export const CustomProfiler = ({id, children}: {children: ReactNode; id: string}) => {
   return (
     <Profiler id={id} onRender={onRenderCallback}>
       {children}

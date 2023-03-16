@@ -29,7 +29,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
+import {CustomProfiler} from 'sentry/utils/performanceForSentry';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -287,7 +287,7 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <CustomerProfiler id="TransactionDetail">
+      <CustomProfiler id="TransactionDetail">
         <TransactionDetailsContainer
           onClick={event => {
             // prevent toggling the transaction detail
@@ -297,7 +297,7 @@ class TransactionDetail extends Component<Props> {
           {this.renderTransactionErrors()}
           {this.renderTransactionDetail()}
         </TransactionDetailsContainer>
-      </CustomerProfiler>
+      </CustomProfiler>
     );
   }
 }
