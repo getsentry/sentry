@@ -59,13 +59,15 @@ function ReplayMetaData({replayRecord}: Props) {
         )}
       </KeyMetricData>
       <KeyMetricLabel>{t('Errors')}</KeyMetricLabel>
-      {replayRecord ? (
-        <StyledLink to={errorsTabHref}>
-          <ErrorCount countErrors={replayRecord.count_errors} />
-        </StyledLink>
-      ) : (
-        <HeaderPlaceholder />
-      )}
+      <KeyMetricData>
+        {replayRecord ? (
+          <StyledLink to={errorsTabHref}>
+            <ErrorCount countErrors={replayRecord.count_errors} />
+          </StyledLink>
+        ) : (
+          <HeaderPlaceholder />
+        )}
+      </KeyMetricData>
     </KeyMetrics>
   );
 }

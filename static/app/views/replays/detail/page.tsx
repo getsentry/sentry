@@ -41,13 +41,15 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
       {replayRecord && crumbs ? (
         <UserBadge
           avatarSize={32}
-          displayName={<DisplayName>{replayRecord.user.display_name || ''}</DisplayName>}
+          displayName={
+            <Layout.Title>{replayRecord.user.display_name || ''}</Layout.Title>
+          }
           user={{
-            username: replayRecord.user.display_name || '',
+            name: replayRecord.user.display_name || '',
             email: replayRecord.user.email || '',
-            id: replayRecord.user.id || '',
+            username: replayRecord.user.username || '',
             ip_address: replayRecord.user.ip || '',
-            name: replayRecord.user.username || '',
+            id: replayRecord.user.id || '',
           }}
           // this is the subheading for the avatar, so displayEmail in this case is a misnomer
           displayEmail={
@@ -87,14 +89,6 @@ const Cols = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
-`;
-
-// TODO: is there a header component i can pull?
-const DisplayName = styled('h1')`
-  color: ${p => p.theme.gray500};
-  font-weight: 500;
-  font-size: ${p => p.theme.headerFontSize};
-  margin: 0;
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default

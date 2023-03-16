@@ -45,7 +45,7 @@ export function ReplayCell({
   return (
     <Item>
       <UserBadge
-        avatarSize={32}
+        avatarSize={24}
         displayName={
           <MainLink to={replayDetails}>{replay.user.display_name || ''}</MainLink>
         }
@@ -62,7 +62,7 @@ export function ReplayCell({
             <StringWalker urls={replay.urls} />
             <Row gap={1}>
               <Row gap={0.5}>
-                {project ? <Avatar size={16} project={project} /> : null}
+                {project ? <Avatar size={12} project={project} /> : null}
                 <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
               </Row>
               <Row gap={0.5}>
