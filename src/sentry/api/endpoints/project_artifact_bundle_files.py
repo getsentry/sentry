@@ -10,8 +10,15 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import MAX_ARTIFACT_BUNDLE_FILES_OFFSET
-from sentry.models import ArtifactBundle, ArtifactBundleArchive, ProjectArtifactBundle
+from sentry.models import (
+    ArtifactBundle,
+    ArtifactBundleArchive,
+    ProjectArtifactBundle,
+    SourceFileType,
+)
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
+
+INVALID_SOURCE_FILE_TYPE = 0
 
 
 class ArtifactBundleSource:
@@ -81,15 +88,18 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         def expose_artifact_bundle_file(file_path, info):
             headers = archive.normalize_headers(info.get("headers", {}))
             debug_id = archive.normalize_debug_id(headers.get("debug-id"))
+
             file_info = archive.get_file_info(file_path)
+
+            file_type = SourceFileType.from_lowercase_key(info.get("type"))
 
             return {
                 "id": base64.b64encode(bytes(file_path.encode("utf-8"))),
-                "type": info.get("type"),
+                # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
+                "fileType": file_type.value if file_type is not None else INVALID_SOURCE_FILE_TYPE,
                 "filePath": file_path,
+                "fileSize": file_info.file_size if file_info is not None else None,
                 "debugId": debug_id,
-                "dateCreated": artifact_bundle.date_added.isoformat().replace("+00:00", "Z"),
-                "size": file_info.file_size if file_info is not None else None,
             }
 
         def serialize_results(r):

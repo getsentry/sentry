@@ -27,7 +27,10 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: str) -> Optional["SourceFileType"]:
+    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional["SourceFileType"]:
+        if lowercase_key is None:
+            return None
+
         for key in cls:
             if key.name.lower() == lowercase_key:
                 return SourceFileType(key.value)
@@ -193,7 +196,6 @@ class ArtifactBundleArchive:
 
             headers = self.normalize_headers(info.get("headers", {}))
             debug_id = self.normalize_debug_id(headers.get("debug-id", None))
-
             if debug_id is not None and normalized_query in debug_id.lower():
                 return True
 
