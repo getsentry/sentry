@@ -4,7 +4,7 @@ import os.path
 import typing
 import uuid
 from collections import UserDict, defaultdict
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Mapping, Optional, Sequence, Tuple
 
@@ -52,13 +52,20 @@ MIGRATION_NAME = "0378_backfill_perf_issue_events_issue_platform"
 DRY_RUN = False
 WRITE_TO_FILE = True
 
-START_DATETIME = datetime(2008, 5, 8)
-END_DATETIME = datetime.now() + timedelta(days=1)
+START_DATETIME = datetime(2008, 5, 8).replace(tzinfo=timezone.utc)
 
-# TODO: update this to the appropriate date when we actually run this script
+# TODO: update this to the date when we began writing to org-project performance issues
 #       this is important to set to avoid unnecessarily scanning the full 90 retention period
 #       when there's no data before this date
-ISSUE_PLATFORM_INGEST_START_DATETIME = datetime(2023, 3, 13) - timedelta(days=1)
+ISSUE_PLATFORM_INGEST_START_DATETIME = (datetime(2023, 3, 13) - timedelta(days=1)).replace(
+    microsecond=0, tzinfo=timezone.utc
+)
+
+# TODO: update this to when we're fully dual-writing to transactions and search_issues
+#       since we'll be dual-writing,
+ISSUE_PLATFORM_DUAL_WRITE_DATETIME = (datetime(2023, 3, 25) + timedelta(days=1)).replace(
+    microsecond=0, tzinfo=timezone.utc
+)
 
 PROGRESS_SUCCESS_PATH_PREFIX = "success"
 PROGRESS_ERROR_PATH_PREFIX = "error"
@@ -155,47 +162,85 @@ def backfill_eventstream(apps: Any, schema_editor: Any) -> None:
     for project_perf_issue in projects_with_perf_issues:
         project_id = project_perf_issue["project_id"]
 
-        # TODO: need to verify the relative path
         path = f"{MIGRATION_NAME}/{project_id}/"
         Path(path).mkdir(parents=True, exist_ok=True)
 
         project_done = f"{path}done.txt"
 
         if not os.path.isfile(project_done):
-            backfill_by_project(project_id, Group, GroupHash, DRY_RUN)
-            # we're done processing this project, create the file to log that we're done with it
+            previous_progress = f"{path}previous.csv"
+            previous_error = f"{path}error.csv"
+            last_timestamp = START_DATETIME
+            last_event_id = None
+
+            # we previously errored out, start from error mark
+            if os.path.isfile(previous_error):
+                with open(previous_progress) as previous_error_file:
+                    reader = csv.DictReader(previous_error_file)
+                    last_row = None
+                    for row in reader:
+                        last_row = {
+                            "finish_ts": datetime.fromisoformat(row["finish_ts"]),
+                            "event_id": row["event_id"],
+                            "exception": row["exception"],
+                            "nodestore_saved": True if row["nodestore_saved"] == "1" else False,
+                            "eventstream_sent": True if row["eventstream_sent"] == "1" else False,
+                        }
+                    if last_row is not None:
+                        last_timestamp = last_row["finish_ts"]  # type: ignore[assignment]
+                        last_event_id = str(last_row["event_id"])
+                        # TODO: if nodestore_saved or eventstream_sent is True, we probably shouldn't re-process the
+                        #        event. we'll dry-run this script to see if we do end up getting errors and work
+                        #        accordingly
+                        if not DRY_RUN:
+                            if last_row["eventstream_sent"]:
+                                raise Exception(
+                                    f"previously errored event {last_row} was already sent to eventstream, we probably need to manually check this event in the dataset and reconcile the difference"
+                                )
+            # script crashed without logging the error, we start from this position
+            elif os.path.isfile(previous_progress):
+                with open(previous_progress) as previous_progress_file:
+                    reader = csv.DictReader(previous_progress_file)
+                    for row in reader:
+                        last_timestamp = datetime.fromisoformat(row["finish_ts"])
+                        last_event_id = str(row["event_id"])
+
+            with open(previous_progress, "w") as track_progress, open(
+                previous_error, "w"
+            ) as track_error:
+                track_progress.seek(0)
+                backfill_by_project(
+                    project_id,
+                    Group,
+                    GroupHash,
+                    DRY_RUN,
+                    track_progress,
+                    track_error,
+                    previous_finish_ts=last_timestamp,
+                    previous_event_id=last_event_id,
+                )
+
+            # at this point we've successfully processed a project without errors we create a /{project_id}/done.txt
+            # file to mark it as complete and skip processing this project if we have to run the script again
+            # delete /{project_id}/previous.csv and /{project_id}/error.csv since they're not needed anymore
             with open(project_done, "w") as _:
                 pass
-
-
-class SuccessProgress(typing.TypedDict):
-    occurrence_id: str
-    event_id: str
-    fingerprint: str
-
-
-class ErrorProgress(typing.TypedDict):
-    event_id: str
-    exception: str
-    nodestore_saved: bool
-    eventstream_sent: bool
+            if os.path.isfile(previous_progress):
+                os.remove(previous_progress)
+            if os.path.isfile(previous_error):
+                os.remove(previous_error)
 
 
 class ProjectGroupTotalProgress:
     """
-    1 success row ~= 150 bytes
-    1 error row ~= 150 bytes
-
-    The performance issue with the most events is around 9M transactions. So the largest file for a group should
-    be capped at around 1.28 GB ...
+    This class was used to track the progress of a backfill for all events for an org-project-group combination.
+    Likely not needed anymore since we're tracking the progress for an org-project. Keeping it here for now just in case
     """
 
-    last_success: Optional[
-        Tuple[datetime, str]
-    ]  # (finish_ts, event_id)   typing.MutableMapping[str, SuccessProgress]  # key: event_id
+    last_success: Optional[Tuple[datetime, str]]  # (finish_ts, event_id)
     last_error: Optional[
         Mapping[str, Any]
-    ]  # (finish_ts, event_id)  typing.MutableMapping[str, ErrorProgress]  # key: event_id
+    ]  # {"finish_ts": <>, "event_id": <>, "exception": <>, "nodestore_saved": <>, "eventstream_sent": <>}
     success_file: str
     error_file: str
     opened_success_file: typing.TextIO
@@ -305,7 +350,7 @@ class ProjectGroupTotalProgress:
         self.last_error = row
         error_writer = csv.DictWriter(self.opened_error_file, fieldnames=self.ERROR_FIELD_NAMES)
         error_writer.writerow(row)
-        self.opened_error_file.seek(0)
+        # self.opened_error_file.seek(0)
 
     def __parse_success_file(self) -> Optional[Tuple[datetime, str]]:
         try:
@@ -381,71 +426,153 @@ class FileBackedProjectProgress(FileBackedProjectProgressType):
             return progress
 
 
-def backfill_by_project(project_id: int, Group: Any, GroupHash: Any, dry_run: bool) -> None:
-    next_offset: Optional[int] = 0
-
-    # TODO: need to revisit this since we'll be inserting data to search_issues dataset as we backfill
-    #        gonna need to figure out how to ensure we don't process dupes
-    already_processed_events: Mapping[int, typing.Set[str]] = defaultdict(
+def get_already_ingested_events(project_id: int) -> Mapping[int, typing.Set[str]]:
+    """
+    Retrieves all the IssuePlatform events for a project and loads it all into memory. This is probably ok as long
+    as we run this script with the right start and end time bounds.
+    """
+    already_ingested_events: Mapping[int, typing.Set[str]] = defaultdict(
         set
     )  # group_id: Set[event_id]
 
     # it's probably ok to query all the events here instead of paginating since we should be running this script
     # closely after we cut-over
-    # for issue_platform_events in _query_issue_platform_events(
-    #     project_id, start=ISSUE_PLATFORM_INGEST_START_DATETIME, end=END_DATETIME
-    # ):
-    #     already_processed_events[issue_platform_events["group_id"]].add(
-    #         issue_platform_events["event_id"]
-    #     )
+
+    next_offset: Optional[int] = 0
+    while next_offset is not None:
+        rows, next_offset = _query_issue_platform_events(
+            project_id,
+            start=ISSUE_PLATFORM_INGEST_START_DATETIME,
+            end=ISSUE_PLATFORM_DUAL_WRITE_DATETIME,
+            offset=next_offset,
+        )
+        for issue_platform_events in rows:
+            already_ingested_events[issue_platform_events["group_id"]].add(
+                issue_platform_events["event_id"]
+            )
+
+    return already_ingested_events
+
+
+def backfill_by_project(
+    project_id: int,
+    Group: Any,
+    GroupHash: Any,
+    dry_run: bool,
+    project_progress: typing.TextIO,
+    project_error: typing.TextIO,
+    previous_finish_ts: Optional[datetime] = None,
+    previous_event_id: Optional[str] = None,
+) -> None:
+    already_ingested_events = get_already_ingested_events(project_id)
+
+    next_offset: Optional[int] = 0
+    start_datetime = previous_finish_ts if previous_finish_ts is not None else START_DATETIME
+    project_progress_writer = csv.DictWriter(project_progress, fieldnames=["finish_ts", "event_id"])
 
     with FileBackedProjectProgress(project_id) as previous_progress:
         while next_offset is not None:
             rows, next_offset = _query_performance_issue_events(
                 project_id=project_id,
-                start=START_DATETIME,
-                end=END_DATETIME,
+                start=start_datetime,
+                end=ISSUE_PLATFORM_DUAL_WRITE_DATETIME,
                 offset=next_offset,
             )
 
             for row in rows:
                 group_id = row["group_id"]
                 event_id = row["event_id"]
-                finish_ts = row["finish_ts"]
+                finish_ts = datetime.fromisoformat(row["finish_ts"])
+                nodestore_saved = False
+                eventstream_sent = False
 
-                # avoid re-ingesting the same transaction since we'll be dual-writing
-                if event_id not in already_processed_events[group_id]:
-                    group_progress: ProjectGroupTotalProgress = previous_progress.get_or_init(
-                        group_id
-                    )
-                    error_maybe = group_progress.consume_error()
-                    if error_maybe is None:
-                        already_processed = group_progress.already_processed(finish_ts, event_id)
-                        if already_processed:
-                            continue
-                        else:
-                            backfill_perf_issue_occurrence(
-                                row,
-                                Group,
-                                GroupHash,
-                                print_success
-                                if not WRITE_TO_FILE
-                                else group_progress.save_success_to_file,
-                                print_exception_on_error
-                                if not WRITE_TO_FILE
-                                else group_progress.save_error_to_file,
-                                dry_run=dry_run,
-                            )
-
-                    else:
-                        # resume progress from the (finish_ts, event_id) in the last processed error
-                        # last_error_finish_ts = error_maybe["finish_ts"]
-                        # last_error_event_id = error_maybe["event_id"]
-                        # last_error_exception = error_maybe["exception"]
-                        # last_error_nodestore_saved = error_maybe["nodestore_saved"]
-                        # last_error_eventstream_sent = error_maybe["eventstream_sent"]
-                        # TODO: implement some sort of pagination scheme where we pass back in the finish_ts
+                if previous_finish_ts is not None:
+                    if finish_ts < previous_finish_ts:
+                        # current row is somehow before when we should start, skip this row
+                        continue
+                    elif finish_ts > previous_finish_ts:
+                        # current row is after our starting position, process it
                         pass
+                    else:
+                        if previous_event_id is not None and event_id <= previous_event_id:
+                            continue
+                try:
+                    # avoid re-ingesting the same transaction since we'll be dual-writing
+                    if event_id not in already_ingested_events[group_id]:
+                        group_progress: ProjectGroupTotalProgress = previous_progress.get_or_init(
+                            group_id
+                        )
+                        error_maybe = group_progress.consume_error()
+                        if error_maybe is None:
+                            already_processed = group_progress.already_processed(
+                                finish_ts, event_id
+                            )
+                            if already_processed:
+                                continue
+                            else:
+                                nodestore_saved, eventstream_sent = backfill_perf_issue_occurrence(
+                                    row,
+                                    Group,
+                                    GroupHash,
+                                    print_success
+                                    if not WRITE_TO_FILE
+                                    else group_progress.save_success_to_file,
+                                    print_exception_on_error,
+                                    # if not WRITE_TO_FILE
+                                    # else group_progress.save_error_to_file,
+                                    dry_run=dry_run,
+                                )
+                        else:
+                            # we changed how we're handling errors, instead we halt all progress when we encounter
+                            # an error instead of trying to recover in-place
+                            # there shouldn't be any previous errors logged for a project-group
+                            raise Exception(
+                                f"Unexpected error for project({project_id}), group_id({group_id}), event_id({event_id}), finish_ts({finish_ts}), nodestore_saved={nodestore_saved}, eventstream_sent={eventstream_sent}"
+                            )
+                            # we've encountered a previous error while processing the page, reset the query and start
+                            # from the error (finish_ts, event_id) position
+                            # resume progress from the (finish_ts, event_id) in the last processed error
+                            # last_error_finish_ts = error_maybe["finish_ts"]
+                            # last_error_event_id = error_maybe["event_id"]
+                            # last_error_exception = error_maybe["exception"]
+                            # last_error_nodestore_saved = error_maybe["nodestore_saved"]
+                            # last_error_eventstream_sent = error_maybe["eventstream_sent"]
+                            # # TODO: implement some sort of pagination scheme where we pass back in the finish_ts
+                            #
+                            # # reset
+                            # next_offset = 0
+                            # start_datetime = last_error_finish_ts
+                            # pass
+
+                    # commit progress to file, if we crash or encounter an error, we'll resume back at this point
+                    # we track the progress of each event scoped to a project-group, so it's ok if this event was already
+                    # processed from a previous run
+                    project_progress.seek(0)
+                    project_progress_writer.writerow(
+                        {"finish_ts": finish_ts.isoformat(), "event_id": event_id}
+                    )
+                except Exception as e:
+                    project_error.seek(0)
+                    writer = csv.DictWriter(
+                        project_error,
+                        fieldnames=[
+                            "finish_ts",
+                            "event_id",
+                            "exception",
+                            "nodestore_saved",
+                            "eventstream_sent",
+                        ],
+                    )
+                    writer.writerow(
+                        {
+                            "finish_ts": finish_ts.isoformat(),
+                            "event_id": event_id,
+                            "exception": type(e).__name__,
+                            "nodestore_saved": "1" if nodestore_saved else "0",
+                            "eventstream_sent": "1" if eventstream_sent else "0",
+                        }
+                    )
+                    raise
 
 
 def backfill_perf_issue_occurrence(
@@ -455,7 +582,7 @@ def backfill_perf_issue_occurrence(
     on_success: BackfillEventSuccess = lambda *args: None,
     on_exception: BackfillEventError = lambda *args: None,
     dry_run: bool = True,
-) -> None:
+) -> Tuple[bool, bool]:
     occurrence_nodestore_saved = False
     occurrence_eventstream_sent = False
 
@@ -503,6 +630,7 @@ def backfill_perf_issue_occurrence(
             occurrence_eventstream_sent = True
 
         on_success(finish_ts, group, occurrence_data)
+        return occurrence_nodestore_saved, occurrence_eventstream_sent
     except Exception as e:
         on_exception(row, e, occurrence_nodestore_saved, occurrence_eventstream_sent)
         raise
@@ -573,15 +701,15 @@ def _query_performance_issue_events(
     )
 
     result_data = result_snql["data"]
-
     next_offset = None if not result_data else offset + page_limit
-
     return result_data, next_offset
 
 
 def _query_issue_platform_events(
-    project_id: int, start: datetime, end: datetime
-) -> Sequence[Mapping[str, Any]]:
+    project_id: int, start: datetime, end: datetime, offset: int = 0
+) -> Tuple[Sequence[Mapping[str, Any]], Optional[int]]:
+    page_limit = 10000
+
     snuba_request = Request(
         dataset=Dataset.IssuePlatform.value,
         app_id="migration",
@@ -609,6 +737,8 @@ def _query_issue_platform_events(
                 OrderBy(Column("timestamp"), direction=Direction.ASC),
                 OrderBy(Column("event_id"), direction=Direction.ASC),
             ],
+            limit=Limit(page_limit),
+            offset=Offset(offset),
         ),
     )
     from sentry.utils.snuba import raw_snql_query
@@ -619,7 +749,9 @@ def _query_issue_platform_events(
         use_cache=False,
     )
 
-    return result_snql["data"]  # type: ignore[no-any-return]
+    result_data = result_snql["data"]
+    next_offset = None if not result_data else offset + page_limit
+    return result_data, next_offset
 
 
 class Migration(CheckedMigration):  # type: ignore[misc]
