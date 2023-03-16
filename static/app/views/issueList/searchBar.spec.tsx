@@ -69,7 +69,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      await userEvent.type(screen.getByRole('textbox'), 'url:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('url:', {delay: null});
 
       expect(tagValuesMock).toHaveBeenCalled();
     });
@@ -85,7 +86,8 @@ describe('IssueListSearchBar', function () {
         context: routerContext,
       });
 
-      await userEvent.type(screen.getByRole('textbox'), 'timesSeen:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('timesSeen:', {delay: null});
 
       expect(tagValuesMock).not.toHaveBeenCalled();
     });
@@ -146,7 +148,8 @@ describe('IssueListSearchBar', function () {
 
       render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
 
-      await userEvent.type(screen.getByRole('textbox'), 'is:');
+      await userEvent.click(screen.getByRole('textbox'));
+      await userEvent.paste('is:', {delay: null});
 
       expect(recentSearchMock).toHaveBeenCalledWith(
         expect.anything(),
