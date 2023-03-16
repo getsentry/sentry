@@ -75,6 +75,7 @@ repos:
     - id: check-executables-have-shebangs
     - id: check-merge-conflict
     - id: check-symlinks
+    - id: check-yaml
     - id: end-of-file-fixer
       exclude_types: [svg]
       exclude: ^fixtures/
