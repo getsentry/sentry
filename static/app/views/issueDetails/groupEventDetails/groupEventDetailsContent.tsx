@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {CommitRow} from 'sentry/components/commitRow';
@@ -24,7 +25,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event, Group, IssueCategory, Project} from 'sentry/types';
 import {EntryType, EventTransaction} from 'sentry/types/event';
-import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -79,7 +79,7 @@ const GroupEventDetailsContent = ({
   const eventEntryProps = {group, event, project};
 
   return (
-    <VisuallyCompleteWithData id="IssueDetails-EventBody" hasData>
+    <Fragment>
       <EventErrors event={event} project={project} isShare={false} />
       <EventCause
         project={project}
@@ -149,7 +149,7 @@ const GroupEventDetailsContent = ({
           projectSlug={project.slug}
         />
       )}
-    </VisuallyCompleteWithData>
+    </Fragment>
   );
 };
 
