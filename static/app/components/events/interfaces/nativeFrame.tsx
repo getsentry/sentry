@@ -303,9 +303,9 @@ function NativeFrame({
           </GroupingCell>
           <TypeCell>
             {frame.inApp ? (
-              <Tag>{t('In App')}</Tag>
+              <Tag type="info">{t('In App')}</Tag>
             ) : (
-              <Tag type="info">{t('System')}</Tag>
+              <Tag>{t('System')}</Tag>
             )}
           </TypeCell>
           <ExpandCell>
