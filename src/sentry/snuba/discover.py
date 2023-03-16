@@ -155,6 +155,7 @@ def query(
     has_metrics=False,
     use_metrics_layer=False,
     skip_tag_resolution=False,
+    extra_columns=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -212,6 +213,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
+    if extra_columns is not None:
+        builder.columns.extend(extra_columns)
+
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result

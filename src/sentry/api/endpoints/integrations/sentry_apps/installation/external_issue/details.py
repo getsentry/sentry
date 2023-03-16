@@ -1,11 +1,11 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import deletions
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import (
     SentryAppInstallationExternalIssueBaseEndpoint as ExternalIssueBaseEndpoint,
 )
-from sentry.mediators import external_issues
 from sentry.models import PlatformExternalIssue
 
 
@@ -21,6 +21,6 @@ class SentryAppInstallationExternalIssueDetailsEndpoint(ExternalIssueBaseEndpoin
         except PlatformExternalIssue.DoesNotExist:
             return Response(status=404)
 
-        external_issues.Destroyer.run(external_issue=platform_external_issue)
+        deletions.exec_sync(platform_external_issue)
 
         return Response(status=204)

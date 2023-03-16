@@ -23,6 +23,7 @@ import {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
@@ -303,22 +304,27 @@ export class TagValueTable extends Component<Props, State> {
 
     return (
       <StyledPanelTable>
-        <GridEditable
-          isLoading={isLoading}
-          data={tableData && tableData.data ? tableData.data : []}
-          columnOrder={newColumns}
-          columnSortBy={[]}
-          grid={{
-            renderHeadCell: this.renderHeadCellWithMeta(
-              eventView,
-              tableData ? tableData.meta : {},
-              newColumns
-            ) as any,
-            renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn,
-          }}
-          location={location}
-        />
+        <VisuallyCompleteWithData
+          id="TransactionTags-TagValueTable"
+          hasData={!!tableData?.data?.length}
+        >
+          <GridEditable
+            isLoading={isLoading}
+            data={tableData && tableData.data ? tableData.data : []}
+            columnOrder={newColumns}
+            columnSortBy={[]}
+            grid={{
+              renderHeadCell: this.renderHeadCellWithMeta(
+                eventView,
+                tableData ? tableData.meta : {},
+                newColumns
+              ) as any,
+              renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+              onResizeColumn: this.handleResizeColumn,
+            }}
+            location={location}
+          />
+        </VisuallyCompleteWithData>
 
         <Pagination pageLinks={pageLinks} onCursor={onCursor} size="sm" />
       </StyledPanelTable>

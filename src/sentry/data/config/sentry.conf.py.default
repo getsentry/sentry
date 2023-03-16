@@ -42,10 +42,7 @@ DEBUG = %(debug_flag)s
 # Sentry currently utilizes two separate mechanisms. While CACHES is not a
 # requirement, it will optimize several high throughput patterns.
 
-# If you wish to use memcached, install the dependencies and adjust the config
-# as shown:
-#
-#   pip install python-memcached
+# If you wish to use memcached, uncomment the following:
 #
 # CACHES = {
 #     'default': {

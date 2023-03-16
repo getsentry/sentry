@@ -25,9 +25,11 @@ import {
   Project,
 } from 'sentry/types';
 import {Event} from 'sentry/types/event';
+import {defined} from 'sentry/utils';
 import fetchSentryAppInstallations from 'sentry/utils/fetchSentryAppInstallations';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 
@@ -215,6 +217,8 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
       location,
       event,
       groupReprocessingStatus,
+      loadingEvent,
+      eventError,
     } = this.props;
 
     const eventWithMeta = withMeta(event);
@@ -232,61 +236,68 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
         transactionId={event?.type === 'transaction' ? event.id : undefined}
         timestamp={event?.dateReceived}
       >
-        <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
-            <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
-              pendingEvents={
-                (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
-                  .pendingEvents
-              }
-            />
-          ) : (
-            <Fragment>
-              <QuickTraceQuery
-                event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {this.renderGroupStatusBanner()}
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && (
-                          <GroupEventToolbar
-                            group={group}
-                            event={eventWithMeta}
-                            organization={organization}
-                            location={location}
-                            project={project}
-                            hasReplay={hasReplay}
-                          />
-                        )}
-                        {this.renderReprocessedBox(
-                          groupReprocessingStatus,
-                          mostRecentActivity as GroupActivityReprocess
-                        )}
-                        {this.renderContent(eventWithMeta)}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
-
-              <StyledLayoutSide>
-                <GroupSidebar
-                  organization={organization}
-                  project={project}
-                  group={group}
+        <VisuallyCompleteWithData
+          id="IssueDetails-EventBody"
+          hasData={!loadingEvent && !eventError && defined(eventWithMeta)}
+        >
+          <StyledLayoutBody data-test-id="group-event-details">
+            {hasReprocessingV2Feature &&
+            groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+              <ReprocessingProgress
+                totalEvents={
+                  (mostRecentActivity as GroupActivityReprocess).data.eventCount
+                }
+                pendingEvents={
+                  (group.statusDetails as BaseGroupStatusReprocessing['statusDetails'])
+                    .pendingEvents
+                }
+              />
+            ) : (
+              <Fragment>
+                <QuickTraceQuery
                   event={eventWithMeta}
-                  environments={environments}
-                />
-              </StyledLayoutSide>
-            </Fragment>
-          )}
-        </StyledLayoutBody>
+                  location={location}
+                  orgSlug={organization.slug}
+                >
+                  {results => {
+                    return (
+                      <StyledLayoutMain>
+                        {this.renderGroupStatusBanner()}
+                        <QuickTraceContext.Provider value={results}>
+                          {eventWithMeta && (
+                            <GroupEventToolbar
+                              group={group}
+                              event={eventWithMeta}
+                              organization={organization}
+                              location={location}
+                              project={project}
+                              hasReplay={hasReplay}
+                            />
+                          )}
+                          {this.renderReprocessedBox(
+                            groupReprocessingStatus,
+                            mostRecentActivity as GroupActivityReprocess
+                          )}
+                          {this.renderContent(eventWithMeta)}
+                        </QuickTraceContext.Provider>
+                      </StyledLayoutMain>
+                    );
+                  }}
+                </QuickTraceQuery>
+
+                <StyledLayoutSide>
+                  <GroupSidebar
+                    organization={organization}
+                    project={project}
+                    group={group}
+                    event={eventWithMeta}
+                    environments={environments}
+                  />
+                </StyledLayoutSide>
+              </Fragment>
+            )}
+          </StyledLayoutBody>
+        </VisuallyCompleteWithData>
       </TransactionProfileIdProvider>
     );
   }
