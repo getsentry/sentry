@@ -238,7 +238,7 @@ class QueryDefinition:
         outcome: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
         query: Optional[Mapping[str, Any]] = None,
-        category: Optional[str] = None,
+        category: Optional[List[str]] = None,
         reason: Optional[str] = None,
         allow_minute_resolution: bool = True,
     ) -> QueryDefinition:
@@ -258,13 +258,13 @@ class QueryDefinition:
             query_dict.setlist("groupBy", group_by)
         if outcome is not None:
             query_dict.setlist("outcome", outcome)
+        if category is not None:
+            query_dict.setlist("category", category)
 
         if interval is not None:
             query_dict["interval"] = interval
         if reason is not None:
             query_dict["reason"] = reason
-        if category is not None:
-            query_dict["category"] = category
         if query is not None:
             query_dict["query"] = query
         if key_id is not None:
@@ -389,8 +389,15 @@ def run_outcomes_query_totals(
 
 
 def run_outcomes_query_timeseries(
-    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+    query: QueryDefinition,
+    referrer: str = "outcomes.timeseries",
+    tenant_ids: dict[str, Any] | None = None,
 ) -> ResultSet:
+    """
+    Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
+    unless there is a very specific reason to do so. Eg. getsentry uses this function for billing
+    metrics, so the referrer is different as it's no longer a "product" query.
+    """
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -403,7 +410,7 @@ def run_outcomes_query_timeseries(
     request = Request(
         dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
     )
-    result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
+    result_timeseries = raw_snql_query(request, referrer=referrer)
     return _format_rows(result_timeseries["data"], query)
 
 

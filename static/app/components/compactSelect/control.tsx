@@ -385,6 +385,7 @@ export function Control({
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
             data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-search={searchable}
             data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
@@ -455,6 +456,12 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   justify-content: space-between;
   padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+
+  [data-menu-has-search='true'] > & {
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
 
@@ -489,7 +496,7 @@ const ClearButton = styled(Button)`
   font-weight: 400;
   color: ${p => p.theme.subText};
   padding: 0 ${space(0.5)};
-  margin: 0 -${space(0.5)};
+  margin: -${space(0.25)} -${space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {

@@ -1,3 +1,45 @@
+23.3.0
+------
+
+### Stacktrace Codecov V2 (ongoing)
+
+This is the work post-MVP release.
+
+By: @armenzg (#44827)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44496)
+
+### Various fixes & improvements
+
+- fix(ecosystem): Preserve codeowners filters on update (#45810) by @scttcper
+- chore(trace_view): Add perf issues to the mock trace (#45794) by @wmak
+- feat(dynamic-sampling): Add prioritise low volume transaction rules [TET-736] (#45635) by @RaduW
+- ref(onboarding): Update experiment segments (#45843) by @priscilawebdev
+- ref(onboarding): Update copy (#45830) by @priscilawebdev
+- ref(dynamic-sampling): Update Health Check copy (#45826) by @ale-cota
+- chore(commit-context): Flag cleanup (#45804) by @snigdhas
+- ref(compactSelect): Maintain menu width while searching (#45356) by @vuluongj20
+- ref(outcomes) Add methods to build outcomes queries without django (#45730) by @markstory
+- feat(compactSelect): Add optional menu footer (#45339) by @vuluongj20
+- ref(dynamic-sampling): Add onboarding experiement to the ds page (temp test) -  (#45827) by @priscilawebdev
+- chore(view-hierarchy): Remove frontend feature flags (#45761) by @narsaynorath
+- chore(dashboards): Reintroduce release widget feature flag (#45791) by @shruthilayaj
+- fix (dyn-sampling): Change schedule interval for prioritise by project task [TET-788] (#45821) by @andriisoldatenko
+- chore(hybrid-cloud): Deprecate mediator destroyers (#45656) by @corps
+- feat(onboarding): Add view sample error button new design - (#45820) by @priscilawebdev
+- feat(onboarding): Add feature flag to control the View Sample Error button - (#45818) by @priscilawebdev
+- fix(onboarding): Fix issue when first error sent (#45817) by @priscilawebdev
+-  feat(source-maps): Add debug ids UI - (#45711) by @priscilawebdev
+- feat(sourcemaps): Add endpoint for listing all artifact bundles of a project (#45751) by @iambriccardo
+- chore(hybrid-cloud): Backfill installation_id to service hooks (#45800) by @corps
+- fix(issue-platform): Explicitly pass `culprit` as part of the occurrence, and store `subtitle` correctly (#45809) by @wedamija
+- feat(crons): Explain crontab syntax in monitor form (#45801) by @davidenwang
+- ref(hybrid-cloud): Denormalize user avatars 1/3 (#45685) by @mikejihbe
+
+_Plus 792 more_
+
 23.2.0
 ------
 
