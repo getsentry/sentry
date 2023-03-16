@@ -8,7 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.utils.db import atomic_transaction
 
 
@@ -41,23 +41,39 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
             query_q = Q(artifact_bundle__bundle_id__icontains=query)
             queryset = queryset.filter(query_q)
 
-        def expose_artifact_bundle(debug_id_artifact_bundle):
+        def expose_artifact_bundle(debug_id_artifact_bundle, release_dist):
             artifact_bundle = debug_id_artifact_bundle.artifact_bundle
+            release, dist = release_dist
 
             # TODO(iambriccardo): Use a serializer for this.
             return {
-                "id": artifact_bundle.id,
-                "type": "artifact_bundle",
-                "name": str(artifact_bundle.bundle_id),
-                "date": debug_id_artifact_bundle.date_added.isoformat()[:19] + "Z",
+                "bundleId": str(artifact_bundle.bundle_id),
+                "release": release if release != "" else None,
+                "dist": dist if dist != "" else None,
                 "fileCount": artifact_bundle.artifact_count,
+                "date": debug_id_artifact_bundle.date_added.isoformat()[:19] + "Z",
             }
 
         def serialize_results(results):
+            release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
+                artifact_bundle_id__in=[r.artifact_bundle_id for r in results]
+            )
+            release_artifact_bundles = {
+                release.artifact_bundle_id: (release.release_name, release.dist_name)
+                for release in release_artifact_bundles
+            }
             # We want to maintain the -date_added ordering, thus we index the metadata by using the id fetched with the
             # first query.
             return serialize(
-                [expose_artifact_bundle(debug_id_artifact_bundle=r) for r in results],
+                [
+                    expose_artifact_bundle(
+                        debug_id_artifact_bundle=r,
+                        release_dist=release_artifact_bundles.get(
+                            r.artifact_bundle_id, (None, None)
+                        ),
+                    )
+                    for r in results
+                ],
                 request.user,
             )
 

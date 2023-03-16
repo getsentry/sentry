@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -29,6 +29,25 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle=artifact_bundle_2,
             date_added=datetime.now() + timedelta(hours=1),
         )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="v1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        artifact_bundle_3 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle_3,
+            date_added=datetime.now() + timedelta(hours=2),
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="v2.0",
+            artifact_bundle=artifact_bundle_3,
+        )
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
@@ -40,22 +59,28 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
         # By default we return the most recent bundle.
         assert response.data == [
             {
-                "name": str(artifact_bundle_2.bundle_id),
-                "date": "2023-03-15T01:00:00Z",
+                "bundleId": str(artifact_bundle_3.bundle_id),
+                "date": "2023-03-15T02:00:00Z",
                 "fileCount": 2,
-                "type": "artifact_bundle",
-                "id": artifact_bundle_2.id,
+                "release": "v2.0",
+                "dist": None,
             },
             {
-                "name": str(artifact_bundle_1.bundle_id),
-                "date": "2023-03-15T00:00:00Z",
+                "bundleId": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "type": "artifact_bundle",
-                "id": artifact_bundle_1.id,
+                "release": "v1.0",
+                "dist": "android",
+            },
+            {
+                "bundleId": str(artifact_bundle_1.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "release": None,
+                "dist": None,
+                "fileCount": 2,
             },
         ]
 
@@ -64,16 +89,15 @@ class ArtifactBundlesEndpointTest(APITestCase):
         response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 1
         # By default we return the most recent bundle.
         assert response.data == [
             {
-                "name": str(artifact_bundle_2.bundle_id),
+                "bundleId": str(artifact_bundle_2.bundle_id),
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
-                "type": "artifact_bundle",
-                "id": artifact_bundle_2.id,
-            }
+                "release": "v1.0",
+                "dist": "android",
+            },
         ]
 
     def test_get_artifact_bundles_with_no_bundles(self):
@@ -136,15 +160,15 @@ class ArtifactBundlesEndpointTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=date_added")
         assert response.status_code == 200, response.content
-        assert list(map(lambda value: value["name"], response.data)) == bundle_ids
+        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids
 
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=-date_added")
         assert response.status_code == 200, response.content
-        assert list(map(lambda value: value["name"], response.data)) == bundle_ids[::-1]
+        assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
 
         self.login_as(user=self.user)
-        response = self.client.get(url + "?sortBy=name")
+        response = self.client.get(url + "?sortBy=bundleId")
         assert response.status_code == 400
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 
