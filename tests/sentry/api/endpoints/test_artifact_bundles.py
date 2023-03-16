@@ -36,7 +36,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(url)
+        response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 2

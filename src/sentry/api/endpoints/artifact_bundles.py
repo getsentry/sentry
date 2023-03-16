@@ -1,4 +1,5 @@
 from django.db import router
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,20 +28,26 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         :pparam string project_slug: the slug of the project to list the
                                      artifact bundles of.
         """
+        query = request.GET.get("query")
+
         try:
             queryset = ProjectArtifactBundle.objects.filter(
                 organization_id=project.organization_id, project_id=project.id
-            ).values("artifact_bundle_id", "date_added")
+            ).select_related("artifact_bundle")
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
+
+        if query:
+            query_q = Q(artifact_bundle__bundle_id__icontains=query)
+            queryset = queryset.filter(query_q)
 
         def expose_artifact_bundle(artifact_bundle, artifact_bundle_meta):
             bundle_id, artifact_count = artifact_bundle_meta
 
             return {
                 "type": "artifact_bundle",
-                "bundleId": str(bundle_id),
-                "dateCreated": artifact_bundle["date_added"].strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "name": str(bundle_id),
+                "date": artifact_bundle["date_added"].isoformat()[:19] + "Z",
                 "fileCount": artifact_count,
             }
 
