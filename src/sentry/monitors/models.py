@@ -62,6 +62,7 @@ def get_monitor_context(monitor):
 
     return {
         "id": str(monitor.guid),
+        "slug": monitor.slug,
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
