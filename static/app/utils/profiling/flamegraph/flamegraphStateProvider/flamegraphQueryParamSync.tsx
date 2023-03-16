@@ -49,7 +49,7 @@ function isSorting(
   if (typeof value !== 'string') {
     return false;
   }
-  return value === 'left heavy' || value === 'call order';
+  return value === 'left heavy' || value === 'call order' || value === 'alphabetical';
 }
 
 function isView(
@@ -172,6 +172,7 @@ export function FlamegraphStateLocalStorageSync() {
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
         colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       },
     }
   );
@@ -183,9 +184,11 @@ export function FlamegraphStateLocalStorageSync() {
         timelines: state.preferences.timelines,
         view: state.preferences.view,
         colorCoding: state.preferences.colorCoding,
+        sorting: state.preferences.sorting,
       },
     });
   }, [
+    state.preferences.sorting,
     state.preferences.layout,
     state.preferences.timelines,
     state.preferences.view,
