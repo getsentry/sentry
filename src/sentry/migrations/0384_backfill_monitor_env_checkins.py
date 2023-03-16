@@ -16,24 +16,13 @@ UPDATE_QUERY = """
 
 
 def backfill_monitor_checkins(apps, schema_editor):
-    Monitor = apps.get_model("sentry", "MonitorCheckIn")
     MonitorCheckIn = apps.get_model("sentry", "MonitorCheckIn")
     MonitorEnvironment = apps.get_model("sentry", "MonitorEnvironment")
 
-    monitor_mappings = {}
-    monitor_queryset = RangeQuerySetWrapperWithProgressBar(
-        Monitor.objects.all().values_list(
-            "id",
-        ),
-        result_value_getter=lambda item: item[0],
-    )
-
-    for monitor_id in monitor_queryset:
-        try:
-            monitor_environment = MonitorEnvironment.objects.filter(monitor_id=monitor_id)[0]
-            monitor_mappings[monitor_id] = monitor_environment.id
-        except IndexError:
-            continue
+    monitor_mappings = {
+        monitor_id: monitor_env_id
+        for monitor_id, monitor_env_id in MonitorEnvironment.objects.values_list("monitor_id", "id")
+    }
 
     queryset = RangeQuerySetWrapperWithProgressBar(
         MonitorCheckIn.objects.all().values_list(

@@ -38,14 +38,14 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             monitor=self.monitor, environment=self.environment, **monitorenvironment_defaults
         )
 
-        self.checkin = MonitorCheckIn.objects.create(
+        self.checkin_1 = MonitorCheckIn.objects.create(
             monitor=self.monitor,
             project_id=self.project.id,
             date_added=self.monitor.date_added,
             status=CheckInStatus.OK,
         )
 
-        empty_monitor = Monitor.objects.create(
+        self.monitor_2 = Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
@@ -53,17 +53,35 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
         )
 
-        self.empty_checkin = MonitorCheckIn.objects.create(
-            monitor=empty_monitor,
+        monitorenvironment_defaults_2 = {
+            "status": self.monitor_2.status,
+            "next_checkin": self.monitor_2.next_checkin,
+            "last_checkin": self.monitor_2.last_checkin,
+        }
+
+        self.monitor_env_2 = MonitorEnvironment.objects.create(
+            monitor=self.monitor_2,
+            environment=self.create_environment(name="production", project=self.project),
+            **monitorenvironment_defaults_2,
+        )
+        self.monitor_env_3 = MonitorEnvironment.objects.create(
+            monitor=self.monitor_2,
+            environment=self.create_environment(name="jungle", project=self.project),
+            **monitorenvironment_defaults_2,
+        )
+
+        self.checkin_2 = MonitorCheckIn.objects.create(
+            monitor=self.monitor_2,
             project_id=self.project.id,
-            date_added=empty_monitor.date_added,
+            date_added=self.monitor_2.date_added,
             status=CheckInStatus.OK,
         )
 
+        # add test for duplicate envs
+
     def test(self):
-        self.checkin.refresh_from_db()
-        self.empty_checkin.refresh_from_db()
+        self.checkin_1.refresh_from_db()
+        self.checkin_2.refresh_from_db()
 
-        assert self.checkin.monitor_environment == self.monitor_env
-
-        assert self.empty_checkin.monitor_environment is None
+        assert self.checkin_1.monitor_environment == self.monitor_env
+        assert self.checkin_2.monitor_environment == self.monitor_env_3
