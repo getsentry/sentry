@@ -202,14 +202,6 @@ function SetupDocs({search, route, router, location}: Props) {
 
   // log experiment on mount if feature enabled
   useEffect(() => {
-    // we are testing this on the dynamic sampling page but it will be removed soon
-    if (organization?.features.includes('onboarding-heartbeat-footer')) {
-      logExperiment();
-    }
-  }, [logExperiment, organization?.features]);
-
-  // log experiment on mount if feature enabled
-  useEffect(() => {
     logExperiment();
   }, [logExperiment]);
 
