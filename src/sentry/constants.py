@@ -336,6 +336,7 @@ NATIVE_UNKNOWN_STRING = "<unknown>"
 # LIMIT-OFFSET database queries.
 # These problems should be solved after we implement artifact bundles workflow.
 MAX_RELEASE_FILES_OFFSET = 20000
+MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.

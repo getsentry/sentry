@@ -8,6 +8,7 @@ from datetime import datetime
 from typing import Optional, TypedDict, cast
 
 from django.utils import timezone
+from pydantic.fields import Field
 
 from sentry.models import Organization
 from sentry.models.user import User
@@ -21,7 +22,7 @@ class RpcOrganizationMapping(RpcModel):
     slug: str = ""
     name: str = ""
     region_name: str = ""
-    date_created: datetime = timezone.now()
+    date_created: datetime = Field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
 
