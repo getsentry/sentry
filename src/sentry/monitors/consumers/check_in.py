@@ -1,6 +1,6 @@
 import datetime
 import logging
-from typing import Mapping
+from typing import Dict, Mapping
 
 import msgpack
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -25,9 +25,7 @@ from sentry.utils.dates import to_datetime
 logger = logging.getLogger(__name__)
 
 
-def process_message(message: Message[KafkaPayload]) -> None:
-    wrapper = msgpack.unpackb(message.payload.value)
-
+def _process_message(wrapper: Dict) -> None:
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
@@ -67,7 +65,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
                 # Duration is specified in seconds from the client, it is
-                # stored in the checkin model as miliseconds
+                # stored in the checkin model as milliseconds
                 int(params["duration"] * 1000)
                 if params.get("duration") is not None
                 else None
@@ -144,6 +142,13 @@ class StoreMonitorCheckInStrategyFactory(ProcessingStrategyFactory[KafkaPayload]
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
+        def process_message(message: Message[KafkaPayload]) -> None:
+            try:
+                wrapper = msgpack.unpackb(message.payload.value)
+                _process_message(wrapper)
+            except Exception:
+                logger.exception("Failed to process message payload")
+
         return RunTask(
             function=process_message,
             next_step=CommitOffsets(commit),
