@@ -186,11 +186,11 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
   }
 
   get projectSelectionFilter(): (p: Project) => boolean {
-    const {projectIds} = this.props;
+    const {projectIds, isSingleProject} = this.props;
     const selectedProjects = new Set(projectIds.map(id => `${id}`));
 
     // If 'My Projects' or 'All Projects' are selected
-    return selectedProjects.size === 0 || selectedProjects.has('-1')
+    return selectedProjects.size === 0 || selectedProjects.has('-1') || isSingleProject
       ? _p => true
       : p => selectedProjects.has(p.id);
   }
