@@ -663,9 +663,6 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the percentage of orgs we test under the dry run mode
-register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
-register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
 # Allows adjusting the GA percentage
 register("derive-code-mappings.general-availability-rollout", default=0.0)
 register("hybrid_cloud.outbox_rate", default=0.0)
