@@ -10,7 +10,7 @@ from sentry.testutils.silo import region_silo_test
 NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 
 
-@region_silo_test(stable=True)
+@region_silo_test(stable=False)
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
@@ -18,7 +18,9 @@ class NotificationActionsIndexEndpointTest(APITestCase):
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
-        self.team = self.create_team(name="pale beings", organization=self.organization)
+        self.team = self.create_team(
+            name="pale beings", organization=self.organization, members=[self.user]
+        )
         self.projects = [
             self.create_project(name="greenpath", organization=self.organization),
             self.create_project(name="dirtmouth", organization=self.organization),
@@ -63,54 +65,70 @@ class NotificationActionsIndexEndpointTest(APITestCase):
     )
     def test_get_with_queries(self, mock_trigger_types):
         project = self.create_project(name="deepnest", organization=self.organization)
+        no_team_project = self.create_project(
+            name="waterways", organization=self.organization, teams=[]
+        )
+
         na1 = self.create_notification_action(
-            organization=self.organization, projects=self.projects, trigger_type=0
+            organization=self.organization,
+            projects=self.projects,
+            trigger_type=0,
         )
         na2 = self.create_notification_action(
-            organization=self.organization, projects=[project], trigger_type=0
+            organization=self.organization,
+            projects=[project],
+            trigger_type=0,
         )
         na3 = self.create_notification_action(
-            organization=self.organization, projects=[project, *self.projects], trigger_type=1
+            organization=self.organization,
+            projects=[project, *self.projects],
+            trigger_type=1,
+        )
+        na4 = self.create_notification_action(
+            organization=self.organization,
+            trigger_type=0,
+        )
+        na5 = self.create_notification_action(
+            organization=self.organization,
+            projects=[no_team_project],
+            trigger_type=1,
         )
 
-        project_actions = {na2, na3}
-        teacher_actions = {na1, na2}
+        query_data = {
+            "checks projects by default": {"query": {}, "result": {na1, na2, na3, na4}},
+            "regular project": {
+                "query": {"project": project.id},
+                "result": {na2, na3},
+            },
+            "regular trigger": {
+                "query": {"triggerType": "teacher"},
+                "result": {na1, na2, na4},
+            },
+            "using both": {
+                "query": {"project": project.id, "triggerType": "teacher"},
+                "result": {na2},
+            },
+            "empty result": {
+                "query": {"triggerType": "beast"},
+                "result": {},
+            },
+            "not member": {"query": {"triggerType": "watcher"}, "result": {na3}},
+            "not member but has access": {
+                "query": {"project": -1, "triggerType": "watcher"},
+                "result": {na3, na5},
+            },
+        }
 
         with self.feature(NOTIFICATION_ACTION_FEATURE):
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_200_OK,
-                qs_params={"project": project.id},
-            )
-            assert len(response.data) == len(project_actions)
-            for action in project_actions:
-                assert serialize(action) in response.data
-
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_200_OK,
-                qs_params={"triggerType": "teacher"},
-            )
-            assert len(response.data) == len(teacher_actions)
-            for action in teacher_actions:
-                assert serialize(action) in response.data
-
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_200_OK,
-                qs_params={"project": project.id, "triggerType": "teacher"},
-            )
-            intersection = project_actions.intersection(teacher_actions)
-            assert len(response.data) == len(intersection)
-            for action in intersection:
-                assert serialize(action) in response.data
-
-            response = self.get_success_response(
-                self.organization.slug,
-                status_code=status.HTTP_200_OK,
-                qs_params={"triggerType": "beast"},
-            )
-            assert response.data == []
+            for data in query_data.values():
+                response = self.get_success_response(
+                    self.organization.slug,
+                    status_code=status.HTTP_200_OK,
+                    qs_params=data["query"],
+                )
+                assert len(response.data) == len(data["result"])
+                for action in data["result"]:
+                    assert serialize(action) in response.data
 
     def test_post_missing_fields(self):
         required_fields = self.base_data.keys()

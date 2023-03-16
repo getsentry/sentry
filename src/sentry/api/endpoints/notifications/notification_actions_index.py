@@ -1,6 +1,7 @@
 import logging
 from typing import Dict
 
+from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -29,22 +30,25 @@ class NotificationActionsIndexEndpoint(FlaggedOrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         queryset = NotificationAction.objects.filter(organization_id=organization.id)
-        project_query = request.GET.getlist("project")
-        if project_query:
-            queryset = queryset.filter(projects__in=self.get_projects(request, organization))
-
+        # If a project query is specified, filter out non-project-specific actions
+        # otherwise, include them but still ensure project permissions are enforced
+        project_query = (
+            Q(projects__in=self.get_projects(request, organization))
+            if request.GET.getlist("project")
+            else Q(projects=None) | Q(projects__in=self.get_projects(request, organization))
+        )
+        queryset = queryset.filter(project_query).distinct()
         trigger_type_query = request.GET.getlist("triggerType")
         if trigger_type_query:
             triggers: Dict[str, int] = {v: k for k, v in NotificationAction.get_trigger_types()}
             trigger_types = map(lambda t: triggers.get(t), trigger_type_query)
             queryset = queryset.filter(trigger_type__in=trigger_types)
-
         logger.info(
             "notification_action.get_all",
             extra={
                 "organization_id": organization.id,
-                "project_query": project_query,
                 "trigger_type_query": trigger_type_query,
+                "project_query": request.GET.getlist("project"),
             },
         )
         return self.paginate(
