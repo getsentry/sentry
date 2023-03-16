@@ -11,6 +11,7 @@ import NotFound from 'sentry/components/errors/notFound';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {Footer} from 'sentry/components/onboarding/footer';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
   performance as performancePlatforms,
@@ -24,7 +25,6 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {Footer} from 'sentry/views/onboarding/components/footer';
 
 type Props = RouteComponentProps<{platform: string; projectId: string}, {}>;
 

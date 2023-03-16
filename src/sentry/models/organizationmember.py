@@ -49,6 +49,17 @@ class InviteStatus(Enum):
     REQUESTED_TO_BE_INVITED = 1
     REQUESTED_TO_JOIN = 2
 
+    @classmethod
+    def as_choices(cls):
+        return (
+            (InviteStatus.APPROVED.value, _("Approved")),
+            (
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                _("Organization member requested to invite user"),
+            ),
+            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
+        )
+
 
 invite_status_names = {
     InviteStatus.APPROVED.value: "approved",
@@ -172,14 +183,7 @@ class OrganizationMember(Model):
         on_delete=models.SET_NULL,
     )
     invite_status = models.PositiveSmallIntegerField(
-        choices=(
-            (InviteStatus.APPROVED.value, _("Approved")),
-            (
-                InviteStatus.REQUESTED_TO_BE_INVITED.value,
-                _("Organization member requested to invite user"),
-            ),
-            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
-        ),
+        choices=InviteStatus.as_choices(),
         default=InviteStatus.APPROVED.value,
         null=True,
     )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import timedelta
 
+from sentry import features
 from sentry.issues.grouptype import PerformanceConsecutiveHTTPQueriesGroupType
 from sentry.models import Organization, Project
 
@@ -130,7 +131,9 @@ class ConsecutiveHTTPSpanDetector(PerformanceDetector):
         self._validate_and_store_performance_problem()
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return False
+        return features.has(
+            "organizations:performance-consecutive-http-detector", organization, actor=None
+        )
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
-        return False
+        return True

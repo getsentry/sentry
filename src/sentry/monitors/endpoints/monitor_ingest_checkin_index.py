@@ -27,7 +27,9 @@ from sentry.monitors.models import (
 )
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 
 from .base import MonitorIngestEndpoint
@@ -40,6 +42,21 @@ CHECKIN_QUOTA_WINDOW = 60
 @extend_schema(tags=["Crons"])
 class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     public = {"POST"}
+
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "POST": {
+                RateLimitCategory.IP: RateLimit(40 * 60, 60),
+                RateLimitCategory.USER: RateLimit(40 * 60, 60),
+                RateLimitCategory.ORGANIZATION: RateLimit(40 * 60, 60),
+            }
+        },
+    )
+
+    allow_auto_create_monitors = True
+    """
+    Creating a checkin supports automatic creation of monitors
+    """
 
     @extend_schema(
         operation_id="Create a new check-in",
@@ -62,7 +79,12 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
         },
     )
     def post(
-        self, request: Request, project, monitor, organization_slug: str | None = None
+        self,
+        request: Request,
+        project,
+        monitor_id: str,
+        monitor: Monitor | None,
+        organization_slug: str | None = None,
     ) -> Response:
         """
         Creates a new check-in for a monitor.
@@ -74,17 +96,26 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
 
         Note: If a DSN is utilized for authentication, the response will be limited in details.
         """
-        if monitor.status in [MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]:
+        if monitor and monitor.status in [
+            MonitorStatus.PENDING_DELETION,
+            MonitorStatus.DELETION_IN_PROGRESS,
+        ]:
             return self.respond(status=404)
 
-        serializer = MonitorCheckInValidator(
-            data=request.data, context={"project": project, "request": request}
+        checkin_validator = MonitorCheckInValidator(
+            data=request.data,
+            context={"project": project, "request": request, "monitor_id": monitor_id},
         )
-        if not serializer.is_valid():
-            return self.respond(serializer.errors, status=400)
+        if not checkin_validator.is_valid():
+            return self.respond(checkin_validator.errors, status=400)
+
+        if not monitor:
+            ratelimit_key = monitor_id
+        else:
+            ratelimit_key = monitor.id
 
         if ratelimits.is_limited(
-            f"monitor-checkins:{monitor.id}",
+            f"monitor-checkins:{ratelimit_key}",
             limit=CHECKIN_QUOTA_LIMIT,
             window=CHECKIN_QUOTA_WINDOW,
         ):
@@ -93,9 +124,36 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
                 detail="Rate limited, please send no more than 5 checkins per minute per monitor"
             )
 
-        result = serializer.validated_data
+        result = checkin_validator.validated_data
 
         with transaction.atomic():
+            monitor_data = result.get("monitor")
+            create_monitor = monitor_data and not monitor
+            update_monitor = monitor_data and monitor
+
+            # Create a new monitor during checkin. Uses update_or_create to
+            # protect against races.
+            if create_monitor:
+                monitor, _ = Monitor.objects.update_or_create(
+                    organization_id=project.organization_id,
+                    slug=monitor_data["slug"],
+                    defaults={
+                        "project_id": project.id,
+                        "name": monitor_data["name"],
+                        "status": monitor_data["status"],
+                        "type": monitor_data["type"],
+                        "config": monitor_data["config"],
+                    },
+                )
+
+            # Monitor does not exist and we have not created one
+            if not monitor:
+                return self.respond(status=404)
+
+            # Update monitor configuration during checkin if config is changed
+            if update_monitor and monitor_data["config"] != monitor.config:
+                monitor.update(config=monitor_data["config"])
+
             environment_name = result.get("environment")
             if not environment_name:
                 environment_name = "production"

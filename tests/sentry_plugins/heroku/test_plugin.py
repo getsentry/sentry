@@ -139,8 +139,8 @@ class HookHandleTest(TestCase):
                 "user": {"email": user.email},
                 "slug": {"commit": "abcd123"},
                 "app": {"name": "example"},
-                "action": "update",
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -161,8 +161,8 @@ class HookHandleTest(TestCase):
                 "user": {"email": user.email},
                 "slug": {"commit": "abcd123"},
                 "app": {"name": "example"},
-                "action": "create",
-            }
+            },
+            "action": "create",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -183,8 +183,8 @@ class HookHandleTest(TestCase):
                 "actor": {"email": user.email},
                 "slug": {"commit": "abcd123"},
                 "app": {"name": "example"},
-                "action": "update",
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -204,8 +204,8 @@ class HookHandleTest(TestCase):
                 "user": {"email": "wrong@example.com"},
                 "slug": {"commit": "v999"},
                 "app": {"name": "example"},
-                "action": "update",
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -223,8 +223,8 @@ class HookHandleTest(TestCase):
                 "actor": {"email": user.email},
                 "slug": {"commit": ""},
                 "app": {"name": "example"},
-                "action": "update",
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         with pytest.raises(HookValidationError):

@@ -152,6 +152,7 @@ class ProjectOwnershipModal extends AsyncComponent<Props, State> {
           initialText={ownership?.raw || ''}
           urls={urls}
           paths={paths}
+          dateUpdated={ownership.lastUpdated}
           onCancel={onCancel}
         />
       </Fragment>

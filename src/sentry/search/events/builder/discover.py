@@ -207,6 +207,12 @@ class QueryBuilder(BaseQueryBuilder):
             "columns": set(),
         }
 
+        # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
+        org_id = self.organization_id or (
+            self.params.organization.id if self.params.organization else None
+        )
+        self.tenant_ids = {"organization_id": org_id} if org_id else None
+
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
         self.having: List[WhereType] = []
@@ -1440,6 +1446,7 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids=self.tenant_ids,
         )
 
     @classmethod
@@ -1611,6 +1618,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
                 granularity=self.granularity,
                 limit=self.limit,
             ),
+            tenant_ids=self.tenant_ids,
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:

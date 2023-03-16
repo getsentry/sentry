@@ -94,6 +94,47 @@ def main(slow=False):
         },
     )
 
+    print(f"    > Loading normal trace, but with performance issue")  # NOQA
+    # Normal trace
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": frontend_project,
+            "transaction": "/plants/:plantId/",
+            "frontend": True,
+            "errors": 1,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
+                    "performance_issues": ["n+1"],
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
     print(f"    > Loading orphan data")  # NOQA
     # Trace only with orphans
     create_trace(

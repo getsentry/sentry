@@ -10,6 +10,7 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    Set,
     Tuple,
     Union,
     cast,
@@ -48,6 +49,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     Organization,
@@ -571,7 +573,10 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.project import (
+            LATEST_DEPLOYS_KEY,
+            ProjectSummarySerializer,
+        )
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
@@ -583,6 +588,18 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = self._project_list(obj, access)
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
+
+        collapse_projects: Set[str] = set()
+        if killswitch_matches_context(
+            "api.organization.disable-last-deploys",
+            {
+                "organization_id": obj.id,
+            },
+        ):
+            collapse_projects = {LATEST_DEPLOYS_KEY}
+
+        context["projects"] = serialize(
+            project_list, user, ProjectSummarySerializer(access=access, collapse=collapse_projects)
+        )
 
         return context

@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -179,6 +179,7 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
@@ -201,6 +202,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
@@ -803,19 +807,22 @@ def process_commits(job: PostProcessJob) -> None:
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
 
-                integrations = Integration.objects.filter(
-                    organizations=event.project.organization,
-                    provider__in=["github", "gitlab"],
+                integration_cache_key = (
+                    f"commit-context-scm-integration:{event.project.organization_id}"
                 )
-                use_fallback = (
-                    features.has(
-                        "organizations:commit-context-fallback", event.project.organization
+                has_integrations = cache.get(integration_cache_key)
+                if has_integrations is None:
+                    integrations = Integration.objects.filter(
+                        organizations=event.project.organization,
+                        provider__in=["github", "gitlab"],
                     )
-                    and not integrations.exists()
-                )
+                    has_integrations = integrations.exists()
+                    # Cache the integrations check for 4 hours
+                    cache.set(integration_cache_key, has_integrations, 14400)
+
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and not use_fallback
+                    and has_integrations
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):

@@ -881,14 +881,20 @@ CELERYBEAT_SCHEDULE = {
         "options": {"expires": 3600},
     },
     "auto-enable-codecov": {
-        "task": "sentry.tasks.auto_enable_codecov.auto_enable_codecov",
-        "schedule": timedelta(hours=4),
+        "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
+        # Run job every 4 hours at min 20
+        "schedule": crontab(minute=20, hour="*/4"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
         "task": "sentry.dynamic_sampling.tasks.prioritise_projects",
-        # Run job every 1 hour
-        "schedule": crontab(minute=0),
+        # Run job every 5 minutes
+        "schedule": timedelta(minutes=5),
+    },
+    "dynamic-sampling-prioritize-transactions": {
+        "task": "sentry.dynamic_sampling.tasks.prioritise_transactions",
+        # Run job every 4 hours at min 10
+        "schedule": crontab(minute=10, hour="*/4"),
     },
 }
 
@@ -1035,8 +1041,6 @@ SENTRY_FEATURES = {
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
     "organizations:derive-code-mappings": False,
-    # Enables automatically deriving of code mappings as a dry run for early adopters
-    "organizations:derive-code-mappings-dry-run": False,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1189,6 +1193,8 @@ SENTRY_FEATURES = {
     "organizations:dashboards-edit": True,
     # Enable metrics enhanced performance in dashboards
     "organizations:dashboards-mep": False,
+    # Enable release health widget in dashboards
+    "organizations:dashboards-rh-widget": False,
     # Enable the dynamic sampling "Transaction Name" priority in the UI
     "organizations:dynamic-sampling-transaction-name-priority": False,
     # Enable minimap in the widget viewer modal in dashboards
@@ -1238,6 +1244,8 @@ SENTRY_FEATURES = {
     "organizations:performance-metrics-backed-transaction-summary": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
+    # Enable consecutive http performance issue type
+    "organizations:performance-consecutive-http-detector": False,
     # Enable slow DB performance issue type
     "organizations:performance-slow-db-issue": False,
     # Enable N+1 API Calls performance issue type
@@ -1295,20 +1303,20 @@ SENTRY_FEATURES = {
     "organizations:sso-saml2": True,
     # Enable a banner on the issue details page guiding the user to setup source maps
     "organizations:source-maps-cta": False,
-    # Enable a UI where users can see bundles and it's artefacts which only have debug ID's
+    # Enable a UI where users can see bundles and their artifacts which only have debug IDs
     "organizations:source-maps-debug-ids": False,
     # Enable the new opinionated dynamic sampling
     "organizations:dynamic-sampling": False,
-    # Enable new DS bias: prioritise by project
-    "organizations:ds-prioritise-by-project-bias": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
-    # Enable View Hierarchies in issue details page
-    "organizations:mobile-view-hierarchies": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
+    # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
+    "organizations:onboarding-heartbeat-footer-with-view-sample-error": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,

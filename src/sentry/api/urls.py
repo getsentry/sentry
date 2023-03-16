@@ -93,6 +93,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
+from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -376,6 +377,7 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
 from .endpoints.project_create_sample_transaction import ProjectCreateSampleTransactionEndpoint
@@ -1254,6 +1256,7 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-count/$",
         OrganizationIssuesCountEndpoint.as_view(),
+        name="sentry-api-0-organization-issues-count",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/issues-stats/$",
@@ -1273,10 +1276,12 @@ ORGANIZATION_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/repos/$",
         OrganizationIntegrationReposEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-repos",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/issues/$",
         OrganizationIntegrationIssuesEndpoint.as_view(),
+        name="sentry-api-0-organization-integration-issues",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/integrations/(?P<integration_id>[^\/]+)/serverless-functions/$",
@@ -1540,6 +1545,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/sentry-apps/$",
         OrganizationSentryAppsEndpoint.as_view(),
         name="sentry-api-0-organization-sentry-apps",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/sentry-app-components/$",
+        OrganizationSentryAppComponentsEndpoint.as_view(),
+        name="sentry-api-0-organization-sentry-app-components",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/stats/$",
@@ -1845,6 +1855,11 @@ PROJECT_URLS = [
         name="sentry-api-0-source-maps",
     ),
     url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/artifact-bundles/$",
+        ArtifactBundlesEndpoint.as_view(),
+        name="sentry-api-0-artifact-bundles",
+    ),
+    url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/files/difs/assemble/$",
         DifAssembleEndpoint.as_view(),
         name="sentry-api-0-assemble-dif-files",
@@ -1956,6 +1971,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/stats/$",
         ProjectReleaseStatsEndpoint.as_view(),
         name="sentry-api-0-project-release-stats",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/$",
+        ProjectArtifactBundleFilesEndpoint.as_view(),
+        name="sentry-api-0-project-artifact-bundle-files",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
@@ -2608,11 +2628,6 @@ urlpatterns = [
         r"^sentry-apps-stats/$",
         SentryAppsStatsEndpoint.as_view(),
         name="sentry-api-0-sentry-apps-stats",
-    ),
-    url(
-        r"^organizations/(?P<organization_slug>[^\/]+)/sentry-app-components/$",
-        OrganizationSentryAppComponentsEndpoint.as_view(),
-        name="sentry-api-0-org-sentry-app-components",
     ),
     # Document Integrations
     url(

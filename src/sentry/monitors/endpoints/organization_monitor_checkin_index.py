@@ -42,9 +42,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def get(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def get(self, request: Request, organization, project, monitor) -> Response:
         """
         Retrieve a list of check-ins for a monitor
         """
