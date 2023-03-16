@@ -56,8 +56,8 @@ def _get_attachments(
         else {}
     )
     context = get_context(notification, recipient, shared_context, extra_context)
-    klass = get_message_builder(notification.message_builder)
-    attachments = klass(notification, context, recipient).build()
+    cls = get_message_builder(notification.message_builder)
+    attachments = cls(notification, context, recipient).build()
     if isinstance(attachments, List):
         return attachments
     return [attachments]
