@@ -2,12 +2,7 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -708,7 +703,9 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Transaction Summary');
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
 
       // Open the transaction filter dropdown
       await userEvent.click(
@@ -1121,7 +1118,9 @@ describe('Performance > TransactionSummary', function () {
       });
 
       await screen.findByText('Transaction Summary');
-      await waitForElementToBeRemoved(() => screen.getAllByTestId('loading-indicator'));
+      await waitFor(() => {
+        expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      });
 
       // Open the transaction filter dropdown
       await userEvent.click(
