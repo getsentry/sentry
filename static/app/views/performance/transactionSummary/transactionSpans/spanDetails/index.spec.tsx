@@ -457,7 +457,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
-        await userEvent.type(searchBarNode, 'count():>3');
+        await userEvent.click(searchBarNode);
+        await userEvent.paste('count():>3');
         expect(searchBarNode).toHaveTextContent('count():>3');
         expect(browserHistory.push).not.toHaveBeenCalled();
       });
