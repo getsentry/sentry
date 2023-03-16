@@ -60,6 +60,7 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             eventstore.get_events,
             filter=event_filter,
             referrer="api.project-events",
+            tenant_ids={"organization_id": project.organization_id},
         )
 
         serializer = EventSerializer() if full else SimpleEventSerializer()

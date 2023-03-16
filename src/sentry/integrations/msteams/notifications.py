@@ -60,8 +60,8 @@ def is_supported_notification_type(notification: BaseNotification) -> bool:
 def get_notification_card(
     notification: BaseNotification, context: Mapping[str, Any], recipient: User | Team
 ) -> AdaptiveCard:
-    klass = MESSAGE_BUILDERS[notification.message_builder]
-    return klass(notification, context, recipient).build_notification_card()
+    cls = MESSAGE_BUILDERS[notification.message_builder]
+    return cls(notification, context, recipient).build_notification_card()
 
 
 @register_notification_provider(ExternalProviders.MSTEAMS)
