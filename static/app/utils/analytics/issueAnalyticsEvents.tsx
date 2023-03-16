@@ -1,5 +1,6 @@
 import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
 import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
@@ -11,6 +12,8 @@ type SourceMapDebugParam = {
   type: SourceMapProcessingIssueType;
   group_id?: string;
 } & BaseEventAnalyticsParams;
+
+interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
@@ -29,6 +32,9 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
   'issue_details.view_hierarchy.hover_rendering_system': {
@@ -223,4 +229,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Hidden Spans Expanded',
   'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
   'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
+  'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
 };
