@@ -65,6 +65,7 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             start=snuba_params.start,
             end=snuba_params.end,
             replay_ids=list(replay_ids_mapping.keys()),
+            tenant_ids={"organization_id": organization.id},
         )
 
         if request.GET.get("returnIds"):
