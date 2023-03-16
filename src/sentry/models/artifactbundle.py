@@ -15,6 +15,9 @@ from sentry.db.models import (
 )
 from sentry.utils import json
 
+NULL_UUID = "00000000-00000000-00000000-00000000"
+NULL_STRING = ""
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -42,7 +45,7 @@ class ArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
-    bundle_id = models.UUIDField(default="00000000-00000000-00000000-00000000")
+    bundle_id = models.UUIDField(default=NULL_UUID)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -62,7 +65,7 @@ class ReleaseArtifactBundle(Model):
     release_name = models.CharField(max_length=250)
     # We use "" in place of NULL because the uniqueness constraint doesn't play well with nullable fields, since
     # NULL != NULL.
-    dist_name = models.CharField(max_length=64, default="")
+    dist_name = models.CharField(max_length=64, default=NULL_STRING)
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -116,7 +119,7 @@ class ArtifactBundleArchive:
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self._build_entries_by_debug_id_map()
+        self._build_memory_maps()
 
     def close(self):
         self._zip_file.close()
@@ -143,26 +146,48 @@ class ArtifactBundleArchive:
         except SymbolicError:
             return None
 
-    def _build_entries_by_debug_id_map(self):
+    def _build_memory_maps(self):
         self._entries_by_debug_id = {}
+        self._entries_by_url = {}
 
         # TODO(iambriccardo): generalize the manifest reading methods across assemble and processor.
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
+            # Building the map for debug_id lookup.
             headers = self._normalize_headers(info.get("headers", {}))
-            if (debug_id := headers.get("debug-id", None)) is not None:
+            if (debug_id := headers.get("debug-id")) is not None:
                 debug_id = self._normalize_debug_id(debug_id)
-                file_type = info.get("type", None)
+                file_type = info.get("type")
                 if (
                     debug_id is not None
                     and file_type is not None
                     and (source_file_type := SourceFileType.from_lowercase_key(file_type))
                     is not None
                 ):
-                    self._entries_by_debug_id[(debug_id, source_file_type)] = (file_path, info)
+                    self._entries_by_debug_id[(debug_id, source_file_type)] = (
+                        file_path,
+                        info.get("url"),
+                        info,
+                    )
+
+            # Building the map for url lookup.
+            self._entries_by_url[info.get("url")] = (file_path, info)
+
+    def get_file_by_url(self, url: str) -> Tuple[IO, dict]:
+        file_path, info = self._entries_by_url[url]
+        return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType
     ) -> Tuple[IO, dict]:
-        file_path, info = self._entries_by_debug_id[debug_id, source_file_type]
+        file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
+
+    def get_file_url_by_debug_id(
+        self, debug_id: str, source_file_type: SourceFileType
+    ) -> Optional[str]:
+        entry = self._entries_by_debug_id.get((debug_id, source_file_type))
+        if entry is not None:
+            return entry[1]
+
+        return None
