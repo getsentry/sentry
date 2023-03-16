@@ -165,7 +165,26 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
     ),
     type: measurementType(MobileVital.StallPercentage),
   },
+  [MobileVital.TimeToFullDisplay]: {
+    slug: 'time_to_full_display',
+    name: t('Time to Full Display'),
+    acronym: 'TTFD',
+    description: t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+    type: measurementType(MobileVital.TimeToFullDisplay),
+  },
+  [MobileVital.TimeToInitialDisplay]: {
+    slug: 'time_to_initial_display',
+    name: t('Time to Initial Display'),
+    acronym: 'TTID',
+    description: t('The time it takes for an application to produce its first frame'),
+    poorThreshold: 2000,
+    type: measurementType(MobileVital.TimeToInitialDisplay),
+  },
 };
+
+export const VITAL_DETAILS = Object.assign({}, WEB_VITAL_DETAILS, MOBILE_VITAL_DETAILS);
 
 export enum Browser {
   CHROME = 'Chrome',
