@@ -54,11 +54,9 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
         if not integration_installation:
             continue
 
-        repositories = integration_installation.get_client().get_repositories()
-        if not repositories:
-            continue
-
-        repos = repositories.get("repositories", None)
+        repos = (
+            integration_installation.get_client().get_repositories()
+        )  # type: List[Dict[str, Any]]
         if not repos:
             continue
 
