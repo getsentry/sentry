@@ -408,6 +408,7 @@ class Group(Model):
             (GroupStatus.UNRESOLVED, _("Unresolved")),
             (GroupStatus.RESOLVED, _("Resolved")),
             (GroupStatus.IGNORED, _("Ignored")),
+            (GroupStatus.ESCALATING, _("Escalating")),
         ),
         db_index=True,
     )
