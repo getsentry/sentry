@@ -310,6 +310,21 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     );
   };
 
+  handleSearch = (query: string) => {
+    const {handleChangeState, tableQuery} = this.props;
+
+    if (query === tableQuery) {
+      return;
+    }
+
+    if (!query) {
+      handleChangeState({query: undefined, cursor: undefined});
+      return;
+    }
+
+    handleChangeState({query, cursor: undefined});
+  };
+
   mapSeriesToTable(projectStats?: UsageSeries): {
     tableStats: TableStat[];
     error?: Error;
