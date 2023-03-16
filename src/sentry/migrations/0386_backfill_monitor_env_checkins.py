@@ -21,7 +21,11 @@ def backfill_monitor_checkins(apps, schema_editor):
 
     monitor_mappings = {
         monitor_id: monitor_env_id
-        for monitor_id, monitor_env_id in MonitorEnvironment.objects.values_list("monitor_id", "id")
+        for monitor_id, monitor_env_id in MonitorEnvironment.objects.filter(
+            environment__name="production"
+        )
+        .order_by("date_added")
+        .values_list("monitor_id", "id")
     }
 
     queryset = RangeQuerySetWrapperWithProgressBar(
