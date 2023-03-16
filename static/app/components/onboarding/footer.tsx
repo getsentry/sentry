@@ -123,7 +123,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -141,6 +142,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectData,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   useEffect(() => {
@@ -159,7 +161,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -178,6 +181,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectId,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   // The explore button is only showed if Sentry has not yet received any errors OR the issue is still being processed
@@ -192,7 +196,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -213,7 +218,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     clientState,
     router,
     setClientState,
-    projectSlug,
+    selectedProject,
   ]);
 
   const handleSkipOnboarding = useCallback(() => {
@@ -264,7 +269,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -286,7 +292,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     setClientState,
     onboardingContext,
     projectId,
-    projectSlug,
+    selectedProject,
   ]);
 
   return (
