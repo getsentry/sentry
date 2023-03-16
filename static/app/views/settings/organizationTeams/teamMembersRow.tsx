@@ -7,7 +7,8 @@ import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Member, Organization, TeamMember, User} from 'sentry/types';
+import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -18,11 +19,19 @@ const TeamMembersRow = (props: {
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
+  team: Team;
   updateMemberRole: (member: Member, newRole: string) => void;
   user: User;
 }) => {
-  const {organization, member, user, hasWriteAccess, removeMember, updateMemberRole} =
-    props;
+  const {
+    organization,
+    team,
+    member,
+    user,
+    hasWriteAccess,
+    removeMember,
+    updateMemberRole,
+  } = props;
 
   return (
     <TeamRolesPanelItem key={member.id}>
@@ -34,6 +43,7 @@ const TeamMembersRow = (props: {
           hasWriteAccess={hasWriteAccess}
           updateMemberRole={updateMemberRole}
           organization={organization}
+          team={team}
           member={member}
         />
       </div>
@@ -53,30 +63,39 @@ const TeamRoleSelect = (props: {
   hasWriteAccess: boolean;
   member: TeamMember;
   organization: Organization;
+  team: Team;
   updateMemberRole: (member: TeamMember, newRole: string) => void;
 }) => {
-  const {hasWriteAccess, organization, member, updateMemberRole} = props;
+  const {hasWriteAccess, organization, team, member, updateMemberRole} = props;
   const {orgRoleList, teamRoleList, features} = organization;
   if (!features.includes('team-roles')) {
     return null;
   }
 
-  const {orgRole: orgRoleId} = member;
-  const orgRole = orgRoleList.find(r => r.id === orgRoleId);
+  // Determine the team-role, including if the current team has an org role
+  // and if adding the user to the current team changes their minimum team-role
+  const possibleOrgRoles = [member.orgRole];
+  if (member.orgRolesFromTeams) {
+    possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
+  }
+  if (team.orgRole) {
+    possibleOrgRoles.push(team.orgRole);
+  }
+  const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
 
-  const teamRoleId = member.teamRole || orgRole?.minimumTeamRole;
+  const teamRoleId = member.teamRole || effectiveOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
     !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: orgRoleId, orgRoleList, teamRoleList})
+    hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})
   ) {
     return (
       <RoleName>
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={orgRoleId}
+            orgRole={effectiveOrgRole?.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />

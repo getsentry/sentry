@@ -289,7 +289,7 @@ class TeamMembers extends AsyncView<Props, State> {
       return <LoadingError onRetry={this.fetchData} />;
     }
 
-    const {organization, config} = this.props;
+    const {organization, config, team} = this.props;
     const {teamMembersPageLinks} = this.state;
     const {access} = organization;
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
@@ -311,6 +311,7 @@ class TeamMembers extends AsyncView<Props, State> {
                   hasWriteAccess={hasWriteAccess}
                   member={member}
                   organization={organization}
+                  team={team}
                   removeMember={this.removeTeamMember}
                   updateMemberRole={this.updateTeamMemberRole}
                   user={config.user}
