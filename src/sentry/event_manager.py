@@ -27,6 +27,8 @@ from typing import (
 )
 
 import sentry_sdk
+from arroyo.processing.strategies import Produce
+from arroyo.types import BrokerValue, Message, Partition
 from confluent_kafka import Producer
 from django.conf import settings
 from django.core.cache import cache
@@ -2321,7 +2323,6 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
         # Granular, per-project option
         per_project_rate = project.get_option("sentry:performance_issue_creation_rate", 1.0)
         if per_project_rate > random.random():
-
             kwargs = _create_kwargs(job)
             kwargs["culprit"] = job["culprit"]
             kwargs["data"] = materialize_metadata(
@@ -2466,10 +2467,10 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         project = event.project
         event_id = event.event_id
 
-        use_platform = options.get("performance.issues.send_to_issues_platform", False)
+        use_platform = options.get("performance.issues.send_to_issues_platform", True)
         if use_platform:
             per_project_option = project.get_option(
-                "sentry:performance_issue_send_to_issues_platform", False
+                "sentry:performance_issue_send_to_issues_platform", True
             )
             if per_project_option:
                 performance_problems = job["performance_problems"]
@@ -2497,12 +2498,23 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
                         cluster_options = get_kafka_producer_cluster_options(cluster_name)
                         producer = Producer(cluster_options)
 
-                        producer.produce(
-                            topic=topic,
-                            key=None,
-                            value=json.dumps(occurrence.to_dict()),
+                        def handle_next_step(error, message):
+                            # do something with the error here
+                            metrics.incr(
+                                "save_event.send_occurrence_to_platform.message_producer_failed",
+                                sample_rate=1.0,
+                            )
+
+                        arroyo_producer = Produce(producer, topic, next_step=handle_next_step)
+                        message = Message(
+                            BrokerValue(
+                                json.dumps(occurrence.to_dict()),
+                                Partition(topic, 0),
+                                0,
+                                datetime.now(),
+                            )
                         )
-                        producer.flush()
+                        arroyo_producer.submit(message)
 
 
 @metrics.wraps("event_manager.save_transaction_events")
