@@ -211,6 +211,8 @@ class PerformanceDetectionTest(TestCase):
                         "a307ceb77c702cea",
                         "ac1e90ff646617e7",
                     ],
+                    evidence_data={},
+                    evidence_display=[],
                 )
             ]
 
