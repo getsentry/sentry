@@ -94,14 +94,7 @@ class MonitorConsumerTest(TestCase):
 
     @pytest.mark.django_db
     def test_disabled(self):
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            status=MonitorStatus.DISABLED,
-            config={"schedule": "* * * * *"},
-        )
+        monitor = self._create_monitor(status=MonitorStatus.DISABLED)
         message = self.get_message(monitor.slug, status="error")
         _process_message(message)
 
