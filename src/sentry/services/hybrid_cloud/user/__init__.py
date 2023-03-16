@@ -172,6 +172,7 @@ class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeTyp
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         pass
 
+    @rpc_method
     @abstractmethod
     def update_user(
         self,
