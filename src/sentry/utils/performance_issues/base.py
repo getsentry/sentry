@@ -14,6 +14,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -38,6 +39,7 @@ class DetectorType(Enum):
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
+    DB_MAIN_THREAD = "db_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -51,6 +53,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.FILE_IO_MAIN_THREAD: PerformanceDBMainThreadGroupType,
 }
 
 
@@ -65,6 +68,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
 }
 
 
