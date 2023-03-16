@@ -67,6 +67,8 @@ export enum PERFORMANCE_TERM {
   MOST_ISSUES = 'mostIssues',
   MOST_ERRORS = 'mostErrors',
   SLOW_HTTP_SPANS = 'slowHTTPSpans',
+  TIME_TO_FULL_DISPLAY = 'timeToFullDisplay',
+  TIME_TO_INITIAL_DISPLAY = 'timeToInitialDisplay',
 }
 
 export type TooltipOption = SelectValue<string> & {
@@ -543,6 +545,7 @@ function generateMobilePerformanceEventView(
     'tpm()',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
+    'p75(measurements.time_to_initial_display)',
   ];
 
   // At this point, all projects are mobile projects.

@@ -34,6 +34,8 @@ export function MobileView(props: BasePerformanceViewProps) {
             PerformanceWidgetSetting.WARM_STARTUP_AREA,
             PerformanceWidgetSetting.SLOW_FRAMES_AREA,
             PerformanceWidgetSetting.FROZEN_FRAMES_AREA,
+            PerformanceWidgetSetting.TIME_TO_INITIAL_DISPLAY,
+            PerformanceWidgetSetting.TIME_TO_FULL_DISPLAY,
           ]}
         />
         <Table
