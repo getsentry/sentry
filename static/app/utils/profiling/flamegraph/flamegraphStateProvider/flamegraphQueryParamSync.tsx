@@ -171,6 +171,7 @@ export function FlamegraphStateLocalStorageSync() {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
       },
     }
   );
@@ -181,11 +182,16 @@ export function FlamegraphStateLocalStorageSync() {
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
         view: state.preferences.view,
+        colorCoding: state.preferences.colorCoding,
       },
     });
-    // We only want to sync the local storage when the state changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout, state.preferences.timelines, state.preferences.view]);
+  }, [
+    state.preferences.layout,
+    state.preferences.timelines,
+    state.preferences.view,
+    state.preferences.colorCoding,
+    setState,
+  ]);
 
   return null;
 }

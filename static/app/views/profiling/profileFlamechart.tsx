@@ -41,6 +41,7 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
       },
     }
   );
