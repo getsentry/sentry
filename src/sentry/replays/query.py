@@ -265,8 +265,8 @@ def query_replays_dataset_tagkey_values(
             groupby=[grouped_column],
             granularity=Granularity(3600),
             limit=Limit(1000),
-            tenant_ids=tenant_ids,
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
