@@ -10,13 +10,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
+import ProjectSourceMapsDetail from 'sentry/views/settings/projectSourceMaps/detail';
 import ProjectSourceMapsList from 'sentry/views/settings/projectSourceMaps/list';
 
 import {ProjectSourceMaps} from './projectSourceMaps';
 import {ProjectSourceMapsArtifacts} from './projectSourceMapsArtifacts';
 
 type Props = RouteComponentProps<
-  {orgId: string; projectId: string; bundleId?: string},
+  {orgId: string; projectId: string; bundleId?: string; name?: string},
   {}
 > & {
   children: React.ReactNode;
@@ -28,6 +29,16 @@ export function ProjectSourceMapsContainer({params, location, ...props}: Props) 
   const sourceMapsDebugIds = organization.features.includes('source-maps-debug-ids');
 
   if (!sourceMapsDebugIds) {
+    if (params.name) {
+      return (
+        <ProjectSourceMapsDetail
+          {...props}
+          location={location}
+          params={{...params, name: params.name}}
+          organization={organization}
+        />
+      );
+    }
     return (
       <ProjectSourceMapsList
         {...props}
