@@ -161,9 +161,9 @@ class ArtifactBundleArchive:
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
-            headers = self._normalize_headers(info.get("headers", {}))
+            headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self._normalize_debug_id(debug_id)
+                debug_id = self.normalize_debug_id(debug_id)
                 file_type = info.get("type")
                 if (
                     debug_id is not None
