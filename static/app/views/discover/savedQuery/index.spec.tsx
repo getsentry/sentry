@@ -110,11 +110,7 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
     it('renders the correct set of buttons with the homepage query feature', () => {
       organization = TestStubs.Organization({
-        features: [
-          'discover-query',
-          'dashboards-edit',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-query', 'dashboards-edit'],
       });
       mount(location, organization, router, errorsView, undefined, yAxis);
 

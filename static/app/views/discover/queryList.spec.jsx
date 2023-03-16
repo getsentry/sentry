@@ -35,11 +35,7 @@ describe('Discover > QueryList', function () {
 
   beforeEach(function () {
     organization = TestStubs.Organization({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-query-builder-as-landing-page',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     savedQueries = [
       TestStubs.DiscoverSavedQuery(),
