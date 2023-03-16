@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, List, Mapping, Optional, cast
+from typing import Any, Iterable, List, Mapping, Optional, cast
 
 from pydantic import Field
 
@@ -266,6 +266,11 @@ class OrganizationService(RpcService):
     @rpc_method
     @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
     @rpc_method
