@@ -19,7 +19,7 @@ export const experimentList = [
     assignments: ['baseline', 'variant1', 'variant2'],
   },
   {
-    key: 'APMSidebarExperiment',
+    key: 'ExtendTrialByInvitingMemberExperiment',
     type: ExperimentType.Organization,
     parameter: 'exposed',
     assignments: [0, 1],
