@@ -18,7 +18,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.monitors.utils import signal_first_checkin
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
@@ -90,16 +90,7 @@ def process_message(message: Message[KafkaPayload]) -> None:
                     date_updated=start_time,
                 )
 
-                if not project.flags.has_cron_checkins:
-                    # Backfill users that already have cron monitors
-                    if not project.flags.has_cron_monitors:
-                        first_cron_monitor_created.send_robust(
-                            project=project, user=None, sender=Project
-                        )
-
-                    first_cron_checkin_received.send_robust(
-                        project=project, monitor_id=str(monitor.guid), sender=Project
-                    )
+                signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor.mark_failed(start_time)
