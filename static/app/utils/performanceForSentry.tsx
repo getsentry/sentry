@@ -354,7 +354,7 @@ const customMeasurements: Record<
    *
    * This should replace LCP as a 'load' metric when it's present, since it also works on navigations.
    */
-  visually_complete_data: ({transaction, transactionStart}) => {
+  visually_complete_with_data: ({transaction, transactionStart}) => {
     const vcdSpan = getVCDSpan(transaction);
     if (!vcdSpan?.endTimestamp) {
       return undefined;
