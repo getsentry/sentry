@@ -13,10 +13,10 @@ function renderComponent(isHidden) {
   return render(
     <ProjectEnvironments
       params={{
-        orgId: org.slug,
         projectId: project.slug,
       }}
       location={{pathname}}
+      organization={org}
       routes={[]}
     />
   );

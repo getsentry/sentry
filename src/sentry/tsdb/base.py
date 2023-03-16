@@ -24,6 +24,9 @@ class TSDBModel(Enum):
     # number of transactions seen specific to a group
     group_performance = 10
 
+    # number of occurrences seen specific to a generic group
+    group_generic = 20
+
     # the number of events sent to the server
     project_total_received = 100
     # the number of events rejected due to rate limiting
@@ -46,6 +49,8 @@ class TSDBModel(Enum):
     users_affected_by_project = 301
     # distinct count of users that have been affected by an event in a performance group
     users_affected_by_perf_group = 302
+    # distinct count of users that have been affected by an event in a generic group
+    users_affected_by_generic_group = 303
 
     # frequent_organization_received_by_system = 400
     # frequent_organization_rejected_by_system = 401
@@ -350,7 +355,15 @@ class BaseTSDB(Service):
         raise NotImplementedError
 
     def get_range(
-        self, model, keys, start, end, rollup=None, environment_ids=None, use_cache=False
+        self,
+        model,
+        keys,
+        start,
+        end,
+        rollup=None,
+        environment_ids=None,
+        use_cache=False,
+        tenant_ids=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -374,6 +387,7 @@ class BaseTSDB(Service):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         range_set = self.get_range(
             model,
@@ -384,6 +398,7 @@ class BaseTSDB(Service):
             environment_ids=[environment_id] if environment_id is not None else None,
             use_cache=use_cache,
             jitter_value=jitter_value,
+            tenant_ids=tenant_ids,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -446,6 +461,7 @@ class BaseTSDB(Service):
         environment_id=None,
         use_cache=False,
         jitter_value=None,
+        tenant_ids=None,
     ):
         """
         Count distinct items during a time range.

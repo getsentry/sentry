@@ -197,7 +197,9 @@ class DashboardWidgetQuerySerializer(CamelSnakeSerializer):
 
             builder.resolve_time_conditions()
             builder.resolve_conditions(conditions, use_aggregate_conditions=True)
-            builder.resolve_params()
+            # We need to resolve params to set time range params here since some
+            # field aliases might those params to be resolved (total.count)
+            builder.where = builder.resolve_params()
         except InvalidSearchQuery as err:
             data["discover_query_error"] = {"conditions": [f"Invalid conditions: {err}"]}
             return data
@@ -363,7 +365,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer):
         self.instance = Dashboard.objects.create(
             organization=self.context.get("organization"),
             title=validated_data["title"],
-            created_by=self.context.get("request").user,
+            created_by_id=self.context.get("request").user.id,
         )
 
         if "widgets" in validated_data:

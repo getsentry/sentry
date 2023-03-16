@@ -2,12 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
@@ -22,6 +22,10 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import withApi from 'sentry/utils/withApi';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {
   createUnnamedTransactionsDiscoverTarget,
   UNPARAMETERIZED_TRANSACTION,
@@ -165,9 +169,23 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             provided.widgetData.list.data[selectedListIndex]?.transaction as string,
           ]);
 
+          let requestProps = pick(provided, eventsRequestQueryProps);
+          const showOnlyPoorVitals = organization.features.includes(
+            'performance-new-widget-designs'
+          );
+          if (showOnlyPoorVitals) {
+            const yAxis = Array.isArray(requestProps.yAxis)
+              ? requestProps.yAxis
+              : [requestProps.yAxis];
+            const poorVitalsAxis = yAxis.find(vitalField => vitalField?.includes('poor'));
+            requestProps = {
+              ...requestProps,
+              yAxis: poorVitalsAxis ? [poorVitalsAxis] : requestProps.yAxis,
+            };
+          }
           return (
             <EventsRequest
-              {...pick(provided, eventsRequestQueryProps)}
+              {...requestProps}
               limit={1}
               currentSeriesNames={[sortField]}
               includePrevious={false}
@@ -206,6 +224,20 @@ export function VitalWidget(props: PerformanceWidgetProps) {
     // TODO(k-fish): Add analytics.
   };
 
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <_VitalChart
+        {...provided.widgetData.chart}
+        {...provided}
+        field={field}
+        vitalFields={vitalFields}
+        grid={provided.grid}
+      />
+    );
+
   const getItems = provided =>
     provided.widgetData.list.data.slice(0, 3).map(listItem => () => {
       const transaction = (listItem?.transaction as string | undefined) ?? '';
@@ -219,10 +251,15 @@ export function VitalWidget(props: PerformanceWidgetProps) {
       _eventView.query = initialConditions.formatString();
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
-      const target = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
+      const transactionTarget = organization.features.includes(
+        'performance-metrics-backed-transaction-summary'
+      )
+        ? transactionSummaryRouteWithQuery({
+            orgSlug: props.organization.slug,
+            projectID: listItem['project.id'],
+            transaction: listItem.transaction,
+            query: _eventView.generateQueryStringObject(),
+            display: DisplayModes.VITALS,
           })
         : vitalDetailRouteWithQuery({
             orgSlug: organization.slug,
@@ -230,6 +267,13 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             vitalName: vital,
             projectID: decodeList(location.query.project),
           });
+
+      const target = isUnparameterizedRow
+        ? createUnnamedTransactionsDiscoverTarget({
+            organization,
+            location,
+          })
+        : transactionTarget;
 
       const data = {
         [settingToVital[props.chartSetting]]: getVitalDataForListItem(
@@ -278,16 +322,7 @@ export function VitalWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <_VitalChart
-                  {...provided.widgetData.chart}
-                  {...provided}
-                  field={field}
-                  vitalFields={vitalFields}
-                  grid={provided.grid}
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

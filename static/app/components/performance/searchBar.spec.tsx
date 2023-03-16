@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {
   act,
   render,
@@ -134,10 +136,10 @@ describe('SearchBar', () => {
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenCalledWith('transaction:clients.fetch');
+    expect(onSearch).toHaveBeenCalledWith('transaction:"clients.fetch"');
   });
 
-  it('Submits wildcard searches', async () => {
+  it('Submits wildcard searches as raw text searches', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -161,6 +163,56 @@ describe('SearchBar', () => {
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
-    expect(onSearch).toHaveBeenCalledWith('transaction:client*');
+    expect(onSearch).toHaveBeenCalledWith('client*');
+  });
+
+  it('closes the search dropdown when clicked outside of', () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [
+          {project_id: 1, transaction: 'clients.call'},
+          {project_id: 1, transaction: 'clients.fetch'},
+        ],
+      },
+    });
+    render(
+      <Fragment>
+        <div data-test-id="some-div" />
+        <SearchBar {...testProps} onSearch={onSearch} />
+      </Fragment>
+    );
+
+    userEvent.type(screen.getByRole('textbox'), 'proje');
+    expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
+
+    userEvent.click(screen.getByTestId('some-div'));
+    expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
+  });
+
+  it('properly formats transaction queries that include a space', async () => {
+    const onSearch = jest.fn();
+    eventsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        data: [{transaction: 'GET /my-endpoint'}],
+      },
+    });
+
+    render(<SearchBar {...testProps} onSearch={onSearch} />);
+
+    userEvent.type(screen.getByRole('textbox'), 'GET /my-endpoint');
+    expect(screen.getByRole('textbox')).toHaveValue('GET /my-endpoint');
+
+    act(jest.runAllTimers);
+
+    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+
+    userEvent.keyboard('{Down}');
+    userEvent.keyboard('{Enter}');
+
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');
   });
 });

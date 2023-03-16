@@ -18,6 +18,8 @@ EVENT_TYPE_ALIAS = "event.type"
 USER_DISPLAY_ALIAS = "user.display"
 PROJECT_ALIAS = "project"
 PROJECT_NAME_ALIAS = "project.name"
+PROJECT_DOT_ID_ALIAS = "project.id"
+PROJECT_ID_ALIAS = "project_id"
 ISSUE_ALIAS = "issue"
 ISSUE_ID_ALIAS = "issue.id"
 RELEASE_ALIAS = "release"
@@ -28,6 +30,8 @@ SEMVER_BUILD_ALIAS = "release.build"
 TITLE_ALIAS = "title"
 TIMESTAMP_TO_HOUR_ALIAS = "timestamp.to_hour"
 TIMESTAMP_TO_DAY_ALIAS = "timestamp.to_day"
+# Named this way in case we want to eventually do stuff like total.p50
+TOTAL_COUNT_ALIAS = "total.count"
 TRANSACTION_STATUS_ALIAS = "transaction.status"
 MEASUREMENTS_FRAMES_SLOW_RATE = "measurements.frames_slow_rate"
 MEASUREMENTS_FRAMES_FROZEN_RATE = "measurements.frames_frozen_rate"
@@ -35,6 +39,7 @@ MEASUREMENTS_STALL_PERCENTAGE = "measurements.stall_percentage"
 TRACE_PARENT_SPAN_CONTEXT = "trace.parent_span_id"
 TRACE_PARENT_SPAN_ALIAS = "trace.parent_span"
 HTTP_STATUS_CODE_ALIAS = "http.status_code"
+DEVICE_CLASS_ALIAS = "device.class"
 
 
 class ThresholdDict(TypedDict):
@@ -123,6 +128,9 @@ RESULT_TYPES = RESULT_TYPES.union(DURATION_UNITS.keys())
 PERCENT_UNITS = {"ratio", "percent"}
 
 NO_CONVERSION_FIELDS = {"start", "end"}
+# Skip total_count_alias since it queries the total count and therefore doesn't make sense in a filter
+# In these cases we should instead treat it as a tag instead
+SKIP_FILTER_RESOLUTION = {TOTAL_COUNT_ALIAS}
 EQUALITY_OPERATORS = frozenset(["=", "IN"])
 INEQUALITY_OPERATORS = frozenset(["!=", "NOT IN"])
 ARRAY_FIELDS = {
@@ -245,24 +253,6 @@ METRIC_DURATION_COLUMNS = {
     key
     for key, value in METRICS_MAP.items()
     if value.endswith("@millisecond") and value.startswith("d:")
-}
-# So we can dry run some queries to see how often they'd be compatible
-DRY_RUN_COLUMNS = {
-    METRIC_TOLERATED_TAG_VALUE,
-    METRIC_SATISFIED_TAG_VALUE,
-    METRIC_FRUSTRATED_TAG_VALUE,
-    METRIC_SATISFACTION_TAG_KEY,
-    "environment",
-    "http.method",
-    "measurement_rating",
-    "organization_id",
-    "project.id",
-    "project_id",
-    "release",
-    "timestamp",
-    "transaction.op",
-    "transaction",
-    "transaction.status",
 }
 METRIC_PERCENTILES = {
     0.25,

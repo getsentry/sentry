@@ -1,11 +1,11 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
 import {BoundTooltip} from 'sentry/components/profiling/boundTooltip';
 import {IconLightning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -46,6 +46,17 @@ export interface FlamegraphTooltipProps {
 }
 
 export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
+  const frameInConfigSpace = useMemo<Rect>(() => {
+    return new Rect(
+      props.frame.start,
+      props.frame.end,
+      props.frame.end - props.frame.start,
+      1
+    ).transformRect(props.flamegraphView.configSpaceTransform);
+  }, [props.flamegraphView, props.frame]);
+
+  const isCount = props.flamegraphRenderer.flamegraph.profile.unit === 'count';
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -58,6 +69,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {isCount && t('samples') + ' '}
         {formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
@@ -71,19 +83,23 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           </Fragment>
         )}
       </FlamegraphTooltipTimelineInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.start)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(props.frame.end)}
-        {props.frame.frame.inline ? (
-          <FlamegraphInlineIndicator>
-            <IconLightning width={10} />
-            {t('inline frame')}
-          </FlamegraphInlineIndicator>
-        ) : (
-          ''
-        )}
-      </FlamegraphTooltipTimelineInfo>
+      {!isCount && (
+        <FlamegraphTooltipTimelineInfo>
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
+          {' \u2014 '}
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(
+            frameInConfigSpace.right
+          )}
+          {props.frame.frame.inline ? (
+            <FlamegraphInlineIndicator>
+              <IconLightning width={10} />
+              {t('inline frame')}
+            </FlamegraphInlineIndicator>
+          ) : (
+            ''
+          )}
+        </FlamegraphTooltipTimelineInfo>
+      )}
     </BoundTooltip>
   );
 }
@@ -115,6 +131,7 @@ export const FlamegraphTooltipFrameMainInfo = styled('div')`
 
 export const FlamegraphTooltipColorIndicator = styled('div')<{
   backgroundColor: React.CSSProperties['backgroundColor'];
+  backgroundImage?: React.CSSProperties['backgroundImage'];
 }>`
   width: 12px;
   height: 12px;
@@ -122,6 +139,8 @@ export const FlamegraphTooltipColorIndicator = styled('div')<{
   min-height: 12px;
   border-radius: 2px;
   display: inline-block;
+  background-image: ${p => p.backgroundImage};
+  background-size: 16px 16px;
   background-color: ${p => p.backgroundColor};
   margin-right: ${space(1)};
 `;

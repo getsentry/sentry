@@ -1,6 +1,4 @@
-import {useEffect, useMemo, useRef} from 'react';
-import * as Sentry from '@sentry/react';
-import {Transaction} from '@sentry/types';
+import {useEffect, useMemo} from 'react';
 import assign from 'lodash/assign';
 import flatten from 'lodash/flatten';
 import memoize from 'lodash/memoize';
@@ -26,7 +24,7 @@ import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import Measurements from 'sentry/utils/measurements/measurements';
 import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
-import {isCustomMeasurement} from 'sentry/views/dashboardsV2/utils';
+import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -132,7 +130,6 @@ function SearchBar(props: SearchBarProps) {
   } = props;
 
   const api = useApi();
-  const collectedTransactionFromGetTagsListRef = useRef<boolean>(false);
 
   const functionTags = useMemo(() => getFunctionTags(fields), [fields]);
   const tagsWithKind = useMemo(() => {
@@ -190,19 +187,6 @@ function SearchBar(props: SearchBarProps) {
       React.ComponentProps<typeof Measurements>['children']
     >[0]['measurements']
   ) => {
-    // We will only collect a transaction once and only if the number of tags > 0
-    // This is to avoid a large number of transactions being sent to Sentry. The 0 check
-    // is to avoid collecting a transaction when tags are not loaded yet.
-    let transaction: Transaction | undefined = undefined;
-    if (!collectedTransactionFromGetTagsListRef.current && Object.keys(tags).length > 0) {
-      transaction = Sentry.startTransaction({
-        name: 'SearchBar.getTagList',
-      });
-      // Mark as collected - if code below errors, we risk never collecting
-      // a transaction in that case, but that is fine.
-      collectedTransactionFromGetTagsListRef.current = true;
-    }
-
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
@@ -230,16 +214,6 @@ function SearchBar(props: SearchBarProps) {
 
     const list =
       omitTags && omitTags.length > 0 ? omit(combinedTags, omitTags) : combinedTags;
-
-    if (transaction) {
-      const totalCount: number = Object.keys(list).length;
-      transaction.setTag('tags.totalCount', totalCount);
-      const countGroup = [
-        1, 5, 10, 20, 50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 10000,
-      ].find(n => totalCount <= n);
-      transaction.setTag('tags.totalCount.grouped', `<=${countGroup}`);
-      transaction.finish();
-    }
     return list;
   };
 
@@ -256,7 +230,7 @@ function SearchBar(props: SearchBarProps) {
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
           }}
           maxSearchItems={maxSearchItems}
-          excludedTags={['environment']}
+          excludedTags={[FieldKey.ENVIRONMENT, FieldKey.TOTAL_COUNT]}
           maxMenuHeight={maxMenuHeight ?? 300}
           customPerformanceMetrics={customMeasurements}
           {...props}

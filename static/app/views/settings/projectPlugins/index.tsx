@@ -12,7 +12,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 import ProjectPlugins from './projectPlugins';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   plugins: {
     error: React.ComponentProps<typeof ProjectPlugins>['error'];
@@ -28,7 +28,9 @@ class ProjectPluginsContainer extends Component<Props> {
   }
 
   fetchData = async () => {
-    const plugins = await fetchPlugins(this.props.params);
+    const {organization, params} = this.props;
+
+    const plugins = await fetchPlugins({...params, orgId: organization.slug});
     const installCount = plugins.filter(
       plugin => plugin.hasConfiguration && plugin.enabled
     ).length;
@@ -44,20 +46,21 @@ class ProjectPluginsContainer extends Component<Props> {
   };
 
   handleChange = (pluginId: string, shouldEnable: boolean) => {
-    const {projectId, orgId} = this.props.params;
+    const {organization, params} = this.props;
+
     const actionCreator = shouldEnable ? enablePlugin : disablePlugin;
-    actionCreator({projectId, orgId, pluginId});
+    actionCreator({projectId: params.projectId, orgId: organization.slug, pluginId});
   };
 
   render() {
     const {loading, error, plugins} = this.props.plugins || {};
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     const title = t('Legacy Integrations');
 
     return (
       <Fragment>
-        <SentryDocumentTitle title={title} orgSlug={orgId} />
+        <SentryDocumentTitle title={title} orgSlug={organization.slug} />
         <SettingsPageHeader title={title} />
         <PermissionAlert />
 

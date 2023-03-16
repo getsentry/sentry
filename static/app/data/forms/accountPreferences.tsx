@@ -1,6 +1,6 @@
 import {JsonFormObject} from 'sentry/components/forms/types';
 import languages from 'sentry/data/languages';
-import timezones from 'sentry/data/timezones';
+import {timezoneOptions} from 'sentry/data/timezones';
 import {t} from 'sentry/locale';
 
 // Export route to make these forms searchable by label/help
@@ -40,7 +40,7 @@ const formGroups: JsonFormObject[] = [
         name: 'timezone',
         type: 'select',
         label: t('Timezone'),
-        options: timezones.map(([value, label]) => ({value, label})),
+        options: timezoneOptions,
         getData: transformOptions,
       },
       {

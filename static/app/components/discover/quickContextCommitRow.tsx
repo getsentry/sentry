@@ -2,15 +2,14 @@ import styled from '@emotion/styled';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import CommitLink from 'sentry/components/commitLink';
+import {CommitRowProps, formatCommitMessage} from 'sentry/components/commitRow';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelItem} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
-
-import {CommitRowProps, formatCommitMessage} from '../commitRow';
-import ExternalLink from '../links/externalLink';
-import Tooltip from '../tooltip';
+import {space} from 'sentry/styles/space';
 
 function QuickContextCommitRow({commit}: CommitRowProps) {
   const user = ConfigStore.get('user');

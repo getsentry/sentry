@@ -3,7 +3,7 @@ import {RouteComponentProps} from 'react-router';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
 import {IconMail} from 'sentry/icons';
@@ -17,7 +17,7 @@ import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHea
 type Props = {
   organization: Organization;
   children?: any;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];
@@ -34,17 +34,17 @@ const InviteMembersButtonHook = HookOrDefault({
 
 class OrganizationMembersWrapper extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     return [
-      ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
-      ['requestList', `/organizations/${orgId}/access-requests/`],
+      ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
+      ['requestList', `/organizations/${organization.slug}/access-requests/`],
     ];
   }
 
   getTitle() {
-    const {orgId} = this.props.params;
-    return routeTitleGen(t('Members'), orgId, false);
+    const {organization} = this.props;
+    return routeTitleGen(t('Members'), organization.slug, false);
   }
 
   get onRequestsTab() {

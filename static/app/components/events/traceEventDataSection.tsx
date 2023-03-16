@@ -2,27 +2,29 @@ import {
   AnchorHTMLAttributes,
   cloneElement,
   createContext,
-  Fragment,
+  useCallback,
   useState,
 } from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compositeSelect';
-import Tooltip from 'sentry/components/tooltip';
+import {CompactSelect} from 'sentry/components/compactSelect';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconEllipsis, IconLink, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {PlatformType, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {STACK_TYPE} from 'sentry/types/stacktrace';
-import {isNativePlatform} from 'sentry/utils/platform';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import EventDataSection from './eventDataSection';
+import {EventDataSection} from './eventDataSection';
 
 const sortByOptions = {
   'recent-first': t('Newest'),
@@ -36,6 +38,8 @@ export const displayOptions = {
   'raw-stack-trace': t('Raw stack trace'),
   'verbose-function-names': t('Verbose function names'),
 };
+
+const HookCodecovCTA = HookOrDefault({hookName: 'component:codecov-integration-cta'});
 
 type State = {
   display: Array<keyof typeof displayOptions>;
@@ -56,7 +60,7 @@ type Props = {
   hasNewestFirst: boolean;
   hasVerboseFunctionNames: boolean;
   platform: PlatformType;
-  projectId: Project['id'];
+  projectSlug: Project['slug'];
   recentFirst: boolean;
   stackTraceNotFound: boolean;
   stackType: STACK_TYPE;
@@ -79,7 +83,7 @@ export function TraceEventDataSection({
   children,
   platform,
   stackType,
-  projectId,
+  projectSlug,
   eventId,
   hasNewestFirst,
   hasMinified,
@@ -96,6 +100,181 @@ export function TraceEventDataSection({
     fullStackTrace: !hasAppOnlyFrames ? true : fullStackTrace,
     display: [],
   });
+
+  const isMobile = isMobilePlatform(platform);
+
+  const handleFilterFramesChange = useCallback(
+    (val: 'full' | 'relevant') => {
+      const isFullOptionClicked = val === 'full';
+
+      trackAdvancedAnalyticsEvent(
+        isFullOptionClicked
+          ? 'stack-trace.full_stack_trace_clicked'
+          : 'stack-trace.most_relevant_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+        }
+      );
+
+      setState(currentState => ({...currentState, fullStackTrace: isFullOptionClicked}));
+    },
+    [organization, platform, projectSlug, isMobile]
+  );
+
+  const handleSortByChange = useCallback(
+    (val: keyof typeof sortByOptions) => {
+      const isRecentFirst = val === 'recent-first';
+
+      trackAdvancedAnalyticsEvent(
+        isRecentFirst
+          ? 'stack-trace.sort_option_recent_first_clicked'
+          : 'stack-trace.sort_option_recent_last_clicked',
+        {
+          organization,
+          project_slug: projectSlug,
+          platform,
+          is_mobile: isMobile,
+        }
+      );
+
+      setState(currentState => ({...currentState, sortBy: val}));
+    },
+    [organization, platform, projectSlug, isMobile]
+  );
+
+  const handleDisplayChange = useCallback(
+    (vals: (keyof typeof displayOptions)[]) => {
+      if (vals.includes('raw-stack-trace')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_raw_stack_trace_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('raw-stack-trace')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_raw_stack_trace_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('absolute-addresses')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_addresses_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('absolute-addresses')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_addresses_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('absolute-file-paths')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_file_paths_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('absolute-file-paths')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_absolute_file_paths_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('minified')) {
+        trackAdvancedAnalyticsEvent(
+          platform.startsWith('javascript')
+            ? 'stack-trace.display_option_minified_clicked'
+            : 'stack-trace.display_option_unsymbolicated_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('minified')) {
+        trackAdvancedAnalyticsEvent(
+          platform.startsWith('javascript')
+            ? 'stack-trace.display_option_minified_clicked'
+            : 'stack-trace.display_option_unsymbolicated_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      if (vals.includes('verbose-function-names')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_verbose_function_names_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: true,
+          }
+        );
+      } else if (state.display.includes('verbose-function-names')) {
+        trackAdvancedAnalyticsEvent(
+          'stack-trace.display_option_verbose_function_names_clicked',
+          {
+            organization,
+            project_slug: projectSlug,
+            platform,
+            is_mobile: isMobile,
+            checked: false,
+          }
+        );
+      }
+
+      setState(currentState => ({...currentState, display: vals}));
+    },
+    [organization, platform, projectSlug, isMobile, state]
+  );
 
   function getDisplayOptions(): {
     label: string;
@@ -157,6 +336,22 @@ export function TraceEventDataSection({
       ];
     }
 
+    // This logic might be incomplete, but according to the SDK folks, this is 99.9% of the cases
+    if (platform.startsWith('javascript')) {
+      return [
+        {
+          label: t('Minified'),
+          value: 'minified',
+          disabled: !hasMinified,
+          tooltip: !hasMinified ? t('Minified version not available') : undefined,
+        },
+        {
+          label: displayOptions['raw-stack-trace'],
+          value: 'raw-stack-trace',
+        },
+      ];
+    }
+
     return [
       {
         label: displayOptions.minified,
@@ -175,7 +370,7 @@ export function TraceEventDataSection({
   const minified = stackType === STACK_TYPE.MINIFIED;
 
   // Apple crash report endpoint
-  const appleCrashEndpoint = `/projects/${organization.slug}/${projectId}/events/${eventId}/apple-crash-report?minified=${minified}`;
+  const appleCrashEndpoint = `/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${minified}`;
   const rawStackTraceDownloadLink = `${api.baseUrl}${appleCrashEndpoint}&download=1`;
 
   const sortByTooltip = !hasNewestFirst
@@ -193,107 +388,86 @@ export function TraceEventDataSection({
   return (
     <EventDataSection
       type={type}
-      title={
-        <Header>
-          <Title>{cloneElement(title, {type})}</Title>
-          <ActionWrapper>
-            {!stackTraceNotFound && (
-              <Fragment>
-                {!state.display.includes('raw-stack-trace') && (
-                  <Tooltip
-                    title={t('Only full version available')}
-                    disabled={hasAppOnlyFrames}
-                  >
-                    <ButtonBar active={state.fullStackTrace ? 'full' : 'relevant'} merged>
-                      <Button
-                        type="button"
-                        size="xs"
-                        barId="relevant"
-                        onClick={() =>
-                          setState({
-                            ...state,
-                            fullStackTrace: false,
-                          })
-                        }
-                        disabled={!hasAppOnlyFrames}
-                      >
-                        {t('Most Relevant')}
-                      </Button>
-                      <Button
-                        type="button"
-                        size="xs"
-                        barId="full"
-                        priority={!hasAppOnlyFrames ? 'primary' : undefined}
-                        onClick={() =>
-                          setState({
-                            ...state,
-                            fullStackTrace: true,
-                          })
-                        }
-                      >
-                        {t('Full Stack Trace')}
-                      </Button>
-                    </ButtonBar>
-                  </Tooltip>
-                )}
-                {state.display.includes('raw-stack-trace') && nativePlatform && (
-                  <Button
-                    size="xs"
-                    href={rawStackTraceDownloadLink}
-                    title={t('Download raw stack trace file')}
-                  >
-                    {t('Download')}
-                  </Button>
-                )}
-                <CompactSelect
-                  triggerProps={{
-                    icon: <IconSort />,
-                    size: 'xs',
-                    title: sortByTooltip,
-                  }}
-                  isDisabled={!!sortByTooltip}
-                  position="bottom-end"
-                  onChange={selectedOption => {
-                    setState({...state, sortBy: selectedOption.value});
-                  }}
-                  value={state.sortBy}
-                  options={Object.entries(sortByOptions).map(([value, label]) => ({
-                    label,
-                    value: value as keyof typeof sortByOptions,
-                  }))}
-                />
-                <CompositeSelect
-                  triggerProps={{
-                    icon: <IconEllipsis />,
-                    size: 'xs',
-                    showChevron: false,
-                    'aria-label': t('Options'),
-                  }}
-                  triggerLabel=""
-                  position="bottom-end"
-                  sections={[
-                    {
-                      label: t('Display'),
-                      value: 'display',
-                      defaultValue: state.display,
-                      multiple: true,
-                      options: getDisplayOptions().map(option => ({
-                        ...option,
-                        value: String(option.value),
-                      })),
-                      onChange: display => setState({...state, display}),
-                    },
-                  ]}
-                />
-              </Fragment>
+      title={cloneElement(title, {type})}
+      actions={
+        !stackTraceNotFound && (
+          <ButtonBar gap={1}>
+            {!state.display.includes('raw-stack-trace') && (
+              <Tooltip
+                title={t('Only full version available')}
+                disabled={hasAppOnlyFrames}
+              >
+                <SegmentedControl
+                  size="xs"
+                  aria-label={t('Filter frames')}
+                  value={state.fullStackTrace ? 'full' : 'relevant'}
+                  onChange={handleFilterFramesChange}
+                >
+                  <SegmentedControl.Item key="relevant" disabled={!hasAppOnlyFrames}>
+                    {t('Most Relevant')}
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="full">
+                    {t('Full Stack Trace')}
+                  </SegmentedControl.Item>
+                </SegmentedControl>
+              </Tooltip>
             )}
-          </ActionWrapper>
-        </Header>
+            {state.display.includes('raw-stack-trace') && nativePlatform && (
+              <Button
+                size="xs"
+                href={rawStackTraceDownloadLink}
+                title={t('Download raw stack trace file')}
+                onClick={() => {
+                  trackAdvancedAnalyticsEvent('stack-trace.download_clicked', {
+                    organization,
+                    project_slug: projectSlug,
+                    platform,
+                    is_mobile: isMobile,
+                  });
+                }}
+              >
+                {t('Download')}
+              </Button>
+            )}
+            <CompactSelect
+              triggerProps={{
+                icon: <IconSort size="xs" />,
+                size: 'xs',
+                title: sortByTooltip,
+              }}
+              disabled={!!sortByTooltip}
+              position="bottom-end"
+              onChange={selectedOption => {
+                handleSortByChange(selectedOption.value);
+              }}
+              value={state.sortBy}
+              options={Object.entries(sortByOptions).map(([value, label]) => ({
+                label,
+                value: value as keyof typeof sortByOptions,
+              }))}
+            />
+            <CompactSelect
+              triggerProps={{
+                icon: <IconEllipsis size="xs" />,
+                size: 'xs',
+                showChevron: false,
+                'aria-label': t('Options'),
+              }}
+              multiple
+              triggerLabel=""
+              position="bottom-end"
+              value={state.display}
+              onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+              options={[{label: t('Display'), options: getDisplayOptions()}]}
+            />
+          </ButtonBar>
+        )
       }
       showPermalink={false}
       wrapTitle={wrapTitle}
     >
       <TraceEventDataSectionContext.Provider value={childProps}>
+        <HookCodecovCTA />
         {children(childProps)}
       </TraceEventDataSectionContext.Provider>
     </EventDataSection>
@@ -330,25 +504,4 @@ const Permalink = styled('a')`
   &:hover ${StyledIconLink} {
     display: block;
   }
-`;
-
-const Header = styled('div')`
-  width: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(1)};
-  align-items: center;
-  justify-content: space-between;
-`;
-
-const Title = styled('div')`
-  flex: 1;
-  @media (min-width: ${props => props.theme.breakpoints.small}) {
-    flex: unset;
-  }
-`;
-
-const ActionWrapper = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;

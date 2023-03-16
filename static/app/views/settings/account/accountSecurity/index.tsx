@@ -3,17 +3,17 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openEmailVerification} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ListLink from 'sentry/components/links/listLink';
 import NavTabs from 'sentry/components/navTabs';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator, OrganizationSummary} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import AsyncView from 'sentry/views/asyncView';
@@ -106,7 +106,7 @@ class AccountSecurity extends AsyncView<Props> {
         <Panel>
           <PanelHeader>{t('Sessions')}</PanelHeader>
           <PanelBody>
-            <Field
+            <FieldGroup
               alignRight
               flexibleControlStateSize
               label={t('Sign out of all devices')}
@@ -117,7 +117,7 @@ class AccountSecurity extends AsyncView<Props> {
               <Button onClick={this.handleSessionClose}>
                 {t('Sign out of all devices')}
               </Button>
-            </Field>
+            </FieldGroup>
           </PanelBody>
         </Panel>
 

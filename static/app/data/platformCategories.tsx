@@ -228,12 +228,18 @@ export const profiling = [
   'python',
   'python-django',
   'python-flask',
+  'python-fastapi',
+  'python-starlette',
   'python-sanic',
+  'python-celery',
   'python-bottle',
   'python-pylons',
   'python-pyramid',
   'python-tornado',
-];
+  'python-rq',
+  // rust
+  'rust',
+] as const;
 
 export const releaseHealth: PlatformKey[] = [
   // frontend
@@ -326,13 +332,13 @@ export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
 };
 
 export type PlatformKey =
-  | typeof popularPlatformCategories[number]
-  | typeof frontend[number]
-  | typeof mobile[number]
-  | typeof backend[number]
-  | typeof desktop[number]
-  | typeof tracing[number]
-  | typeof serverless[number]
+  | (typeof popularPlatformCategories)[number]
+  | (typeof frontend)[number]
+  | (typeof mobile)[number]
+  | (typeof backend)[number]
+  | (typeof desktop)[number]
+  | (typeof tracing)[number]
+  | (typeof serverless)[number]
   | 'other';
 
 export default categoryList;

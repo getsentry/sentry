@@ -7,15 +7,16 @@ import {
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -28,14 +29,12 @@ import OrganizationSettingsForm from './organizationSettingsForm';
 type Props = {
   organization: Organization;
   projects: Project[];
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 function OrganizationGeneralSettings(props: Props) {
   const api = useApi();
 
-  const {organization, projects, params} = props;
-  const {orgId} = params;
-
+  const {organization, projects} = props;
   const access = new Set(organization.access);
 
   const removeConfirmMessage = (
@@ -77,6 +76,13 @@ function OrganizationGeneralSettings(props: Props) {
         browserHistory.replace(`/settings/${updated.slug}/`);
       }
     } else {
+      if (prevData.codecovAccess !== updated.codecovAccess) {
+        trackAdvancedAnalyticsEvent('organization_settings.codecov_access_updated', {
+          organization: updated,
+          has_access: updated.codecovAccess,
+        });
+      }
+
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(updated);
@@ -90,7 +96,7 @@ function OrganizationGeneralSettings(props: Props) {
 
     addLoadingMessage();
     removeAndRedirectToRemainingOrganization(api, {
-      orgId: params.orgId,
+      orgId: organization.slug,
       successMessage: `${organization.name} is queued for deletion.`,
       errorMessage: `Error removing the ${organization.name} organization`,
     });
@@ -98,7 +104,7 @@ function OrganizationGeneralSettings(props: Props) {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={orgId} />
+      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
       <div>
         <SettingsPageHeader title={t('Organization Settings')} />
         <PermissionAlert />
@@ -113,7 +119,7 @@ function OrganizationGeneralSettings(props: Props) {
         {access.has('org:admin') && !organization.isDefault && (
           <Panel>
             <PanelHeader>{t('Remove Organization')}</PanelHeader>
-            <Field
+            <FieldGroup
               label={t('Remove Organization')}
               help={t(
                 'Removing this organization will delete all data including projects and their associated events.'
@@ -129,7 +135,7 @@ function OrganizationGeneralSettings(props: Props) {
                   <Button priority="danger">{t('Remove Organization')}</Button>
                 </Confirm>
               </div>
-            </Field>
+            </FieldGroup>
           </Panel>
         )}
       </div>

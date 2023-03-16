@@ -28,7 +28,7 @@ describe('AlertRulesList', () => {
     <OrganizationContext.Provider value={props.organization ?? organization}>
       <AlertRulesList
         organization={props.organization ?? organization}
-        params={{orgId: organization.slug}}
+        params={{}}
         location={{query: {}, search: ''}}
         router={router}
         {...props}
@@ -161,7 +161,7 @@ describe('AlertRulesList', () => {
 
   it('displays dropdown context menu with actions', async () => {
     createWrapper();
-    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
     userEvent.click(actions);
@@ -173,7 +173,7 @@ describe('AlertRulesList', () => {
 
   it('sends user to new alert page on duplicate action', async () => {
     createWrapper();
-    const actions = (await screen.findAllByTestId('alert-row-actions'))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
     userEvent.click(actions);

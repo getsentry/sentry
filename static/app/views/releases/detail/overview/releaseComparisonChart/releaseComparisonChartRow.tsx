@@ -1,13 +1,13 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import NotAvailable from 'sentry/components/notAvailable';
 import Placeholder from 'sentry/components/placeholder';
 import Radio from 'sentry/components/radio';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {ReleaseComparisonChartType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 

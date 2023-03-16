@@ -8,7 +8,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNotesDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -63,7 +63,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
 
@@ -90,7 +90,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {
             "external_id": "123",
@@ -112,7 +112,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters"}
 

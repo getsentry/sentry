@@ -1,17 +1,21 @@
+import {RouteComponentProps} from 'react-router';
+
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {Organization} from 'sentry/types';
 
 export type StepData = {
   platform?: PlatformKey | null;
 };
 
 // Not sure if we need platform info to be passed down
-export type StepProps = {
+export type StepProps = Pick<
+  RouteComponentProps<{}, {}>,
+  'router' | 'route' | 'location'
+> & {
   active: boolean;
   genSkipOnboardingLink: () => React.ReactNode;
+  jumpToSetupProject: () => void;
   onComplete: () => void;
   orgId: string;
-  organization: Organization;
   search: string;
   stepIndex: number;
 };

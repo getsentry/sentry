@@ -22,8 +22,8 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import {IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Config, Member, Organization, TeamMember} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Config, Member, Organization, Team, TeamMember} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -32,7 +32,6 @@ import AsyncView from 'sentry/views/asyncView';
 import TeamMembersRow from './teamMembersRow';
 
 type RouteParams = {
-  orgId: string;
   teamId: string;
 };
 
@@ -40,6 +39,7 @@ type Props = {
   api: Client;
   config: Config;
   organization: Organization;
+  team: Team;
 } & RouteComponentProps<RouteParams, {}>;
 
 type State = {
@@ -74,13 +74,15 @@ class TeamMembers extends AsyncView<Props, State> {
   );
 
   fetchMembersRequest = async (query: string) => {
-    const {params, api} = this.props;
-    const {orgId} = params;
+    const {organization, api} = this.props;
 
     try {
-      const data = await api.requestPromise(`/organizations/${orgId}/members/`, {
-        query: {query},
-      });
+      const data = await api.requestPromise(
+        `/organizations/${organization.slug}/members/`,
+        {
+          query: {query},
+        }
+      );
       this.setState({
         orgMembers: data,
         dropdownBusy: false,
@@ -97,12 +99,12 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {params} = this.props;
+    const {organization, params} = this.props;
 
     return [
       [
         'teamMembers',
-        `/teams/${params.orgId}/${params.teamId}/members/`,
+        `/teams/${organization.slug}/${params.teamId}/members/`,
         {},
         {paginate: true},
       ],
@@ -110,7 +112,7 @@ class TeamMembers extends AsyncView<Props, State> {
   }
 
   addTeamMember = (selection: Item) => {
-    const {params} = this.props;
+    const {organization, params} = this.props;
     const {orgMembers, teamMembers} = this.state;
 
     this.setState({loading: true});
@@ -121,7 +123,7 @@ class TeamMembers extends AsyncView<Props, State> {
     joinTeam(
       this.props.api,
       {
-        orgId: params.orgId,
+        orgId: organization.slug,
         teamId: params.teamId,
         memberId: selection.value,
       },
@@ -147,12 +149,12 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   removeTeamMember = (member: Member) => {
-    const {params} = this.props;
+    const {organization, params} = this.props;
     const {teamMembers} = this.state;
     leaveTeam(
       this.props.api,
       {
-        orgId: params.orgId,
+        orgId: organization.slug,
         teamId: params.teamId,
         memberId: member.id,
       },
@@ -172,8 +174,9 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   updateTeamMemberRole = (member: Member, newRole: string) => {
-    const {orgId, teamId} = this.props.params;
-    const endpoint = `/organizations/${orgId}/members/${member.id}/teams/${teamId}/`;
+    const {organization} = this.props;
+    const {teamId} = this.props.params;
+    const endpoint = `/organizations/${organization.slug}/members/${member.id}/teams/${teamId}/`;
 
     this.props.api.request(endpoint, {
       method: 'PUT',
@@ -207,7 +210,7 @@ class TeamMembers extends AsyncView<Props, State> {
   };
 
   renderDropdown(hasWriteAccess: boolean) {
-    const {organization, params} = this.props;
+    const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
 
@@ -252,7 +255,7 @@ class TeamMembers extends AsyncView<Props, State> {
             : selection =>
                 openTeamAccessRequestModal({
                   teamId: params.teamId,
-                  orgId: params.orgId,
+                  orgId: organization.slug,
                   memberId: selection.value,
                 })
         }
@@ -261,9 +264,15 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
+        disabled={team.flags['idp:provisioned']}
       >
         {({isOpen}) => (
-          <DropdownButton isOpen={isOpen} size="xs" data-test-id="add-member">
+          <DropdownButton
+            isOpen={isOpen}
+            size="xs"
+            data-test-id="add-member"
+            disabled={team.flags['idp:provisioned']}
+          >
             {t('Add Member')}
           </DropdownButton>
         )}

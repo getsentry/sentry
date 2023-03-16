@@ -89,7 +89,8 @@ function getNextQueue(
 function buildProfile(
   processId: number,
   threadId: number,
-  events: ChromeTrace.Event[]
+  events: ChromeTrace.Event[],
+  type: ImportOptions['type']
 ): ChromeTraceProfile {
   let processName: string = `pid (${processId})`;
   let threadName: string = `tid (${threadId})`;
@@ -164,6 +165,7 @@ function buildProfile(
     name: `${processName}: ${threadName}`,
     unit: 'microseconds', // the trace event format provides timestamps in microseconds
     threadId,
+    type,
   });
 
   const stack: ChromeTrace.Event[] = [];
@@ -264,7 +266,7 @@ function createFrameInfoFromEvent(event: ChromeTrace.Event) {
 export function parseTypescriptChromeTraceArrayFormat(
   input: ChromeTrace.ArrayFormat,
   profileID: string,
-  options?: ImportOptions
+  options: ImportOptions
 ): ProfileGroup {
   const profiles: Profile[] = [];
   const eventsByProcessAndThreadID = splitEventsByProcessAndThreadId(input);
@@ -273,7 +275,8 @@ export function parseTypescriptChromeTraceArrayFormat(
     for (const [threadId, events] of threads) {
       wrapWithSpan(
         options?.transaction,
-        () => profiles.push(buildProfile(processId, threadId, events ?? [])),
+        () =>
+          profiles.push(buildProfile(processId, threadId, events ?? [], options.type)),
         {
           op: 'profile.import',
           description: 'chrometrace',
@@ -289,6 +292,7 @@ export function parseTypescriptChromeTraceArrayFormat(
     activeProfileIndex: 0,
     profiles,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }
 
@@ -512,13 +516,14 @@ export function collapseSamples(profile: ChromeTrace.CpuProfile): {
       elapsed = Math.max(elapsed + profile.timeDeltas[i + 1], elapsed);
     }
   }
+
   return {samples, sampleTimes};
 }
 
 export function parseChromeTraceFormat(
   input: ChromeTrace.ArrayFormat,
   profileID: string,
-  _options?: ImportOptions
+  _options: ImportOptions
 ): ProfileGroup {
   const {cpuProfiles, threadNames: _threadNames} = collectEventsByProfile(input);
 
@@ -536,5 +541,6 @@ export function parseChromeTraceFormat(
     traceID: profileID,
     transactionID: null,
     metadata: {} as Profiling.Schema['metadata'],
+    measurements: {},
   };
 }

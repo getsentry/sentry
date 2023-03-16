@@ -1,3 +1,5 @@
+from typing import Any, Mapping, MutableMapping
+
 from django.db import IntegrityError, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -6,14 +8,42 @@ from sentry import features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.integration import IntegrationIssueConfigSerializer
+from sentry.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations import IntegrationFeatures
-from sentry.models import Activity, ExternalIssue, GroupLink, Integration
+from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.models.group import Group
+from sentry.models.user import User
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked
 from sentry.types.activity import ActivityType
+from sentry.utils.json import JSONData
 
 MISSING_FEATURE_MESSAGE = "Your organization does not have access to this feature."
+
+
+class IntegrationIssueConfigSerializer(IntegrationSerializer):
+    def __init__(
+        self,
+        group: Group,
+        action: str,
+        config: Mapping[str, Any],
+    ) -> None:
+        self.group = group
+        self.action = action
+        self.config = config
+
+    def serialize(
+        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+    ) -> MutableMapping[str, JSONData]:
+        data = super().serialize(obj, attrs, user)
+
+        if self.action == "link":
+            data["linkIssueConfig"] = self.config
+        if self.action == "create":
+            data["createIssueConfig"] = self.config
+
+        return data
 
 
 @region_silo_endpoint
@@ -29,6 +59,13 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
 
         return has_issue_sync or has_issue_basic
 
+    def _has_issue_feature_on_integration(self, integration: RpcIntegration):
+        return integration_service.has_feature(
+            provider=integration.provider, feature=IntegrationFeatures.ISSUE_BASIC
+        ) or integration_service.has_feature(
+            provider=integration.provider, feature=IntegrationFeatures.ISSUE_SYNC
+        )
+
     def create_issue_activity(self, request: Request, group, installation, external_issue):
         issue_information = {
             "title": external_issue.title,
@@ -40,7 +77,7 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             project=group.project,
             group=group,
             type=ActivityType.CREATE_ISSUE.value,
-            user=request.user,
+            user_id=request.user.id,
             data=issue_information,
         )
 
@@ -56,20 +93,20 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "Action is required and should be either link or create"})
 
         organization_id = group.project.organization_id
-        try:
-            integration = Integration.objects.get(id=integration_id, organizations=organization_id)
-        except Integration.DoesNotExist:
+        (integration, org_integration) = integration_service.get_organization_context(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        if not integration or not org_integration:
             return Response(status=404)
 
-        if not (
-            integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-            or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-        ):
+        if not self._has_issue_feature_on_integration(integration):
             return Response(
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration.get_installation(organization_id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=organization_id
+        )
         config = None
         try:
             if action == "link":
@@ -101,20 +138,20 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"externalIssue": ["Issue ID is required"]}, status=400)
 
         organization_id = group.project.organization_id
-        try:
-            integration = Integration.objects.get(id=integration_id, organizations=organization_id)
-        except Integration.DoesNotExist:
+        (integration, org_integration) = integration_service.get_organization_context(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        if not integration or not org_integration:
             return Response(status=404)
 
-        if not (
-            integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-            or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-        ):
+        if not self._has_issue_feature_on_integration(integration):
             return Response(
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration.get_installation(organization_id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=organization_id
+        )
         try:
             data = installation.get_issue(external_issue_id, data=request.data)
         except IntegrationFormError as exc:
@@ -185,20 +222,20 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": MISSING_FEATURE_MESSAGE}, status=400)
 
         organization_id = group.project.organization_id
-        try:
-            integration = Integration.objects.get(id=integration_id, organizations=organization_id)
-        except Integration.DoesNotExist:
+        (integration, org_integration) = integration_service.get_organization_context(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        if not integration or not org_integration:
             return Response(status=404)
 
-        if not (
-            integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-            or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-        ):
+        if not self._has_issue_feature_on_integration(integration):
             return Response(
                 {"detail": "This feature is not supported for this integration."}, status=400
             )
 
-        installation = integration.get_installation(organization_id)
+        installation = integration_service.get_installation(
+            integration=integration, organization_id=organization_id
+        )
         try:
             data = installation.create_issue(request.data)
         except IntegrationFormError as exc:
@@ -263,15 +300,13 @@ class GroupIntegrationDetailsEndpoint(GroupEndpoint):
             return Response({"detail": "External ID required"}, status=400)
 
         organization_id = group.project.organization_id
-        try:
-            integration = Integration.objects.get(id=integration_id, organizations=organization_id)
-        except Integration.DoesNotExist:
+        (integration, org_integration) = integration_service.get_organization_context(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        if not integration or not org_integration:
             return Response(status=404)
 
-        if not (
-            integration.has_feature(IntegrationFeatures.ISSUE_BASIC)
-            or integration.has_feature(IntegrationFeatures.ISSUE_SYNC)
-        ):
+        if not self._has_issue_feature_on_integration(integration):
             return Response(
                 {"detail": "This feature is not supported for this integration."}, status=400
             )

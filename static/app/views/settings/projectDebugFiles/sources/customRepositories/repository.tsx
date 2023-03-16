@@ -1,12 +1,12 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {PanelItem} from 'sentry/components/panels';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CustomRepo, CustomRepoType} from 'sentry/types/debugFiles';
 
 import CustomRepositoryActions from './actions';

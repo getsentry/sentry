@@ -1,3 +1,5 @@
+from typing import Optional, TypedDict
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -6,7 +8,14 @@ from sentry.api.bases.organization_integrations import OrganizationIntegrationBa
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import IntegrationError
+
+
+class IntegrationRepository(TypedDict):
+    name: str
+    identifier: str
+    defaultBranch: Optional[str]
 
 
 @region_silo_endpoint
@@ -28,7 +37,9 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             context = {"repos": []}
             return self.respond(context)
 
-        install = integration.get_installation(organization.id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )
 
         if isinstance(install, RepositoryMixin):
             try:
@@ -36,7 +47,15 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
             except (IntegrationError, IdentityNotValid) as e:
                 return self.respond({"detail": str(e)}, status=400)
 
-            context = {"repos": repositories, "searchable": install.repo_search}
+            serializedRepositories = [
+                IntegrationRepository(
+                    name=repo["name"],
+                    identifier=repo["identifier"],
+                    defaultBranch=repo.get("default_branch"),
+                )
+                for repo in repositories
+            ]
+            context = {"repos": serializedRepositories, "searchable": install.repo_search}
             return self.respond(context)
 
         return self.respond({"detail": "Repositories not supported"}, status=400)

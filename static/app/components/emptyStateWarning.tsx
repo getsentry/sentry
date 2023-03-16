@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {IconSearch} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   children?: React.ReactNode;
@@ -26,7 +26,7 @@ const EmptyStateWarning = ({
     </EmptyMessage>
   ) : (
     <EmptyStreamWrapper data-test-id="empty-state" className={className}>
-      {withIcon && <IconSearch size="54px" />}
+      {withIcon && <IconSearch legacySize="54px" />}
       {children}
     </EmptyStreamWrapper>
   );

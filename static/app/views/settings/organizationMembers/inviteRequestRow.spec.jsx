@@ -69,7 +69,9 @@ describe('InviteRequestRow', function () {
     );
 
     expect(screen.getByText(inviteRequest.email)).toBeInTheDocument();
-    expect(screen.getByText(inviteRequest.inviterName)).toBeInTheDocument();
+    expect(
+      screen.getByText(`Requested by ${inviteRequest.inviterName}`)
+    ).toBeInTheDocument();
   });
 
   it('renders request to join', function () {

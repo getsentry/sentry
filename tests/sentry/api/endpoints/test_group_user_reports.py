@@ -6,7 +6,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupUserReport(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -31,9 +31,7 @@ class GroupUserReport(APITestCase, SnubaTestCase):
         return f"/api/0/groups/{self.group.id}/user-feedback/"
 
     def create_environment(self, project, name):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 

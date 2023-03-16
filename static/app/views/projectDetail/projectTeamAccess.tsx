@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
@@ -8,7 +8,7 @@ import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconOpen} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 
 import {SectionHeadingLink, SectionHeadingWrapper, SidebarSection} from './styles';

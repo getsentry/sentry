@@ -9,7 +9,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features, options
-from sentry.api.utils import generate_organization_url
+from sentry.api.utils import customer_domain_path, generate_organization_url
 from sentry.models import Project
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import first_event_pending
@@ -30,10 +30,10 @@ def resolve_redirect_url(request, org_slug, user_id=None):
         slug=org_slug, only_visible=False, user_id=user_id
     )
     if org_context and features.has("organizations:customer-domains", org_context.organization):
-        redirect_url = generate_organization_url(org_slug)
+        url_base = generate_organization_url(org_context.organization.slug)
+        path = customer_domain_path(request.path)
         qs = query_string(request)
-        redirect_url = f"{redirect_url}{request.path}{qs}"
-        return redirect_url
+        return f"{url_base}{path}{qs}"
     return None
 
 
@@ -61,8 +61,8 @@ class ReactMixin:
             any(fnmatch(url_name, p) for p in NON_CUSTOMER_DOMAIN_URL_NAMES) if url_name else False
         )
 
-        # If a customer domain is being used, and if a non-customer domain url_name is encountered, we redirect the user
-        # to sentryUrl.
+        # If a customer domain is being used, and if a non-customer domain url_name is
+        # encountered, we redirect the user to sentryUrl.
         if is_using_customer_domain(request) and url_is_non_customer_domain:
             redirect_url = options.get("system.url-prefix")
             qs = query_string(request)
@@ -78,19 +78,22 @@ class ReactMixin:
                 )
                 if redirect_url:
                     return HttpResponseRedirect(redirect_url)
+            else:
+                user = getattr(request, "user", None) or None
+                if user is not None and not isinstance(user, AnonymousUser):
+                    session = getattr(request, "session", None)
+                    last_active_org = (session.get("activeorg", None) or None) if session else None
+                    if last_active_org:
+                        redirect_url = resolve_redirect_url(
+                            request=request, org_slug=last_active_org, user_id=user.id
+                        )
+                        if redirect_url:
+                            return HttpResponseRedirect(redirect_url)
 
-            user = getattr(request, "user", None) or None
-            if user is not None and not isinstance(user, AnonymousUser):
-                session = getattr(request, "session", None)
-                last_active_org = (session.get("activeorg", None) or None) if session else None
-                if last_active_org:
-                    redirect_url = resolve_redirect_url(
-                        request=request, org_slug=last_active_org, user_id=user.id
-                    )
-                    if redirect_url:
-                        return HttpResponseRedirect(redirect_url)
-
-        return render_to_response("sentry/base-react.html", context=context, request=request)
+        response = render_to_response("sentry/base-react.html", context=context, request=request)
+        if "x-sentry-browser-profiling" in request.headers:
+            response["Document-Policy"] = "js-profiling"
+        return response
 
 
 # TODO(dcramer): once we implement basic auth hooks in React we can make this

@@ -1,6 +1,7 @@
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSCIMSerializer, TeamWithProjectsSerializer
 from sentry.models import InviteStatus
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -22,9 +23,10 @@ class TeamSerializerTest(TestCase):
             "isPending": False,
             "isMember": False,
             "teamRole": None,
-            "idpProvisioned": False,
+            "flags": {"idp:provisioned": False},
             "id": str(team.id),
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "orgRole": None,
             "memberCount": 0,
         }
 
@@ -175,6 +177,79 @@ class TeamSerializerTest(TestCase):
         assert result["isMember"] is True
         assert result["teamRole"] == "admin"
 
+    def test_member_on_owner_team_access(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        manager_team = self.create_team(organization=organization, org_role="manager")
+        owner_team = self.create_team(organization=organization, org_role="owner")
+        self.create_member(
+            user=user, organization=organization, role="member", teams=[manager_team, owner_team]
+        )
+        team = self.create_team(organization=organization)
+
+        result = serialize(team, user)
+        result.pop("dateCreated")
+
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        organization.flags.allow_joinleave = False
+        organization.save()
+        result = serialize(team, user)
+        # after changing to allow_joinleave=False
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        self.create_team_membership(user=user, team=team)
+        result = serialize(team, user)
+        # after giving them access to team
+        assert result["hasAccess"] is True
+        assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
+
+    def test_member_with_team_role_on_owner_team_access(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        manager_team = self.create_team(organization=organization, org_role="manager")
+        member = self.create_member(
+            user=user, organization=organization, role="member", teams=[manager_team]
+        )
+        team = self.create_team(organization=organization)
+        OrganizationMemberTeam(organizationmember=member, team=team, role="admin")
+
+        result = serialize(team, user)
+        result.pop("dateCreated")
+
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        organization.flags.allow_joinleave = False
+        organization.save()
+        result = serialize(team, user)
+        # after changing to allow_joinleave=False
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+        assert result["teamRole"] is None
+
+        self.create_team_membership(user=user, team=team)
+        result = serialize(team, user)
+        # after giving them access to team
+        assert result["hasAccess"] is True
+        assert result["isMember"] is True
+        assert result["teamRole"] == "admin"
+
+    def test_org_role(self):
+        user = self.create_user(username="foo")
+        organization = self.create_organization()
+        self.create_member(user=user, organization=organization, role="owner")
+        team = self.create_team(organization=organization, org_role="manager")
+        result = serialize(team, user)
+
+        assert result["orgRole"] == "manager"
+
 
 @region_silo_test
 class TeamWithProjectsSerializerTest(TestCase):
@@ -195,10 +270,11 @@ class TeamWithProjectsSerializerTest(TestCase):
             "isPending": False,
             "isMember": False,
             "teamRole": None,
-            "idpProvisioned": False,
+            "flags": {"idp:provisioned": False},
             "id": str(team.id),
             "projects": serialized_projects,
             "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
+            "orgRole": None,
             "memberCount": 0,
             "dateCreated": team.date_added,
             "externalTeams": [],

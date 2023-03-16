@@ -39,7 +39,7 @@ describe('ProjectKeys', function () {
     });
 
     render(
-      <ProjectKeys routes={[]} params={{orgId: org.slug, projectId: project.slug}} />
+      <ProjectKeys routes={[]} params={{projectId: project.slug}} organization={org} />
     );
 
     expect(
@@ -51,7 +51,8 @@ describe('ProjectKeys', function () {
     render(
       <ProjectKeys
         routes={[]}
-        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
@@ -66,7 +67,8 @@ describe('ProjectKeys', function () {
     render(
       <ProjectKeys
         routes={[]}
-        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );
@@ -82,7 +84,8 @@ describe('ProjectKeys', function () {
     render(
       <ProjectKeys
         routes={[]}
-        params={{orgId: org.slug, projectId: project.slug}}
+        organization={org}
+        params={{projectId: project.slug}}
         project={TestStubs.Project()}
       />
     );

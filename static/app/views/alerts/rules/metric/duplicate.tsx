@@ -5,6 +5,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {Organization, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {uniqueId} from 'sentry/utils/guid';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   DuplicateActionFields,
   DuplicateMetricFields,
@@ -16,10 +17,6 @@ import AsyncView from 'sentry/views/asyncView';
 
 import RuleForm from './ruleForm';
 
-type RouteParams = {
-  orgId: string;
-};
-
 type Props = {
   organization: Organization;
   project: Project;
@@ -27,7 +24,7 @@ type Props = {
   eventView?: EventView;
   sessionId?: string;
   wizardTemplate?: WizardRuleTemplate;
-} & RouteComponentProps<RouteParams, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = {
   duplicateTargetRule?: MetricRule;
@@ -40,36 +37,33 @@ type State = {
 class MetricRulesDuplicate extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {
-      params: {orgId},
+      organization,
       location: {query},
     } = this.props;
 
     return [
       [
         'duplicateTargetRule',
-        `/organizations/${orgId}/alert-rules/${query.duplicateRuleId}/`,
+        `/organizations/${organization.slug}/alert-rules/${query.duplicateRuleId}/`,
       ],
     ];
   }
 
   handleSubmitSuccess = (data: any) => {
-    const {
-      router,
-      project,
-      params: {orgId},
-    } = this.props;
+    const {router, organization, project} = this.props;
     const alertRuleId: string | undefined = data
       ? (data.id as string | undefined)
       : undefined;
 
-    router.push(
-      alertRuleId
-        ? {pathname: `/organizations/${orgId}/alerts/rules/details/${alertRuleId}/`}
-        : {
-            pathname: `/organizations/${orgId}/alerts/rules/`,
-            query: {project: project.id},
-          }
-    );
+    const target = alertRuleId
+      ? {
+          pathname: `/organizations/${organization.slug}/alerts/rules/details/${alertRuleId}/`,
+        }
+      : {
+          pathname: `/organizations/${organization.slug}/alerts/rules/`,
+          query: {project: project.id},
+        };
+    router.push(normalizeUrl(target));
   };
 
   renderBody() {
@@ -91,7 +85,7 @@ class MetricRulesDuplicate extends AsyncView<Props, State> {
                 ...pick(trigger, DuplicateTriggerFields),
                 actions: trigger.actions.map(action => ({
                   inputChannelId: null,
-                  integrationId: undefined,
+                  integrationId: action.integrationId ?? undefined,
                   options: null,
                   sentryAppId: undefined,
                   unsavedId: uniqueId(),

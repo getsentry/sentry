@@ -4,13 +4,13 @@ import uniq from 'lodash/uniq';
 
 import {bulkDelete, bulkUpdate, mergeGroups} from 'sentry/actionCreators/group';
 import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import Checkbox from 'sentry/components/checkbox';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
 import useApi from 'sentry/utils/useApi';
@@ -345,12 +345,10 @@ const StyledFlex = styled('div')`
 `;
 
 const ActionsCheckbox = styled('div')<{isReprocessingQuery: boolean}>`
+  display: flex;
+  align-items: center;
   padding-left: ${space(2)};
   margin-bottom: 1px;
-  & input[type='checkbox'] {
-    margin: 0;
-    display: block;
-  }
   ${p => p.isReprocessingQuery && 'flex: 1'};
 `;
 

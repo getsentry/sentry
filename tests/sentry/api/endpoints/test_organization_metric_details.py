@@ -40,7 +40,7 @@ def _indexer_record(org_id: int, string: str) -> int:
     return indexer.record(use_case_id=UseCaseKey.RELEASE_HEALTH, org_id=org_id, string=string)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metric-details"
@@ -62,7 +62,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.data == {
             "name": "metric1",
             "type": "counter",
-            "operations": ["sum"],
+            "operations": ["max_timestamp", "min_timestamp", "sum"],
             "unit": None,
             "tags": [
                 {"key": "tag1"},
@@ -79,7 +79,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.data == {
             "name": "metric2",
             "type": "set",
-            "operations": ["count_unique"],
+            "operations": ["count_unique", "max_timestamp", "min_timestamp"],
             "unit": None,
             "tags": [
                 {"key": "tag1"},
@@ -96,7 +96,7 @@ class OrganizationMetricDetailsIntegrationTest(OrganizationMetricMetaIntegration
         assert response.data == {
             "name": "metric3",
             "type": "set",
-            "operations": ["count_unique"],
+            "operations": ["count_unique", "max_timestamp", "min_timestamp"],
             "unit": None,
             "tags": [],
         }

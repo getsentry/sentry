@@ -8,17 +8,19 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type CreateSampleEventButtonProps = {
   api: Client;
   organization: Organization;
   source: string;
+  onCreateSampleGroup?: () => void;
   project?: Project;
 } & ButtonProps;
 
@@ -93,17 +95,21 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
 
   createSampleGroup = async () => {
     // TODO(dena): swap out for action creator
-    const {api, organization, project} = this.props;
+    const {api, organization, project, onCreateSampleGroup} = this.props;
     let eventData;
 
     if (!project) {
       return;
     }
 
-    trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
-      platform: project.platform,
-      organization,
-    });
+    if (onCreateSampleGroup) {
+      onCreateSampleGroup();
+    } else {
+      trackAdvancedAnalyticsEvent('growth.onboarding_view_sample_event', {
+        platform: project.platform,
+        organization,
+      });
+    }
 
     addLoadingMessage(t('Processing sample event...'), {
       duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
@@ -153,7 +159,9 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     }
 
     browserHistory.push(
-      `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}&referrer=sample-error`
+      normalizeUrl(
+        `/organizations/${organization.slug}/issues/${eventData.groupID}/?project=${project.id}&referrer=sample-error`
+      )
     );
   };
 
@@ -165,6 +173,7 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
       source: _source,
       ...props
     } = this.props;
+
     const {creating} = this.state;
 
     return (

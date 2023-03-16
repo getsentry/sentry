@@ -4,12 +4,11 @@ from rest_framework.response import Response
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.integrations.mixins import IssueSyncMixin
+from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint
 class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint):
-    private = True
-
     def put(self, request: Request, organization, integration_id) -> Response:
         """
         Migrate plugin linked issues to integration linked issues
@@ -18,7 +17,9 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
         :pparam string integration_id: the id of the integration
         """
         integration = self.get_integration(organization, integration_id)
-        install = integration.get_installation(organization.id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        )
         if isinstance(install, IssueSyncMixin):
             install.migrate_issues()
             return Response(status=204)

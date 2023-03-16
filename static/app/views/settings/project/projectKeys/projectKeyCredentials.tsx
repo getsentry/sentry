@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
@@ -40,7 +40,7 @@ function ProjectKeyCredentials({
   return (
     <Fragment>
       {showDsnPublic && (
-        <Field
+        <FieldGroup
           label={t('DSN')}
           inline={false}
           flexibleControlStateSize
@@ -75,12 +75,12 @@ function ProjectKeyCredentials({
               </TextCopyInput>
             </StyledField>
           )}
-        </Field>
+        </FieldGroup>
       )}
 
       {/* this edge case should imho not happen, but just to be sure */}
       {!showDsnPublic && showDsn && (
-        <Field
+        <FieldGroup
           label={t('DSN (Deprecated)')}
           help={t(
             'Deprecated DSN includes a secret which is no longer required by newer SDK versions. If you are unsure which to use, follow installation instructions for your language.'
@@ -94,11 +94,11 @@ function ProjectKeyCredentials({
               fixed: '__DSN_DEPRECATED__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showSecurityEndpoint && (
-        <Field
+        <FieldGroup
           label={t('Security Header Endpoint')}
           help={t(
             'Use your security header endpoint for features like CSP and Expect-CT reports.'
@@ -112,11 +112,11 @@ function ProjectKeyCredentials({
               fixed: '__SECURITY_HEADER_ENDPOINT__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showMinidump && (
-        <Field
+        <FieldGroup
           label={t('Minidump Endpoint')}
           help={tct(
             'Use this endpoint to upload [link], for example with Electron, Crashpad or Breakpad.',
@@ -137,11 +137,11 @@ function ProjectKeyCredentials({
               fixed: '__MINIDUMP_ENDPOINT__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showUnreal && (
-        <Field
+        <FieldGroup
           label={t('Unreal Engine 4 Endpoint')}
           help={t('Use this endpoint to configure your UE4 Crash Reporter.')}
           inline={false}
@@ -153,46 +153,46 @@ function ProjectKeyCredentials({
               fixed: '__UNREAL_ENDPOINT__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showPublicKey && (
-        <Field label={t('Public Key')} inline flexibleControlStateSize>
+        <FieldGroup label={t('Public Key')} inline flexibleControlStateSize>
           <TextCopyInput>
             {getDynamicText({
               value: data.public,
               fixed: '__PUBLICKEY__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showSecretKey && (
-        <Field label={t('Secret Key')} inline flexibleControlStateSize>
+        <FieldGroup label={t('Secret Key')} inline flexibleControlStateSize>
           <TextCopyInput>
             {getDynamicText({
               value: data.secret,
               fixed: '__SECRETKEY__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
 
       {showProjectId && (
-        <Field label={t('Project ID')} inline flexibleControlStateSize>
+        <FieldGroup label={t('Project ID')} inline flexibleControlStateSize>
           <TextCopyInput>
             {getDynamicText({
               value: projectId,
               fixed: '__PROJECTID__',
             })}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       )}
     </Fragment>
   );
 }
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   padding: ${space(0.5)} 0 0 0;
 `;
 

@@ -1,4 +1,3 @@
-from sentry.models import ExternalIssue, GroupLink, Integration
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -9,23 +8,16 @@ class GroupIntegrationsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        external_issue = ExternalIssue.objects.create(
-            organization_id=org.id,
-            integration_id=integration.id,
+        integration = self.create_integration(
+            organization=org, external_id="example:1", provider="example", name="Example"
+        )
+        external_issue = self.create_integration_external_issue(
+            group=group,
+            integration=integration,
             key="APP-123",
             title="this is an example title",
             description="this is an example description",
         )
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
-        )
-
         path = f"/api/0/issues/{group.id}/integrations/"
 
         with self.feature("organizations:integrations-issue-basic"):
@@ -65,21 +57,15 @@ class GroupIntegrationsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-        external_issue = ExternalIssue.objects.create(
-            organization_id=org.id,
-            integration_id=integration.id,
+        integration = self.create_integration(
+            organization=org, external_id="example:1", provider="example", name="Example"
+        )
+        self.create_integration_external_issue(
+            group=group,
+            integration=integration,
             key="APP-123",
             title="this is an example title",
             description="this is an example description",
-        )
-        GroupLink.objects.create(
-            group_id=group.id,
-            project_id=group.project_id,
-            linked_type=GroupLink.LinkedType.issue,
-            linked_id=external_issue.id,
-            relationship=GroupLink.Relationship.references,
         )
 
         path = f"/api/0/issues/{group.id}/integrations/"

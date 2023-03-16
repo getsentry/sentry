@@ -1,10 +1,14 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import StackTraceContent from 'sentry/components/events/interfaces/crashContent/stackTrace/content';
+import {EventOrGroupType} from 'sentry/types';
 import {StacktraceType} from 'sentry/types/stacktrace';
 
 const eventEntryStacktrace = TestStubs.EventEntryStacktrace();
-const event = TestStubs.Event({entries: [eventEntryStacktrace]});
+const event = TestStubs.Event({
+  entries: [eventEntryStacktrace],
+  type: EventOrGroupType.ERROR,
+});
 
 const data = eventEntryStacktrace.data as Required<StacktraceType>;
 
@@ -231,6 +235,40 @@ describe('StackTrace', function () {
       expect(frameTitles[2]).toHaveTextContent(
         'Called from: raven/base.py in build_msg at line 303'
       );
+    });
+
+    it('displays "occurred in" when event is not an error', function () {
+      const dataFrames = [...data.frames];
+
+      const newData = {
+        ...data,
+        hasSystemFrames: true,
+        frames: [
+          {...dataFrames[0], inApp: true},
+          ...dataFrames.splice(1, dataFrames.length),
+        ],
+      };
+
+      renderedComponent({
+        data: newData,
+        event: {
+          ...event,
+          entries: [{...event.entries[0], stacktrace: newData.frames}],
+          type: EventOrGroupType.TRANSACTION,
+        },
+        includeSystemFrames: false,
+      });
+
+      // clickable list item element
+      const frameTitles = screen.getAllByTestId('title');
+
+      // frame list - in app only
+      expect(frameTitles).toHaveLength(2);
+
+      expect(frameTitles[0]).toHaveTextContent(
+        'Occurred in non-app: raven/scripts/runner.py in main at line 112'
+      );
+      expect(frameTitles[1]).toHaveTextContent('raven/base.py in build_msg at line 303');
     });
   });
 });

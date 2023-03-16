@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Buttonbar from 'sentry/components/buttonBar';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
@@ -12,7 +12,7 @@ import Link from 'sentry/components/links/link';
 import NotAvailable from 'sentry/components/notAvailable';
 import {CursorHandler} from 'sentry/components/pagination';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventAttachment, IssueAttachment, Organization, Project} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined, formatBytesBase2} from 'sentry/utils';
@@ -20,7 +20,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
-import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachments';
+import {MAX_SCREENSHOTS_PER_PAGE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachments';
 
 import ImageVisualization from './imageVisualization';
 import ScreenshotPagination from './screenshotPagination';
@@ -164,7 +164,7 @@ function Modal({
         <StyledImageVisualization
           attachment={currentEventAttachment}
           orgId={orgSlug}
-          projectId={projectSlug}
+          projectSlug={projectSlug}
           eventId={currentEventAttachment.event_id}
         />
 

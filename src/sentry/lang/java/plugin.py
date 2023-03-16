@@ -1,28 +1,23 @@
 from symbolic import ProguardMapper
 
 from sentry.lang.java.processing import deobfuscate_exception_value
-from sentry.lang.java.utils import has_proguard_file
+from sentry.lang.java.utils import (
+    deobfuscate_view_hierarchy,
+    get_proguard_images,
+    has_proguard_file,
+)
 from sentry.models import EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.utils.safe import get_path
-
-
-def is_valid_image(image):
-    return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
-        self.images = set()
-        self.available = False
-
-        for image in get_path(self.data, "debug_meta", "images", filter=is_valid_image, default=()):
-            self.available = True
-            self.images.add(str(image["uuid"]).lower())
+        self.images = get_proguard_images(self.data)
+        self.available = len(self.images) > 0
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -139,4 +134,4 @@ class JavaPlugin(Plugin2):
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
-            return [deobfuscate_exception_value]
+            return [deobfuscate_exception_value, deobfuscate_view_hierarchy]

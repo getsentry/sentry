@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 
 type Props = React.ComponentProps<typeof Alert>;
 

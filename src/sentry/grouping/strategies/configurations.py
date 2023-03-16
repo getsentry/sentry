@@ -71,6 +71,8 @@ BASE_STRATEGY = create_strategy_configuration(
         # the `synthetic` flag in the event, but a lot of error types we can
         # also detect on the backend.
         "detect_synthetic_exception_types": False,
+        # replaces generated IDs in Java stack frames related to CGLIB and hibernate
+        "java_cglib_hibernate_logic": False,
     },
 )
 
@@ -182,6 +184,19 @@ register_strategy_config(
         "detect_synthetic_exception_types": True,
     },
     enhancements_base="mobile:2021-04-02",
+)
+
+register_strategy_config(
+    id="newstyle:2023-01-11",
+    base="newstyle:2019-10-29",
+    risk=RISK_LEVEL_MEDIUM,
+    changelog="""
+        * Initial version
+    """,
+    initial_context={
+        "java_cglib_hibernate_logic": True,
+    },
+    enhancements_base="newstyle:2023-01-11",
 )
 
 

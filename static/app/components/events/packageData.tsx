@@ -1,9 +1,10 @@
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 type Props = {
   event: Event;
@@ -31,6 +32,10 @@ export function EventPackageData({event}: Props) {
     default:
       longKeys = false;
       title = t('Packages');
+  }
+
+  if (objectIsEmpty(event.packages)) {
+    return null;
   }
 
   return (

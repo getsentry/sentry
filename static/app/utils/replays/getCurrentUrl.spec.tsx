@@ -48,8 +48,8 @@ describe('getCurrentUrl', () => {
         'https://sourcemaps.io/report/1655300817078_https%3A%2F%2Fmaxcdn.bootstrapcdn.com%2Fbootstrap%2F3.3.7%2Fjs%2Fbootstrap.min.js',
         'https://a062-174-94-6-155.ngrok.io/report/jquery.min.js',
       ],
-      startedAt: START_DATE,
-      finishedAt: END_DATE,
+      started_at: START_DATE,
+      finished_at: END_DATE,
     }) as ReplayRecord;
   });
 

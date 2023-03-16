@@ -1,19 +1,55 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
   hash?: boolean | string;
+  organizations?: Organization[];
 };
 
-function SetupWizard({hash = false}: Props) {
+const platformDocsMapping = {
+  'javascript-nextjs':
+    'https://docs.sentry.io/platforms/javascript/guides/nextjs/#verify',
+  'react-native': 'https://docs.sentry.io/platforms/react-native/#verify',
+  cordova: 'https://docs.sentry.io/platforms/javascript/guides/cordova/#verify',
+  'javascript-electron':
+    'https://docs.sentry.io/platforms/javascript/guides/electron/#verify',
+};
+
+function SetupWizard({hash = false, organizations}: Props) {
   const api = useApi();
   const closeTimeoutRef = useRef<number | undefined>(undefined);
   const [finished, setFinished] = useState(false);
+
+  // if we have exactly one organization, we can use it for analytics
+  // otherwise we don't know which org the user is in
+  const organization = useMemo(
+    () => (organizations?.length === 1 ? organizations[0] : null),
+    [organizations]
+  );
+  const urlParams = new URLSearchParams(location.search);
+  const projectPlatform = urlParams.get('project_platform') ?? undefined;
+
+  const analyticsParams = useMemo(
+    () => ({
+      organization,
+      project_platform: projectPlatform,
+    }),
+    [organization, projectPlatform]
+  );
+
+  // outside of route context
+  const docsLink = useMemo(() => {
+    return platformDocsMapping[projectPlatform || ''] || 'https://docs.sentry.io/';
+  }, [projectPlatform]);
 
   useEffect(() => {
     return () => {
@@ -29,15 +65,23 @@ function SetupWizard({hash = false}: Props) {
     };
   });
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('setup_wizard.viewed', analyticsParams);
+  }, [analyticsParams]);
+
   const checkFinished = useCallback(async () => {
+    if (finished) {
+      return;
+    }
     try {
       await api.requestPromise(`/wizard/${hash}/`);
     } catch {
       setFinished(true);
       window.clearTimeout(closeTimeoutRef.current);
       closeTimeoutRef.current = window.setTimeout(() => window.close(), 10000);
+      trackAdvancedAnalyticsEvent('setup_wizard.complete', analyticsParams);
     }
-  }, [api, hash]);
+  }, [api, hash, analyticsParams, finished]);
 
   useEffect(() => {
     const pollingInterval = window.setInterval(checkFinished, 1000);
@@ -56,13 +100,42 @@ function SetupWizard({hash = false}: Props) {
         ) : (
           <div className="row">
             <h5>{t('Return to your terminal to complete your setup')}</h5>
-            <h5>{t('(This window will close in 10 seconds)')}</h5>
-            <Button onClick={() => window.close()}>{t('Close browser tab')}</Button>
+            <MinWidthButtonBar gap={1}>
+              <Button
+                priority="primary"
+                to="/"
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent(
+                    'setup_wizard.clicked_viewed_issues',
+                    analyticsParams
+                  )
+                }
+              >
+                {t('View Issues')}
+              </Button>
+              <Button
+                href={docsLink}
+                external
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent(
+                    'setup_wizard.clicked_viewed_docs',
+                    analyticsParams
+                  )
+                }
+              >
+                {t('See Docs')}
+              </Button>
+            </MinWidthButtonBar>
           </div>
         )}
       </div>
     </ThemeAndStyleProvider>
   );
 }
+
+const MinWidthButtonBar = styled(ButtonBar)`
+  width: min-content;
+  margin-top: 20px;
+`;
 
 export default SetupWizard;

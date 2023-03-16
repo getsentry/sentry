@@ -545,12 +545,12 @@ def run_sessions_query(
         orderby_sequence = [orderby]
 
     metrics_query = MetricsQuery(
-        org_id,
-        project_ids,
-        list({column for field in fields.values() for column in field.metric_fields}),
-        query.start,
-        query.end,
-        Granularity(query.rollup),
+        org_id=org_id,
+        project_ids=project_ids,
+        select=list({column for field in fields.values() for column in field.metric_fields}),
+        granularity=Granularity(query.rollup),
+        start=query.start,
+        end=query.end,
         where=where,
         groupby=list(
             {
@@ -567,7 +567,12 @@ def run_sessions_query(
     # TODO: Stop passing project IDs everywhere
     projects = Project.objects.get_many_from_cache(project_ids)
     try:
-        metrics_results = get_series(projects, metrics_query, use_case_id=UseCaseKey.RELEASE_HEALTH)
+        metrics_results = get_series(
+            projects,
+            metrics_query,
+            use_case_id=UseCaseKey.RELEASE_HEALTH,
+            tenant_ids={"organization_id": org_id},
+        )
     except OrderByNotSupportedOverCompositeEntityException:
         raise InvalidParams(f"Cannot order by {query.raw_orderby[0]} with the current filters")
     except UtilsInvalidParams as e:

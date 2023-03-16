@@ -1,7 +1,8 @@
+import React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
@@ -11,12 +12,18 @@ import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import RoleSelectControl from 'sentry/components/roleSelectControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconSubtract} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, Team} from 'sentry/types';
+import {t, tct} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
+import {Member, Organization, Team} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
+import {
+  hasOrgRoleOverwrite,
+  RoleOverwritePanelAlert,
+} from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
 
 type Props = {
   /**
@@ -24,18 +31,19 @@ type Props = {
    */
   disabled: boolean;
   /**
+   * Used when showing Teams for a Member
+   * Prevent changes to a SCIM-provisioned member
+   */
+  enforceIdpProvisioned: boolean;
+  /**
    * callback when teams are added
    */
-  onAddTeam: (team: Team) => void;
+  onAddTeam: (teamSlug: string) => void;
   /**
    * Callback when teams are removed
    */
   onRemoveTeam: (teamSlug: string) => void;
   organization: Organization;
-  /**
-   * Teams that are already selected.
-   */
-  selectedTeams: Team[];
   /**
    * Message to display when the last team is removed
    * if empty no confirm will be displayed.
@@ -49,56 +57,133 @@ type Props = {
    * Optional menu header.
    */
   menuHeader?: React.ReactElement;
+  /**
+   * Used when showing Teams for a Member
+   */
+  onChangeTeamRole?: (teamSlug: string, teamRole: string) => void;
+  /**
+   * Used when showing Teams for a Member
+   */
+  selectedOrgRole?: Member['orgRole'];
+  /**
+   * Used when showing Teams for a Member
+   */
+  selectedTeamRoles?: Member['teamRoles'];
+  /**
+   * Used when showing Teams for a Project
+   */
+  selectedTeams?: Team[];
 };
 
 function TeamSelect({
   disabled,
-  selectedTeams,
+  loadingTeams,
+  enforceIdpProvisioned,
   menuHeader,
+  confirmLastTeamRemoveMessage,
+  selectedOrgRole,
+  selectedTeamRoles,
+  selectedTeams,
   organization,
   onAddTeam,
   onRemoveTeam,
-  confirmLastTeamRemoveMessage,
-  loadingTeams,
+  onChangeTeamRole,
 }: Props) {
   const {teams, onSearch, fetching} = useTeams();
-
-  const handleAddTeam = (option: Item) => {
-    const team = teams.find(tm => tm.slug === option.value);
-    if (team) {
-      onAddTeam(team);
-    }
-  };
+  const {orgRoleList, teamRoleList} = organization;
 
   const renderBody = () => {
-    if (selectedTeams.length === 0) {
+    const numTeams = selectedTeams?.length || selectedTeamRoles?.length;
+    if (numTeams === 0) {
       return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
     }
+
     const confirmMessage =
-      selectedTeams.length === 1 && confirmLastTeamRemoveMessage
+      numTeams === 1 && confirmLastTeamRemoveMessage
         ? confirmLastTeamRemoveMessage
         : null;
 
-    return selectedTeams.map(team => (
-      <TeamRow
-        key={team.slug}
-        orgId={organization.slug}
-        team={team}
-        onRemove={slug => onRemoveTeam(slug)}
-        disabled={disabled}
-        confirmMessage={confirmMessage}
-      />
-    ));
+    return (
+      <React.Fragment>
+        {organization.features.includes('team-roles') && selectedOrgRole && (
+          <RoleOverwritePanelAlert
+            orgRole={selectedOrgRole}
+            orgRoleList={orgRoleList}
+            teamRoleList={teamRoleList}
+          />
+        )}
+
+        {selectedTeams &&
+          selectedTeams.map(team => (
+            <ProjectTeamRow
+              key={team.slug}
+              disabled={disabled}
+              confirmMessage={confirmMessage}
+              organization={organization}
+              team={team}
+              onRemoveTeam={slug => onRemoveTeam(slug)}
+            />
+          ))}
+
+        {selectedOrgRole &&
+          selectedTeamRoles &&
+          /**
+           * "Map + Find" operation is O(n * n), leaving it as it us because it is unlikely to cause performance issues because a Member is unlikely to be in 1000+ teams
+           */
+          selectedTeamRoles.map(r => {
+            const team = teams.find(tm => tm.slug === r.teamSlug);
+            if (!team) {
+              return (
+                <TeamPanelItem key={r.teamSlug}>
+                  {tct(`Cannot find #[slug]`, {slug: r.teamSlug})}
+                </TeamPanelItem>
+              );
+            }
+
+            return (
+              <MemberTeamRow
+                key={r.teamSlug}
+                disabled={disabled}
+                enforceIdpProvisioned={enforceIdpProvisioned}
+                confirmMessage={confirmMessage}
+                organization={organization}
+                team={team}
+                selectedOrgRole={selectedOrgRole}
+                selectedTeamRole={r.role}
+                onChangeTeamRole={onChangeTeamRole}
+                onRemoveTeam={slug => onRemoveTeam(slug)}
+              />
+            );
+          })}
+      </React.Fragment>
+    );
   };
+
+  const slugsToFilter =
+    selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
 
   // Only show options that aren't selected in the dropdown
   const options = teams
-    .filter(team => !selectedTeams.some(selectedTeam => selectedTeam.slug === team.slug))
+    .filter(team => !slugsToFilter.some(slug => slug === team.slug))
     .map((team, index) => ({
       index,
       value: team.slug,
       searchKey: team.slug,
-      label: <DropdownTeamBadge avatarSize={18} team={team} />,
+      label: () => {
+        if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
+          return (
+            <Tooltip
+              title={t(
+                "Membership to this team is managed through your organization's identity provider."
+              )}
+            >
+              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+            </Tooltip>
+          );
+        }
+        return <DropdownTeamBadge avatarSize={18} team={team} />;
+      },
+      disabled: enforceIdpProvisioned && team.flags['idp:provisioned'],
     }));
 
   return (
@@ -112,7 +197,7 @@ function TeamSelect({
             e => onSearch(e.target.value),
             DEFAULT_DEBOUNCE_DURATION
           )}
-          onSelect={handleAddTeam}
+          onSelect={(option: Item) => onAddTeam(option.value)}
           emptyMessage={t('No teams')}
           menuHeader={menuHeader}
           disabled={disabled}
@@ -139,20 +224,29 @@ function TeamSelect({
 type TeamRowProps = {
   confirmMessage: string | null;
   disabled: boolean;
-  onRemove: Props['onRemoveTeam'];
-  orgId: string;
+  onRemoveTeam: Props['onRemoveTeam'];
+  organization: Organization;
   team: Team;
 };
 
-const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps) => (
-  <TeamPanelItem data-test-id="team-row">
-    <StyledLink to={`/settings/${orgId}/teams/${team.slug}/`}>
+type ProjectTeamRowProps = {} & TeamRowProps;
+
+const ProjectTeamRow = ({
+  organization,
+  team,
+  onRemoveTeam,
+  disabled,
+  confirmMessage,
+}: ProjectTeamRowProps) => (
+  <TeamPanelItem data-test-id="team-row-for-project">
+    <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
       <TeamBadge team={team} />
     </StyledLink>
+
     <Confirm
       message={confirmMessage}
       bypass={!confirmMessage}
-      onConfirm={() => onRemove(team.slug)}
+      onConfirm={() => onRemoveTeam(team.slug)}
       disabled={disabled}
     >
       <Button size="xs" icon={<IconSubtract isCircled size="xs" />} disabled={disabled}>
@@ -162,20 +256,105 @@ const TeamRow = ({orgId, team, onRemove, disabled, confirmMessage}: TeamRowProps
   </TeamPanelItem>
 );
 
+type MemberTeamRowProps = {
+  enforceIdpProvisioned: boolean;
+  onChangeTeamRole: Props['onChangeTeamRole'];
+  selectedOrgRole: Member['orgRole'];
+  selectedTeamRole: Member['teamRoles'][0]['role'];
+} & TeamRowProps;
+
+const MemberTeamRow = ({
+  organization,
+  team,
+  selectedOrgRole,
+  selectedTeamRole,
+  onRemoveTeam,
+  onChangeTeamRole,
+  disabled,
+  confirmMessage,
+  enforceIdpProvisioned,
+}: MemberTeamRowProps) => {
+  const {teamRoleList, orgRoleList} = organization;
+  const isRoleOverwritten = hasOrgRoleOverwrite({
+    orgRole: selectedOrgRole,
+    orgRoleList,
+    teamRoleList,
+  });
+
+  const teamRoleObj = isRoleOverwritten
+    ? teamRoleList[1] // set as team admin
+    : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
+
+  return (
+    <TeamPanelItem data-test-id="team-row-for-member">
+      <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
+        <TeamBadge team={team} />
+      </StyledLink>
+
+      {organization.features.includes('team-roles') && onChangeTeamRole && (
+        <React.Fragment>
+          <StyledRoleSelectControl
+            disabled={disabled || isRoleOverwritten}
+            disableUnallowed={false}
+            size="xs"
+            roles={teamRoleList}
+            value={teamRoleObj?.id}
+            onChange={option => onChangeTeamRole(team.slug, option.value)}
+          />
+        </React.Fragment>
+      )}
+
+      <Confirm
+        message={confirmMessage}
+        bypass={!confirmMessage}
+        onConfirm={() => onRemoveTeam(team.slug)}
+        disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
+      >
+        <Button
+          size="xs"
+          icon={<IconSubtract isCircled size="xs" />}
+          disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
+          title={
+            enforceIdpProvisioned && team.flags['idp:provisioned']
+              ? t(
+                  "Membership to this team is managed through your organization's identity provider."
+                )
+              : undefined
+          }
+        >
+          {t('Remove')}
+        </Button>
+      </Confirm>
+    </TeamPanelItem>
+  );
+};
+
 const DropdownTeamBadge = styled(TeamBadge)`
   font-weight: normal;
   font-size: ${p => p.theme.fontSizeMedium};
   text-transform: none;
 `;
 
+const DropdownTeamBadgeDisabled = styled(TeamBadge)`
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeMedium};
+  text-transform: none;
+  filter: grayscale(1);
+`;
+
 const TeamPanelItem = styled(PanelItem)`
   padding: ${space(2)};
   align-items: center;
+  justify-content: space-between;
 `;
 
 const StyledLink = styled(Link)`
-  flex: 1;
-  margin-right: ${space(1)};
+  flex-grow: 1;
+`;
+
+const StyledRoleSelectControl = styled(RoleSelectControl)`
+  min-width: 200px;
+  margin-right: ${space(2)};
 `;
 
 export default TeamSelect;

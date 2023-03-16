@@ -41,7 +41,7 @@ export class VirtualizedTree<T extends TreeLike> {
       // We cannot skip root nodes, so we check that the parent is not null.
       // If the node should be skipped, then we don't add it to the tree and descend
       // into its children without incrementing the depth.
-      if (parent && skipFn(treeNode)) {
+      if (parent && skipFn(treeNode) && node.children) {
         for (let i = 0; i < node.children.length; i++) {
           toTreeNode(node.children[i] as T, treeNode, parent.children, depth);
         }
@@ -52,8 +52,10 @@ export class VirtualizedTree<T extends TreeLike> {
         collection.push(treeNode);
       }
 
-      for (let i = 0; i < node.children.length; i++) {
-        toTreeNode(node.children[i] as T, treeNode, treeNode.children, depth + 1);
+      if (node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+          toTreeNode(node.children[i] as T, treeNode, treeNode.children, depth + 1);
+        }
       }
     }
 

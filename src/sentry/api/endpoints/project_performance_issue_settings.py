@@ -10,18 +10,24 @@ MAX_VALUE = 2147483647
 SETTINGS_PROJECT_OPTION_KEY = "sentry:performance_issue_settings"
 
 
+RateField = serializers.FloatField(required=False, min_value=0, max_value=1)
+EnabledField = serializers.BooleanField(required=False)
+
+
 class ProjectPerformanceIssueSettingsSerializer(serializers.Serializer):
     n_plus_one_db_detection_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    n_plus_one_db_issue_rate = serializers.FloatField(required=False, min_value=0, max_value=1)
-    n_plus_one_db_count = serializers.IntegerField(required=False, min_value=0, max_value=MAX_VALUE)
-    n_plus_one_db_duration_threshold = serializers.IntegerField(
-        required=False, min_value=0, max_value=MAX_VALUE
+    n_plus_one_api_calls_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
     )
+    consecutive_db_queries_detection_rate = serializers.FloatField(
+        required=False, min_value=0, max_value=1
+    )
+    uncompressed_assets_detection_enabled = serializers.BooleanField(required=False)
 
 
 @region_silo_endpoint
 class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
-    private = True  # TODO: Remove after EA.
+    # TODO: Remove after EA.
     permission_classes = (ProjectSettingPermission,)
 
     def has_feature(self, project, request) -> bool:
@@ -63,14 +69,21 @@ class ProjectPerformanceIssueSettingsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        performance_issue_settings = projectoptions.get_well_known_default(
+        performance_issue_settings_default = projectoptions.get_well_known_default(
             SETTINGS_PROJECT_OPTION_KEY,
             project=project,
         )
 
+        performance_issue_settings = project.get_option(
+            SETTINGS_PROJECT_OPTION_KEY, default=performance_issue_settings_default
+        )
+
         data = serializer.validated_data
 
-        project.update_option(SETTINGS_PROJECT_OPTION_KEY, {**performance_issue_settings, **data})
+        project.update_option(
+            SETTINGS_PROJECT_OPTION_KEY,
+            {**performance_issue_settings_default, **performance_issue_settings, **data},
+        )
 
         return Response(data)
 

@@ -23,11 +23,15 @@ TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
 
 
+def datetime_to_str(o: datetime.datetime) -> str:
+    return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+
 def better_default_encoder(o: object) -> object:
     if isinstance(o, uuid.UUID):
         return o.hex
     elif isinstance(o, datetime.datetime):
-        return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+        return datetime_to_str(o)
     elif isinstance(o, datetime.date):
         return o.isoformat()
     elif isinstance(o, datetime.time):

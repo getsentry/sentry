@@ -3,17 +3,16 @@ import styled from '@emotion/styled';
 import startCase from 'lodash/startCase';
 import moment from 'moment';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
-import ExternalLink from '../links/externalLink';
-
-type Error = {
+export type EventErrorData = {
   message: React.ReactNode;
   type: string;
   data?: {
@@ -34,7 +33,7 @@ const keyMapping = {
 };
 
 export type ErrorItemProps = {
-  error: Error;
+  error: EventErrorData;
   meta?: Record<any, any>;
 };
 

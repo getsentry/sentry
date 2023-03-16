@@ -20,7 +20,7 @@ const {organization, router, routerContext} = initializeOrg({
       pathname: '/organizations/org-slug/issues/',
       query: {},
     },
-    params: {orgId: 'org-slug'},
+    params: {},
   },
 });
 
@@ -56,9 +56,8 @@ describe('ProjectPageFilter', function () {
     expect(screen.getByText('My Projects')).toBeInTheDocument();
     userEvent.click(screen.getByText('My Projects'));
 
-    // Click the first project's checkbox
-    const projectOptions = screen.getAllByTestId('checkbox-fancy');
-    userEvent.click(projectOptions[0]);
+    // Select project-2
+    userEvent.click(screen.getByRole('checkbox', {name: 'project-2'}));
 
     // Confirm the selection changed the visible text
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();

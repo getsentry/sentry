@@ -5,7 +5,6 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.conf import settings
 from django.core import mail
 from django.utils import timezone
 from freezegun import freeze_time
@@ -170,9 +169,9 @@ class UpdateIncidentStatus(TestCase):
         assert incident.date_closed == expected_date_closed
         activity = self.get_most_recent_incident_activity(incident)
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user == user
+        assert activity.user_id == (user.id if user else None)
         if user:
-            assert IncidentSubscription.objects.filter(incident=incident, user=user).exists()
+            assert IncidentSubscription.objects.filter(incident=incident, user_id=user.id).exists()
         assert activity.value == str(status.value)
         assert activity.previous_value == str(prev_status)
         assert activity.comment == comment
@@ -339,7 +338,7 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         )
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.STATUS_CHANGE.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.value == str(IncidentStatus.CLOSED.value)
         assert activity.previous_value == str(IncidentStatus.WARNING.value)
         self.assert_notifications_sent(activity)
@@ -349,16 +348,18 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident()
         comment = "hello"
 
-        assert not IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        assert not IncidentSubscription.objects.filter(
+            incident=incident, user_id=self.user.id
+        ).exists()
         self.record_event.reset_mock()
         activity = create_incident_activity(
             incident, IncidentActivityType.COMMENT, user=self.user, comment=comment
         )
-        assert IncidentSubscription.objects.filter(incident=incident, user=self.user).exists()
+        assert IncidentSubscription.objects.filter(incident=incident, user_id=self.user.id).exists()
 
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert activity.value is None
         assert activity.previous_value is None
@@ -378,11 +379,13 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
         incident = self.create_incident()
         mentioned_member = self.create_user()
         subscribed_mentioned_member = self.create_user()
-        IncidentSubscription.objects.create(incident=incident, user=subscribed_mentioned_member)
+        IncidentSubscription.objects.create(
+            incident=incident, user_id=subscribed_mentioned_member.id
+        )
         comment = f"hello **@{mentioned_member.username}** and **@{subscribed_mentioned_member.username}**"
 
         assert not IncidentSubscription.objects.filter(
-            incident=incident, user=mentioned_member
+            incident=incident, user_id=mentioned_member.id
         ).exists()
         self.record_event.reset_mock()
         activity = create_incident_activity(
@@ -393,12 +396,12 @@ class CreateIncidentActivityTest(TestCase, BaseIncidentsTest):
             mentioned_user_ids=[mentioned_member.id, subscribed_mentioned_member.id],
         )
         assert IncidentSubscription.objects.filter(
-            incident=incident, user=mentioned_member
+            incident=incident, user_id=mentioned_member.id
         ).exists()
 
         assert activity.incident == incident
         assert activity.type == IncidentActivityType.COMMENT.value
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.comment == comment
         assert activity.value is None
         assert activity.previous_value is None
@@ -419,7 +422,7 @@ class GetIncidentSubscribersTest(TestCase, BaseIncidentsTest):
     def test_simple(self):
         incident = self.create_incident()
         assert list(get_incident_subscribers(incident)) == []
-        subscription = subscribe_to_incident(incident, self.user)[0]
+        subscription = subscribe_to_incident(incident, self.user.id)[0]
         assert list(get_incident_subscribers(incident)) == [subscription]
 
 
@@ -513,9 +516,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         assert alert_rule.include_all_projects == include_all_projects
 
     # This test will fail unless real migrations are run. Refer to migration 0061.
-    @pytest.mark.skipif(
-        not settings.MIGRATIONS_TEST_MIGRATE, reason="requires custom migration 0061"
-    )
+    @pytest.mark.migrations  # requires custom migration 0061
     def test_two_archived_with_same_name(self):
         name = "allowed"
         alert_rule_1 = create_alert_rule(
@@ -1156,6 +1157,18 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         assert action.type == type.value
         assert action.target_type == target_type.value
         assert action.target_identifier == target_identifier
+
+    def test_exempt_service(self):
+        service_type = AlertRuleTriggerAction.Type.SENTRY_NOTIFICATION
+        target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
+
+        with pytest.raises(InvalidTriggerActionError):
+            create_alert_rule_trigger_action(
+                trigger=self.trigger,
+                type=service_type,
+                target_type=target_type,
+                target_identifier=1,
+            )
 
     @responses.activate
     def test_slack(self):

@@ -7,7 +7,9 @@ from typing import TYPE_CHECKING, Sequence
 import sentry_sdk
 from django.utils import timezone
 
+from sentry import features
 from sentry.models import Any, Environment, Mapping, Optional
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
     BaseEntitySubscription,
@@ -80,7 +82,12 @@ def create_subscription_in_snuba(query_subscription_id, **kwargs):
     max_retries=5,
 )
 def update_subscription_in_snuba(
-    query_subscription_id, old_query_type=None, old_dataset=None, **kwargs
+    query_subscription_id,
+    old_query_type=None,
+    old_dataset=None,
+    old_aggregate=None,
+    old_query=None,
+    **kwargs,
 ):
     """
     Task to update a corresponding subscription in Snuba from a `QuerySubscription` in
@@ -104,10 +111,14 @@ def update_subscription_in_snuba(
         query_type = SnubaQuery.Type(
             old_query_type if old_query_type is not None else subscription.snuba_query.type
         )
+        query = old_query if old_query is not None else subscription.snuba_query.query
+        aggregate = (
+            old_aggregate if old_aggregate is not None else subscription.snuba_query.aggregate
+        )
         old_entity_subscription = get_entity_subscription(
             query_type,
             dataset,
-            subscription.snuba_query.aggregate,
+            aggregate,
             subscription.snuba_query.time_window,
             extra_fields={
                 "org_id": subscription.project.organization_id,
@@ -116,7 +127,7 @@ def update_subscription_in_snuba(
         )
         old_entity_key = get_entity_key_from_query_builder(
             old_entity_subscription.build_query_builder(
-                subscription.snuba_query.query,
+                query,
                 [subscription.project_id],
                 None,
                 {"organization_id": subscription.project.organization_id},
@@ -188,22 +199,33 @@ def build_query_builder(
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    snuba_query = subscription.snuba_query
-    entity_subscription = get_entity_subscription_from_snuba_query(
-        snuba_query,
-        subscription.project.organization_id,
-    )
-    snql_query = build_query_builder(
-        entity_subscription,
-        snuba_query.query,
-        [subscription.project_id],
-        snuba_query.environment,
-        params={
-            "organization_id": subscription.project.organization_id,
-            "project_id": [subscription.project_id],
-        },
-    ).get_snql_query()
-    return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
+    with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
+        organization_context = organization_service.get_organization_by_id(
+            id=subscription.project.organization_id
+        )
+        span.set_tag(
+            "uses_metrics_layer",
+            features.has("organizations:use-metrics-layer", organization_context.organization),
+        )
+        span.set_tag("dataset", subscription.snuba_query.dataset)
+
+        snuba_query = subscription.snuba_query
+        entity_subscription = get_entity_subscription_from_snuba_query(
+            snuba_query,
+            subscription.project.organization_id,
+        )
+        snql_query = build_query_builder(
+            entity_subscription,
+            snuba_query.query,
+            [subscription.project_id],
+            snuba_query.environment,
+            params={
+                "organization_id": subscription.project.organization_id,
+                "project_id": [subscription.project_id],
+            },
+        ).get_snql_query()
+
+        return _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscription)
 
 
 # This indirection function only exists such that snql queries can be rewritten

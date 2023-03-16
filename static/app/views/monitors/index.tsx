@@ -1,21 +1,17 @@
-import styled from '@emotion/styled';
-
 import Feature from 'sentry/components/acl/feature';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
+import useOrganization from 'sentry/utils/useOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 
-const Body = styled('div')`
-  background-color: ${p => p.theme.background};
-  flex-direction: column;
-  flex: 1;
-`;
-
 const MonitorsContainer: React.FC = ({children}) => {
+  const organization = useOrganization();
+
   return (
     <Feature features={['monitors']} renderDisabled>
-      <PageFiltersContainer>
-        <Body>{children}</Body>
-      </PageFiltersContainer>
+      <NoProjectMessage organization={organization}>
+        <PageFiltersContainer>{children}</PageFiltersContainer>
+      </NoProjectMessage>
     </Feature>
   );
 };

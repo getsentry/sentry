@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
+from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
@@ -29,6 +30,7 @@ from sentry.utils.auth import (
     login,
 )
 from sentry.utils.client_state import get_client_state_redirect_uri
+from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
@@ -124,15 +126,32 @@ class AuthLoginView(BaseView):
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
         login(request, user, organization_id=organization.id if organization else None)
-        self.determine_active_organization(
-            request,
-        )
+        self.determine_active_organization(request)
 
     def handle_basic_auth(self, request: Request, **kwargs):
-        can_register = self.can_register(request)
-
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
+
+        org_exists = bool(
+            organization_service.check_organization_by_slug(
+                slug=request.subdomain, only_visible=True
+            )
+        )
+
+        if request.method == "GET" and request.subdomain and org_exists:
+            urls = [
+                reverse("sentry-auth-organization", args=[request.subdomain]),
+                reverse("sentry-register"),
+            ]
+            # Only redirect if the URL is not register or login paths.
+            if request.path_info not in urls:
+                url_prefix = generate_organization_url(request.subdomain)
+                url = absolute_uri(urls[0], url_prefix=url_prefix)
+                if request.GET:
+                    url = f"{url}?{request.GET.urlencode()}"
+                return HttpResponseRedirect(url)
+
+        can_register = self.can_register(request)
 
         if not op:
             # Detect that we are on the register page by url /register/ and
@@ -160,7 +179,6 @@ class AuthLoginView(BaseView):
 
             # HACK: grab whatever the first backend is and assume it works
             user.backend = settings.AUTHENTICATION_BACKENDS[0]
-
             self._handle_login(request, user, organization)
 
             # can_register should only allow a single registration
@@ -183,6 +201,7 @@ class AuthLoginView(BaseView):
 
             if invite_helper and invite_helper.valid_request:
                 invite_helper.accept_invite()
+                self.determine_active_organization(request, invite_helper.organization.slug)
                 response = self.redirect_to_org(request)
                 remove_invite_details_from_session(request)
 

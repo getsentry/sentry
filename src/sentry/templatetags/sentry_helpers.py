@@ -1,9 +1,10 @@
 import functools
 import os.path
+import random
 from collections import namedtuple
 from datetime import datetime, timedelta
 from random import randint
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 from django import template
 from django.template.defaultfilters import stringfilter
@@ -97,6 +98,33 @@ def absolute_uri(parser, token):
     else:
         target_var = None
     return AbsoluteUriNode(bits, target_var)
+
+
+@register.simple_tag
+def org_url(organization, path, query=None, fragment=None) -> str:
+    """
+    Generate an absolute url for an organization
+    """
+    if not hasattr(organization, "absolute_url"):
+        raise RuntimeError("organization parameter is not an Organization instance")
+    return organization.absolute_url(path, query=query, fragment=fragment)
+
+
+@register.simple_tag
+def loading_message():
+    options = [
+        "Please wait while we load an obnoxious amount of JavaScript.",
+        "Escaping node_modules gravity well.",
+        "Parallelizing webpack builders.",
+        "Awaiting solution to the halting problem.",
+        "Collapsing wavefunctions.",
+    ]
+    return random.choice(options)
+
+
+@register.simple_tag
+def querystring(**kwargs):
+    return urlencode(kwargs, doseq=False)
 
 
 @register.simple_tag

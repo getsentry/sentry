@@ -21,7 +21,8 @@ from arroyo.types import BrokerValue, Message
 from django.conf import settings
 
 from sentry.sentry_metrics.configuration import UseCaseKey
-from sentry.sentry_metrics.consumers.indexer.common import MessageBatch
+from sentry.sentry_metrics.consumers.indexer.common import IndexerOutputMessageBatch, MessageBatch
+from sentry.sentry_metrics.consumers.indexer.routing_producer import RoutingPayload
 from sentry.sentry_metrics.indexer.base import Metadata
 from sentry.utils import json, metrics
 
@@ -78,10 +79,12 @@ class IndexerBatch:
         use_case_id: UseCaseKey,
         outer_message: Message[MessageBatch],
         should_index_tag_values: bool,
+        is_output_sliced: bool,
     ) -> None:
         self.use_case_id = use_case_id
         self.outer_message = outer_message
         self.__should_index_tag_values = should_index_tag_values
+        self.is_output_sliced = is_output_sliced
 
         self._extract_messages()
 
@@ -206,8 +209,8 @@ class IndexerBatch:
         self,
         mapping: Mapping[int, Mapping[str, Optional[int]]],
         bulk_record_meta: Mapping[int, Mapping[str, Metadata]],
-    ) -> List[Message[KafkaPayload]]:
-        new_messages: List[Message[KafkaPayload]] = []
+    ) -> IndexerOutputMessageBatch:
+        new_messages: IndexerOutputMessageBatch = []
 
         for message in self.outer_message.payload:
             used_tags: Set[str] = set()
@@ -341,13 +344,14 @@ class IndexerBatch:
                     )
                 continue
 
-            new_payload_value["retention_days"] = 90
+            new_payload_value["retention_days"] = new_payload_value.get("retention_days", 90)
+
             new_payload_value["mapping_meta"] = output_message_meta
             new_payload_value["use_case_id"] = self.use_case_id.value
 
             del new_payload_value["name"]
 
-            new_payload = KafkaPayload(
+            kafka_payload = KafkaPayload(
                 key=message.payload.key,
                 value=rapidjson.dumps(new_payload_value).encode(),
                 headers=[
@@ -356,9 +360,14 @@ class IndexerBatch:
                     ("metric_type", new_payload_value["type"]),
                 ],
             )
-            new_message = Message(message.value.replace(new_payload))
-
-            new_messages.append(new_message)
+            if self.is_output_sliced:
+                routing_payload = RoutingPayload(
+                    routing_header={"org_id": org_id},
+                    routing_message=kafka_payload,
+                )
+                new_messages.append(Message(message.value.replace(routing_payload)))
+            else:
+                new_messages.append(Message(message.value.replace(kafka_payload)))
 
         metrics.incr("metrics_consumer.process_message.messages_seen", amount=len(new_messages))
         return new_messages

@@ -1,5 +1,5 @@
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import AsyncView from 'sentry/views/asyncView';
 

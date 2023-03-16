@@ -16,8 +16,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 
+from ..db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from ..services.hybrid_cloud.user import user_service
 from .base import DEFAULT_EXPIRATION, ExportQueryType, ExportStatus
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,7 @@ class ExportedData(Model):
     __include_in_export__ = False
 
     organization = FlexibleForeignKey("sentry.Organization")
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     file_id = BoundedBigIntegerField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
     date_finished = models.DateTimeField(null=True)
@@ -86,6 +87,10 @@ class ExportedData(Model):
     def email_success(self):
         from sentry.utils.email import MessageBuilder
 
+        user = user_service.get_user(user_id=self.user_id)
+        if user is None:
+            return
+
         # The following condition should never be true, but it's a safeguard in case someone manually calls this method
         if self.date_finished is None or self.date_expired is None or self._get_file() is None:
             logger.warning(
@@ -93,7 +98,7 @@ class ExportedData(Model):
                 extra={"data_export_id": self.id, "organization_id": self.organization_id},
             )
             return
-        url = absolute_uri(
+        url = self.organization.absolute_url(
             reverse("sentry-data-export-details", args=[self.organization.slug, self.id])
         )
         msg = MessageBuilder(
@@ -103,10 +108,14 @@ class ExportedData(Model):
             template="sentry/emails/data-export-success.txt",
             html_template="sentry/emails/data-export-success.html",
         )
-        msg.send_async([self.user.email])
+        msg.send_async([user.email])
 
     def email_failure(self, message):
         from sentry.utils.email import MessageBuilder
+
+        user = user_service.get_user(user_id=self.user_id)
+        if user is None:
+            return
 
         msg = MessageBuilder(
             subject="We couldn't export your data.",
@@ -119,7 +128,7 @@ class ExportedData(Model):
             template="sentry/emails/data-export-failure.txt",
             html_template="sentry/emails/data-export-failure.html",
         )
-        msg.send_async([self.user.email])
+        msg.send_async([user.email])
         self.delete()
 
     def _get_file(self):

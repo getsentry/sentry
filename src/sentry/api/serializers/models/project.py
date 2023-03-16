@@ -23,7 +23,7 @@ from sentry.digests import backend as digests
 from sentry.eventstore.models import DEFAULT_SUBJECT_TEMPLATE
 from sentry.features.base import ProjectFeature
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import parse_sources, redact_source_secrets
+from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     EnvironmentProject,
@@ -94,24 +94,20 @@ def get_access_by_project(
         project_team_map[pt.project_id].append(pt.team)
 
     team_memberships = set(_get_team_memberships([pt.team for pt in project_teams], user))
-    org_roles = get_org_roles({i.organization_id for i in projects}, user)
+    all_org_roles = get_org_roles({i.organization_id for i in projects}, user)
     prefetch_related_objects(projects, "organization")
 
     is_superuser = request and is_active_superuser(request) and request.user == user
     result = {}
     for project in projects:
         is_member = any(t.id in team_memberships for t in project_team_map.get(project.id, []))
-        org_role = org_roles.get(project.organization_id)
-        if is_member:
-            has_access = True
-        elif is_superuser:
-            has_access = True
-        elif project.organization.flags.allow_joinleave:
-            has_access = True
-        elif org_role and roles.get(org_role).is_global:
-            has_access = True
-        else:
-            has_access = False
+        org_roles = all_org_roles.get(project.organization_id) or []
+        has_access = bool(
+            is_member
+            or is_superuser
+            or project.organization.flags.allow_joinleave
+            or any(roles.get(org_role).is_global for org_role in org_roles)
+        )
         result[project] = {"is_member": is_member, "has_access": has_access}
     return result
 
@@ -179,7 +175,11 @@ def format_options(attrs: defaultdict(dict)):
         "sentry:performance_issue_creation_rate": options.get(
             "sentry:performance_issue_creation_rate"
         ),
+        "sentry:performance_issue_send_to_issues_platform": options.get(
+            "sentry:performance_issue_send_to_issues_platform"
+        ),
         "filters:blacklisted_ips": "\n".join(options.get("sentry:blacklisted_ips", [])),
+        "filters:react-hydration-errors": bool(options.get("filters:react-hydration-errors", True)),
         f"filters:{FilterTypes.RELEASES}": "\n".join(
             options.get(f"sentry:{FilterTypes.RELEASES}", [])
         ),
@@ -467,6 +467,7 @@ class ProjectSerializer(Serializer):  # type: ignore
             "hasSessions": bool(obj.flags.has_sessions),
             "hasProfiles": bool(obj.flags.has_profiles),
             "hasReplays": bool(obj.flags.has_replays),
+            "hasMinifiedStackTrace": bool(obj.flags.has_minified_stack_trace),
             "features": attrs["features"],
             "status": status_label,
             "platform": obj.platform,
@@ -698,6 +699,7 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasSessions=bool(obj.flags.has_sessions),
             hasProfiles=bool(obj.flags.has_profiles),
             hasReplays=bool(obj.flags.has_replays),
+            hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -879,10 +881,12 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "defaultEnvironment": attrs["options"].get("sentry:default_environment"),
                 "relayPiiConfig": attrs["options"].get("sentry:relay_pii_config"),
                 "builtinSymbolSources": get_value_with_default("sentry:builtin_symbol_sources"),
-                "dynamicSampling": get_value_with_default("sentry:dynamic_sampling"),
                 "dynamicSamplingBiases": get_value_with_default("sentry:dynamic_sampling_biases"),
                 "performanceIssueCreationRate": get_value_with_default(
                     "sentry:performance_issue_creation_rate"
+                ),
+                "performanceIssueCreationThroughPlatform": get_value_with_default(
+                    "sentry:performance_issue_send_to_issues_platform"
                 ),
                 "eventProcessing": {
                     "symbolicationDegraded": False,

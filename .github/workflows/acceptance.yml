@@ -31,7 +31,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend: ${{ steps.changes.outputs.backend_all }}
+      backend_all: ${{ steps.changes.outputs.backend_all }}
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
 
@@ -41,78 +41,6 @@ jobs:
         with:
           token: ${{ github.token }}
           filters: .github/file-filters.yml
-
-  frontend:
-    if: needs.files-changed.outputs.acceptance == 'true'
-    needs: files-changed
-    name: frontend tests
-    # If you change the runs-on image, you must also change the runner in jest-balance.yml
-    # so that the balancer runs in the same environment as the tests.
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        # XXX: When updating this, make sure you also update CI_NODE_TOTAL.
-        instance: [0, 1, 2, 3]
-
-    env:
-      VISUAL_HTML_ENABLE: 1
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-        name: Checkout sentry
-
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - name: Build CSS
-        run: NODE_ENV=production yarn build-css
-
-      - name: jest
-        env:
-          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
-          # XXX: CI_NODE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-          #      Otherwise, if there are other things in the matrix, using strategy.job-total
-          #      wouldn't be correct.
-          CI_NODE_TOTAL: 4
-          CI_NODE_INDEX: ${{ matrix.instance }}
-        run: |
-          SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
-
-      - name: Save HTML artifacts
-        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb  # v3.1.1
-        with:
-          retention-days: 14
-          name: jest-html
-          path: .artifacts/visual-snapshots/jest
-
-      - name: Create Images from HTML
-        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
-        with:
-          base-path: .artifacts/visual-snapshots/jest
-          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
-
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        with:
-          files: .artifacts/coverage/*
-          type: frontend
 
   acceptance:
     if: needs.files-changed.outputs.acceptance == 'true'
@@ -126,11 +54,11 @@ jobs:
       fail-fast: false
       matrix:
         # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0, 1, 2, 3]
+        instance: [0, 1, 2, 3, 4]
         pg-version: ['9.6']
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 4
+      MATRIX_INSTANCE_TOTAL: 5
       VISUAL_SNAPSHOT_ENABLE: 1
       TEST_GROUP_STRATEGY: roundrobin
 
@@ -150,9 +78,16 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('webpack.config.ts') }}
 
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
       - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
 
       - name: webpack
         env:
@@ -163,11 +98,16 @@ jobs:
         run: |
           yarn build-acceptance
 
+      - name: Build chartcuterie configuration module
+        run: |
+          make build-chartcuterie-config
+
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
         with:
           snuba: true
+          chartcuterie: true
           pg-version: ${{ matrix.pg-version }}
 
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
@@ -180,88 +120,30 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
         with:
           save-only: true
           snapshot-path: .artifacts/visual-snapshots
 
+      # This job runs when FE or BE changes happen, however, we only upload coverage data for
+      # BE changes since it conflicts with codecov's carry forward functionality
+      # Upload coverage data even if running the tests step fails since
+      # it reduces large coverage fluctuations
       - name: Handle artifacts
         uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_all == 'true'
+        if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
-  chartcuterie:
-    if: needs.files-changed.outputs.acceptance == 'true'
-    needs: files-changed
-    name: chartcuterie integration
-    runs-on: ubuntu-20.04
-    timeout-minutes: 30
-    strategy:
-      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
-      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
-      fail-fast: false
-      matrix:
-        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
-        instance: [0]
-    env:
-      # XXX: MATRIX_INSTANCE_TOTAL must be hardcoded to the length of strategy.matrix.instance.
-      MATRIX_INSTANCE_TOTAL: 1
-      TEST_GROUP_STRATEGY: roundrobin
-      VISUAL_SNAPSHOT_ENABLE: 1
-
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-        with:
-          # Avoid codecov error message related to SHA resolution:
-          # https://github.com/codecov/codecov-bash/blob/7100762afbc822b91806a6574658129fe0d23a7d/codecov#L891
-          fetch-depth: '2'
-
-      - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
-        id: setup
-        with:
-          chartcuterie: true
-
-      - name: yarn cache
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
-        with:
-          path: ${{ steps.setup.outputs.yarn-cache-dir }}
-          key: ${{ runner.os }}-v2-yarn-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
-
-      - name: Install Javascript Dependencies
-        run: |
-          yarn install --frozen-lockfile
-
-      - name: Build chartcuterie configuration module
-        run: |
-          make build-chartcuterie-config
-
-      - name: Run chartcuterie tests (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
-        run: |
-          mkdir -p ${{ steps.setup.outputs.acceptance-dir }}
-          make test-chartcuterie
-        env:
-          PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
-
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
-
-      - name: Handle artifacts
-        uses: ./.github/actions/artifacts
-        if: needs.files-changed.outputs.backend_all == 'true'
-
-  visual-diff:
+  acceptance-required-checks:
+    # this is a required check so we need this job to always run and report a status.
     if: always()
-    # This guarantees that we will only schedule Visual Snapshots if all
-    # workflows that generate artifacts succeed
-    needs: [acceptance, frontend, chartcuterie, files-changed]
-    name: triggers visual snapshot
+    name: Acceptance
+    needs: [acceptance, files-changed]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
     steps:
-      # If any jobs we depend on fail, we will fail since this checks triggers Visual Snapshots which is a required check
+      # If any jobs we depend on fail, we will fail since this check calls the
+      # visual snapshot service which creates the "Visual Snapshot" status,
+      # which is a required check.
       # NOTE: A timeout is considered a failure
       - name: Check for failures
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
@@ -269,7 +151,7 @@ jobs:
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
 
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@d08945864bd75129863897062b8c1687f1600a2d
+        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
         # Run this step only if there are acceptance related code changes
         # Forks are handled in visual-diff.yml
         if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
@@ -277,15 +159,3 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-  # Since Visual Snapshot is a required check we need to pretend to have run
-  fake-visual-snapshot:
-    name: Visual Snapshot
-    needs: [files-changed]
-    # Opposite condition to "triggers visual snapshot" required check
-    if: needs.files-changed.outputs.acceptance != 'true'
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Sentaur attack
-        run: |
-          echo "This check pretends to be the Visual Snapshot to satisfy Github required checks"

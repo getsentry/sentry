@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
+import {Button} from 'sentry/components/button';
 import CommitLink from 'sentry/components/commitLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import Link from 'sentry/components/links/link';
@@ -13,10 +14,8 @@ import TimeSince from 'sentry/components/timeSince';
 import {IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Commit} from 'sentry/types';
-
-import Button from './button';
 
 export function formatCommitMessage(message: string | null) {
   if (!message) {
@@ -94,9 +93,14 @@ function CommitRow({
       )}
 
       <CommitMessage>
-        <Message>
-          {tct('[author] committed [commitLink]', {
-            author: isUser ? t('You') : commit.author?.name ?? t('Unknown author'),
+        <Message>{formatCommitMessage(commit.message)}</Message>
+        <Meta>
+          {tct('[author] committed [commitLink] \u2022 [date]', {
+            author: (
+              <strong>
+                {isUser ? t('You') : commit.author?.name ?? t('Unknown author')}
+              </strong>
+            ),
             commitLink: (
               <CommitLink
                 inline
@@ -106,11 +110,13 @@ function CommitRow({
                 onClick={onCommitClick ? () => onCommitClick(commit) : undefined}
               />
             ),
+            date: (
+              <TimeSince
+                tooltipSuffix={commit.suspectCommitType}
+                date={commit.dateCreated}
+              />
+            ),
           })}
-        </Message>
-        <Meta>
-          {formatCommitMessage(commit.message)} &bull;{' '}
-          <TimeSince date={commit.dateCreated} />
         </Meta>
       </CommitMessage>
 

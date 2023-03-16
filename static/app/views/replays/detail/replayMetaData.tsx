@@ -1,15 +1,15 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import Duration from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import Tag, {Background} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {IconCalendar, IconClock} from 'sentry/icons';
 import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
@@ -39,7 +39,7 @@ function ReplayMetaData({replayRecord}: Props) {
     <KeyMetrics>
       {replayRecord ? (
         <ProjectBadge
-          project={projects.find(p => p.id === replayRecord.projectId) || {slug}}
+          project={projects.find(p => p.id === replayRecord.project_id) || {slug}}
           avatarSize={16}
         />
       ) : (
@@ -50,7 +50,7 @@ function ReplayMetaData({replayRecord}: Props) {
         {replayRecord ? (
           <Fragment>
             <IconCalendar color="gray300" />
-            <TimeSince date={replayRecord.startedAt} shorten />
+            <TimeSince date={replayRecord.started_at} unitStyle="short" />
           </Fragment>
         ) : (
           <HeaderPlaceholder />
@@ -75,12 +75,12 @@ function ReplayMetaData({replayRecord}: Props) {
         <StyledLink to={errorsTabHref}>
           <ErrorTag
             icon={null}
-            type={replayRecord.countErrors ? 'error' : 'black'}
-            level={replayRecord.countErrors ? 'fatal' : 'default'}
+            type={replayRecord.count_errors ? 'error' : 'black'}
+            level={replayRecord.count_errors ? 'fatal' : 'default'}
           >
-            {replayRecord.countErrors}
+            {replayRecord.count_errors}
           </ErrorTag>
-          {tn('Error', 'Errors', replayRecord.countErrors)}
+          {tn('Error', 'Errors', replayRecord.count_errors)}
         </StyledLink>
       ) : (
         <HeaderPlaceholder />

@@ -206,6 +206,7 @@ def record_issue_resolved(organization_id, project, group, user, resolution_type
     analytics.record(
         "issue.resolved",
         user_id=user_id,
+        project_id=project.id,
         default_user_id=default_user_id,
         organization_id=organization_id,
         group_id=group.id,
@@ -470,11 +471,10 @@ def record_issue_ignored(project, user, group_list, activity_data, **kwargs):
 
 
 @issue_unignored.connect(weak=False)
-def record_issue_unignored(project, user, group, transition_type, **kwargs):
-    if user and user.is_authenticated:
-        user_id = default_user_id = user.id
+def record_issue_unignored(project, user_id, group, transition_type, **kwargs):
+    if user_id is not None:
+        default_user_id = user_id
     else:
-        user_id = None
         default_user_id = project.organization.get_default_owner().id
 
     analytics.record(

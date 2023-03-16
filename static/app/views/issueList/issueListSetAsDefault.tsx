@@ -1,6 +1,6 @@
 import {browserHistory} from 'react-router';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {removeSpace} from 'sentry/components/smartSearchBar/utils';
 import {IconBookmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -8,6 +8,7 @@ import {Organization, SavedSearchType} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {usePinSearch} from 'sentry/views/issueList/mutations/usePinSearch';
 import {useUnpinSearch} from 'sentry/views/issueList/mutations/useUnpinSearch';
 import {useFetchSavedSearchesForOrg} from 'sentry/views/issueList/queries/useFetchSavedSearchesForOrg';
@@ -46,26 +47,30 @@ const IssueListSetAsDefault = ({
   const {mutate: pinSearch, isLoading: isPinning} = usePinSearch({
     onSuccess: response => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.replace({
-        ...location,
-        pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
-        query: {referrer: 'search-bar', ...currentQuery},
-      });
+      browserHistory.replace(
+        normalizeUrl({
+          ...location,
+          pathname: `/organizations/${organization.slug}/issues/searches/${response.id}/`,
+          query: {referrer: 'search-bar', ...currentQuery},
+        })
+      );
     },
   });
   const {mutate: unpinSearch, isLoading: isUnpinning} = useUnpinSearch({
     onSuccess: () => {
       const {cursor: _cursor, page: _page, ...currentQuery} = location.query;
-      browserHistory.replace({
-        ...location,
-        pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          referrer: 'search-bar',
-          query,
-          sort,
-          ...currentQuery,
-        },
-      });
+      browserHistory.replace(
+        normalizeUrl({
+          ...location,
+          pathname: `/organizations/${organization.slug}/issues/`,
+          query: {
+            referrer: 'search-bar',
+            query,
+            sort,
+            ...currentQuery,
+          },
+        })
+      );
     },
   });
 

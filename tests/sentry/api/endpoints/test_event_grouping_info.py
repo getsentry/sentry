@@ -1,16 +1,14 @@
 from django.urls import reverse
 
-from sentry.event_manager import EventManager
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers import override_options
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.samples import load_data
 
 
 @region_silo_test(stable=True)
-class EventGroupingInfoEndpointTestCase(APITestCase):
+class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
     def setUp(self):
         self.login_as(user=self.user)
 
@@ -61,23 +59,7 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
         assert content == {}
 
     def test_transaction_event_with_problem(self):
-        event_data = load_data(
-            "transaction-n-plus-one",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        perf_event_manager = EventManager(event_data)
-        perf_event_manager.normalize()
-        with override_options(
-            {
-                "performance.issues.n_plus_one_db.problem-creation": 1.0,
-            }
-        ), self.feature(
-            [
-                "projects:performance-suspect-spans-ingestion",
-            ]
-        ):
-            event = perf_event_manager.save(self.project.id)
-        event = event.for_group(event.groups[0])
+        event = self.create_performance_issue()
         url = reverse(
             "sentry-api-0-event-grouping-info",
             kwargs={
@@ -91,11 +73,11 @@ class EventGroupingInfoEndpointTestCase(APITestCase):
         content = json.loads(response.content)
 
         assert response.status_code == 200
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["type"] == "performance-problem"
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["evidence"]["parent_span_hashes"] == [
+        assert content["performance_n_plus_one_db_queries"]["type"] == "performance-problem"
+        assert content["performance_n_plus_one_db_queries"]["evidence"]["parent_span_hashes"] == [
             "6a992d5529f459a4"
         ]
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["evidence"]["offender_span_hashes"] == [
+        assert content["performance_n_plus_one_db_queries"]["evidence"]["offender_span_hashes"] == [
             "d74ed7012596c3fb",
             "d74ed7012596c3fb",
             "d74ed7012596c3fb",

@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Commit, User} from 'sentry/types';
 import {percent} from 'sentry/utils';
 import {userDisplayName} from 'sentry/utils/formatters';

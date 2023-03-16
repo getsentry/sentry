@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps, openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
 import {JsonFormObject} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {User} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 
@@ -182,14 +182,15 @@ class AdminUserEdit extends AsyncView<Props, State> {
           apiMethod="PUT"
           apiEndpoint={this.userEndpoint}
           requireChanges
-          onSubmitError={addErrorMessage}
+          onSubmitError={err => {
+            addErrorMessage(err?.responseJSON?.detail);
+          }}
           onSubmitSuccess={data => {
             this.setState({user: data});
-            addSuccessMessage('User account updated.');
+            addSuccessMessage(t('User account updated.'));
           }}
           extraButton={
             <Button
-              type="button"
               onClick={openDeleteModal}
               style={{marginLeft: space(1)}}
               priority="danger"

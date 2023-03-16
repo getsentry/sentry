@@ -18,7 +18,7 @@ from tests.sentry.api.endpoints.test_organization_metrics import (
 pytestmark = pytest.mark.sentry_metrics
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricsTagsIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-tags"

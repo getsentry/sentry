@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import Avatar from 'sentry/components/avatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
@@ -13,7 +13,7 @@ import Pagination from 'sentry/components/pagination';
 import {Panel, PanelItem} from 'sentry/components/panels';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {GroupTombstone} from 'sentry/types';
 
 type RowProps = {
@@ -55,7 +55,6 @@ function GroupTombstoneRow({data, disabled, onUndiscard}: RowProps) {
           disabled={disabled}
         >
           <Button
-            type="button"
             aria-label={t('Undiscard')}
             title={
               disabled

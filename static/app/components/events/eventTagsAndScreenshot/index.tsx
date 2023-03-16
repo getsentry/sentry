@@ -1,22 +1,24 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
 
+import {
+  useDeleteEventAttachmentOptimistic,
+  useFetchEventAttachments,
+} from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {EventAttachment} from 'sentry/types/group';
 import {objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {SCREENSHOT_TYPE} from 'sentry/views/organizationGroupDetails/groupEventAttachments/groupEventAttachmentsFilter';
-import {Tab, TabPaths} from 'sentry/views/organizationGroupDetails/types';
+import {SCREENSHOT_TYPE} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
+import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 
 import Modal, {modalCss} from './screenshot/modal';
-import {DataSection as ScreenshotDataSection} from './dataSection';
 import Screenshot from './screenshot';
 import Tags from './tags';
-
-type ScreenshotProps = React.ComponentProps<typeof Screenshot>;
 
 const SCREENSHOT_NAMES = [
   'screenshot.jpg',
@@ -31,26 +33,30 @@ type Props = Omit<
   React.ComponentProps<typeof Tags>,
   'projectSlug' | 'hasEventContext'
 > & {
-  attachments: ScreenshotProps['screenshot'][];
-  onDeleteScreenshot: ScreenshotProps['onDelete'];
-  projectId: string;
-  hasContext?: boolean;
+  projectSlug: string;
   isShare?: boolean;
 };
 
-function EventTagsAndScreenshots({
-  projectId: projectSlug,
+export function EventTagsAndScreenshot({
+  projectSlug,
   location,
   event,
-  attachments,
-  onDeleteScreenshot,
   organization,
   isShare = false,
-  hasContext = false,
 }: Props) {
   const {tags = []} = event;
-
-  const screenshots = attachments.filter(({name}) => SCREENSHOT_NAMES.includes(name));
+  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug,
+      eventId: event.id,
+    },
+    {enabled: !isShare}
+  );
+  const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
+  const screenshots =
+    attachments?.filter(({name}) => SCREENSHOT_NAMES.includes(name)) ?? [];
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
@@ -64,6 +70,15 @@ function EventTagsAndScreenshots({
   const hasEventContext = hasContext && !objectIsEmpty(event.contexts);
   const showTags = !!tags.length || hasContext;
 
+  const handleDeleteScreenshot = (attachmentId: string) => {
+    deleteAttachment({
+      orgSlug: organization.id,
+      projectSlug,
+      eventId: event.id,
+      attachmentId,
+    });
+  };
+
   function handleOpenVisualizationModal(
     eventAttachment: EventAttachment,
     downloadUrl: string
@@ -75,7 +90,7 @@ function EventTagsAndScreenshots({
       trackAdvancedAnalyticsEvent('issue_details.issue_tab.screenshot_modal_deleted', {
         organization,
       });
-      onDeleteScreenshot(eventAttachment.id);
+      handleDeleteScreenshot(eventAttachment.id);
     }
 
     openModal(
@@ -132,20 +147,18 @@ function EventTagsAndScreenshots({
         <div>
           <ScreenshotWrapper>
             <StyledScreenshotDataSection
+              title={screenshotLink}
+              showPermalink={false}
+              help={t('This image was captured around the time that the event occurred.')}
+              type="screenshot-data-section"
               data-test-id="screenshot-data-section"
-              title={tct('[link]', {
-                link: screenshotLink,
-              })}
-              description={t(
-                'This image was captured around the time that the event occurred.'
-              )}
             >
               <Screenshot
                 organization={organization}
                 eventId={event.id}
                 projectSlug={projectSlug}
                 screenshot={screenshot}
-                onDelete={onDeleteScreenshot}
+                onDelete={handleDeleteScreenshot}
                 onNext={() => setScreenshotInFocus(screenshotInFocus + 1)}
                 onPrevious={() => setScreenshotInFocus(screenshotInFocus - 1)}
                 screenshotInFocus={screenshotInFocus}
@@ -159,8 +172,6 @@ function EventTagsAndScreenshots({
     </Wrapper>
   );
 }
-
-export default EventTagsAndScreenshots;
 
 /**
  * Used to adjust padding based on which 3 elements are shown
@@ -182,7 +193,7 @@ const Wrapper = styled(DataSection)<{
   }
 `;
 
-const StyledScreenshotDataSection = styled(ScreenshotDataSection)`
+const StyledScreenshotDataSection = styled(EventDataSection)`
   h3 a {
     color: ${p => p.theme.linkColor};
   }

@@ -11,7 +11,7 @@ import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {StackTraceMechanism} from 'sentry/types/stacktrace';
 import {isUrl} from 'sentry/utils';
 

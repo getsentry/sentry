@@ -5,6 +5,7 @@ import {Result} from 'sentry/components/forms/controls/selectAsyncControl';
 import {
   IconAsana,
   IconBitbucket,
+  IconCodecov,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -217,6 +218,8 @@ export const getIntegrationIcon = (
       return <IconJira size={iconSize} />;
     case 'vsts':
       return <IconVsts size={iconSize} />;
+    case 'codecov':
+      return <IconCodecov size={iconSize} />;
     default:
       return <IconGeneric size={iconSize} />;
   }

@@ -12,7 +12,7 @@ type PromisedImport<C> = Promise<{default: C}>;
 
 type ComponentType = React.ComponentType<any>;
 
-type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
+type Props<C extends ComponentType> = React.ComponentProps<C> & {
   /**
    * Accepts a function to trigger the import resolution of the component.
    */
@@ -27,7 +27,7 @@ type Props<C extends ComponentType> = Omit<React.ComponentProps<C>, 'route'> & {
  */
 function LazyLoad<C extends ComponentType>({component, ...props}: Props<C>) {
   const LazyComponent = useMemo(
-    () => lazy(() => retryableImport(component)),
+    () => lazy<C>(() => retryableImport(component)),
     [component]
   );
 

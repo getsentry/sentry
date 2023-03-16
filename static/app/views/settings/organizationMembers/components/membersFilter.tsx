@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import Checkbox from 'sentry/components/checkbox';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrgRole} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -133,7 +133,7 @@ const BooleanFilter = ({onChange, value, label}: BooleanFilterProps) => (
 const FilterContainer = styled('div')`
   border-radius: 4px;
   background: ${p => p.theme.background};
-  box-shadow: ${p => p.theme.dropShadowLight};
+  box-shadow: ${p => p.theme.dropShadowMedium};
   border: 1px solid ${p => p.theme.border};
 `;
 
@@ -178,10 +178,6 @@ const FilterList = styled('div')`
     font-weight: normal;
     white-space: nowrap;
     height: ${space(2)};
-  }
-
-  input,
-  label {
     margin: 0;
   }
 `;

@@ -222,9 +222,7 @@ describe('TraceView', () => {
 
     // TODO: This test can be converted later to use the TransactionEventBuilder instead
     it('should allow expanding of embedded transactions', async () => {
-      const {organization, project, location} = initializeData({
-        features: ['unified-span-view'],
-      });
+      const {organization, project, location} = initializeData({});
 
       const event = generateSampleEvent();
       generateSampleSpan(
@@ -236,8 +234,7 @@ describe('TraceView', () => {
       );
       const waterfallModel = new WaterfallModel(event);
 
-      const eventsTraceMock = MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+      const mockResponse = {
         method: 'GET',
         statusCode: 200,
         body: [
@@ -257,29 +254,16 @@ describe('TraceView', () => {
             'transaction.op': 'http.server',
           },
         ],
+      };
+
+      const eventsTraceMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+        ...mockResponse,
       });
 
       const eventsTraceLightMock = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
-        method: 'GET',
-        statusCode: 200,
-        body: [
-          event,
-          {
-            errors: [],
-            event_id: '998d7e2c304c45729545e4434e2967cb',
-            generation: 1,
-            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
-            parent_span_id: 'b000000000000000',
-            project_id: project.id,
-            project_slug: project.slug,
-            span_id: '8596e2795f88471d',
-            transaction:
-              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
-            'transaction.duration': 159,
-            'transaction.op': 'http.server',
-          },
-        ],
+        ...mockResponse,
       });
 
       const embeddedEvent = {
@@ -325,6 +309,135 @@ describe('TraceView', () => {
       userEvent.click(embeddedTransactionBadge);
       expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
       expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
+    });
+
+    it('should allow expanding of multiple embedded transactions with the same parent span', async () => {
+      const {organization, project, location} = initializeData({});
+
+      const event = generateSampleEvent();
+      generateSampleSpan(
+        'GET /api/transitive-edge',
+        'http.client',
+        'b000000000000000',
+        'a000000000000000',
+        event
+      );
+      const waterfallModel = new WaterfallModel(event);
+
+      const mockResponse = {
+        method: 'GET',
+        statusCode: 200,
+        body: [
+          event,
+          {
+            errors: [],
+            event_id: '998d7e2c304c45729545e4434e2967cb',
+            generation: 1,
+            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+            parent_span_id: 'b000000000000000',
+            project_id: project.id,
+            project_slug: project.slug,
+            span_id: '8596e2795f88471d',
+            transaction:
+              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+            'transaction.duration': 159,
+            'transaction.op': 'http.server',
+          },
+          {
+            errors: [],
+            event_id: '59e1fe369528499b87dab7221ce6b8a9',
+            generation: 1,
+            parent_event_id: '2b658a829a21496b87fd1f14a61abf65',
+            parent_span_id: 'b000000000000000',
+            project_id: project.id,
+            project_slug: project.slug,
+            span_id: 'aa5abb302ad5b9e1',
+            transaction:
+              '/api/0/organizations/{organization_slug}/events/{project_slug}:{event_id}/',
+            'transaction.duration': 159,
+            'transaction.op': 'middleware.nextjs',
+          },
+        ],
+      };
+
+      const eventsTraceMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace/${event.contexts.trace?.trace_id}/`,
+        ...mockResponse,
+      });
+
+      const eventsTraceLightMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-trace-light/${event.contexts.trace?.trace_id}/`,
+        ...mockResponse,
+      });
+
+      const embeddedEvent1 = {
+        ...generateSampleEvent(),
+        id: '998d7e2c304c45729545e4434e2967cb',
+        eventID: '998d7e2c304c45729545e4434e2967cb',
+      };
+      embeddedEvent1.contexts.trace!.span_id = 'a111111111111111';
+
+      const embeddedSpan1 = generateSampleSpan(
+        'i am embedded :)',
+        'test',
+        'b111111111111111',
+        'b000000000000000',
+        embeddedEvent1
+      );
+      embeddedSpan1.trace_id = '8cbbc19c0f54447ab702f00263262726';
+
+      const embeddedEvent2 = {
+        ...generateSampleEvent(),
+        id: '59e1fe369528499b87dab7221ce6b8a9',
+        eventID: '59e1fe369528499b87dab7221ce6b8a9',
+      };
+      embeddedEvent2.contexts.trace!.span_id = 'a222222222222222';
+
+      const embeddedSpan2 = generateSampleSpan(
+        'i am also embedded :o',
+        'middleware.nextjs',
+        'c111111111111111',
+        'b000000000000000',
+        embeddedEvent2
+      );
+      embeddedSpan2.trace_id = '8cbbc19c0f54447ab702f00263262726';
+
+      const fetchEmbeddedTransactionMock1 = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/${project.slug}:998d7e2c304c45729545e4434e2967cb/`,
+        method: 'GET',
+        statusCode: 200,
+        body: embeddedEvent1,
+      });
+
+      const fetchEmbeddedTransactionMock2 = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/${project.slug}:59e1fe369528499b87dab7221ce6b8a9/`,
+        method: 'GET',
+        statusCode: 200,
+        body: embeddedEvent2,
+      });
+
+      render(
+        <QuickTraceQuery event={event} location={location} orgSlug={organization.slug}>
+          {results => (
+            <QuickTraceContext.Provider value={results}>
+              <TraceView organization={organization} waterfallModel={waterfallModel} />
+            </QuickTraceContext.Provider>
+          )}
+        </QuickTraceQuery>
+      );
+
+      expect(eventsTraceMock).toHaveBeenCalled();
+      expect(eventsTraceLightMock).toHaveBeenCalled();
+
+      const embeddedTransactionBadge = await screen.findByTestId(
+        'embedded-transaction-badge'
+      );
+      expect(embeddedTransactionBadge).toBeInTheDocument();
+      userEvent.click(embeddedTransactionBadge);
+      expect(fetchEmbeddedTransactionMock1).toHaveBeenCalled();
+      expect(fetchEmbeddedTransactionMock2).toHaveBeenCalled();
+      expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
+      expect(await screen.findByText(/i am also embedded :o/i)).toBeInTheDocument();
     });
 
     it('should correctly render sibling autogroup text when op and/or description is not provided', async () => {
@@ -511,5 +624,24 @@ describe('TraceView', () => {
 
     const lcpLabelContainer = screen.getByText(/lcp/i).parentElement?.parentElement;
     expect(lcpLabelContainer).toBeInTheDocument();
+  });
+
+  it('should have all focused spans visible', async () => {
+    data = initializeData({});
+
+    const event = generateSampleEvent();
+    for (let i = 0; i < 10; i++) {
+      generateSampleSpan(`desc${i}`, 'db', `id${i}`, 'c000000000000000', event);
+    }
+
+    const waterfallModel = new WaterfallModel(event, ['id3'], ['id3', 'id4']);
+
+    render(
+      <TraceView organization={data.organization} waterfallModel={waterfallModel} />
+    );
+
+    expect(await screen.findByTestId('span-row-1')).toHaveTextContent('desc3');
+    expect(await screen.findByTestId('span-row-2')).toHaveTextContent('desc4');
+    expect(screen.queryByTestId('span-row-3')).not.toBeInTheDocument();
   });
 });

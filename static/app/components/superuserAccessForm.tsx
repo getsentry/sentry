@@ -1,9 +1,11 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
 import ThemeAndStyleProvider from 'sentry/components/themeAndStyleProvider';
@@ -11,11 +13,9 @@ import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
-
-import Button from './button';
 
 type OnTapProps = NonNullable<React.ComponentProps<typeof U2fContainer>['onTap']>;
 
@@ -133,7 +133,14 @@ class SuperuserAccessForm extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+      window.location.assign(redirectURL);
+      return;
+    }
+    window.location.assign(authLoginPath);
   };
 
   async getAuthenticators() {
@@ -161,7 +168,9 @@ class SuperuserAccessForm extends Component<Props, State> {
           initialData={{isSuperuserModal: true}}
           extraButton={
             <BackWrapper>
-              <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
+              <Button type="submit" onClick={this.handleSubmitCOPS}>
+                {t('COPS/CSM')}
+              </Button>
             </BackWrapper>
           }
           resetOnError

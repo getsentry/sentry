@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {pinFilter} from 'sentry/actionCreators/pageFilters';
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization, PinnedPageFilter} from 'sentry/types';

@@ -1,16 +1,16 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Input from 'sentry/components/input';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import ConfirmHeader from 'sentry/views/settings/account/accountSecurity/components/confirmHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -44,7 +44,7 @@ const U2fEnrolledDetails = props => {
             />
           ))}
         <AddAnotherPanelItem>
-          <Button type="button" to="/settings/account/security/mfa/u2f/enroll/" size="sm">
+          <Button to="/settings/account/security/mfa/u2f/enroll/" size="sm">
             {t('Add Another Device')}
           </Button>
         </AddAnotherPanelItem>

@@ -19,12 +19,6 @@ export enum SessionField {
 export type SessionsOperation =
   | 'sum'
   | 'count_unique'
-  | 'avg'
-  | 'max'
-  | 'p50'
-  | 'p75'
-  | 'p95'
-  | 'p99'
   | 'crash_rate'
   | 'crash_free_rate'
   | 'count_abnormal'

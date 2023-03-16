@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import abc
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping, Optional, Sequence
-from urllib.parse import urljoin
 
 import sentry_sdk
 
@@ -11,9 +10,8 @@ from sentry.db.models import Model
 from sentry.models import Environment, NotificationSetting, Team, User
 from sentry.notifications.types import NotificationSettingTypes, get_notification_setting_type_name
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
@@ -86,7 +84,7 @@ class BaseNotification(abc.ABC):
         pass
 
     def get_recipient_context(
-        self, recipient: Team | APIUser, extra_context: Mapping[str, Any]
+        self, recipient: Team | RpcUser, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         # Basically a noop.
         return {**extra_context}
@@ -113,7 +111,7 @@ class BaseNotification(abc.ABC):
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return None
 
-    def get_log_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: Team | RpcUser) -> Mapping[str, Any]:
         group = getattr(self, "group", None)
         params = {
             "organization_id": self.organization.id,
@@ -124,7 +122,7 @@ class BaseNotification(abc.ABC):
             params["user_id"] = recipient.id
         return params
 
-    def get_custom_analytics_params(self, recipient: Team | APIUser) -> Mapping[str, Any]:
+    def get_custom_analytics_params(self, recipient: Team | RpcUser) -> Mapping[str, Any]:
         """
         Returns a mapping of params used to record the event associated with self.analytics_event.
         By default, use the log params.
@@ -167,7 +165,7 @@ class BaseNotification(abc.ABC):
                 )
 
     def get_referrer(
-        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | RpcUser] = None
     ) -> str:
         # referrer needs the provider and recipient
         referrer = f"{self.metrics_key}-{EXTERNAL_PROVIDERS[provider]}"
@@ -176,7 +174,7 @@ class BaseNotification(abc.ABC):
         return referrer
 
     def get_sentry_query_params(
-        self, provider: ExternalProviders, recipient: Optional[Team | APIUser] = None
+        self, provider: ExternalProviders, recipient: Optional[Team | RpcUser] = None
     ) -> str:
         """
         Returns the query params that allow us to track clicks into Sentry links.
@@ -185,7 +183,7 @@ class BaseNotification(abc.ABC):
         """
         return f"?referrer={self.get_referrer(provider, recipient)}"
 
-    def get_settings_url(self, recipient: Team | APIUser, provider: ExternalProviders) -> str:
+    def get_settings_url(self, recipient: Team | RpcUser, provider: ExternalProviders) -> str:
         # Settings url is dependant on the provider so we know which provider is sending them into Sentry.
         if isinstance(recipient, Team):
             url_str = f"/settings/{self.organization.slug}/teams/{recipient.slug}/notifications/"
@@ -197,13 +195,12 @@ class BaseNotification(abc.ABC):
                     url_str += f"{fine_tuning_key}/"
 
         return str(
-            urljoin(
-                absolute_uri(url_str),
-                self.get_sentry_query_params(provider, recipient),
+            self.organization.absolute_url(
+                url_str, query=self.get_sentry_query_params(provider, recipient)
             )
         )
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
+    def determine_recipients(self) -> Iterable[Team | RpcUser]:
         raise NotImplementedError
 
     def get_notification_providers(self) -> Iterable[ExternalProviders]:
@@ -212,16 +209,24 @@ class BaseNotification(abc.ABC):
 
         return notification_providers()
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | APIUser]]:
+    def filter_to_accepting_recipients(
+        self, recipients: Iterable[Team | RpcUser]
+    ) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
+        accepting_recipients: Mapping[
+            ExternalProviders, Iterable[Team | RpcUser]
+        ] = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.organization, recipients, self.notification_setting_type
+        )
+        return accepting_recipients
+
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
         # need a notification_setting_type to call this function
         if not self.notification_setting_type:
             raise NotImplementedError
 
         available_providers = self.get_notification_providers()
         recipients = list(self.determine_recipients())
-        recipients_by_provider = NotificationSetting.objects.filter_to_accepting_recipients(
-            self.organization, recipients, self.notification_setting_type
-        )
+        recipients_by_provider = self.filter_to_accepting_recipients(recipients)
 
         return {
             provider: recipients_of_provider
@@ -251,8 +256,11 @@ class ProjectNotification(BaseNotification, abc.ABC):
 
     def get_project_link(self) -> str:
         # Explicitly typing to satisfy mypy.
-        project_link: str = absolute_uri(f"/{self.organization.slug}/{self.project.slug}/")
-        return project_link
+        return str(
+            self.organization.absolute_url(
+                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
+            )
+        )
 
     def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
         return {"project_id": self.project.id, **super().get_log_params(recipient)}

@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import {Event} from 'sentry/types';
 
-import {geKnownData, getUnknownData} from '../utils';
+import {getKnownData, getUnknownData} from '../utils';
 
 import {getBrowserKnownDataDetails} from './getBrowserKnownDataDetails';
 import {BrowserKnownData, BrowserKnownDataType} from './types';
@@ -23,7 +23,7 @@ export function BrowserEventContext({data, event}: Props) {
   return (
     <Fragment>
       <ContextBlock
-        data={geKnownData<BrowserKnownData, BrowserKnownDataType>({
+        data={getKnownData<BrowserKnownData, BrowserKnownDataType>({
           data,
           meta,
           knownDataTypes: browserKnownDataValues,

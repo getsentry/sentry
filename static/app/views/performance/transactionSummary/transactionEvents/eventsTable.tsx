@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {browserHistory, RouteContextInterface} from 'react-router';
 import styled from '@emotion/styled';
 import {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
@@ -13,16 +13,17 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Tooltip from 'sentry/components/tooltip';
+import ReplayIdCountProvider from 'sentry/components/replays/replayIdCountProvider';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import {IssueAttachment, Organization, Project} from 'sentry/types';
+import {IssueAttachment, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import DiscoverQuery, {
   TableData,
   TableDataRow,
 } from 'sentry/utils/discover/discoverQuery';
-import EventView, {EventData, isFieldSortable} from 'sentry/utils/discover/eventView';
+import EventView, {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {
   fieldAlignment,
@@ -30,12 +31,15 @@ import {
   isSpanOperationBreakdownField,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
 } from 'sentry/utils/discover/fields';
+import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -43,25 +47,6 @@ import {
 } from '../utils';
 
 import OperationSort, {TitleProps} from './operationSort';
-
-export function getProjectID(
-  eventData: EventData,
-  projects: Project[]
-): string | undefined {
-  const projectSlug = (eventData?.project as string) || undefined;
-
-  if (typeof projectSlug === undefined) {
-    return undefined;
-  }
-
-  const project = projects.find(currentProject => currentProject.slug === projectSlug);
-
-  if (!project) {
-    return undefined;
-  }
-
-  return project.id;
-}
 
 function OperationTitle({onClick}: TitleProps) {
   return (
@@ -84,7 +69,6 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
-  showReplayCol: boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -92,7 +76,6 @@ type Props = {
   issueId?: string;
   projectSlug?: string;
   referrer?: string;
-  totalEventCount?: string;
 };
 
 type State = {
@@ -117,10 +100,8 @@ class EventsTable extends Component<Props, State> {
     return (action: Actions, value: React.ReactText) => {
       const {eventView, location, organization, excludedTags} = this.props;
 
-      trackAnalyticsEvent({
-        eventKey: 'performance_views.transactionEvents.cellaction',
-        eventName: 'Performance Views: Transaction Events Tab Cell Action Clicked',
-        organization_id: parseInt(organization.id, 10),
+      trackAdvancedAnalyticsEvent('performance_views.transactionEvents.cellaction', {
+        organization,
         action,
       });
 
@@ -212,6 +193,26 @@ class EventsTable extends Component<Props, State> {
           handleCellAction={this.handleCellAction(column)}
           allowActions={allowActions}
         >
+          {target ? (
+            <ViewReplayLink replayId={dataRow.replayId} to={target}>
+              {rendered}
+            </ViewReplayLink>
+          ) : (
+            rendered
+          )}
+        </CellAction>
+      );
+    }
+
+    if (field === 'profile.id') {
+      const target = generateProfileLink()(organization, dataRow, undefined);
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
           {target ? <Link to={target}>{rendered}</Link> : rendered}
         </CellAction>
       );
@@ -259,10 +260,8 @@ class EventsTable extends Component<Props, State> {
 
   onSortClick(currentSortKind?: string, currentSortField?: string) {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.transactionEvents.sort',
-      eventName: 'Performance Views: Transaction Events Tab Sorted',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.transactionEvents.sort', {
+      organization,
       field: currentSortField,
       direction: currentSortKind,
     });
@@ -342,19 +341,11 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {
-      eventView,
-      organization,
-      location,
-      setError,
-      totalEventCount,
-      referrer,
-      showReplayCol,
-    } = this.props;
+    const {eventView, organization, location, setError, referrer} = this.props;
 
-    const totalTransactionsView = eventView.clone();
-    totalTransactionsView.sorts = [];
-    totalTransactionsView.fields = [{field: 'count()', width: -1}];
+    const totalEventsView = eventView.clone();
+    totalEventsView.sorts = [];
+    totalEventsView.fields = [{field: 'count()', width: -1}];
 
     const {widths} = this.state;
     const containsSpanOpsBreakdown = eventView
@@ -368,9 +359,7 @@ class EventsTable extends Component<Props, State> {
       .getColumns()
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          ((!containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)) &&
-            col.name !== 'replayId') ||
-          showReplayCol
+          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -442,57 +431,84 @@ class EventsTable extends Component<Props, State> {
     return (
       <div data-test-id="events-table">
         <DiscoverQuery
-          eventView={eventView}
+          eventView={totalEventsView}
           orgSlug={organization.slug}
           location={location}
           setError={error => setError(error?.message)}
-          referrer={referrer || 'api.performance.transaction-events'}
+          referrer="api.performance.transaction-summary"
+          cursor="0:0:0"
         >
-          {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
-            tableData ??= {data: []};
-            const parsedPageLinks = parseLinkHeader(pageLinks);
-            const cursor = parsedPageLinks?.next?.cursor;
-            const shouldFetchAttachments: boolean =
-              organization.features.includes('event-attachments') &&
-              !!this.props.issueId &&
-              !!cursor &&
-              this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
-            let currentEvent = cursor?.split(':')[1] ?? 0;
-            if (!parsedPageLinks?.next?.results && totalEventCount) {
-              currentEvent = totalEventCount;
-            }
+          {({isLoading: isTotalEventsLoading, tableData: table}) => {
+            const totalEventsCount = table?.data[0]?.['count()'] ?? 0;
 
-            const paginationCaption =
-              totalEventCount && currentEvent
-                ? tct('Showing [currentEvent] of [totalEventCount] events', {
-                    currentEvent,
-                    totalEventCount,
-                  })
-                : undefined;
-            if (shouldFetchAttachments) {
-              fetchAttachments(tableData, cursor);
-            }
-            joinCustomData(tableData);
             return (
-              <Fragment>
-                <GridEditable
-                  isLoading={isDiscoverQueryLoading || shouldFetchAttachments}
-                  data={tableData?.data ?? []}
-                  columnOrder={columnOrder}
-                  columnSortBy={eventView.getSorts()}
-                  grid={{
-                    onResizeColumn: this.handleResizeColumn,
-                    renderHeadCell: this.renderHeadCellWithMeta(tableData?.meta) as any,
-                    renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                  }}
-                  location={location}
-                />
-                <Pagination
-                  disabled={isDiscoverQueryLoading}
-                  caption={paginationCaption}
-                  pageLinks={pageLinks}
-                />
-              </Fragment>
+              <DiscoverQuery
+                eventView={eventView}
+                orgSlug={organization.slug}
+                location={location}
+                setError={error => setError(error?.message)}
+                referrer={referrer || 'api.performance.transaction-events'}
+              >
+                {({pageLinks, isLoading: isDiscoverQueryLoading, tableData}) => {
+                  tableData ??= {data: []};
+                  const pageEventsCount = tableData?.data?.length ?? 0;
+                  const parsedPageLinks = parseLinkHeader(pageLinks);
+                  const cursor = parsedPageLinks?.next?.cursor;
+                  const shouldFetchAttachments: boolean =
+                    organization.features.includes('event-attachments') &&
+                    !!this.props.issueId &&
+                    !!cursor &&
+                    this.state.lastFetchedCursor !== cursor; // Only fetch on issue details page
+
+                  const paginationCaption =
+                    totalEventsCount && pageEventsCount
+                      ? tct('Showing [pageEventsCount] of [totalEventsCount] events', {
+                          pageEventsCount: pageEventsCount.toLocaleString(),
+                          totalEventsCount: totalEventsCount.toLocaleString(),
+                        })
+                      : undefined;
+                  if (shouldFetchAttachments) {
+                    fetchAttachments(tableData, cursor);
+                  }
+                  joinCustomData(tableData);
+                  const replayIds = tableData.data.map(row => row.replayId);
+                  return (
+                    <ReplayIdCountProvider
+                      organization={organization}
+                      replayIds={replayIds}
+                    >
+                      <VisuallyCompleteWithData
+                        id="TransactionEvents-EventsTable"
+                        hasData={!!tableData?.data?.length}
+                      >
+                        <GridEditable
+                          isLoading={
+                            isTotalEventsLoading ||
+                            isDiscoverQueryLoading ||
+                            shouldFetchAttachments
+                          }
+                          data={tableData?.data ?? []}
+                          columnOrder={columnOrder}
+                          columnSortBy={eventView.getSorts()}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          }}
+                          location={location}
+                        />
+                      </VisuallyCompleteWithData>
+                      <Pagination
+                        disabled={isDiscoverQueryLoading}
+                        caption={paginationCaption}
+                        pageLinks={pageLinks}
+                      />
+                    </ReplayIdCountProvider>
+                  );
+                }}
+              </DiscoverQuery>
             );
           }}
         </DiscoverQuery>

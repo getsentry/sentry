@@ -9,6 +9,7 @@ describe('ProjectPlugins', function () {
 
     const {container} = render(
       <ProjectPlugins
+        organization={organization}
         params={{
           orgId: organization.slug,
         }}
@@ -37,6 +38,7 @@ describe('ProjectPlugins', function () {
 
     render(
       <ProjectPlugins
+        organization={organization}
         params={{
           orgId: organization.slug,
         }}

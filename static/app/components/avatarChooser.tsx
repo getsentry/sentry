@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Avatar from 'sentry/components/avatar';
-import {AvatarCropper} from 'sentry/components/avatarCropper';
-import Button from 'sentry/components/button';
+import {AvatarUploader} from 'sentry/components/avatarUploader';
+import {Button} from 'sentry/components/button';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Well from 'sentry/components/well';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, Organization, SentryApp, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -235,7 +235,7 @@ class AvatarChooser extends Component<Props, State> {
                 </Well>
               )}
               {model.avatar && avatarType === 'upload' && (
-                <AvatarCropper
+                <AvatarUploader
                   {...this.props}
                   type={type!}
                   model={model}
@@ -246,7 +246,6 @@ class AvatarChooser extends Component<Props, State> {
               <AvatarSubmit className="form-actions">
                 {help && <AvatarHelp>{help}</AvatarHelp>}
                 <Button
-                  type="button"
                   priority="primary"
                   onClick={this.handleSaveSettings}
                   disabled={disabled || (avatarType === 'upload' && !dataUrl)}

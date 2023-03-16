@@ -3,6 +3,7 @@ import {render} from 'sentry-test/reactTestingLibrary';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories/organizationRepositories';
 
 describe('OrganizationRepositories', function () {
+  const org = TestStubs.Organization();
   const router = TestStubs.router();
   const location = router.location;
 
@@ -12,7 +13,7 @@ describe('OrganizationRepositories', function () {
     const {container} = render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
-        params={{orgId: 'org-slug'}}
+        organization={org}
         itemList={[]}
         {...routerProps}
       />
@@ -24,7 +25,7 @@ describe('OrganizationRepositories', function () {
     const {container} = render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
-        params={{orgId: 'org-slug'}}
+        organization={org}
         itemList={[TestStubs.Repository()]}
         {...routerProps}
       />
@@ -36,7 +37,7 @@ describe('OrganizationRepositories', function () {
     const {container} = render(
       <OrganizationRepositories
         onRepositoryChange={jest.fn()}
-        params={{orgId: 'org-slug'}}
+        organization={org}
         itemList={[
           TestStubs.Repository({
             provider: TestStubs.GitHubRepositoryProvider({id: 'github'}),

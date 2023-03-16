@@ -1,13 +1,13 @@
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import IdBadge from 'sentry/components/idBadge';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import * as SidebarSection from 'sentry/components/sidebarSection';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, ReleaseProject} from 'sentry/types';
 
 type Props = {

@@ -1,17 +1,17 @@
 import {RouteComponentProps} from 'react-router';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
 import {metric} from 'sentry/utils/analytics';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import AsyncView from 'sentry/views/asyncView';
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
   ruleId: string;
 };
@@ -50,9 +50,10 @@ class MetricRulesEdit extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, ruleId} = this.props.params;
+    const {organization} = this.props;
+    const {ruleId} = this.props.params;
 
-    return [['rule', `/organizations/${orgId}/alert-rules/${ruleId}/`]];
+    return [['rule', `/organizations/${organization.slug}/alert-rules/${ruleId}/`]];
   }
 
   onRequestSuccess({stateKey, data}) {
@@ -69,13 +70,15 @@ class MetricRulesEdit extends AsyncView<Props, State> {
   }
 
   handleSubmitSuccess = () => {
-    const {router} = this.props;
-    const {orgId, ruleId} = this.props.params;
+    const {organization, router} = this.props;
+    const {ruleId} = this.props.params;
 
     metric.endTransaction({name: 'saveAlertRule'});
-    router.push({
-      pathname: `/organizations/${orgId}/alerts/rules/details/${ruleId}/`,
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization.slug}/alerts/rules/details/${ruleId}/`,
+      })
+    );
   };
 
   renderError(error?: Error, disableLog = false): React.ReactNode {

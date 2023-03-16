@@ -9,6 +9,12 @@ on:
     branches:
       - master
 
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
 jobs:
   bump-sentry:
     runs-on: ubuntu-20.04
@@ -29,7 +35,6 @@ jobs:
           token: ${{ secrets.BUMP_SENTRY_TOKEN }}
 
       - name: bump-sentry ${{ github.sha }}
-        shell: bash
         run: |
           cd getsentry
 
@@ -41,7 +46,10 @@ jobs:
               git push origin master && exit 0
               # There's a little bit of network delay here that suffices
               # as a small sleep.
-              git pull --rebase origin master
+              git \
+                -c user.name=getsentry-bot \
+                -c user.email=bot@sentry.io \
+                pull --rebase origin master
           done
 
           # 5th and final attempt.

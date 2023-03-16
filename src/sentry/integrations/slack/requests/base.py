@@ -7,7 +7,9 @@ from rest_framework import status as status_
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.models import Identity, IdentityProvider, Integration, User
+from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 from ..utils import check_signing_secret, logger
 
@@ -53,7 +55,8 @@ class SlackRequest:
 
     def __init__(self, request: Request) -> None:
         self.request = request
-        self._integration: Integration | None = None
+        self._integration: RpcIntegration | None = None
+        self._identity: RpcIdentity | None
         self._data: MutableMapping[str, Any] = {}
 
     def validate(self) -> None:
@@ -76,7 +79,7 @@ class SlackRequest:
         return False
 
     @property
-    def integration(self) -> Integration:
+    def integration(self) -> RpcIntegration:
         if not self._integration:
             raise RuntimeError
         return self._integration
@@ -120,17 +123,23 @@ class SlackRequest:
 
         return {k: v for k, v in data.items() if v}
 
-    def get_identity(self) -> Identity | None:
-        try:
-            idp = IdentityProvider.objects.get(type="slack", external_id=self.team_id)
-        except IdentityProvider.DoesNotExist as e:
-            logger.info("slack.action.invalid-team-id", extra={"slack_team": self.team_id})
-            raise e
+    def get_identity(self) -> RpcIdentity | None:
+        if not hasattr(self, "_identity"):
+            provider = identity_service.get_provider(
+                provider_type="slack", provider_ext_id=self.team_id
+            )
+            self._identity = (
+                identity_service.get_identity(provider_id=provider.id, identity_ext_id=self.user_id)
+                if provider
+                else None
+            )
+        return self._identity
 
-        try:
-            return Identity.objects.select_related("user").get(idp=idp, external_id=self.user_id)
-        except Identity.DoesNotExist:
+    def get_identity_user(self) -> RpcUser | None:
+        identity = self.get_identity()
+        if not identity:
             return None
+        return user_service.get_user(identity.user_id)
 
     def _validate_data(self) -> None:
         try:
@@ -169,9 +178,10 @@ class SlackRequest:
         return self.data.get("token") == verification_token
 
     def _validate_integration(self) -> None:
-        try:
-            self._integration = Integration.objects.get(provider="slack", external_id=self.team_id)
-        except Integration.DoesNotExist:
+        self._integration = integration_service.get_integration(
+            provider="slack", external_id=self.team_id
+        )
+        if not self._integration:
             self._info("slack.action.invalid-team-id")
             raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
 
@@ -188,7 +198,7 @@ class SlackRequest:
 class SlackDMRequest(SlackRequest):
     def __init__(self, request: Request) -> None:
         super().__init__(request)
-        self.user: User | None = None
+        self.user: RpcUser | None = None
 
     @property
     def has_identity(self) -> bool:
@@ -221,9 +231,4 @@ class SlackDMRequest(SlackRequest):
         return command[0], command[1:]
 
     def _validate_identity(self) -> None:
-        try:
-            identity = self.get_identity()
-        except IdentityProvider.DoesNotExist:
-            raise SlackRequestError(status=status_.HTTP_403_FORBIDDEN)
-
-        self.user = identity.user if identity else None
+        self.user = self.get_identity_user()

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
@@ -27,7 +27,7 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
           }
         )}
       </Alert>
-      <Field
+      <FieldGroup
         label={t('Issuer')}
         inline={false}
         error={stepOneData.errors?.issuer}
@@ -50,8 +50,8 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             })
           }
         />
-      </Field>
-      <Field
+      </FieldGroup>
+      <FieldGroup
         label={t('Key ID')}
         inline={false}
         error={stepOneData.errors?.keyId}
@@ -74,8 +74,8 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             })
           }
         />
-      </Field>
-      <Field
+      </FieldGroup>
+      <FieldGroup
         label={t('Private Key')}
         inline={false}
         flexibleControlStateSize
@@ -99,7 +99,7 @@ function StepOne({stepOneData, onSetStepOneData}: Props) {
             })
           }
         />
-      </Field>
+      </FieldGroup>
     </Fragment>
   );
 }

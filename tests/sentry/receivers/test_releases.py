@@ -18,7 +18,6 @@ from sentry.models import (
     GroupSubscription,
     OrganizationMember,
     Release,
-    ReleaseActivity,
     ReleaseProject,
     Repository,
     UserEmail,
@@ -27,12 +26,11 @@ from sentry.models import (
 )
 from sentry.signals import buffer_incr_complete, receivers_raise_on_send
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.releaseactivity import ReleaseActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ResolveGroupResolutionsTest(TestCase):
     @patch("sentry.tasks.clear_expired_resolutions.clear_expired_resolutions.delay")
     def test_simple(self, mock_delay):
@@ -45,6 +43,7 @@ class ResolveGroupResolutionsTest(TestCase):
         mock_delay.assert_called_once_with(release_id=release.id)
 
 
+@region_silo_test(stable=True)
 class ResolvedInCommitTest(TestCase):
     def assertResolvedFromCommit(self, group, commit):
         assert GroupLink.objects.filter(
@@ -166,12 +165,15 @@ class ResolvedInCommitTest(TestCase):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.objects.get_primary_email(user=user)
+        with exempt_from_silo_limits():
+            email = UserEmail.objects.get_primary_email(user=user)
         email.is_verified = True
-        email.save()
+        with exempt_from_silo_limits():
+            email.save()
         repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
         OrganizationMember.objects.create(organization=group.project.organization, user=user)
-        UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
+        with exempt_from_silo_limits():
+            UserOption.objects.set_value(user=user, key="self_assign_issue", value="1")
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
@@ -185,29 +187,32 @@ class ResolvedInCommitTest(TestCase):
 
         self.assertResolvedFromCommit(group, commit)
 
-        assert GroupAssignee.objects.filter(group=group, user=user).exists()
+        assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
 
         assert Activity.objects.filter(
-            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
             "assigneeType": "user",
         }
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
     @receivers_raise_on_send()
     def test_matching_author_without_assignment(self):
         group = self.create_group()
         add_group_to_inbox(group, GroupInboxReason.MANUAL)
         user = self.create_user(name="Foo Bar", email="foo@example.com", is_active=True)
-        email = UserEmail.objects.get_primary_email(user=user)
-        email.is_verified = True
-        email.save()
-        repo = Repository.objects.create(name="example", organization_id=self.group.organization.id)
-        OrganizationMember.objects.create(organization=group.project.organization, user=user)
-        UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
+        with exempt_from_silo_limits():
+            email = UserEmail.objects.get_primary_email(user=user)
+            email.is_verified = True
+            email.save()
+            repo = Repository.objects.create(
+                name="example", organization_id=self.group.organization.id
+            )
+            OrganizationMember.objects.create(organization=group.project.organization, user=user)
+            UserOption.objects.set_value(user=user, key="self_assign_issue", value="0")
 
         commit = Commit.objects.create(
             key=sha1(uuid4().hex.encode("utf-8")).hexdigest(),
@@ -222,13 +227,13 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
-            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
         ).exists()
 
-        assert GroupSubscription.objects.filter(group=group, user=user).exists()
+        assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectHasReleasesReceiverTest(TestCase):
     @receivers_raise_on_send()
     def test(self):
@@ -253,43 +258,3 @@ class ProjectHasReleasesReceiverTest(TestCase):
             filters={"release_id": -1, "project_id": -2},
             sender=ReleaseProject,
         )
-
-
-class SaveReleaseActivityReceiverTest(TestCase):
-    @receivers_raise_on_send()
-    def test_simple(self):
-        with self.feature("organizations:active-release-monitor-alpha"):
-            release = self.create_release(self.project, self.user)
-
-            activity = list(ReleaseActivity.objects.filter(release_id=release.id))
-
-            assert len(activity) == 1
-            assert activity[0].date_added == release.date_added
-            assert activity[0].type == ReleaseActivityType.CREATED.value
-            assert activity[0].release_id == release.id
-
-    @receivers_raise_on_send()
-    def test_update_release_should_not_create_activity(self):
-        with self.feature("organizations:active-release-monitor-alpha"):
-            assert ReleaseActivity.objects.all().count() == 0
-
-            release = self.create_release(self.project, self.user)
-            assert ReleaseActivity.objects.all().count() == 1
-
-            release.update(version="1")
-            assert Release.objects.get(id=release.id).version == "1"
-
-            release.version = "2"
-            release.save()
-            assert Release.objects.get(id=release.id).version == "2"
-
-            release.version = "3"
-            release.save()
-            assert Release.objects.get(id=release.id).version == "3"
-
-            assert ReleaseActivity.objects.all().count() == 1
-
-    @receivers_raise_on_send()
-    def test_flag_off(self):
-        self.create_release(self.project, self.user)
-        assert ReleaseActivity.objects.all().count() == 0

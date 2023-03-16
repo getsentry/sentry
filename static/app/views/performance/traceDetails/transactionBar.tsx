@@ -5,7 +5,14 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import Count from 'sentry/components/count';
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
-import {transactionTargetHash} from 'sentry/components/events/interfaces/spans/utils';
+import {MeasurementMarker} from 'sentry/components/events/interfaces/spans/styles';
+import {
+  getMeasurementBounds,
+  SpanBoundsType,
+  SpanGeneratedBoundsType,
+  transactionTargetHash,
+  VerticalMark,
+} from 'sentry/components/events/interfaces/spans/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {
@@ -38,8 +45,9 @@ import {
   getHumanDuration,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {Organization} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFullDetailed} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
@@ -53,6 +61,7 @@ const MARGIN_LEFT = 0;
 type Props = {
   addContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   continuingDepths: TreeDepth[];
+  generateBounds: (bounds: SpanBoundsType) => SpanGeneratedBoundsType;
   hasGuideAnchor: boolean;
   index: number;
   isExpanded: boolean;
@@ -60,12 +69,14 @@ type Props = {
   isOrphan: boolean;
   isVisible: boolean;
   location: Location;
+  onWheel: (deltaX: number) => void;
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   toggleExpandedState: () => void;
   traceInfo: TraceInfo;
   transaction: TraceRoot | TraceFullDetailed;
   barColor?: string;
+  measurements?: Map<number, VerticalMark>;
 };
 
 type State = {
@@ -86,9 +97,22 @@ class TransactionBar extends Component<Props, State> {
     ) {
       this.scrollIntoView();
     }
+
+    if (this.transactionTitleRef.current) {
+      this.transactionTitleRef.current.addEventListener('wheel', this.handleWheel, {
+        passive: false,
+      });
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.transactionTitleRef.current) {
+      this.transactionTitleRef.current.removeEventListener('wheel', this.handleWheel);
+    }
   }
 
   transactionRowDOMRef = createRef<HTMLDivElement>();
+  transactionTitleRef = createRef<HTMLDivElement>();
   spanContentRef: HTMLDivElement | null = null;
 
   toggleDisplayDetail = () => {
@@ -105,6 +129,57 @@ class TransactionBar extends Component<Props, State> {
     const {generation} = transaction;
 
     return getOffset(generation);
+  }
+
+  handleWheel = (event: WheelEvent) => {
+    // https://stackoverflow.com/q/57358640
+    // https://github.com/facebook/react/issues/14856
+    if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (Math.abs(event.deltaY) === Math.abs(event.deltaX)) {
+      return;
+    }
+
+    const {onWheel} = this.props;
+    onWheel(event.deltaX);
+  };
+
+  renderMeasurements() {
+    const {measurements, generateBounds} = this.props;
+    if (!measurements) {
+      return null;
+    }
+
+    return (
+      <Fragment>
+        {Array.from(measurements.values()).map(verticalMark => {
+          const mark = Object.values(verticalMark.marks)[0];
+          const {timestamp} = mark;
+          const bounds = getMeasurementBounds(timestamp, generateBounds);
+
+          const shouldDisplay = defined(bounds.left) && defined(bounds.width);
+
+          if (!shouldDisplay || !bounds.isSpanVisibleInView) {
+            return null;
+          }
+
+          return (
+            <MeasurementMarker
+              key={String(timestamp)}
+              style={{
+                left: `clamp(0%, ${toPercent(bounds.left || 0)}, calc(100% - 1px))`,
+              }}
+              failedThreshold={verticalMark.failedThreshold}
+            />
+          );
+        })}
+      </Fragment>
+    );
   }
 
   renderConnector(hasToggle: boolean) {
@@ -417,6 +492,7 @@ class TransactionBar extends Component<Props, State> {
           }}
           showDetail={showDetail}
           onClick={this.toggleDisplayDetail}
+          ref={this.transactionTitleRef}
         >
           <GuideAnchor target="trace_view_guide_row" disabled={!hasGuideAnchor}>
             {this.renderTitle(scrollbarManagerChildrenProps)}
@@ -439,6 +515,7 @@ class TransactionBar extends Component<Props, State> {
         >
           <GuideAnchor target="trace_view_guide_row_details" disabled={!hasGuideAnchor}>
             {this.renderRectangle()}
+            {this.renderMeasurements()}
           </GuideAnchor>
         </RowCell>
         {!showDetail && this.renderGhostDivider(dividerHandlerChildrenProps)}

@@ -101,46 +101,4 @@ describe('NotificationSettings', function () {
       ).toBeInTheDocument();
     });
   });
-
-  it('renders active release monitor', function () {
-    const {routerContext, organization} = initializeOrg({
-      ...initializeOrg(),
-      organization: {
-        ...initializeOrg().organization,
-        features: ['active-release-monitor-alpha'],
-      },
-    });
-
-    renderMockRequests({
-      notificationSettings: {
-        alerts: {user: {me: {email: 'never', slack: 'never'}}},
-        deploy: {user: {me: {email: 'never', slack: 'never'}}},
-        workflow: {user: {me: {email: 'never', slack: 'never'}}},
-      },
-    });
-
-    render(<NotificationSettings organizations={[organization]} />, {
-      context: routerContext,
-    });
-
-    // There are 9 notification setting Selects/Toggles.
-    [
-      'alerts',
-      'activeRelease',
-      'workflow',
-      'deploy',
-      'approval',
-      'reports',
-      'email',
-      ...SELF_NOTIFICATION_SETTINGS_TYPES,
-    ].forEach(field => {
-      if (field === 'activeRelease') {
-        expect(screen.getByText('Release Issues')).toBeInTheDocument();
-        return;
-      }
-      expect(
-        screen.getByText(String(NOTIFICATION_SETTING_FIELDS[field].label))
-      ).toBeInTheDocument();
-    });
-  });
 });

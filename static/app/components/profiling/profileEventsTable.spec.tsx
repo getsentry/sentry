@@ -139,7 +139,7 @@ describe('ProfileEventsTable', function () {
       'count()',
     ] as const;
 
-    const data: EventsResults<typeof columns[number]> = {
+    const data: EventsResults<(typeof columns)[number]> = {
       data: [
         {
           id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',

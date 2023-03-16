@@ -29,6 +29,7 @@ export type Project = {
   groupingAutoUpdate: boolean;
   groupingConfig: string;
   hasAccess: boolean;
+  hasMinifiedStackTrace: boolean;
   hasProfiles: boolean;
   hasReplays: boolean;
   hasSessions: boolean;
@@ -38,9 +39,9 @@ export type Project = {
   isMember: boolean;
   organization: Organization;
   plugins: Plugin[];
-
   processingIssues: number;
   relayPiiConfig: string;
+
   subjectTemplate: string;
   teams: Team[];
   builtinSymbolSources?: string[];
@@ -48,10 +49,6 @@ export type Project = {
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
-  /**
-   * @deprecated Use project slug instead
-   */
-  name?: string;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;

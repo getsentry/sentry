@@ -1,5 +1,3 @@
-import {useCallback} from 'react';
-
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
@@ -14,26 +12,24 @@ type Props = {
 
 const features = ['organizations:performance-view'];
 
-function TraceFeature({organization, replayRecord}: Props) {
-  const renderDisabled = useCallback(
-    () => (
-      <FeatureDisabled
-        featureName={t('Performance Monitoring')}
-        features={features}
-        hideHelpToggle
-        message={t('Requires performance monitoring.')}
-      />
-    ),
-    []
+function PerfDisabled() {
+  return (
+    <FeatureDisabled
+      featureName={t('Performance Monitoring')}
+      features={features}
+      hideHelpToggle
+      message={t('Requires performance monitoring.')}
+    />
   );
+}
 
-  // TODO(replays): Configure an upsell message for when tracing is disabled
+function TraceFeature({organization, replayRecord}: Props) {
   return (
     <Feature
       features={features}
       hookName={undefined}
       organization={organization}
-      renderDisabled={renderDisabled}
+      renderDisabled={PerfDisabled}
     >
       <Trace organization={organization} replayRecord={replayRecord} />
     </Feature>

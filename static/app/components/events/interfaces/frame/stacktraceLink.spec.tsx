@@ -1,7 +1,7 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Frame} from 'sentry/types';
+import {CodecovStatusCode, Frame} from 'sentry/types';
 import * as analytics from 'sentry/utils/integrationUtil';
 
 import {StacktraceLink} from './stacktraceLink';
@@ -56,6 +56,7 @@ describe('StacktraceLink', function () {
           commitId: event.release?.lastCommit?.id,
           file: frame.filename,
           platform,
+          lineNo: frame.lineNo,
         },
       })
     );
@@ -70,7 +71,6 @@ describe('StacktraceLink', function () {
         },
       })
     );
-    expect(analyticsSpy).toHaveBeenCalledTimes(1);
   });
 
   it('can dismiss stacktrace link CTA', async function () {
@@ -196,5 +196,84 @@ describe('StacktraceLink', function () {
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
+  });
+
+  it('renders the codecov link', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+        codecov: {
+          status: CodecovStatusCode.COVERAGE_EXISTS,
+          lineCoverage: [[233, 0]],
+          coverageUrl: 'https://app.codecov.io/gh/path/to/file.py',
+        },
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+
+    expect(await screen.findByText('Open in Codecov')).toHaveAttribute(
+      'href',
+      'https://app.codecov.io/gh/path/to/file.py#L233'
+    );
+
+    userEvent.click(await screen.findByText('Open in Codecov'));
+    expect(analyticsSpy).toHaveBeenCalledWith(
+      'integrations.stacktrace_codecov_link_clicked',
+      expect.anything()
+    );
+  });
+
+  it('renders the missing coverage warning', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-stacktrace-integration'],
+      codecovAccess: true,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+        codecov: {status: CodecovStatusCode.NO_COVERAGE_DATA},
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+    expect(await screen.findByText('Code Coverage not found')).toBeInTheDocument();
+  });
+
+  it('renders the codecov prompt', async function () {
+    const organization = {
+      ...org,
+      features: ['codecov-integration', 'codecov-stacktrace-integration-v2'],
+      codecovAccess: false,
+    };
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {
+        config,
+        sourceUrl: 'https://github.com/username/path/to/file.py',
+        integrations: [integration],
+      },
+    });
+    render(<StacktraceLink frame={frame} event={event} line="foo()" />, {
+      context: TestStubs.routerContext(),
+      organization,
+    });
+    expect(await screen.findByText('Add Codecov test coverage')).toBeInTheDocument();
   });
 });

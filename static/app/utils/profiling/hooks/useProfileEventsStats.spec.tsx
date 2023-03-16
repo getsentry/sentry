@@ -121,7 +121,7 @@ describe('useProfileEvents', function () {
           end: 10,
           meta: {
             fields: {count: 'integer', p99: 'duration'},
-            units: {count: null, p99: 'nanosecond'},
+            units: {count: null, p99: 'millisecond'},
           },
         },
         'p99()': {
@@ -133,7 +133,7 @@ describe('useProfileEvents', function () {
           end: 10,
           meta: {
             fields: {count: 'integer', p99: 'duration'},
-            units: {count: null, p99: 'nanosecond'},
+            units: {count: null, p99: 'millisecond'},
           },
         },
       },

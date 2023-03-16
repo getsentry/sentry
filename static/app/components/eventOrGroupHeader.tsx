@@ -6,17 +6,16 @@ import capitalize from 'lodash/capitalize';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import EventOrGroupTitle from 'sentry/components/eventOrGroupTitle';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconMute, IconStar} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, GroupTombstone, Level, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {getLocation, getMessage} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useParams} from 'sentry/utils/useParams';
 import withOrganization from 'sentry/utils/withOrganization';
-import {TagAndMessageWrapper} from 'sentry/views/organizationGroupDetails/unhandledTag';
+import {TagAndMessageWrapper} from 'sentry/views/issueDetails/unhandledTag';
 
 import EventTitleError from './eventTitleError';
 
@@ -56,7 +55,6 @@ function EventOrGroupHeader({
   grouping = false,
   source,
 }: Props) {
-  const params = useParams();
   const location = useLocation();
 
   const hasGroupingTreeUI = !!organization.features?.includes('grouping-tree-ui');
@@ -99,7 +97,7 @@ function EventOrGroupHeader({
   }
 
   function getTitle() {
-    const orgId = params?.orgId;
+    const orgId = organization.slug;
 
     const {id, status} = data as Group;
     const {eventID, groupID} = data as Event;
@@ -111,7 +109,7 @@ function EventOrGroupHeader({
 
     if (includeLink) {
       return (
-        <GlobalSelectionLink
+        <TitleWithLink
           {...commonEleProps}
           to={{
             pathname: `/organizations/${orgId}/issues/${eventID ? groupID : id}/${
@@ -135,11 +133,11 @@ function EventOrGroupHeader({
           onClick={onClick}
         >
           {getTitleChildren()}
-        </GlobalSelectionLink>
+        </TitleWithLink>
       );
     }
 
-    return <span {...commonEleProps}>{getTitleChildren()}</span>;
+    return <TitleWithoutLink {...commonEleProps}>{getTitleChildren()}</TitleWithoutLink>;
   }
 
   const eventLocation = getLocation(data);
@@ -184,17 +182,6 @@ const Title = styled('div')<{hasGroupingTreeUI: boolean; size: Size}>`
     font-weight: 300;
     color: ${p => p.theme.subText};
   }
-  ${p =>
-    !p.hasGroupingTreeUI
-      ? css`
-          ${truncateStyles}
-        `
-      : css`
-          > a:first-child {
-            display: inline-flex;
-            min-height: ${space(3)};
-          }
-        `}
 `;
 
 const LocationWrapper = styled('div')`
@@ -232,7 +219,6 @@ const Message = styled('div')`
 
 const IconWrapper = styled('span')`
   position: relative;
-  display: flex;
   margin-right: 5px;
 `;
 
@@ -244,6 +230,13 @@ const GroupLevel = styled('div')<{level: Level}>`
   border-radius: 0 3px 3px 0;
 
   background-color: ${p => p.theme.level[p.level] ?? p.theme.level.default};
+`;
+
+const TitleWithLink = styled(GlobalSelectionLink)`
+  display: flex;
+`;
+const TitleWithoutLink = styled('span')`
+  display: flex;
 `;
 
 export default withOrganization(EventOrGroupHeader);

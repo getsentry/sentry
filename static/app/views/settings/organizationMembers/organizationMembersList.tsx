@@ -6,7 +6,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {resendMemberInvite} from 'sentry/actionCreators/members';
 import {redirectToRemainingOrganization} from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -16,7 +16,7 @@ import {ORG_ROLES} from 'sentry/constants';
 import {IconSliders} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Member, MemberRole, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -34,7 +34,7 @@ import OrganizationMemberRow from './organizationMemberRow';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = AsyncView['state'] & {
   inviteRequests: Member[];
@@ -68,24 +68,24 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
     return [
-      ['members', `/organizations/${orgId}/members/`, {}, {paginate: true}],
+      ['members', `/organizations/${organization.slug}/members/`, {}, {paginate: true}],
       [
         'member',
-        `/organizations/${orgId}/members/me/`,
+        `/organizations/${organization.slug}/members/me/`,
         {},
         {allowError: error => error.status === 404},
       ],
       [
         'authProvider',
-        `/organizations/${orgId}/auth-provider/`,
+        `/organizations/${organization.slug}/auth-provider/`,
         {},
         {allowError: error => error.status === 403},
       ],
 
-      ['inviteRequests', `/organizations/${orgId}/invite-requests/`],
+      ['inviteRequests', `/organizations/${organization.slug}/invite-requests/`],
     ];
   }
 
@@ -95,9 +95,9 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   }
 
   removeMember = async (id: string) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
-    await this.api.requestPromise(`/organizations/${orgId}/members/${id}/`, {
+    await this.api.requestPromise(`/organizations/${organization.slug}/members/${id}/`, {
       method: 'DELETE',
       data: {},
     });
@@ -140,10 +140,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     this.setState(state => ({
       invited: {...state.invited, [id]: 'loading'},
     }));
+    const {organization} = this.props;
 
     try {
       await resendMemberInvite(this.api, {
-        orgId: this.props.params.orgId,
+        orgId: organization.slug,
         memberId: id,
         regenerate: expired,
       });
@@ -179,7 +180,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
     errorMessage,
     eventKey,
   }) => {
-    const {params, organization} = this.props;
+    const {organization} = this.props;
 
     this.setState(state => ({
       inviteRequestBusy: {...state.inviteRequestBusy, [inviteRequest.id]: true},
@@ -187,7 +188,7 @@ class OrganizationMembersList extends AsyncView<Props, State> {
 
     try {
       await this.api.requestPromise(
-        `/organizations/${params.orgId}/invite-requests/${inviteRequest.id}/`,
+        `/organizations/${organization.slug}/invite-requests/${inviteRequest.id}/`,
         {
           method,
           data,
@@ -241,9 +242,9 @@ class OrganizationMembersList extends AsyncView<Props, State> {
   };
 
   renderBody() {
-    const {params, organization} = this.props;
+    const {organization} = this.props;
     const {membersPageLinks, members, member: currentMember, inviteRequests} = this.state;
-    const {name: orgName, access} = organization;
+    const {access} = organization;
 
     const canAddMembers = access.includes('member:write');
     const canRemove = access.includes('member:admin');
@@ -325,12 +326,11 @@ class OrganizationMembersList extends AsyncView<Props, State> {
           <PanelBody>
             {members.map(member => (
               <OrganizationMemberRow
-                params={params}
                 key={member.id}
+                organization={organization}
                 member={member}
                 status={this.state.invited[member.id]}
-                orgName={orgName}
-                memberCanLeave={!isOnlyOwner}
+                memberCanLeave={!isOnlyOwner && !member.flags['idp:provisioned']}
                 currentUser={currentUser}
                 canRemoveMembers={canRemove}
                 canAddMembers={canAddMembers}

@@ -155,6 +155,7 @@ class Team(Model):
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    org_role = models.CharField(max_length=32, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
 
@@ -287,7 +288,13 @@ class Team(Model):
                 cursor.close()
 
     def get_audit_log_data(self):
-        return {"id": self.id, "slug": self.slug, "name": self.name, "status": self.status}
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
     def get_projects(self):
         from sentry.models import Project

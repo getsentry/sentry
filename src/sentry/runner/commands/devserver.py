@@ -12,20 +12,18 @@ from sentry.runner.commands.devservices import get_docker_client
 from sentry.runner.decorators import configuration, log_options
 
 _DEV_METRICS_INDEXER_ARGS = [
-    # We don't want to burn laptop CPU while idle, but do want for
-    # metrics to be ingested with lowest latency possible.
-    "--max-batch-time-ms",
-    "10000",
-    "--max-batch-size",
-    "1",
     # We don't really need more than 1 process.
     "--processes",
     "1",
     # Avoid Offset out of range errors.
     "--auto-offset-reset",
     "latest",
+    "--no-strict-offset-reset",
 ]
 
+# NOTE: These do NOT start automatically. Add your daemon to the `daemons` list
+# in `devserver()` like so:
+#     daemons += [_get_daemon("my_new_daemon")]
 _DEFAULT_DAEMONS = {
     "worker": ["sentry", "run", "worker", "-c", "1", "--autoreload"],
     "cron": ["sentry", "run", "cron", "--autoreload"],
@@ -35,8 +33,7 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=errors",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
+        "--no-strict-offset-reset",
     ],
     "post-process-forwarder-transactions": [
         "sentry",
@@ -44,16 +41,31 @@ _DEFAULT_DAEMONS = {
         "post-process-forwarder",
         "--entity=transactions",
         "--loglevel=debug",
-        "--commit-batch-size=100",
-        "--commit-batch-timeout-ms=1000",
         "--commit-log-topic=snuba-transactions-commit-log",
         "--synchronize-commit-group=transactions_group",
+        "--no-strict-offset-reset",
+    ],
+    "post-process-forwarder-issue-platform": [
+        "sentry",
+        "run",
+        "post-process-forwarder",
+        "--entity=search_issues",
+        "--loglevel=debug",
+        "--commit-log-topic=snuba-generic-events-commit-log",
+        "--synchronize-commit-group=generic_events_group",
+        "--no-strict-offset-reset",
     ],
     "ingest": ["sentry", "run", "ingest-consumer", "--all-consumer-types"],
-    "occurrences": ["sentry", "run", "occurrences-ingest-consumer"],
-    "region_to_control": ["sentry", "run", "region-to-control-consumer", "--region-name", "_local"],
+    "occurrences": ["sentry", "run", "occurrences-ingest-consumer", "--no-strict-offset-reset"],
+    "region_to_control": [
+        "sentry",
+        "run",
+        "region-to-control-consumer",
+        "--region-name",
+        "_local",
+        "--no-strict-offset-reset",
+    ],
     "server": ["sentry", "run", "web"],
-    "storybook": ["yarn", "storybook"],
     "subscription-consumer": [
         "sentry",
         "run",
@@ -79,8 +91,9 @@ _DEFAULT_DAEMONS = {
         "performance",
         *_DEV_METRICS_INDEXER_ARGS,
     ],
-    "metrics-billing": ["sentry", "run", "billing-metrics-consumer"],
-    "profiles": ["sentry", "run", "ingest-profiles"],
+    "metrics-billing": ["sentry", "run", "billing-metrics-consumer", "--no-strict-offset-reset"],
+    "profiles": ["sentry", "run", "ingest-profiles", "--no-strict-offset-reset"],
+    "monitors": ["sentry", "run", "ingest-monitors", "--no-strict-offset-reset"],
 }
 
 
@@ -119,11 +132,6 @@ def _get_daemon(name: str, *args: str, **kwargs: str) -> tuple[str, list[str]]:
 @click.option(
     "--pretty/--no-pretty", default=False, help="Stylize various outputs from the devserver"
 )
-@click.option(
-    "--styleguide/--no-styleguide",
-    default=False,
-    help="Start local styleguide web server on port 9001",
-)
 @click.option("--environment", default="development", help="The environment name.")
 @click.option(
     "--debug-server/--no-debug-server",
@@ -148,7 +156,6 @@ def devserver(
     ingest: bool,
     occurrence_ingest: bool,
     experimental_spa: bool,
-    styleguide: bool,
     prefix: bool,
     pretty: bool,
     environment: str,
@@ -186,12 +193,19 @@ and run `sentry devservices up kafka zookeeper`.
     # for this magic constant
     os.environ["NODE_ENV"] = "production" if environment.startswith("prod") else environment
 
+    # Configure URL prefixes for customer-domains.
+    os.environ["SENTRY_SYSTEM_URL_PREFIX"] = f"http://localhost:{port}"
+    os.environ["SENTRY_SYSTEM_BASE_HOSTNAME"] = f"localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_BASE_HOSTNAME"] = f"{{slug}}.localhost:{port}"
+    os.environ["SENTRY_ORGANIZATION_URL_TEMPLATE"] = "http://{hostname}"
+    os.environ["SENTRY_REGION_API_URL_TEMPLATE"] = f"http://{{region}}.localhost:{port}"
+
     from django.conf import settings
 
     from sentry import options
     from sentry.services.http import SentryHTTPServer
 
-    url_prefix = options.get("system.url-prefix", "")
+    url_prefix = options.get("system.url-prefix")
     parsed_url = urlparse(url_prefix)
     # Make sure we're trying to use a port that we can actually bind to
     needs_https = parsed_url.scheme == "https" and (parsed_url.port or 443) > 1024
@@ -286,6 +300,7 @@ and run `sentry devservices up kafka zookeeper`.
         if eventstream.requires_post_process_forwarder():
             daemons += [_get_daemon("post-process-forwarder")]
             daemons += [_get_daemon("post-process-forwarder-transactions")]
+            daemons += [_get_daemon("post-process-forwarder-issue-platform")]
 
         if settings.SENTRY_EXTRA_WORKERS:
             daemons.extend([_get_daemon(name) for name in settings.SENTRY_EXTRA_WORKERS])
@@ -314,7 +329,7 @@ and run `sentry devservices up kafka zookeeper`.
             ]
 
     if settings.SENTRY_USE_RELAY:
-        daemons += [_get_daemon("ingest")]
+        daemons += [_get_daemon("ingest"), _get_daemon("monitors")]
 
         if settings.SENTRY_USE_PROFILING:
             daemons += [_get_daemon("profiles")]
@@ -377,9 +392,6 @@ and run `sentry devservices up kafka zookeeper`.
         # This sets all the appropriate uwsgi env vars, etc
         server.prepare_environment()
         daemons += [_get_daemon("server")]
-
-    if styleguide:
-        daemons += [_get_daemon("storybook")]
 
     cwd = os.path.realpath(os.path.join(settings.PROJECT_ROOT, os.pardir, os.pardir))
 

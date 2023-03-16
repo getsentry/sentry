@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import io
 import os
 import random
@@ -5,7 +7,7 @@ from binascii import hexlify
 from datetime import datetime
 from hashlib import sha1
 from importlib import import_module
-from typing import Any, List, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 from unittest import mock
 from uuid import uuid4
 
@@ -37,6 +39,7 @@ from sentry.incidents.models import (
     IncidentType,
     TriggerStatus,
 )
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators import (
     sentry_app_installation_tokens,
     sentry_app_installations,
@@ -47,6 +50,7 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Actor,
+    ArtifactBundle,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -66,6 +70,7 @@ from sentry.models import (
     Integration,
     IntegrationFeature,
     Organization,
+    OrganizationMapping,
     OrganizationMember,
     OrganizationMemberTeam,
     PlatformExternalIssue,
@@ -90,15 +95,20 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
-from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.silo import exempt_from_silo_limits
 from sentry.types.activity import ActivityType
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json, loremipsum
 from sentry.utils.performance_issues.performance_detection import PerformanceProblem
 
@@ -231,11 +241,13 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-def _patch_artifact_manifest(path, org, release, project=None, extra_files=None):
+def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
         manifest = json.load(fp)
-    manifest["org"] = org
-    manifest["release"] = release
+    if org:
+        manifest["org"] = org
+    if release:
+        manifest["release"] = release
     if project:
         manifest["project"] = project
     for path in extra_files or {}:
@@ -253,20 +265,24 @@ class Factories:
 
         org = Organization.objects.create(name=name, **kwargs)
         if owner:
-            Factories.create_member(organization=org, user=owner, role="owner")
+            Factories.create_member(organization=org, user_id=owner.id, role="owner")
         return org
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_organization_mapping(org, **kwargs):
-        kwargs.setdefault("slug", org.slug)
-        mapping = OrganizationMapping.objects.create(organization_id=org.id, **kwargs)
-        return mapping
+    def create_org_mapping(org, **kwds):
+        kwds.setdefault("organization_id", org.id)
+        kwds.setdefault("slug", org.slug)
+        kwds.setdefault("name", org.name)
+        kwds.setdefault("idempotency_key", uuid4().hex)
+        kwds.setdefault("region_name", "test-region")
+        return OrganizationMapping.objects.create(**kwds)
 
     @staticmethod
     @exempt_from_silo_limits()
     def create_member(teams=None, team_roles=None, **kwargs):
         kwargs.setdefault("role", "member")
+        teamRole = kwargs.pop("teamRole", None)
 
         om = OrganizationMember.objects.create(**kwargs)
 
@@ -275,7 +291,7 @@ class Factories:
                 Factories.create_team_membership(team=team, member=om, role=role)
         elif teams:
             for team in teams:
-                Factories.create_team_membership(team=team, member=om)
+                Factories.create_team_membership(team=team, member=om, role=teamRole)
         return om
 
     @staticmethod
@@ -289,6 +305,11 @@ class Factories:
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
         )
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_api_key(organization, scope_list=None, **kwargs):
+        return ApiKey.objects.create(organization=organization, scope_list=scope_list)
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -313,9 +334,7 @@ class Factories:
         organization = kwargs.get("organization")
         organization_id = organization.id if organization else project.organization_id
 
-        env = Environment.objects.create(
-            organization_id=organization_id, project_id=project.id, name=name
-        )
+        env = Environment.objects.create(organization_id=organization_id, name=name)
         env.add_project(project, is_hidden=kwargs.get("is_hidden"))
         return env
 
@@ -443,7 +462,7 @@ class Factories:
             type=ActivityType.RELEASE.value,
             project=project,
             ident=Activity.get_version_ident(version),
-            user=user,
+            user_id=user.id if user else None,
             data={"version": version},
         )
 
@@ -490,11 +509,13 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(org, release, project=None, extra_files=None):
+    def create_artifact_bundle_zip(
+        org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
+    ):
         import zipfile
 
         bundle = io.BytesIO()
-        bundle_dir = get_fixture_path("artifact_bundle")
+        bundle_dir = get_fixture_path(fixture_path)
         with zipfile.ZipFile(bundle, "w", zipfile.ZIP_DEFLATED) as zipfile:
             for path, content in (extra_files or {}).items():
                 zipfile.writestr(path, content)
@@ -515,11 +536,29 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_release_archive(cls, org, release: str, project=None, dist=None):
-        bundle = cls.create_artifact_bundle(org, release, project)
+        bundle = cls.create_artifact_bundle_zip(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
         file_.putfile(ContentFile(bundle))
         release = Release.objects.get(organization__slug=org, version=release)
         return update_artifact_index(release, dist, file_)
+
+    @classmethod
+    @exempt_from_silo_limits()
+    def create_artifact_bundle(
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+    ):
+        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        file_ = File.objects.create(name="artifact-bundle.zip")
+        file_.putfile(ContentFile(bundle))
+        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
+        # mock it with an arbitrary value.
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org.id,
+            bundle_id=uuid4(),
+            file=file_,
+            artifact_count=artifact_count,
+        )
+        return artifact_bundle
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -585,10 +624,14 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_commit_author(organization_id=None, project=None, user=None):
+    def create_commit_author(organization_id=None, project=None, user=None, email=None):
+        if email:
+            user_email = email
+        else:
+            user_email = user.email if user else f"{make_word()}@example.com"
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else f"{make_word()}@example.com",
+            email=user_email,
             defaults={"name": user.name if user else make_word()},
         )[0]
 
@@ -643,8 +686,7 @@ class Factories:
                     raise ValueError(
                         "Invalid performance fingerprint data. Format must be 'group_type-fingerprint'."
                     )
-
-                group_type = GroupType(int(f_data[0]))
+                group_type = get_group_type_by_type_id(int(f_data[0]))
                 perf_fingerprint = f_data[1]
 
                 job["performance_problems"].append(
@@ -1078,9 +1120,9 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_integration_external_issue(group=None, integration=None, key=None):
+    def create_integration_external_issue(group=None, integration=None, key=None, **kwargs):
         external_issue = ExternalIssue.objects.create(
-            organization_id=group.organization.id, integration_id=integration.id, key=key
+            organization_id=group.organization.id, integration_id=integration.id, key=key, **kwargs
         )
 
         GroupLink.objects.create(
@@ -1130,14 +1172,16 @@ class Factories:
             IncidentProject.objects.create(incident=incident, project=project)
         if seen_by:
             for user in seen_by:
-                IncidentSeen.objects.create(incident=incident, user=user, last_seen=timezone.now())
+                IncidentSeen.objects.create(
+                    incident=incident, user_id=user.id, last_seen=timezone.now()
+                )
         return incident
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_incident_activity(incident, type, comment=None, user=None):
+    def create_incident_activity(incident, type, comment=None, user_id=None):
         return IncidentActivity.objects.create(
-            incident=incident, type=type, comment=comment, user=user
+            incident=incident, type=type, comment=comment, user_id=user_id
         )
 
     @staticmethod
@@ -1279,10 +1323,14 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_integration(
-        organization: Organization, external_id: str, **kwargs: Any
+        organization: Organization,
+        external_id: str,
+        oi_params: Mapping[str, Any] | None = None,
+        **integration_params: Any,
     ) -> Integration:
-        integration = Integration.objects.create(external_id=external_id, **kwargs)
-        integration.add_organization(organization)
+        integration = Integration.objects.create(external_id=external_id, **integration_params)
+        organization_integration = integration.add_organization(organization)
+        organization_integration.update(**(oi_params or {}))
 
         return integration
 
@@ -1345,11 +1393,12 @@ class Factories:
             project=project,
             group=issue,
             type=ActivityType.NOTE.value,
-            user=user,
+            user_id=user.id,
             data=data,
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_sentry_function(name, code, **kwargs):
         return SentryFunction.objects.create(
             name=name,
@@ -1360,5 +1409,36 @@ class Factories:
         )
 
     @staticmethod
+    @exempt_from_silo_limits()
     def create_saved_search(name: str, **kwargs):
+        if "owner" in kwargs:
+            owner = kwargs.pop("owner")
+            kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_notification_action(
+        organization: Organization = None, projects: List[Project] = None, **kwargs
+    ):
+        if not organization:
+            organization = Factories.create_organization()
+
+        if not projects:
+            projects = []
+
+        action_kwargs = {
+            "organization": organization,
+            "type": ActionService.SENTRY_NOTIFICATION,
+            "target_type": ActionTarget.USER,
+            "target_identifier": 1,
+            "target_display": "Sentry User",
+            "trigger_type": ActionTrigger.AUDIT_LOG,
+            **kwargs,
+        }
+
+        action = NotificationAction.objects.create(**action_kwargs)
+        action.projects.add(*projects)
+        action.save()
+
+        return action

@@ -1,8 +1,9 @@
 import re
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass, replace
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+import freezegun
 import pytest
 import pytz
 from django.utils.datastructures import MultiValueDict
@@ -17,7 +18,6 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
-    Offset,
     Op,
     Or,
     OrderBy,
@@ -38,6 +38,7 @@ from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import (
     MAX_POINTS,
     OP_TO_SNUBA_FUNCTION,
+    MetricOperationType,
     MetricsQuery,
     SnubaQueryBuilder,
     SnubaResultConverter,
@@ -79,7 +80,14 @@ class PseudoProject:
     id: int
 
 
-MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
+MOCK_NOW = datetime(2021, 8, 25, 23, 59, tzinfo=timezone.utc)
+# the beginning of the 1h interval before MOCK_NOW
+BEG_1H_BEFORE_NOW = datetime(2021, 8, 25, 23, tzinfo=timezone.utc)
+# the beginning of the 12h interval before MOCK_NOW
+BEG_12H_BEFORE_NOW = datetime(2021, 8, 25, 12, tzinfo=timezone.utc)
+# the beginning of the 1d interval before MOCK_NOW
+BEG_1D_BEFORE_NOW = datetime(2021, 8, 25, 00, tzinfo=timezone.utc)
+
 ORG_ID = 1
 USE_CASE_ID = UseCaseKey.RELEASE_HEALTH
 
@@ -254,20 +262,59 @@ def test_parse_query(query_string, expected):
 
 @freeze_time("2018-12-11 03:21:00")
 def test_round_range():
+    # since data is not exactly aligned it will return 2d + 1h (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d"})
-    assert start == datetime(2018, 12, 9, 4, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 11, 4, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 9, 3, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 11, 4, tzinfo=timezone.utc)
 
+    # since data is not exactly aligned it will return 2h + 1d (+ one interval to cover everything)
     start, end, interval = get_date_range({"statsPeriod": "2d", "interval": "1d"})
-    assert start == datetime(2018, 12, 10, tzinfo=pytz.utc)
-    assert end == datetime(2018, 12, 12, 0, 0, tzinfo=pytz.utc)
+    assert start == datetime(2018, 12, 9, tzinfo=timezone.utc)
+    assert end == datetime(2018, 12, 12, tzinfo=timezone.utc)
+
+
+@pytest.mark.parametrize(
+    "now,interval,parameters,expected",
+    [
+        ("2022-10-01 09:00:00", "1h", {"timeframe": "60m"}, ("08:00:00 10-01", "09:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
+        ("2022-10-01 10:00:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "2h", {"timeframe": "60m"}, ("08:00:00 10-01", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "1h", {"timeframe": "14h"}, ("19:00:00 09-30", "09:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "14h"}, ("19:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "2h", {"timeframe": "14h"}, ("18:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 10:00:00", "2h", {"timeframe": "14h"}, ("20:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "2h", {"timeframe": "14h"}, ("18:00:00 09-30", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "1h", {"timeframe": "91d"}, ("09:00:00 07-02", "09:00:00 10-01")),
+        ("2022-10-01 10:00:00", "1h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "1h", {"timeframe": "91d"}, ("09:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:00:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 10:00:00", "2h", {"timeframe": "91d"}, ("10:00:00 07-02", "10:00:00 10-01")),
+        ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
+    ],
+)
+def test_get_date_range(now, interval, parameters, expected):
+    def _to_datetimestring(d):
+        return d.strftime("%H:%M:%S %m-%d")
+
+    if interval is not None:
+        parameters["interval"] = interval
+    with freezegun.freeze_time(now):
+        start, end, interval = get_date_range(parameters)
+
+        start_actual = _to_datetimestring(start)
+        end_actual = _to_datetimestring(end)
+        start_expected, end_expected = expected
+
+        assert (start_actual, end_actual) == (start_expected, end_expected)
 
 
 def test_invalid_interval():
     # get_date_range is now only responsible for parsing start, end and interval,
     # and not responsible for validation so just letting it bubble up the ZeroDivisionError if
     # the requested interval is 0d
-    with pytest.raises(ZeroDivisionError):
+    with pytest.raises(Exception):
         get_date_range({"interval": "0d"})
 
 
@@ -275,8 +322,8 @@ def test_round_exact():
     start, end, interval = get_date_range(
         {"start": "2021-01-12T04:06:16", "end": "2021-01-17T08:26:13", "interval": "1d"},
     )
-    assert start == datetime(2021, 1, 12, tzinfo=pytz.utc)
-    assert end == datetime(2021, 1, 18, tzinfo=pytz.utc)
+    assert start == datetime(2021, 1, 12, tzinfo=timezone.utc)
+    assert end == datetime(2021, 1, 18, tzinfo=timezone.utc)
 
 
 def test_exclusive_end():
@@ -290,8 +337,11 @@ def test_exclusive_end():
 @freeze_time("2020-12-18T11:14:17.105Z")
 def test_timestamps():
     start, end, interval = get_date_range({"statsPeriod": "1d", "interval": "12h"})
-    assert start == datetime(2020, 12, 17, 12, tzinfo=pytz.utc)
-    assert end == datetime(2020, 12, 18, 12, tzinfo=pytz.utc)
+
+    # one day before now aligned downward at 12h
+    assert start == datetime(2020, 12, 17, 0, tzinfo=timezone.utc)
+    # the next 12h alignment form now
+    assert end == datetime(2020, 12, 18, 12, tzinfo=timezone.utc)
     assert interval == 12 * 60 * 60
 
 
@@ -322,24 +372,31 @@ def test_build_snuba_query(mock_now, mock_now2):
 
     def expected_query(match, select, extra_groupby, metric_name):
         function, column, alias = select
+
+        select_function = Function(
+            OP_TO_SNUBA_FUNCTION[match][alias],
+            [
+                Column("value"),
+                Function(
+                    "equals",
+                    [
+                        Column("metric_id"),
+                        resolve_weak(use_case_id, org_id, get_mri(metric_name)),
+                    ],
+                ),
+            ],
+        )
+
+        if alias == "p95":
+            select_function = Function(
+                "arrayElement", [select_function, 1], alias=f"{alias}({metric_name})"
+            )
+        else:
+            select_function = replace(select_function, alias=f"{alias}({metric_name})")
+
         return Query(
             match=Entity(match),
-            select=[
-                Function(
-                    OP_TO_SNUBA_FUNCTION[match][alias],
-                    [
-                        Column("value"),
-                        Function(
-                            "equals",
-                            [
-                                Column("metric_id"),
-                                resolve_weak(use_case_id, org_id, get_mri(metric_name)),
-                            ],
-                        ),
-                    ],
-                    alias=f"{alias}({metric_name})",
-                )
-            ],
+            select=[select_function],
             groupby=[
                 AliasedExpression(
                     Column(resolve_tag_key(use_case_id, org_id, "environment")), alias="environment"
@@ -349,12 +406,8 @@ def test_build_snuba_query(mock_now, mock_now2):
             where=[
                 Condition(Column("org_id"), Op.EQ, 1),
                 Condition(Column("project_id"), Op.IN, [1]),
-                Condition(
-                    Column("timestamp"), Op.GTE, datetime(2021, 5, 27, 23, 59, tzinfo=pytz.utc)
-                ),
-                Condition(
-                    Column("timestamp"), Op.LT, datetime(2021, 8, 25, 23, 59, tzinfo=pytz.utc)
-                ),
+                Condition(Column("timestamp"), Op.GTE, MOCK_NOW - timedelta(days=90)),
+                Condition(Column("timestamp"), Op.LT, MOCK_NOW),
                 Condition(
                     Column(resolve_tag_key(use_case_id, org_id, "release")),
                     Op.EQ,
@@ -368,8 +421,8 @@ def test_build_snuba_query(mock_now, mock_now2):
             ],
             # totals: MAX_POINTS // (90d * 24h)
             # series: totals * (90d * 24h)
-            limit=Limit(4) if not extra_groupby else Limit(8640),
-            offset=Offset(0),
+            limit=Limit(4) if not extra_groupby else Limit(8644),
+            offset=None,
             granularity=query_definition.granularity,
         )
 
@@ -439,6 +492,11 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
             "statsPeriod": ["2d"],
         }
     )
+
+    NUM_INTERVALS = 2 + 1  # period / interval_length + 1 ( add one for last partial interval)
+    TOTALS_LIMIT = MAX_POINTS // NUM_INTERVALS
+    SERIES_LIMIT = TOTALS_LIMIT * NUM_INTERVALS
+
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
     query_builder = SnubaQueryBuilder(
         [PseudoProject(1, 1)], query_definition.to_metrics_query(), use_case_id
@@ -526,10 +584,10 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
                     Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
-                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
                         Column("metric_id"),
@@ -537,8 +595,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.SESSION.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -556,10 +614,10 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                     Condition(Column("org_id"), Op.EQ, 1),
                     Condition(Column("project_id"), Op.IN, [1]),
                     Condition(
-                        Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.GTE, datetime(2021, 8, 23, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
-                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)
+                        Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=timezone.utc)
                     ),
                     Condition(
                         Column("metric_id"),
@@ -567,8 +625,8 @@ def test_build_snuba_query_derived_metrics(mock_now, mock_now2):
                         [resolve_weak(use_case_id, org_id, SessionMRI.ERROR.value)],
                     ),
                 ],
-                limit=Limit(MAX_POINTS // 2) if key == "totals" else Limit(MAX_POINTS),
-                offset=Offset(0),
+                limit=Limit(TOTALS_LIMIT) if key == "totals" else Limit(SERIES_LIMIT),
+                offset=None,
                 granularity=Granularity(query_definition.rollup),
             )
         )
@@ -629,7 +687,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -642,7 +700,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         ],
         orderby=[OrderBy(select, Direction.DESC)],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert counter_queries["series"] == Query(
@@ -657,7 +715,7 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -669,8 +727,8 @@ def test_build_snuba_query_orderby(mock_now, mock_now2):
             ),
         ],
         orderby=[OrderBy(select, Direction.DESC)],
-        limit=Limit(72),
-        offset=Offset(0),
+        limit=Limit(3 * 25),  # 25 intervals so 25 times the limit for totals
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 
@@ -721,10 +779,16 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
     ]
 
     select = Function(
-        OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+        "arrayElement",
         [
-            Column("value"),
-            Function("and", conditions),
+            Function(
+                OP_TO_SNUBA_FUNCTION["metrics_distributions"]["p95"],
+                [
+                    Column("value"),
+                    Function("and", conditions),
+                ],
+            ),
+            1,
         ],
         alias=f"{op}({SessionMetricKey.DURATION.value})",
     )
@@ -739,7 +803,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -753,7 +817,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
             ),
         ],
         limit=Limit(3),
-        offset=Offset(0),
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
     assert distribution_queries["series"] == Query(
@@ -768,7 +832,7 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
         where=[
             Condition(Column("org_id"), Op.EQ, 1),
             Condition(Column("project_id"), Op.IN, [1]),
-            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 25, 0, tzinfo=pytz.utc)),
+            Condition(Column("timestamp"), Op.GTE, datetime(2021, 8, 24, 23, tzinfo=pytz.utc)),
             Condition(Column("timestamp"), Op.LT, datetime(2021, 8, 26, 0, tzinfo=pytz.utc)),
             Condition(
                 Column(resolve_tag_key(use_case_id, org_id, "release"), entity=None),
@@ -781,8 +845,8 @@ def test_build_snuba_query_with_derived_alias(mock_now, mock_now2):
                 [resolve(use_case_id, org_id, SessionMRI.RAW_DURATION.value)],
             ),
         ],
-        limit=Limit(72),
-        offset=Offset(0),
+        limit=Limit(3 * 25),  # 25 intervals so 25 * limit for totals
+        offset=None,
         granularity=Granularity(query_definition.rollup),
     )
 
@@ -895,14 +959,14 @@ def test_translate_results_derived_metrics(_1, _2):
         {
             "by": {},
             "totals": {
-                "session.all": 8,
+                "session.all": 8.0,
                 "session.crash_free_rate": 0.5,
                 "session.errored": 6,
             },
             "series": {
-                "session.all": [4, 4],
-                "session.crash_free_rate": [0.5, 0.5],
-                "session.errored": [3, 3],
+                "session.all": [0, 4, 4],
+                "session.crash_free_rate": [None, 0.5, 0.5],
+                "session.errored": [0, 3, 3],
             },
         },
     ]
@@ -975,15 +1039,10 @@ def test_translate_results_missing_slots(_1, _2):
             },
             "series": {
                 # No data for 2021-08-24
-                "sum(sentry.sessions.session)": [100, 0, 300],
+                "sum(sentry.sessions.session)": [0, 100, 0, 300],
             },
         },
     ]
-
-
-def test_get_intervals():
-    with pytest.raises(AssertionError):
-        list(get_intervals(MOCK_NOW - timedelta(days=1), MOCK_NOW, -3600))
 
 
 def test_translate_meta_results():
@@ -993,6 +1052,9 @@ def test_translate_meta_results():
         {"name": "transaction", "type": "UInt64"},
         {"name": "project_id", "type": "UInt64"},
         {"name": "metric_id", "type": "UInt64"},
+        {"name": "bucketed_time", "type": "UInt64"},
+        {"name": "project.id", "type": "UInt64"},
+        {"name": "time", "type": "UInt64"},
     ]
     assert translate_meta_results(
         meta,
@@ -1012,6 +1074,8 @@ def test_translate_meta_results():
                     alias="team_key_transaction",
                 )
             ),
+            "project.id": MetricGroupByField(field="project_id"),
+            "time": MetricGroupByField(field="bucketed_time"),
         },
     ) == sorted(
         [
@@ -1020,6 +1084,9 @@ def test_translate_meta_results():
             {"name": "transaction", "type": "string"},
             {"name": "project_id", "type": "UInt64"},
             {"name": "metric_id", "type": "UInt64"},
+            {"name": "bucketed_time", "type": "UInt64"},
+            {"name": "project.id", "type": "UInt64"},
+            {"name": "time", "type": "UInt64"},
         ],
         key=lambda elem: elem["name"],
     )
@@ -1515,3 +1582,185 @@ class ResolveTagsTestCase(TestCase):
             op=Op.EQ,
             rhs=1,
         )
+
+    def test_resolve_tags_with_match_and_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="match",
+                    parameters=[
+                        Column(
+                            name="tags[environment]",
+                        ),
+                        "*ev",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="match",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "environment"),
+                    ),
+                    "*ev",
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
+        )
+
+    def test_resolve_tags_with_match_and_deep_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="environment")
+
+        resolved_query = resolve_tags(
+            self.use_case_id,
+            self.org_id,
+            Condition(
+                lhs=Function(
+                    function="match",
+                    parameters=[
+                        Function(
+                            "ifNull",
+                            parameters=[
+                                Column(
+                                    name="tags[environment]",
+                                ),
+                            ],
+                        ),
+                        "*ev",
+                    ],
+                ),
+                op=Op.EQ,
+                rhs=1,
+            ),
+        )
+
+        assert resolved_query == Condition(
+            lhs=Function(
+                function="match",
+                parameters=[
+                    Column(
+                        name=resolve_tag_key(self.use_case_id, self.org_id, "environment"),
+                    ),
+                    "*ev",
+                ],
+            ),
+            op=Op.EQ,
+            rhs=1,
+        )
+
+    def test_resolve_tags_with_match_and_non_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+
+        with pytest.raises(
+            InvalidParams,
+            match="The tag key http_status_code usage has been prohibited by one of the "
+            "expressions {'match'}",
+        ):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="match",
+                        parameters=[
+                            Column(
+                                name="tags[http_status_code]",
+                            ),
+                            "2**",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            )
+
+    def test_resolve_tags_with_match_and_deep_non_filterable_tag(self):
+        indexer.record(use_case_id=self.use_case_id, org_id=self.org_id, string="http_status_code")
+
+        with pytest.raises(
+            InvalidParams,
+            match="The tag key http_status_code usage has been prohibited by one of the "
+            "expressions {'match'}",
+        ):
+            resolve_tags(
+                self.use_case_id,
+                self.org_id,
+                Condition(
+                    lhs=Function(
+                        function="match",
+                        parameters=[
+                            Function(
+                                "ifNull",
+                                parameters=[
+                                    Column(
+                                        name="tags[http_status_code]",
+                                    )
+                                ],
+                            ),
+                            "2**",
+                        ],
+                    ),
+                    op=Op.EQ,
+                    rhs=1,
+                ),
+            )
+
+
+@pytest.mark.parametrize(
+    "op, clickhouse_op",
+    [
+        ("min_timestamp", "minIf"),
+        ("max_timestamp", "maxIf"),
+    ],
+)
+def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str):
+    """
+    Tests code generation for timestamp operators
+    """
+    org_id = 1
+    query_definition = MetricsQuery(
+        org_id=org_id,
+        project_ids=[1],
+        select=[
+            MetricField(op=op, metric_mri=SessionMRI.SESSION.value, alias="ts"),
+        ],
+        start=MOCK_NOW - timedelta(days=90),
+        end=MOCK_NOW,
+        granularity=Granularity(3600),
+    )
+
+    builder = SnubaQueryBuilder(
+        [PseudoProject(1, 1)], query_definition, use_case_id=UseCaseKey.RELEASE_HEALTH
+    )
+
+    snuba_queries, fields = builder.get_snuba_queries()
+    select = snuba_queries["metrics_counters"]["totals"].select
+    assert len(select) == 1
+    field = select[0]
+
+    expected_field = Function(
+        clickhouse_op,
+        [
+            Column("timestamp"),
+            Function(
+                "equals",
+                [
+                    Column("metric_id"),
+                    resolve_weak(UseCaseKey.RELEASE_HEALTH, org_id, SessionMRI.SESSION.value),
+                ],
+            ),
+        ],
+        alias="ts",
+    )
+
+    assert field == expected_field

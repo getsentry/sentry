@@ -14,7 +14,7 @@ import Version from 'sentry/components/version';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Release} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import {RELEASES_TOUR_STEPS} from 'sentry/views/releases/list/releasesPromo';

@@ -1,5 +1,4 @@
-import {useCallback} from 'react';
-import styled from '@emotion/styled';
+import {useCallback, useMemo} from 'react';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
@@ -9,18 +8,17 @@ import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
 import FeatureBadge from 'sentry/components/featureBadge';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/components/profiling/ProfilingOnboarding/util';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import useReplaysCount from 'sentry/components/replays/useReplaysCount';
-import {Item, TabList} from 'sentry/components/tabs';
+import {TabList} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import HasMeasurementsQuery from 'sentry/utils/performance/vitals/hasMeasurementsQuery';
+import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 
@@ -57,10 +55,8 @@ function TransactionHeader({
   hasWebVitals,
 }: Props) {
   function handleCreateAlertSuccess() {
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.create_alert_clicked',
-      eventName: 'Performance Views: Create alert clicked',
-      organization_id: organization.id,
+    trackAdvancedAnalyticsEvent('performance_views.summary.create_alert_clicked', {
+      organization,
     });
   }
 
@@ -71,7 +67,9 @@ function TransactionHeader({
   );
 
   const hasSessionReplay =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project);
 
   const hasProfiling =
     project &&
@@ -107,10 +105,15 @@ function TransactionHeader({
     [hasWebVitals, location, projects, eventView]
   );
 
+  const projectIds = useMemo(
+    () => (project?.id ? [Number(project.id)] : []),
+    [project?.id]
+  );
+
   const replaysCount = useReplaysCount({
     transactionNames: transactionName,
     organization,
-    projectIds: project ? [Number(project.id)] : [],
+    projectIds,
   })[transactionName];
 
   return (
@@ -126,17 +129,15 @@ function TransactionHeader({
           tab={currentTab}
         />
         <Layout.Title>
-          <TransactionName>
-            {project && (
-              <IdBadge
-                project={project}
-                avatarSize={28}
-                hideName
-                avatarProps={{hasTooltip: true, tooltip: project.slug}}
-              />
-            )}
-            {transactionName}
-          </TransactionName>
+          {project && (
+            <IdBadge
+              project={project}
+              avatarSize={28}
+              hideName
+              avatarProps={{hasTooltip: true, tooltip: project.slug}}
+            />
+          )}
+          {transactionName}
         </Layout.Title>
       </Layout.HeaderContent>
       <Layout.HeaderActions>
@@ -192,34 +193,42 @@ function TransactionHeader({
                 gridColumn: '1 / -1',
               }}
             >
-              <Item key={Tab.TransactionSummary}>{t('Overview')}</Item>
-              <Item key={Tab.Events}>{t('All Events')}</Item>
-              <Item key={Tab.Tags}>{t('Tags')}</Item>
-              <Item key={Tab.Spans}>{t('Spans')}</Item>
-              <Item
+              <TabList.Item key={Tab.TransactionSummary}>{t('Overview')}</TabList.Item>
+              <TabList.Item key={Tab.Events}>{t('All Events')}</TabList.Item>
+              <TabList.Item key={Tab.Tags}>{t('Tags')}</TabList.Item>
+              <TabList.Item key={Tab.Spans}>{t('Spans')}</TabList.Item>
+              <TabList.Item
                 key={Tab.Anomalies}
                 textValue={t('Anomalies')}
                 hidden={!hasAnomalyDetection}
               >
                 {t('Anomalies')}
                 <FeatureBadge type="alpha" noTooltip />
-              </Item>
-              <Item
+              </TabList.Item>
+              <TabList.Item
                 key={Tab.WebVitals}
                 textValue={t('Web Vitals')}
                 hidden={!renderWebVitals}
               >
                 {t('Web Vitals')}
-              </Item>
-              <Item key={Tab.Replays} textValue={t('Replays')} hidden={!hasSessionReplay}>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.Replays}
+                textValue={t('Replays')}
+                hidden={!hasSessionReplay}
+              >
                 {t('Replays')}
                 <ReplayCountBadge count={replaysCount} />
                 <ReplaysFeatureBadge noTooltip />
-              </Item>
-              <Item key={Tab.Profiling} textValue={t('Profiling')} hidden={!hasProfiling}>
+              </TabList.Item>
+              <TabList.Item
+                key={Tab.Profiling}
+                textValue={t('Profiling')}
+                hidden={!hasProfiling}
+              >
                 {t('Profiling')}
                 <FeatureBadge type="beta" noTooltip />
-              </Item>
+              </TabList.Item>
             </TabList>
           );
         }}
@@ -227,12 +236,5 @@ function TransactionHeader({
     </Layout.Header>
   );
 }
-
-const TransactionName = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  grid-column-gap: ${space(1)};
-  align-items: center;
-`;
 
 export default TransactionHeader;

@@ -74,8 +74,6 @@ def test_outcomes_consumed(track_outcome):
 
     strategy = BillingTxCountMetricConsumerStrategy(
         commit=fake_commit,
-        max_batch_size=2,
-        max_batch_time=10000,
     )
 
     def generate_kafka_message(bucket: MetricsBucket) -> Message[KafkaPayload]:
@@ -101,9 +99,10 @@ def test_outcomes_consumed(track_outcome):
     assert track_outcome.call_count == 0
     for i, bucket in enumerate(buckets):
         strategy.poll()
+        assert fake_commit.call_count == i
         strategy.submit(generate_kafka_message(bucket))
-        # commit is called for every two messages:
-        assert fake_commit.call_count == i // 2
+        # commit is called for every message, and later debounced by arroyo's policy
+        assert fake_commit.call_count == (i + 1)
         if i < 3:
             assert track_outcome.call_count == 0
         else:
@@ -121,10 +120,9 @@ def test_outcomes_consumed(track_outcome):
                 )
             ]
 
-    # There's been 5 messages, 2 x 2 of them have their offsets committed:
-    assert fake_commit.call_count == 2
+    assert fake_commit.call_count == 5
 
     # Joining should commit the offset of the last message:
     strategy.join()
 
-    assert fake_commit.call_count == 3
+    assert fake_commit.call_count == 6

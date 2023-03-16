@@ -239,7 +239,7 @@ describe('GlobalSDKUpdateAlert', () => {
       organization: TestStubs.Organization(),
     });
 
-    userEvent.click(await screen.findByText(/Remind me later/));
+    userEvent.click(await screen.findByRole('button', {name: 'Remind me later'}));
 
     expect(promptsActivityMock).toHaveBeenCalledWith(
       '/prompts-activity/',

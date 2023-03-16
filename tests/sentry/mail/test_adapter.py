@@ -1,6 +1,6 @@
 import uuid
 from collections import Counter
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import cached_property
 from typing import Mapping, Sequence
 from unittest import mock
@@ -15,11 +15,11 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
     Activity,
-    Deploy,
     GroupRelease,
     Integration,
     NotificationSetting,
@@ -29,8 +29,6 @@ from sentry.models import (
     Project,
     ProjectOption,
     ProjectOwnership,
-    Release,
-    ReleaseActivity,
     Repository,
     Rule,
     User,
@@ -38,7 +36,6 @@ from sentry.models import (
     UserOption,
     UserReport,
 )
-from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -49,15 +46,12 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
-from sentry.rules import EventState
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
-from sentry.types.issues import GroupType
-from sentry.types.releaseactivity import ReleaseActivityType
+from sentry.types.integrations import ExternalProviders
 from sentry.types.rules import RuleFuture
 from sentry.utils.dates import ensure_aware
 from sentry.utils.email import MessageBuilder, get_email_addresses
@@ -82,100 +76,6 @@ class BaseMailAdapterTest(TestCase):
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.adapter.notify(Notification(event=event), target_type, target_identifier)
         assert sorted(email.to[0] for email in mail.outbox) == sorted(emails_sent_to)
-
-
-class MailAdapterActiveReleaseTest(BaseMailAdapterTest):
-    @mock.patch("sentry.analytics.record")
-    @mock.patch("sentry.notifications.utils.participants.get_release_committers")
-    def test_simple(self, mock_get_release_committers, record):
-        new_user = self.create_user(email="test@example.com", username="foo")
-        new_team = self.create_team(name="Team Name", organization=self.organization)
-        new_project = self.create_project(organization=self.organization, teams=[new_team])
-        self.create_member(
-            user=new_user, organization=self.organization, role="owner", teams=[new_team]
-        )
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ACTIVE_RELEASE,
-            NotificationSettingOptionValues.ALWAYS,
-            user=new_user,
-            project=new_project,
-        )
-        event = self.store_event(
-            data={"message": "Hello world", "level": "error"}, project_id=new_project.id
-        )
-        ProjectOwnership.objects.create(project=new_project, fallthrough=True)
-        GroupOwner.objects.create(
-            group_id=event.group.id,
-            project=event.project,
-            organization_id=self.organization.id,
-            type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=new_user,
-        )
-        newRelease = Release.objects.create(
-            organization_id=self.organization.id,
-            project_id=new_project.id,
-            version="2",
-            date_added=timezone.now() - timedelta(days=1),
-            date_released=None,
-        )
-        Deploy.objects.create(
-            organization_id=self.organization.id,
-            environment_id=self.environment.id,
-            name="test_release_deployed",
-            notified=True,
-            release_id=newRelease.id,
-            date_started=timezone.now() - timedelta(minutes=37),
-            date_finished=timezone.now() - timedelta(minutes=20),
-        )
-        newRelease.add_project(new_project)
-
-        event.data["tags"] = (("sentry:release", newRelease.version),)
-        mock_get_release_committers.return_value = [new_user]
-
-        mail.outbox = []
-        with self.tasks(), self.feature("organizations:active-release-monitor-alpha"):
-            self.adapter.notify_active_release(
-                Notification(event=event),
-                EventState(
-                    is_new=True,
-                    is_regression=False,
-                    is_new_group_environment=False,
-                    has_reappeared=False,
-                ),
-            )
-
-        assert len(mail.outbox) == 1
-        to_committer = mail.outbox[0]
-        assert to_committer.subject == "**ARM** [Sentry] {} - Hello world".format(
-            event.group.qualified_short_id
-        )
-
-        notification_record = [
-            r for r in record.call_args_list if r[0][0] == "active_release_notification.sent"
-        ]
-        assert notification_record == [
-            mock.call(
-                "active_release_notification.sent",
-                None,
-                organization_id=self.organization.id,
-                project_id=new_project.id,
-                group_id=event.group.id,
-                providers="email",
-                release_version="2",
-                recipient_email="test@example.com",
-                recipient_username="foo",
-                suspect_committer_ids=[f"user:{new_user.id}"],
-                code_owner_ids=[new_user.id],
-                team_ids=[new_team.id],
-            )
-        ]
-
-        activity = list(ReleaseActivity.objects.filter(release_id=newRelease.id))
-        assert len(activity) == 1
-        assert activity[0].type == ReleaseActivityType.ISSUE.value
-        assert activity[0].data["provider"] == EXTERNAL_PROVIDERS[ExternalProviders.EMAIL]
-        assert activity[0].data["group_id"]
 
 
 class MailAdapterGetSendableUsersTest(BaseMailAdapterTest):
@@ -289,6 +189,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         )
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
+            self.project.id,
             uuid.uuid4().hex,
             uuid.uuid4().hex,
             ["some-fingerprint"],
@@ -301,13 +202,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            GroupType.PROFILE_BLOCKED_THREAD,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
+            "/api/123",
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -341,6 +244,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event = event.for_group(event.groups[0])
         occurrence = IssueOccurrence(
             uuid.uuid4().hex,
+            self.project.id,
             uuid.uuid4().hex,
             ["some-fingerprint"],
             "something bad happened",
@@ -348,13 +252,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            GroupType.PROFILE_BLOCKED_THREAD,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
+            "/api/123",
         )
-        occurrence.save(self.project.id)
+        occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = GroupType.PROFILE_BLOCKED_THREAD
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -372,12 +278,13 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
         with override_options(
             {
+                "performance.issues.all.problem-detection": 1.0,
                 "performance.issues.n_plus_one_db.problem-creation": 1.0,
             }
         ), self.feature(
@@ -405,7 +312,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Parent Span",
             "django.view - index",
             "Repeating Spans (10)",
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
         ]
         for checked_value in checked_values:
             assert (
@@ -483,7 +390,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
-            user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+            user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
         NotificationSetting.objects.update_settings(
@@ -1152,12 +1059,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest(self, notify):
         project = self.project
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=project.id,
         )
 
@@ -1192,12 +1100,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
             project=self.project, key="mail:subject_prefix", value="[Example prefix] "
         )
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
 
@@ -1222,12 +1131,13 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest):
         no longer exists, we don't blow up when getting users in get_send_to
         """
         project = self.project
+        timestamp = iso_format(before_now(minutes=1))
         event = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": iso_format(before_now(minutes=1)), "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
             project_id=project.id,
         )
 
@@ -1282,7 +1192,7 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         event = self.store_event(
             data=load_data(
                 "transaction",
-                fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+                fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
             ),
             project_id=self.project.id,
         )
@@ -1306,7 +1216,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
@@ -1332,7 +1242,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
 
@@ -1359,7 +1269,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.NOTE.value,
-            user=user_foo,
+            user_id=user_foo.id,
             data={"text": "sup guise"},
         )
 

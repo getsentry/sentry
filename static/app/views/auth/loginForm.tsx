@@ -2,8 +2,8 @@ import {useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import {IconGithub, IconGoogle, IconVsts} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AuthConfig} from 'sentry/types';
 
 type LoginProvidersProps = Partial<
@@ -28,27 +28,17 @@ const LoginProviders = ({
   <ProviderWrapper>
     <ProviderHeading>{t('External Account Login')}</ProviderHeading>
     {googleLoginLink && (
-      <Button
-        align="left"
-        size="sm"
-        icon={<IconGoogle size="xs" />}
-        href={googleLoginLink}
-      >
+      <Button size="sm" icon={<IconGoogle size="xs" />} href={googleLoginLink}>
         {t('Sign in with Google')}
       </Button>
     )}
     {githubLoginLink && (
-      <Button
-        align="left"
-        size="sm"
-        icon={<IconGithub size="xs" />}
-        href={githubLoginLink}
-      >
+      <Button size="sm" icon={<IconGithub size="xs" />} href={githubLoginLink}>
         {t('Sign in with GitHub')}
       </Button>
     )}
     {vstsLoginLink && (
-      <Button align="left" size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
+      <Button size="sm" icon={<IconVsts size="xs" />} href={vstsLoginLink}>
         {t('Sign in with Azure DevOps')}
       </Button>
     )}

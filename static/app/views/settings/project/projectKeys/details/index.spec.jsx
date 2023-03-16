@@ -86,6 +86,7 @@ describe('ProjectKeyDetails', function () {
     render(
       <ProjectKeyDetails
         routes={[]}
+        organization={org}
         params={{
           keyId: projectKeys[0].id,
           orgId: org.slug,

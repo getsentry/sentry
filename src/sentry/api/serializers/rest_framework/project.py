@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.models import Project
@@ -5,6 +6,7 @@ from sentry.models import Project
 ValidationError = serializers.ValidationError
 
 
+@extend_schema_field(str)
 class ProjectField(serializers.Field):
     def __init__(self, scope="project:write"):
         self.scope = scope

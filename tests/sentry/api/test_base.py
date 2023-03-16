@@ -1,6 +1,7 @@
 import base64
+from unittest import mock
 
-from django.http import HttpRequest, StreamingHttpResponse
+from django.http import HttpRequest, QueryDict, StreamingHttpResponse
 from django.test import override_settings
 from pytest import raises
 from rest_framework.response import Response
@@ -10,6 +11,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.models import ApiKey
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase
+from sentry.utils.cursors import Cursor
 
 
 class DummyEndpoint(Endpoint):
@@ -126,6 +128,50 @@ class EndpointTest(APITestCase):
         assert response["Access-Control-Expose-Headers"] == "X-Sentry-Error, Retry-After"
         assert response["Access-Control-Allow-Methods"] == "GET, HEAD, OPTIONS"
 
+    @mock.patch("sentry.api.base.Endpoint.convert_args")
+    def test_method_not_allowed(self, mock_convert_args):
+        request = self.make_request(method="POST")
+        response = _dummy_endpoint(request)
+        response.render()
+
+        assert response.status_code == 405, response.content
+
+        # did not try to convert args
+        assert not mock_convert_args.info.called
+
+
+class CursorGenerationTest(APITestCase):
+    def test_serializes_params(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/")
+        request.GET = QueryDict("member=1&cursor=foo")
+        endpoint = Endpoint()
+        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<http://testserver/api/0/organizations/?member=1&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
+    def test_unicode_path(self):
+        request = self.make_request(method="GET", path="/api/0/organizations/üuuuu/")
+        endpoint = Endpoint()
+        result = endpoint.build_cursor_link(request, "next", "1492107369532:0:0")
+
+        assert result == (
+            "<http://testserver/api/0/organizations/%C3%BCuuuu/?&cursor=1492107369532:0:0>;"
+            ' rel="next"; results="true"; cursor="1492107369532:0:0"'
+        )
+
+    def test_encodes_url(self):
+        endpoint = Endpoint()
+        request = self.make_request(method="GET", path="/foo/bar/lol:what/")
+
+        result = endpoint.build_cursor_link(request, "next", cursor=Cursor(0, 0, 0))
+        assert (
+            result
+            == '<http://testserver/foo/bar/lol%3Awhat/?&cursor=0:0:0>; rel="next"; results="false"; cursor="0:0:0"'
+        )
+
 
 class PaginateTest(APITestCase):
     def setUp(self):
@@ -136,6 +182,10 @@ class PaginateTest(APITestCase):
     def test_success(self):
         response = self.view(self.request)
         assert response.status_code == 200, response.content
+        assert (
+            response["Link"]
+            == '<http://testserver/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://testserver/?&cursor=0:100:0>; rel="next"; results="false"; cursor="0:100:0"'
+        )
 
     def test_invalid_per_page(self):
         self.request.GET = {"per_page": "nope"}

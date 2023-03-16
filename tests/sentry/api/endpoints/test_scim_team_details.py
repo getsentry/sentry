@@ -51,6 +51,28 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             "meta": {"resourceType": "Group"},
         }
 
+    def test_scim_team_details_invalid_patch_op(self):
+        team = self.create_team(organization=self.organization)
+        url = reverse(
+            "sentry-api-0-organization-scim-team-details", args=[self.organization.slug, team.id]
+        )
+        response = self.client.patch(
+            url,
+            {
+                "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
+                "Operations": [
+                    {
+                        "op": "invalid",
+                        "value": {
+                            "id": str(team.id),
+                            "displayName": "newName",
+                        },
+                    }
+                ],
+            },
+        )
+        assert response.status_code == 400, response.content
+
     def test_scim_team_details_patch_replace_rename_team(self):
         team = self.create_team(organization=self.organization)
         url = reverse(
@@ -74,6 +96,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=team.id).slug == "newname"
         assert Team.objects.get(id=team.id).name == "newName"
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_scim_team_details_patch_add(self):
         team = self.create_team(organization=self.organization)
@@ -103,6 +126,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert OrganizationMemberTeam.objects.filter(
             team_id=str(team.id), organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_scim_team_details_patch_remove(self):
         team = self.create_team(organization=self.organization)
@@ -129,6 +153,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_team_details_replace_members_list(self):
         team = self.create_team(organization=self.organization)
@@ -173,6 +198,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert OrganizationMemberTeam.objects.filter(
             team_id=team.id, organizationmember_id=member3.id
         ).exists()
+        assert Team.objects.get(id=team.id).idp_provisioned
 
     def test_team_doesnt_exist(self):
         url = reverse(
@@ -233,7 +259,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{}] * 101,
+                "Operations": [{"op": "replace"}] * 101,
             },
         )
 
@@ -276,11 +302,12 @@ class SCIMTeamDetailsTests(SCIMTestCase):
             url,
             {
                 "schemas": ["urn:ietf:params:scim:api:messages:2.0:PatchOp"],
-                "Operations": [{"op": "replace", "path": "displayName", "value": "theNewName"}],
+                "Operations": [{"op": "Replace", "path": "displayName", "value": "theNewName"}],
             },
         )
         assert response.status_code == 204, response.content
         assert Team.objects.get(id=self.team.id).slug == "thenewname"
+        assert Team.objects.get(id=self.team.id).idp_provisioned
 
     def test_delete_team(self):
         team = self.create_team(organization=self.organization)
@@ -314,6 +341,7 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=self.team.id, organizationmember_id=member1.id
         ).exists()
+        assert Team.objects.get(id=self.team.id).idp_provisioned
 
     def test_remove_member_not_on_team(self):
         member1_no_team = self.create_member(
@@ -341,3 +369,4 @@ class SCIMTeamDetailsTests(SCIMTestCase):
         assert not OrganizationMemberTeam.objects.filter(
             team_id=self.team.id, organizationmember_id=member1_no_team.id
         ).exists()
+        assert Team.objects.get(id=self.team.id).idp_provisioned

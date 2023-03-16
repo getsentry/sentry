@@ -15,7 +15,8 @@ Trigger alerts in Opsgenie from Sentry.
 
 Opsgenie is a cloud-based service for dev & ops teams, providing reliable
 alerts, on-call schedule management and escalations. OpsGenie integrates with
-monitoring tools & services, ensures the right people are notified.
+monitoring tools & services, ensures the right people are notified. This
+plugin only supports issue alerts.
 """
 
 

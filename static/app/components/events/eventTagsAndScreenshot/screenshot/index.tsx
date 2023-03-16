@@ -2,15 +2,15 @@ import {Fragment, ReactEventHandler, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
-import MenuItemActionLink from 'sentry/components/actions/menuItemActionLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import DropdownLink from 'sentry/components/dropdownLink';
+import {openConfirmModal} from 'sentry/components/confirm';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import {IconChevron, IconEllipsis} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, EventAttachment, Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
@@ -94,7 +94,7 @@ function Screenshot({
             <StyledImageVisualization
               attachment={screenshotAttachment}
               orgId={orgSlug}
-              projectId={projectSlug}
+              projectSlug={projectSlug}
               eventId={eventId}
               onLoad={() => setLoadingImage(false)}
               onError={() => setLoadingImage(false)}
@@ -103,7 +103,7 @@ function Screenshot({
         </StyledPanelBody>
         {!onlyRenderScreenshot && (
           <StyledPanelFooter>
-            <StyledButtonbar gap={1}>
+            <ButtonBar gap={1}>
               <Button
                 size="xs"
                 onClick={() =>
@@ -115,43 +115,42 @@ function Screenshot({
               >
                 {t('View screenshot')}
               </Button>
-              <DropdownLink
-                caret={false}
-                customTitle={
-                  <Button
-                    aria-label={t('Actions')}
-                    size="xs"
-                    icon={<IconEllipsis size="xs" />}
-                  />
-                }
-                anchorRight
-              >
-                <MenuItemActionLink
-                  shouldConfirm={false}
-                  onAction={() =>
-                    trackAdvancedAnalyticsEvent(
-                      'issue_details.issue_tab.screenshot_dropdown_download',
-                      {
-                        organization,
-                      }
-                    )
-                  }
-                  href={`${downloadUrl}?download=1`}
-                >
-                  {t('Download')}
-                </MenuItemActionLink>
-                <MenuItemActionLink
-                  shouldConfirm
-                  onAction={() => handleDelete(screenshotAttachment.id)}
-                  header={t(
-                    'This image was captured around the time that the event occurred.'
-                  )}
-                  message={t('Are you sure you wish to delete this image?')}
-                >
-                  {t('Delete')}
-                </MenuItemActionLink>
-              </DropdownLink>
-            </StyledButtonbar>
+              <DropdownMenu
+                position="bottom"
+                offset={4}
+                triggerProps={{
+                  showChevron: false,
+                  icon: <IconEllipsis size="xs" />,
+                  'aria-label': t('More screenshot actions'),
+                }}
+                size="xs"
+                items={[
+                  {
+                    key: 'download',
+                    label: t('Download'),
+                    onAction: () => {
+                      window.location.assign(`${downloadUrl}?download=1`);
+                      trackAdvancedAnalyticsEvent(
+                        'issue_details.issue_tab.screenshot_dropdown_download',
+                        {organization}
+                      );
+                    },
+                  },
+                  {
+                    key: 'delete',
+                    label: t('Delete'),
+                    onAction: () =>
+                      openConfirmModal({
+                        header: t('Delete this image?'),
+                        message: t(
+                          'This image was captured around the time that the event occurred. Are you sure you want to delete this image?'
+                        ),
+                        onConfirm: () => handleDelete(screenshotAttachment.id),
+                      }),
+                  },
+                ]}
+              />
+            </ButtonBar>
           </StyledPanelFooter>
         )}
       </Fragment>
@@ -248,11 +247,4 @@ const StyledImageVisualization = styled(ImageVisualization)`
   width: 100%;
   z-index: 1;
   border: 0;
-`;
-
-const StyledButtonbar = styled(ButtonBar)`
-  justify-content: space-between;
-  .dropdown {
-    height: 24px;
-  }
 `;

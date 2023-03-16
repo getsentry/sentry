@@ -4,14 +4,14 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {joinTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {Panel} from 'sentry/components/panels';
 import {IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -83,21 +83,13 @@ class MissingProjectMembership extends Component<Props, State> {
     }
     if (features.has('open-membership')) {
       return (
-        <Button
-          priority="primary"
-          type="button"
-          onClick={this.joinTeam.bind(this, teamSlug)}
-        >
+        <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
           {t('Join Team')}
         </Button>
       );
     }
     return (
-      <Button
-        priority="primary"
-        type="button"
-        onClick={this.joinTeam.bind(this, teamSlug)}
-      >
+      <Button priority="primary" onClick={this.joinTeam.bind(this, teamSlug)}>
         {t('Request Access')}
       </Button>
     );

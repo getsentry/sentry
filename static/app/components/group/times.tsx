@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import TimeSince from 'sentry/components/timeSince';
 import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 /**
  * Renders the first & last seen times for a group or event with
@@ -21,7 +21,7 @@ const Times = ({lastSeen, firstSeen}: Props) => (
     <FlexWrapper>
       {lastSeen && (
         <Fragment>
-          <StyledIconClock size="11px" />
+          <StyledIconClock legacySize="11px" />
           <TimeSince date={lastSeen} suffix={t('ago')} />
         </Fragment>
       )}

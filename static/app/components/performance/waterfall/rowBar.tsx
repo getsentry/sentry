@@ -11,7 +11,7 @@ import {
   getDurationPillColours,
   getHatchPattern,
 } from 'sentry/components/performance/waterfall/utils';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const RowRectangle = styled('div')<{
   spanBarType?: SpanBarType;

@@ -3,22 +3,25 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import formGroups from 'sentry/data/forms/userFeedback';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
 };
-type Props = RouteComponentProps<RouteParams, {}>;
+type Props = RouteComponentProps<RouteParams, {}> & {
+  organization: Organization;
+};
 
 class ProjectUserFeedbackSettings extends AsyncView<Props> {
   submitTimeout: number | undefined = undefined;
@@ -42,10 +45,11 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     return [
-      ['keyList', `/projects/${orgId}/${projectId}/keys/`],
-      ['project', `/projects/${orgId}/${projectId}/`],
+      ['keyList', `/projects/${organization.slug}/${projectId}/keys/`],
+      ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
   }
 
@@ -62,7 +66,8 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
   };
 
   renderBody() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     return (
       <div>
@@ -93,7 +98,7 @@ class ProjectUserFeedbackSettings extends AsyncView<Props> {
         <Form
           saveOnBlur
           apiMethod="PUT"
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
           initialData={this.state.project.options}
         >
           <Access access={['project:write']}>
@@ -112,4 +117,4 @@ const ButtonList = styled('div')`
   margin-bottom: ${space(2)};
 `;
 
-export default ProjectUserFeedbackSettings;
+export default withOrganization(ProjectUserFeedbackSettings);

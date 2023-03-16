@@ -6,9 +6,9 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Link from 'sentry/components/links/link';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
@@ -29,7 +29,7 @@ type RowProps = {
 
 function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
   return (
-    <Field
+    <FieldGroup
       label={
         <Link
           data-test-id="project-service-hook"
@@ -49,11 +49,11 @@ function ServiceHookRow({orgId, projectId, hook, onToggleActive}: RowProps) {
       }
     >
       <Switch isActive={hook.status === 'active'} size="lg" toggle={onToggleActive} />
-    </Field>
+    </FieldGroup>
   );
 }
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 };
 
@@ -63,12 +63,13 @@ type State = {
 
 class ProjectServiceHooks extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['hookList', `/projects/${orgId}/${projectId}/hooks/`]];
+    const {organization, params} = this.props;
+    const projectId = params.projectId;
+    return [['hookList', `/projects/${organization.slug}/${projectId}/hooks/`]];
   }
 
   onToggleActive = (hook: ServiceHook) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
     const {hookList} = this.state;
     if (!hookList) {
       return;
@@ -76,29 +77,32 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
 
     addLoadingMessage(t('Saving changes\u2026'));
 
-    this.api.request(`/projects/${orgId}/${projectId}/hooks/${hook.id}/`, {
-      method: 'PUT',
-      data: {
-        isActive: hook.status !== 'active',
-      },
-      success: data => {
-        clearIndicators();
-        this.setState({
-          hookList: hookList.map(h => {
-            if (h.id === data.id) {
-              return {
-                ...h,
-                ...data,
-              };
-            }
-            return h;
-          }),
-        });
-      },
-      error: () => {
-        addErrorMessage(t('Unable to remove application. Please try again.'));
-      },
-    });
+    this.api.request(
+      `/projects/${organization.slug}/${params.projectId}/hooks/${hook.id}/`,
+      {
+        method: 'PUT',
+        data: {
+          isActive: hook.status !== 'active',
+        },
+        success: data => {
+          clearIndicators();
+          this.setState({
+            hookList: hookList.map(h => {
+              if (h.id === data.id) {
+                return {
+                  ...h,
+                  ...data,
+                };
+              }
+              return h;
+            }),
+          });
+        },
+        error: () => {
+          addErrorMessage(t('Unable to remove application. Please try again.'));
+        },
+      }
+    );
   };
 
   renderEmpty() {
@@ -110,7 +114,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
   }
 
   renderResults() {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
 
     return (
       <Fragment>
@@ -124,8 +128,8 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
           {this.state.hookList?.map(hook => (
             <ServiceHookRow
               key={hook.id}
-              orgId={orgId}
-              projectId={projectId}
+              orgId={organization.slug}
+              projectId={params.projectId}
               hook={hook}
               onToggleActive={this.onToggleActive.bind(this, hook)}
             />
@@ -140,8 +144,8 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
     const body =
       hookList && hookList.length > 0 ? this.renderResults() : this.renderEmpty();
 
-    const {orgId, projectId} = this.props.params;
-    const access = new Set(this.props.organization.access);
+    const {organization, params} = this.props;
+    const access = new Set(organization.access);
 
     return (
       <Fragment>
@@ -151,7 +155,7 @@ class ProjectServiceHooks extends AsyncView<Props, State> {
             access.has('project:write') ? (
               <Button
                 data-test-id="new-service-hook"
-                to={`/settings/${orgId}/projects/${projectId}/hooks/new/`}
+                to={`/settings/${organization.slug}/projects/${params.projectId}/hooks/new/`}
                 size="sm"
                 priority="primary"
                 icon={<IconAdd size="xs" isCircled />}

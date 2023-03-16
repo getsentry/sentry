@@ -1,6 +1,6 @@
 import {IconQuestion, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Frame, PlatformType} from 'sentry/types';
+import {Event, EventOrGroupType, Frame, PlatformType} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 
 import {SymbolicatorStatus} from '../types';
@@ -106,4 +106,23 @@ export function isExpandable({
     hasContextRegisters(registers) ||
     hasAssembly(frame, platform)
   );
+}
+
+export function getLeadHint({
+  event,
+  hasNextFrame,
+}: {
+  event: Event;
+  hasNextFrame: boolean;
+}) {
+  if (hasNextFrame) {
+    return t('Called from');
+  }
+
+  switch (event.type) {
+    case EventOrGroupType.ERROR:
+      return t('Crashed in non-app');
+    default:
+      return t('Occurred in non-app');
+  }
 }

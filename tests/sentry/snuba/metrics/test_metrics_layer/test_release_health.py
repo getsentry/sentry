@@ -2,15 +2,12 @@
 Metrics Service Layer Tests for Release Health
 """
 import time
-from datetime import timedelta
 
 import pytest
-from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from freezegun import freeze_time
 from snuba_sdk import Limit, Offset
 
-from sentry.api.utils import InvalidParams
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import MetricField
 from sentry.snuba.metrics.datasource import get_series
@@ -20,15 +17,12 @@ from sentry.testutils import BaseMetricsLayerTestCase, TestCase
 
 pytestmark = pytest.mark.sentry_metrics
 
-ONE_DAY_AGO = timezone.now() - timedelta(days=1)
-MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0)
 
-
-@freeze_time(MOCK_DATETIME)
+@freeze_time(BaseMetricsLayerTestCase.MOCK_DATETIME)
 class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
     @property
     def now(self):
-        return MOCK_DATETIME
+        return BaseMetricsLayerTestCase.MOCK_DATETIME
 
     def test_valid_filter_include_meta(self):
         self.create_release(version="foo", project=self.project)
@@ -147,11 +141,11 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("exited", [4, 5, 6, 1, 2, 3]),
             ("crashed", [7, 8, 9]),
         ):
-            for v in d_value:
+            for value in d_value:
                 self.store_release_health_metric(
                     name=SessionMRI.RAW_DURATION.value,
                     tags={"session.status": tag_value},
-                    value=v,
+                    value=value,
                 )
 
         metrics_query = self.build_metrics_query(
@@ -219,31 +213,6 @@ class ReleaseHealthMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 "totals": {"histogram_duration": hist},
             }
         ]
-
-    def test_query_private_metrics_raise_exception(self):
-        self.store_release_health_metric(
-            name=SessionMRI.SESSION.value,
-            tags={"session.status": "errored_preaggr"},
-            value=2,
-        )
-
-        with pytest.raises(
-            InvalidParams,
-            match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
-        ):
-            self.build_metrics_query(
-                before_now="1h",
-                granularity="1h",
-                select=[
-                    MetricField(
-                        op=None,
-                        metric_mri=str(SessionMRI.ERRORED_PREAGGREGATED.value),
-                        alias="errored_preaggregated_sessions_alias",
-                    ),
-                ],
-                limit=Limit(limit=51),
-                offset=Offset(offset=0),
-            )
 
     def test_anr_rate_operations(self):
         for tag_value, count_value, anr_mechanism in (

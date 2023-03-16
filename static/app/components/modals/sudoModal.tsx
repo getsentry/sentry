@@ -1,12 +1,13 @@
 import {Component, Fragment} from 'react';
 import {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import SecretField from 'sentry/components/forms/fields/secretField';
 import Form from 'sentry/components/forms/form';
 import Hook from 'sentry/components/hook';
@@ -14,7 +15,7 @@ import U2fContainer from 'sentry/components/u2f/u2fContainer';
 import {ErrorCodes} from 'sentry/constants/superuserAccessErrors';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
@@ -167,6 +168,15 @@ class SudoModal extends Component<Props, State> {
     }
   };
 
+  getAuthLoginPath(): string {
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      return `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+    }
+    return authLoginPath;
+  }
+
   handleLogout = async () => {
     const {api} = this.props;
     try {
@@ -174,7 +184,7 @@ class SudoModal extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign(`/auth/login/?next=${encodeURIComponent(location.pathname)}`);
+    window.location.assign(this.getAuthLoginPath());
   };
 
   async getAuthenticators() {
@@ -229,7 +239,9 @@ class SudoModal extends Component<Props, State> {
               initialData={{isSuperuserModal: isSuperuser}}
               extraButton={
                 <BackWrapper>
-                  <Button onClick={this.handleSubmitCOPS}>{t('COPS/CSM')}</Button>
+                  <Button type="submit" onClick={this.handleSubmitCOPS}>
+                    {t('COPS/CSM')}
+                  </Button>
                 </BackWrapper>
               }
               resetOnError
@@ -246,10 +258,7 @@ class SudoModal extends Component<Props, State> {
               )}
             </Form>
           ) : (
-            <Button
-              priority="primary"
-              href={`/auth/login/?next=${encodeURIComponent(location.pathname)}`}
-            >
+            <Button priority="primary" href={this.getAuthLoginPath()}>
               {t('Continue')}
             </Button>
           )}

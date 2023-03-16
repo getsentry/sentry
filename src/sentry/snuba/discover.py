@@ -154,6 +154,8 @@ def query(
     sample=None,
     has_metrics=False,
     use_metrics_layer=False,
+    skip_tag_resolution=False,
+    extra_columns=None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -207,9 +209,13 @@ def query(
         sample_rate=sample,
         has_metrics=has_metrics,
         transform_alias_to_input_format=transform_alias_to_input_format,
+        skip_tag_resolution=skip_tag_resolution,
     )
     if conditions is not None:
         builder.add_conditions(conditions)
+    if extra_columns is not None:
+        builder.columns.extend(extra_columns)
+
     result = builder.process_results(builder.run_query(referrer))
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
@@ -406,6 +412,7 @@ def top_events_timeseries(
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
+                skip_tag_resolution=True,
             )
 
     top_events_builder = TopEventsQueryBuilder(
@@ -419,6 +426,7 @@ def top_events_timeseries(
         timeseries_columns=timeseries_columns,
         equations=equations,
         functions_acl=functions_acl,
+        skip_tag_resolution=True,
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
@@ -734,90 +742,6 @@ def spans_histogram_query(
     return normalize_span_histogram_results(span, histogram_params, results)
 
 
-def span_count_histogram_query(
-    span_op,
-    user_query,
-    params,
-    num_buckets,
-    precision=0,
-    min_value=None,
-    max_value=None,
-    data_filter=None,
-    referrer=None,
-    group_by=None,
-    order_by=None,
-    limit_by=None,
-    extra_condition=None,
-    normalize_results=True,
-):
-    """
-    API for generating histograms for span exclusive time.
-
-    :param str span_op: A span op for which you want to generate histograms for.
-    :param str user_query: Filter query string to create conditions from.
-    :param {str: str} params: Filtering parameters with start, end, project_id, environment
-    :param int num_buckets: The number of buckets the histogram should contain.
-    :param int precision: The number of decimal places to preserve, default 0.
-    :param float min_value: The minimum value allowed to be in the histogram.
-        If left unspecified, it is queried using `user_query` and `params`.
-    :param float max_value: The maximum value allowed to be in the histogram.
-        If left unspecified, it is queried using `user_query` and `params`.
-    :param str data_filter: Indicate the filter strategy to be applied to the data.
-    :param [str] group_by: Allows additional grouping to serve multifacet histograms.
-    :param [str] order_by: Allows additional ordering within each alias to serve multifacet histograms.
-    :param [str] limit_by: Allows limiting within a group when serving multifacet histograms.
-    :param [Condition] extra_condition: Adds any additional conditions to the histogram query
-    :param bool normalize_results: Indicate whether to normalize the results by column into bins.
-    """
-    multiplier = int(10**precision)
-    if max_value is not None:
-        # We want the specified max_value to be exclusive, and the queried max_value
-        # to be inclusive. So we adjust the specified max_value using the multiplier.
-        max_value -= 0.1 / multiplier
-
-    min_value, max_value = find_span_op_count_histogram_min_max(
-        span_op, min_value, max_value, user_query, params, data_filter
-    )
-
-    key_column = None
-    field_names = []
-    histogram_rows = None
-
-    histogram_params = find_histogram_params(num_buckets, min_value, max_value, multiplier)
-    histogram_column = get_span_count_histogram_column(span_op, histogram_params)
-
-    builder = HistogramQueryBuilder(
-        num_buckets,
-        histogram_column,
-        histogram_rows,
-        histogram_params,
-        key_column,
-        field_names,
-        group_by,
-        # Arguments for QueryBuilder
-        Dataset.Discover,
-        params,
-        query=user_query,
-        selected_columns=[""],
-        orderby=order_by,
-        limitby=limit_by,
-    )
-    if extra_condition is not None:
-        builder.add_conditions(extra_condition)
-
-    builder.add_conditions(
-        [
-            Condition(Function("has", [builder.column("spans_op"), span_op]), Op.EQ, 1),
-        ]
-    )
-    results = builder.run_query(referrer)
-
-    if not normalize_results:
-        return results
-
-    return normalize_span_op_histogram_results(span_op, histogram_params, results)
-
-
 def histogram_query(
     fields,
     user_query,
@@ -937,16 +861,6 @@ def get_span_histogram_column(span, histogram_params):
     span_op = span.op
     span_group = span.group
     return f'spans_histogram("{span_op}", {span_group}, {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
-
-
-def get_span_count_histogram_column(span_op, histogram_params):
-    """
-    Generate the histogram column string for span_op count.
-
-    :param [str] spanOp: The span op for which count you want to generate the histograms for.
-    :param HistogramParams histogram_params: The histogram parameters used.
-    """
-    return f'spans_count_histogram("{span_op}", {histogram_params.bucket_size:d}, {histogram_params.start_offset:d}, {histogram_params.multiplier:d})'
 
 
 def get_histogram_column(fields, key_column, histogram_params, array_column):
@@ -1323,40 +1237,6 @@ def normalize_span_histogram_results(span, histogram_params, results):
     """
 
     histogram_column = get_span_histogram_column(span, histogram_params)
-    bin_name = get_function_alias(histogram_column)
-
-    # zerofill and rename the columns while making sure to adjust for precision
-    bucket_map = {}
-    for row in results["data"]:
-        # we expect the bin the be an integer, this is because all floating
-        # point values are rounded during the calculation
-        bucket = int(row[bin_name])
-        bucket_map[bucket] = row["count"]
-
-    new_data = []
-    for i in range(histogram_params.num_buckets):
-        bucket = histogram_params.start_offset + histogram_params.bucket_size * i
-        row = {"bin": bucket, "count": bucket_map.get(bucket, 0)}
-        if histogram_params.multiplier > 1:
-            row["bin"] /= float(histogram_params.multiplier)
-        new_data.append(row)
-
-    return new_data
-
-
-def normalize_span_op_histogram_results(span_op, histogram_params, results):
-    """
-    Normalizes the span histogram results by renaming the columns to key and bin
-    and make sure to zerofill any missing values.
-
-    :param str span_op: The span op for which you want to generate the
-        histograms for.
-    :param HistogramParams histogram_params: The histogram parameters used.
-    :param any results: The results from the histogram query that may be missing
-        bins and needs to be normalized.
-    """
-
-    histogram_column = get_span_count_histogram_column(span_op, histogram_params)
     bin_name = get_function_alias(histogram_column)
 
     # zerofill and rename the columns while making sure to adjust for precision

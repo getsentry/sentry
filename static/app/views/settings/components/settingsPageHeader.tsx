@@ -1,30 +1,32 @@
-import {HTMLProps, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {HeaderTitle} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
-  // The title
-  title: ReactNode;
-
-  // CTA button
-  action?: ReactNode;
-  body?: ReactNode;
-
+  /**
+   * The page title
+   */
+  title: React.ReactNode;
+  /**
+   * A CTA Button
+   */
+  action?: React.ReactNode;
+  body?: React.ReactNode;
   className?: string;
-  // Use a purple color for the Subtitle
+  /**
+   * Use a purple color for the subtitle
+   */
   colorSubtitle?: boolean;
-
-  // Icon left of title
-  icon?: ReactNode;
-
-  // Disables font styles in the title. Allows for more custom titles.
+  /**
+   * Icon to the left of the title
+   */
+  icon?: React.ReactNode;
+  /**
+   * Disables font styles in the title. Allows for more custom titles.
+   */
   noTitleStyles?: boolean;
-
-  subtitle?: ReactNode;
-
-  tabs?: ReactNode;
+  subtitle?: React.ReactNode;
+  tabs?: React.ReactNode;
 };
 
 function UnstyledSettingsPageHeader({
@@ -66,8 +68,15 @@ function UnstyledSettingsPageHeader({
 
 interface TitleProps extends React.HTMLAttributes<HTMLDivElement> {
   styled?: boolean;
-  tabs?: ReactNode;
+  tabs?: React.ReactNode;
 }
+
+const HeaderTitle = styled('h4')`
+  ${p => p.theme.text.pageTitle};
+  color: ${p => p.theme.headingColor};
+  flex: 1;
+  margin: 0;
+`;
 
 const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
   display: flex;
@@ -97,7 +106,7 @@ const Action = styled('div')<{isNarrow?: boolean}>`
 `;
 
 const SettingsPageHeader = styled(UnstyledSettingsPageHeader)<
-  Omit<HTMLProps<HTMLDivElement>, keyof Props> & Props
+  Omit<React.HTMLProps<HTMLDivElement>, keyof Props> & Props
 >`
   font-size: 14px;
   margin-top: -${space(4)};

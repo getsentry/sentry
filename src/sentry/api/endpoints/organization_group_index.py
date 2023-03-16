@@ -1,6 +1,6 @@
 import functools
 from datetime import datetime, timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence
 
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, PermissionDenied
@@ -58,6 +58,7 @@ def inbox_search(
     date_from: Optional[datetime] = None,
     date_to: Optional[datetime] = None,
     max_hits: Optional[int] = None,
+    actor: Optional[Any] = None,
 ) -> CursorResult:
     now: datetime = timezone.now()
     end: Optional[datetime] = None
@@ -171,10 +172,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 query_kwargs.update(extra_query_kwargs)
 
             query_kwargs["environments"] = environments if environments else None
+
+            query_kwargs["actor"] = request.user
             if query_kwargs["sort_by"] == "inbox":
                 query_kwargs.pop("sort_by")
                 result = inbox_search(**query_kwargs)
             else:
+                query_kwargs["referrer"] = "search.group_index"
                 result = search.query(**query_kwargs)
             return result, query_kwargs
 
@@ -238,16 +242,6 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
 
         environments = self.get_environments(request, organization)
 
-        serializer = functools.partial(
-            StreamGroupSerializerSnuba,
-            environment_ids=[env.id for env in environments],
-            stats_period=stats_period,
-            stats_period_start=stats_period_start,
-            stats_period_end=stats_period_end,
-            expand=expand,
-            collapse=collapse,
-        )
-
         projects = self.get_projects(request, organization)
         project_ids = [p.id for p in projects]
 
@@ -260,6 +254,17 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
             return Response(
                 {"detail": "You do not have the multi project stream feature enabled"}, status=400
             )
+
+        serializer = functools.partial(
+            StreamGroupSerializerSnuba,
+            environment_ids=[env.id for env in environments],
+            stats_period=stats_period,
+            stats_period_start=stats_period_start,
+            stats_period_end=stats_period_end,
+            expand=expand,
+            collapse=collapse,
+            project_ids=project_ids,
+        )
 
         # we ignore date range for both short id and event ids
         query = request.GET.get("query", "").strip()
@@ -275,7 +280,13 @@ class OrganizationGroupIndexEndpoint(OrganizationEventsEndpointBase):
                 direct_hit_projects = (
                     set(project_ids) | request.access.project_ids_with_team_membership
                 )
-                groups = list(Group.objects.filter_by_event_id(direct_hit_projects, event_id))
+                groups = list(
+                    Group.objects.filter_by_event_id(
+                        direct_hit_projects,
+                        event_id,
+                        tenant_ids={"organization_id": organization.id},
+                    )
+                )
                 if len(groups) == 1:
                     serialized_groups = serialize(groups, request.user, serializer())
                     if event_id:

@@ -39,10 +39,6 @@ class RetryProcessing(Exception):
 @metrics.wraps("should_process")
 def should_process(data: CanonicalKeyDict) -> bool:
     """Quick check if processing is needed at all."""
-    return _should_process_inner(data)
-
-
-def _should_process_inner(data: CanonicalKeyDict) -> bool:
     from sentry.plugins.base import plugins
 
     if data.get("type") == "transaction":
@@ -55,10 +51,6 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
         if processors:
             return True
 
-        enhancers = safe_execute(plugin.get_event_enhancers, data=data, _with_transaction=False)
-        if enhancers:
-            return True
-
     if should_process_for_stacktraces(data):
         return True
 
@@ -66,7 +58,6 @@ def _should_process_inner(data: CanonicalKeyDict) -> bool:
 
 
 def submit_process(
-    project: Optional[Project],
     from_reprocessing: bool,
     cache_key: str,
     event_id: Optional[str],
@@ -118,7 +109,6 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.native.processing import get_symbolication_function
     from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
@@ -145,6 +135,11 @@ def _do_preprocess_event(
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
+
+    if data["platform"] in ("javascript", "node"):
+        from sentry.lang.javascript.processing import get_symbolication_function
+    else:
+        from sentry.lang.native.processing import get_symbolication_function
 
     symbolication_function = get_symbolication_function(data)
     if symbolication_function:
@@ -173,9 +168,9 @@ def _do_preprocess_event(
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
 
-    if should_process(data):
+    # NOTE: Events considered for symbolication always go through `do_process_event`
+    if symbolication_function or should_process(data):
         submit_process(
-            project=project,
             from_reprocessing=from_reprocessing,
             cache_key=cache_key,
             event_id=event_id,
@@ -359,8 +354,7 @@ def do_process_event(
     # happens somewhere in the middle of the pipeline.
     #
     # On the other hand, Javascript event error translation is happening after
-    # this block because it uses `get_event_preprocessors` instead of
-    # `get_event_enhancers`.
+    # this block because it uses `get_event_preprocessors`.
     #
     # We are fairly confident, however, that this should run *before*
     # re-normalization as it is hard to find sensitive data in partially
@@ -718,6 +712,9 @@ def _do_save_event(
             if cache_key:
                 with metrics.timer("tasks.store.do_save_event.delete_cache"):
                     processing.event_processing_store.delete_by_key(cache_key)
+        except Exception:
+            metrics.incr("events.save_event.exception", tags={"event_type": event_type})
+            raise
 
         finally:
             reprocessing2.mark_event_reprocessed(data)

@@ -2,12 +2,12 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import {Button} from 'sentry/components/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {
   EventId,
@@ -67,8 +67,8 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
 
     return (
       <Fragment>
-        <FieldGroup hasTwoColumns={values.method === MethodType.REPLACE}>
-          <Field
+        <FieldContainer hasTwoColumns={values.method === MethodType.REPLACE}>
+          <FieldGroup
             label={t('Method')}
             help={t('What to do')}
             inline={false}
@@ -86,9 +86,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               value={method}
               onChange={value => onChange('method', value?.value)}
             />
-          </Field>
+          </FieldGroup>
           {values.method === MethodType.REPLACE && (
-            <Field
+            <FieldGroup
               label={t('Custom Placeholder (Optional)')}
               help={t('It will replace the default placeholder [Filtered]')}
               inline={false}
@@ -103,11 +103,11 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onChange={this.handleChange('placeholder')}
                 value={values.placeholder}
               />
-            </Field>
+            </FieldGroup>
           )}
-        </FieldGroup>
-        <FieldGroup hasTwoColumns={values.type === RuleType.PATTERN}>
-          <Field
+        </FieldContainer>
+        <FieldContainer hasTwoColumns={values.type === RuleType.PATTERN}>
+          <FieldGroup
             data-test-id="type-field"
             label={t('Data Type')}
             help={t(
@@ -128,9 +128,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
               value={type}
               onChange={value => onChange('type', value?.value)}
             />
-          </Field>
+          </FieldGroup>
           {values.type === RuleType.PATTERN && (
-            <Field
+            <FieldGroup
               label={t('Regex matches')}
               help={t('Custom regular expression (see documentation)')}
               inline={false}
@@ -150,9 +150,9 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
                 onBlur={onValidate('pattern')}
                 id="regex-matches"
               />
-            </Field>
+            </FieldGroup>
           )}
-        </FieldGroup>
+        </FieldContainer>
         <ToggleWrapper>
           {displayEventId ? (
             <Toggle priority="link" onClick={this.handleToggleEventId}>
@@ -186,7 +186,7 @@ class Form extends Component<Props<Values, KeysOfUnion<Values>>, State> {
 
 export default Form;
 
-const FieldGroup = styled('div')<{hasTwoColumns: boolean}>`
+const FieldContainer = styled('div')<{hasTwoColumns: boolean}>`
   display: grid;
   margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
@@ -205,7 +205,7 @@ const SourceGroup = styled('div')<{isExpanded: boolean}>`
     `
     border-radius: ${p.theme.borderRadius};
     border: 1px solid ${p.theme.border};
-    box-shadow: ${p.theme.dropShadowLight};
+    box-shadow: ${p.theme.dropShadowMedium};
     margin: ${space(2)} 0 ${space(3)} 0;
     padding: ${space(2)};
     height: 180px;

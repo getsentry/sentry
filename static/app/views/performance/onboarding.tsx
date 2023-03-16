@@ -14,7 +14,7 @@ import {
   addLoadingMessage,
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal, {
   TourImage,
@@ -32,6 +32,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import useApi from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';
@@ -188,7 +189,9 @@ function Onboarding({organization, project}: Props) {
             try {
               const eventData = await api.requestPromise(url, {method: 'POST'});
               browserHistory.push(
-                `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+                normalizeUrl(
+                  `/organizations/${organization.slug}/performance/${project.slug}:${eventData.eventID}/`
+                )
               );
               clearIndicators();
             } catch (error) {

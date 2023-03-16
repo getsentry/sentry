@@ -51,7 +51,9 @@ class OrganizationMemberTeam(BaseModel):
         If the role field is null, resolve to the minimum team role given by this
         member's organization role.
         """
-        minimum_role = roles.get_minimum_team_role(self.organizationmember.role)
+        highest_org_role = self.organizationmember.get_all_org_roles_sorted()[0].id
+        minimum_role = roles.get_minimum_team_role(highest_org_role)
+
         if self.role and features.has(
             "organizations:team-roles", self.organizationmember.organization
         ):

@@ -1,8 +1,12 @@
+import selectEvent from 'react-select-event';
+
 import {
+  cleanup,
   render,
   renderGlobalModal,
   screen,
   userEvent,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {updateMember} from 'sentry/actionCreators/members';
@@ -16,7 +20,17 @@ jest.mock('sentry/actionCreators/members', () => ({
 describe('OrganizationMemberDetail', function () {
   let organization;
   let routerContext;
+
   const team = TestStubs.Team();
+  const idpTeam = TestStubs.Team({
+    id: '4',
+    slug: 'idp-member-team',
+    name: 'Idp Member Team',
+    isMember: true,
+    flags: {
+      'idp:provisioned': true,
+    },
+  });
   const teams = [
     team,
     TestStubs.Team({
@@ -25,17 +39,38 @@ describe('OrganizationMemberDetail', function () {
       name: 'New Team',
       isMember: false,
     }),
+    TestStubs.Team({
+      id: '3',
+      slug: 'idp-team',
+      name: 'Idp Team',
+      isMember: false,
+      flags: {
+        'idp:provisioned': true,
+      },
+    }),
+    idpTeam,
   ];
+
+  const teamAssignment = {
+    teams: [team.slug],
+    teamRoles: [
+      {
+        teamSlug: team.slug,
+        role: null,
+      },
+    ],
+  };
+
   const member = TestStubs.Member({
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
   });
   const pendingMember = TestStubs.Member({
     id: 2,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
@@ -43,19 +78,38 @@ describe('OrganizationMemberDetail', function () {
     id: 3,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [team.slug],
+    ...teamAssignment,
     invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
   });
+  const idpTeamMember = TestStubs.Member({
+    id: 4,
+    roles: TestStubs.OrgRoleList(),
+    dateCreated: new Date(),
+    teams: [idpTeam.slug],
+    teamRoles: [
+      {
+        teamSlug: idpTeam.slug,
+        role: null,
+      },
+    ],
+  });
+
+  beforeAll(() => {
+    TeamStore.loadInitialData(teams);
+  });
 
   describe('Can Edit', function () {
     beforeEach(function () {
-      organization = TestStubs.Organization({teams});
+      organization = TestStubs.Organization({teams, features: ['team-roles']});
       routerContext = TestStubs.routerContext([{organization}]);
+
       TeamStore.init();
       TeamStore.loadInitialData(teams);
+
       jest.resetAllMocks();
+
       MockApiClient.clearMockResponses();
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${member.id}/`,
@@ -70,12 +124,16 @@ describe('OrganizationMemberDetail', function () {
         body: expiredMember,
       });
       MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${idpTeamMember.id}/`,
+        body: idpTeamMember,
+      });
+      MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,
         body: teams,
       });
     });
 
-    it('changes role to owner', function () {
+    it('changes org role to owner', function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
       });
@@ -95,7 +153,7 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            role: 'owner',
+            orgRole: 'owner',
           }),
         })
       );
@@ -116,25 +174,37 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            teams: [],
+            teamRoles: [],
           }),
         })
       );
     });
 
-    it('joins a team', function () {
+    it('cannot leave idp-provisioned team', function () {
+      render(<OrganizationMemberDetail params={{memberId: idpTeamMember.id}} />, {
+        context: routerContext,
+      });
+
+      expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
+
+    it('joins a team and assign a team-role', async function () {
       render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
         context: routerContext,
       });
 
       // Should have one team enabled
-      expect(screen.getByTestId('team-row')).toBeInTheDocument();
+      expect(screen.getByTestId('team-row-for-member')).toBeInTheDocument();
 
       // Select new team to join
       // Open the dropdown
       userEvent.click(screen.getByText('Add Team'));
       // Click the first item
       userEvent.click(screen.getByText('#new-team'));
+
+      // Assign as admin to new team
+      const teamRoleSelect = screen.getAllByText('Contributor')[1];
+      await selectEvent.select(teamRoleSelect, ['Team Admin']);
 
       // Save Member
       userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
@@ -143,10 +213,48 @@ describe('OrganizationMemberDetail', function () {
         expect.anything(),
         expect.objectContaining({
           data: expect.objectContaining({
-            teams: ['team-slug', 'new-team'],
+            teamRoles: [
+              {teamSlug: 'team-slug', role: null},
+              {teamSlug: 'new-team', role: 'admin'},
+            ],
           }),
         })
       );
+    });
+
+    it('cannot join idp-provisioned team', async function () {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      userEvent.click(screen.getByText('Add Team'));
+      userEvent.hover(screen.queryByText('#idp-team'));
+      expect(
+        await screen.findByText(
+          "Membership to this team is managed through your organization's identity provider."
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('cannot change roles if member is idp-provisioned', function () {
+      const roleRestrictedMember = TestStubs.Member({
+        roles: TestStubs.OrgRoleList(),
+        dateCreated: new Date(),
+        teams: [team.slug],
+        flags: {
+          'idp:role-restricted': true,
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: roleRestrictedMember,
+      });
+      render(<OrganizationMemberDetail params={{memberId: roleRestrictedMember.id}} />, {
+        context: routerContext,
+      });
+
+      const radios = screen.getAllByRole('radio');
+      expect(radios.at(0)).toHaveAttribute('readonly');
     });
   });
 
@@ -285,7 +393,7 @@ describe('OrganizationMemberDetail', function () {
     const fields = {
       roles: TestStubs.OrgRoleList(),
       dateCreated: new Date(),
-      teams: [team.slug],
+      ...teamAssignment,
     };
 
     const noAccess = TestStubs.Member({
@@ -440,6 +548,139 @@ describe('OrganizationMemberDetail', function () {
       await expectButtonDisabled(
         'Cannot be reset since two-factor is required for this organization'
       );
+    });
+  });
+
+  describe('Org Roles affect Team Roles', () => {
+    // Org Admin will be deprecated
+    const admin = TestStubs.Member({
+      id: '4',
+      role: 'admin',
+      roleName: 'Admin',
+      orgRole: 'admin',
+      ...teamAssignment,
+    });
+    const manager = TestStubs.Member({
+      id: '5',
+      role: 'manager',
+      roleName: 'Manager',
+      orgRole: 'manager',
+      ...teamAssignment,
+    });
+    const owner = TestStubs.Member({
+      id: '6',
+      role: 'owner',
+      roleName: 'Owner',
+      orgRole: 'owner',
+      ...teamAssignment,
+    });
+
+    beforeAll(() => {
+      organization = TestStubs.Organization({teams, features: ['team-roles']});
+      routerContext = TestStubs.routerContext([{organization}]);
+    });
+
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${member.id}/`,
+        body: member,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${admin.id}/`,
+        body: admin,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${manager.id}/`,
+        body: manager,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${owner.id}/`,
+        body: owner,
+      });
+    });
+
+    it('does not overwrite team-roles for org members', async () => {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      // Role info box is hidden
+      expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
+
+      // Dropdown has correct value set
+      const teamRow = screen.getByTestId('team-row-for-member');
+      const teamRoleSelect = within(teamRow).getByText('Contributor');
+
+      // Dropdown options are not visible
+      expect(screen.queryAllByText('...').length).toBe(0);
+
+      // Dropdown can be opened
+      selectEvent.openMenu(teamRoleSelect);
+      expect(screen.queryAllByText('...').length).toBe(2);
+
+      // Dropdown value can be changed
+      await selectEvent.select(teamRoleSelect, ['Team Admin']);
+      expect(teamRoleSelect).toHaveTextContent('Team Admin');
+    });
+
+    it('overwrite team-roles for org admin/manager/owner', () => {
+      function testForOrgRole(testMember) {
+        cleanup();
+        render(<OrganizationMemberDetail params={{memberId: testMember.id}} />, {
+          context: routerContext,
+        });
+
+        // Role info box is showed
+        expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+
+        // Dropdown has correct value set
+        const teamRow = screen.getByTestId('team-row-for-member');
+        const teamRoleSelect = within(teamRow).getByText('Team Admin');
+
+        // Dropdown options are not visible
+        expect(screen.queryAllByText('...').length).toBe(0);
+
+        // Dropdown cannot be opened
+        selectEvent.openMenu(teamRoleSelect);
+        expect(screen.queryAllByText('...').length).toBe(0);
+      }
+
+      for (const role of [admin, manager, owner]) {
+        testForOrgRole(role);
+      }
+    });
+
+    it('overwrites when changing from member to manager', () => {
+      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+        context: routerContext,
+      });
+
+      // Role info box is hidden
+      expect(screen.queryByTestId('alert-role-overwrite')).not.toBeInTheDocument();
+
+      // Dropdown has correct value set
+      const teamRow = screen.getByTestId('team-row-for-member');
+      const teamRoleSelect = within(teamRow).getByText('Contributor');
+
+      // Change member to owner
+      const orgRoleRadio = screen.getAllByRole('radio');
+      expect(orgRoleRadio).toHaveLength(4);
+      userEvent.click(orgRoleRadio.at(-1));
+      expect(orgRoleRadio.at(-1)).toBeChecked();
+
+      // Role info box is shown
+      expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();
+
+      // Dropdown has correct value set
+      within(teamRow).getByText('Team Admin');
+
+      // Dropdown options are not visible
+      expect(screen.queryAllByText('...').length).toBe(0);
+
+      // Dropdown cannot be opened
+      selectEvent.openMenu(teamRoleSelect);
+      expect(screen.queryAllByText('...').length).toBe(0);
     });
   });
 });

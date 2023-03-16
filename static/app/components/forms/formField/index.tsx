@@ -1,16 +1,16 @@
 import {Component, Fragment} from 'react';
 import {Observer} from 'mobx-react';
 
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import PanelAlert from 'sentry/components/panels/panelAlert';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 import {sanitizeQuerySelector} from 'sentry/utils/sanitizeQuerySelector';
 
-import Field from '../field';
-import FieldControl from '../field/fieldControl';
-import {FieldGroupProps} from '../field/types';
+import FieldGroup from '../fieldGroup';
+import FieldControl from '../fieldGroup/fieldControl';
+import {FieldGroupProps} from '../fieldGroup/types';
 import FormContext from '../formContext';
 import FormModel, {MockModel} from '../model';
 import {FieldValue} from '../types';
@@ -49,8 +49,8 @@ type ObservedFn<_P, T> = (props: FormFieldPropModel) => T;
 type ObservedFnOrValue<P, T> = T | ObservedFn<P, T>;
 
 type ObservedPropResolver = [
-  typeof propsToObserve[number],
-  () => ResolvedObservableProps[typeof propsToObserve[number]]
+  (typeof propsToObserve)[number],
+  () => ResolvedObservableProps[(typeof propsToObserve)[number]]
 ];
 
 /**
@@ -319,7 +319,7 @@ class FormField extends Component<FormFieldProps> {
 
       return (
         <Fragment>
-          <Field
+          <FieldGroup
             id={id}
             className={className}
             flexibleControlStateSize={flexibleControlStateSize}
@@ -369,7 +369,7 @@ class FormField extends Component<FormFieldProps> {
                 </Observer>
               </FieldControl>
             )}
-          </Field>
+          </FieldGroup>
           {selectionInfoFunction && (
             <Observer>
               {() => {
@@ -404,13 +404,12 @@ class FormField extends Component<FormFieldProps> {
                     type={saveMessageAlertType}
                     trailingItems={
                       <Fragment>
-                        <Button onClick={this.handleCancelField} size="xs" type="button">
+                        <Button onClick={this.handleCancelField} size="xs">
                           {t('Cancel')}
                         </Button>
                         <Button
                           priority="primary"
                           size="xs"
-                          type="button"
                           onClick={this.handleSaveField}
                         >
                           {t('Save')}

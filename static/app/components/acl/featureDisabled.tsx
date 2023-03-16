@@ -1,14 +1,14 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
-import Button, {ButtonLabel} from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button, ButtonLabel} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CONFIG_DOCS_URL} from 'sentry/constants';
 import {IconChevron, IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {selectText} from 'sentry/utils/selectText';
 
 const installText = (features: string[], featureName: string): string =>

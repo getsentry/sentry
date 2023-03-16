@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
-import {IconAdd, IconFire, IconSubtract} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {IconAdd, IconFire, IconProfiling, IconSubtract} from 'sentry/icons';
+import {space} from 'sentry/styles/space';
 import {Aliases, Color} from 'sentry/utils/theme';
 
 export const DividerContainer = styled('div')`
@@ -49,14 +49,17 @@ export const DividerLineGhostContainer = styled('div')`
   height: 100%;
 `;
 
-const BadgeBorder = styled('div')<{borderColor: Color | keyof Aliases}>`
+const BadgeBorder = styled('div')<{
+  color: Color | keyof Aliases;
+  fillBackground?: boolean;
+}>`
   position: absolute;
   margin: ${space(0.25)};
   left: -11px;
-  background: ${p => p.theme.background};
+  background: ${p => (p.fillBackground ? p.theme[p.color] : p.theme.background)};
   width: ${space(3)};
   height: ${space(3)};
-  border: 1px solid ${p => p.theme[p.borderColor]};
+  border: 1px solid ${p => p.theme[p.color]};
   border-radius: 50%;
   z-index: ${p => p.theme.zIndex.traceView.dividerLine};
   display: flex;
@@ -66,7 +69,7 @@ const BadgeBorder = styled('div')<{borderColor: Color | keyof Aliases}>`
 
 export function ErrorBadge() {
   return (
-    <BadgeBorder borderColor="error">
+    <BadgeBorder color="error">
       <IconFire color="errorText" size="xs" />
     </BadgeBorder>
   );
@@ -82,7 +85,7 @@ export function EmbeddedTransactionBadge({
   return (
     <BadgeBorder
       data-test-id="embedded-transaction-badge"
-      borderColor="border"
+      color="border"
       onClick={event => {
         event.stopPropagation();
         event.preventDefault();
@@ -94,6 +97,14 @@ export function EmbeddedTransactionBadge({
       ) : (
         <IconAdd color="textColor" size="xs" />
       )}
+    </BadgeBorder>
+  );
+}
+
+export function ProfileBadge() {
+  return (
+    <BadgeBorder data-test-id="profile-badge" color="activeText" fillBackground>
+      <IconProfiling color="background" size="xs" />
     </BadgeBorder>
   );
 }

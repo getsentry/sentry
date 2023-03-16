@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
 
-import Button, {ButtonPropsWithAriaLabel} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const ModalHeader = styled('header')`
   position: relative;
@@ -29,17 +29,19 @@ const ModalHeader = styled('header')`
   }
 `;
 
-const CloseButton = styled((p: ButtonPropsWithAriaLabel) => (
-  <Button size="zero" icon={<IconClose size="10px" />} {...p} />
+const CloseButton = styled((p: Omit<ButtonProps, 'aria-label'>) => (
+  <Button
+    aria-label={t('Close Modal')}
+    icon={<IconClose legacySize="10px" />}
+    size="zero"
+    {...p}
+  />
 ))`
   position: absolute;
   top: 0;
   right: 0;
   transform: translate(50%, -50%);
   border-radius: 50%;
-  border: none;
-  box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder};
-  background: ${p => p.theme.background};
   height: 24px;
   width: 24px;
 `;
@@ -86,9 +88,7 @@ const makeClosableHeader = (closeModal: () => void) => {
   }) => (
     <ModalHeader {...props}>
       {children}
-      {closeButton ? (
-        <CloseButton aria-label={t('Close Modal')} onClick={closeModal} />
-      ) : null}
+      {closeButton ? <CloseButton onClick={closeModal} /> : null}
     </ModalHeader>
   );
 
@@ -101,8 +101,8 @@ const makeClosableHeader = (closeModal: () => void) => {
  * Creates a CloseButton component that is connected to the provided closeModal trigger
  */
 const makeCloseButton =
-  (closeModal: () => void): React.FC<Omit<ButtonPropsWithAriaLabel, 'aria-label'>> =>
+  (closeModal: () => void): React.FC<Omit<ButtonProps, 'aria-label'>> =>
   props =>
-    <CloseButton {...props} aria-label={t('Close Modal')} onClick={closeModal} />;
+    <CloseButton {...props} onClick={closeModal} />;
 
 export {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter};

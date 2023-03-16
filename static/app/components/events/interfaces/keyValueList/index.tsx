@@ -1,7 +1,8 @@
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import sortBy from 'lodash/sortBy';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
@@ -10,15 +11,15 @@ import {Value, ValueProps} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   data?: KeyValueListData;
-  isSorted?: boolean;
   longKeys?: boolean;
   onClick?: () => void;
+  shouldSort?: boolean;
 }
 
 function KeyValueList({
   data,
   isContextData = false,
-  isSorted = true,
+  shouldSort = true,
   raw = false,
   longKeys = false,
   onClick,
@@ -28,22 +29,26 @@ function KeyValueList({
     return null;
   }
 
-  const keyValueData = isSorted ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
 
   return (
     <Table className="table key-value" onClick={onClick} {...props}>
       <tbody>
         {keyValueData.map(
-          ({
-            key,
-            subject,
-            value = null,
-            meta,
-            subjectIcon,
-            subjectDataTestId,
-            actionButton,
-            isContextData: valueIsContextData,
-          }) => {
+          (
+            {
+              key,
+              subject,
+              value = null,
+              meta,
+              subjectIcon,
+              subjectDataTestId,
+              actionButton,
+              isContextData: valueIsContextData,
+              isMultiValue,
+            },
+            idx
+          ) => {
             const valueProps = {
               isContextData: valueIsContextData || isContextData,
               meta,
@@ -52,8 +57,15 @@ function KeyValueList({
               raw,
             };
 
+            const valueContainer =
+              isMultiValue && Array.isArray(value) ? (
+                <MultiValueContainer values={value} />
+              ) : (
+                <Value {...valueProps} />
+              );
+
             return (
-              <tr key={`${key}.${value}`}>
+              <tr key={`${key}-${idx}`}>
                 <TableSubject className="key" wide={longKeys}>
                   {subject}
                 </TableSubject>
@@ -61,11 +73,11 @@ function KeyValueList({
                   <Tablevalue>
                     {actionButton ? (
                       <ValueWithButtonContainer>
-                        <Value {...valueProps} />
+                        {valueContainer}
                         <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>
                       </ValueWithButtonContainer>
                     ) : (
-                      <Value {...valueProps} />
+                      valueContainer
                     )}
                   </Tablevalue>
                 </td>
@@ -77,6 +89,16 @@ function KeyValueList({
     </Table>
   );
 }
+
+const MultiValueContainer = ({values}: {values: string[]}): JSX.Element => {
+  return (
+    <Fragment>
+      {values.map((val, idx) => (
+        <Value key={`${val}-${idx}`} value={val} />
+      ))}
+    </Fragment>
+  );
+};
 
 export default KeyValueList;
 

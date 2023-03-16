@@ -2,7 +2,8 @@ import copy
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
-from sentry.models import Activity, ExternalIssue, GroupLink, Integration
+from sentry.models import Activity, ExternalIssue, GroupLink
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -12,7 +13,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupIntegrationDetailsTest(APITestCase):
     def setUp(self):
         super().setUp()
@@ -31,8 +32,9 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_simple_get_link(self):
         self.login_as(user=self.user)
         org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=link"
 
@@ -71,8 +73,9 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_simple_get_create(self):
         self.login_as(user=self.user)
         org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
         group = self.group
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
@@ -137,8 +140,9 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_get_create_with_error(self):
         self.login_as(user=self.user)
         org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
@@ -154,8 +158,9 @@ class GroupIntegrationDetailsTest(APITestCase):
     def test_get_feature_disabled(self):
         self.login_as(user=self.user)
         org = self.organization
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{self.group.id}/integrations/{integration.id}/?action=create"
 
@@ -173,8 +178,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
         with self.feature("organizations:integrations-issue-basic"):
@@ -208,8 +214,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
@@ -227,8 +234,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
@@ -239,6 +247,13 @@ class GroupIntegrationDetailsTest(APITestCase):
 
             response = self.client.post(path, data={"assignee": "foo@sentry.io"})
             assert response.status_code == 201
+
+            assert get_option_from_list(
+                user_option_service.get_many(
+                    filter={"user_ids": [self.user.id], "project_id": group.project_id}
+                ),
+                key="issue:defaults",
+            ) == {"example": {}}
 
             external_issue = ExternalIssue.objects.get(
                 key="APP-123", integration_id=integration.id, organization_id=org.id
@@ -268,8 +283,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         path = f"/api/0/issues/{group.id}/integrations/{integration.id}/"
 
@@ -287,8 +303,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-123"
@@ -315,8 +332,9 @@ class GroupIntegrationDetailsTest(APITestCase):
         self.login_as(user=self.user)
         org = self.organization
         group = self.create_group()
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
+        integration = self.create_integration(
+            organization=org, provider="example", name="Example", external_id="example:1"
+        )
 
         external_issue = ExternalIssue.objects.get_or_create(
             organization_id=org.id, integration_id=integration.id, key="APP-123"
@@ -364,10 +382,14 @@ class GroupIntegrationDetailsTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        integration = Integration.objects.create(provider="example", name="Example")
-        org_integration = integration.add_organization(org, self.user)
-        org_integration.config = {"project_issue_defaults": {group.project_id: {"project": "2"}}}
-        org_integration.save()
+
+        integration = self.create_integration(
+            organization=org,
+            provider="example",
+            name="Example",
+            external_id="example:1",
+            oi_params={"config": {"project_issue_defaults": {group.project_id: {"project": "2"}}}},
+        )
         create_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=create"
         link_path = f"/api/0/issues/{group.id}/integrations/{integration.id}/?action=link"
         project_field = {

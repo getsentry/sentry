@@ -3,13 +3,14 @@ import signal
 
 from django.conf import settings
 
-from sentry.utils import metrics
 from sentry.utils.batching_kafka_consumer import BatchingKafkaConsumer
 
 logger = logging.getLogger(__name__)
 
 
 def create_batching_kafka_consumer(topic_names, worker, **options):
+    from sentry.utils import metrics
+
     # In some cases we want to override the configuration stored in settings from the command line
     force_topic = options.pop("force_topic", None)
     force_cluster = options.pop("force_cluster", None)
@@ -43,10 +44,14 @@ def create_batching_kafka_consumer(topic_names, worker, **options):
         **options,
     )
 
+    return consumer
+
+
+def run_processor_with_signals(processor):
     def handler(signum, frame):
-        consumer.signal_shutdown()
+        processor.signal_shutdown()
 
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
-    return consumer
+    processor.run()

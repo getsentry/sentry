@@ -12,9 +12,8 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
-from sentry.replays.lib.consumer import LogExceptionStep
 from sentry.replays.usecases.ingest import (
     RecordingMessage,
     RecordingSegmentChunkMessage,
@@ -30,7 +29,12 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class MessageContext:
     message: Dict[str, Any]
-    transaction: Transaction
+    transaction: Span
+
+    # The message attribute can cause large log messages to be emitted which can pin the CPU
+    # to 100.
+    def __repr__(self) -> str:
+        return f"MessageContext(message_dict=..., transaction={repr(self.transaction)})"
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -44,21 +48,21 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
-        return LogExceptionStep(
-            message="Invalid recording specified.",
-            logger=logger,
-            next_step=TransformStep(
-                function=move_chunks_to_cache_or_skip,
-                next_step=FilterStep(
-                    function=is_capstone_message,
-                    next_step=RunTaskInThreads(
-                        processing_function=move_replay_to_permanent_storage,
-                        concurrency=16,
-                        max_pending_futures=32,
-                        next_step=CommitOffsets(commit),
-                    ),
-                ),
-            ),
+        step = RunTaskInThreads(
+            processing_function=move_replay_to_permanent_storage,
+            concurrency=4,
+            max_pending_futures=16,
+            next_step=CommitOffsets(commit),
+        )
+
+        step2: FilterStep[MessageContext] = FilterStep(
+            function=is_capstone_message,
+            next_step=step,
+        )
+
+        return TransformStep(
+            function=move_chunks_to_cache_or_skip,
+            next_step=step2,
         )
 
 

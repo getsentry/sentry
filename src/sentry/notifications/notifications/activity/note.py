@@ -20,7 +20,10 @@ class NoteActivityNotification(GroupActivityNotification):
 
     @property
     def title(self) -> str:
-        author = self.activity.user.get_display_name()
+        if self.user:
+            author = self.user.get_display_name()
+        else:
+            author = "Unknown"
         return f"New comment by {author}"
 
     def get_notification_title(

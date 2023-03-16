@@ -10,7 +10,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api import ApiClient, client
-from sentry.api.base import Endpoint, pending_silo_endpoint
+from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
@@ -21,20 +21,14 @@ from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
-from sentry.models import (
-    Group,
-    Identity,
-    IdentityProvider,
-    InviteStatus,
-    NotificationSetting,
-    OrganizationMember,
-)
+from sentry.models import Group, InviteStatus, NotificationSetting, OrganizationMember
 from sentry.models.activity import ActivityIntegration
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
-from sentry.utils.http import absolute_uri
 from sentry.web.decorators import transaction_start
 
 from ..utils import logger
@@ -75,11 +69,11 @@ RESOLVE_SELECTOR = {
 
 def update_group(
     group: Group,
-    identity: Identity,
+    user: RpcUser,
     data: Mapping[str, str],
     request: Request,
 ) -> Response:
-    if not group.organization.has_access(identity.user):
+    if not group.organization.has_access(user):
         raise ApiClient.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
@@ -90,7 +84,7 @@ def update_group(
         projects=[group.project],
         organization_id=group.organization.id,
         search_fn=None,
-        user=identity.user,
+        user=user,
         data=data,
     )
 
@@ -101,7 +95,7 @@ def get_group(slack_request: SlackActionRequest) -> Group | None:
     try:
         return Group.objects.select_related("project__organization").get(
             id=group_id,
-            project__organization__organizationintegration__integration=slack_request.integration,
+            project__organization__organizationintegration__integration_id=slack_request.integration.id,
         )
     except Group.DoesNotExist:
         logger.info(
@@ -124,7 +118,7 @@ def _is_message(data: Mapping[str, Any]) -> bool:
     return is_message
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class SlackActionEndpoint(Endpoint):  # type: ignore
     authentication_classes = ()
     permission_classes = ()
@@ -136,7 +130,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         self,
         slack_request: SlackActionRequest,
         group: Group,
-        identity: Identity,
+        user: RpcUser,
         error: ApiClient.ApiError,
         action_type: str,
     ) -> Response:
@@ -157,7 +151,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
                     slack_request.channel_id,
                     slack_request.response_url,
                 ),
-                user_email=identity.user,
+                user_email=user.email,
                 org_name=group.organization.name,
             )
         else:
@@ -185,7 +179,7 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond_ephemeral(text)
 
     def on_assign(
-        self, request: Request, identity: Identity, group: Group, action: MessageAction
+        self, request: Request, user: RpcUser, group: Group, action: MessageAction
     ) -> None:
         if not (action.selected_options and len(action.selected_options)):
             # Short-circuit if action is invalid
@@ -196,19 +190,19 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         update_group(
             group,
-            identity,
+            user,
             {
                 "assignedTo": assignee,
                 "integration": ActivityIntegration.SLACK.value,
             },
             request,
         )
-        analytics.record("integrations.slack.assign", actor_id=identity.user_id)
+        analytics.record("integrations.slack.assign", actor_id=user.id)
 
     def on_status(
         self,
         request: Request,
-        identity: Identity,
+        user: RpcUser,
         group: Group,
         action: MessageAction,
     ) -> None:
@@ -225,13 +219,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         elif resolve_type == "inCurrentRelease":
             status.update({"statusDetails": {"inRelease": "latest"}})
 
-        update_group(group, identity, status, request)
+        update_group(group, user, status, request)
 
         analytics.record(
             "integrations.slack.status",
             status=status["status"],
             resolve_type=resolve_type,
-            actor_id=identity.user_id,
+            actor_id=user.id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
@@ -293,13 +287,11 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         if not group:
             return self.respond(status=403)
 
+        identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
-        try:
-            identity = slack_request.get_identity()
-        except IdentityProvider.DoesNotExist:
-            return self.respond(status=403)
+        identity_user = slack_request.get_identity_user()
 
-        if not identity:
+        if not identity or not identity_user:
             associate_url = build_linking_url(
                 integration=slack_request.integration,
                 slack_id=slack_request.user_id,
@@ -321,9 +313,9 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
             )
 
             try:
-                self.on_status(request, identity, group, action)
+                self.on_status(request, identity_user, group, action)
             except client.ApiError as error:
-                return self.api_error(slack_request, group, identity, error, "status_dialog")
+                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
 
             attachment = SlackIssuesMessageBuilder(
                 group, identity=identity, actions=[action], tags=original_tags_from_request
@@ -353,14 +345,14 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         for action in action_list:
             try:
                 if action.name == "status":
-                    self.on_status(request, identity, group, action)
+                    self.on_status(request, identity_user, group, action)
                 elif action.name == "assign":
-                    self.on_assign(request, identity, group, action)
+                    self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
-                return self.api_error(slack_request, group, identity, error, action.name)
+                return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
                 return self.validation_error(slack_request, group, error, action.name)
 
@@ -378,12 +370,15 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self.respond(body)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
-        organizations = slack_request.integration.organizations.all()
-        analytics.record(
-            "integrations.slack.chart_unfurl_action",
-            organization_id=organizations[0].id,
-            action=action,
+        organization_integrations = integration_service.get_organization_integrations(
+            integration_id=slack_request.integration.id, limit=1
         )
+        if len(organization_integrations) > 0:
+            analytics.record(
+                "integrations.slack.chart_unfurl_action",
+                organization_id=organization_integrations[0].id,
+                action=action,
+            )
         payload = {"delete_original": "true"}
         try:
             requests_.post(slack_request.response_url, json=payload)
@@ -431,26 +426,20 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         return self._handle_group_actions(slack_request, request, action_list)
 
     def handle_enable_notifications(self, slack_request: SlackActionRequest) -> Response:
-        try:
-            identity = slack_request.get_identity()
-        except IdentityProvider.DoesNotExist:
-            identity = None
-        if not identity:
+        identity_user = slack_request.get_identity_user()
+
+        if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
         NotificationSetting.objects.enable_settings_for_user(
-            recipient=identity.user, provider=ExternalProviders.SLACK
+            recipient=identity_user, provider=ExternalProviders.SLACK
         )
         return self.respond_with_text(ENABLE_SLACK_SUCCESS_MESSAGE)
 
     def handle_member_approval(self, slack_request: SlackActionRequest, action: str) -> Response:
-        try:
-            # get_identity can return nobody
-            identity = slack_request.get_identity()
-        except IdentityProvider.DoesNotExist:
-            identity = None
+        identity_user = slack_request.get_identity_user()
 
-        if not identity:
+        if not identity_user:
             return self.respond_with_text(NO_IDENTITY_MESSAGE)
 
         member_id = slack_request.callback_data["member_id"]
@@ -464,12 +453,12 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         organization = member.organization
 
-        if not organization.has_access(identity.user):
+        if not organization.has_access(identity_user):
             return self.respond_with_text(NO_ACCESS_MESSAGE)
 
         # row should exist because we have access
         member_of_approver = OrganizationMember.objects.get(
-            user=identity.user, organization=organization
+            user_id=identity_user.id, organization=organization
         )
         access = from_member(member_of_approver)
         if not access.has_scope("member:admin"):
@@ -478,16 +467,16 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
         # validate the org options and check against allowed_roles
         allowed_roles = member_of_approver.get_allowed_org_roles_to_invite()
         try:
-            member.validate_invitation(identity.user, allowed_roles)
+            member.validate_invitation(identity_user, allowed_roles)
         except UnableToAcceptMemberInvitationException as err:
             return self.respond_with_text(str(err))
 
         original_status = InviteStatus(member.invite_status)
         try:
             if action == "approve_member":
-                member.approve_member_invitation(identity.user, referrer="slack")
+                member.approve_member_invitation(identity_user, referrer="slack")
             else:
-                member.reject_member_invitation(identity.user)
+                member.reject_member_invitation(identity_user)
         except Exception as err:
             # shouldn't error but if it does, respond to the user
             logger.error(
@@ -513,13 +502,13 @@ class SlackActionEndpoint(Endpoint):  # type: ignore
 
         analytics.record(
             event_name,
-            actor_id=identity.user_id,
+            actor_id=identity_user.id,
             organization_id=member.organization_id,
             invitation_type=invite_type.lower(),
             invited_member_id=member_id,
         )
 
-        manage_url = absolute_uri(
+        manage_url = member.organization.absolute_url(
             reverse("sentry-organization-members", args=[member.organization.slug])
         )
 

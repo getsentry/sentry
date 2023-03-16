@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import Panel from './panel';
 
@@ -13,20 +13,16 @@ export type PanelTableProps = {
    * Headers of the table.
    */
   headers: React.ReactNode[];
-
   /**
    * The body of the table. Make sure the number of children elements are
    * multiples of the length of headers.
    */
   children?: React.ReactNode | (() => React.ReactNode);
-
   className?: string;
-
   /**
    * Renders without predefined padding on the header and body cells
    */
   disablePadding?: boolean;
-
   /**
    * Action to display when isEmpty is true
    */
@@ -35,22 +31,18 @@ export type PanelTableProps = {
    * Message to use for `<EmptyStateWarning>`
    */
   emptyMessage?: React.ReactNode;
-
   /**
    * Displays an `<EmptyStateWarning>` if true
    */
   isEmpty?: boolean;
-
   /**
    * If this is true, then display a loading indicator
    */
   isLoading?: boolean;
-
   /**
    * A custom loading indicator.
    */
   loader?: React.ReactNode;
-
   /**
    * If true, scrolling headers out of view will pin to the top of container.
    */

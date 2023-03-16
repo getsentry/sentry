@@ -1,11 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -24,11 +23,11 @@ function FlamegraphThreadSelector({
   profileGroup,
 }: FlamegraphThreadSelectorProps) {
   const [profileOptions, emptyProfileOptions]: [
-    SelectValue<number>[],
-    SelectValue<number>[]
+    SelectOption<number>[],
+    SelectOption<number>[]
   ] = useMemo(() => {
-    const profiles: SelectValue<number>[] = [];
-    const emptyProfiles: SelectValue<number>[] = [];
+    const profiles: SelectOption<number>[] = [];
+    const emptyProfiles: SelectOption<number>[] = [];
     const activeThreadId =
       typeof profileGroup.activeProfileIndex === 'number'
         ? profileGroup.profiles[profileGroup.activeProfileIndex]?.threadId
@@ -58,10 +57,11 @@ function FlamegraphThreadSelector({
       emptyProfiles.push(option);
       return;
     });
+
     return [profiles, emptyProfiles];
   }, [profileGroup]);
 
-  const handleChange: (opt: SelectValue<number>) => void = useCallback(
+  const handleChange: (opt: SelectOption<number>) => void = useCallback(
     opt => {
       if (defined(opt)) {
         onThreadIdChange(opt.value);
@@ -77,23 +77,12 @@ function FlamegraphThreadSelector({
         size: 'xs',
       }}
       options={[
-        {
-          // TODO: fix CompactSelect types to better represent usage.
-          // this value has no effect on the selection, it's simply to satisfy the types..
-          // tried modifying the types but it creates a lot of errors
-          value: threadId || 0,
-          label: t('Profiles'),
-          options: profileOptions,
-        },
-        {
-          value: threadId || 0,
-          label: t('Empty Profiles'),
-          options: emptyProfileOptions,
-        },
+        {key: 'profiles', label: t('Profiles'), options: profileOptions},
+        {key: 'empty-profiles', label: t('Empty Profiles'), options: emptyProfileOptions},
       ]}
-      value={threadId}
+      value={threadId ?? 0}
       onChange={handleChange}
-      isSearchable
+      searchable
     />
   );
 }

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import CollapsePanel, {COLLAPSE_COUNT} from 'sentry/components/collapsePanel';
 import Link from 'sentry/components/links/link';
@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconStar} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, SavedQueryVersions} from 'sentry/types';
 import DiscoverQuery, {
   TableData,

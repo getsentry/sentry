@@ -3,15 +3,18 @@ from unittest import mock
 from sentry.eventstore.base import Filter
 from sentry.eventstore.models import Event
 from sentry.eventstore.snuba.backend import SnubaEventStorage
+from sentry.issues.grouptype import (
+    PerformanceRenderBlockingAssetSpanGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.issues.query import apply_performance_conditions
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SnubaEventStorageTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -63,7 +66,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
 
         event_data_2 = load_data(
             platform="transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"],
+            fingerprint=[f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group3"],
         )
         event_data_2["timestamp"] = iso_format(before_now(seconds=30))
         event_data_2["start_timestamp"] = iso_format(before_now(seconds=31))
@@ -72,7 +75,7 @@ class SnubaEventStorageTest(TestCase, SnubaTestCase):
         self.transaction_event_2 = self.store_event(data=event_data_2, project_id=self.project2.id)
 
         event_data_3 = load_data(
-            "transaction", fingerprint=[f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group3"]
+            "transaction", fingerprint=[f"{PerformanceSlowDBQueryGroupType.type_id}-group3"]
         )
         event_data_3["timestamp"] = iso_format(before_now(seconds=30))
         event_data_3["start_timestamp"] = iso_format(before_now(seconds=31))

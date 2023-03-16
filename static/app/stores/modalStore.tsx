@@ -27,10 +27,6 @@ const storeConfig: ModalStoreDefinition = {
     this.reset();
   },
 
-  get() {
-    return this.state;
-  },
-
   getState() {
     return this.state;
   },

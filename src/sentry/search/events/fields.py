@@ -2050,6 +2050,7 @@ class SnQLFunction(DiscoverFunction):
     def __init__(self, *args, **kwargs) -> None:
         self.snql_aggregate = kwargs.pop("snql_aggregate", None)
         self.snql_column = kwargs.pop("snql_column", None)
+        self.requires_other_aggregates = kwargs.pop("requires_other_aggregates", False)
         super().__init__(*args, **kwargs)
 
     def validate(self) -> None:

@@ -1,9 +1,9 @@
-import Button, {ButtonPropsWithoutAriaLabel} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {Organization, SandboxData} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useOrganization from 'sentry/utils/useOrganization';
 
-interface DemoSandboxButtonProps extends ButtonPropsWithoutAriaLabel {
+type DemoSandboxButtonProps = ButtonProps & {
   /**
    * The deep link scenario
    */
@@ -37,7 +37,7 @@ interface DemoSandboxButtonProps extends ButtonPropsWithoutAriaLabel {
    * Where is the component being used
    */
   source?: string;
-}
+};
 
 /**
  * Renders a button that will kick off the sandbox around children

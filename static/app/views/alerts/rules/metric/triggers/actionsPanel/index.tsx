@@ -4,15 +4,15 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import ListItem from 'sentry/components/list/listItem';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, SelectValue} from 'sentry/types';
 import {uniqueId} from 'sentry/utils/guid';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
@@ -366,7 +366,6 @@ class ActionsPanel extends PureComponent<Props> {
                       availableAction.settings ? (
                       <Button
                         icon={<IconSettings />}
-                        type="button"
                         disabled={actionDisabled}
                         onClick={() => {
                           openModal(
@@ -389,7 +388,7 @@ class ActionsPanel extends PureComponent<Props> {
                                 }
                               />
                             ),
-                            {allowClickClose: false}
+                            {closeEvents: 'escape-key'}
                           );
                         }}
                       >
@@ -435,7 +434,6 @@ class ActionsPanel extends PureComponent<Props> {
         })}
         <ActionSection>
           <Button
-            type="button"
             disabled={disabled || loading}
             icon={<IconAdd isCircled color="gray300" />}
             onClick={this.handleAddAction}

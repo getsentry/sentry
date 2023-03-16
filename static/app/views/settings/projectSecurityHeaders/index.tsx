@@ -1,27 +1,33 @@
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import {ProjectKey} from 'sentry/types';
+import {Organization, ProjectKey} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import ReportUri from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+type Props = {
+  organization: Organization;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   keyList: null | ProjectKey[];
 } & AsyncView['state'];
 
-export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
+class ProjectSecurityHeaders extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+
+    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
   }
 
   getTitle() {
@@ -47,7 +53,7 @@ export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {params} = this.props;
+    const {organization, params} = this.props;
     const {keyList} = this.state;
     if (keyList === null) {
       return null;
@@ -57,7 +63,11 @@ export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
       <div>
         <SettingsPageHeader title={t('Security Header Reports')} />
 
-        <ReportUri keyList={keyList} projectId={params.projectId} orgId={params.orgId} />
+        <ReportUri
+          keyList={keyList}
+          projectId={params.projectId}
+          orgId={organization.slug}
+        />
 
         <Panel>
           <PanelHeader>{t('Additional Configuration')}</PanelHeader>
@@ -70,22 +80,16 @@ export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
                 }
               )}
             </TextBlock>
-            <table className="table" style={{marginBottom: 0}}>
-              <tbody>
-                <tr>
-                  <th style={{padding: '8px 5px'}}>sentry_environment</th>
-                  <td style={{padding: '8px 5px'}}>
-                    {t('The environment name (e.g. production)')}.
-                  </td>
-                </tr>
-                <tr>
-                  <th style={{padding: '8px 5px'}}>sentry_release</th>
-                  <td style={{padding: '8px 5px'}}>
-                    {t('The version of the application.')}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+            <KeyValueTable>
+              <KeyValueTableRow
+                keyName="sentry_environment"
+                value={t('The environment name (e.g. production).')}
+              />
+              <KeyValueTableRow
+                keyName="sentry_release"
+                value={t('The version of the application.')}
+              />
+            </KeyValueTable>
           </PanelBody>
         </Panel>
 
@@ -106,6 +110,8 @@ export default class ProjectSecurityHeaders extends AsyncView<Props, State> {
     );
   }
 }
+
+export default withOrganization(ProjectSecurityHeaders);
 
 const ReportItem = styled(PanelItem)`
   align-items: center;

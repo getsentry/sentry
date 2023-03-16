@@ -92,10 +92,12 @@ def get_users_for_authors(organization_id, authors, user=None) -> Mapping[str, U
     if missed:
         # Filter users based on the emails provided in the commits
         # and that belong to the organization associated with the release
-        users: Sequence[UserSerializerResponse] = user_service.serialize_users(
-            emails=[a.email for a in missed],
-            organization_id=organization_id,
-            is_active=True,
+        users: Sequence[UserSerializerResponse] = user_service.serialize_many(
+            filter={
+                "emails": [a.email for a in missed],
+                "organization_id": organization_id,
+                "is_active": True,
+            },
             as_user=user,
         )
         # Figure out which email address matches to a user
@@ -358,7 +360,12 @@ class ReleaseSerializer(Serializer):
                 issue_counts_by_release,
             ) = self.__get_release_data_with_environments(release_project_envs)
 
-        owners = {d["id"]: d for d in serialize({i.owner for i in item_list if i.owner_id}, user)}
+        owners = {
+            d["id"]: d
+            for d in user_service.serialize_many(
+                filter={"user_ids": [i.owner_id for i in item_list if i.owner_id]}, as_user=user
+            )
+        }
 
         release_metadata_attrs = self._get_commit_metadata(item_list, user)
         deploy_metadata_attrs = self._get_deploy_metadata(item_list, user)

@@ -2,11 +2,11 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import ButtonBar from 'sentry/components/buttonBar';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import TeamFilter from './list/rules/teamFilter';
 import {getQueryStatus, getTeamParams} from './utils';

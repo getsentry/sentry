@@ -62,7 +62,16 @@ def cluster_projects(projects: Sequence[Project]) -> None:
         if features.has("organizations:transaction-name-clusterer", project.organization):
             with sentry_sdk.start_span(op="txcluster_project") as span:
                 span.set_data("project_id", project.id)
-                clusterer = TreeClusterer(merge_threshold=MERGE_THRESHOLD)
+                merge_threshold = MERGE_THRESHOLD
+                if features.has(
+                    "organizations:transaction-name-clusterer-2x", project.organization
+                ):
+                    merge_threshold = 2 * MERGE_THRESHOLD
+                clusterer = TreeClusterer(merge_threshold=merge_threshold)
                 clusterer.add_input(redis.get_transaction_names(project))
                 new_rules = clusterer.get_rules()
                 rules.update_rules(project, new_rules)
+
+                # Clear transaction names to prevent the set from picking up
+                # noise over a long time range.
+                redis.clear_transaction_names(project)

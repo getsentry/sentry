@@ -1,6 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import RangeField from 'sentry/components/forms/fields/rangeField';
 import Form from 'sentry/components/forms/form';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -83,7 +83,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
                 }
               />
             ) : (
-              <Field
+              <FieldGroup
                 label={t('Account Limit')}
                 help={t(
                   'The maximum number of events to accept across this entire organization.'
@@ -98,7 +98,7 @@ const OrganizationRateLimit = ({organization}: Props) => {
                     }
                   )}
                 </TextBlock>
-              </Field>
+              </FieldGroup>
             )}
             <RangeField
               name="projectRateLimit"

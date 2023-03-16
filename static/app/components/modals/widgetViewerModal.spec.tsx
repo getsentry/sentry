@@ -7,7 +7,7 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import WidgetViewerModal from 'sentry/components/modals/widgetViewerModal';
 import MemberListStore from 'sentry/stores/memberListStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Series} from 'sentry/types/echarts';
 import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
@@ -16,17 +16,11 @@ import {
   Widget,
   WidgetQuery,
   WidgetType,
-} from 'sentry/views/dashboardsV2/types';
+} from 'sentry/views/dashboards/types';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
     return <div style={{...style, background: 'green'}}>echarts mock</div>;
-  });
-});
-
-jest.mock('sentry/components/tooltip', () => {
-  return jest.fn(props => {
-    return <div>{props.children}</div>;
   });
 });
 

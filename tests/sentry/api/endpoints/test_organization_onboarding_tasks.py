@@ -5,7 +5,7 @@ from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationOnboardingTaskEndpointTest(APITestCase):
     def setUp(self):
         self.user = self.create_user()

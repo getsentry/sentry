@@ -1,9 +1,8 @@
 import {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
-import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
@@ -12,23 +11,23 @@ type Props = RouteComponentProps<{}, {}> & {
   organization: Organization;
 };
 
-function ReplaysContainer({organization, children}: Props) {
-  function renderNoAccess() {
-    return (
-      <PageContent>
-        <Alert type="warning">{t("You don't have access to this feature")}</Alert>
-      </PageContent>
-    );
-  }
+const BetaGracePeriodAlertHook = HookOrDefault({
+  hookName: 'component:replay-beta-grace-period-alert',
+});
 
+function ReplaysContainer({organization, children}: Props) {
   return (
-    <Feature
-      features={['session-replay-ui']}
-      organization={organization}
-      renderDisabled={renderNoAccess}
-    >
+    <NoProjectMessage organization={organization}>
+      <Feature
+        features={['session-replay-beta-grace']}
+        organization={organization}
+        renderDisabled={false}
+      >
+        <BetaGracePeriodAlertHook organization={organization} />
+      </Feature>
+
       {children}
-    </Feature>
+    </NoProjectMessage>
   );
 }
 

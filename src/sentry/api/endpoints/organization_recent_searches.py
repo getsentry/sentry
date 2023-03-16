@@ -45,7 +45,11 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
         except ValueError as e:
             return Response({"detail": "Invalid input for `limit`. Error: %s" % str(e)}, status=400)
 
-        query_kwargs = {"organization": organization, "user": request.user, "type": search_type}
+        query_kwargs = {
+            "organization": organization,
+            "user_id": request.user.id,
+            "type": search_type,
+        }
 
         if "query" in request.GET:
             query_kwargs["query__icontains"] = request.GET["query"]
@@ -63,8 +67,8 @@ class OrganizationRecentSearchesEndpoint(OrganizationEndpoint):
             result = serializer.validated_data
 
             created = RecentSearch.objects.create_or_update(
-                organization=organization,
-                user=request.user,
+                organization_id=organization.id,
+                user_id=request.user.id,
                 type=result["type"],
                 query=result["query"],
                 values={"last_seen": timezone.now()},

@@ -1,4 +1,4 @@
-import React, {Component, useLayoutEffect, useRef} from 'react';
+import {Component, createRef, useEffect, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -20,6 +20,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
@@ -38,13 +39,7 @@ import {
   SpanTreeNodeType,
   SpanType,
 } from './types';
-import {
-  getSpanID,
-  getSpanOperation,
-  isGapSpan,
-  setSpansOnTransaction,
-  spanTargetHash,
-} from './utils';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -65,7 +60,7 @@ type StateType = {
   spanRows: Record<string, {spanRow: React.RefObject<HTMLDivElement>; treeDepth: number}>;
 };
 
-const listRef = React.createRef<ReactVirtualizedList>();
+const listRef = createRef<ReactVirtualizedList>();
 
 class SpanTree extends Component<PropType> {
   state: StateType = {
@@ -76,7 +71,7 @@ class SpanTree extends Component<PropType> {
   };
 
   componentDidMount() {
-    setSpansOnTransaction(this.props.spans.length);
+    setGroupedEntityTag('spans.total', 1000, this.props.spans.length);
 
     if (location.hash) {
       const {spans} = this.props;
@@ -438,7 +433,7 @@ class SpanTree extends Component<PropType> {
     const isEmbeddedSpanTree = waterfallModel.isEmbeddedSpanTree;
 
     const {spanTree, outOfViewSpansAbove, filteredSpansAbove} = spans.reduce(
-      (acc: AccType, payload: EnhancedProcessedSpanType) => {
+      (acc: AccType, payload: EnhancedProcessedSpanType, index: number) => {
         const {type} = payload;
 
         switch (payload.type) {
@@ -474,11 +469,21 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanNestedGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.DESCENDANT_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -500,11 +505,21 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanSiblingGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.SIBLING_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -603,6 +618,7 @@ class SpanTree extends Component<PropType> {
             removeContentSpanBarRef,
             storeSpanBar,
             getCurrentLeftPos: this.props.getCurrentLeftPos,
+            resetCellMeasureCache: () => this.cache.clear(index, 0),
           },
         });
 
@@ -630,46 +646,6 @@ class SpanTree extends Component<PropType> {
 
     return spanTree;
   };
-
-  renderSpanNode(
-    node: SpanTreeNode,
-    extraProps: {
-      cellMeasurerCache: CellMeasurerCache;
-      listRef: React.RefObject<ReactVirtualizedList>;
-      measure: () => void;
-    } & SpanContext.SpanContextProps
-  ) {
-    switch (node.type) {
-      case SpanTreeNodeType.SPAN:
-        return (
-          <ProfiledSpanBar
-            key={getSpanID(node.props.span, `span-${node.props.spanNumber}`)}
-            {...node.props}
-            {...extraProps}
-          />
-        );
-      case SpanTreeNodeType.DESCENDANT_GROUP:
-        return (
-          <SpanDescendantGroupBar
-            key={`${node.props.spanNumber}-span-group`}
-            {...node.props}
-            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
-          />
-        );
-      case SpanTreeNodeType.SIBLING_GROUP:
-        return (
-          <SpanSiblingGroupBar
-            key={`${node.props.spanNumber}-span-sibling`}
-            {...node.props}
-            didAnchoredSpanMount={extraProps.didAnchoredSpanMount}
-          />
-        );
-      case SpanTreeNodeType.MESSAGE:
-        return node.element;
-      default:
-        return null;
-    }
-  }
 
   renderRow(props: ListRowProps, spanTree: SpanTreeNode[]) {
     return (
@@ -712,7 +688,6 @@ class SpanTree extends Component<PropType> {
     this.setState((prevState: StateType) => {
       const newSpanRows = {...prevState.spanRows};
       delete newSpanRows[spanId];
-
       return {spanRows: newSpanRows};
     });
   };
@@ -836,16 +811,7 @@ function SpanRow(props: SpanRowProps) {
   const rowRef = useRef<HTMLDivElement>(null);
   const spanNode = spanTree[index];
 
-  // Lifecycle management for row refs, we need to separately do this in useLayoutEffect since
-  // we won't have access to the refs in useEffect.
-  // From React's useLayoutEffect docs:
-
-  // "Updates scheduled inside useLayoutEffect will be flushed synchronously, before the browser has a chance to paint."
-
-  // In `useEffect`, the return function for cleanup isn't able to remove the ref from the map since the component no longer has access
-  // to it, since the return function is executed after the browser paints and so the DOM node is removed.
-
-  useLayoutEffect(() => {
+  useEffect(() => {
     // Gap spans do not have IDs, so we can't really store them. This should not be a big deal, since
     // we only need to keep track of spans to calculate an average depth, a few missing spans will not
     // throw off the calculation too hard

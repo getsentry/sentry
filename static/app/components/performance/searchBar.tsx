@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -12,6 +12,8 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useApi from 'sentry/utils/useApi';
+import useOnClickOutside from 'sentry/utils/useOnClickOutside';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import SearchDropdown from '../smartSearchBar/searchDropdown';
@@ -35,6 +37,8 @@ function SearchBar(props: SearchBarProps) {
   const closeDropdown = () => setIsDropdownOpen(false);
   const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
+  const containerRef = useRef<HTMLDivElement>(null);
+  useOnClickOutside(containerRef, useCallback(closeDropdown, []));
 
   const api = useApi();
   const eventView = _eventView.clone();
@@ -112,7 +116,7 @@ function SearchBar(props: SearchBarProps) {
       if (currentItem?.value) {
         handleChooseItem(currentItem.value);
       } else {
-        handleSearch(searchString);
+        handleSearch(searchString, true);
       }
     }
   };
@@ -178,7 +182,7 @@ function SearchBar(props: SearchBarProps) {
 
   const handleChooseItem = (value: string) => {
     const item = decodeValueToItem(value);
-    handleSearch(item.transaction);
+    handleSearch(item.transaction, false);
   };
 
   const handleClickItemIcon = (value: string) => {
@@ -186,10 +190,13 @@ function SearchBar(props: SearchBarProps) {
     navigateToItemTransactionSummary(item);
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, asRawText: boolean) => {
     setSearchResults([]);
     setSearchString(query);
-    onSearch(query ? `transaction:${query}` : '');
+    query = new MutableSearch(query).formatString();
+
+    const fullQuery = asRawText ? query : `transaction:"${query}"`;
+    onSearch(query ? fullQuery : '');
     closeDropdown();
   };
 
@@ -206,11 +213,11 @@ function SearchBar(props: SearchBarProps) {
       query,
     });
 
-    browserHistory.push(next);
+    browserHistory.push(normalizeUrl(next));
   };
 
   return (
-    <Container data-test-id="transaction-search-bar">
+    <Container data-test-id="transaction-search-bar" ref={containerRef}>
       <BaseSearchBar
         placeholder={t('Search Transactions')}
         onChange={handleSearchChange}
@@ -250,8 +257,8 @@ interface DataItem {
   'count()'?: number;
 }
 
-const wrapQueryInWildcards = (query: string) => {
-  if (!query.startsWith('* ')) {
+export const wrapQueryInWildcards = (query: string) => {
+  if (!query.startsWith('*')) {
     query = '*' + query;
   }
 

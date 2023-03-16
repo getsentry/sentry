@@ -56,8 +56,8 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             return Response(status=status.HTTP_403_FORBIDDEN)
 
         try:
-            owner = OrganizationMember.objects.filter(
-                user__email__iexact=email, role=roles.get_top_dog().id, user__is_active=True
+            owner = OrganizationMember.objects.get_members_by_email_and_role(
+                email=email, role=roles.get_top_dog().id
             )[0]
         except IndexError:
             return Response(
@@ -65,10 +65,11 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
+        organization = project.organization
         transaction_id = uuid4().hex
         url_data = sign(
             actor_id=request.user.id,
-            from_organization_id=project.organization.id,
+            from_organization_id=organization.id,
             project_id=project.id,
             user_id=owner.user_id,
             transaction_id=transaction_id,
@@ -79,7 +80,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             "from_org": project.organization.name,
             "project_name": project.slug,
             "request_time": timezone.now(),
-            "url": absolute_uri("/accept-transfer/") + "?" + urlencode({"data": url_data}),
+            "url": absolute_uri(f"/accept-transfer/?{urlencode({'data': url_data})}"),
             "requester": request.user,
         }
         MessageBuilder(

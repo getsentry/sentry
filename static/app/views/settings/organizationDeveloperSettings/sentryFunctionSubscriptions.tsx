@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {EVENT_CHOICES} from './constants';
 import SubscriptionBox from './subscriptionBox';
 
-type Resource = typeof EVENT_CHOICES[number];
+type Resource = (typeof EVENT_CHOICES)[number];
 
 type Props = {
   events: string[];

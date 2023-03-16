@@ -15,7 +15,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.notifications import ApiNotificationSetting
+from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
     EXTERNAL_PROVIDERS,
     ExternalProviders,
@@ -26,13 +26,13 @@ from sentry.types.integrations import (
 
 if TYPE_CHECKING:
     from sentry.models import Group, GroupSubscription, Organization, Project, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def _get_notification_setting_default(
     provider: ExternalProviders,
     type: NotificationSettingTypes,
-    recipient: Team | APIUser | None = None,  # not needed right now
+    recipient: Team | RpcUser | None = None,  # not needed right now
 ) -> NotificationSettingOptionValues:
     """
     In order to increase engagement, we automatically opt users into receiving
@@ -49,7 +49,7 @@ def _get_notification_setting_default(
 
 def _get_default_value_by_provider(
     type: NotificationSettingTypes,
-    recipient: Team | APIUser | None = None,
+    recipient: Team | RpcUser | None = None,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     return {
         provider: _get_notification_setting_default(provider, type, recipient)
@@ -59,10 +59,10 @@ def _get_default_value_by_provider(
 
 def _get_setting_mapping_from_mapping(
     notification_settings_by_recipient: Mapping[
-        Team | APIUser,
+        Team | RpcUser,
         Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
     ],
-    recipient: Team | APIUser,
+    recipient: Team | RpcUser,
     type: NotificationSettingTypes,
 ) -> Mapping[ExternalProviders, NotificationSettingOptionValues]:
     """
@@ -121,7 +121,7 @@ def should_be_participating(
 
 
 def where_should_be_participating(
-    recipient: Team | APIUser,
+    recipient: Team | RpcUser,
     subscription: GroupSubscription | None,
     notification_settings_by_recipient: Mapping[
         Team | User,
@@ -180,10 +180,10 @@ def get_values_by_provider_by_type(
 
 
 def transform_to_notification_settings_by_recipient(
-    notification_settings: Iterable[ApiNotificationSetting],
-    recipients: Iterable[Team | APIUser],
+    notification_settings: Iterable[RpcNotificationSetting],
+    recipients: Iterable[Team | RpcUser],
 ) -> Mapping[
-    Team | APIUser,
+    Team | RpcUser,
     Mapping[NotificationScopeType, Mapping[ExternalProviders, NotificationSettingOptionValues]],
 ]:
     """
@@ -192,7 +192,7 @@ def transform_to_notification_settings_by_recipient(
     """
     actor_mapping = {recipient.actor_id: recipient for recipient in recipients}
     notification_settings_by_recipient: MutableMapping[
-        Team | APIUser,
+        Team | RpcUser,
         MutableMapping[
             NotificationScopeType,
             MutableMapping[ExternalProviders, NotificationSettingOptionValues],
@@ -208,7 +208,7 @@ def transform_to_notification_settings_by_recipient(
 
 
 def transform_to_notification_settings_by_scope(
-    notification_settings: Iterable[ApiNotificationSetting],
+    notification_settings: Iterable[RpcNotificationSetting],
 ) -> Mapping[
     NotificationScopeType,
     Mapping[int, Mapping[ExternalProviders, NotificationSettingOptionValues]],
@@ -247,6 +247,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
         NotificationSettingTypes.QUOTA_ERRORS,
         NotificationSettingTypes.QUOTA_TRANSACTIONS,
         NotificationSettingTypes.QUOTA_ATTACHMENTS,
+        NotificationSettingTypes.QUOTA_REPLAYS,
         NotificationSettingTypes.QUOTA_WARNINGS,
         NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS,
     ]:
@@ -255,13 +256,12 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
     if type in [
         NotificationSettingTypes.WORKFLOW,
         NotificationSettingTypes.ISSUE_ALERTS,
-        NotificationSettingTypes.ACTIVE_RELEASE,
         NotificationSettingTypes.SPIKE_PROTECTION,
     ]:
         return NotificationScopeType.PROJECT
 
     raise Exception(
-        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaWarnings, quotaSpendAllocations, spikeProtection"
+        f"type {type}, must be alerts, deploy, workflow, approval, quota, quotaErrors, quotaTransactions, quotaAttachments, quotaReplays, quotaWarnings, quotaSpendAllocations, spikeProtection"
     )
 
 

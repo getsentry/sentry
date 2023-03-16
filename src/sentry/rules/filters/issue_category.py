@@ -4,11 +4,11 @@ from typing import Any, Dict
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group
 from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
 from sentry.types.condition_activity import ConditionActivity
-from sentry.types.issues import GroupCategory
 
 CATEGORY_CHOICES = OrderedDict([(f"{gc.value}", str(gc.name).title()) for gc in GroupCategory])
 

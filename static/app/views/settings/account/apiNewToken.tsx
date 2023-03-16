@@ -9,21 +9,20 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {API_ACCESS_SCOPES, DEFAULT_API_ACCESS_SCOPES} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import {Choices} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 const SORTED_DEFAULT_API_ACCESS_SCOPES = DEFAULT_API_ACCESS_SCOPES.sort();
-const API_CHOICES: Choices = API_ACCESS_SCOPES.map(s => [s, s]);
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 export default class ApiNewToken extends Component {
   onCancel = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   onSubmitSuccess = () => {
-    browserHistory.push(API_INDEX_ROUTE);
+    browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
   render() {
@@ -60,12 +59,14 @@ export default class ApiNewToken extends Component {
             >
               <PanelBody>
                 <FormField name="scopes" label={t('Scopes')} inline={false} required>
-                  {({value, onChange}) => (
-                    <MultipleCheckbox
-                      onChange={onChange}
-                      value={value}
-                      choices={API_CHOICES}
-                    />
+                  {({name, value, onChange}) => (
+                    <MultipleCheckbox onChange={onChange} value={value} name={name}>
+                      {API_ACCESS_SCOPES.map(scope => (
+                        <MultipleCheckbox.Item value={scope} key={scope}>
+                          {scope}
+                        </MultipleCheckbox.Item>
+                      ))}
+                    </MultipleCheckbox>
                   )}
                 </FormField>
               </PanelBody>

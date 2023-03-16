@@ -1,4 +1,4 @@
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';

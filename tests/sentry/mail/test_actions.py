@@ -1,5 +1,3 @@
-from unittest import mock
-
 from django.core import mail
 
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
@@ -7,12 +5,10 @@ from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwn
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils import TestCase
-from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.eventprocessing import write_event_to_cache
-from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
 
 class NotifyEmailFormTest(TestCase):
@@ -118,7 +114,7 @@ class NotifyEmailFormTest(TestCase):
         assert form.is_valid()
 
 
-class NotifyEmailTest(RuleTestCase):
+class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
     rule_cls = NotifyEmailAction
 
     def test_simple(self):
@@ -205,15 +201,46 @@ class NotifyEmailTest(RuleTestCase):
         assert sent.to == [self.user.email]
         assert "uh oh" in sent.subject
 
-    def test_full_integration_performance(self):
-        event_data = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-            timestamp=before_now(minutes=1),
+    @with_feature("organizations:issue-alert-fallback-targeting")
+    def test_full_integration_fallthrough_not_provided(self):
+        one_min_ago = iso_format(before_now(minutes=1))
+        event = self.store_event(
+            data={
+                "message": "hello",
+                "exception": {"type": "Foo", "value": "uh oh"},
+                "level": "error",
+                "timestamp": one_min_ago,
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
         )
-        event = self.store_event(data=event_data, project_id=self.project.id)
-        event = event.for_group(event.groups[0])
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+        }
+        condition_data = {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+        Rule.objects.filter(project=event.project).delete()
+        Rule.objects.create(
+            project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
+        )
 
+        with self.tasks():
+            post_process_group(
+                is_new=True,
+                is_regression=False,
+                is_new_group_environment=False,
+                cache_key=write_event_to_cache(event),
+                group_id=event.group_id,
+            )
+
+        # See that the ActiveMembers default results in notifications still being sent
+        assert len(mail.outbox) == 1
+        sent = mail.outbox[0]
+        assert sent.to == [self.user.email]
+        assert "uh oh" in sent.subject
+
+    def test_full_integration_performance(self):
+        event = self.create_performance_issue()
         action_data = {
             "id": "sentry.mail.actions.NotifyEmailAction",
             "targetType": "Member",
@@ -246,16 +273,6 @@ class NotifyEmailTest(RuleTestCase):
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
         assert "N+1 Query" in sent.subject
-
-    # XXX(gilbert): remove this later one
-    @mock.patch("sentry.mail.actions.determine_eligible_recipients")
-    def test_release_note_target_type(self, mock_eligible_recipients):
-        mock_eligible_recipients.return_value = [self.user]
-        event = self.get_event()
-        rule = self.get_rule(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 1
 
     def test_hack_mail_workflow(self):
         gil_workflow = self.create_user(email="gilbert@workflow.com", is_active=True)
@@ -310,8 +327,13 @@ class NotifyEmailTest(RuleTestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_render_label_fallback_none(self):
+        # Check that the label defaults to ActiveMembers
         rule = self.get_rule(data={"targetType": ActionTargetType.ISSUE_OWNERS.value})
-        assert rule.render_label() == "Send a notification to IssueOwners"
+        assert (
+            rule.render_label()
+            == "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers"
+        )
+
         rule = self.get_rule(
             data={
                 "targetType": ActionTargetType.ISSUE_OWNERS.value,

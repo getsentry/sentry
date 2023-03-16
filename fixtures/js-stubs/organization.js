@@ -1,12 +1,13 @@
 import {OrgRoleList, TeamRoleList} from './roleList';
 
 export function Organization(params = {}) {
+  const slug = params.slug ?? 'org-slug';
   return {
     id: '3',
-    slug: 'org-slug',
+    slug,
     name: 'Organization Name',
     links: {
-      organizationUrl: 'https://org-slug.sentry.io',
+      organizationUrl: `https://${slug}.sentry.io`,
       regionUrl: 'https://us.sentry.io',
     },
     access: [

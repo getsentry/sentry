@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Panel} from 'sentry/components/panels';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -41,11 +41,9 @@ function DoubleAxisDisplay(props: Props) {
       `<${Math.round(maxValue)}`,
     ]);
     const query = conditions.formatString();
+    trackAdvancedAnalyticsEvent('performance_views.landingv2.display.filter_change', {
+      organization,
 
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.landingv2.display.filter_change',
-      eventName: 'Performance Views: Landing v2 Display Filter Change',
-      organization_id: parseInt(organization.id, 10),
       field,
       min_value: parseInt(minValue, 10),
       max_value: parseInt(maxValue, 10),

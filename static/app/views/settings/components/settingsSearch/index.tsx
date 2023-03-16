@@ -21,7 +21,7 @@ function SettingsSearch() {
       maxResults={MAX_RESULTS}
       renderInput={({getInputProps}) => (
         <SearchInputWrapper>
-          <SearchInputIcon size="14px" />
+          <SearchInputIcon legacySize="14px" />
           <SearchInput
             aria-label={t('Search Settings')}
             {...getInputProps({type: 'text', placeholder: t('Search')})}
@@ -58,7 +58,7 @@ const SearchInput = styled('input')`
   border-radius: 30px;
   height: 28px;
 
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
 
   &:focus {
     outline: none;

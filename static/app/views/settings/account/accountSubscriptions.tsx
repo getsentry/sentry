@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import findIndex from 'lodash/findIndex';
 import groupBy from 'lodash/groupBy';
 import moment from 'moment';
 
@@ -10,7 +11,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Switch from 'sentry/components/switchButton';
 import {IconToggle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -40,12 +41,13 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
     return 'Subscriptions';
   }
 
-  handleToggle = (subscription: Subscription, index: number, _e: React.MouseEvent) => {
+  handleToggle = (subscription: Subscription, listId: number, _e: React.MouseEvent) => {
     const subscribed = !subscription.subscribed;
     const oldSubscriptions = this.state.subscriptions;
 
     this.setState(state => {
       const newSubscriptions = state.subscriptions.slice();
+      const index = findIndex(newSubscriptions, {listId});
       newSubscriptions[index] = {
         ...subscription,
         subscribed,
@@ -109,7 +111,7 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                       </Heading>
                     )}
 
-                    {subscriptions.map((subscription, index) => (
+                    {subscriptions.map(subscription => (
                       <PanelItem center key={subscription.listId}>
                         <SubscriptionDetails>
                           <SubscriptionName>{subscription.listName}</SubscriptionName>
@@ -139,7 +141,11 @@ class AccountSubscriptions extends AsyncView<AsyncView['props'], State> {
                           <Switch
                             isActive={subscription.subscribed}
                             size="lg"
-                            toggle={this.handleToggle.bind(this, subscription, index)}
+                            toggle={this.handleToggle.bind(
+                              this,
+                              subscription,
+                              subscription.listId
+                            )}
                           />
                         </div>
                       </PanelItem>

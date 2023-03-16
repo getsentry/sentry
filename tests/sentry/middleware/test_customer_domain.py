@@ -301,6 +301,16 @@ class End2EndTest(APITestCase):
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "albertos-apples"
 
+            # No redirect for http methods that is not GET
+            response = self.client.post(
+                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
     def test_with_middleware_and_non_staff(self):
         self.create_organization(name="albertos-apples")
         non_staff_user = self.create_user(is_staff=False)

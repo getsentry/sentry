@@ -5,11 +5,12 @@ import {useHover} from '@react-aria/interactions';
 import classNames from 'classnames';
 
 import {IconCheckmark, IconChevron, IconInfo, IconNot, IconWarning} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 
 export interface AlertProps extends React.HTMLAttributes<HTMLDivElement> {
+  defaultExpanded?: boolean;
   expand?: React.ReactNode;
   icon?: React.ReactNode;
   opaque?: boolean;
@@ -28,12 +29,13 @@ function Alert({
   opaque,
   system,
   expand,
+  defaultExpanded = false,
   trailingItems,
   className,
   children,
   ...props
 }: AlertProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const showExpand = defined(expand);
   const showTrailingItems = defined(trailingItems);
 
@@ -245,6 +247,6 @@ const ExpandContainer = styled('div')<{showIcon: boolean; showTrailingItems: boo
   }
 `;
 
-export {alertStyles};
+export {Alert, alertStyles};
 
 export default Alert;

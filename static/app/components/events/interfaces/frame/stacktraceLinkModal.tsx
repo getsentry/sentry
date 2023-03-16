@@ -1,21 +1,33 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import uniq from 'lodash/uniq';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import Clipboard from 'sentry/components/clipboard';
 import TextField from 'sentry/components/forms/fields/textField';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import List from 'sentry/components/list';
 import TextCopyInput from 'sentry/components/textCopyInput';
+import {IconCopy} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Integration, Organization, Project} from 'sentry/types';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
+import {useQuery} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
+
+type DerivedCodeMapping = {
+  filename: string;
+  repo_branch: string;
+  repo_name: string;
+  source_path: string;
+  stacktrace_root: string;
+};
 
 interface StacktraceLinkModalProps extends ModalRenderProps {
   filename: string;
@@ -39,6 +51,30 @@ function StacktraceLinkModal({
   const api = useApi();
   const [error, setError] = useState<null | string>(null);
   const [sourceCodeInput, setSourceCodeInput] = useState('');
+
+  const {data: sugestedCodeMappings} = useQuery<DerivedCodeMapping[]>(
+    [
+      `/organizations/${organization.slug}/derive-code-mappings/`,
+      {
+        query: {
+          projectId: project.id,
+          stacktraceFilename: filename,
+        },
+      },
+    ],
+    {
+      staleTime: Infinity,
+      refetchOnWindowFocus: false,
+      retry: false,
+      notifyOnChangeProps: ['data'],
+    }
+  );
+
+  const suggestions = uniq(
+    (sugestedCodeMappings ?? []).map(suggestion => {
+      return `https://github.com/${suggestion.repo_name}/blob/${suggestion.repo_branch}/${suggestion.filename}`;
+    })
+  ).slice(0, 2);
 
   const onHandleChange = (input: string) => {
     setSourceCodeInput(input);
@@ -100,6 +136,7 @@ function StacktraceLinkModal({
         provider: configData.config?.provider.key,
         view: 'stacktrace_issue_details',
         organization,
+        is_suggestion: suggestions.includes(sourceCodeInput),
       });
       closeModal();
       onSubmit();
@@ -144,25 +181,29 @@ function StacktraceLinkModal({
                 : error}
             </StyledAlert>
           )}
-          {tct(
-            'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
-            {
-              provider: providerName,
-              filename: <StyledCode>{filename}</StyledCode>,
-            }
-          )}
+          <div>
+            {tct(
+              'We can’t find the file path for [filename] in your [provider] repo. Add the correct link below to enable git blame and suspect commits for this project.',
+              {
+                provider: providerName,
+                filename: <StyledCode>{filename}</StyledCode>,
+              }
+            )}
+          </div>
           <StyledList symbol="colored-numeric">
             <li>
               <ItemContainer>
-                {hasOneSourceCodeIntegration
-                  ? tct('Go to [link]', {
-                      link: (
-                        <ExternalLink href={sourceUrl}>
-                          {sourceCodeProviders[0].provider.name}
-                        </ExternalLink>
-                      ),
-                    })
-                  : t('Go to your source code provider')}
+                <div>
+                  {hasOneSourceCodeIntegration
+                    ? tct('Go to [link]', {
+                        link: (
+                          <ExternalLink href={sourceUrl}>
+                            {sourceCodeProviders[0].provider.name}
+                          </ExternalLink>
+                        ),
+                      })
+                    : t('Go to your source code provider')}
+                </div>
               </ItemContainer>
             </li>
             <li>
@@ -173,9 +214,32 @@ function StacktraceLinkModal({
             </li>
             <li>
               <ItemContainer>
+                <div>
+                  {suggestions.length
+                    ? t('Select from one of these suggestions or paste your URL below')
+                    : t('Copy the URL and paste it below')}
+                </div>
+                {suggestions.length ? (
+                  <Suggestions>
+                    {suggestions.map((suggestion, i) => {
+                      return (
+                        <div key={i} style={{display: 'flex', alignItems: 'center'}}>
+                          <SuggestionOverflow>{suggestion}</SuggestionOverflow>
+                          <Clipboard value={suggestion}>
+                            <Button type="button" borderless size="xs">
+                              <IconCopy size="xs" />
+                            </Button>
+                          </Clipboard>
+                        </div>
+                      );
+                    })}
+                  </Suggestions>
+                ) : null}
+
                 <StyledTextField
                   inline={false}
-                  label={t('Copy the URL and paste it below')}
+                  aria-label={t('Repository URL')}
+                  hideLabel
                   name="source-code-input"
                   value={sourceCodeInput}
                   onChange={onHandleChange}
@@ -190,10 +254,8 @@ function StacktraceLinkModal({
       </Body>
       <Footer>
         <ButtonBar gap={1}>
-          <Button type="button" onClick={closeModal}>
-            {t('Cancel')}
-          </Button>
-          <Button type="button" priority="primary" onClick={handleSubmit}>
+          <Button onClick={closeModal}>{t('Cancel')}</Button>
+          <Button priority="primary" onClick={handleSubmit}>
             {t('Save')}
           </Button>
         </ButtonBar>
@@ -213,7 +275,19 @@ const StyledList = styled(List)`
 
   & > li:before {
     position: relative;
+    min-width: 25px;
   }
+`;
+
+const Suggestions = styled('div')`
+  background-color: ${p => p.theme.surface100};
+  border-radius: ${p => p.theme.borderRadius};
+  padding: ${space(1)} ${space(1)} ${space(1)} ${space(2)};
+`;
+
+const SuggestionOverflow = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  direction: rtl;
 `;
 
 const ItemContainer = styled('div')`
@@ -222,10 +296,12 @@ const ItemContainer = styled('div')`
   flex-direction: column;
   margin-top: ${space(0.25)};
   flex: 1;
+  max-width: calc(100% - 25px - 8px);
 `;
 
 const ModalContainer = styled('div')`
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: ${space(2)};
 `;
 

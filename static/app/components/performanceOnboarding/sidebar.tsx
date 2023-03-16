@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 
 import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.svg';
 
-import Button from 'sentry/components/button';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {Button} from 'sentry/components/button';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -18,7 +17,7 @@ import {t, tct} from 'sentry/locale';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
@@ -148,7 +147,7 @@ function PerformanceOnboardingSidebar(props: CommonSidebarProps) {
       <TopRightBackgroundImage src={HighlightTopRightPattern} />
       <TaskList>
         <Heading>{t('Boost Performance')}</Heading>
-        <DropdownMenuControl
+        <DropdownMenu
           items={items}
           triggerLabel={
             <StyledIdBadge

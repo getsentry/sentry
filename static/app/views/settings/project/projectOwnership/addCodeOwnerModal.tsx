@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Form from 'sentry/components/forms/form';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   CodeOwner,
   CodeownersFile,
@@ -226,7 +226,7 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                   {t('Install a GitHub or GitLab integration to use this feature.')}
                 </div>
                 <Container style={{paddingTop: space(2)}}>
-                  <Button type="button" priority="primary" size="sm" to={baseUrl}>
+                  <Button priority="primary" size="sm" to={baseUrl}>
                     Setup Integration
                   </Button>
                 </Container>
@@ -242,7 +242,6 @@ class AddCodeOwnerModal extends AsyncComponent<Props, State> {
                   {integrations.map(integration => (
                     <Button
                       key={integration.id}
-                      type="button"
                       to={`${baseUrl}/${integration.provider.key}/${integration.id}/?tab=codeMappings&referrer=add-codeowners`}
                     >
                       {getIntegrationIcon(integration.provider.key)}

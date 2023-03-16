@@ -89,7 +89,7 @@ def get_or_create(
 
 
 def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 5) -> None:
-    from docker.errors import ImageNotFound
+    from docker.errors import APIError
 
     current_attempt = 0
 
@@ -100,12 +100,13 @@ def retryable_pull(client: docker.DockerClient, image: str, max_attempts: int = 
     while True:
         try:
             client.images.pull(image)
-        except ImageNotFound as e:
+        except APIError:
             if current_attempt + 1 >= max_attempts:
-                raise e
+                raise
             current_attempt = current_attempt + 1
             continue
-        break
+        else:
+            break
 
 
 def ensure_interface(ports: dict[str, int | tuple[str, int]]) -> dict[str, tuple[str, int]]:
@@ -340,19 +341,9 @@ def _start_service(
     fast: bool = False,
     always_start: bool = False,
 ) -> docker.models.containers.Container | None:
-    from django.conf import settings
-
     from docker.errors import NotFound
 
     options = containers[name]
-
-    # HACK(mattrobenolt): special handle snuba backend because it needs to
-    # handle different values based on the eventstream backend
-    # For snuba, we can't run the full suite of devserver, but can only
-    # run the api.
-    if name == "snuba" and "snuba" in settings.SENTRY_EVENTSTREAM:
-        options["environment"].pop("DEFAULT_BROKERS", None)
-        options["command"] = ["devserver", "--no-workers"]
 
     for key, value in list(options["environment"].items()):
         options["environment"][key] = value.format(containers=containers)

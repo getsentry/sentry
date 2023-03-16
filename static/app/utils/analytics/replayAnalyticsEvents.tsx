@@ -20,6 +20,17 @@ export type ReplayEventParameters = {
     referrer: undefined | string;
     user_email: string;
   };
+  'replay.list-paginated': {
+    direction: 'next' | 'prev';
+  };
+  'replay.list-sorted': {
+    column: string;
+  };
+  'replay.list-time-spent': {
+    seconds: number;
+    user_email: string;
+  };
+  'replay.list-view-setup-sidebar': {};
   'replay.play-pause': {
     play: boolean;
     user_email: string;
@@ -49,6 +60,10 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.details-viewed': 'Viewed Replay Details',
+  'replay.list-paginated': 'Paginated Replay List',
+  'replay.list-sorted': 'Sorted Replay List',
+  'replay.list-time-spent': 'Time Spent Viewing Replay List',
+  'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.play-pause': 'Played/Paused Replay',
   'replay.render-player': 'Rendered ReplayPlayer',
   'replay.toggle-fullscreen': 'Toggled Replay Fullscreen',

@@ -1,4 +1,5 @@
 import {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
 import type {Actor, Avatar, ObjectStatus, Scope} from './core';
 import type {OrgExperiments} from './experiments';
@@ -12,6 +13,7 @@ import type {User} from './user';
  */
 export interface OrganizationSummary {
   avatar: Avatar;
+  codecovAccess: boolean;
   dateCreated: string;
   features: string[];
   id: string;
@@ -66,21 +68,21 @@ export interface Organization extends OrganizationSummary {
   teamRoleList: TeamRole[];
   trustedRelays: Relay[];
   orgRole?: string;
-  /**
-   * @deprecated use orgRole instead
-   */
-  role?: string;
 }
 
 export type Team = {
   avatar: Avatar;
   externalTeams: ExternalTeam[];
+  flags: {
+    'idp:provisioned': boolean;
+  };
   hasAccess: boolean;
   id: string;
   isMember: boolean;
   isPending: boolean;
   memberCount: number;
   name: string;
+  orgRole: string | null;
   slug: string;
   teamRole: string | null;
 };
@@ -111,6 +113,8 @@ export interface Member {
   email: string;
   expired: boolean;
   flags: {
+    'idp:provisioned': boolean;
+    'idp:role-restricted': boolean;
     'member-limit:restricted': boolean;
     'sso:invalid': boolean;
     'sso:linked': boolean;
@@ -191,6 +195,7 @@ export interface NewQuery {
   projects: Readonly<number[]>;
   version: SavedQueryVersions;
   createdBy?: User;
+  dataset?: DiscoverDatasets;
   display?: string;
   end?: string;
   environment?: Readonly<string[]>;

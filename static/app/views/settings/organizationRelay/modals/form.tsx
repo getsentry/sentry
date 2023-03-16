@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
-import FieldHelp from 'sentry/components/forms/field/fieldHelp';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import FieldHelp from 'sentry/components/forms/fieldGroup/fieldHelp';
 import Input from 'sentry/components/input';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Relay} from 'sentry/types';
 
 type FormField = keyof Pick<Relay, 'name' | 'publicKey' | 'description'>;
@@ -47,15 +48,20 @@ const Form = ({
     }
   };
 
-  // code below copied from app/views/organizationIntegrations/SplitInstallationIdModal.tsx
-  // TODO: fix the common method selectText
-  const onCopy = (value: string) => async () =>
-    // This hack is needed because the normal copying methods with TextCopyInput do not work correctly
-    await navigator.clipboard.writeText(value);
+  const onCopy = (value: string) => () => {
+    navigator.clipboard
+      .writeText(value)
+      .then(() => {
+        addSuccessMessage(t('Copied to clipboard'));
+      })
+      .catch(() => {
+        addErrorMessage(t('Error copying to clipboard'));
+      });
+  };
 
   return (
     <form onSubmit={handleSubmit} id="relay-form">
-      <Field
+      <FieldGroup
         flexibleControlStateSize
         label={t('Display Name')}
         error={errors.name}
@@ -72,14 +78,19 @@ const Form = ({
           onBlur={onValidate('name')}
           disabled={disables.name}
         />
-      </Field>
+      </FieldGroup>
 
       {disables.publicKey ? (
-        <Field flexibleControlStateSize label={t('Public Key')} inline={false} stacked>
+        <FieldGroup
+          flexibleControlStateSize
+          label={t('Public Key')}
+          inline={false}
+          stacked
+        >
           <TextCopyInput onCopy={onCopy(values.publicKey)}>
             {values.publicKey}
           </TextCopyInput>
-        </Field>
+        </FieldGroup>
       ) : (
         <FieldWrapper>
           <StyledField
@@ -106,7 +117,12 @@ const Form = ({
           </FieldHelp>
         </FieldWrapper>
       )}
-      <Field flexibleControlStateSize label={t('Description')} inline={false} stacked>
+      <FieldGroup
+        flexibleControlStateSize
+        label={t('Description')}
+        inline={false}
+        stacked
+      >
         <Textarea
           name="description"
           placeholder={t('Description')}
@@ -115,7 +131,7 @@ const Form = ({
           disabled={disables.description}
           autosize
         />
-      </Field>
+      </FieldGroup>
     </form>
   );
 };
@@ -126,6 +142,6 @@ const FieldWrapper = styled('div')`
   padding-bottom: ${space(2)};
 `;
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   padding-bottom: 0;
 `;

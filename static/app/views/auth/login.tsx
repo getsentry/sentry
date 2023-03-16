@@ -3,13 +3,13 @@ import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NavTabs from 'sentry/components/navTabs';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AuthConfig} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 

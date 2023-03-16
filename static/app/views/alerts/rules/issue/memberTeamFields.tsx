@@ -5,7 +5,7 @@ import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {PanelItem} from 'sentry/components/panels';
 import SelectMembers from 'sentry/components/selectMembers';
 import TeamSelector from 'sentry/components/teamSelector';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {IssueAlertRuleAction, IssueAlertRuleCondition} from 'sentry/types/alerts';
 

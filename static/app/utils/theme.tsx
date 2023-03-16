@@ -1,8 +1,9 @@
 import {css} from '@emotion/react';
 import color from 'color';
 
+import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {DataCategory, Outcome} from 'sentry/types';
+import {Outcome} from 'sentry/types';
 
 /**
  * Exporting for use in Storybook only. Do not import this
@@ -12,10 +13,17 @@ export const lightColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#FAF9FB',
-  surface200: '#FFFFFF',
+  surface100: '#F5F3F7',
+  surface200: '#FAF9FB',
   surface300: '#FFFFFF',
-  surface400: '#F5F3F7',
+  surface400: '#FFFFFF',
+
+  /**
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
+   * @deprecated
+   */
+  surface500: '#F5F3F7',
 
   gray500: '#2B2233',
   gray400: '#3E3446',
@@ -50,13 +58,13 @@ export const lightColors = {
   yellow200: 'rgba(245, 176, 0, 0.55)',
   yellow100: 'rgba(245, 176, 0, 0.08)',
 
-  red400: '#F32F35',
+  red400: '#DF3338',
   red300: '#F55459',
   red200: 'rgba(245, 84, 89, 0.5)',
   red100: 'rgba(245, 84, 89, 0.09)',
 
   pink400: '#E50675',
-  pink300: '#F91A8A',
+  pink300: '#F14499',
   pink200: 'rgba(249, 26, 138, 0.5)',
   pink100: 'rgba(249, 26, 138, 0.1)',
 };
@@ -69,10 +77,17 @@ export const darkColors = {
   black: '#1D1127',
   white: '#FFFFFF',
 
-  surface100: '#1A141F',
-  surface200: '#241D2A',
-  surface300: '#2C2433',
-  surface400: '#362E3E',
+  surface100: '#18121C',
+  surface200: '#1A141F',
+  surface300: '#241D2A',
+  surface400: '#2C2433',
+
+  /**
+   * Hover color. Deprecated – use <InteractionStateLayer /> instead for interaction
+   * (hover/press) states.
+   * @deprecated
+   */
+  surface500: '#362E3E',
 
   gray500: '#EBE6EF',
   gray400: '#D6D0DC',
@@ -118,15 +133,49 @@ export const darkColors = {
   pink100: 'rgba(206, 59, 133, 0.1)',
 };
 
+const prismLight = {
+  '--prism-base': '#332B3B',
+  '--prism-selected': '#E9E0EB',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#E8ECF2',
+  '--prism-highlight-accent': '#C7CBD1',
+  '--prism-comment': '#72697C',
+  '--prism-punctuation': '#70697C',
+  '--prism-property': '#7A6229',
+  '--prism-selector': '#3C774A',
+  '--prism-operator': '#635D6F',
+  '--prism-variable': '#A8491A',
+  '--prism-function': '#106A9E',
+  '--prism-keyword': '#A7114A',
+};
+
+const prismDark = {
+  '--prism-base': '#F2EDF6',
+  '--prism-selected': '#865891',
+  '--prism-inline-code': '#D25F7C',
+  '--prism-inline-code-background': '#F8F9FB',
+  '--prism-highlight-background': '#382F5C',
+  '--prism-highlight-accent': '#D25F7C',
+  '--prism-comment': '#8B7A9E',
+  '--prism-punctuation': '#B3ACC1',
+  '--prism-property': '#EAB944',
+  '--prism-selector': '#7EBE8E',
+  '--prism-operator': '#A470A7',
+  '--prism-variable': '#E58759',
+  '--prism-function': '#6CC5F9',
+  '--prism-keyword': '#E386AA',
+};
+
 const lightShadows = {
-  dropShadowLightest: '0 0 2px rgba(43, 34, 51, 0.04)',
-  dropShadowLight: '0 1px 4px rgba(43, 34, 51, 0.04)',
+  dropShadowLight: '0 0 1px rgba(43, 34, 51, 0.04)',
+  dropShadowMedium: '0 1px 2px rgba(43, 34, 51, 0.04)',
   dropShadowHeavy: '0 4px 24px rgba(43, 34, 51, 0.12)',
 };
 
 const darkShadows = {
-  dropShadowLightest: '0 0 2px rgba(10, 8, 12, 0.2)',
-  dropShadowLight: '0 1px 4px rgba(10, 8, 12, 0.2)',
+  dropShadowLight: '0 0 1px rgba(10, 8, 12, 0.2)',
+  dropShadowMedium: '0 1px 2px rgba(10, 8, 12, 0.2)',
   dropShadowHeavy: '0 4px 24px rgba(10, 8, 12, 0.36)',
 };
 
@@ -161,27 +210,32 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Background for the main content area of a page?
    */
-  bodyBackground: colors.surface100,
+  bodyBackground: colors.surface200,
 
   /**
    * Primary background color
    */
-  background: colors.surface200,
+  background: colors.surface300,
 
   /**
    * Elevated background color
    */
-  backgroundElevated: colors.surface300,
+  backgroundElevated: colors.surface400,
 
   /**
    * Secondary background color used as a slight contrast against primary background
    */
-  backgroundSecondary: colors.surface100,
+  backgroundSecondary: colors.surface200,
+
+  /**
+   * Tertiary background color used as a stronger contrast against primary background
+   */
+  backgroundTertiary: colors.surface100,
 
   /**
    * Background for the header of a page
    */
-  headerBackground: colors.surface200,
+  headerBackground: colors.surface300,
 
   /**
    * Primary border color
@@ -227,9 +281,11 @@ const generateAliases = (colors: BaseColors) => ({
   disabledBorder: colors.gray200,
 
   /**
-   * Indicates a "hover" state, to suggest that an interactive element is clickable
+   * Indicates a "hover" state. Deprecated – use `InteractionStateLayer` instead for
+   * interaction (hover/press) states.
+   * @deprecated
    */
-  hover: colors.surface400,
+  hover: colors.surface500,
 
   /**
    * Indicates that something is "active" or "selected"
@@ -269,14 +325,9 @@ const generateAliases = (colors: BaseColors) => ({
   formText: colors.gray400,
 
   /**
-   * Form input border
-   */
-  formInputBorder: colors.gray200,
-
-  /**
    *
    */
-  rowBackground: colors.surface300,
+  rowBackground: colors.surface400,
 
   /**
    * Color of lines that flow across the background of the chart to indicate axes levels
@@ -307,7 +358,7 @@ const generateAliases = (colors: BaseColors) => ({
   /**
    * Overlay for partial opacity
    */
-  overlayBackgroundAlpha: color(colors.surface100).alpha(0.7).string(),
+  overlayBackgroundAlpha: color(colors.surface200).alpha(0.7).string(),
 
   /**
    * Tag progress bars
@@ -352,10 +403,10 @@ const generateAliases = (colors: BaseColors) => ({
 });
 
 const dataCategory = {
-  [DataCategory.ERRORS]: CHART_PALETTE[4][3],
-  [DataCategory.TRANSACTIONS]: CHART_PALETTE[4][2],
-  [DataCategory.ATTACHMENTS]: CHART_PALETTE[4][1],
-  [DataCategory.DEFAULT]: CHART_PALETTE[4][0],
+  [DATA_CATEGORY_INFO.error.plural]: CHART_PALETTE[4][3],
+  [DATA_CATEGORY_INFO.transaction.plural]: CHART_PALETTE[4][2],
+  [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
+  [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
 };
 
 /**
@@ -561,17 +612,6 @@ const generateButtonTheme = (colors: BaseColors, alias: Aliases) => ({
     focusBorder: 'transparent',
     focusShadow: 'transparent',
   },
-  form: {
-    color: alias.textColor,
-    colorActive: alias.textColor,
-    background: alias.background,
-    backgroundActive: alias.hover,
-    border: alias.formInputBorder,
-    borderActive: alias.formInputBorder,
-    borderTranslucent: alias.translucentBorder,
-    focusBorder: alias.focusBorder,
-    focusShadow: alias.focus,
-  },
 });
 
 const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
@@ -590,6 +630,16 @@ const generateUtils = (colors: BaseColors, aliases: Aliases) => ({
     textOverflow: 'ellipsis',
   }),
 });
+
+const generatePrismVariables = (
+  prismColors: typeof prismLight,
+  blockBackground: string
+) =>
+  css({
+    // block background differs based on light/dark mode
+    '--prism-block-background': blockBackground,
+    ...prismColors,
+  });
 
 const iconSizes = {
   xs: '12px',
@@ -688,6 +738,7 @@ const commonTheme = {
   borderRadiusRight: '0 6px 6px 0',
 
   panelBorderRadius: '6px',
+  modalBorderRadius: '8px',
   linkBorderRadius: '2px',
 
   headerSelectorRowHeight: 44,
@@ -701,6 +752,7 @@ const commonTheme = {
   fontSizeMedium: '14px',
   fontSizeLarge: '16px',
   fontSizeExtraLarge: '18px',
+  codeFontSize: '13px',
   headerFontSize: '22px',
 
   settings: {
@@ -726,8 +778,8 @@ const commonTheme = {
   },
 
   text: {
-    family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
     pageTitle: {
@@ -873,6 +925,10 @@ export const lightTheme = {
   button: generateButtonTheme(lightColors, lightAliases),
   tag: generateTagTheme(lightColors),
   level: generateLevelTheme(lightColors),
+  stacktraceActiveBackground: lightColors.gray500,
+  stacktraceActiveText: lightColors.white,
+  prismVariables: generatePrismVariables(prismLight, lightAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundElevated),
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.light,
@@ -896,6 +952,10 @@ export const darkTheme: Theme = {
   button: generateButtonTheme(darkColors, darkAliases),
   tag: generateTagTheme(darkColors),
   level: generateLevelTheme(darkColors),
+  prismVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  prismDarkVariables: generatePrismVariables(prismDark, darkAliases.backgroundSecondary),
+  stacktraceActiveBackground: darkColors.gray200,
+  stacktraceActiveText: darkColors.white,
   sidebar: {
     ...commonTheme.sidebar,
     background: sidebarBackground.dark,
@@ -904,7 +964,8 @@ export const darkTheme: Theme = {
   sidebarBorder: darkAliases.border,
 };
 
-export type Theme = typeof lightTheme;
+type Theme = typeof lightTheme;
+
 export type Color = keyof typeof lightColors;
 export type Aliases = typeof lightAliases;
 export type ColorOrAlias = keyof Aliases | Color;
@@ -913,14 +974,15 @@ export type FormSize = keyof Theme['form'];
 
 export default commonTheme;
 
-type MyTheme = Theme;
+// Be clear about what the [@emotion/React].THeme is extending
+type SentryTheme = Theme;
 
 /**
  * Configure Emotion to use our theme
  */
 declare module '@emotion/react' {
   // eslint-disable-next-line @typescript-eslint/no-shadow
-  export interface Theme extends MyTheme {}
+  export interface Theme extends SentryTheme {}
 }
 
 // This should never be used directly (except in storybook)

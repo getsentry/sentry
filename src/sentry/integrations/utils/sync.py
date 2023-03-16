@@ -4,16 +4,17 @@ import logging
 from typing import TYPE_CHECKING, Mapping, Sequence
 
 from sentry import features
-from sentry.models import Group, GroupAssignee, Project
+from sentry.models import Group, GroupAssignee, Organization, Project
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.tasks.integrations import sync_assignee_outbound
 
 if TYPE_CHECKING:
-    from sentry.models import Integration, Organization
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 def where_should_sync(
-    integration: Integration,
+    integration: RpcIntegration,
     key: str,
     organization_id: int | None = None,
 ) -> Sequence[Organization]:
@@ -26,11 +27,16 @@ def where_should_sync(
     if organization_id:
         kwargs["id"] = organization_id
 
+    ois = integration_service.get_organization_integrations(integration_id=integration.id)
+    organizations = Organization.objects.filter(id__in=[oi.organization_id for oi in ois])
+
     return [
         organization
-        for organization in integration.organizations.filter(**kwargs)
+        for organization in organizations.filter(**kwargs)
         if features.has("organizations:integrations-issue-sync", organization)
-        and integration.get_installation(organization.id).should_sync(key)
+        and integration_service.get_installation(
+            integration=integration, organization_id=organization.id
+        ).should_sync(key)
     ]
 
 
@@ -47,7 +53,7 @@ def get_user_id(projects_by_user: Mapping[int, Sequence[int]], group: Group) -> 
 
 
 def sync_group_assignee_inbound(
-    integration: Integration,
+    integration: RpcIntegration,
     email: str | None,
     external_issue_key: str,
     assign: bool = True,

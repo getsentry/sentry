@@ -12,7 +12,7 @@ import SelectControl, {
 } from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Choices, SelectValue} from 'sentry/types';
 

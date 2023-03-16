@@ -2,16 +2,24 @@ import {PlainRoute} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptor, Query} from 'history';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
-import {DisplayModes} from './transactionOverview/charts';
+export enum DisplayModes {
+  DURATION_PERCENTILE = 'durationpercentile',
+  DURATION = 'duration',
+  LATENCY = 'latency',
+  TREND = 'trend',
+  VITALS = 'vitals',
+  USER_MISERY = 'usermisery',
+}
 
 export enum TransactionFilterOptions {
   FASTEST = 'fastest',
@@ -70,7 +78,7 @@ export function transactionSummaryRouteWithQuery({
   orgSlug: string;
   query: Query;
   transaction: string;
-  additionalQuery?: Record<string, string>;
+  additionalQuery?: Record<string, string | undefined>;
   display?: DisplayModes;
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;
@@ -145,7 +153,27 @@ export function generateTransactionLink(transactionName: string) {
   };
 }
 
+export function generateProfileLink() {
+  return (
+    organization: Organization,
+    tableRow: TableDataRow,
+    _query: Query | undefined
+  ) => {
+    const profileId = tableRow['profile.id'];
+    if (!profileId) {
+      return {};
+    }
+    return generateProfileFlamechartRoute({
+      orgSlug: organization.slug,
+      projectSlug: String(tableRow['project.name']),
+      profileId: String(profileId),
+    });
+  };
+}
+
 export function generateReplayLink(routes: PlainRoute<any>[]) {
+  const referrer = getRouteStringFromRoutes(routes);
+
   return (
     organization: Organization,
     tableRow: TableDataRow,
@@ -157,7 +185,6 @@ export function generateReplayLink(routes: PlainRoute<any>[]) {
     }
 
     const replaySlug = `${tableRow['project.name']}:${replayId}`;
-    const referrer = getRouteStringFromRoutes(routes);
 
     if (!tableRow.timestamp) {
       return {

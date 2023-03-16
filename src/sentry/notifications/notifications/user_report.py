@@ -10,9 +10,8 @@ from sentry.models import Group, GroupSubscription
 from sentry.notifications.helpers import get_reason_context
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.utils import send_activity_notification
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Project, Team, User
@@ -31,7 +30,7 @@ class UserReportNotification(ProjectNotification):
 
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
         data_by_provider = GroupSubscription.objects.get_participants(group=self.group)
         return {
             provider: data
@@ -55,18 +54,23 @@ class UserReportNotification(ProjectNotification):
         return self.project
 
     def get_context(self) -> MutableMapping[str, Any]:
+        organization = self.organization
         return {
-            "enhanced_privacy": self.organization.flags.enhanced_privacy,
+            "enhanced_privacy": organization.flags.enhanced_privacy,
             "group": self.group,
-            "issue_link": absolute_uri(
-                f"/{self.organization.slug}/{self.project.slug}/issues/{self.group.id}/"
+            "issue_link": organization.absolute_url(
+                f"/organizations/{organization.slug}/issues/{self.group.id}/",
+                query=f"project={self.project.id}",
             ),
             # TODO(dcramer): we don't have permalinks to feedback yet
-            "link": absolute_uri(
-                f"/{self.organization.slug}/{self.project.slug}/issues/{self.group.id}/feedback/"
+            "link": organization.absolute_url(
+                f"/organizations/{organization.slug}/issues/{self.group.id}/feedback/",
+                query=f"project={self.project.id}",
             ),
             "project": self.project,
-            "project_link": absolute_uri(f"/{self.organization.slug}/{self.project.slug}/"),
+            "project_link": organization.absolute_url(
+                f"/organizations/{self.organization.slug}/projects/{self.project.slug}/"
+            ),
             "report": self.report,
         }
 

@@ -9,7 +9,7 @@ import momentTimezone from 'moment-timezone';
 
 import {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {AreaChart, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -35,7 +35,7 @@ import Truncate from 'sentry/components/truncate';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -44,6 +44,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import theme from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
@@ -77,7 +78,6 @@ type Props = WithRouterProps & {
   api: Client;
   filter: string[] | null;
   interval: string;
-  orgId: string;
   organization: Organization;
   project: Project;
   query: string;
@@ -194,10 +194,10 @@ class MetricChart extends PureComponent<Props, State> {
     criticalDuration: number,
     warningDuration: number
   ) {
-    const {rule, orgId, project, timePeriod, query} = this.props;
+    const {rule, organization, project, timePeriod, query} = this.props;
 
     const {buttonText, ...props} = makeDefaultCta({
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       projects: [project],
       rule,
       timePeriod,
@@ -264,10 +264,12 @@ class MetricChart extends PureComponent<Props, State> {
     }
 
     const handleIncidentClick = (incident: Incident) => {
-      router.push({
-        pathname: alertDetailsLink(organization, incident),
-        query: {alert: incident.identifier},
-      });
+      router.push(
+        normalizeUrl({
+          pathname: alertDetailsLink(organization, incident),
+          query: {alert: incident.identifier},
+        })
+      );
     };
 
     const {criticalDuration, warningDuration, totalDuration, chartOption} =

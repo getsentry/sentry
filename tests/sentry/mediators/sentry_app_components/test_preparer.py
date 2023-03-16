@@ -21,7 +21,7 @@ class TestPreparerIssueLink(TestCase):
         self.project = self.install.organization.project_set.first()
 
         self.preparer = Preparer(
-            component=self.component, install=self.install, project=self.project
+            component=self.component, install=self.install, project_slug=self.project.slug
         )
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
@@ -54,24 +54,37 @@ class TestPreparerIssueLink(TestCase):
         self.preparer.call()
 
         assert (
-            call(install=self.install, project=self.project, uri="/sentry/foo", dependent_data=None)
-            in run.mock_calls
-        )
-
-        assert (
             call(
-                install=self.install, project=self.project, uri="/sentry/beep", dependent_data=None
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/sentry/foo",
+                dependent_data=None,
             )
             in run.mock_calls
         )
 
         assert (
-            call(install=self.install, project=self.project, uri="/sentry/bar", dependent_data=None)
+            call(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/sentry/beep",
+                dependent_data=None,
+            )
             in run.mock_calls
         )
 
         assert (
-            not call(install=self.install, project=self.project, uri="/sentry/baz")
+            call(
+                install=self.install,
+                project_slug=self.project.slug,
+                uri="/sentry/bar",
+                dependent_data=None,
+            )
+            in run.mock_calls
+        )
+
+        assert (
+            not call(install=self.install, project_slug=self.project.slug, uri="/sentry/baz")
             in run.mock_calls
         )
 
@@ -90,7 +103,7 @@ class TestPreparerStacktraceLink(TestCase):
         self.project = self.install.organization.project_set.first()
 
         self.preparer = Preparer(
-            component=self.component, install=self.install, project=self.project
+            component=self.component, install=self.install, project_slug=self.project.slug
         )
 
     def test_prepares_components_url(self):
@@ -161,7 +174,7 @@ class TestPreparerAlertRuleAction(TestCase):
         self.preparer = Preparer(
             component=self.component,
             install=self.install,
-            project=self.project,
+            project_slug=self.project.slug,
             values=[
                 {"name": "teamId", "value": "Ecosystem"},
                 {"name": "assigneeId", "value": "3"},
@@ -174,7 +187,7 @@ class TestPreparerAlertRuleAction(TestCase):
         assert (
             call(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/teams",
                 dependent_data=None,
             )
@@ -184,7 +197,7 @@ class TestPreparerAlertRuleAction(TestCase):
         assert (
             call(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/assignees",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),
             )
@@ -194,7 +207,7 @@ class TestPreparerAlertRuleAction(TestCase):
         assert (
             call(
                 install=self.install,
-                project=self.project,
+                project_slug=self.project.slug,
                 uri="/hooks/sentry/issues/labels",
                 dependent_data=json.dumps({"teamId": "Ecosystem"}),
             )

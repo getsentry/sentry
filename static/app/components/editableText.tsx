@@ -5,7 +5,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import Input from 'sentry/components/input';
 import TextOverflow from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import useKeypress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -189,6 +189,7 @@ export const Label = styled('div')<{isDisabled: boolean}>`
 const InnerLabel = styled(TextOverflow)`
   border-top: 1px solid transparent;
   border-bottom: 1px dotted ${p => p.theme.gray200};
+  line-height: 38px;
 `;
 
 const InputWrapper = styled('div')<{isEmpty: boolean}>`
@@ -204,7 +205,7 @@ const StyledInput = styled(Input)`
   border: none !important;
   background: transparent;
   height: auto;
-  min-height: 34px;
+  min-height: 40px;
   padding: 0;
   font-size: inherit;
   &,

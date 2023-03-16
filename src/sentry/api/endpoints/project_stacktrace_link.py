@@ -10,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -47,6 +48,7 @@ def get_link(
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
+    result["sourcePath"] = formatted_path
 
     return result
 
@@ -62,6 +64,7 @@ def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional
         "abs_path": parameters.get("absPath"),
         "module": parameters.get("module"),
         "package": parameters.get("package"),
+        "line_no": parameters.get("lineNo"),
     }
 
 
@@ -80,6 +83,9 @@ def set_top_tags(
         scope.set_tag("stacktrace_link.platform", ctx["platform"])
         scope.set_tag("stacktrace_link.code_mappings", has_code_mappings)
         scope.set_tag("stacktrace_link.file", ctx["file"])
+        # Add tag if filepath is Windows
+        if ctx["file"] and ctx["file"].find(":\\") > -1:
+            scope.set_tag("stacktrace_link.windows", True)
         scope.set_tag("stacktrace_link.abs_path", ctx["abs_path"])
         if ctx["platform"] == "python":
             # This allows detecting a file that belongs to Python's 3rd party modules
@@ -110,6 +116,18 @@ def try_path_munging(
                 result = get_link(config, munged_filename, ctx["commit_id"])
 
     return result
+
+
+def set_tags(scope: Scope, result: JSONData) -> None:
+    scope.set_tag("stacktrace_link.found", result["sourceUrl"] is not None)
+    scope.set_tag("stacktrace_link.source_url", result.get("sourceUrl"))
+    scope.set_tag("stacktrace_link.error", result.get("error"))
+    scope.set_tag("stacktrace_link.tried_url", result.get("attemptedUrl"))
+    if result["config"]:
+        scope.set_tag("stacktrace_link.empty_root", result["config"]["stackRoot"] == "")
+        scope.set_tag(
+            "stacktrace_link.auto_derived", result["config"]["automaticallyGenerated"] is True
+        )
 
 
 @region_silo_endpoint
@@ -193,64 +211,72 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
         except Exception:
             logger.exception("There was a failure sorting the code mappings")
 
-        derived = False
         current_config = None
         with configure_scope() as scope:
             set_top_tags(scope, project, ctx, len(configs) > 0)
             for config in configs:
                 # If all code mappings fail to match a stack_root it means that there's no working code mapping
                 if not filepath.startswith(config.stack_root):
-                    # Later on, if there are matching code mappings this will be overwritten
+                    # This may be overwritten if a valid code mapping is found
                     result["error"] = "stack_root_mismatch"
                     continue
-                if (
-                    filepath.startswith(config.stack_root)
-                    and config.automatically_generated is True
-                ):
-                    derived = True
 
                 outcome = {}
                 munging_outcome = {}
-                # If the platform is a mobile language, get_link will never get the right URL without munging
+                # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
                 if not munging_outcome:
                     outcome = get_link(config, filepath, ctx["commit_id"])
+                    # XXX: I want to remove this whole block logic as I believe it is wrong
                     # In some cases the stack root matches and it can either be that we have
                     # an invalid code mapping or that munging is expect it to work
                     if not outcome.get("sourceUrl"):
                         munging_outcome = try_path_munging(config, filepath, ctx)
-                # If we failed to munge we should keep the original outcome
+                        if munging_outcome:
+                            # Report errors to Sentry for investigation
+                            logger.error("We should never be able to reach this code.")
+                # Keep the original outcome if munging failed
                 if munging_outcome:
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {"config": serialize(config, request.user), "outcome": outcome}
-                # use the provider key to be able to split up stacktrace
-                # link metrics by integration type
+                current_config = {
+                    "config": serialize(config, request.user),
+                    "outcome": outcome,
+                    "repository": config.repository,
+                }
+
+                # Use the provider key to split up stacktrace-link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
 
+                # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
-                    # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
-            found: bool = result["sourceUrl"] is not None
-            scope.set_tag("stacktrace_link.found", found)
-            scope.set_tag("stacktrace_link.auto_derived", derived)
             if current_config:
                 result["config"] = current_config["config"]
-                if not found:
+                if not result.get("sourceUrl"):
                     result["error"] = current_config["outcome"]["error"]
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
-                    if result["error"] == "stack_root_mismatch":
-                        scope.set_tag("stacktrace_link.error", "stack_root_mismatch")
-                    else:
-                        scope.set_tag("stacktrace_link.error", "file_not_found")
+
+                should_get_coverage = codecov_enabled(project.organization, request.user)
+                scope.set_tag("codecov.enabled", should_get_coverage)
+                if should_get_coverage:
+                    codecov_data, err = fetch_codecov_data(config=current_config)
+                    if codecov_data:
+                        result["codecov"] = codecov_data
+                    if err:
+                        logger.exception(err)
+            try:
+                set_tags(scope, result)
+            except Exception:
+                logger.exception("Failed to set tags.")
 
         if result["config"]:
             analytics.record(

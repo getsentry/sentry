@@ -12,7 +12,7 @@ import {
   isQuickTraceEvent,
   TransactionDestination,
 } from 'sentry/components/quickTrace/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {backend, frontend, mobile, serverless} from 'sentry/data/platformCategories';
 import {IconFire} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';

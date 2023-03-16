@@ -34,7 +34,7 @@ class OptionsStoreTest(TestCase):
         self.store.flush_local_cache()
 
     def make_key(self, ttl=10, grace=10):
-        return self.manager.make_key(uuid1().hex, "", object, 0, ttl, grace)
+        return self.manager.make_key(uuid1().hex, "", object, 0, ttl, grace, None)
 
     def test_simple(self):
         store, key = self.store, self.key

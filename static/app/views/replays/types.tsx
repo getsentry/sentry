@@ -1,5 +1,5 @@
+import type {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import type {Duration} from 'moment';
-import type {eventWithTime} from 'rrweb/typings/types';
 
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 
@@ -17,32 +17,32 @@ export type ReplayRecord = {
   /**
    * The number of errors associated with the replay.
    */
-  countErrors: number;
+  count_errors: number;
   /**
    * The number of segments that make up the replay.
    */
-  countSegments: number;
+  count_segments: number;
   /**
    * The number of urls visited in the replay.
    */
-  countUrls: number;
+  count_urls: number;
   device: {
     brand: null | string;
     family: null | string;
-    model: null | string;
+    model_id: null | string;
     name: null | string;
   };
   dist: null | string;
   /**
-   * Difference of `finishedAt` and `startedAt` in seconds.
+   * Difference of `finished_at` and `started_at` in seconds.
    */
   duration: Duration;
   environment: null | string;
-  errorIds: string[];
+  error_ids: string[];
   /**
    * The **latest** timestamp received as determined by the SDK.
    */
-  finishedAt: Date;
+  finished_at: Date;
   /**
    * The ID of the Replay instance
    */
@@ -50,13 +50,13 @@ export type ReplayRecord = {
   /**
    * The longest transaction associated with the replay measured in milliseconds.
    */
-  longestTransaction: number;
+  longest_transaction: number;
   os: {
     name: null | string;
     version: null | string;
   };
   platform: string;
-  projectId: string;
+  project_id: string;
   releases: null | string[];
   sdk: {
     name: string;
@@ -65,19 +65,17 @@ export type ReplayRecord = {
   /**
    * The **earliest** timestamp received as determined by the SDK.
    */
-  startedAt: Date;
+  started_at: Date;
   tags: Record<string, string[]>;
-  title: string;
-  traceIds: string[];
+  trace_ids: string[];
   urls: string[];
   user: {
-    displayName: null | string;
+    display_name: null | string;
     email: null | string;
     id: null | string;
-    ip_address: null | string;
-    name: null | string;
+    ip: null | string;
+    username: null | string;
   };
-  userAgent: string;
 };
 
 export type ReplayListLocationQuery = {
@@ -95,18 +93,32 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
+// Sync with REPLAY_LIST_FIELDS below
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
-  | 'countErrors'
+  | 'count_errors'
   | 'duration'
-  | 'finishedAt'
+  | 'finished_at'
   | 'id'
-  | 'projectId'
-  | 'startedAt'
+  | 'project_id'
+  | 'started_at'
   | 'urls'
   | 'user'
 >;
+
+// Sync with ReplayListRecord above
+export const REPLAY_LIST_FIELDS: (keyof ReplayListRecord)[] = [
+  'activity',
+  'count_errors',
+  'duration',
+  'finished_at',
+  'id',
+  'project_id',
+  'started_at',
+  'urls',
+  'user',
+];
 
 export type ReplaySegment = {
   dateAdded: string;

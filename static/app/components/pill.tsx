@@ -2,7 +2,7 @@ import {memo} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type PillType = 'positive' | 'negative' | 'error';
 
@@ -144,7 +144,7 @@ const StyledPill = styled('li')<{type?: PillType}>`
   margin: 0 ${space(1)} ${space(1)} 0;
   display: flex;
   border-radius: ${p => p.theme.borderRadius};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   line-height: 1.2;
   max-width: 100%;
   :last-child {

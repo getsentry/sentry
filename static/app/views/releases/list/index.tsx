@@ -5,18 +5,18 @@ import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {getRelativeSummary} from 'sentry/components/organizations/timeRangeSelector/utils';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import Pagination from 'sentry/components/pagination';
 import {Panel} from 'sentry/components/panels';
@@ -27,10 +27,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconSearch} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {PageContent, PageHeader} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   PageFilters,
@@ -522,89 +521,91 @@ class ReleasesList extends AsyncView<Props, State> {
 
     return (
       <PageFiltersContainer showAbsolute={false}>
-        <PageContent>
-          <NoProjectMessage organization={organization}>
-            <PageHeader>
-              <PageHeading>
+        <NoProjectMessage organization={organization}>
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Layout.Title>
                 {t('Releases')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/releases/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/releases/"
+                  title={t(
+                    'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
                   )}
                 />
-              </PageHeading>
-            </PageHeader>
+              </Layout.Title>
+            </Layout.HeaderContent>
+          </Layout.Header>
 
-            {this.renderHealthCta()}
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {this.renderHealthCta()}
 
-            <ReleasesPageFilterBar condensed>
-              <GuideAnchor target="release_projects">
-                <ProjectPageFilter />
-              </GuideAnchor>
-              <EnvironmentPageFilter />
-              <DatePageFilter
-                alignDropdown="left"
-                disallowArbitraryRelativeRanges
-                hint={t('Changing this date range will recalculate the release metrics.')}
-              />
-            </ReleasesPageFilterBar>
-
-            {this.shouldShowQuickstart ? null : (
-              <SortAndFilterWrapper>
-                <GuideAnchor
-                  target="releases_search"
-                  position="bottom"
-                  disabled={!hasReleasesSetup}
-                >
-                  <StyledSmartSearchBar
-                    searchSource="releases"
-                    query={this.getQuery()}
-                    placeholder={t('Search by version, build, package, or stage')}
-                    hasRecentSearches={false}
-                    supportedTags={{
-                      ...SEMVER_TAGS,
-                      release: {
-                        key: 'release',
-                        name: 'release',
-                      },
-                    }}
-                    maxMenuHeight={500}
-                    supportedTagType={ItemType.PROPERTY}
-                    onSearch={this.handleSearch}
-                    onGetTagValues={this.getTagValues}
-                  />
+              <ReleasesPageFilterBar condensed>
+                <GuideAnchor target="release_projects">
+                  <ProjectPageFilter />
                 </GuideAnchor>
-                <ReleasesStatusOptions
-                  selected={activeStatus}
-                  onSelect={this.handleStatus}
+                <EnvironmentPageFilter />
+                <DatePageFilter
+                  alignDropdown="left"
+                  disallowArbitraryRelativeRanges
+                  hint={t(
+                    'Changing this date range will recalculate the release metrics.'
+                  )}
                 />
-                <ReleasesSortOptions
-                  selected={activeSort}
-                  selectedDisplay={activeDisplay}
-                  onSelect={this.handleSortBy}
-                  environments={selection.environments}
-                />
-                <ReleasesDisplayOptions
-                  selected={activeDisplay}
-                  onSelect={this.handleDisplay}
-                />
-              </SortAndFilterWrapper>
-            )}
+              </ReleasesPageFilterBar>
 
-            {!reloading &&
-              activeStatus === ReleasesStatusOption.ARCHIVED &&
-              !!releases?.length && <ReleaseArchivedNotice multi />}
+              {this.shouldShowQuickstart ? null : (
+                <SortAndFilterWrapper>
+                  <GuideAnchor
+                    target="releases_search"
+                    position="bottom"
+                    disabled={!hasReleasesSetup}
+                  >
+                    <StyledSmartSearchBar
+                      searchSource="releases"
+                      query={this.getQuery()}
+                      placeholder={t('Search by version, build, package, or stage')}
+                      hasRecentSearches={false}
+                      supportedTags={{
+                        ...SEMVER_TAGS,
+                        release: {
+                          key: 'release',
+                          name: 'release',
+                        },
+                      }}
+                      maxMenuHeight={500}
+                      supportedTagType={ItemType.PROPERTY}
+                      onSearch={this.handleSearch}
+                      onGetTagValues={this.getTagValues}
+                    />
+                  </GuideAnchor>
+                  <ReleasesStatusOptions
+                    selected={activeStatus}
+                    onSelect={this.handleStatus}
+                  />
+                  <ReleasesSortOptions
+                    selected={activeSort}
+                    selectedDisplay={activeDisplay}
+                    onSelect={this.handleSortBy}
+                    environments={selection.environments}
+                  />
+                  <ReleasesDisplayOptions
+                    selected={activeDisplay}
+                    onSelect={this.handleDisplay}
+                  />
+                </SortAndFilterWrapper>
+              )}
 
-            {error
-              ? super.renderError(new Error('Unable to load all required endpoints'))
-              : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
-          </NoProjectMessage>
-        </PageContent>
+              {!reloading &&
+                activeStatus === ReleasesStatusOption.ARCHIVED &&
+                !!releases?.length && <ReleaseArchivedNotice multi />}
+
+              {error
+                ? super.renderError(new Error('Unable to load all required endpoints'))
+                : this.renderInnerBody(activeDisplay, showReleaseAdoptionStages)}
+            </Layout.Main>
+          </Layout.Body>
+        </NoProjectMessage>
       </PageFiltersContainer>
     );
   }
@@ -637,6 +638,9 @@ const SortAndFilterWrapper = styled('div')`
 
   @media (max-width: ${p => p.theme.breakpoints.medium}) {
     grid-template-columns: repeat(3, 1fr);
+    & > div {
+      width: auto;
+    }
   }
   @media (max-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: minmax(0, 1fr);

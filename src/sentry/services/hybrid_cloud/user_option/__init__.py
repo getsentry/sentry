@@ -1,41 +1,68 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterable, List, Optional
+from typing import Any, Iterable, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
 from sentry.silo import SiloMode
-
-if TYPE_CHECKING:
-    from sentry.models import Organization, Project
 
 
 @dataclass
-class ApiUserOption:
+class RpcUserOption:
     id: int = -1
     user_id: int = -1
     value: Any = None
     key: str = ""
-    project_id: int | None = None
-    organization_id: int | None = None
+    project_id: Optional[int] = None
+    organization_id: Optional[int] = None
 
 
-class UserOptionService(InterfaceWithLifecycle):
+def get_option_from_list(
+    options: List[RpcUserOption],
+    *,
+    key: Optional[str] = None,
+    user_id: Optional[int] = None,
+    default: Any = None,
+) -> Any:
+    for option in options:
+        if key is not None and option.key != key:
+            continue
+        if user_id is not None and option.user_id != user_id:
+            continue
+        return option.value
+    return default
+
+
+class UserOptionFilterArgs(TypedDict, total=False):
+    user_ids: Iterable[int]
+    keys: List[str]
+    key: str
+    project_id: Optional[int]
+    organization_id: Optional[int]
+
+
+class UserOptionService(
+    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], InterfaceWithLifecycle
+):
     @abstractmethod
-    def delete_options(self, *, options: List[ApiUserOption]) -> None:
+    def delete_options(self, *, option_ids: List[int]) -> None:
         pass
 
     @abstractmethod
-    def get_many(
+    def set_option(
         self,
         *,
-        user_ids: Iterable[int],
-        keys: List[str],
-        project: Optional[Project] = None,
-        organization: Optional[Organization] = None,
-    ) -> List[ApiUserOption]:
-        """ """
+        user_id: int,
+        value: Any,
+        key: str,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
         pass
 
 

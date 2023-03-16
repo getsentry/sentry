@@ -7,6 +7,12 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
+defaults:
+  run:
+    # the default default is:
+    #      bash --noprofile --norc -eo pipefail {0}
+    shell: bash --noprofile --norc -eo pipefail -ux {0}
+
 jobs:
   did-migration-change:
     name: check if any migration changes
@@ -36,7 +42,6 @@ jobs:
 
     steps:
       - name: Failure because of modified migration
-        shell: bash
         run: |
           echo "If you have a valid reason to modify a migration please get approval"
           echo "from @getsentry/owners-migrations, then ask a Github admin to merge." && exit 1

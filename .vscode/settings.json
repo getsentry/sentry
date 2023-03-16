@@ -9,7 +9,8 @@
     "htmlcov": true,
     "node_modules": true,
     "src/sentry/locale": true,
-    "src/sentry/static/sentry/dist/": true
+    "src/sentry/static/sentry/dist/": true,
+    "model-manifest.json": true
   },
   "search.followSymlinks": false,
   "files.trimTrailingWhitespace": true,
@@ -35,10 +36,11 @@
   },
   // Exclude Specific Files from Auto-Imports
   "typescript.preferences.autoImportFileExcludePatterns": [
-    "**/node_modules/@storybook/theming/*",
-    "**/node_modules/@storybook/addons/*",
-    "**/node_modules/@testing-library/*"
+    "**/node_modules/@testing-library/*",
+    "**/node_modules/@tanstack/react-query"
   ],
+  // Avoid relative imports
+  "typescript.preferences.importModuleSpecifier": "non-relative",
 
   "[typescriptreact]": {
     "editor.formatOnSave": true,

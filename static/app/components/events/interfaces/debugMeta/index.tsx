@@ -10,15 +10,14 @@ import {
 import styled from '@emotion/styled';
 
 import {openModal, openReprocessEventModal} from 'sentry/actionCreators/modal';
-import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {Button} from 'sentry/components/button';
+import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {PanelTable} from 'sentry/components/panels';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group, Organization, Project} from 'sentry/types';
 import {Image, ImageStatus} from 'sentry/types/debugImage';
 import {Event} from 'sentry/types/event';
@@ -47,23 +46,19 @@ type DefaultProps = {
   };
 };
 
-type FilterOptions = NonNullable<
-  React.ComponentProps<typeof SearchBarAction>['filterOptions']
->;
-
 type Images = Array<React.ComponentProps<typeof DebugImage>['image']>;
 
 type Props = DefaultProps &
   WithRouterProps & {
     event: Event;
     organization: Organization;
-    projectId: Project['id'];
+    projectSlug: Project['slug'];
     groupId?: Group['id'];
   };
 
 type State = {
-  filterOptions: FilterOptions;
-  filterSelections: FilterOptions;
+  filterOptions: SelectSection<string>[];
+  filterSelections: SelectOption<string>[];
   filteredImages: Images;
   filteredImagesByFilter: Images;
   filteredImagesBySearch: Images;
@@ -225,7 +220,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return;
     }
 
-    const {location, organization, projectId: projSlug, groupId, event} = this.props;
+    const {location, organization, projectSlug, groupId, event} = this.props;
     const {query} = location;
 
     const {imageCodeId, imageDebugId} = query;
@@ -253,7 +248,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
           {...deps}
           image={image}
           organization={organization}
-          projSlug={projSlug}
+          projSlug={projectSlug}
           event={event}
           onReprocessEvent={
             defined(groupId) ? this.handleReprocessEvent(groupId) : undefined
@@ -325,9 +320,9 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     const filteredImages = [...usedImages, ...unusedImages];
 
     const filterOptions = this.getFilterOptions(filteredImages);
-    const defaultFilterSelections = (filterOptions[0].options ?? []).filter(
-      opt => opt.value !== ImageStatus.UNUSED
-    );
+    const defaultFilterSelections = (
+      'options' in filterOptions[0] ? filterOptions[0].options : []
+    ).filter(opt => opt.value !== ImageStatus.UNUSED);
 
     this.setState({
       filteredImages,
@@ -341,20 +336,23 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     });
   }
 
-  getFilterOptions(images: Images): FilterOptions {
+  getFilterOptions(images: Images): SelectSection<string>[] {
     return [
       {
-        value: 'status',
         label: t('Status'),
         options: [...new Set(images.map(image => image.status))].map(status => ({
           value: status,
+          textValue: status,
           label: <Status status={status} />,
         })),
       },
     ];
   }
 
-  getFilteredImagesByFilter(filteredImages: Images, filterOptions: FilterOptions) {
+  getFilteredImagesByFilter(
+    filteredImages: Images,
+    filterOptions: SelectOption<string>[]
+  ) {
     const checkedOptions = new Set(filterOptions.map(option => option.value));
 
     if (![...checkedOptions].length) {
@@ -364,7 +362,7 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     return filteredImages.filter(image => checkedOptions.has(image.status));
   }
 
-  handleChangeFilter = (filterSelections: FilterOptions) => {
+  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
     const {filteredImagesBySearch} = this.state;
     const filteredImagesByFilter = this.getFilteredImagesByFilter(
       filteredImagesBySearch,
@@ -523,7 +521,9 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
       return null;
     }
 
-    const showFilters = filterOptions.some(section => (section.options ?? []).length > 1);
+    const showFilters = filterOptions.some(
+      section => 'options' in section && section.options.length > 1
+    );
 
     const actions = (
       <ToggleButton onClick={this.toggleImagesLoaded} priority="link">
@@ -534,23 +534,12 @@ class DebugMetaWithRouter extends PureComponent<Props, State> {
     return (
       <EventDataSection
         type="images-loaded"
-        title={
-          <TitleWrapper>
-            <GuideAnchor target="images-loaded" position="bottom">
-              <Title>{t('Images Loaded')}</Title>
-            </GuideAnchor>
-            <StyledQuestionTooltip
-              size="xs"
-              position="top"
-              title={t(
-                'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
-              )}
-            />
-          </TitleWrapper>
-        }
+        guideTarget="images-loaded"
+        title={t('Images Loaded')}
+        help={t(
+          'A list of dynamic libraries or shared objects loaded into process memory at the time of the crash. Images contribute application code that is referenced in stack traces.'
+        )}
         actions={actions}
-        wrapTitle={false}
-        isCentered
       >
         {isOpen && (
           <Fragment>
@@ -605,20 +594,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarWidth?: number}>`
   ${p => layout(p.theme, p.scrollbarWidth)}
 `;
 
-const TitleWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: ${space(0.5)};
-  align-items: center;
-  padding: ${space(0.75)} 0;
-`;
-
-const Title = styled('h3')`
-  margin-bottom: 0;
-  padding: 0 !important;
-  height: 14px;
-`;
-
 // XXX(ts): Emotion11 has some trouble with List's defaultProps
 const StyledList = styled(List as any)<React.ComponentProps<typeof List>>`
   height: auto !important;
@@ -639,8 +614,4 @@ const ToggleButton = styled(Button)`
   &:focus {
     color: ${p => p.theme.textColor};
   }
-`;
-
-const StyledQuestionTooltip = styled(QuestionTooltip)`
-  z-index: 2;
 `;

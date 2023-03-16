@@ -2,12 +2,11 @@ import {Fragment, ReactChild, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {SpanEvidenceKeyValueList} from 'sentry/components/events/interfaces/performance/spanEvidenceKeyValueList';
-import {getSpanInfoFromTransactionEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
 import {useDelayedLoadingState} from 'sentry/components/groupPreviewTooltip/utils';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventTransaction} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -24,6 +23,7 @@ type SpanEvidencePreviewBodyProps = {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
+  projectSlug?: string;
 };
 
 const makeGroupPreviewRequestUrl = ({
@@ -53,6 +53,7 @@ const SpanEvidencePreviewBody = ({
   onRequestBegin,
   onRequestEnd,
   onUnmount,
+  projectSlug,
 }: SpanEvidencePreviewBodyProps) => {
   const {data, isLoading, isError} = useQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
@@ -81,17 +82,10 @@ const SpanEvidencePreviewBody = ({
     return <EmptyWrapper>{t('Failed to load preview')}</EmptyWrapper>;
   }
 
-  const spanInfo = data && getSpanInfoFromTransactionEvent(data);
-
-  if (spanInfo && data) {
+  if (data) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
-        <SpanEvidenceKeyValueList
-          issueType={data?.perfProblem?.issueType}
-          transactionName={data.title}
-          parentSpan={spanInfo.parentSpan}
-          offendingSpan={spanInfo.offendingSpan}
-        />
+        <SpanEvidenceKeyValueList event={data} projectSlug={projectSlug} />
       </SpanEvidencePreviewWrapper>
     );
   }
@@ -132,6 +126,7 @@ export const SpanEvidencePreview = ({
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
           endpointUrl={endpointUrl}
+          projectSlug={projectSlug}
         />
       }
     >

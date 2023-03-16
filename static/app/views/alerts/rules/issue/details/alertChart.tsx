@@ -9,7 +9,7 @@ import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
@@ -19,14 +19,13 @@ import withSentryRouter from 'sentry/utils/withSentryRouter';
 type Props = AsyncComponent['props'] &
   DateTimeObject &
   WithRouterProps & {
-    orgId: string;
     organization: Organization;
     project: Project;
     rule: IssueAlertRule;
   };
 
 type State = AsyncComponent['state'] & {
-  ruleFireHistory: ProjectAlertRuleStats[];
+  ruleFireHistory: ProjectAlertRuleStats[] | null;
 };
 
 class AlertChart extends AsyncComponent<Props, State> {
@@ -77,10 +76,11 @@ class AlertChart extends AsyncComponent<Props, State> {
 
     const series = {
       seriesName: 'Alerts Triggered',
-      data: ruleFireHistory.map(alert => ({
-        name: alert.date,
-        value: alert.count,
-      })),
+      data:
+        ruleFireHistory?.map(alert => ({
+          name: alert.date,
+          value: alert.count,
+        })) ?? [],
       emphasis: {
         disabled: true,
       },
@@ -129,10 +129,8 @@ class AlertChart extends AsyncComponent<Props, State> {
   render() {
     const {ruleFireHistory, loading} = this.state;
 
-    const totalAlertsTriggered = ruleFireHistory.reduce(
-      (acc, curr) => acc + curr.count,
-      0
-    );
+    const totalAlertsTriggered =
+      ruleFireHistory?.reduce((acc, curr) => acc + curr.count, 0) ?? 0;
 
     return loading ? (
       this.renderEmpty()

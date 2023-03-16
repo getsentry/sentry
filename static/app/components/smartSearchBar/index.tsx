@@ -35,7 +35,7 @@ import {
 import {IconClose, IconEllipsis, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearchType, Tag, TagCollection, User} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -48,8 +48,7 @@ import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import DropdownMenuControl from '../dropdownMenuControl';
-import {MenuItemProps} from '../dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from '../dropdownMenu';
 
 import {ActionButton} from './actionButton';
 import SearchBarDatePicker from './searchBarDatePicker';
@@ -367,9 +366,12 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
   }
 
   componentDidUpdate(prevProps: Props) {
-    const {query, customPerformanceMetrics} = this.props;
-    const {query: lastQuery, customPerformanceMetrics: lastCustomPerformanceMetrics} =
-      prevProps;
+    const {query, customPerformanceMetrics, actionBarItems} = this.props;
+    const {
+      query: lastQuery,
+      customPerformanceMetrics: lastCustomPerformanceMetrics,
+      actionBarItems: lastAcionBarItems,
+    } = prevProps;
 
     if (
       (query !== lastQuery && (defined(query) || defined(lastQuery))) ||
@@ -377,6 +379,10 @@ class SmartSearchBar extends Component<DefaultProps & Props, State> {
     ) {
       // eslint-disable-next-line react/no-did-update-set-state
       this.setState(this.makeQueryState(addSpace(query ?? undefined)));
+    }
+
+    if (lastAcionBarItems?.length !== actionBarItems?.length) {
+      this.setState({numActionsVisible: actionBarItems?.length ?? 0});
     }
   }
 
@@ -1937,7 +1943,7 @@ export {SmartSearchBar, Props as SmartSearchBarProps};
 const Container = styled('div')<{inputHasFocus: boolean}>`
   min-height: ${p => p.theme.form.md.height}px;
   border: 1px solid ${p => p.theme.border};
-  box-shadow: inset ${p => p.theme.dropShadowLight};
+  box-shadow: inset ${p => p.theme.dropShadowMedium};
   background: ${p => p.theme.background};
   padding: 6px ${space(1)};
   position: relative;
@@ -2036,6 +2042,6 @@ const VerticalEllipsisIcon = styled(IconEllipsis)`
   transform: rotate(90deg);
 `;
 
-const OverlowingActionsMenu = styled(DropdownMenuControl)`
+const OverlowingActionsMenu = styled(DropdownMenu)`
   display: flex;
 `;

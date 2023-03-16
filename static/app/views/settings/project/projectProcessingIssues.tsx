@@ -6,7 +6,7 @@ import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicato
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -60,7 +60,7 @@ const HELP_LINKS = {
 type Props = {
   api: Client;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   error: boolean;
@@ -88,11 +88,12 @@ class ProjectProcessingIssues extends Component<Props, State> {
   }
 
   fetchData = () => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 2,
     });
-    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
+    this.props.api.request(`/projects/${organization.slug}/${projectId}/`, {
       success: data => {
         const expected = this.state.expected - 1;
         this.setState({
@@ -112,7 +113,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
     });
 
     this.props.api.request(
-      `/projects/${orgId}/${projectId}/processingissues/?detailed=1`,
+      `/projects/${organization.slug}/${projectId}/processingissues/?detailed=1`,
       {
         success: (data, _, resp) => {
           const expected = this.state.expected - 1;
@@ -146,8 +147,9 @@ class ProjectProcessingIssues extends Component<Props, State> {
 
     addLoadingMessage(t('Started reprocessing\u2026'));
 
-    const {orgId, projectId} = this.props.params;
-    this.props.api.request(`/projects/${orgId}/${projectId}/reprocessing/`, {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    this.props.api.request(`/projects/${organization.slug}/${projectId}/reprocessing/`, {
       method: 'POST',
       success: () => {
         this.fetchData();
@@ -167,61 +169,69 @@ class ProjectProcessingIssues extends Component<Props, State> {
   };
 
   discardEvents = () => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/discard/`, {
-      method: 'DELETE',
-      success: () => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: false,
-          loading: expected > 0,
-        });
-        // TODO (billyvg): Need to fix this
-        // we reload to get rid of the badge in the sidebar
-        window.location.reload();
-      },
-      error: () => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: true,
-          loading: expected > 0,
-        });
-      },
-    });
+    this.props.api.request(
+      `/projects/${organization.slug}/${projectId}/processingissues/discard/`,
+      {
+        method: 'DELETE',
+        success: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: false,
+            loading: expected > 0,
+          });
+          // TODO (billyvg): Need to fix this
+          // we reload to get rid of the badge in the sidebar
+          window.location.reload();
+        },
+        error: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: true,
+            loading: expected > 0,
+          });
+        },
+      }
+    );
   };
 
   deleteProcessingIssues = () => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     this.setState({
       expected: this.state.expected + 1,
     });
-    this.props.api.request(`/projects/${orgId}/${projectId}/processingissues/`, {
-      method: 'DELETE',
-      success: () => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: false,
-          loading: expected > 0,
-        });
-        // TODO (billyvg): Need to fix this
-        // we reload to get rid of the badge in the sidebar
-        window.location.reload();
-      },
-      error: () => {
-        const expected = this.state.expected - 1;
-        this.setState({
-          expected,
-          error: true,
-          loading: expected > 0,
-        });
-      },
-    });
+    this.props.api.request(
+      `/projects/${organization.slug}/${projectId}/processingissues/`,
+      {
+        method: 'DELETE',
+        success: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: false,
+            loading: expected > 0,
+          });
+          // TODO (billyvg): Need to fix this
+          // we reload to get rid of the badge in the sidebar
+          window.location.reload();
+        },
+        error: () => {
+          const expected = this.state.expected - 1;
+          this.setState({
+            expected,
+            error: true,
+            loading: expected > 0,
+          });
+        },
+      }
+    );
   };
 
   renderDebugTable() {
@@ -355,7 +365,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
                 "Paste this command into your shell and we'll attempt to upload the missing symbols from your machine:"
               )}
             </label>
-            <TextCopyInput monospace>{'curl -sL "{fixLink}" | bash'}</TextCopyInput>
+            <TextCopyInput monospace>{`curl -sL "${fixLink}" | bash`}</TextCopyInput>
           </PanelBody>
         </Panel>
       );
@@ -416,12 +426,13 @@ class ProjectProcessingIssues extends Component<Props, State> {
     }
 
     const {formData} = this.state;
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     return (
       <Form
         saveOnBlur
         onSubmitSuccess={this.deleteProcessingIssues}
-        apiEndpoint={`/projects/${orgId}/${projectId}/`}
+        apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         apiMethod="PUT"
         initialData={formData}
       >

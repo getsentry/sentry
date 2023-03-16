@@ -39,8 +39,8 @@ from sentry.models import (
     UserPermission,
     UserRoleUser,
 )
-from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
 
@@ -119,10 +119,10 @@ class UserSerializerResponseSelf(UserSerializerResponse):
 
 @register(User)
 class UserSerializer(Serializer):  # type: ignore
-    def _user_is_requester(self, obj: User, requester: User | AnonymousUser | APIUser) -> bool:
+    def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
         if isinstance(requester, User):
             return bool(requester == obj)
-        if isinstance(requester, APIUser):
+        if isinstance(requester, RpcUser):
             return bool(requester.id == obj.id)
         return False
 
@@ -130,7 +130,7 @@ class UserSerializer(Serializer):  # type: ignore
         self, item_list: Sequence[User], user: User
     ) -> Dict[int, List[AuthIdentity]]:
         if not (env.request and is_active_superuser(env.request)):
-            item_list = [x for x in item_list if x == user]
+            item_list = [x for x in item_list if x.id == user.id]
 
         queryset = AuthIdentity.objects.filter(
             user_id__in=[i.id for i in item_list]
@@ -162,7 +162,7 @@ class UserSerializer(Serializer):  # type: ignore
         return data
 
     def serialize(
-        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | APIUser
+        self, obj: User, attrs: MutableMapping[User, Any], user: User | AnonymousUser | RpcUser
     ) -> Union[UserSerializerResponse, UserSerializerResponseSelf]:
         experiment_assignments = experiments.all(user=user)
 
@@ -192,7 +192,7 @@ class UserSerializer(Serializer):  # type: ignore
             d = cast(UserSerializerResponseSelf, d)
             options = {
                 o.key: o.value
-                for o in UserOption.objects.filter(user_id=user.id, project__isnull=True)
+                for o in UserOption.objects.filter(user_id=user.id, project_id__isnull=True)
             }
             stacktrace_order = int(options.get("stacktrace_order", -1) or -1)
 
@@ -224,7 +224,7 @@ class UserSerializer(Serializer):  # type: ignore
                 only_visible=False,
                 organization_ids=list(organization_ids),
             )
-            orgs_by_id: Mapping[int, ApiOrganizationSummary] = {
+            orgs_by_id: Mapping[int, RpcOrganizationSummary] = {
                 o.id: o for o in auth_identity_organizations
             }
 

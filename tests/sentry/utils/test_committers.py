@@ -7,8 +7,10 @@ import pytest
 from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, GroupRelease, Release, Repository
+from sentry.models.integrations.integration import Integration
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.committers import (
     _get_commit_file_changes,
@@ -306,6 +308,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_kotlin_java_sdk_path_mangling(self):
         event = self.store_event(
@@ -481,6 +484,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] > 1
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_cocoa_swift_repo_relative_path(self):
         event = self.store_event(
@@ -541,6 +545,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] > 1
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_react_native_unchanged_frames(self):
         event = self.store_event(
@@ -610,6 +615,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_flutter_munged_frames(self):
         event = self.store_event(
@@ -663,6 +669,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
         assert result[0]["commits"][0]["score"] == 3
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_matching(self):
         event = self.store_event(
@@ -715,6 +722,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_matching_case_insensitive(self):
         event = self.store_event(
@@ -758,6 +766,7 @@ class GetEventFileCommitters(CommitTestCase):
         assert "commits" in result[0]
         assert len(result[0]["commits"]) == 1
         assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
     def test_not_matching(self):
         event = self.store_event(
@@ -842,6 +851,61 @@ class GetEventFileCommitters(CommitTestCase):
 
         with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
+
+    @with_feature("organizations:commit-context")
+    def test_commit_context_fallback(self):
+        Integration.objects.all().delete()
+        event = self.store_event(
+            data={
+                "message": "Kaboom!",
+                "platform": "python",
+                "timestamp": iso_format(before_now(seconds=1)),
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handle_set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/tasks.py",
+                            "module": "sentry.tasks",
+                            "in_app": True,
+                            "lineno": 30,
+                            "filename": "sentry/tasks.py",
+                        },
+                        {
+                            "function": "set_commits",
+                            "abs_path": "/usr/src/sentry/src/sentry/models/release.py",
+                            "module": "sentry.models.release",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "sentry/models/release.py",
+                        },
+                    ]
+                },
+                "tags": {"sentry:release": self.release.version},
+            },
+            project_id=self.project.id,
+        )
+        self.release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "bob@example.com",
+                    "author_name": "Bob",
+                    "message": "i fixed a bug",
+                    "patch_set": [{"path": "src/sentry/models/release.py", "type": "M"}],
+                }
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
+        )
+
+        result = get_serialized_event_file_committers(self.project, event)
+        assert len(result) == 1
+        assert "commits" in result[0]
+        assert len(result[0]["commits"]) == 1
+        assert result[0]["commits"][0]["id"] == "a" * 40
+        assert result[0]["commits"][0]["suspectCommitType"] == "via commit in release"
 
 
 class DedupeCommits(CommitTestCase):

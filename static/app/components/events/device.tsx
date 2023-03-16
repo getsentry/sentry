@@ -1,6 +1,7 @@
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import KeyValueList from './interfaces/keyValueList';
 
@@ -8,7 +9,7 @@ type Props = {
   event: Event;
 };
 
-function DeviceInterface({event}: Props) {
+export function EventDevice({event}: Props) {
   const data = event.device ?? {};
   const extras = Object.entries<any>(data.data ?? {}).map(([key, value]) => ({
     key,
@@ -17,10 +18,14 @@ function DeviceInterface({event}: Props) {
     isContextData: true,
   }));
 
+  if (objectIsEmpty(event.device)) {
+    return null;
+  }
+
   return (
-    <EventDataSection type="device" title={t('Device')} wrapTitle>
+    <EventDataSection type="device" title={t('Device')}>
       <KeyValueList
-        isSorted={false}
+        shouldSort={false}
         data={[
           {
             key: 'name',
@@ -43,5 +48,3 @@ function DeviceInterface({event}: Props) {
     </EventDataSection>
   );
 }
-
-export default DeviceInterface;

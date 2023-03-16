@@ -102,7 +102,7 @@ class SnubaProtocolEventStream(EventStream):
         received_timestamp: float,
         skip_consume: bool,
         group_states: Optional[GroupStates] = None,
-    ) -> Mapping[str, str]:
+    ) -> MutableMapping[str, str]:
         return {
             "Received-Timestamp": str(received_timestamp),
             "queue": self._get_queue_for_post_process(event),
@@ -159,6 +159,22 @@ class SnubaProtocolEventStream(EventStream):
         )
 
         event_type = self._get_event_type(event)
+        occurrence_data = self._get_occurrence_data(event)
+
+        # instead of normalizing and doing custom 'contexts' processing in snuba, we elect to do it here instead to
+        # avoid having to clutter up snuba code with business logic
+        if event_type == EventStreamEventType.Generic:
+            event_data = dict(event_data)
+            contexts = event_data.setdefault("contexts", {})
+
+            # add user.geo to contexts if it exists
+            user_dict = event_data.get("user") or event_data.get("sentry.interfaces.User") or {}
+            geo = user_dict.get("geo", {})
+            if "geo" not in contexts and isinstance(geo, dict):
+                contexts["geo"] = geo
+
+            # transactions processing has a configurable 'skipped contexts' to skip writing specific contexts maps
+            # to the row. for now, we're ignoring that until we have a need for it
 
         self._send(
             project.id,
@@ -178,7 +194,8 @@ class SnubaProtocolEventStream(EventStream):
                     "data": event_data,
                     "primary_hash": primary_hash,
                     "retention_days": retention_days,
-                    "occurrence_data": self._get_occurrence_data(event),
+                    "occurrence_id": occurrence_data.get("id"),
+                    "occurrence_data": occurrence_data,
                 },
                 {
                     "is_new": is_new,
@@ -374,7 +391,7 @@ class SnubaProtocolEventStream(EventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -388,7 +405,7 @@ class SnubaEventStream(SnubaProtocolEventStream):
         _type: str,
         extra_data: Tuple[Any, ...] = (),
         asynchronous: bool = True,
-        headers: Optional[Mapping[str, str]] = None,
+        headers: Optional[MutableMapping[str, str]] = None,
         skip_semantic_partitioning: bool = False,
         event_type: EventStreamEventType = EventStreamEventType.Error,
     ) -> None:
@@ -410,7 +427,9 @@ class SnubaEventStream(SnubaProtocolEventStream):
                 headers={f"X-Sentry-{k}": v for k, v in headers.items()},
             )
             if resp.status != 200:
-                raise snuba.SnubaError("HTTP %s response from Snuba!" % resp.status)
+                raise snuba.SnubaError(
+                    f"HTTP {resp.status} response from Snuba! {json.loads(resp.data)}"
+                )
             return None
         except urllib3.exceptions.HTTPError as err:
             raise snuba.SnubaError(err)
@@ -452,4 +471,5 @@ class SnubaEventStream(SnubaProtocolEventStream):
             self._get_queue_for_post_process(event),
             skip_consume,
             group_states,
+            occurrence_id=event.occurrence_id if isinstance(event, GroupEvent) else None,
         )

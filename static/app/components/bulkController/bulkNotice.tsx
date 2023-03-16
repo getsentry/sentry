@@ -1,11 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
+import {PanelAlert} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils';
-
-import Button from '../button';
-import {PanelAlert} from '../panels';
 
 function getSelectAllText(allRowsCount?: number, bulkLimit?: number) {
   if (!defined(allRowsCount)) {

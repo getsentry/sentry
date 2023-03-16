@@ -19,6 +19,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -30,6 +31,7 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DEVICE_CLASS_ALIAS,
     EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
@@ -57,6 +59,7 @@ from sentry.search.events.constants import (
     TEAM_KEY_TRANSACTION_ALIAS,
     TIMESTAMP_TO_DAY_ALIAS,
     TIMESTAMP_TO_HOUR_ALIAS,
+    TOTAL_COUNT_ALIAS,
     TRACE_PARENT_SPAN_ALIAS,
     TRACE_PARENT_SPAN_CONTEXT,
     TRANSACTION_STATUS_ALIAS,
@@ -87,7 +90,8 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
-from sentry.types.issues import GroupCategory
+from sentry.search.utils import DEVICE_CLASS
+from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -101,6 +105,7 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
+        self.total_count: Optional[int] = None
 
     @property
     def search_filter_converter(
@@ -146,6 +151,8 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_FRAMES_FROZEN_RATE: self._resolve_measurements_frames_frozen_rate,
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
+            TOTAL_COUNT_ALIAS: self._resolve_total_count,
+            DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
     @property
@@ -582,6 +589,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                     redundant_grouping=True,
                 ),
                 SnQLFunction(
+                    "linear_regression",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "simpleLinearRegression", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
                     "sum",
                     required_args=[NumericColumn("column")],
                     snql_aggregate=lambda args, alias: Function("sum", [args["column"]], alias),
@@ -711,84 +727,6 @@ class DiscoverDatasetConfig(DatasetConfig):
                     ),
                     default_result_type="number",
                     private=True,
-                ),
-                SnQLFunction(
-                    "spans_count_histogram",
-                    required_args=[
-                        SnQLStringArg("spans_op", True, True),
-                        # the bucket_size and start_offset should already be adjusted
-                        # using the multiplier before it is passed here
-                        NumberRange("bucket_size", 0, None),
-                        NumberRange("start_offset", 0, None),
-                        NumberRange("multiplier", 1, None),
-                    ],
-                    snql_column=lambda args, alias: Function(
-                        "plus",
-                        [
-                            Function(
-                                "multiply",
-                                [
-                                    Function(
-                                        "floor",
-                                        [
-                                            Function(
-                                                "divide",
-                                                [
-                                                    Function(
-                                                        "minus",
-                                                        [
-                                                            Function(
-                                                                "multiply",
-                                                                [
-                                                                    Function(
-                                                                        "length",
-                                                                        [
-                                                                            Function(
-                                                                                "arrayFilter",
-                                                                                [
-                                                                                    Lambda(
-                                                                                        [
-                                                                                            "x",
-                                                                                        ],
-                                                                                        Function(
-                                                                                            "equals",
-                                                                                            [
-                                                                                                Identifier(
-                                                                                                    "x"
-                                                                                                ),
-                                                                                                args[
-                                                                                                    "spans_op"
-                                                                                                ],
-                                                                                            ],
-                                                                                        ),
-                                                                                    ),
-                                                                                    Column(
-                                                                                        "spans.op"
-                                                                                    ),
-                                                                                ],
-                                                                            )
-                                                                        ],
-                                                                    ),
-                                                                    args["multiplier"],
-                                                                ],
-                                                            ),
-                                                            args["start_offset"],
-                                                        ],
-                                                    ),
-                                                    args["bucket_size"],
-                                                ],
-                                            ),
-                                        ],
-                                    ),
-                                    args["bucket_size"],
-                                ],
-                            ),
-                            args["start_offset"],
-                        ],
-                        alias,
-                    ),
-                    default_result_type="number",
-                    private=False,
                 ),
                 SnQLFunction(
                     "spans_histogram",
@@ -1285,6 +1223,56 @@ class DiscoverDatasetConfig(DatasetConfig):
     def _resolve_measurements_stall_percentage(self, _: str) -> SelectType:
         return self._resolve_aliased_division(
             "measurements.stall_total_time", "transaction.duration", MEASUREMENTS_STALL_PERCENTAGE
+        )
+
+    def _resolve_total_count(self, alias: str) -> SelectType:
+        """This must be cached since it runs another query"""
+        self.builder.requires_other_aggregates = True
+        if self.total_count is not None:
+            return Function("toUInt64", [self.total_count], alias)
+        total_query = builder.QueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=["count()"],
+        )
+        total_query.columns += self.builder.resolve_groupby()
+        total_query.where = self.builder.where
+        total_results = total_query.run_query(Referrer.API_DISCOVER_TOTAL_COUNT_FIELD.value)
+        results = total_query.process_results(total_results)
+        if len(results["data"]) != 1:
+            self.total_count = 0
+            return Function("toUInt64", [0], alias)
+        self.total_count = results["data"][0]["count"]
+        return Function("toUInt64", [self.total_count], alias)
+
+    def _resolve_device_class(self, _: str) -> SelectType:
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["low"])]
+                ),
+                "low",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["medium"]),
+                    ],
+                ),
+                "medium",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["high"]),
+                    ],
+                ),
+                "high",
+                None,
+            ],
+            DEVICE_CLASS_ALIAS,
         )
 
     # Functions

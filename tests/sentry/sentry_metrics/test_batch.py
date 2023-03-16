@@ -1,4 +1,5 @@
 import logging
+from collections.abc import MutableMapping
 from datetime import datetime, timezone
 
 import pytest
@@ -114,6 +115,23 @@ def _deconstruct_messages(snuba_messages):
     ]
 
 
+def _deconstruct_routing_messages(snuba_messages):
+    """
+    Similar to `_deconstruct_messages`, but for routing messages.
+    """
+    all_messages = []
+    for msg in snuba_messages:
+        headers: MutableMapping[str, str] = {}
+        for key, value in msg.payload.routing_header.items():
+            headers.update({key: value})
+
+        payload = json.loads(msg.payload.routing_message.value.decode("utf-8"))
+
+        all_messages.append((headers, payload, msg.payload.routing_message.headers))
+
+    return all_messages
+
+
 def _get_string_indexer_log_records(caplog):
     """
     Get all log records and relevant extra arguments for easy snapshotting.
@@ -185,7 +203,7 @@ def test_extract_strings_with_rollout(should_index_tag_values, expected):
             (set_payload, []),
         ]
     )
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, should_index_tag_values, False)
 
     assert batch.extract_strings() == expected
 
@@ -200,7 +218,7 @@ def test_all_resolved(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -322,6 +340,281 @@ def test_all_resolved(caplog, settings):
     ]
 
 
+def test_all_resolved_with_routing_information(caplog, settings):
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, True)
+    assert batch.extract_strings() == (
+        {
+            1: {
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
+                "environment",
+                "errored",
+                "healthy",
+                "init",
+                "production",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
+            }
+        },
+        {
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+    assert _deconstruct_routing_messages(snuba_payloads) == [
+        (
+            {"org_id": 1},
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": "c:sessions/session@none",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"6": "init"},
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 6},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "performance",
+                "value": 1.0,
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "c")],
+        ),
+        (
+            {"org_id": 1},
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": "d:sessions/duration@second",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"5": "healthy"},
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 5},
+                "timestamp": ts,
+                "type": "d",
+                "unit": "seconds",
+                "use_case_id": "performance",
+                "value": [4, 5, 6],
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "d")],
+        ),
+        (
+            {"org_id": 1},
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "7": "production",
+                        "8": "s:sessions/error@none",
+                        "9": "session.status",
+                    },
+                    "d": {"4": "errored"},
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 4},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [("mapping_sources", b"cd"), ("metric_type", "s")],
+        ),
+    ]
+
+
+def test_all_resolved_retention_days_honored(caplog, settings):
+    """
+    Tests that the indexer batch honors the incoming retention_days values
+    from Relay or falls back to 90.
+    """
+
+    distribution_payload_modified = distribution_payload.copy()
+    distribution_payload_modified["retention_days"] = 30
+
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload_modified, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    assert batch.extract_strings() == (
+        {
+            1: {
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
+                "environment",
+                "errored",
+                "healthy",
+                "init",
+                "production",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
+            }
+        },
+        {
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+    assert _deconstruct_messages(snuba_payloads) == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": "c:sessions/session@none",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"6": "init"},
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 6},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "performance",
+                "value": 1.0,
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": "d:sessions/duration@second",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"5": "healthy"},
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 30,
+                "tags": {"3": 7, "9": 5},
+                "timestamp": ts,
+                "type": "d",
+                "unit": "seconds",
+                "use_case_id": "performance",
+                "value": [4, 5, 6],
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "7": "production",
+                        "8": "s:sessions/error@none",
+                        "9": "session.status",
+                    },
+                    "d": {"4": "errored"},
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 4},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [("mapping_sources", b"cd"), ("metric_type", "s")],
+        ),
+    ]
+
+
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
     Tests that the indexer batch skips resolving tag values for indexing and
@@ -341,7 +634,7 @@ def test_batch_resolve_with_values_not_indexed(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, False, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -458,7 +751,7 @@ def test_metric_id_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -554,7 +847,7 @@ def test_tag_key_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -632,7 +925,7 @@ def test_tag_value_rate_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -749,7 +1042,7 @@ def test_one_org_limited(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     assert batch.extract_strings() == (
         {
             1: {
@@ -863,7 +1156,7 @@ def test_cardinality_limiter(caplog, settings):
         ]
     )
 
-    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True)
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
     keys_to_remove = list(batch.parsed_payloads_by_offset)[:2]
     # the messages come in a certain order, and Python dictionaries preserve
     # their insertion order. So we can hardcode offsets here.

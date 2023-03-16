@@ -19,7 +19,7 @@ describe('DebugMeta', function () {
         <GlobalModal />
         <DebugMeta
           organization={organization}
-          projectId={project.id}
+          projectSlug={project.slug}
           event={event}
           data={eventEntryDebugMeta.data}
           {...routerProps}

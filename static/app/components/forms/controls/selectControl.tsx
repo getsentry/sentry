@@ -1,6 +1,7 @@
 import {forwardRef, useCallback, useMemo} from 'react';
 import ReactSelect, {
   components as selectComponents,
+  createFilter,
   GroupedOptionsType,
   mergeStyles,
   OptionsType,
@@ -17,7 +18,7 @@ import omit from 'lodash/omit';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Choices, SelectValue} from 'sentry/types';
 import convertFromSelect2Choices from 'sentry/utils/convertFromSelect2Choices';
 import PanelProvider from 'sentry/utils/panelProvider';
@@ -42,7 +43,7 @@ const ClearIndicator = (
   props: React.ComponentProps<typeof selectComponents.ClearIndicator>
 ) => (
   <selectComponents.ClearIndicator {...props}>
-    <IconClose size="10px" />
+    <IconClose legacySize="10px" />
   </selectComponents.ClearIndicator>
 );
 
@@ -50,7 +51,7 @@ const DropdownIndicator = (
   props: React.ComponentProps<typeof selectComponents.DropdownIndicator>
 ) => (
   <selectComponents.DropdownIndicator {...props}>
-    <IconChevron direction="down" size="14px" />
+    <IconChevron direction="down" legacySize="14px" />
   </selectComponents.DropdownIndicator>
 );
 
@@ -58,7 +59,7 @@ const MultiValueRemove = (
   props: React.ComponentProps<typeof selectComponents.MultiValueRemove>
 ) => (
   <selectComponents.MultiValueRemove {...props}>
-    <IconClose size="8px" />
+    <IconClose legacySize="8px" />
   </selectComponents.MultiValueRemove>
 );
 
@@ -113,11 +114,6 @@ export type ControlProps<OptionType extends OptionTypeBase = GeneralSelectValue>
    */
   inFieldLabel?: string;
   /**
-   * Whether this is used inside compactSelect. See
-   * components/compactSelect.tsx
-   */
-  isCompact?: boolean;
-  /**
    * Maximum width of the menu component. Menu item labels that overflow the
    * menu's boundaries will automatically be truncated.
    */
@@ -168,7 +164,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
   props: WrappedControlProps<OptionType>
 ) {
   const theme = useTheme();
-  const {size, isCompact, isSearchable, maxMenuWidth, maxMenuHeight, menuTitle} = props;
+  const {size, maxMenuWidth} = props;
 
   // TODO(epurkhiser): The loading indicator should probably also be our loading
   // indicator.
@@ -188,14 +184,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
 
   const defaultStyles = useMemo<StylesConfig>(
     () => ({
-      container: provided => ({
-        ...provided,
-        ...(isCompact && {
-          display: 'flex',
-          flexDirection: 'column',
-          maxHeight: maxMenuHeight,
-        }),
-      }),
       control: (_, state: any) => ({
         display: 'flex',
         // @ts-ignore Ignore merge errors as only defining the property once
@@ -204,7 +192,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
           color: theme.formText,
           background: theme.background,
           border: `1px solid ${theme.border}`,
-          boxShadow: theme.dropShadowLight,
+          boxShadow: theme.dropShadowMedium,
         },
         borderRadius: theme.borderRadius,
         transition: 'border 0.1s, box-shadow 0.1s',
@@ -222,23 +210,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         ...(!state.isSearchable && {
           cursor: 'pointer',
         }),
-        ...(isCompact
-          ? {
-              padding: `${space(0.5)} ${space(0.5)}`,
-              borderRadius: 0,
-              border: 'none',
-              boxShadow: 'none',
-              cursor: 'initial',
-              minHeight: 'none',
-              ...(isSearchable
-                ? {marginTop: 1}
-                : {
-                    height: 0,
-                    padding: 0,
-                    overflow: 'hidden',
-                  }),
-            }
-          : omit(theme.form[size ?? 'md'], 'height')),
+        ...omit(theme.form[size ?? 'md'], 'height'),
       }),
 
       menu: provided => ({
@@ -251,34 +223,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         width: 'auto',
         minWidth: '100%',
         maxWidth: maxMenuWidth ?? 'auto',
-        ...(isCompact && {
-          display: 'flex',
-          flexDirection: 'column',
-          position: 'static',
-          minHeight: 0,
-          maxHeight: '100%',
-          margin: 0,
-          borderRadius: 0,
-          border: 'none',
-          boxShadow: 'none',
-          zIndex: 'initial',
-          ...(isSearchable && {paddingTop: 0}),
-        }),
-      }),
-
-      menuList: provided => ({
-        ...provided,
-        ...(isCompact && {
-          paddingTop: isSearchable
-            ? 0
-            : // If the menu title is present, then add 1px to the top padding to ensure
-            // even padding (the menu title element has a box-shadow border that takes up
-            // zero height)
-            menuTitle
-            ? `calc(${space(0.5)} + 1px)`
-            : space(0.5),
-          paddingBottom: space(0.5),
-        }),
       }),
 
       menuPortal: () => ({
@@ -309,26 +253,13 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       valueContainer: provided => ({
         ...provided,
         alignItems: 'center',
-        ...(isCompact
-          ? {
-              padding: `${space(0.5)} ${space(1)}`,
-              border: `1px solid ${theme.innerBorder}`,
-              borderRadius: theme.borderRadius,
-              cursor: 'text',
-              background: theme.backgroundSecondary,
-            }
-          : {
-              paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
-              paddingRight: space(0.5),
-            }),
+        paddingLeft: theme.formPadding[size ?? 'md'].paddingLeft,
+        paddingRight: space(0.5),
       }),
       input: provided => ({
         ...provided,
         color: theme.formText,
         margin: 0,
-        ...(isCompact && {
-          padding: 0,
-        }),
       }),
       singleValue: provided => ({
         ...provided,
@@ -344,10 +275,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
       placeholder: provided => ({
         ...provided,
         color: theme.formPlaceholder,
-        ...(isCompact && {
-          padding: 0,
-          margin: 0,
-        }),
       }),
       multiValue: provided => ({
         ...provided,
@@ -383,7 +310,6 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         gridAutoFlow: 'column',
         gridGap: '2px',
         marginRight: '6px',
-        ...(isCompact && {display: 'none'}),
       }),
       clearIndicator: indicatorStyles,
       dropdownIndicator: indicatorStyles,
@@ -420,7 +346,7 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
         },
       }),
     }),
-    [theme, size, maxMenuWidth, maxMenuHeight, indicatorStyles, isSearchable, isCompact]
+    [theme, size, maxMenuWidth, indicatorStyles]
   );
 
   const getFieldLabelStyle = (label?: string) => ({
@@ -512,8 +438,14 @@ function SelectControl<OptionType extends GeneralSelectValue = GeneralSelectValu
     Option,
   };
 
+  const filterOptions = createFilter({
+    // Use `textValue` if available
+    stringify: option => option.data.textValue ?? `${option.label} ${option.value}`,
+  });
+
   return (
     <SelectPicker<OptionType>
+      filterOption={filterOptions}
       styles={mappedStyles}
       components={{...replacedComponents, ...components}}
       async={async}

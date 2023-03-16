@@ -4,24 +4,28 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PreviewFeature from 'sentry/components/previewFeature';
 import {t, tct} from 'sentry/locale';
-import {ProjectKey} from 'sentry/types';
+import {Organization, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}, {}> & {
+  organization: Organization;
+};
 
 type State = {
   keyList: null | ProjectKey[];
 } & AsyncView['state'];
 
-export default class ProjectExpectCtReports extends AsyncView<Props, State> {
+class ProjectExpectCtReports extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
   }
 
   getTitle() {
@@ -34,7 +38,7 @@ export default class ProjectExpectCtReports extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {params} = this.props;
+    const {organization, params} = this.props;
     const {keyList} = this.state;
     if (!keyList) {
       return null;
@@ -46,10 +50,14 @@ export default class ProjectExpectCtReports extends AsyncView<Props, State> {
 
         <PreviewFeature />
 
-        <ReportUri keyList={keyList} orgId={params.orgId} projectId={params.orgId} />
+        <ReportUri
+          keyList={keyList}
+          orgId={organization.slug}
+          projectId={params.projectId}
+        />
 
         <Panel>
-          <PanelHeader>{'About'}</PanelHeader>
+          <PanelHeader>{t('About')}</PanelHeader>
           <PanelBody withPadding>
             <p>
               {tct(
@@ -76,7 +84,7 @@ export default class ProjectExpectCtReports extends AsyncView<Props, State> {
             <p>
               {tct('For more information, see [link:the article on MDN].', {
                 link: (
-                  <a href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
+                  <ExternalLink href="https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Expect-CT" />
                 ),
               })}
             </p>
@@ -86,3 +94,5 @@ export default class ProjectExpectCtReports extends AsyncView<Props, State> {
     );
   }
 }
+
+export default withOrganization(ProjectExpectCtReports);

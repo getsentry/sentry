@@ -35,7 +35,6 @@ class StatusActionTest(BaseEventTest):
         """Freezing time to prevent flakiness from timestamp mismatch."""
 
         resp = self.post_webhook(slack_user={"id": "invalid-id", "domain": "example"})
-
         associate_url = build_linking_url(
             self.integration, "invalid-id", "C065W1189", self.response_url
         )
@@ -87,7 +86,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
 
@@ -153,7 +152,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
@@ -200,7 +199,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id
@@ -490,7 +489,7 @@ class StatusActionTest(BaseEventTest):
         assert resp.status_code == 200, resp.content
         assert (
             resp.data["text"]
-            == "You do not have permission approve a member invitation with the role owner."
+            == "You do not have permission to approve a member invitation with the role owner."
         )
 
     def test_identity_not_linked(self):

@@ -1,0 +1,77 @@
+---
+created: '2023-02-28T15:22:32.843604Z'
+creator: sentry
+source: tests/sentry/relay/test_config.py
+---
+config:
+  allowedDomains:
+  - '*'
+  datascrubbingSettings:
+    excludeFields: []
+    scrubData: true
+    scrubDefaults: true
+    sensitiveFields: []
+  measurements:
+    builtinMeasurements:
+    - name: app_start_cold
+      unit: millisecond
+    - name: app_start_warm
+      unit: millisecond
+    - name: cls
+      unit: none
+    - name: fcp
+      unit: millisecond
+    - name: fid
+      unit: millisecond
+    - name: fp
+      unit: millisecond
+    - name: frames_frozen_rate
+      unit: ratio
+    - name: frames_frozen
+      unit: none
+    - name: frames_slow_rate
+      unit: ratio
+    - name: frames_slow
+      unit: none
+    - name: frames_total
+      unit: none
+    - name: inp
+      unit: millisecond
+    - name: lcp
+      unit: millisecond
+    - name: stall_count
+      unit: none
+    - name: stall_longest_time
+      unit: millisecond
+    - name: stall_percentage
+      unit: ratio
+    - name: stall_total_time
+      unit: millisecond
+    - name: ttfb.requesttime
+      unit: millisecond
+    - name: ttfb
+      unit: millisecond
+    maxCustomMeasurements: 10
+  piiConfig:
+    applications:
+      $string:
+      - organization:remove_ips_and_macs
+      - project:remove_ips_and_macs
+    rules:
+      organization:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+      project:remove_ips_and_macs:
+        redaction:
+          method: remove
+        rules:
+        - '@ip'
+        - '@mac'
+        type: multiple
+  trustedRelays: []
+disabled: false
+slug: bar

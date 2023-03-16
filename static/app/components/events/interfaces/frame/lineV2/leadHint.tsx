@@ -1,30 +1,25 @@
-import styled from '@emotion/styled';
-
-import {t} from 'sentry/locale';
-import {Frame} from 'sentry/types';
+import {getLeadHint} from 'sentry/components/events/interfaces/frame/utils';
+import {Event, Frame} from 'sentry/types';
+import {defined} from 'sentry/utils';
 
 type Props = {
+  event: Event;
   leadsToApp: boolean;
   isExpanded?: boolean;
   nextFrame?: Frame;
 };
 
-function LeadHint({leadsToApp, isExpanded, nextFrame}: Props) {
+function LeadHint({leadsToApp, isExpanded, nextFrame, event}: Props) {
   if (isExpanded || !leadsToApp) {
     return null;
   }
 
   return (
-    <Wrapper className="leads-to-app-hint" width={!nextFrame ? '115px' : ''}>
-      {!nextFrame ? t('Crashed in non-app') : t('Called from')}
+    <div className="leads-to-app-hint">
+      {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
       {': '}
-    </Wrapper>
+    </div>
   );
 }
 
 export default LeadHint;
-
-const Wrapper = styled('div')<{width?: string}>`
-  ${p => p.theme.overflowEllipsis}
-  max-width: ${p => (p.width ? p.width : '67px')}
-`;

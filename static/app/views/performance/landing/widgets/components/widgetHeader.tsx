@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import TextOverflow from 'sentry/components/textOverflow';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {MEPTag} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 
 import {
@@ -42,6 +42,7 @@ export function WidgetHeader<T extends WidgetDataConstraint>(
 const StyledHeaderTitleLegend = styled(HeaderTitleLegend)`
   position: relative;
   z-index: initial;
+  top: -${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`

@@ -5,14 +5,11 @@ import MultipleCheckbox from 'sentry/components/forms/controls/multipleCheckbox'
 describe('MultipleCheckbox', function () {
   it('renders', function () {
     const {container} = render(
-      <MultipleCheckbox
-        choices={[
-          [0, 'Choice A'],
-          [1, 'Choice B'],
-          [2, 'Choice C'],
-        ]}
-        value={[1]}
-      />
+      <MultipleCheckbox name="test" value={[1]}>
+        <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={1}>Choice B</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={2}>Choice C</MultipleCheckbox.Item>
+      </MultipleCheckbox>
     );
 
     expect(container).toSnapshot();
@@ -21,15 +18,11 @@ describe('MultipleCheckbox', function () {
   it('unselects a checked input', function () {
     const onChange = jest.fn();
     render(
-      <MultipleCheckbox
-        choices={[
-          [0, 'Choice A'],
-          [1, 'Choice B'],
-          [2, 'Choice C'],
-        ]}
-        value={[1]}
-        onChange={onChange}
-      />
+      <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
+        <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={1}>Choice B</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={2}>Choice C</MultipleCheckbox.Item>
+      </MultipleCheckbox>
     );
 
     userEvent.click(screen.getByLabelText('Choice B'));
@@ -39,15 +32,11 @@ describe('MultipleCheckbox', function () {
   it('selects an unchecked input', function () {
     const onChange = jest.fn();
     render(
-      <MultipleCheckbox
-        choices={[
-          [0, 'Choice A'],
-          [1, 'Choice B'],
-          [2, 'Choice C'],
-        ]}
-        value={[1]}
-        onChange={onChange}
-      />
+      <MultipleCheckbox name="test" value={[1]} onChange={onChange}>
+        <MultipleCheckbox.Item value={0}>Choice A</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={1}>Choice B</MultipleCheckbox.Item>
+        <MultipleCheckbox.Item value={2}>Choice C</MultipleCheckbox.Item>
+      </MultipleCheckbox>
     );
 
     userEvent.click(screen.getByLabelText('Choice A'));

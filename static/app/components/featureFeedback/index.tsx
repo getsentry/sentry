@@ -1,7 +1,5 @@
-import React from 'react';
-
 import {openModal} from 'sentry/actionCreators/modal';
-import Button, {ButtonProps} from 'sentry/components/button';
+import {Button, ButtonProps} from 'sentry/components/button';
 import {
   FeedbackModal,
   FeedbackModalProps,

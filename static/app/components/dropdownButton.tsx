@@ -1,9 +1,9 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
-import Button, {ButtonLabel, ButtonProps} from 'sentry/components/button';
+import {Button, ButtonLabel, ButtonProps} from 'sentry/components/button';
 import {IconChevron} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export interface DropdownButtonProps extends Omit<ButtonProps, 'type' | 'prefix'> {
   /**
@@ -30,18 +30,15 @@ function DropdownButton({
   isOpen = false,
   showChevron = true,
   disabled = false,
-  priority = 'form',
   forwardedRef,
   ...props
 }: DropdownButtonProps) {
   return (
     <StyledButton
-      type="button"
       aria-haspopup="true"
       aria-expanded={isOpen}
       hasPrefix={!!prefix}
       disabled={disabled}
-      priority={priority}
       isOpen={isOpen}
       ref={forwardedRef}
       {...props}
@@ -61,7 +58,7 @@ const StyledChevron = styled(IconChevron)`
 `;
 
 const StyledButton = styled(Button)<
-  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled' | 'priority'>> & {
+  Required<Pick<DropdownButtonProps, 'isOpen' | 'disabled'>> & {
     hasPrefix: boolean;
   }
 >`

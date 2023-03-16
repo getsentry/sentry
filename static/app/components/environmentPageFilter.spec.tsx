@@ -21,7 +21,7 @@ const {organization, router, routerContext} = initializeOrg({
       pathname: '/organizations/org-slug/issues/',
       query: {},
     },
-    params: {orgId: 'org-slug'},
+    params: {},
   },
 });
 
@@ -54,9 +54,8 @@ describe('EnvironmentPageFilter', function () {
     expect(screen.getByText('All Envs')).toBeInTheDocument();
     userEvent.click(screen.getByText('All Envs'));
 
-    // Click the first environment's checkbox
-    const envOptions = screen.getAllByTestId('checkbox-fancy');
-    userEvent.click(envOptions[0]);
+    // Select the 'prod' env
+    userEvent.click(screen.getByRole('checkbox', {name: 'prod'}));
 
     // Close the dropdown
     userEvent.click(screen.getAllByText('prod')[0]);

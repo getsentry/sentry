@@ -30,9 +30,9 @@ jobs:
           filters: .github/file-filters.yml
       - name: Run Sentry self-hosted e2e CI
         if: steps.changes.outputs.backend_all == 'true'
-        uses: getsentry/action-self-hosted-e2e-tests@4ff2dbfdd5c986a4670efaa16d82e460598359eb
+        uses: getsentry/action-self-hosted-e2e-tests@77805295ebff8a603def5970e18743ded72cb304
         with:
           project_name: sentry
-          image_url: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }} 
+          image_url: us.gcr.io/sentryio/sentry:${{ github.event.pull_request.head.sha || github.sha }}
           docker_repo: getsentry/sentry
           docker_password: ${{ secrets.DOCKER_HUB_RW_TOKEN }}

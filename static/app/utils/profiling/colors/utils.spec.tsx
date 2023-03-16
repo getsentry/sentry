@@ -1,9 +1,9 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
   makeColorBucketTheme,
-  makeColorMap,
-  makeColorMapByImage,
+  makeColorMapByLibrary,
   makeColorMapByRecursion,
+  makeColorMapBySymbolName,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
 import {LCH_LIGHT} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
@@ -63,10 +63,12 @@ describe('makeStackToColor', () => {
 
     const frames = [f(0, 'a')];
 
-    const {colorBuffer} = makeFn(frames, makeColorMap, makeColorBucketTheme(LCH_LIGHT));
-    expect(colorBuffer.slice(0, 4)).toEqual([
-      0.9750000000000001, 0.7250000000000001, 0.7250000000000001, 1,
-    ]);
+    const {colorBuffer} = makeFn(
+      frames,
+      makeColorMapBySymbolName,
+      makeColorBucketTheme(LCH_LIGHT)
+    );
+    expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
       getDominantColor(colorBuffer.slice(0, 4) as [number, number, number, number])
     ).toBe('red');
@@ -102,33 +104,19 @@ describe('makeColorMap', () => {
     const b = f(1, 'b');
 
     b.frame = a.frame;
-    const frames = [a, b];
 
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName([a, b], makeColorBucketTheme(LCH_LIGHT));
     expect(map.get(a.key)).toEqual(map.get(b.key));
   });
   it('default colors by frame name', () => {
     // Reverse order to ensure we actually sort
     const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];
 
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapBySymbolName(frames, makeColorBucketTheme(LCH_LIGHT));
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');
     expect(getDominantColor(map.get(1))).toBe('blue');
-  });
-
-  it('colors by custom sort', () => {
-    // Reverse order to ensure we actually sort
-    const frames = [f(1, 'c'), f(2, 'b'), f(3, 'a')];
-
-    const map = makeColorMap(frames, makeColorBucketTheme(LCH_LIGHT), (a, b) =>
-      b.frame.name > a.frame.name ? 1 : -1
-    );
-
-    expect(getDominantColor(map.get(3))).toBe('blue');
-    expect(getDominantColor(map.get(2))).toBe('green');
-    expect(getDominantColor(map.get(1))).toBe('red');
   });
 
   it('colors by image', () => {
@@ -139,7 +127,7 @@ describe('makeColorMap', () => {
       f(3, 'a', undefined, 'a'),
     ];
 
-    const map = makeColorMapByImage(frames, makeColorBucketTheme(LCH_LIGHT));
+    const map = makeColorMapByLibrary(frames, makeColorBucketTheme(LCH_LIGHT));
 
     expect(getDominantColor(map.get(3))).toBe('red');
     expect(getDominantColor(map.get(2))).toBe('green');

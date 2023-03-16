@@ -9,7 +9,7 @@ import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -21,7 +21,7 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 import DebugFileRow from './debugFileRow';
 import Sources from './sources';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
@@ -51,13 +51,12 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {organization, params, location} = this.props;
     const {builtinSymbolSources} = this.state || {};
-    const {orgId, projectId} = params;
     const {query} = location.query;
 
     const endpoints: ReturnType<AsyncView['getEndpoints']> = [
       [
         'debugFiles',
-        `/projects/${orgId}/${projectId}/files/dsyms/`,
+        `/projects/${organization.slug}/${params.projectId}/files/dsyms/`,
         {
           query: {
             query,
@@ -87,16 +86,19 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   }
 
   handleDelete = (id: string) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization, params} = this.props;
 
     this.setState({
       loading: true,
     });
 
-    this.api.request(`/projects/${orgId}/${projectId}/files/dsyms/?id=${id}`, {
-      method: 'DELETE',
-      complete: () => this.fetchData(),
-    });
+    this.api.request(
+      `/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${id}`,
+      {
+        method: 'DELETE',
+        complete: () => this.fetchData(),
+      }
+    );
   };
 
   handleSearch = (query: string) => {
@@ -109,11 +111,10 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   };
 
   async fetchProject() {
-    const {params} = this.props;
-    const {orgId, projectId} = params;
+    const {organization, params} = this.props;
     try {
       const updatedProject = await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/`
+        `/projects/${organization.slug}/${params.projectId}/`
       );
       ProjectsStore.onUpdateSuccess(updatedProject);
     } catch {
@@ -142,14 +143,13 @@ class ProjectDebugSymbols extends AsyncView<Props, State> {
   renderDebugFiles() {
     const {debugFiles, showDetails} = this.state;
     const {organization, params} = this.props;
-    const {orgId, projectId} = params;
 
     if (!debugFiles?.length) {
       return null;
     }
 
     return debugFiles.map(debugFile => {
-      const downloadUrl = `${this.api.baseUrl}/projects/${orgId}/${projectId}/files/dsyms/?id=${debugFile.id}`;
+      const downloadUrl = `${this.api.baseUrl}/projects/${organization.slug}/${params.projectId}/files/dsyms/?id=${debugFile.id}`;
 
       return (
         <DebugFileRow
@@ -279,10 +279,7 @@ const Label = styled('label')`
   display: flex;
   margin-bottom: 0;
   white-space: nowrap;
-  input {
-    margin-top: 0;
-    margin-right: ${space(1)};
-  }
+  gap: ${space(1)};
 `;
 
 export default ProjectDebugSymbols;

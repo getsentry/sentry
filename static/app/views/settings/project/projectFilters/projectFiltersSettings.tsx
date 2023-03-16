@@ -9,7 +9,7 @@ import Access from 'sentry/components/acl/access';
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form, {FormProps} from 'sentry/components/forms/form';
@@ -23,12 +23,15 @@ import {
   PanelItem,
 } from 'sentry/components/panels';
 import Switch from 'sentry/components/switchButton';
-import filterGroups, {customFilterFields} from 'sentry/data/forms/inboundFilters';
+import filterGroups, {
+  customFilterFields,
+  getOptionsData,
+} from 'sentry/data/forms/inboundFilters';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 
 const LEGACY_BROWSER_SUBFILTERS = {
   ie_pre_9: {
@@ -146,7 +149,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
             <BulkFilterLabel>{t('Filter')}:</BulkFilterLabel>
             <ButtonBar gap={1}>
               <Button
-                type="button"
                 priority="link"
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, true)}
@@ -154,7 +156,6 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
                 {t('All')}
               </Button>
               <Button
-                type="button"
                 priority="link"
                 borderless
                 onClick={this.handleToggleSubfilters.bind(this, false)}
@@ -194,15 +195,15 @@ class LegacyBrowserFilterRow extends Component<RowProps, RowState> {
 
 type Props = {
   features: Set<string>;
+  organization: Organization;
   params: {
-    orgId: string;
     projectId: string;
   };
   project: Project;
 };
 
 type State = {
-  hooksDisabled: ReturnType<typeof HookStore['get']>;
+  hooksDisabled: ReturnType<(typeof HookStore)['get']>;
 } & AsyncComponent['state'];
 
 class ProjectFiltersSettings extends AsyncComponent<Props, State> {
@@ -214,8 +215,9 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['filterList', `/projects/${orgId}/${projectId}/filters/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['filterList', `/projects/${organization.slug}/${projectId}/filters/`]];
   }
 
   componentDidUpdate(prevProps: Props, prevState: State) {
@@ -294,10 +296,10 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
     );
 
   renderBody() {
-    const {features, params, project} = this.props;
-    const {orgId, projectId} = params;
+    const {features, organization, params, project} = this.props;
+    const {projectId} = params;
 
-    const projectEndpoint = `/projects/${orgId}/${projectId}/`;
+    const projectEndpoint = `/projects/${organization.slug}/${projectId}/`;
     const filtersEndpoint = `${projectEndpoint}filters/`;
 
     return (
@@ -360,6 +362,31 @@ class ProjectFiltersSettings extends AsyncComponent<Props, State> {
                     </PanelItem>
                   );
                 })}
+                <PanelItem noPadding>
+                  <NestedForm
+                    apiMethod="PUT"
+                    apiEndpoint={projectEndpoint}
+                    initialData={{
+                      'filters:react-hydration-errors':
+                        project.options?.['filters:react-hydration-errors'],
+                    }}
+                    saveOnBlur
+                    onSubmitSuccess={this.handleSubmit}
+                  >
+                    <FieldFromConfig
+                      getData={getOptionsData}
+                      field={{
+                        type: 'boolean',
+                        name: 'filters:react-hydration-errors',
+                        label: t('Filter out hydration errors'),
+                        help: t(
+                          'React falls back to do a full re-render on a page and these errors are often not actionable.'
+                        ),
+                        disabled: !hasAccess,
+                      }}
+                    />
+                  </NestedForm>
+                </PanelItem>
               </PanelBody>
             </Panel>
 

@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import OwnedBy from 'sentry/components/group/ownedBy';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {buildTeamId, buildUserId} from 'sentry/utils';
@@ -17,7 +17,7 @@ describe('Group > OwnedBy', () => {
         project={TestStubs.Project()}
       />
     );
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('renders team owner', () => {
@@ -82,7 +82,7 @@ describe('Group > OwnedBy', () => {
         project={TestStubs.Project()}
       />
     );
-    expect(screen.getByText('No-one')).toBeInTheDocument();
+    expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
   it('allows project:write to edit owners', () => {
@@ -96,7 +96,7 @@ describe('Group > OwnedBy', () => {
 
     userEvent.click(screen.getByLabelText('Create Ownership Rule'));
 
-    expect(openCreateOwnershipRule).toHaveBeenCalledWith(
+    expect(openIssueOwnershipRuleModal).toHaveBeenCalledWith(
       expect.objectContaining({issueId: '1'})
     );
   });

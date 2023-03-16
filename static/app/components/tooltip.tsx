@@ -6,7 +6,7 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {IS_ACCEPTANCE_TEST} from 'sentry/constants/index';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {useHoverOverlay, UseHoverOverlayProps} from 'sentry/utils/useHoverOverlay';
 
 import {AcceptanceTestTooltip} from './acceptanceTestTooltip';
@@ -83,11 +83,10 @@ interface TooltipProps extends InternalTooltipProps {
   disableForVisualTest?: boolean;
 }
 
-/**
- * Tooltip will enhance the internal tooltip with the open/close
- * functionality used in src/sentry/utils/pytest/selenium.py so that tooltips
- * can be opened and closed for specific snapshots.
- */
+// Tooltip will enhance the internal tooltip with the open/close functionality
+// used in src/sentry/utils/pytest/selenium.py so that tooltips can be opened
+// and closed for specific snapshots.
+
 function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   if (IS_ACCEPTANCE_TEST) {
     return disableForVisualTest ? (
@@ -100,4 +99,4 @@ function Tooltip({disableForVisualTest, ...props}: TooltipProps) {
   return <DO_NOT_USE_TOOLTIP {...props} />;
 }
 
-export default Tooltip;
+export {Tooltip};

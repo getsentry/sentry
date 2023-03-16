@@ -13,7 +13,7 @@ import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -23,10 +23,11 @@ import {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import CellAction, {Actions, updateQuery} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {TagValue} from '../transactionOverview/tagExplorer';
 import {normalizeSearchConditions} from '../utils';
@@ -303,22 +304,27 @@ export class TagValueTable extends Component<Props, State> {
 
     return (
       <StyledPanelTable>
-        <GridEditable
-          isLoading={isLoading}
-          data={tableData && tableData.data ? tableData.data : []}
-          columnOrder={newColumns}
-          columnSortBy={[]}
-          grid={{
-            renderHeadCell: this.renderHeadCellWithMeta(
-              eventView,
-              tableData ? tableData.meta : {},
-              newColumns
-            ) as any,
-            renderBodyCell: this.renderBodyCellWithData(this.props) as any,
-            onResizeColumn: this.handleResizeColumn,
-          }}
-          location={location}
-        />
+        <VisuallyCompleteWithData
+          id="TransactionTags-TagValueTable"
+          hasData={!!tableData?.data?.length}
+        >
+          <GridEditable
+            isLoading={isLoading}
+            data={tableData && tableData.data ? tableData.data : []}
+            columnOrder={newColumns}
+            columnSortBy={[]}
+            grid={{
+              renderHeadCell: this.renderHeadCellWithMeta(
+                eventView,
+                tableData ? tableData.meta : {},
+                newColumns
+              ) as any,
+              renderBodyCell: this.renderBodyCellWithData(this.props) as any,
+              onResizeColumn: this.handleResizeColumn,
+            }}
+            location={location}
+          />
+        </VisuallyCompleteWithData>
 
         <Pagination pageLinks={pageLinks} onCursor={onCursor} size="sm" />
       </StyledPanelTable>

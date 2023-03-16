@@ -173,8 +173,8 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example"},
-                    {"name": "exhaust", "full_name": "test/exhaust"},
+                    {"name": "example", "full_name": "test/example", "default_branch": "main"},
+                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "main"},
                 ]
             },
         )
@@ -182,6 +182,6 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example"},
-            {"identifier": "test/exhaust", "name": "exhaust"},
+            {"identifier": "test/example", "name": "example", "default_branch": "main"},
+            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "main"},
         ]

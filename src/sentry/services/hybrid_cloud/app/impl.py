@@ -1,23 +1,135 @@
 from __future__ import annotations
 
-from typing import List
+from typing import Any, Callable, List, Mapping, Optional
 
-from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud.app import ApiSentryAppInstallation, AppService
+from django.db.models import QuerySet
+
+from sentry.api.serializers import SentryAppAlertRuleActionSerializer, Serializer, serialize
+from sentry.constants import SentryAppInstallationStatus
+from sentry.mediators import alert_rule_actions
+from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+from sentry.models import SentryApp, SentryAppComponent, SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation import prepare_sentry_app_components
+from sentry.services.hybrid_cloud.app import (
+    AppService,
+    RpcSentryApp,
+    RpcSentryAppComponent,
+    RpcSentryAppEventData,
+    RpcSentryAppInstallation,
+    RpcSentryAppService,
+    SentryAppInstallationFilterArgs,
+)
+from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
 
 
-class DatabaseBackedAppService(AppService):
+class DatabaseBackedAppService(
+    FilterQueryDatabaseImpl[
+        SentryAppInstallation, SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None
+    ],
+    AppService,
+):
+    def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
+        return [
+            RpcSentryAppComponent(
+                uuid=c.uuid,
+                sentry_app_id=c.sentry_app_id,
+                type=c.type,
+                schema=c.schema,
+            )
+            for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
+        ]
+
     def get_installed_for_organization(
         self, *, organization_id: int
-    ) -> List[ApiSentryAppInstallation]:
+    ) -> List[RpcSentryAppInstallation]:
         installations = SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ).select_related("sentry_app")
-        return [self.serialize_sentry_app_installation(i, i.sentry_app) for i in installations]
+        return [self._serialize_rpc(i) for i in installations]
+
+    def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
+        result: List[RpcSentryAppService] = []
+        for app in SentryApp.objects.filter(
+            installations__organization_id=organization_id,
+            is_alertable=True,
+            installations__status=SentryAppInstallationStatus.INSTALLED,
+            installations__date_deleted=None,
+        ).distinct():
+            if SentryAppComponent.objects.filter(
+                sentry_app_id=app.id, type="alert-rule-action"
+            ).exists():
+                continue
+            result.append(
+                RpcSentryAppService(
+                    title=app.name,
+                    slug=app.slug,
+                )
+            )
+        return result
+
+    def get_custom_alert_rule_actions(
+        self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
+    ) -> List[Mapping[str, Any]]:
+        action_list = []
+        for install in SentryAppInstallation.objects.get_installed_for_organization(
+            organization_id
+        ):
+            component = prepare_sentry_app_components(install, "alert-rule-action", project_slug)
+            if component:
+                kwargs = {
+                    "install": install,
+                    "event_action": event_data,
+                }
+                action_details = serialize(
+                    component, None, SentryAppAlertRuleActionSerializer(), **kwargs
+                )
+                action_list.append(action_details)
+
+        return action_list
+
+    def get_related_sentry_app_components(
+        self,
+        *,
+        organization_ids: List[int],
+        sentry_app_ids: List[int],
+        type: str,
+        group_by: str = "sentry_app_id",
+    ) -> Mapping[str, Any]:
+        return SentryAppInstallation.objects.get_related_sentry_app_components(  # type: ignore
+            organization_ids=organization_ids,
+            sentry_app_ids=sentry_app_ids,
+            type=type,
+            group_by=group_by,
+        )
+
+    def _base_query(self) -> QuerySet:
+        return SentryAppInstallation.objects.select_related("sentry_app")
+
+    def _filter_arg_validator(self) -> Callable[[SentryAppInstallationFilterArgs], Optional[str]]:
+        return self._filter_has_any_key_validator(
+            "organization_id", "installation_ids", "app_ids", "uuids"
+        )
+
+    def _serialize_api(self, serializer: Optional[None]) -> Serializer:
+        raise NotImplementedError("Serialization not supported for AppService")
+
+    def _apply_filters(self, query: QuerySet, filters: SentryAppInstallationFilterArgs) -> QuerySet:
+        # filters["status"] = SentryAppInstallationStatus.INSTALLED
+        if "installation_ids" in filters:
+            query = query.filter(id__in=filters["installation_ids"])
+        if "organization_id" in filters:
+            query = query.filter(organization_id=filters["organization_id"])
+        if "uuids" in filters:
+            query = query.filter(uuid__in=filters["uuids"])
+
+        return query
+
+    def _serialize_rpc(self, object: SentryAppInstallation) -> RpcSentryAppInstallation:
+        return self.serialize_sentry_app_installation(object)
 
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
-    ) -> ApiSentryAppInstallation | None:
+    ) -> RpcSentryAppInstallation | None:
         try:
             sentry_app = SentryApp.objects.get(proxy_user_id=proxy_user_id)
         except SentryApp.DoesNotExist:
@@ -31,6 +143,27 @@ class DatabaseBackedAppService(AppService):
             return None
 
         return self.serialize_sentry_app_installation(installation, sentry_app)
+
+    def trigger_sentry_app_action_creators(
+        self, *, fields: List[Mapping[str, Any]], install_uuid: str | None
+    ) -> AlertRuleActionResult:
+        try:
+            install = SentryAppInstallation.objects.get(uuid=install_uuid)
+        except SentryAppInstallation.DoesNotExist:
+            return dict(success=False, message="Installation does not exist")
+        result = alert_rule_actions.AlertRuleActionCreator.run(
+            install=install,
+            fields=fields,
+        )
+        return result
+
+    def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
+        try:
+            return self.serialize_sentry_app(
+                SentryApp.objects.get(application_id=api_application_id)
+            )
+        except SentryApp.DoesNotExist:
+            return None
 
     def close(self) -> None:
         pass

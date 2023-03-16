@@ -3,7 +3,7 @@ import {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import AlertLink from 'sentry/components/alertLink';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';
@@ -11,17 +11,14 @@ import {PanelTable} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import {DeprecatedApiKey} from './types';
 
-type RouteParams = {
-  orgId: string;
-};
-
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<{}, {}> & {
   /**
    * Busy differs from loading in that busy is a result of an action like removing
    */
@@ -36,10 +33,12 @@ type Props = RouteComponentProps<RouteParams, {}> & {
   onAddApiKey: () => {};
 
   onRemove: (id: DeprecatedApiKey['id']) => {};
+  organization: Organization;
   routes: PlainRoute[];
 };
 
 function OrganizationApiKeysList({
+  organization,
   params,
   routes,
   keys,
@@ -96,7 +95,7 @@ function OrganizationApiKeysList({
         {keys &&
           keys.map(({id, key, label}) => {
             const apiDetailsUrl = recreateRoute(`${id}/`, {
-              params,
+              params: {...params, orgId: organization.slug},
               routes,
             });
 

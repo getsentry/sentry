@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Group} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -20,7 +20,7 @@ import {OrganizationContext} from '../organizationContext';
 
 import SharedGroupHeader from './sharedGroupHeader';
 
-type Props = RouteComponentProps<{shareId: string}, {}> & {
+type Props = RouteComponentProps<{shareId: string; orgId?: string}, {}> & {
   api: Client;
 };
 
@@ -63,12 +63,32 @@ class SharedGroupDetails extends Component<Props, State> {
     document.body.classList.remove('shared-group');
   }
 
+  orgSlug(): string | null {
+    const {params} = this.props;
+    if (params.orgId) {
+      return params.orgId;
+    }
+    const {customerDomain} = window.__initialData || {};
+    if (customerDomain?.subdomain) {
+      return customerDomain.subdomain;
+    }
+    return null;
+  }
+
   async fetchData() {
     const {params, api} = this.props;
     const {shareId} = params;
+    const orgSlug = this.orgSlug();
     try {
-      const group = await api.requestPromise(`/shared/issues/${shareId}/`);
-      this.setState({loading: false, group});
+      if (orgSlug) {
+        const group = await api.requestPromise(
+          `/organizations/${orgSlug}/shared/issues/${shareId}/`
+        );
+        this.setState({loading: false, group});
+      } else {
+        const group = await api.requestPromise(`/shared/issues/${shareId}/`);
+        this.setState({loading: false, group});
+      }
     } catch {
       this.setState({loading: false, error: true});
     }
@@ -100,7 +120,7 @@ class SharedGroupDetails extends Component<Props, State> {
       return <LoadingError onRetry={this.handleRetry} />;
     }
 
-    const {location, api} = this.props;
+    const {location} = this.props;
     const {permalink, latestEvent, project} = group;
     const title = this.getTitle();
 
@@ -130,7 +150,6 @@ class SharedGroupDetails extends Component<Props, State> {
                       group={group}
                       event={latestEvent}
                       project={project}
-                      api={api}
                       isShare
                     />
                   </Container>

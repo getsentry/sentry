@@ -13,7 +13,10 @@ import {
 
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import OrganizationGeneralSettings from 'sentry/views/settings/organizationGeneralSettings';
+
+jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('OrganizationGeneralSettings', function () {
   const ENDPOINT = '/organizations/org-slug/';
@@ -54,6 +57,34 @@ describe('OrganizationGeneralSettings', function () {
         })
       );
     });
+  });
+
+  it('can enable "codecov access"', async function () {
+    defaultProps.organization.features.push(
+      'codecov-stacktrace-integration',
+      'codecov-integration'
+    );
+    organization.codecovAccess = false;
+    render(<OrganizationGeneralSettings {...defaultProps} />);
+    const mock = MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      method: 'PUT',
+    });
+
+    userEvent.click(
+      screen.getByRole('checkbox', {name: /Enable Code Coverage Insights/i})
+    );
+
+    await waitFor(() => {
+      expect(mock).toHaveBeenCalledWith(
+        ENDPOINT,
+        expect.objectContaining({
+          data: {codecovAccess: true},
+        })
+      );
+    });
+
+    expect(trackAdvancedAnalyticsEvent).toHaveBeenCalled();
   });
 
   it('changes org slug and redirects to new slug', async function () {

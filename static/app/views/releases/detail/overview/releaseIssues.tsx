@@ -7,14 +7,15 @@ import * as qs from 'query-string';
 
 import {Client} from 'sentry/api';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button, {ButtonLabel} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar, {ButtonGrid} from 'sentry/components/buttonBar';
 import GroupList from 'sentry/components/issues/groupList';
 import Pagination from 'sentry/components/pagination';
 import QueryCount from 'sentry/components/queryCount';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import withApi from 'sentry/utils/withApi';
@@ -393,24 +394,24 @@ class ReleaseIssues extends Component<Props, State> {
       <Fragment>
         <ControlsWrapper>
           <GuideAnchor target="release_states">
-            <StyledButtonBar active={issuesType} merged>
+            <SegmentedControl
+              aria-label={t('Issue type')}
+              size="xs"
+              value={issuesType}
+              onChange={key => this.handleIssuesTypeSelection(key)}
+            >
               {issuesTypes.map(({value, label, issueCount}) => (
-                <Button
-                  key={value}
-                  barId={value}
-                  size="xs"
-                  onClick={() => this.handleIssuesTypeSelection(value)}
-                >
-                  {label}
+                <SegmentedControl.Item key={value} textValue={label}>
+                  {label}&nbsp;
                   <QueryCount
                     count={issueCount}
                     max={99}
                     hideParens
                     hideIfEmpty={false}
                   />
-                </Button>
+                </SegmentedControl.Item>
               ))}
-            </StyledButtonBar>
+            </SegmentedControl>
           </GuideAnchor>
 
           <OpenInButtonBar gap={1}>
@@ -457,24 +458,6 @@ const ControlsWrapper = styled('div')`
 
 const OpenInButtonBar = styled(ButtonBar)`
   margin: ${space(1)} 0;
-`;
-
-const StyledButtonBar = styled(ButtonBar)`
-  grid-template-columns: repeat(4, 1fr);
-  ${ButtonLabel} {
-    white-space: nowrap;
-    gap: ${space(0.5)};
-    span:last-child {
-      color: ${p => p.theme.buttonCount};
-    }
-  }
-  .active {
-    ${ButtonLabel} {
-      span:last-child {
-        color: ${p => p.theme.buttonCountActive};
-      }
-    }
-  }
 `;
 
 const StyledPagination = styled(Pagination)`

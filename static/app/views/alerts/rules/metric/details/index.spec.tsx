@@ -60,14 +60,14 @@ describe('MetricAlertDetails', () => {
         routes={router.routes}
         routeParams={router.params}
         location={router.location}
-        params={{orgId: organization.slug, ruleId: rule.id}}
+        params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}
     );
 
     expect(await screen.findAllByText(rule.name)).toHaveLength(2);
     expect(screen.getByText('Change alert status to Resolved')).toBeInTheDocument();
-    expect(screen.getByText(incident.identifier)).toBeInTheDocument();
+    expect(screen.getByText(`#${incident.identifier}`)).toBeInTheDocument();
     // Related issues
     expect(screen.getByTestId('group')).toBeInTheDocument();
 
@@ -111,7 +111,7 @@ describe('MetricAlertDetails', () => {
         routes={router.routes}
         routeParams={router.params}
         location={{...router.location, query: {alert: incident.id}}}
-        params={{orgId: organization.slug, ruleId: rule.id}}
+        params={{ruleId: rule.id}}
       />,
       {context: routerContext, organization}
     );

@@ -1,17 +1,14 @@
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {
-  EXAMPLE_TRANSACTION_TITLE,
   MockSpan,
   ProblemSpan,
   TransactionEventBuilder,
 } from 'sentry-test/performance/utils';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueType} from 'sentry/types';
-
 import {SpanEvidenceSection} from './spanEvidence';
 
-const {organization} = initializeData();
+const {organization, project} = initializeData();
 
 describe('spanEvidence', () => {
   it('renders and highlights the correct data in the span evidence section', () => {
@@ -76,26 +73,10 @@ describe('spanEvidence', () => {
       <SpanEvidenceSection
         event={builder.getEvent()}
         organization={organization}
-        issueType={IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES}
+        projectSlug={project.slug}
       />,
       {organization}
     );
-
-    // Verify the surfaced fields in the span evidence section are correct
-    const transactionKey = screen.getByRole('cell', {name: 'Transaction'});
-    const transactionVal = screen.getByRole('cell', {name: EXAMPLE_TRANSACTION_TITLE});
-    expect(transactionKey).toBeInTheDocument();
-    expect(transactionVal).toBeInTheDocument();
-
-    const parentKey = screen.getByRole('cell', {name: 'Parent Span'});
-    const parentVal = screen.getByRole('cell', {name: 'db - connect'});
-    expect(parentKey).toBeInTheDocument();
-    expect(parentVal).toBeInTheDocument();
-
-    const repeatingKey = screen.getByRole('cell', {name: 'Repeating Span'});
-    const repeatingVal = screen.getByRole('cell', {name: 'db - group me'});
-    expect(repeatingKey).toBeInTheDocument();
-    expect(repeatingVal).toBeInTheDocument();
 
     // Verify that the correct spans are hi-lighted on the span tree as affected spans
     const affectedSpan = screen.getByTestId('row-title-content-affected');

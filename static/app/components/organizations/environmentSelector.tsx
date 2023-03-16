@@ -15,7 +15,7 @@ import PageFilterPinButton from 'sentry/components/organizations/pageFilters/pag
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -219,8 +219,7 @@ function EnvironmentSelector({
               <PageFilterRow
                 data-test-id={`environment-${env}`}
                 checked={selectedEnvs.includes(env)}
-                onCheckClick={e => {
-                  e.stopPropagation();
+                onSelectedChange={() => {
                   toggleCheckbox(env);
                 }}
               >

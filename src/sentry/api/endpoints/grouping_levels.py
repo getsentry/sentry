@@ -4,7 +4,7 @@ from snuba_sdk import Request as SnubaRequest
 from snuba_sdk.query import Column, Entity, Function, Query
 
 from sentry import features
-from sentry.api.base import pending_silo_endpoint
+from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import GroupEndpoint
 from sentry.api.endpoints.group_hashes_split import _construct_arraymax, _get_group_filters
 from sentry.api.exceptions import SentryAPIException, status
@@ -47,7 +47,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 
-@pending_silo_endpoint
+@region_silo_endpoint
 class GroupingLevelsEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
         """
@@ -112,7 +112,7 @@ class LevelsOverview:
     num_levels: int
 
 
-def get_levels_overview(group):
+def get_levels_overview(group: Group):
     query = (
         Query(Entity("events"))
         .set_select(
@@ -127,8 +127,13 @@ def get_levels_overview(group):
         .set_where(_get_group_filters(group))
         .set_groupby([Column("primary_hash")])
     )
-    request = SnubaRequest(dataset="events", app_id="grouping", query=query)
-    res = snuba.raw_snql_query(request, referrer="api.group_hashes_levels.get_levels_overview")
+    request = SnubaRequest(
+        dataset="events",
+        app_id="grouping",
+        query=query,
+        tenant_ids={"organization_id": group.project.organization_id},
+    )
+    res = snuba.raw_snql_query(request, "api.group_hashes_levels.get_levels_overview")
 
     if not res["data"]:
         raise NoEvents()

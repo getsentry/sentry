@@ -72,11 +72,7 @@ describe('OrganizationContextContainer', function () {
 
   afterEach(function () {
     OrganizationStore.reset();
-
-    TeamStore.loadInitialData.mockRestore();
-    ProjectsStore.loadInitialData.mockRestore();
-    ConfigStore.get.mockRestore();
-    OrganizationActionCreator.fetchOrganizationDetails.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it('renders and fetches org, projects, and teams', async function () {
@@ -149,8 +145,6 @@ describe('OrganizationContextContainer', function () {
 
     // eslint-disable-next-line no-console
     expect(console.error).toHaveBeenCalled();
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
   });
 
   it('opens sudo modal for superusers on 403s', async function () {

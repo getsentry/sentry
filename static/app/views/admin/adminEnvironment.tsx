@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment';
 
-import Button from 'sentry/components/button';
-import {IconQuestion} from 'sentry/icons';
+import {Button} from 'sentry/components/button';
+import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import AsyncView from 'sentry/views/asyncView';
 
 type Data = {
@@ -41,20 +41,13 @@ export default class AdminEnvironment extends AsyncView<{}, State> {
               {t('Server Version')}
               {version.upgradeAvailable && (
                 <Button
-                  title={t(
-                    "You're running an old version of Sentry, did you know %s is available?",
-                    version.latest
-                  )}
-                  aria-label={t(
-                    "You're running an old version of Sentry, did you know %s is available?",
-                    version.latest
-                  )}
-                  priority="link"
                   href="https://github.com/getsentry/sentry/releases"
-                  icon={<IconQuestion size="sm" />}
-                  size="sm"
+                  icon={<IconUpgrade size="xs" />}
+                  size="xs"
                   external
-                />
+                >
+                  {t('Upgrade to Sentry %s', version.latest)}
+                </Button>
               )}
             </VersionLabel>
             <dd>

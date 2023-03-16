@@ -23,9 +23,6 @@ import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/ove
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
-jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
-  jest.fn(() => null)
-);
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -47,7 +44,7 @@ const {organization, router, routerContext} = initializeOrg({
   },
   router: {
     location: {query: {}, search: ''},
-    params: {orgId: 'org-slug'},
+    params: {},
   },
   project,
 });
@@ -162,7 +159,7 @@ describe('IssueList', function () {
         datetime: {period: '14d'},
       },
       location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
-      params: {orgId: organization.slug},
+      params: {},
       organization,
       tags: tags.reduce((acc, tag) => {
         acc[tag.key] = tag;
@@ -231,8 +228,7 @@ describe('IssueList', function () {
 
       expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
 
-      // Tab shows "saved searches" because there is an is:unresolved tab
-      expect(screen.getByRole('button', {name: 'Saved Searches'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
 
     it('loads with query in URL and pinned queries', async function () {
@@ -270,7 +266,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
 
       // Tab shows "custom search"
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with a pinned custom query', async function () {
@@ -305,7 +301,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
     it('loads with a saved query', async function () {
@@ -350,7 +346,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'Assigned to Me'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
     });
 
     it('loads with a query in URL', async function () {
@@ -392,7 +388,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:error ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with an empty query in URL', async function () {
@@ -430,10 +426,10 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
-    it('selects a saved search', async function () {
+    it('1 search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -446,7 +442,7 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.click(screen.getByRole('button', {name: /saved searches/i}));
+      userEvent.click(screen.getByRole('button', {name: /custom search/i}));
       userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
@@ -538,7 +534,7 @@ describe('IssueList', function () {
         {context: routerContext, router: routerWithQuery}
       );
 
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
       const createPin = MockApiClient.addMockResponse({
@@ -585,7 +581,7 @@ describe('IssueList', function () {
       });
 
       const routerWithSavedSearch = {
-        params: {orgId: 'org-slug', searchId: pinnedSearch.id},
+        params: {searchId: pinnedSearch.id},
       };
 
       render(
@@ -598,7 +594,7 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
 
       userEvent.click(screen.getByLabelText(/Remove Default/i));
 
@@ -652,7 +648,7 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      expect(screen.getByRole('tab', {name: savedSearch.name})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
 
       userEvent.click(screen.getByLabelText(/set as default/i));
 
@@ -1113,7 +1109,7 @@ describe('IssueList', function () {
           datetime: {period: '14d'},
         },
         ...merge({}, routerProps, {
-          params: {orgId: organization.slug},
+          params: {},
           location: {query: {query: 'is:unresolved'}, search: 'query=is:unresolved'},
         }),
         organization: TestStubs.Organization({

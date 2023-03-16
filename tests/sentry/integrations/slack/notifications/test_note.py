@@ -11,21 +11,24 @@ from sentry.types.activity import ActivityType
 
 
 class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
+    def create_notification(self, group):
+        return NoteActivityNotification(
+            Activity(
+                project=self.project,
+                group=group,
+                user_id=self.user.id,
+                type=ActivityType.NOTE,
+                data={"text": "text", "mentions": []},
+            )
+        )
+
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_note(self, mock_func):
         """
         Test that a Slack message is sent with the expected payload when a comment is made on an issue
         """
-        notification = NoteActivityNotification(
-            Activity(
-                project=self.project,
-                group=self.group,
-                user=self.user,
-                type=ActivityType.NOTE,
-                data={"text": "text", "mentions": []},
-            )
-        )
+        notification = self.create_notification(self.group)
         with self.tasks():
             notification.send()
 
@@ -50,15 +53,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
         Test that a Slack message is sent with the expected payload when a comment is made on a performance issue
         """
         event = self.create_performance_issue()
-        notification = NoteActivityNotification(
-            Activity(
-                project=self.project,
-                group=event.group,
-                user=self.user,
-                type=ActivityType.NOTE,
-                data={"text": "text", "mentions": []},
-            )
-        )
+        notification = self.create_notification(event.group)
+
         with self.tasks():
             notification.send()
 
@@ -90,15 +86,8 @@ class SlackNoteNotificationTest(SlackActivityNotificationTest, PerformanceIssueT
             data={"message": "Hellboy's world", "level": "error"}, project_id=self.project.id
         )
         event = event.for_group(event.groups[0])
-        notification = NoteActivityNotification(
-            Activity(
-                project=self.project,
-                group=event.group,
-                user=self.user,
-                type=ActivityType.NOTE,
-                data={"text": "text", "mentions": []},
-            )
-        )
+        notification = self.create_notification(event.group)
+
         with self.tasks():
             notification.send()
 

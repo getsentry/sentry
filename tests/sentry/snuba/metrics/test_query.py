@@ -30,8 +30,8 @@ class MetricsQueryBuilder:
         self.org_id: int = 1
         self.project_ids: Sequence[int] = [1, 2]
         self.select: Sequence[MetricField] = [self.AVG_DURATION_METRIC]
-        self.start: datetime = now - timedelta(hours=1)
-        self.end: datetime = now
+        self.start: Optional[datetime] = now - timedelta(hours=1)
+        self.end: Optional[datetime] = now
         self.granularity: Granularity = Granularity(3600)
         self.orderby: Optional[ConditionGroup] = None
         self.where: Optional[Sequence[Groupable]] = None
@@ -41,6 +41,7 @@ class MetricsQueryBuilder:
         self.include_series: bool = True
         self.include_totals: bool = True
         self.interval: Optional[int] = None
+        self.is_alerts_query: bool = False
 
     def with_select(self, select: Sequence[MetricField]) -> "MetricsQueryBuilder":
         self.select = select
@@ -102,6 +103,7 @@ class MetricsQueryBuilder:
             "include_series": self.include_series,
             "include_totals": self.include_totals,
             "interval": self.interval,
+            "is_alerts_query": self.is_alerts_query,
         }
 
 
@@ -564,9 +566,9 @@ def test_validate_metric_field_mri():
 def test_validate_metric_field_mri_is_public(alias):
     with pytest.raises(
         InvalidParams,
-        match="Unable to find a mri reverse mapping for 'e:sessions/error.preaggr@none'.",
+        match=f"Unable to find a mri reverse mapping for '{SessionMRI.ERRORED_ALL.value}'.",
     ):
-        MetricField(op=None, metric_mri="e:sessions/error.preaggr@none", alias=alias)
+        MetricField(op=None, metric_mri=SessionMRI.ERRORED_ALL.value, alias=alias)
 
 
 @pytest.mark.parametrize(
@@ -602,6 +604,19 @@ def test_validate_interval(select, interval, series):
 
     with pytest.raises(
         InvalidParams, match="Interval is only supported for timeseries performance queries"
+    ):
+        MetricsQuery(**metrics_query_dict)
+
+
+def test_validate_is_alerts_query():
+    metrics_query = MetricsQueryBuilder()
+    metrics_query.start = None
+    metrics_query.end = None
+    metrics_query_dict = metrics_query.to_metrics_query_dict()
+
+    with pytest.raises(
+        InvalidParams,
+        match="start and env fields can only be None if the query is needed by alerts",
     ):
         MetricsQuery(**metrics_query_dict)
 
@@ -662,18 +677,3 @@ def test_start_end_interval_greater_than_interval_is_successful(
     metrics_query_dict = metrics_query.to_metrics_query_dict()
     mq = MetricsQuery(**metrics_query_dict)
     assert mq.granularity.granularity == expected_granularity
-
-
-@freeze_time("2022-11-03 10:00:00")
-def test_start_end_interval_less_than_interval_raises_an_exception():
-    metrics_query = (
-        MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
-        .with_include_series(True)
-        .with_granularity(Granularity(86400))
-        .with_interval(7200)
-    )
-
-    with pytest.raises(InvalidParams):
-        metrics_query_dict = metrics_query.to_metrics_query_dict()
-        MetricsQuery(**metrics_query_dict)

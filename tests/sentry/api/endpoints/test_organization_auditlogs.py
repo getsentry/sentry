@@ -6,10 +6,10 @@ from rest_framework.exceptions import ErrorDetail
 from sentry import audit_log
 from sentry.models import AuditLogEntry
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test  # TODO(hybrid-cloud): blocked on org member mapping in control silo
 class OrganizationAuditLogsTest(APITestCase):
     endpoint = "sentry-api-0-organization-audit-logs"
 
@@ -23,19 +23,19 @@ class OrganizationAuditLogsTest(APITestCase):
         org2 = self.create_organization(owner=self.user)
 
         entry1 = AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         entry2 = AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
         )
         AuditLogEntry.objects.create(
-            organization=org2,
+            organization_id=org2.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
@@ -50,13 +50,13 @@ class OrganizationAuditLogsTest(APITestCase):
         now = timezone.now()
 
         entry1 = AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
@@ -78,13 +78,16 @@ class OrganizationAuditLogsTest(APITestCase):
         self.create_member(user=user2, organization=self.organization)
 
         entry1 = AuditLogEntry.objects.create(
-            organization=org,
+            organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=org, event=audit_log.get_event_id("ORG_EDIT"), actor=user2, datetime=now
+            organization_id=org.id,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=user2,
+            datetime=now,
         )
 
         response = self.get_success_response(org.slug, qs_params={"actor": self.user.id})
@@ -101,16 +104,19 @@ class OrganizationAuditLogsTest(APITestCase):
         self.create_member(user=user2, organization=self.organization)
 
         entry1 = AuditLogEntry.objects.create(
-            organization=org,
+            organization_id=org.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=org, event=audit_log.get_event_id("ORG_EDIT"), actor=user2, datetime=now
+            organization_id=org.id,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=user2,
+            datetime=now,
         )
         AuditLogEntry.objects.create(
-            organization=org,
+            organization_id=org.id,
             event=audit_log.get_event_id("ORG_ADD"),
             actor=self.user,
             datetime=now + timedelta(seconds=1),
@@ -126,7 +132,7 @@ class OrganizationAuditLogsTest(APITestCase):
         now = timezone.now()
 
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
@@ -139,7 +145,7 @@ class OrganizationAuditLogsTest(APITestCase):
         now = timezone.now()
 
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,
@@ -161,7 +167,7 @@ class OrganizationAuditLogsTest(APITestCase):
         now = timezone.now()
 
         AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("ORG_EDIT"),
             actor=self.user,
             datetime=now,

@@ -51,7 +51,6 @@ from sentry.web.frontend.debug.debug_regression_email import (
     DebugRegressionEmailView,
     DebugRegressionReleaseEmailView,
 )
-from sentry.web.frontend.debug.debug_release_summary_email import DebugReleaseSummaryEmailView
 from sentry.web.frontend.debug.debug_resolved_email import DebugResolvedEmailView
 from sentry.web.frontend.debug.debug_resolved_in_release_email import (
     DebugResolvedInReleaseEmailView,
@@ -75,12 +74,13 @@ from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
     url(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
-    url(r"^debug/mail/performance-alert/$", DebugPerformanceIssueEmailView.as_view()),
+    url(
+        r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
+        DebugPerformanceIssueEmailView.as_view(),
+    ),
     url(r"^debug/mail/generic-alert/$", DebugGenericIssueEmailView.as_view()),
     url(r"^debug/mail/note/$", DebugNoteEmailView.as_view()),
     url(r"^debug/mail/new-release/$", DebugNewReleaseEmailView.as_view()),
-    url(r"^debug/mail/release-summary/$", DebugReleaseSummaryEmailView.as_view()),
-    url(r"^debug/mail/release_alert/$", sentry.web.frontend.debug.mail.release_alert),
     url(r"^debug/mail/new-user-feedback/$", DebugNewUserFeedbackEmailView.as_view()),
     url(r"^debug/mail/assigned/$", DebugAssignedEmailView.as_view()),
     url(r"^debug/mail/assigned/self/$", DebugSelfAssignedEmailView.as_view()),

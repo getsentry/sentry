@@ -45,6 +45,7 @@ type Props = Omit<
 
 function Line({
   frame,
+  debugFrames,
   nextFrame,
   prevFrame,
   timesRepeated,
@@ -103,6 +104,7 @@ function Line({
       case 'native':
         return nativeV2 ? (
           <NativeV2
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}
@@ -120,6 +122,7 @@ function Line({
           />
         ) : (
           <Native
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             prevFrame={prevFrame}
@@ -143,6 +146,7 @@ function Line({
       default:
         return (
           <Default
+            event={event}
             leadsToApp={leadsToApp}
             frame={frame}
             nextFrame={nextFrame}
@@ -154,6 +158,7 @@ function Line({
             onToggleContext={toggleContext}
             isUsedForGrouping={isUsedForGrouping}
             frameMeta={frameMeta}
+            debugFrames={debugFrames}
           />
         );
     }

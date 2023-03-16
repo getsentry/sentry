@@ -25,7 +25,9 @@ def generate_normalized_output(
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
         item["id"] = item.pop("replay_id", None)
-        item["longestTransaction"] = 0
+        item["project_id"] = str(item["project_id"])
+        item["trace_ids"] = item.pop("traceIds", [])
+        item["error_ids"] = item.pop("errorIds", [])
         item["environment"] = item.pop("agg_environment", None)
         item["tags"] = dict_unique_list(
             zip(
@@ -37,12 +39,12 @@ def generate_normalized_output(
             "id": item.pop("user_id", None),
             "name": item.pop("user_name", None),
             "email": item.pop("user_email", None),
-            "ip_address": item.pop("user_ipAddress", None),
+            "ip": item.pop("user_ip", None),
         }
-        item["user"]["displayName"] = (
+        item["user"]["display_name"] = (
             item["user"]["name"]
             or item["user"]["email"]
-            or item["user"]["ip_address"]
+            or item["user"]["ip"]
             or item["user"]["id"]
         )
         item["sdk"] = {
@@ -65,7 +67,6 @@ def generate_normalized_output(
         }
 
         item.pop("agg_urls", None)
-        item["countUrls"] = len(item.get("urls_sorted", []))
         item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")

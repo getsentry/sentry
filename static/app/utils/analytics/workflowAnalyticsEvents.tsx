@@ -1,14 +1,13 @@
-import type {IssueCategory, ResolutionStatus} from 'sentry/types';
-import {Tab} from 'sentry/views/organizationGroupDetails/types';
+import type {ResolutionStatus} from 'sentry/types';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
   project_id: string;
 };
 
-type IssueDetailsWithAlert = {
-  group_id: number;
-  issue_category: IssueCategory;
+interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
   /** The time that the alert was initially fired. */
   alert_date?: string;
@@ -16,7 +15,7 @@ type IssueDetailsWithAlert = {
   alert_rule_id?: string;
   /**  The type of alert notification - email/slack */
   alert_type?: string;
-};
+}
 
 export type BaseEventAnalyticsParams = {
   event_id: string;
@@ -28,11 +27,22 @@ export type BaseEventAnalyticsParams = {
   num_in_app_stack_frames: number;
   num_stack_frames: number;
   num_threads_with_names: number;
+  error_has_replay?: boolean;
+  event_errors?: string;
   event_platform?: string;
   event_type?: string;
+  has_otel?: boolean;
+  release_user_agent?: string;
   sdk_name?: string;
   sdk_version?: string;
 };
+
+type BaseTour = {
+  duration: number;
+  step: number;
+};
+
+type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
   'alert_builder.filter': {query: string; session_id?: string};
@@ -64,6 +74,7 @@ export type TeamInsightsEventParameters = {
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;
+    assigned_type?: string;
   };
   'issue_details.attachment_tab.screenshot_modal_deleted': {};
   'issue_details.attachment_tab.screenshot_modal_download': {};
@@ -88,8 +99,14 @@ export type TeamInsightsEventParameters = {
     project_id: string;
     rule_id: string;
   };
+  'project_detail.change_chart': {chart_index: number; metric: string};
+  'project_detail.open_anr_issues': {};
   'project_detail.open_discover': {};
   'project_detail.open_issues': {};
+  'project_detail.performance_tour.advance': BaseTour;
+  'project_detail.performance_tour.close': BaseTour;
+  'project_detail.releases_tour.advance': ReleasesTour;
+  'project_detail.releases_tour.close': ReleasesTour;
 };
 
 export type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
@@ -136,4 +153,10 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'project_creation_page.created': 'Project Create: Project Created',
   'project_detail.open_issues': 'Project Detail: Open issues from project detail',
   'project_detail.open_discover': 'Project Detail: Open discover from project detail',
+  'project_detail.open_anr_issues': 'Project Detail: Open issues from ANR rate scorecard',
+  'project_detail.change_chart': 'Project Detail: Change Chart',
+  'project_detail.performance_tour.advance': 'Project Detail: Performance Tour Advance',
+  'project_detail.performance_tour.close': 'Project Detail: Performance Tour Close',
+  'project_detail.releases_tour.advance': 'Project Detail: Releases Tour Advance',
+  'project_detail.releases_tour.close': 'Project Detail: Releases Tour Close',
 };

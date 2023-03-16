@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -44,9 +44,12 @@ function createProvider(contextDefs: Record<string, any>) {
 }
 
 function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions) {
-  const ContextProvider = context ? createProvider(context) : Fragment;
-
-  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+  const {organization, router, routerContext} = initializeOrg(
+    initializeOrgOptions as any
+  );
+  const ContextProvider = context
+    ? createProvider(context)
+    : createProvider(routerContext);
 
   return function ({children}: {children?: React.ReactNode}) {
     return (
@@ -112,7 +115,17 @@ function render(ui: React.ReactElement, options?: Options) {
 const fireEvent = rtl.fireEvent;
 
 function renderGlobalModal(options?: Options) {
-  return render(<GlobalModal />, options);
+  const result = render(<GlobalModal />, options);
+
+  /**
+   * Helper that waits for the modal to be removed from the DOM. You may need to
+   * wait for the modal to be removed to avoid any act warnings.
+   */
+  function waitForModalToHide() {
+    return rtl.waitForElementToBeRemoved(() => rtl.screen.getByRole('dialog'));
+  }
+
+  return {...result, waitForModalToHide};
 }
 
 /**

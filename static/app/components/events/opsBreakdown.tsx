@@ -12,7 +12,7 @@ import {getSpanOperation} from 'sentry/components/events/interfaces/spans/utils'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EntrySpans, EntryType, Event, EventTransaction} from 'sentry/types/event';
 
 type StartTimestamp = number;

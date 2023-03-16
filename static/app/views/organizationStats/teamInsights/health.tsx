@@ -23,7 +23,7 @@ import TeamReleases from './teamReleases';
 import TeamStability from './teamStability';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsHealth({location, router}: Props) {
   const organization = useOrganization();

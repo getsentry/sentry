@@ -8,7 +8,8 @@ from django.urls import reverse
 from rb.clients import LocalClient
 
 from sentry import options
-from sentry.models import AuthProvider, Organization, OrganizationMember, User
+from sentry.models import AuthProvider, User
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils import json, metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -21,7 +22,7 @@ SSO_VERIFICATION_KEY = "confirm_account_verification_key"
 
 def send_one_time_account_confirm_link(
     user: User,
-    org: Organization,
+    org: RpcOrganization,
     provider: AuthProvider,
     email: str,
     identity_id: str,
@@ -34,7 +35,7 @@ def send_one_time_account_confirm_link(
     in an email to the associated address.
 
     :param user: the user profile to link
-    :param organization: the organization whose SSO provider is being used
+    :param org: the organization whose SSO provider is being used
     :param provider: the SSO provider
     :param email: the email address associated with the SSO identity
     :param identity_id: the SSO identity id
@@ -52,7 +53,7 @@ def get_redis_cluster() -> LocalClient:
 @dataclass
 class AccountConfirmLink:
     user: User
-    organization: Organization
+    organization: RpcOrganization
     provider: AuthProvider
     email: str
     identity_id: str
@@ -88,17 +89,14 @@ class AccountConfirmLink:
     def store_in_redis(self) -> None:
         cluster = get_redis_cluster()
 
-        try:
-            member_id = OrganizationMember.objects.get(
-                organization=self.organization, user=self.user
-            ).id
-        except OrganizationMember.DoesNotExist:
-            member_id = None
+        member = organization_service.check_membership_by_id(
+            organization_id=self.organization.id, user_id=self.user.id
+        )
 
         verification_value = {
             "user_id": self.user.id,
             "email": self.email,
-            "member_id": member_id,
+            "member_id": member.id if member is not None else None,
             "organization_id": self.organization.id,
             "identity_id": self.identity_id,
             "provider": self.provider.provider,
@@ -119,7 +117,7 @@ def get_verification_value_from_key(key: str) -> Dict[str, Any] | None:
     verification_value: Dict[str, Any] = json.loads(verification_str)
     metrics.incr(
         "idpmigration.confirmation_success",
-        tags={key: verification_value.get(key) for key in ("provider", "organization_id")},
+        tags={"provider": verification_value.get("provider")},
         sample_rate=1.0,
     )
     return verification_value

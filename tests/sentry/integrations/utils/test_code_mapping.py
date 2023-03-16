@@ -40,9 +40,9 @@ UNSUPPORTED_FRAME_FILENAMES = [
     "README",  # no extension
     "ssl.py",
     # XXX: The following will need to be supported
+    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
     "initialization.dart",
     "backburner.js",
-    "C:\\Users\\Donia\\AppData\\Roaming\\Adobe\\UXP\\Plugins\\External\\452f92d2_0.13.0\\main.js",
 ]
 
 
@@ -226,7 +226,7 @@ class TestDerivedCodeMappings(TestCase):
         code_mappings = self.code_mapping_helper.generate_code_mappings(stacktraces)
         # The file appears in more than one repo, thus, we are unable to determine the code mapping
         assert code_mappings == []
-        assert logger.warning.called_with("More than one repo matched sentry/web/urls.py")
+        logger.warning.assert_called_with("More than one repo matched sentry/web/urls.py")
 
     def test_list_file_matches_single(self):
         frame_filename = FrameFilename("sentry_plugins/slack/client.py")
@@ -299,3 +299,24 @@ class TestDerivedCodeMappings(TestCase):
         )
         assert stacktrace_root == "./"
         assert source_path == "app/foo/"
+
+    def test_normalized_stack_and_source_roots_starts_with_app(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "app:///utils/", "utils/"
+        )
+        assert stacktrace_root == "app:///"
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_roots_starts_with_multiple_dot_dot_slash(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "../../../../../../packages/", "packages/"
+        )
+        assert stacktrace_root == "../../../../../../"
+        assert source_path == ""
+
+    def test_normalized_stack_and_source_roots_starts_with_app_dot_dot_slash(self):
+        stacktrace_root, source_path = self.code_mapping_helper._normalized_stack_and_source_roots(
+            "app:///../services/", "services/"
+        )
+        assert stacktrace_root == "app:///../"
+        assert source_path == ""

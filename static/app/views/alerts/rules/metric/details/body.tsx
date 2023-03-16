@@ -5,7 +5,7 @@ import {Location} from 'history';
 import moment from 'moment';
 
 import {Client} from 'sentry/api';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import Duration from 'sentry/components/duration';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,7 +14,7 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
 import {Dataset, MetricRule, TimePeriod} from 'sentry/views/alerts/rules/metric/types';
@@ -43,7 +43,7 @@ type Props = {
   project?: Project;
   rule?: MetricRule;
   selectedIncident?: Incident | null;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 export default class DetailsBody extends Component<Props> {
   getTimeWindow(): React.ReactNode {
@@ -144,7 +144,6 @@ export default class DetailsBody extends Component<Props> {
       organization,
       timePeriod,
       selectedIncident,
-      params: {orgId},
     } = this.props;
 
     if (!rule || !project) {
@@ -195,7 +194,6 @@ export default class DetailsBody extends Component<Props> {
               interval={this.getInterval()}
               query={isCrashFreeAlert(dataset) ? query : queryWithTypeFilter}
               filter={this.getFilter()}
-              orgId={orgId}
             />
             <DetailWrapper>
               <ActivityWrapper>

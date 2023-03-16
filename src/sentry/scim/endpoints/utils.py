@@ -1,5 +1,6 @@
 from typing import Dict, List
 
+import sentry_sdk
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import APIException, ParseError
@@ -18,6 +19,9 @@ ACCEPTED_FILTERED_KEYS = ["userName", "value", "displayName"]
 
 class SCIMApiError(APIException):
     def __init__(self, detail, status_code=400):
+        transaction = sentry_sdk.Hub.current.scope.transaction
+        if transaction is not None:
+            transaction.set_tag("http.status_code", status_code)
         self.status_code = status_code
         self.detail = {"schemas": [SCIM_API_ERROR], "detail": detail}
 

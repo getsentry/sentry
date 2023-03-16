@@ -1,4 +1,4 @@
-import type Alert from 'sentry/components/alert';
+import type {Alert} from 'sentry/components/alert';
 import type {Field} from 'sentry/components/forms/types';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import type {
@@ -6,9 +6,10 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
+} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -81,6 +82,18 @@ export type Repository = {
   url: string;
 };
 
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
+export type IntegrationRepository = {
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+  defaultBranch?: string | null;
+};
+
 export type Commit = {
   dateCreated: string;
   id: string;
@@ -89,6 +102,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {
@@ -144,9 +158,31 @@ export type SentryAppSchemaStacktraceLink = {
   params?: Array<string>;
 };
 
+export enum Coverage {
+  NOT_APPLICABLE = -1,
+  COVERED = 0,
+  NOT_COVERED = 1,
+  PARTIAL = 2,
+}
+export type LineCoverage = [lineNo: number, coverage: Coverage];
+
+export enum CodecovStatusCode {
+  COVERAGE_EXISTS = 200,
+  NO_INTEGRATION = 404,
+  NO_COVERAGE_DATA = 400,
+}
+
+export interface CodecovResponse {
+  status: CodecovStatusCode;
+  attemptedUrl?: string;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+}
+
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
+  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
   sourceUrl?: string;
@@ -497,6 +533,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {

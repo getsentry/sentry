@@ -179,6 +179,11 @@ IOS_MODELS: Dict[str, str] = {
     "iPhone14,5": "iPhone 13",
     "iPhone14,2": "iPhone 13 Pro",
     "iPhone14,3": "iPhone 13 Pro Max",
+    "iPhone14,6": "iPhone SE (3rd gen)",
+    "iPhone14,7": "iPhone 14",
+    "iPhone14,8": "iPhone 14 Plus",
+    "iPhone15,2": "iPhone 14 Pro",
+    "iPhone15,3": "iPhone 14 Pro Max",
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
     "iPod3,1": "iPod touch (3rd gen)",
@@ -330,6 +335,8 @@ CPU18 = (3100, 3100, 1800, 1800, 1800, 1800)
 CPU19 = (3230, 3230, 1800, 1800, 1800, 1800)
 CPU20 = (2900, 2900, 1800, 1800, 1800, 1800)
 CPU21 = (3200, 3200, 3200, 3200, 2060, 2060, 2060, 2060)
+CPU22 = (3230, 3230, 2020, 2020, 2020, 2020)
+CPU23 = (3460, 3460, 2020, 2020, 2020, 2020)
 
 
 IOS_CPU_FREQUENCIES: Dict[str, Tuple[int, ...]] = {
@@ -492,6 +499,11 @@ IOS_CPU_FREQUENCIES: Dict[str, Tuple[int, ...]] = {
     "iPad13,9": CPU21,
     "iPad13,10": CPU21,
     "iPad13,11": CPU21,
+    "iPhone14,6": CPU19,
+    "iPhone14,7": CPU22,
+    "iPhone14,8": CPU22,
+    "iPhone15,2": CPU23,
+    "iPhone15,3": CPU23,
 }
 
 

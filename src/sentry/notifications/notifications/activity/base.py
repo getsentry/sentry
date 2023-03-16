@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, Mapping, MutableMapping
 from urllib.parse import urlparse, urlunparse
 
@@ -14,7 +15,7 @@ from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
 from sentry.notifications.utils.participants import get_participants_for_group
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
@@ -40,7 +41,6 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         """The most basic context shared by every notification type."""
         return {
             "data": self.activity.data,
-            "author": self.activity.user,
             "title": self.title,
             "project": self.project,
             "project_link": self.get_project_link(),
@@ -64,7 +64,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
     @abc.abstractmethod
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
         pass
 
     def send(self) -> None:
@@ -90,12 +90,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         referrer = self.get_referrer(ExternalProviders.EMAIL)
         return str(self.group.get_absolute_url(params={"referrer": referrer}))
 
+    @cached_property
+    def user(self) -> RpcUser | None:
+        return user_service.get_user(self.activity.user_id)
+
     def get_participants_with_group_subscription_reason(
         self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
         """This is overridden by the activity subclasses."""
-        user = user_service.get_user(self.activity.user_id)
-        return get_participants_for_group(self.group, user)
+        return get_participants_for_group(self.group, self.user)
 
     def get_unsubscribe_key(self) -> tuple[str, int, str | None] | None:
         return "issue", self.group.id, None
@@ -149,9 +152,8 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         url: bool | None = False,
         provider: ExternalProviders | None = None,
     ) -> str:
-        user = self.activity.user
-        if user:
-            name = user.name or user.email
+        if self.user:
+            name = self.user.name or self.user.email
         else:
             name = "Sentry"
 
@@ -166,15 +168,14 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
         return description.format(**context)
 
     def description_as_html(self, description: str, params: Mapping[str, Any]) -> SafeString:
-        user = self.activity.user
-        if user:
-            name = user.get_display_name()
+        if self.user:
+            name = self.user.get_display_name()
         else:
             name = "Sentry"
 
         fmt = '<span class="avatar-container">{}</span> <strong>{}</strong>'
 
-        author = mark_safe(fmt.format(avatar_as_html(user), escape(name)))
+        author = mark_safe(fmt.format(avatar_as_html(self.user), escape(name)))
 
         issue_name = escape(self.group.qualified_short_id or "an issue")
         an_issue = f'<a href="{escape(self.get_group_link())}">{issue_name}</a>'

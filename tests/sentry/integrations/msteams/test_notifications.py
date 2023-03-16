@@ -198,7 +198,7 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
             Activity(
                 project=self.project,
                 group=self.group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.NOTE,
                 data={"text": "text", "mentions": []},
             )
@@ -207,7 +207,7 @@ class MSTeamsNotificationIntegrationTest(MSTeamsActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        data = json.loads(responses.calls[2].request.body)
+        data = json.loads(responses.calls[-1].request.body)
 
         attachment = data["attachments"][0]
         assert "AdaptiveCard" == attachment["content"]["type"]

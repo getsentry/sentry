@@ -2,7 +2,7 @@ import {Component, createRef, Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import ButtonBar from 'sentry/components/buttonBar';
 import DiscoverButton from 'sentry/components/discoverButton';
@@ -12,7 +12,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TimeSince from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -23,6 +23,7 @@ import {createFuzzySearch, Fuse} from 'sentry/utils/fuzzySearch';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed, TraceMeta} from 'sentry/utils/performance/quickTrace/types';
 import {filterTrace, reduceTrace} from 'sentry/utils/performance/quickTrace/utils';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
@@ -303,16 +304,21 @@ class TraceDetailsContent extends Component<Props, State> {
         {this.renderTraceHeader(traceInfo)}
         {this.renderSearchBar()}
         <Margin>
-          <TraceView
-            filteredTransactionIds={this.state.filteredTransactionIds}
-            traceInfo={traceInfo}
-            location={location}
-            organization={organization}
-            traceEventView={traceEventView}
-            traceSlug={traceSlug}
-            traces={traces}
-            meta={meta}
-          />
+          <VisuallyCompleteWithData
+            id="PerformanceDetails-TraceView"
+            hasData={!!traces.length}
+          >
+            <TraceView
+              filteredTransactionIds={this.state.filteredTransactionIds}
+              traceInfo={traceInfo}
+              location={location}
+              organization={organization}
+              traceEventView={traceEventView}
+              traceSlug={traceSlug}
+              traces={traces}
+              meta={meta}
+            />
+          </VisuallyCompleteWithData>
         </Margin>
       </Fragment>
     );

@@ -23,7 +23,7 @@ import TeamResolutionTime from './teamResolutionTime';
 import TeamUnresolvedIssues from './teamUnresolvedIssues';
 import {dataDatetime} from './utils';
 
-type Props = RouteComponentProps<{orgId: string}, {}>;
+type Props = RouteComponentProps<{}, {}>;
 
 function TeamStatsIssues({location, router}: Props) {
   const organization = useOrganization();

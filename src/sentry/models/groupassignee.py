@@ -13,6 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import issue_assigned
@@ -21,14 +22,14 @@ from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models import ActorTuple, Group, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class GroupAssigneeManager(BaseManager):
     def assign(
         self,
         group: Group,
-        assigned_to: Team | APIUser,
+        assigned_to: Team | RpcUser,
         acting_user: User | None = None,
         create_only: bool = False,
         extra: Dict[str, str] | None = None,
@@ -49,7 +50,7 @@ class GroupAssigneeManager(BaseManager):
         elif isinstance(assigned_to, Team):
             assignee_type = "team"
             assignee_type_attr = "team_id"
-            other_type = "user"
+            other_type = "user_id"
         else:
             raise AssertionError(f"Invalid type to assign to: {type(assigned_to)}")
 
@@ -98,7 +99,7 @@ class GroupAssigneeManager(BaseManager):
 
         return {"new_assignment": created, "updated_assignment": bool(not created and affected)}
 
-    def deassign(self, group: Group, acting_user: User | None = None) -> None:
+    def deassign(self, group: Group, acting_user: User | RpcUser | None = None) -> None:
         from sentry import features
         from sentry.integrations.utils import sync_group_assignee_outbound
         from sentry.models import Activity
@@ -131,9 +132,7 @@ class GroupAssignee(Model):
 
     project = FlexibleForeignKey("sentry.Project", related_name="assignee_set")
     group = FlexibleForeignKey("sentry.Group", related_name="assignee_set", unique=True)
-    user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, related_name="sentry_assignee_set", null=True
-    )
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, on_delete="CASCADE", null=True)
     team = FlexibleForeignKey("sentry.Team", related_name="sentry_assignee_set", null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
@@ -152,7 +151,7 @@ class GroupAssignee(Model):
 
     def assigned_actor_id(self) -> str:
         # TODO(mgaeta): Create migration for GroupAssignee to use the Actor model.
-        if self.user:
+        if self.user_id:
             return f"user:{self.user_id}"
 
         if self.team:

@@ -5,6 +5,7 @@ from typing import Any, Callable, MutableMapping
 from sentry.api.validators.integrations import validate_provider
 from sentry.integrations.slack.message_builder import SlackAttachment
 from sentry.models import Integration, Organization
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.types.integrations import ExternalProviders
 
 # TODO(Steve): Fix types
@@ -22,7 +23,7 @@ class AdditionalAttachmentManager:
     # need to update types for additional providers
     def get_additional_attachment(
         self,
-        integration: Integration,
+        integration: Integration | RpcIntegration,
         organization: Organization,
     ) -> SlackAttachment | None:
         # look up the generator by the provider but only accepting slack for now

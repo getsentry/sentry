@@ -7,10 +7,11 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
-import PageHeading from 'sentry/components/pageHeading';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
+import {IssueAlertRuleAction} from 'sentry/types/alerts';
 import withOrganization from 'sentry/utils/withOrganization';
 
 enum MetricValues {
@@ -27,9 +28,15 @@ const UNIQUE_USER_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition';
 const EVENT_FREQUENCY_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyCondition';
-const NOTIFY_EVENT_ACTION = 'sentry.rules.actions.notify_event.NotifyEventAction';
 export const EVENT_FREQUENCY_PERCENT_CONDITION =
   'sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition';
+const ISSUE_ALERT_DEFAULT_ACTION: Omit<
+  IssueAlertRuleAction,
+  'label' | 'name' | 'prompt'
+> = {
+  id: 'sentry.mail.actions.NotifyEmailAction',
+  targetType: 'IssueOwners',
+};
 
 const METRIC_CONDITION_MAP = {
   [MetricValues.ERRORS]: EVENT_FREQUENCY_CONDITION,
@@ -57,7 +64,7 @@ type State = AsyncComponent['state'] & {
 
 type RequestDataFragment = {
   actionMatch: string;
-  actions: {id: string}[];
+  actions: Omit<IssueAlertRuleAction, 'label' | 'name' | 'prompt'>[];
   conditions: {id: string; interval: string; value: string}[] | undefined;
   defaultRules: boolean;
   frequency: number;
@@ -217,7 +224,14 @@ class IssueAlertOptions extends AsyncComponent<Props, State> {
               ),
             ]
           : undefined,
-      actions: [{id: NOTIFY_EVENT_ACTION}],
+      actions: [
+        {
+          ...ISSUE_ALERT_DEFAULT_ACTION,
+          ...(this.props.organization.features.includes('issue-alert-fallback-targeting')
+            ? {fallthroughType: 'ActiveMembers'}
+            : {}),
+        },
+      ],
       actionMatch: 'all',
       frequency: 5,
     };
@@ -320,7 +334,7 @@ const InlineSelectControl = styled(SelectControl)`
 const RadioGroupWithPadding = styled(RadioGroup)`
   margin-bottom: ${space(2)};
 `;
-const PageHeadingWithTopMargins = styled(PageHeading)`
+const PageHeadingWithTopMargins = styled(Layout.Title)`
   margin-top: 65px;
   margin-bottom: 0;
   padding-bottom: ${space(3)};

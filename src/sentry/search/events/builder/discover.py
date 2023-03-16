@@ -58,6 +58,7 @@ from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.profile_functions import ProfileFunctionsDatasetConfig
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import (
@@ -179,6 +180,10 @@ class QueryBuilder(BaseQueryBuilder):
         has_metrics: bool = False,
         transform_alias_to_input_format: bool = False,
         use_metrics_layer: bool = False,
+        # This skips converting tags back to their non-prefixed versions when processing the results
+        # Currently this is only used for avoiding conflicting values when doing the first query
+        # of a top events request
+        skip_tag_resolution: bool = False,
     ):
         self.dataset = dataset
 
@@ -202,6 +207,12 @@ class QueryBuilder(BaseQueryBuilder):
             "columns": set(),
         }
 
+        # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
+        org_id = self.organization_id or (
+            self.params.organization.id if self.params.organization else None
+        )
+        self.tenant_ids = {"organization_id": org_id} if org_id else None
+
         # Function is a subclass of CurriedFunction
         self.where: List[WhereType] = []
         self.having: List[WhereType] = []
@@ -219,6 +230,14 @@ class QueryBuilder(BaseQueryBuilder):
         # value_resolver_map may change type
         self.meta_resolver_map: Dict[str, str] = {}
 
+        # These maps let us convert from prefixed to original tag keys
+        # and vice versa to avoid collisions where tags and functions have
+        # similar aliases
+        self.prefixed_to_tag_map: Dict[str, str] = {}
+        self.tag_to_prefixed_map: Dict[str, str] = {}
+        self.skip_tag_resolution = skip_tag_resolution
+
+        self.requires_other_aggregates = False
         self.auto_aggregations = auto_aggregations
         self.limit = self.resolve_limit(limit)
         self.offset = None if offset is None else Offset(offset)
@@ -264,7 +283,15 @@ class QueryBuilder(BaseQueryBuilder):
     def resolve_column_name(self, col: str) -> str:
         # TODO when utils/snuba.py becomes typed don't need this extra annotation
         column_resolver: Callable[[str], str] = resolve_column(self.dataset)
-        return column_resolver(col)
+        column_name = column_resolver(col)
+
+        # If the original column was passed in as tag[X], then there won't be a conflict
+        # and there's no need to prefix the tag
+        if not col.startswith("tags[") and column_name.startswith("tags["):
+            self.prefixed_to_tag_map[f"tags_{col}"] = col
+            self.tag_to_prefixed_map[col] = f"tags_{col}"
+
+        return column_name
 
     def resolve_query(
         self,
@@ -301,7 +328,12 @@ class QueryBuilder(BaseQueryBuilder):
         Mapping[str, Callable[[Direction], OrderBy]],
     ]:
         self.config: DatasetConfig
-        if self.dataset in [Dataset.Discover, Dataset.Transactions, Dataset.Events]:
+        if self.dataset in [
+            Dataset.Discover,
+            Dataset.Transactions,
+            Dataset.Events,
+            Dataset.IssuePlatform,
+        ]:
             self.config = DiscoverDatasetConfig(self)
         elif self.dataset == Dataset.Sessions:
             self.config = SessionsDatasetConfig(self)
@@ -312,6 +344,8 @@ class QueryBuilder(BaseQueryBuilder):
                 self.config = MetricsDatasetConfig(self)
         elif self.dataset == Dataset.Profiles:
             self.config = ProfilesDatasetConfig(self)
+        elif self.dataset == Dataset.Functions:
+            self.config = ProfileFunctionsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -708,6 +742,8 @@ class QueryBuilder(BaseQueryBuilder):
         )
         if resolved_function is not None:
             return resolved_function
+        if snql_function.requires_other_aggregates:
+            self.requires_other_aggregates = True
 
         return snql_function.snql_column(arguments, alias)
 
@@ -803,6 +839,7 @@ class QueryBuilder(BaseQueryBuilder):
         resolved_orderby: Union[str, SelectType, None]
         for orderby in orderby_columns:
             bare_orderby = orderby.lstrip("-")
+            bare_orderby = self.tag_to_prefixed_map.get(bare_orderby, bare_orderby)
             try:
                 # Allow ordering equations with the calculated alias (ie. equation[0])
                 if is_equation_alias(bare_orderby):
@@ -829,7 +866,6 @@ class QueryBuilder(BaseQueryBuilder):
                 if isinstance(selected_column, Column) and selected_column == resolved_orderby:
                     validated.append(OrderBy(selected_column, direction))
                     break
-
                 elif (
                     isinstance(selected_column, AliasedExpression)
                     and selected_column.alias == bare_orderby
@@ -878,8 +914,8 @@ class QueryBuilder(BaseQueryBuilder):
             return self.resolve_field(field, alias=alias)
 
     def resolve_groupby(self, groupby_columns: Optional[List[str]] = None) -> List[SelectType]:
+        self.validate_aggregate_arguments()
         if self.aggregates:
-            self.validate_aggregate_arguments()
             groupby_columns = (
                 [self.resolve_column(column) for column in groupby_columns]
                 if groupby_columns
@@ -1016,6 +1052,11 @@ class QueryBuilder(BaseQueryBuilder):
                     )
 
     def validate_aggregate_arguments(self) -> None:
+        # There might not be any columns during the resolve_groupby step
+        if self.columns and self.requires_other_aggregates and len(self.aggregates) == 0:
+            raise InvalidSearchQuery(
+                "Another aggregate function needs to be selected in order to use the total.count field"
+            )
         for column in self.columns:
             if column in self.aggregates:
                 continue
@@ -1063,7 +1104,7 @@ class QueryBuilder(BaseQueryBuilder):
         # If the expected aliases differs from the resolved snuba column,
         # make sure to alias the expression appropriately so we get back
         # the column with the correct names.
-        return AliasedExpression(column, name)
+        return AliasedExpression(column, self.tag_to_prefixed_map.get(name, name))
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -1189,6 +1230,9 @@ class QueryBuilder(BaseQueryBuilder):
         operator = search_filter.operator
         value = search_filter.value.value
 
+        # Some fields aren't valid queries
+        if name in constants.SKIP_FILTER_RESOLUTION:
+            name = f"tags[{name}]"
         lhs = self.resolve_column(name)
 
         if name in constants.ARRAY_FIELDS:
@@ -1230,12 +1274,17 @@ class QueryBuilder(BaseQueryBuilder):
             if not search_filter.value.is_span_id():
                 raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
-        # Validate event ids and trace ids are uuids
-        if name in {"id", "trace"}:
+        # Validate event ids, trace ids, and profile ids are uuids
+        if name in {"id", "trace", "profile.id"}:
             if search_filter.value.is_wildcard():
                 raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             elif not search_filter.value.is_event_id():
-                label = "Filter ID" if name == "id" else "Filter Trace ID"
+                if name == "trace":
+                    label = "Filter Trace ID"
+                elif name == "profile.id":
+                    label = "Filter Profile ID"
+                else:
+                    label = "Filter ID"
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         if name in constants.TIMESTAMP_FIELDS:
@@ -1397,7 +1446,16 @@ class QueryBuilder(BaseQueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids=self.tenant_ids,
         )
+
+    @classmethod
+    def handle_invalid_float(cls, value: float) -> Optional[float]:
+        if math.isnan(value):
+            return 0
+        elif math.isinf(value):
+            return None
+        return value
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
@@ -1426,12 +1484,14 @@ class QueryBuilder(BaseQueryBuilder):
                 for value in results["meta"]:
                     name = value["name"]
                     key = translated_columns.get(name, name)
+                    key = self.prefixed_to_tag_map.get(key, key)
                     field_type = fields.get_json_meta_type(key, value.get("type"), self)
                     field_meta[key] = field_type
                 # Ensure all columns in the result have types.
                 if results["data"]:
                     for key in results["data"][0]:
                         field_key = translated_columns.get(key, key)
+                        field_key = self.prefixed_to_tag_map.get(field_key, field_key)
                         if field_key not in field_meta:
                             field_meta[field_key] = "string"
 
@@ -1439,8 +1499,6 @@ class QueryBuilder(BaseQueryBuilder):
             def get_row(row: Dict[str, Any]) -> Dict[str, Any]:
                 transformed = {}
                 for key, value in row.items():
-                    new_key = translated_columns.get(key, key)
-
                     if isinstance(value, float):
                         # 0 for nan, and none for inf were chosen arbitrarily, nan and inf are invalid json
                         # so needed to pick something valid to use instead
@@ -1448,12 +1506,20 @@ class QueryBuilder(BaseQueryBuilder):
                             value = 0
                         elif math.isinf(value):
                             value = None
-                    if new_key in self.value_resolver_map:
-                        new_value = self.value_resolver_map[new_key](value)
+                        value = self.handle_invalid_float(value)
+                    if isinstance(value, list):
+                        for index, item in enumerate(value):
+                            if isinstance(item, float):
+                                value[index] = self.handle_invalid_float(item)
+                    if key in self.value_resolver_map:
+                        new_value = self.value_resolver_map[key](value)
                     else:
                         new_value = value
 
-                    transformed[new_key] = new_value
+                    resolved_key = translated_columns.get(key, key)
+                    if not self.skip_tag_resolution:
+                        resolved_key = self.prefixed_to_tag_map.get(resolved_key, resolved_key)
+                    transformed[resolved_key] = new_value
 
                 return transformed
 
@@ -1493,6 +1559,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
         has_metrics: bool = False,
+        skip_tag_resolution: bool = False,
     ):
         super().__init__(
             dataset,
@@ -1504,6 +1571,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
             functions_acl=functions_acl,
             equation_config={"auto_add": True, "aggregates_only": True},
             has_metrics=has_metrics,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.granularity = Granularity(interval)
@@ -1550,6 +1618,7 @@ class TimeseriesQueryBuilder(UnresolvedQuery):
                 granularity=self.granularity,
                 limit=self.limit,
             ),
+            tenant_ids=self.tenant_ids,
         )
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
@@ -1609,6 +1678,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         equations: Optional[List[str]] = None,
         functions_acl: Optional[List[str]] = None,
         limit: Optional[int] = 10000,
+        skip_tag_resolution: bool = False,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
@@ -1623,9 +1693,11 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
             equations=list(set(equations + timeseries_equations)),
             functions_acl=functions_acl,
             limit=limit,
+            skip_tag_resolution=skip_tag_resolution,
         )
 
         self.fields: List[str] = selected_columns if selected_columns is not None else []
+        self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
 
         if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
             self.where.append(conditions)
@@ -1674,7 +1746,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
                 self.where.append(Condition(self.column("project_id"), Op.IN, projects))
                 continue
 
-            resolved_field = self.resolve_column(field)
+            resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
 
             values: Set[Any] = set()
             for event in top_events:

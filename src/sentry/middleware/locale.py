@@ -6,7 +6,7 @@ from django.utils.translation import LANGUAGE_SESSION_KEY, _trans
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.utils.safe import safe_execute
 
 
@@ -41,14 +41,14 @@ class SentryLocaleMiddleware(LocaleMiddleware):
             return
 
         options = user_option_service.get_many(
-            user_ids=[request.user.id], keys=["language", "timezone"]
+            filter={"user_ids": [request.user.id], "keys": ["language", "timezone"]}
         )
-        for option in options:
-            if option.key == "language" and (language := option.value):
-                request.session[LANGUAGE_SESSION_KEY] = language
 
-            if option.key == "timezone" and (timezone := option.value):
-                request.timezone = pytz.timezone(timezone)
+        if language := get_option_from_list(options, key="language"):
+            request.session[LANGUAGE_SESSION_KEY] = language
+
+        if timezone := get_option_from_list(options, key="timezone"):
+            request.timezone = pytz.timezone(timezone)
 
     def process_response(self, request: Request, response: Response) -> Response:
         # If static bound, we don't want to run the normal process_response since this

@@ -6,14 +6,14 @@ import {
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import FeatureBadge from 'sentry/components/featureBadge';
 import BooleanField from 'sentry/components/forms/fields/booleanField';
 import {Panel, PanelBody, PanelFooter, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import {DynamicSamplingBias, DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -40,15 +40,21 @@ export const knowDynamicSamplingBiases = {
   },
   [DynamicSamplingBiasType.BOOST_ENVIRONMENTS]: {
     label: t('Prioritize dev environments'),
-    help: t('Captures more traces from environments that contain “dev” and “test”'),
+    help: t(
+      'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+    ),
   },
   [DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS]: {
     label: t('Prioritize key transactions'),
     help: t('Captures more of your most important (starred) transactions'),
   },
+  [DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS]: {
+    label: t('Prioritize low-volume transactions'),
+    help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+  },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
-    label: t('Ignore health checks'),
-    help: t('Discards your health checks transactions'),
+    label: t('Deprioritize health checks'),
+    help: t('Captures fewer of your health checks transactions'),
   },
 };
 
@@ -56,6 +62,9 @@ export function DynamicSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
+  const hasTransactionNamePriorityFlag = organization.features.includes(
+    'dynamic-sampling-transaction-name-priority'
+  );
   const hasAccess = organization.access.includes('project:write');
   const biases = project.dynamicSamplingBiases ?? [];
 
@@ -144,6 +153,14 @@ export function DynamicSampling({project}: Props) {
               const bias = biases.find(b => b.id === key);
 
               if (!bias) {
+                return null;
+              }
+
+              // "Prioritize low-volume transactions" is only available to orgs with the feature flag
+              if (
+                !hasTransactionNamePriorityFlag &&
+                key === DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS
+              ) {
                 return null;
               }
 

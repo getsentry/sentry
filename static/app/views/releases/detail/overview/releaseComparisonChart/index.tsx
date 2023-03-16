@@ -5,20 +5,19 @@ import * as Sentry from '@sentry/react';
 import {Location} from 'history';
 
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
-import Duration from 'sentry/components/duration';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import {Panel, PanelTable} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   ReleaseComparisonChartType,
@@ -33,12 +32,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import {
-  getCount,
-  getCrashFreeRate,
-  getSeriesAverage,
-  getSessionStatusRate,
-} from 'sentry/utils/sessions';
+import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
 import {Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
@@ -47,7 +41,6 @@ import {
   getReleaseHandledIssuesUrl,
   getReleaseParams,
   getReleaseUnhandledIssuesUrl,
-  roundDuration,
 } from 'sentry/views/releases/utils';
 
 import ReleaseComparisonChartRow from './releaseComparisonChartRow';
@@ -456,15 +449,6 @@ function ReleaseComparisonChart({
   );
   const allUsersCount = getCount(allSessions?.groups, SessionFieldWithOperation.USERS);
 
-  const sessionDurationTotal = roundDuration(
-    (getSeriesAverage(releaseSessions?.groups, SessionFieldWithOperation.DURATION) ?? 0) /
-      1000
-  );
-  const allSessionDurationTotal = roundDuration(
-    (getSeriesAverage(allSessions?.groups, SessionFieldWithOperation.DURATION) ?? 0) /
-      1000
-  );
-
   const diffFailure =
     eventsTotals?.releaseFailureRate && eventsTotals?.allFailureRate
       ? eventsTotals.releaseFailureRate - eventsTotals.allFailureRate
@@ -767,20 +751,6 @@ function ReleaseComparisonChart({
   }
 
   if (hasHealthData) {
-    charts.push({
-      type: ReleaseComparisonChartType.SESSION_DURATION,
-      role: 'default',
-      drilldown: null,
-      thisRelease: defined(sessionDurationTotal) ? (
-        <Duration seconds={sessionDurationTotal} abbreviation />
-      ) : null,
-      allReleases: defined(allSessionDurationTotal) ? (
-        <Duration seconds={allSessionDurationTotal} abbreviation />
-      ) : null,
-      diff: null,
-      diffDirection: null,
-      diffColor: null,
-    });
     additionalCharts.push({
       type: ReleaseComparisonChartType.SESSION_COUNT,
       role: 'default',

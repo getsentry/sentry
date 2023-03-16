@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import abc
 import logging
 import sys
@@ -9,16 +11,10 @@ from urllib.request import Request
 from sentry import audit_log
 from sentry.db.models.manager import M
 from sentry.exceptions import InvalidIdentity
-from sentry.models import (
-    ExternalActor,
-    Identity,
-    Integration,
-    Organization,
-    OrganizationIntegration,
-    Team,
-)
+from sentry.models import ExternalActor, Identity, Integration, Organization, Team
 from sentry.pipeline import PipelineProvider
 from sentry.pipeline.views.base import PipelineView
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -268,15 +264,20 @@ class IntegrationInstallation:
     def __init__(self, model: M, organization_id: int) -> None:
         self.model = model
         self.organization_id = organization_id
-        self._org_integration = None
+        self._org_integration: RpcOrganizationIntegration | None
 
     @property
-    def org_integration(self) -> OrganizationIntegration:
-        if self._org_integration is None:
-            self._org_integration = OrganizationIntegration.objects.get(
-                organization_id=self.organization_id, integration_id=self.model.id
+    def org_integration(self) -> RpcOrganizationIntegration | None:
+        if not hasattr(self, "_org_integration"):
+            self._org_integration = integration_service.get_organization_integration(
+                integration_id=self.model.id,
+                organization_id=self.organization_id,
             )
         return self._org_integration
+
+    @org_integration.setter
+    def org_integration(self, org_integration: RpcOrganizationIntegration) -> None:
+        self._org_integration = org_integration
 
     def get_organization_config(self) -> Sequence[Any]:
         """
@@ -292,12 +293,20 @@ class IntegrationInstallation:
         """
         Update the configuration field for an organization integration.
         """
+        if not self.org_integration:
+            return
+
         config = self.org_integration.config
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
 
     def get_config_data(self) -> Mapping[str, str]:
         # Explicitly typing to satisfy mypy.
+        if not self.org_integration:
+            return {}
         config_data: Mapping[str, str] = self.org_integration.config
         return config_data
 
@@ -310,6 +319,8 @@ class IntegrationInstallation:
 
     def get_default_identity(self) -> Identity:
         """For Integrations that rely solely on user auth for authentication."""
+        if not self.org_integration:
+            raise Identity.DoesNotExist
         return Identity.objects.get(id=self.org_integration.default_auth_id)
 
     def error_message_from_json(self, data: Mapping[str, Any]) -> Any:

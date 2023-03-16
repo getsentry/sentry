@@ -13,6 +13,17 @@ from sentry.types.integrations import ExternalProviders
 
 
 class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIssueTestCase):
+    def create_notification(self, group, notification):
+        return notification(
+            Activity(
+                project=self.project,
+                group=group,
+                user_id=self.user.id,
+                type=ActivityType.ASSIGNED,
+                data={"assignee": self.user.id},
+            )
+        )
+
     @responses.activate
     @mock.patch("sentry.notifications.notify.notify", side_effect=send_notification)
     def test_multiple_identities(self, mock_func):
@@ -46,17 +57,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             content_type="application/json",
         )
 
-        notification = AssignedActivityNotification(
-            Activity(
-                project=self.project,
-                group=self.group,
-                user=self.user,
-                type=ActivityType.ASSIGNED,
-                data={"assignee": self.user.id},
-            )
-        )
         with self.tasks():
-            notification.send()
+            self.create_notification(self.group, AssignedActivityNotification).send()
 
         assert len(responses.calls) >= 2
         data = parse_qs(responses.calls[0].request.body)
@@ -104,17 +106,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             content_type="application/json",
         )
 
-        notification = AssignedActivityNotification(
-            Activity(
-                project=self.project,
-                group=self.group,
-                user=self.user,
-                type=ActivityType.ASSIGNED,
-                data={"assignee": self.user.id},
-            )
-        )
         with self.tasks():
-            notification.send()
+            self.create_notification(self.group, AssignedActivityNotification).send()
 
         assert len(responses.calls) == 1
         data = parse_qs(responses.calls[0].request.body)
@@ -128,17 +121,8 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         """
         Test that a Slack message is sent with the expected payload when an issue is assigned
         """
-        notification = AssignedActivityNotification(
-            Activity(
-                project=self.project,
-                group=self.group,
-                user=self.user,
-                type=ActivityType.ASSIGNED,
-                data={"assignee": self.user.id},
-            )
-        )
         with self.tasks():
-            notification.send()
+            self.create_notification(self.group, AssignedActivityNotification).send()
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
         assert attachment["title"] == self.group.title
@@ -163,24 +147,12 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         )
         event = event.for_group(event.groups[0])
 
-        notification = AssignedActivityNotification(
-            Activity(
-                project=self.project,
-                group=event.group,
-                user=self.user,
-                type=ActivityType.ASSIGNED,
-                data={"assignee": self.user.id},
-            )
-        )
         with self.tasks():
-            notification.send()
+            self.create_notification(event.group, AssignedActivityNotification).send()
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == TEST_ISSUE_OCCURRENCE.issue_title
-        assert attachment["text"] == TEST_ISSUE_OCCURRENCE.evidence_display[0].value
-        assert (
-            attachment["footer"]
-            == f"{self.project.slug} | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+        self.assert_generic_issue_attachments(
+            attachment, self.project.slug, "assigned_activity-slack-user"
         )
 
     @responses.activate
@@ -190,28 +162,13 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
         """
         event = self.create_performance_issue()
-        notification = AssignedActivityNotification(
-            Activity(
-                project=self.project,
-                group=event.group,
-                user=self.user,
-                type=ActivityType.ASSIGNED,
-                data={"assignee": self.user.id},
-            )
-        )
         with self.tasks():
-            notification.send()
+            self.create_notification(event.group, AssignedActivityNotification).send()
 
         attachment, text = get_attachment()
         assert text == f"Issue assigned to {self.name} by themselves"
-        assert attachment["title"] == "N+1 Query"
-        assert (
-            attachment["text"]
-            == "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-        )
-        assert (
-            attachment["footer"]
-            == f"{self.project.slug} | production | <http://testserver/settings/account/notifications/workflow/?referrer=assigned_activity-slack-user|Notification Settings>"
+        self.assert_performance_issue_attachments(
+            attachment, self.project.slug, "assigned_activity-slack-user"
         )
 
     def test_automatic_assignment(self):

@@ -4,9 +4,9 @@ import memoize from 'lodash/memoize';
 import moment from 'moment-timezone';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button, {StyledButton} from 'sentry/components/button';
+import {Button, StyledButton} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
@@ -15,7 +15,7 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import Tag from 'sentry/components/tag';
 import {IconChevron, IconFlag, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SentryApp, SentryAppSchemaIssueLink, SentryAppWebhookRequest} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 
@@ -325,11 +325,8 @@ const RequestLogFilters = styled('div')`
 `;
 
 const ErrorsOnlyCheckbox = styled('div')`
-  input {
-    margin: 0 ${space(1)} 0 0;
-  }
-
   display: flex;
+  gap: ${space(1)};
   align-items: center;
 `;
 

@@ -10,11 +10,11 @@ import {
 } from 'sentry/actionCreators/indicator';
 import {openRecoveryOptions} from 'sentry/actionCreators/modal';
 import {fetchOrganizationByMember} from 'sentry/actionCreators/organizations';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CircleIndicator from 'sentry/components/circleIndicator';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Form, {FormProps} from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import FormModel from 'sentry/components/forms/model';
@@ -23,7 +23,7 @@ import {PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import U2fsign from 'sentry/components/u2f/u2fsign';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Authenticator} from 'sentry/types';
 import getPendingInvite from 'sentry/utils/getPendingInvite';
 // eslint-disable-next-line no-restricted-imports
@@ -81,9 +81,9 @@ const getFields = ({
         </CodeContainer>
       ),
       () => (
-        <Field key="secret" label={t('Authenticator secret')}>
+        <FieldGroup key="secret" label={t('Authenticator secret')}>
           <TextCopyInput>{authenticator.secret ?? ''}</TextCopyInput>
-        </Field>
+        </FieldGroup>
       ),
       ...form,
       () => (

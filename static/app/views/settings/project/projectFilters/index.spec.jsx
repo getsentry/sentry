@@ -18,9 +18,10 @@ describe('ProjectFilters', function () {
   function renderComponent() {
     return render(
       <ProjectFilters
-        params={{projectId: project.slug, orgId: org.slug}}
+        params={{projectId: project.slug}}
         location={{}}
         project={project}
+        organization={org}
       />
     );
   }
@@ -200,6 +201,7 @@ describe('ProjectFilters', function () {
   it('has custom inbound filters with flag + can change', function () {
     render(
       <ProjectFilters
+        organization={org}
         params={{projectId: project.slug, orgId: org.slug}}
         location={{}}
         project={{
@@ -240,8 +242,9 @@ describe('ProjectFilters', function () {
 
     render(
       <ProjectFilters
-        params={{projectId: project.slug, orgId: org.slug}}
+        organization={org}
         location={{}}
+        params={{projectId: project.slug, orgId: org.slug}}
         project={project}
       />,
       {context}
@@ -255,6 +258,7 @@ describe('ProjectFilters', function () {
   it('shows disclaimer if error message filter is populated', function () {
     render(
       <ProjectFilters
+        organization={org}
         params={{projectId: project.slug, orgId: org.slug}}
         project={{
           ...project,
@@ -283,6 +287,7 @@ describe('ProjectFilters', function () {
 
     render(
       <ProjectFilters
+        organization={org}
         params={{
           projectId: discardProject.slug,
           orgId: discardOrg.slug,

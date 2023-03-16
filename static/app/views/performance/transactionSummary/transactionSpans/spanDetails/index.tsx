@@ -1,12 +1,10 @@
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {defined} from 'sentry/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -56,18 +54,16 @@ export default function SpanDetails(props: Props) {
           forceProject={project}
           specificProjectSlugs={defined(project) ? [project.slug] : []}
         >
-          <StyledPageContent>
-            <NoProjectMessage organization={organization}>
-              <SpanDetailsContent
-                location={location}
-                organization={organization}
-                eventView={eventView}
-                project={project}
-                transactionName={transactionName}
-                spanSlug={spanSlug}
-              />
-            </NoProjectMessage>
-          </StyledPageContent>
+          <Layout.Page>
+            <SpanDetailsContent
+              location={location}
+              organization={organization}
+              eventView={eventView}
+              project={project}
+              transactionName={transactionName}
+              spanSlug={spanSlug}
+            />
+          </Layout.Page>
         </PageFiltersContainer>
       </Feature>
     </SentryDocumentTitle>
@@ -84,7 +80,3 @@ function getDocumentTitle(transactionName: string): string {
 
   return [t('Summary'), t('Performance')].join(' - ');
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;

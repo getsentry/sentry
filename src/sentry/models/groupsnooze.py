@@ -13,7 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GROUP_MODELS
+from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
@@ -94,10 +94,11 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.window)
 
         rate = tsdb.get_sums(
-            model=ISSUE_TSDB_GROUP_MODELS[self.group.issue_category],
+            model=get_issue_tsdb_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
         )[self.group_id]
 
         if rate >= self.count:
@@ -114,10 +115,11 @@ class GroupSnooze(Model):
         start = end - timedelta(minutes=self.user_window)
 
         rate = tsdb.get_distinct_counts_totals(
-            model=ISSUE_TSDB_USER_GROUP_MODELS[self.group.issue_category],
+            model=get_issue_tsdb_user_group_model(self.group.issue_category),
             keys=[self.group_id],
             start=start,
             end=end,
+            tenant_ids={"organization_id": self.group.project.organization_id},
         )[self.group_id]
 
         if rate >= self.user_count:

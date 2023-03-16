@@ -1,3 +1,10 @@
+codecov:
+  notify:
+    # The minimum amount of codecov reporting checks that need to complete
+    # For FE we have 5 checks and for BE we have 11
+    # TODO: Remove this when we have support of after_n_builds per flag
+    after_n_builds: 5
+
 # Setting coverage targets per flag
 coverage:
   status:
@@ -6,16 +13,18 @@ coverage:
     patch:
       default: false
       frontend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
+        # This will be needed until codecov supports after_n_builds for flags
+        informational: true # Do not fail the check
         target: 60%
         flags:
         - frontend
       backend:
-        # codecov should not fail status checks
-        informational: true
+        # codecov will not fail status checks for master
         only_pulls: true
+        # This will be needed until codecov supports after_n_builds for flags
+        informational: true # Do not fail the check
         target: 90%
         flags:
           - backend
@@ -28,6 +37,22 @@ coverage:
   - src/social_auth/
   - static/app/routes.tsx
   - tests/
+
+component_management:
+    individual_components:
+      # Profiling team components
+      - component_id: "profiling_views"
+        name: "Profiling Views"
+        paths:
+          - "static/app/views/profiling/**"
+      - component_id: "profiling_components"
+        name: "Profiling Components"
+        paths:
+          - "src/sentry/static/sentry/app/components/profiling/**"
+      - component_id: "profiling_utils"
+        name: "Profiling Utils"
+        paths:
+          - "src/sentry/static/sentry/app/utils/profiling/**"
 
 flags:
   frontend:

@@ -1,18 +1,12 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import {
-  Input,
-  InputGroup,
-  InputLeadingItems,
-  InputProps,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {Button} from 'sentry/components/button';
+import {InputGroup, InputProps} from 'sentry/components/inputGroup';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface SearchBarProps extends Omit<InputProps, 'onChange'> {
   defaultQuery?: string;
@@ -73,9 +67,9 @@ function SearchBar({
   return (
     <FormWrap onSubmit={onSubmit} className={className}>
       <InputGroup>
-        <InputLeadingItems disablePointerEvents>
+        <InputGroup.LeadingItems disablePointerEvents>
           <IconSearch color="subText" size={size === 'xs' ? 'xs' : 'sm'} />
-        </InputLeadingItems>
+        </InputGroup.LeadingItems>
         <StyledInput
           {...inputProps}
           ref={inputRef}
@@ -87,11 +81,10 @@ function SearchBar({
           width={width}
           size={size}
         />
-        <InputTrailingItems>
+        <InputGroup.TrailingItems>
           {trailing}
           {!!query && (
             <SearchBarTrailingButton
-              type="button"
               size="zero"
               borderless
               onClick={clearSearch}
@@ -99,7 +92,7 @@ function SearchBar({
               aria-label={t('Clear')}
             />
           )}
-        </InputTrailingItems>
+        </InputGroup.TrailingItems>
       </InputGroup>
     </FormWrap>
   );
@@ -110,7 +103,7 @@ const FormWrap = styled('form')`
   position: relative;
 `;
 
-const StyledInput = styled(Input)`
+const StyledInput = styled(InputGroup.Input)`
   ${p => p.width && `width: ${p.width};`}
 `;
 

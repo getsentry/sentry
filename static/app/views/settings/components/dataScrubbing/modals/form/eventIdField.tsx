@@ -2,10 +2,10 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {EventId, EventIdStatus} from '../../types';
 import {saveToSourceGroupData} from '../utils';
@@ -109,7 +109,7 @@ class EventIdField extends Component<Props, State> {
     const {value, status} = this.state;
 
     return (
-      <Field
+      <FieldGroup
         data-test-id="event-id-field"
         label={t('Event ID (Optional)')}
         help={t(
@@ -139,7 +139,7 @@ class EventIdField extends Component<Props, State> {
             />
           </Status>
         </FieldWrapper>
-      </Field>
+      </FieldGroup>
     );
   }
 }

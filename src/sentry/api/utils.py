@@ -7,7 +7,9 @@ from datetime import timedelta
 from typing import Any, List, Literal, Tuple, overload
 from urllib.parse import urlparse
 
+from django.http import HttpResponseNotAllowed
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
@@ -266,3 +268,23 @@ def customer_domain_path(path: str) -> str:
         if updated != path:
             return updated
     return path
+
+
+def method_dispatch(**dispatch_mapping):  # type: ignore[no-untyped-def]
+    """
+    Dispatches a incoming request to a different handler based on the HTTP method
+
+    >>> url('^foo$', method_dispatch(POST = post_handler, GET = get_handler)))
+    """
+
+    def invalid_method(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+        return HttpResponseNotAllowed(dispatch_mapping.keys())
+
+    def dispatcher(request, *args, **kwargs):  # type: ignore[no-untyped-def]
+        handler = dispatch_mapping.get(request.method, invalid_method)
+        return handler(request, *args, **kwargs)
+
+    if dispatch_mapping.get("csrf_exempt"):
+        return csrf_exempt(dispatcher)
+
+    return dispatcher

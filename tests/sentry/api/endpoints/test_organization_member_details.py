@@ -68,7 +68,7 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(self.organization.slug, join_request.id, status_code=404)
         self.get_error_response(self.organization.slug, invite_request.id, status_code=404)
 
-    def test_admin_can_get_invite_link(self):
+    def test_superuser_can_get_invite_link(self):
         pending_om = self.create_member(
             user=None,
             email="bar@example.com",
@@ -106,6 +106,9 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.get_success_response(self.organization.slug, member_om.id)
         assert team.slug in response.data["teams"]
+
+        assert response.data["teamRoles"][0]["teamSlug"] == team.slug
+        assert response.data["teamRoles"][0]["role"] is None
 
     def test_lists_organization_roles(self):
         response = self.get_success_response(self.organization.slug, "me")
@@ -265,16 +268,18 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+        self.get_success_response(self.organization.slug, member_om.id, role="manager")
         member_om = OrganizationMember.objects.get(id=member_om.id)
-        assert member_om.role == "admin"
+        assert member_om.role == "manager"
 
     def test_cannot_update_own_membership(self):
         member_om = OrganizationMember.objects.get(
             organization=self.organization, user_id=self.user.id
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
+        self.get_error_response(
+            self.organization.slug, member_om.id, role="manager", status_code=400
+        )
 
         member_om = OrganizationMember.objects.get(user_id=self.user.id)
         assert member_om.role == "owner"
@@ -287,7 +292,6 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
-
         self.get_success_response(self.organization.slug, member_om.id, teams=[foo.slug, bar.slug])
 
         member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
@@ -300,6 +304,39 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert foo.slug in teams
         assert bar.slug in teams
+
+    @with_feature("organizations:team-roles")
+    def test_can_update_teams_with_feature_flag(self):
+        self.test_can_update_teams()
+
+    def test_can_update_teams_using_teamRoles(self):
+        foo = self.create_team(organization=self.organization, name="Team Foo")
+        bar = self.create_team(organization=self.organization, name="Team Bar")
+
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[]
+        )
+
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": None,
+                },
+                {
+                    "teamSlug": bar.slug,
+                    "role": None,
+                },
+            ],
+        )
+
+        member_teams = OrganizationMemberTeam.objects.filter(organizationmember=member_om)
+        team_ids = list(map(lambda x: x.team_id, member_teams))
+        assert foo.id in team_ids
+        assert bar.id in team_ids
 
     def test_cannot_update_with_invalid_team(self):
         member = self.create_user("baz@example.com")
@@ -315,16 +352,56 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         teams = list(map(lambda team: team.slug, member_om.teams.all()))
         assert len(teams) == 0
 
-    def test_can_update_role(self):
+    def test_can_update_org_role(self):
         member = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
+        self.get_success_response(self.organization.slug, member_om.id, role="manager")
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
-        assert member_om.role == "admin"
+        assert member_om.role == "manager"
+
+    @with_feature("organizations:team-roles")
+    def test_can_update_team_role(self):
+        foo = self.create_team(organization=self.organization, name="Team Foo")
+
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, user=member, role="member", teams=[foo]
+        )
+
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role is None
+
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": "admin",
+                },
+            ],
+        )
+
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role == "admin"
+
+        self.get_success_response(
+            self.organization.slug,
+            member_om.id,
+            teamRoles=[
+                {
+                    "teamSlug": foo.slug,
+                    "role": None,
+                },
+            ],
+        )
+
+        member_omt = OrganizationMemberTeam.objects.get(organizationmember=member_om, team=foo)
+        assert member_omt.role is None
 
     def test_cannot_update_with_invalid_role(self):
         member = self.create_user("baz@example.com")
@@ -335,6 +412,21 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         self.get_error_response(
             self.organization.slug, member_om.id, role="invalid", status_code=400
         )
+
+        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
+        assert member_om.role == "member"
+
+    def test_cannot_update_idp_role_restricted_member_role(self):
+        member = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            teams=[],
+            flags=OrganizationMember.flags["idp:role-restricted"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
@@ -357,22 +449,10 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
             organization=self.organization, user=member, role="member", teams=[]
         )
 
-        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=403)
+        self.get_error_response(self.organization.slug, member_om.id, role="admin", status_code=400)
 
         member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
         assert member_om.role == "member"
-
-    @with_feature("organizations:team-roles")
-    def test_can_update_retired_role_to_itself_with_flag(self):
-        member = self.create_user("baz@example.com")
-        member_om = self.create_member(
-            organization=self.organization, user=member, role="admin", teams=[]
-        )
-
-        self.get_success_response(self.organization.slug, member_om.id, role="admin")
-
-        member_om = OrganizationMember.objects.get(organization=self.organization, user=member)
-        assert member_om.role == "admin"
 
     @patch("sentry.models.OrganizationMember.send_sso_link_email")
     def test_cannot_reinvite_normal_member(self, mock_send_sso_link_email):
@@ -410,7 +490,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         response = self.client.put(
             reverse(self.endpoint, args=[self.organization.slug, member_om.id]),
-            {"role": "admin"},
+            {"role": "manager"},
             HTTP_AUTHORIZATION=f"Bearer {token.api_token.token}",
         )
 
@@ -418,7 +498,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
         # So we can't authorize it to promote to a role less than or equal to its
         # own. This may be supported in the future. For now, assert that it provides
         # a graceful authorization failure.
-        assert response.status_code == 403
+        assert response.status_code == 400
 
 
 @region_silo_test
@@ -442,10 +522,10 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         project2 = self.create_project(organization=org)
         member = self.create_user("ahmed@ahmed.io")
         u1 = UserOption.objects.create(
-            user=member, project=self.project, key="mail:email", value="ahmed@ahmed.io"
+            user=member, project_id=self.project.id, key="mail:email", value="ahmed@ahmed.io"
         )
         u2 = UserOption.objects.create(
-            user=member, project=project2, key="mail:email", value="ahmed@ahmed.io"
+            user=member, project_id=project2.id, key="mail:email", value="ahmed@ahmed.io"
         )
 
         member_om = self.create_member(organization=self.organization, user=member, role="member")
@@ -490,6 +570,23 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert OrganizationMember.objects.filter(id=owner_om.id).exists()
 
+    def test_can_delete_owner_if_other_owners_through_teams(self):
+        # two members of an owner team
+        member = self.create_user("bar@example.com")
+        member2 = self.create_user("foo@example.com")
+        team = self.create_team(org_role="owner")
+        owner = self.create_member(
+            organization=self.organization, role="member", user=member, teams=[team]
+        )
+        self.create_member(
+            organization=self.organization, role="member", user=member2, teams=[team]
+        )
+
+        self.login_as(member)
+        self.get_success_response(self.organization.slug, owner.id)
+
+        assert not OrganizationMember.objects.filter(id=owner.id).exists()
+
     def test_can_delete_self(self):
         other_user = self.create_user("bar@example.com")
         self.create_member(organization=self.organization, role="member", user=other_user)
@@ -502,15 +599,15 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
         ).exists()
 
     def test_missing_scope(self):
-        admin_user = self.create_user("bar@example.com")
-        self.create_member(organization=self.organization, role="admin", user=admin_user)
+        no_scope_user = self.create_user("bar@example.com")
+        self.create_member(organization=self.organization, role="member", user=no_scope_user)
 
         member_user = self.create_user("baz@example.com")
         member_om = self.create_member(
             organization=self.organization, role="member", user=member_user
         )
 
-        self.login_as(admin_user)
+        self.login_as(no_scope_user)
         self.get_error_response(self.organization.slug, member_om.id, status_code=400)
 
         assert OrganizationMember.objects.filter(id=member_om.id).exists()
@@ -545,6 +642,36 @@ class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
 
         assert not OrganizationMember.objects.filter(
             user=other_user, organization=self.organization
+        ).exists()
+
+    def test_cannot_delete_idp_provisioned_member(self):
+        member = self.create_user("bar@example.com")
+        member_om = self.create_member(
+            organization=self.organization,
+            user=member,
+            role="member",
+            flags=OrganizationMember.flags["idp:provisioned"],
+        )
+
+        self.get_error_response(self.organization.slug, member_om.id)
+
+        assert OrganizationMember.objects.filter(id=member_om.id).exists()
+
+    def test_can_delete_with_org_role_from_team(self):
+        member = self.create_user("bar@example.com")
+        team = self.create_team(org_role="manager")
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+
+        member_user = self.create_user("baz@example.com")
+        member_om = self.create_member(
+            organization=self.organization, role="manager", user=member_user
+        )
+
+        self.login_as(member)
+        self.get_success_response(self.organization.slug, member_om.id)
+
+        assert not OrganizationMember.objects.filter(
+            user=member_user, organization=self.organization
         ).exists()
 
 

@@ -116,7 +116,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         feature_names = [
             "organizations:dashboards-mep",
             "organizations:mep-rollout-flag",
-            "organizations:performance-dry-run-mep",
             "organizations:performance-use-metrics",
             "organizations:profiling",
             "organizations:dynamic-sampling",
@@ -252,7 +251,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
         use_profiles = batch_features.get("organizations:profiling", False)
 
-        performance_dry_run_mep = batch_features.get("organizations:performance-dry-run-mep", False)
         use_metrics_layer = batch_features.get("organizations:use-metrics-layer", False)
 
         use_custom_dataset = use_metrics or use_profiles
@@ -268,29 +266,25 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
         def data_fn(offset, limit):
-            query_details = {
-                "selected_columns": self.get_field_list(organization, request),
-                "query": request.GET.get("query"),
-                "params": params,
-                "snuba_params": snuba_params,
-                "equations": self.get_equation_list(organization, request),
-                "orderby": self.get_orderby(request),
-                "offset": offset,
-                "limit": limit,
-                "referrer": referrer,
-                "auto_fields": True,
-                "auto_aggregations": True,
-                "use_aggregate_conditions": True,
-                "allow_metric_aggregates": allow_metric_aggregates,
-                "transform_alias_to_input_format": True,
+            return dataset.query(
+                selected_columns=self.get_field_list(organization, request),
+                query=request.GET.get("query"),
+                params=params,
+                snuba_params=snuba_params,
+                equations=self.get_equation_list(organization, request),
+                orderby=self.get_orderby(request),
+                offset=offset,
+                limit=limit,
+                referrer=referrer,
+                auto_fields=True,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                allow_metric_aggregates=allow_metric_aggregates,
+                transform_alias_to_input_format=True,
                 # Whether the flag is enabled or not, regardless of the referrer
-                "has_metrics": use_metrics,
-                "use_metrics_layer": use_metrics_layer,
-            }
-            if not metrics_enhanced and performance_dry_run_mep:
-                sentry_sdk.set_tag("query.mep_compatible", False)
-                metrics_enhanced_performance.query(dry_run=True, **query_details)
-            return dataset.query(**query_details)
+                has_metrics=use_metrics,
+                use_metrics_layer=use_metrics_layer,
+            )
 
         with self.handle_query_errors():
             # Don't include cursor headers if the client won't be using them

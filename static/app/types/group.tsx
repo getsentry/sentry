@@ -52,49 +52,28 @@ export enum SavedSearchType {
 export enum IssueCategory {
   PERFORMANCE = 'performance',
   ERROR = 'error',
+  PROFILE = 'profile',
 }
 
 export enum IssueType {
+  // Error
   ERROR = 'error',
-  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+
+  // Performance
+  PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'performance_consecutive_http',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
+  PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
+  PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
+  PERFORMANCE_SLOW_DB_QUERY = 'performance_slow_db_query',
+  PERFORMANCE_RENDER_BLOCKING_ASSET = 'performance_render_blocking_asset_span',
+  PERFORMANCE_UNCOMPRESSED_ASSET = 'performance_uncompressed_assets',
+
+  // Profile
+  PROFILE_FILE_IO_MAIN_THREAD = 'profile_file_io_main_thread',
+  PROFILE_IMAGE_DECODE_MAIN_THREAD = 'profile_image_decode_main_thread',
+  PROFILE_JSON_DECODE_MAIN_THREAD = 'profile_json_decode_main_thread',
 }
-
-type CapabilityInfo = {
-  enabled: boolean;
-  disabledReason?: string;
-};
-
-/**
- * Defines what capabilities a category of issue has. Not all categories of
- * issues work the same.
- */
-export type IssueCategoryCapabilities = {
-  /**
-   * Are codeowner features enabled for this issue
-   */
-  codeowners: CapabilityInfo;
-  /**
-   * Can the issue be deleted
-   */
-  delete: CapabilityInfo;
-  /**
-   * Can the issue be deleted and discarded
-   */
-  deleteAndDiscard: CapabilityInfo;
-  /**
-   * Can the issue be ignored (and the dropdown options)
-   */
-  ignore: CapabilityInfo;
-  /**
-   * Can the issue be merged
-   */
-  merge: CapabilityInfo;
-  /**
-   * Can the issue be shared
-   */
-  share: CapabilityInfo;
-};
 
 // endpoint: /api/0/issues/:issueId/attachments/?limit=50
 export type IssueAttachment = {
@@ -189,8 +168,9 @@ export type InboxDetails = {
 export type SuggestedOwnerReason =
   | 'suspectCommit'
   | 'ownershipRule'
-  | 'codeowners'
-  | 'releaseCommit';
+  | 'projectOwnership'
+  // TODO: codeowners may no longer exist
+  | 'codeowners';
 
 // Received from the backend to denote suggested owners of an issue
 export type SuggestedOwner = {
@@ -198,6 +178,11 @@ export type SuggestedOwner = {
   owner: string;
   type: SuggestedOwnerReason;
 };
+
+export interface ParsedOwnershipRule {
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
+}
 
 export type IssueOwnership = {
   autoAssignment:
@@ -210,6 +195,7 @@ export type IssueOwnership = {
   isActive: boolean;
   lastUpdated: string | null;
   raw: string | null;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export enum GroupActivityType {
@@ -618,16 +604,19 @@ export type UserReport = {
   user: User;
 };
 
-export type KeyValueListData = {
+export type KeyValueListDataItem = {
   key: string;
   subject: string;
   actionButton?: React.ReactNode;
   isContextData?: boolean;
+  isMultiValue?: boolean;
   meta?: Meta;
   subjectDataTestId?: string;
   subjectIcon?: React.ReactNode;
   value?: React.ReactNode;
-}[];
+};
+
+export type KeyValueListData = KeyValueListDataItem[];
 
 // Response from ShortIdLookupEndpoint
 // /organizations/${orgId}/shortids/${query}/

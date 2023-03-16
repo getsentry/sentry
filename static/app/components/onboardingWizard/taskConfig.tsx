@@ -8,7 +8,7 @@ import {filterProjects} from 'sentry/components/performanceOnboarding/utils';
 import {sourceMaps} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   OnboardingSupplementComponentProps,
   OnboardingTask,
@@ -19,7 +19,6 @@ import {
 } from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
-import projectSupportsReplay from 'sentry/utils/replays/projectSupportsReplay';
 import withApi from 'sentry/utils/withApi';
 import {OnboardingState} from 'sentry/views/onboarding/types';
 
@@ -79,16 +78,6 @@ export function getOnboardingTasks({
   if (isDemoWalkthrough()) {
     return [
       {
-        task: OnboardingTaskKey.SIDEBAR_GUIDE,
-        title: t('Check out the different tabs'),
-        description: t('Press the start button for a guided tour through each tab.'),
-        skippable: false,
-        requisites: [],
-        actionType: 'app',
-        location: `/organizations/${organization.slug}/projects/`,
-        display: true,
-      },
-      {
         task: OnboardingTaskKey.ISSUE_GUIDE,
         title: t('Issues'),
         description: t(
@@ -122,6 +111,16 @@ export function getOnboardingTasks({
         requisites: [],
         actionType: 'app',
         location: `/organizations/${organization.slug}/releases/`,
+        display: true,
+      },
+      {
+        task: OnboardingTaskKey.SIDEBAR_GUIDE,
+        title: t('Check out the different tabs'),
+        description: t('Press the start button for a guided tour through each tab.'),
+        skippable: false,
+        requisites: [],
+        actionType: 'app',
+        location: `/organizations/${organization.slug}/projects/`,
         display: true,
       },
     ];
@@ -285,10 +284,7 @@ export function getOnboardingTasks({
       requisites: [OnboardingTaskKey.FIRST_PROJECT, OnboardingTaskKey.FIRST_EVENT],
       actionType: 'app',
       location: `/organizations/${organization.slug}/replays/#replay-sidequest`,
-      display:
-        // Use `features?.` because getsentry has a different `Organization` type/payload
-        organization.features?.includes('session-replay-ui') &&
-        Boolean(projects?.some(projectSupportsReplay)),
+      display: organization.features?.includes('session-replay'),
       SupplementComponent: withApi(({api, task, onCompleteTask}: FirstEventWaiterProps) =>
         !!projects?.length && task.requisiteTasks.length === 0 && !task.completionSeen ? (
           <EventWaiter

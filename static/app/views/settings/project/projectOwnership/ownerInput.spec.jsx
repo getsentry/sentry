@@ -33,14 +33,13 @@ describe('Project Ownership Input', function () {
   it('renders', function () {
     const {container} = render(
       <OwnerInput
-        params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}
       />
     );
 
-    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
+    const submitButton = screen.getByRole('button', {name: 'Save'});
     expect(put).not.toHaveBeenCalled();
 
     // if text is unchanged, submit button is disabled
@@ -61,7 +60,6 @@ describe('Project Ownership Input', function () {
   it('updates on add preserving existing text', async function () {
     render(
       <OwnerInput
-        params={{orgId: org.slug, projectId: project.slug}}
         organization={org}
         initialText="url:src @dummy@example.com"
         project={project}

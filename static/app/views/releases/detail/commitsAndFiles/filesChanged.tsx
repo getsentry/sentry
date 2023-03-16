@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import FileChange from 'sentry/components/fileChange';
-import {Body, Main} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Pagination from 'sentry/components/pagination';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
@@ -20,7 +20,7 @@ import EmptyState from './emptyState';
 import RepositorySwitcher from './repositorySwitcher';
 import withReleaseRepos from './withReleaseRepos';
 
-type Props = RouteComponentProps<{orgId: string; release: string}, {}> & {
+type Props = RouteComponentProps<{release: string}, {}> & {
   location: Location;
   orgSlug: Organization['slug'];
   projectSlug: Project['slug'];
@@ -35,12 +35,11 @@ type State = {
 
 class FilesChanged extends AsyncView<Props, State> {
   getTitle() {
-    const {params, projectSlug} = this.props;
-    const {orgId} = params;
+    const {params, orgSlug, projectSlug} = this.props;
 
     return routeTitleGen(
       t('Files Changed - Release %s', formatVersion(params.release)),
-      orgId,
+      orgSlug,
       false,
       projectSlug
     );
@@ -154,9 +153,9 @@ class FilesChanged extends AsyncView<Props, State> {
 
   renderComponent() {
     return (
-      <Body>
-        <Main fullWidth>{super.renderComponent()}</Main>
-      </Body>
+      <Layout.Body>
+        <Layout.Main fullWidth>{super.renderComponent()}</Layout.Main>
+      </Layout.Body>
     );
   }
 }

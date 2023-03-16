@@ -1,4 +1,3 @@
-from .active_release_notification_sent import *  # noqa: F401,F403
 from .advanced_search_feature_gated import *  # noqa: F401,F403
 from .alert_created import *  # noqa: F401,F403
 from .alert_edited import *  # noqa: F401,F403
@@ -7,6 +6,8 @@ from .codeowners_assignment import *  # noqa: F401,F403
 from .codeowners_created import *  # noqa: F401,F403
 from .codeowners_updated import *  # noqa: F401,F403
 from .comment_webhooks import *  # noqa: F401,F403
+from .first_cron_checkin_sent import *  # noqa: F401,F403
+from .first_cron_monitor_created import *  # noqa: F401,F403
 from .first_event_sent import *  # noqa: F401,F403
 from .first_profile_sent import *  # noqa: F401,F403
 from .first_release_tag_sent import *  # noqa: F401,F403

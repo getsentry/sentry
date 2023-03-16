@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import pick from 'lodash/pick';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GroupList from 'sentry/components/issues/groupList';
@@ -11,9 +11,9 @@ import {Panel, PanelBody} from 'sentry/components/panels';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -57,10 +57,8 @@ class RelatedIssues extends Component<Props> {
 
   handleOpenClick = () => {
     const {organization} = this.props;
-    trackAnalyticsEvent({
-      eventKey: 'performance_views.summary.open_issues',
-      eventName: 'Performance Views: Open issues from transaction summary',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('performance_views.summary.open_issues', {
+      organization: organization.id,
     });
   };
 

@@ -98,16 +98,14 @@ describe('GroupStore', function () {
   });
 
   describe('onPopulateStats()', function () {
-    let triggerSpy: jest.SpyInstance;
-
     const stats: Record<string, TimeseriesValue[]> = {auto: [[1611576000, 10]]};
 
-    beforeAll(function () {
-      triggerSpy = jest.spyOn(GroupStore, 'trigger');
-    });
     beforeEach(function () {
-      triggerSpy.mockReset();
+      jest.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     it('should merge stats into existing groups', function () {
@@ -155,17 +153,12 @@ describe('GroupStore', function () {
   });
 
   describe('update methods', function () {
-    let triggerSpy: jest.SpyInstance;
-
-    beforeAll(function () {
-      triggerSpy = jest.spyOn(GroupStore, 'trigger');
-    });
     beforeEach(function () {
-      triggerSpy.mockReset();
-    });
-
-    beforeEach(function () {
+      jest.spyOn(GroupStore, 'trigger');
       GroupStore.items = [g('1'), g('2'), g('3')];
+    });
+    afterEach(() => {
+      jest.restoreAllMocks();
     });
 
     describe('onUpdate()', function () {
@@ -214,6 +207,18 @@ describe('GroupStore', function () {
 
         expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
         expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1', '2', '3']));
+      });
+    });
+
+    describe('onAssignToSuccess()', function () {
+      it("should treat undefined itemIds argument as 'all'", function () {
+        GroupStore.items = [g('1')];
+        const assignedGroup = g('1', {assignedTo: TestStubs.User({type: 'user'})});
+        GroupStore.onAssignToSuccess('1337', '1', assignedGroup);
+
+        expect(GroupStore.trigger).toHaveBeenCalledTimes(1);
+        expect(GroupStore.trigger).toHaveBeenCalledWith(new Set(['1']));
+        expect(GroupStore.items[0]).toEqual(assignedGroup);
       });
     });
   });

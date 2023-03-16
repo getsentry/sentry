@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import inspect
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from typing import (
     TYPE_CHECKING,
@@ -55,14 +55,18 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    max_timestamp,
+    min_timestamp,
     miserable_users,
     rate_snql_factory,
     satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
+    sum_if_column_snql,
     team_key_transaction_snql,
     tolerated_count_transaction,
     uniq_aggregation_on_metric,
+    uniq_if_column_snql,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri, is_private_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
@@ -141,7 +145,12 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    request = Request(
+        dataset=Dataset.Metrics.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": org_id},
+    )
     result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
@@ -375,6 +384,23 @@ class RawOp(MetricOperation):
     ) -> SnubaDataType:
         return data
 
+    def _wrap_quantiles(self, function: Function, alias: str) -> Function:
+        # In case we have a percentile we want to take the first element of the array. This is done because we are
+        # using quantilesIf instead of quantileIf, therefore we have an array as a result.
+        if self.op in OPERATIONS_PERCENTILES:
+            function = Function(
+                "arrayElement",
+                [
+                    # We remove the alias from the function in order to avoid multiple aliases with the same name.
+                    replace(function, alias=None),
+                    # First element is 1 because ClickHouse arrays are indexed starting from 1.
+                    1,
+                ],
+                alias=alias,
+            )
+
+        return function
+
     def generate_snql_function(
         self,
         entity: MetricEntity,
@@ -388,11 +414,10 @@ class RawOp(MetricOperation):
             snuba_function = GENERIC_OP_TO_SNUBA_FUNCTION[entity][self.op]
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
-        return Function(
-            snuba_function,
-            [Column("value"), aggregate_filter],
-            alias=alias,
-        )
+
+        function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
+
+        return self._wrap_quantiles(function, alias)
 
     def get_default_null_values(self) -> Optional[Union[int, List[Tuple[float]]]]:
         return cast(
@@ -467,7 +492,7 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
         params: Optional[MetricOperationParams] = None,
     ) -> Function:
         metrics_query_args = inspect.signature(self.snql_func).parameters.keys()
-        kwargs: MutableMapping[str, Union[float, int, str]] = {}
+        kwargs: MutableMapping[str, Union[float, int, str, UseCaseKey, Function]] = {}
 
         if "alias" in metrics_query_args:
             kwargs["alias"] = alias
@@ -475,6 +500,8 @@ class DerivedOp(DerivedOpDefinition, MetricOperation):
             kwargs["aggregate_filter"] = aggregate_filter
         if "org_id" in metrics_query_args:
             kwargs["org_id"] = org_id
+        if "use_case_id" in metrics_query_args:
+            kwargs["use_case_id"] = use_case_id
 
         if metrics_query_args and params is not None:
             for field in metrics_query_args:
@@ -757,6 +784,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         conditions = self.metric_object.generate_filter_snql_conditions(
             org_id=org_id, use_case_id=use_case_id
         )
+
         return self.metric_operation.generate_snql_function(
             alias=alias,
             aggregate_filter=conditions,
@@ -1369,11 +1397,30 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.CRASHED.value],
+            unit="sessions",
+            snql=lambda all_count, crashed_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_count, crashed_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
             metrics=[SessionMRI.CRASH_USER_RATE.value],
             unit="percentage",
             snql=lambda crash_user_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
                 crash_user_rate_value, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER.value,
+            metrics=[
+                SessionMRI.ALL_USER.value,
+                SessionMRI.CRASHED_USER.value,
+            ],
+            unit="users",
+            snql=lambda all_user_count, crashed_user_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_user_count, crashed_user_count, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
@@ -1561,7 +1608,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
     ]
 }
 
-
 DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
@@ -1621,9 +1667,38 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             default_null_value=0,
             meta_type="boolean",
         ),
+        DerivedOp(
+            op="sum_if_column",
+            can_orderby=True,
+            snql_func=sum_if_column_snql,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="uniq_if_column",
+            can_orderby=True,
+            snql_func=uniq_if_column_snql,
+            default_null_value=0,
+        ),
+        DerivedOp(
+            op="min_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=min_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
+        DerivedOp(
+            op="max_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=max_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
     ]
 }
-
 
 DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_mri: derived_alias
@@ -1656,6 +1731,7 @@ def metric_object_factory(
     assert op is not None
 
     metric_operation = DERIVED_OPS[op] if op in DERIVED_OPS else RawOp(op=op)
+
     metric_object = (
         DERIVED_ALIASES[metric_mri] if metric_mri in DERIVED_ALIASES else RawMetric(metric_mri)
     )

@@ -3,7 +3,12 @@ import {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import * as DividerHandlerManager from 'sentry/components/events/interfaces/spans/dividerHandlerManager';
+import MeasurementsPanel from 'sentry/components/events/interfaces/spans/measurementsPanel';
 import * as ScrollbarManager from 'sentry/components/events/interfaces/spans/scrollbarManager';
+import {
+  boundsGenerator,
+  getMeasurements,
+} from 'sentry/components/events/interfaces/spans/utils';
 import {MessageRow} from 'sentry/components/performance/waterfall/messageRow';
 import {
   DividerSpacer,
@@ -80,6 +85,15 @@ function isTransactionVisible(
   filteredTransactionIds?: Set<string>
 ): boolean {
   return filteredTransactionIds ? filteredTransactionIds.has(transaction.event_id) : true;
+}
+
+function generateBounds(traceInfo: TraceInfo) {
+  return boundsGenerator({
+    traceStartTimestamp: traceInfo.startTimestamp,
+    traceEndTimestamp: traceInfo.endTimestamp,
+    viewStart: 0,
+    viewEnd: 1,
+  });
 }
 
 export default function TraceView({
@@ -177,6 +191,12 @@ export default function TraceView({
               ...transaction,
               generation,
             }}
+            measurements={
+              traces && traces.length > 0
+                ? getMeasurements(traces[0], generateBounds(traceInfo))
+                : undefined
+            }
+            generateBounds={generateBounds(traceInfo)}
             continuingDepths={continuingDepths}
             isOrphan={isOrphan}
             isLast={isLast}
@@ -249,6 +269,12 @@ export default function TraceView({
     accumulator
   );
 
+  const bounds = generateBounds(traceInfo);
+  const measurements =
+    Object.keys(traces[0].measurements ?? {}).length > 0
+      ? getMeasurements(traces[0], bounds)
+      : undefined;
+
   const traceView = (
     <TraceDetailBody>
       <DividerHandlerManager.Provider interactiveLayerRef={traceViewRef}>
@@ -290,6 +316,13 @@ export default function TraceView({
                     }}
                   </ScrollbarManager.Consumer>
                   <DividerSpacer />
+                  {measurements ? (
+                    <MeasurementsPanel
+                      measurements={measurements}
+                      generateBounds={bounds}
+                      dividerPosition={dividerPosition}
+                    />
+                  ) : null}
                 </TraceViewHeaderContainer>
                 <TraceViewContainer ref={traceViewRef}>
                   <TransactionGroup
@@ -305,6 +338,8 @@ export default function TraceView({
                       start_timestamp: traceInfo.startTimestamp,
                       timestamp: traceInfo.endTimestamp,
                     }}
+                    measurements={measurements}
+                    generateBounds={bounds}
                     continuingDepths={[]}
                     isOrphan={false}
                     isLast={false}

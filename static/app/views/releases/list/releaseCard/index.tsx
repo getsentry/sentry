@@ -5,16 +5,16 @@ import {Location} from 'history';
 import partition from 'lodash/partition';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Collapsible from 'sentry/components/collapsible';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import {Panel, PanelHeader} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Release} from 'sentry/types';
 
 import {ReleasesDisplayOption} from '../releasesDisplayOptions';

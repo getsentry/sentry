@@ -1,16 +1,15 @@
+from __future__ import annotations
+
 import logging
-from collections import defaultdict
-from typing import Any, Mapping, MutableMapping, Optional, Sequence
+from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.integrations import IntegrationProvider
-from sentry.models import (
-    ExternalIssue,
-    Group,
-    GroupLink,
-    Integration,
-    OrganizationIntegration,
-    User,
+from sentry.models import Integration, OrganizationIntegration, User
+from sentry.services.hybrid_cloud.integration import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+    integration_service,
 )
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.json import JSONData
@@ -34,7 +33,7 @@ def serialize_provider(provider: IntegrationProvider) -> Mapping[str, Any]:
 @register(Integration)
 class IntegrationSerializer(Serializer):  # type: ignore
     def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: RpcIntegration, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         provider = obj.get_provider()
         return {
@@ -58,7 +57,7 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
     def serialize(
         self,
-        obj: Integration,
+        obj: RpcIntegration,
         attrs: Mapping[str, Any],
         user: User,
         include_config: bool = True,
@@ -71,8 +70,13 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         data.update({"configOrganization": []})
 
+        if not self.organization_id:
+            return data
+
         try:
-            install = obj.get_installation(organization_id=self.organization_id)
+            install = integration_service.get_installation(
+                integration=obj, organization_id=self.organization_id
+            )
         except NotImplementedError:
             # The integration may not implement a Installed Integration object
             # representation.
@@ -82,7 +86,8 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
             # Query param "action" only attached in TicketRuleForm modal.
             if self.params.get("action") == "create":
-                data["createIssueConfig"] = install.get_create_issue_config(
+                # This method comes from IssueBasicMixin within the integration's installation class
+                data["createIssueConfig"] = install.get_create_issue_config(  # type: ignore
                     None, user, params=self.params
                 )
 
@@ -94,17 +99,36 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
     def __init__(self, params: Optional[Mapping[str, Any]] = None) -> None:
         self.params = params
 
+    def get_attrs(
+        self,
+        item_list: Sequence[RpcOrganizationIntegration],
+        user: User,
+        **kwargs: Any,
+    ) -> MutableMapping[RpcOrganizationIntegration, MutableMapping[str, Any]]:
+        integrations = integration_service.get_integrations(
+            integration_ids=[item.integration_id for item in item_list]
+        )
+        integrations_by_id: Dict[int, RpcIntegration] = {i.id: i for i in integrations}
+        return {
+            item: {"integration": integrations_by_id[item.integration_id]} for item in item_list
+        }
+
     def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, include_config: bool = True
+        self,
+        obj: RpcOrganizationIntegration,
+        attrs: Mapping[str, Any],
+        user: User,
+        include_config: bool = True,
     ) -> MutableMapping[str, JSONData]:
         # XXX(epurkhiser): This is O(n) for integrations, especially since
         # we're using the IntegrationConfigSerializer which pulls in the
         # integration installation config object which very well may be making
         # API request for config options.
-        integration: MutableMapping[str, Any] = serialize(
-            objects=obj.integration,
+        integration: RpcIntegration = attrs.get("integration")  # type: ignore
+        serialized_integration: MutableMapping[str, Any] = serialize(
+            objects=integration,
             user=user,
-            serializer=IntegrationConfigSerializer(obj.organization.id, params=self.params),
+            serializer=IntegrationConfigSerializer(obj.organization_id, params=self.params),
             include_config=include_config,
         )
 
@@ -112,7 +136,9 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
         config_data = None
 
         try:
-            installation = obj.integration.get_installation(obj.organization_id)
+            installation = integration_service.get_installation(
+                integration=integration, organization_id=obj.organization_id
+            )
         except NotImplementedError:
             # slack doesn't have an installation implementation
             config_data = obj.config if include_config else None
@@ -120,40 +146,41 @@ class OrganizationIntegrationSerializer(Serializer):  # type: ignore
             try:
                 # just doing this to avoid querying for an object we already have
                 installation._org_integration = obj
-                config_data = installation.get_config_data() if include_config else None
+                config_data = installation.get_config_data() if include_config else None  # type: ignore
                 dynamic_display_information = installation.get_dynamic_display_information()
             except ApiError as e:
                 # If there is an ApiError from our 3rd party integration
                 # providers, assume there is an problem with the configuration
                 # and set it to disabled.
-                integration.update({"status": "disabled"})
+                serialized_integration.update({"status": "disabled"})
                 name = "sentry.serializers.model.organizationintegration"
                 log_info = {
                     "error": str(e),
-                    "integration_id": obj.integration.id,
-                    "integration_provider": obj.integration.provider,
+                    "integration_id": integration.id,
+                    "integration_provider": integration.provider,
                 }
                 logger.info(name, extra=log_info)
 
-        integration.update(
+        serialized_integration.update(
             {
                 "configData": config_data,
-                "externalId": obj.integration.external_id,
-                "organizationId": obj.organization.id,
+                "externalId": integration.external_id,
+                "organizationId": obj.organization_id,
                 "organizationIntegrationStatus": obj.get_status_display(),
                 "gracePeriodEnd": obj.grace_period_end,
             }
         )
 
         if dynamic_display_information:
-            integration.update({"dynamicDisplayInformation": dynamic_display_information})
-
-        return integration
+            serialized_integration.update(
+                {"dynamicDisplayInformation": dynamic_display_information}
+            )
+        return serialized_integration
 
 
 class IntegrationProviderSerializer(Serializer):  # type: ignore
     def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
+        self, obj: IntegrationProvider, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> MutableMapping[str, JSONData]:
         org_slug = kwargs.pop("organization").slug
         metadata = obj.metadata
@@ -172,72 +199,3 @@ class IntegrationProviderSerializer(Serializer):  # type: ignore
                 **obj.setup_dialog_config,
             ),
         }
-
-
-class IntegrationIssueConfigSerializer(IntegrationSerializer):
-    def __init__(
-        self,
-        group: Group,
-        action: str,
-        config: Mapping[str, Any],
-    ) -> None:
-        self.group = group
-        self.action = action
-        self.config = config
-
-    def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        data = super().serialize(obj, attrs, user)
-
-        if self.action == "link":
-
-            data["linkIssueConfig"] = self.config
-        if self.action == "create":
-            data["createIssueConfig"] = self.config
-
-        return data
-
-
-class IntegrationIssueSerializer(IntegrationSerializer):
-    def __init__(self, group: Group) -> None:
-        self.group = group
-
-    def get_attrs(
-        self, item_list: Sequence[Integration], user: User, **kwargs: Any
-    ) -> MutableMapping[Integration, MutableMapping[str, Any]]:
-        external_issues = ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.get_group_issues(self.group).values_list(
-                "linked_id", flat=True
-            ),
-            integration_id__in=[i.id for i in item_list],
-        )
-
-        issues_by_integration = defaultdict(list)
-        ints_by_id = {i.id: i for i in item_list}
-        for ei in external_issues:
-            # TODO(jess): move into an external issue serializer?
-            installation = ints_by_id[ei.integration_id].get_installation(
-                self.group.organization.id
-            )
-            issues_by_integration[ei.integration_id].append(
-                {
-                    "id": str(ei.id),
-                    "key": ei.key,
-                    "url": installation.get_issue_url(ei.key),
-                    "title": ei.title,
-                    "description": ei.description,
-                    "displayName": installation.get_issue_display_name(ei),
-                }
-            )
-
-        return {
-            item: {"external_issues": issues_by_integration.get(item.id, [])} for item in item_list
-        }
-
-    def serialize(
-        self, obj: Integration, attrs: Mapping[str, Any], user: User, **kwargs: Any
-    ) -> MutableMapping[str, JSONData]:
-        data = super().serialize(obj, attrs, user)
-        data["externalIssues"] = attrs.get("external_issues", [])
-        return data

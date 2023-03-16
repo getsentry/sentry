@@ -6,37 +6,50 @@ import moment from 'moment-timezone';
 import ContextData from 'sentry/components/contextData';
 import {t} from 'sentry/locale';
 import plugins from 'sentry/plugins';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Event, KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 
+import {AppEventContext} from './app';
+import {BrowserEventContext} from './browser';
+import {DefaultContext} from './default';
+import {DeviceEventContext} from './device';
+import {GPUEventContext} from './gpu';
+import {MemoryInfoEventContext} from './memoryInfo';
+import {OperatingSystemEventContext} from './operatingSystem';
+import {ProfileEventContext} from './profile';
+import {ReduxContext} from './redux';
+import {RuntimeEventContext} from './runtime';
+import {StateEventContext} from './state';
+import {ThreadPoolInfoEventContext} from './threadPoolInfo';
+import {TraceEventContext} from './trace';
+import {UnityEventContext} from './unity';
+import {UserEventContext} from './user';
+
 const CONTEXT_TYPES = {
-  default: require('sentry/components/events/contexts/default').default,
-  app: require('sentry/components/events/contexts/app').AppEventContext,
-  device: require('sentry/components/events/contexts/device').DeviceEventContext,
-  // 'Memory Info' will be replaced with 'memory_info' but
-  // we want to keep it here for now so it works for existing versions
-  'Memory Info': require('sentry/components/events/contexts/memoryInfo')
-    .MemoryInfoEventContext,
-  memory_info: require('sentry/components/events/contexts/memoryInfo')
-    .MemoryInfoEventContext,
-  browser: require('sentry/components/events/contexts/browser').BrowserEventContext,
-  os: require('sentry/components/events/contexts/operatingSystem')
-    .OperatingSystemEventContext,
-  unity: require('sentry/components/events/contexts/unity').UnityEventContext,
-  runtime: require('sentry/components/events/contexts/runtime').RuntimeEventContext,
-  user: require('sentry/components/events/contexts/user').UserEventContext,
-  gpu: require('sentry/components/events/contexts/gpu').GPUEventContext,
-  trace: require('sentry/components/events/contexts/trace').TraceEventContext,
+  default: DefaultContext,
+  app: AppEventContext,
+  device: DeviceEventContext,
+  memory_info: MemoryInfoEventContext,
+  browser: BrowserEventContext,
+  os: OperatingSystemEventContext,
+  unity: UnityEventContext,
+  runtime: RuntimeEventContext,
+  user: UserEventContext,
+  gpu: GPUEventContext,
+  trace: TraceEventContext,
+  threadpool_info: ThreadPoolInfoEventContext,
+  state: StateEventContext,
+  profile: ProfileEventContext,
+
+  // 'redux.state' will be replaced with more generic context called 'state'
+  'redux.state': ReduxContext,
   // 'ThreadPool Info' will be replaced with 'threadpool_info' but
   // we want to keep it here for now so it works for existing versions
-  'ThreadPool Info': require('sentry/components/events/contexts/threadPoolInfo')
-    .ThreadPoolInfoEventContext,
-  threadpool_info: require('sentry/components/events/contexts/threadPoolInfo')
-    .ThreadPoolInfoEventContext,
-  // 'redux.state' will be replaced with more generic context called 'state'
-  'redux.state': require('sentry/components/events/contexts/redux').default,
-  state: require('sentry/components/events/contexts/state').StateEventContext,
+  'ThreadPool Info': ThreadPoolInfoEventContext,
+  // 'Memory Info' will be replaced with 'memory_info' but
+  // we want to keep it here for now so it works for existing versions
+  'Memory Info': MemoryInfoEventContext,
 };
 
 export function getContextComponent(type: string) {
@@ -86,7 +99,7 @@ export function getRelativeTimeFromEventDateCreated(
   );
 }
 
-export function geKnownData<Data, DataType>({
+export function getKnownData<Data, DataType>({
   data,
   knownDataTypes,
   meta,

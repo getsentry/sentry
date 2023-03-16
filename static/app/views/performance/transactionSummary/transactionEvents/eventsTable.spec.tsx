@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
@@ -90,7 +90,6 @@ describe('Performance GridEditable Table', function () {
     t('trace id'),
     t('timestamp'),
   ];
-  const totalEventCount = '100';
   let fields = EVENTS_TABLE_RESPONSE_FIELDS;
   const organization = TestStubs.Organization();
   const transactionName = 'transactionName';
@@ -115,7 +114,32 @@ describe('Performance GridEditable Table', function () {
       body: [],
     });
 
+    fields = EVENTS_TABLE_RESPONSE_FIELDS;
     data = MOCK_EVENTS_TABLE_DATA;
+
+    // Total events count response
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      headers: {
+        Link:
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",' +
+          '<http://localhost/api/0/organizations/org-slug/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"',
+      },
+      body: {
+        meta: {
+          fields: {
+            'count()': 'integer',
+          },
+        },
+        data: [{'count()': 100}],
+      },
+      match: [
+        (_url, options) => {
+          return options.query?.field?.includes('count()');
+        },
+      ],
+    });
+
     // Transaction list response
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -168,7 +192,6 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -176,7 +199,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -223,7 +245,6 @@ describe('Performance GridEditable Table', function () {
 
     const {container} = render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -231,7 +252,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -260,7 +280,6 @@ describe('Performance GridEditable Table', function () {
 
     render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -268,7 +287,6 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={false}
       />,
       {context: initialData.routerContext}
     );
@@ -284,10 +302,10 @@ describe('Performance GridEditable Table', function () {
     );
   });
 
-  it('renders replay id', function () {
-    const initialData = initializeData({features: ['session-replay-ui']});
+  it('renders replay id', async function () {
+    const initialData = initializeData();
 
-    fields.push('replayId');
+    fields = [...fields, 'replayId'];
     data.forEach(result => {
       result.replayId = 'mock_replay_id';
     });
@@ -307,7 +325,6 @@ describe('Performance GridEditable Table', function () {
 
     const {container} = render(
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={initialData.router.routes}
@@ -315,11 +332,50 @@ describe('Performance GridEditable Table', function () {
         setError={() => {}}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol
       />,
       {context: initialData.routerContext}
     );
 
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    expect(screen.getAllByRole('columnheader')).toHaveLength(7);
+    expect(container).toSnapshot();
+  });
+
+  it('renders profile id', async function () {
+    const initialData = initializeData();
+
+    fields = [...fields, 'profile.id'];
+    data.forEach(result => {
+      result['profile.id'] = 'mock_profile_id';
+    });
+
+    const eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: 'transactionName',
+        fields,
+        query,
+        projects: [],
+        orderby: '-timestamp',
+      },
+      initialData.router.location
+    );
+
+    const {container} = render(
+      <EventsTable
+        eventView={eventView}
+        organization={organization}
+        routes={initialData.router.routes}
+        location={initialData.router.location}
+        setError={() => {}}
+        columnTitles={transactionsListTitles}
+        transactionName={transactionName}
+      />,
+      {context: initialData.routerContext}
+    );
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
     expect(screen.getAllByRole('columnheader')).toHaveLength(7);
     expect(container).toSnapshot();
   });

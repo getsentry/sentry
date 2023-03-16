@@ -1,7 +1,8 @@
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel as _Panel} from 'sentry/components/panels';
 import BufferingOverlay from 'sentry/components/replays/player/bufferingOverlay';
 import FastForwardBadge from 'sentry/components/replays/player/fastForwardBadge';
@@ -55,10 +56,11 @@ function useVideoSizeLogger({
 
 function BasePlayerRoot({className, isPreview = false}: Props) {
   const {
-    initRoot,
     dimensions: videoDimensions,
     fastForwardSpeed,
+    initRoot,
     isBuffering,
+    isFetching,
   } = useReplayContext();
 
   const windowEl = useRef<HTMLDivElement>(null);
@@ -116,7 +118,8 @@ function BasePlayerRoot({className, isPreview = false}: Props) {
       <div ref={viewEl} className={className} />
       {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
       {isBuffering ? <PositionedBuffering /> : null}
-      {!isPreview ? <PlayerDOMAlert /> : null}
+      {isPreview ? null : <PlayerDOMAlert />}
+      {isFetching ? <PositionedLoadingIndicator /> : null}
     </SizingWindow>
   );
 }
@@ -165,6 +168,10 @@ const PositionedBuffering = styled(BufferingOverlay)`
   left: 0;
   right: 0;
   bottom: 0;
+`;
+
+const PositionedLoadingIndicator = styled(LoadingIndicator)`
+  position: absolute;
 `;
 
 // Base styles, to make the Replayer instance work

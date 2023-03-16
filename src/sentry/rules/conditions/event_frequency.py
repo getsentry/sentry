@@ -13,7 +13,7 @@ from django.utils import timezone
 
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
-from sentry.issues.constants import ISSUE_TSDB_GROUP_MODELS, ISSUE_TSDB_USER_GROUP_MODELS
+from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.receivers.rules import DEFAULT_RULE_LABEL
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition
@@ -228,13 +228,14 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         sums: Mapping[int, int] = self.tsdb.get_sums(
-            model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
+            model=get_issue_tsdb_group_model(event.group.issue_category),
             keys=[event.group_id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
             jitter_value=event.group_id,
+            tenant_ids={"organization_id": event.group.project.organization_id},
         )
         return sums[event.group_id]
 
@@ -250,13 +251,14 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, event: GroupEvent, start: datetime, end: datetime, environment_id: str
     ) -> int:
         totals: Mapping[int, int] = self.tsdb.get_distinct_counts_totals(
-            model=ISSUE_TSDB_USER_GROUP_MODELS[event.group.issue_category],
+            model=get_issue_tsdb_user_group_model(event.group.issue_category),
             keys=[event.group_id],
             start=start,
             end=end,
             environment_id=environment_id,
             use_cache=True,
             jitter_value=event.group_id,
+            tenant_ids={"organization_id": event.group.project.organization_id},
         )
         return totals[event.group_id]
 
@@ -357,13 +359,14 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             avg_sessions_in_interval = session_count_last_hour / (60 / interval_in_minutes)
 
             issue_count = self.tsdb.get_sums(
-                model=ISSUE_TSDB_GROUP_MODELS[event.group.issue_category],
+                model=get_issue_tsdb_group_model(event.group.issue_category),
                 keys=[event.group_id],
                 start=start,
                 end=end,
                 environment_id=environment_id,
                 use_cache=True,
                 jitter_value=event.group_id,
+                tenant_ids={"organization_id": event.group.project.organization_id},
             )[event.group_id]
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now

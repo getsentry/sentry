@@ -1,6 +1,6 @@
 import {createContext, useContext, useState} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 
 const pageErrorContext = createContext<{
   setPageError: (error: string | undefined) => void;

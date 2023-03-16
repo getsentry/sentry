@@ -10,10 +10,10 @@ from sentry.audit_log import (
 )
 from sentry.models import AuditLogEntry
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class AuditLogEventManagerTest(TestCase):
     def test_audit_log_manager(self):
         test_manager = AuditLogEventManager()
@@ -30,7 +30,7 @@ class AuditLogEventManagerTest(TestCase):
         log_event = test_manager.get(event_id=500)
 
         log_entry = AuditLogEntry.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             event=audit_log.get_event_id("MEMBER_INVITE"),
             actor=self.user,
             datetime=timezone.now(),

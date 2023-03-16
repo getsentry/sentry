@@ -1,10 +1,9 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import EmptyStateWarning from 'sentry/components/emptyStateWarning';
+import EmptyMessage from 'sentry/components/emptyMessage';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -64,10 +63,11 @@ export default function Trace({replayRecord, organization}: Props) {
   const location = useLocation<ReplayListLocationQuery>();
 
   const replayId = replayRecord.id;
+  const projectId = replayRecord.project_id;
   const orgSlug = organization.slug;
 
-  const start = getUtcDateString(replayRecord.startedAt.getTime());
-  const end = getUtcDateString(replayRecord.finishedAt.getTime());
+  const start = getUtcDateString(replayRecord.started_at.getTime());
+  const end = getUtcDateString(replayRecord.finished_at.getTime());
 
   useEffect(() => {
     async function loadTraces() {
@@ -77,9 +77,8 @@ export default function Trace({replayRecord, organization}: Props) {
         fields: ['trace', 'count(trace)', 'min(timestamp)'],
         orderby: 'min_timestamp',
         query: `replayId:${replayId}`,
-        projects: [ALL_ACCESS_PROJECTS],
+        projects: [Number(projectId)],
         version: 2,
-
         start,
         end,
       });
@@ -141,7 +140,7 @@ export default function Trace({replayRecord, organization}: Props) {
     loadTraces();
 
     return () => {};
-  }, [api, replayId, orgSlug, location, start, end]);
+  }, [api, replayId, projectId, orgSlug, location, start, end]);
 
   if (state.isLoading) {
     return <LoadingIndicator />;
@@ -152,11 +151,7 @@ export default function Trace({replayRecord, organization}: Props) {
   }
 
   if (!state.traces?.length) {
-    return (
-      <EmptyStateWarning withIcon={false} small>
-        {t('No traces found')}
-      </EmptyStateWarning>
-    );
+    return <EmptyMessage title={t('No traces found')} />;
   }
 
   return (

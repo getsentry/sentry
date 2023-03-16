@@ -3,13 +3,20 @@ import styled from '@emotion/styled';
 import classNames from 'classnames';
 import scrollToElement from 'scroll-to-element';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {
+  StacktraceFilenameQuery,
+  useSourceMapDebug,
+} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import LeadHint from 'sentry/components/events/interfaces/frame/lineV2/leadHint';
 import StrictClick from 'sentry/components/strictClick';
+import Tag from 'sentry/components/tag';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconChevron, IconRefresh} from 'sentry/icons';
+import {IconChevron, IconRefresh, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame, Organization, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -40,6 +47,7 @@ type Props = {
   data: Frame;
   event: Event;
   registers: Record<string, string>;
+  debugFrames?: StacktraceFilenameQuery[];
   emptySourceNotation?: boolean;
   frameMeta?: Record<any, any>;
   image?: React.ComponentProps<typeof DebugImage>['image'];
@@ -79,6 +87,27 @@ function makeFilter(
   }
 
   return addr;
+}
+
+function SourceMapWarning({
+  debugFrames,
+  frame,
+}: {
+  frame: Frame;
+  debugFrames?: StacktraceFilenameQuery[];
+}) {
+  const debugFrame = debugFrames?.find(debug => debug.filename === frame.filename);
+  const {data} = useSourceMapDebug(debugFrame?.query, {
+    enabled: !!debugFrame,
+  });
+
+  return data?.errors?.length ? (
+    <IconWrapper>
+      <Tooltip skipWrapper title={t('Missing source map')}>
+        <IconWarning color="red400" size="sm" aria-label={t('Missing source map')} />
+      </Tooltip>
+    </IconWrapper>
+  ) : null;
 }
 
 export class Line extends Component<Props, State> {
@@ -183,19 +212,17 @@ export class Line extends Component<Props, State> {
     const {isExpanded} = this.state;
 
     return (
-      <ToggleContextButtonWrapper>
-        <ToggleContextButton
-          className="btn-toggle"
-          data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
-          css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
-          size="zero"
-          title={t('Toggle Context')}
-          tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
-          onClick={this.toggleContext}
-        >
-          <IconChevron direction={isExpanded ? 'up' : 'down'} size="8px" />
-        </ToggleContextButton>
-      </ToggleContextButtonWrapper>
+      <ToggleContextButton
+        className="btn-toggle"
+        data-test-id={`toggle-button-${isExpanded ? 'expanded' : 'collapsed'}`}
+        css={isDotnet(this.getPlatform()) && {display: 'block !important'}} // remove important once we get rid of css files
+        size="zero"
+        title={t('Toggle Context')}
+        tooltipProps={isHoverPreviewed ? {delay: SLOW_TOOLTIP_DELAY} : undefined}
+        onClick={this.toggleContext}
+      >
+        <IconChevron direction={isExpanded ? 'up' : 'down'} legacySize="8px" />
+      </ToggleContextButton>
     );
   }
 
@@ -212,30 +239,10 @@ export class Line extends Component<Props, State> {
 
   renderLeadHint() {
     const {isExpanded} = this.state;
-
-    if (isExpanded) {
-      return null;
-    }
-
+    const {event, nextFrame} = this.props;
     const leadsToApp = this.leadsToApp();
 
-    if (!leadsToApp) {
-      return null;
-    }
-
-    const {nextFrame} = this.props;
-
-    return !nextFrame ? (
-      <LeadHint className="leads-to-app-hint" width="115px">
-        {t('Crashed in non-app')}
-        {': '}
-      </LeadHint>
-    ) : (
-      <LeadHint className="leads-to-app-hint">
-        {t('Called from')}
-        {': '}
-      </LeadHint>
-    );
+    return <LeadHint {...{nextFrame, event, isExpanded, leadsToApp}} />;
   }
 
   renderRepeats() {
@@ -257,23 +264,27 @@ export class Line extends Component<Props, State> {
   }
 
   renderDefaultLine() {
-    const {isHoverPreviewed} = this.props;
+    const {isHoverPreviewed, debugFrames, data} = this.props;
 
     return (
       <StrictClick onClick={this.isExpandable() ? this.toggleContext : undefined}>
         <DefaultLine className="title" data-test-id="title">
-          <VertCenterWrapper>
-            <div>
-              {this.renderLeadHint()}
-              <DefaultTitle
-                frame={this.props.data}
-                platform={this.props.platform ?? 'other'}
-                isHoverPreviewed={isHoverPreviewed}
-                meta={this.props.frameMeta}
-              />
-            </div>
+          <DefaultLineTitleWrapper>
+            <LeftLineTitle>
+              <SourceMapWarning frame={data} debugFrames={debugFrames} />
+              <div>
+                {this.renderLeadHint()}
+                <DefaultTitle
+                  frame={data}
+                  platform={this.props.platform ?? 'other'}
+                  isHoverPreviewed={isHoverPreviewed}
+                  meta={this.props.frameMeta}
+                />
+              </div>
+            </LeftLineTitle>
             {this.renderRepeats()}
-          </VertCenterWrapper>
+          </DefaultLineTitleWrapper>
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
           {this.renderExpander()}
         </DefaultLine>
       </StrictClick>
@@ -339,6 +350,7 @@ export class Line extends Component<Props, State> {
             />
           </NativeLineContent>
           {this.renderExpander()}
+          {!data.inApp ? <Tag>{t('System')}</Tag> : <Tag type="info">{t('In App')}</Tag>}
         </DefaultLine>
       </StrictClick>
     );
@@ -410,23 +422,20 @@ const PackageInfo = styled('div')`
 
 const RepeatedFrames = styled('div')`
   display: inline-block;
-  border-radius: 50px;
-  padding: 1px 3px;
-  margin-left: ${space(1)};
-  border-width: thin;
-  border-style: solid;
-  border-color: ${p => p.theme.pink200};
-  color: ${p => p.theme.pink400};
-  background-color: ${p => p.theme.backgroundSecondary};
-  white-space: nowrap;
 `;
 
-const VertCenterWrapper = styled('div')`
+const DefaultLineTitleWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const LeftLineTitle = styled('div')`
   display: flex;
   align-items: center;
 `;
 
-const RepeatedContent = styled(VertCenterWrapper)`
+const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
 `;
 
@@ -455,7 +464,7 @@ const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`
 
 const DefaultLine = styled('div')`
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
 `;
 
@@ -463,17 +472,9 @@ const StyledIconRefresh = styled(IconRefresh)`
   margin-right: ${space(0.25)};
 `;
 
-const LeadHint = styled('div')<{width?: string}>`
-  ${p => p.theme.overflowEllipsis}
-  max-width: ${p => (p.width ? p.width : '67px')}
-`;
-
-const ToggleContextButtonWrapper = styled('span')`
-  margin-left: ${space(1)};
-`;
-
 // the Button's label has the padding of 3px because the button size has to be 16x16 px.
 const ToggleContextButton = styled(Button)`
+  margin-left: ${space(1)};
   span:first-child {
     padding: 3px;
   }
@@ -494,4 +495,10 @@ const StyledLi = styled('li')`
       visibility: visible;
     }
   }
+`;
+
+const IconWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  margin-right: ${space(1)};
 `;

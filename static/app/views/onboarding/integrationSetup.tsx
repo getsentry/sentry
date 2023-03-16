@@ -1,25 +1,23 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {IntegrationProvider, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
-import {AddIntegrationButton} from 'sentry/views/organizationIntegrations/addIntegrationButton';
+import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 import AddInstallationInstructions from './components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from './components/integrations/postInstallCodeSnippet';

@@ -26,7 +26,6 @@ frontend_src: &frontend_src
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '**/*.less'
-  - 'docs-ui/**'
   - 'static/**'
   - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'
@@ -75,8 +74,8 @@ backend_all: &backend_all
 
 # This is the ultimate controller for acceptance.yml
 acceptance: &acceptance
-  - *backend_all
   - *frontend_all
+  - *backend_all
   # This is verbose because backend_build_changes includes it, however,
   - '.github/actions/setup-sentry/action.yml'
   - '.github/workflows/acceptance.yml'

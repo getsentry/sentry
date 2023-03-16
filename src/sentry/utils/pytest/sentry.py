@@ -39,6 +39,8 @@ def pytest_configure(config):
         category=UnsupportedBackend,
     )
 
+    config.addinivalue_line("markers", "migrations: requires MIGRATIONS_TEST_MIGRATE=1")
+
     # HACK: Only needed for testing!
     os.environ.setdefault("_SENTRY_SKIP_CONFIGURATION", "1")
 
@@ -117,6 +119,7 @@ def pytest_configure(config):
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
@@ -265,6 +268,13 @@ def register_extensions():
     )
 
 
+def pytest_runtest_setup(item):
+    if not settings.MIGRATIONS_TEST_MIGRATE and any(
+        mark for mark in item.iter_markers(name="migrations")
+    ):
+        pytest.skip("migrations are not enabled, run with MIGRATIONS_TEST_MIGRATE=1 pytest ...")
+
+
 def pytest_runtest_teardown(item):
     # XXX(dcramer): only works with DummyNewsletter
     from sentry import newsletter
@@ -384,3 +394,8 @@ def pytest_collection_modifyitems(config, items):
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+def pytest_xdist_setupnodes():
+    # prevent out-of-order django initialization
+    os.environ.pop("DJANGO_SETTINGS_MODULE", None)

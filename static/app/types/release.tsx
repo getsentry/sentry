@@ -20,7 +20,7 @@ export type SourceMapsArchive = {
 export type Artifact = {
   dateCreated: string;
   dist: string | null;
-  headers: {'Content-Type': string};
+  headers: {'Content-Type': string} | {};
   id: string;
   name: string;
   sha1: string;
@@ -170,7 +170,6 @@ export enum ReleaseComparisonChartType {
   ERROR_COUNT = 'errorCount',
   TRANSACTION_COUNT = 'transactionCount',
   FAILURE_RATE = 'failureRate',
-  SESSION_DURATION = 'sessionDuration',
 }
 
 export enum HealthStatsPeriodOption {

@@ -129,7 +129,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
             # We want to just exit after the callback so that we can see the result of
             # processing.
             original_callback(*args, **kwargs)
-            consumer.shutdown()
+            consumer.signal_shutdown()
 
         subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE] = shutdown_callback
 

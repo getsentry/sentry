@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -12,6 +12,8 @@ import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProv
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
+// updateOnboardingTask triggers an out of band state update
+jest.mock('sentry/actionCreators/onboardingTasks');
 jest.mock('sentry/actionCreators/members', () => ({
   fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
@@ -162,9 +164,6 @@ describe('ProjectAlertsCreate', function () {
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     it('can remove triggers', async function () {
@@ -216,9 +215,6 @@ describe('ProjectAlertsCreate', function () {
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     it('can remove actions', async function () {
@@ -258,9 +254,6 @@ describe('ProjectAlertsCreate', function () {
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     describe('updates and saves', function () {
@@ -494,7 +487,9 @@ describe('ProjectAlertsCreate', function () {
         );
       });
       expect(
-        screen.getByText('issues would have triggered this rule in the past 14 days')
+        screen.getByText('4 issues would have triggered this rule in the past 14 days', {
+          exact: false,
+        })
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();

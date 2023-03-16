@@ -8,29 +8,32 @@ import TextField from 'sentry/components/forms/fields/textField';
 import FormField from 'sentry/components/forms/formField';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import {Choices, ServiceHook} from 'sentry/types';
+import {Organization, ServiceHook} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
-const EVENT_CHOICES: Choices = ['event.alert', 'event.created'].map(e => [e, e]);
+const EVENT_CHOICES = ['event.alert', 'event.created'];
 
 type Props = {
   initialData: Partial<ServiceHook> & {isActive: boolean};
-  orgId: string;
+  organization: Organization;
   projectId: string;
   hookId?: string;
 };
 
 export default class ServiceHookSettingsForm extends Component<Props> {
   onSubmitSuccess = () => {
-    const {orgId, projectId} = this.props;
-    browserHistory.push(`/settings/${orgId}/projects/${projectId}/hooks/`);
+    const {organization, projectId} = this.props;
+    browserHistory.push(
+      normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/hooks/`)
+    );
   };
 
   render() {
-    const {initialData, orgId, projectId, hookId} = this.props;
+    const {initialData, organization, projectId, hookId} = this.props;
 
     const endpoint = hookId
-      ? `/projects/${orgId}/${projectId}/hooks/${hookId}/`
-      : `/projects/${orgId}/${projectId}/hooks/`;
+      ? `/projects/${organization.slug}/${projectId}/hooks/${hookId}/`
+      : `/projects/${organization.slug}/${projectId}/hooks/`;
 
     return (
       <Panel>
@@ -60,12 +63,14 @@ export default class ServiceHookSettingsForm extends Component<Props> {
               inline={false}
               help={t('The event types you wish to subscribe to.')}
             >
-              {({value, onChange}) => (
-                <MultipleCheckbox
-                  onChange={onChange}
-                  value={value}
-                  choices={EVENT_CHOICES}
-                />
+              {({name, value, onChange}) => (
+                <MultipleCheckbox onChange={onChange} value={value} name={name}>
+                  {EVENT_CHOICES.map(event => (
+                    <MultipleCheckbox.Item key={event} value={event}>
+                      {event}
+                    </MultipleCheckbox.Item>
+                  ))}
+                </MultipleCheckbox>
               )}
             </FormField>
           </PanelBody>

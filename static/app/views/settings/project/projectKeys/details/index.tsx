@@ -1,17 +1,20 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
 import {t} from 'sentry/locale';
+import {Organization} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
-import KeySettings from 'sentry/views/settings/project/projectKeys/details/keySettings';
+import {KeySettings} from 'sentry/views/settings/project/projectKeys/details/keySettings';
 import KeyStats from 'sentry/views/settings/project/projectKeys/details/keyStats';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<
+type Props = {
+  organization: Organization;
+} & RouteComponentProps<
   {
     keyId: string;
-    orgId: string;
     projectId: string;
   },
   {}
@@ -27,31 +30,35 @@ export default class ProjectKeyDetails extends AsyncView<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {keyId, orgId, projectId} = this.props.params;
-    return [['data', `/projects/${orgId}/${projectId}/keys/${keyId}/`]];
+    const {organization} = this.props;
+    const {keyId, projectId} = this.props.params;
+    return [['data', `/projects/${organization.slug}/${projectId}/keys/${keyId}/`]];
   }
 
   handleRemove = () => {
-    const {orgId, projectId} = this.props.params;
-    browserHistory.push(`/${orgId}/${projectId}/settings/keys/`);
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    browserHistory.push(
+      normalizeUrl(`/settings/${organization.slug}/projects/${projectId}/keys/`)
+    );
   };
 
   renderBody() {
+    const {organization, params} = this.props;
     const {data} = this.state;
-    const {params} = this.props;
 
     return (
       <div data-test-id="key-details">
         <SettingsPageHeader title={t('Key Details')} />
         <PermissionAlert />
 
-        <KeyStats api={this.api} params={params} />
+        <KeyStats api={this.api} organization={organization} params={params} />
 
         <KeySettings
-          api={this.api}
-          params={params}
           data={data}
           onRemove={this.handleRemove}
+          organization={organization}
+          params={params}
         />
       </div>
     );

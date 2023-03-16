@@ -126,27 +126,48 @@ declare namespace Profiling {
     scriptId?: number;
   };
 
-  type ProfileTypes =
-    | EventedProfile
-    | SampledProfile
+  type ProfileInput =
+    | Profiling.Schema
     | JSSelfProfiling.Trace
-    | NodeProfile;
+    | ChromeTrace.ProfileType
+    | Profiling.SentrySampledProfile;
 
   type ImportedProfiles = {
     name: string;
     profileID: string;
     activeProfileIndex: number;
-    profiles: ProfileTypes[];
+    profiles: ReadonlyArray<ProfileInput>;
+  };
+
+  type FrameRender = {
+    elapsed_since_start_ns: number;
+    value: number;
   };
 
   // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
   // sentry related features to the flamegraphs. This should happen after the MVP integration
   type Schema = {
     profileID: string;
-    profiles: ReadonlyArray<ProfileTypes>;
+    profiles: ReadonlyArray<
+      Readonly<EventedProfile | SampledProfile | JSSelfProfiling.Trace>
+    >;
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+    };
+    measurements?: {
+      screen_frame_rates?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      frozen_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+      slow_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
     };
     activeProfileIndex?: number;
     metadata: {

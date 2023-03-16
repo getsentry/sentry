@@ -1,18 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import Button from 'sentry/components/button';
-import {
-  Input,
-  InputGroup,
-  InputLeadingItems,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {Button} from 'sentry/components/button';
+import {InputGroup} from 'sentry/components/inputGroup';
 
 describe('InputGroup', function () {
   it('renders input', function () {
     const {container} = render(
       <InputGroup>
-        <Input value="Search" onChange={() => {}} />
+        <InputGroup.Input value="Search" onChange={() => {}} />
       </InputGroup>
     );
 
@@ -25,7 +20,7 @@ describe('InputGroup', function () {
   it('renders disabled input', function () {
     const {container} = render(
       <InputGroup>
-        <Input disabled />
+        <InputGroup.Input disabled />
       </InputGroup>
     );
 
@@ -36,10 +31,10 @@ describe('InputGroup', function () {
   it('renders leading elements', function () {
     const {container} = render(
       <InputGroup>
-        <InputLeadingItems>
+        <InputGroup.LeadingItems>
           <Button>Leading Button</Button>
-        </InputLeadingItems>
-        <Input />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input />
       </InputGroup>
     );
 
@@ -59,10 +54,10 @@ describe('InputGroup', function () {
   it('renders trailing elements', function () {
     const {container} = render(
       <InputGroup>
-        <Input />
-        <InputTrailingItems>
+        <InputGroup.Input />
+        <InputGroup.TrailingItems>
           <Button>Trailing Button</Button>
-        </InputTrailingItems>
+        </InputGroup.TrailingItems>
       </InputGroup>
     );
 

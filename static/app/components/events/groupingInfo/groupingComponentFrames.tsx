@@ -1,10 +1,10 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {GroupingComponentListItem} from './groupingComponent';
 
@@ -51,7 +51,7 @@ class GroupingComponentFrames extends Component<Props, State> {
                 <ToggleCollapse
                   size="sm"
                   priority="link"
-                  icon={<IconAdd size="8px" />}
+                  icon={<IconAdd legacySize="8px" />}
                   onClick={() => this.setState({collapsed: false})}
                 >
                   {tct('show [numberOfFrames] similar', {
@@ -70,7 +70,7 @@ class GroupingComponentFrames extends Component<Props, State> {
             <ToggleCollapse
               size="sm"
               priority="link"
-              icon={<IconSubtract size="8px" />}
+              icon={<IconSubtract legacySize="8px" />}
               onClick={() => this.setState({collapsed: true})}
             >
               {tct('collapse [numberOfFrames] similar', {

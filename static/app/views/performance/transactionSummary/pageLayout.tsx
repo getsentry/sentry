@@ -4,14 +4,12 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -187,43 +185,41 @@ function PageLayout(props: Props) {
             specificProjectSlugs={defined(project) ? [project.slug] : []}
           >
             <Tabs value={tab} onChange={onTabChange}>
-              <StyledPageContent>
-                <NoProjectMessage organization={organization}>
-                  <TransactionHeader
-                    eventView={eventView}
+              <Layout.Page>
+                <TransactionHeader
+                  eventView={eventView}
+                  location={location}
+                  organization={organization}
+                  projects={projects}
+                  projectId={projectId}
+                  transactionName={transactionName}
+                  currentTab={tab}
+                  hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
+                  onChangeThreshold={(threshold, metric) => {
+                    setTransactionThreshold(threshold);
+                    setTransactionThresholdMetric(metric);
+                  }}
+                  metricsCardinality={metricsCardinality}
+                />
+                <Layout.Body>
+                  {defined(error) && (
+                    <StyledAlert type="error" showIcon>
+                      {error}
+                    </StyledAlert>
+                  )}
+                  <ChildComponent
                     location={location}
                     organization={organization}
                     projects={projects}
+                    eventView={eventView}
                     projectId={projectId}
                     transactionName={transactionName}
-                    currentTab={tab}
-                    hasWebVitals={tab === Tab.WebVitals ? 'yes' : 'maybe'}
-                    onChangeThreshold={(threshold, metric) => {
-                      setTransactionThreshold(threshold);
-                      setTransactionThresholdMetric(metric);
-                    }}
-                    metricsCardinality={metricsCardinality}
+                    setError={setError}
+                    transactionThreshold={transactionThreshold}
+                    transactionThresholdMetric={transactionThresholdMetric}
                   />
-                  <Layout.Body>
-                    {defined(error) && (
-                      <StyledAlert type="error" showIcon>
-                        {error}
-                      </StyledAlert>
-                    )}
-                    <ChildComponent
-                      location={location}
-                      organization={organization}
-                      projects={projects}
-                      eventView={eventView}
-                      projectId={projectId}
-                      transactionName={transactionName}
-                      setError={setError}
-                      transactionThreshold={transactionThreshold}
-                      transactionThresholdMetric={transactionThresholdMetric}
-                    />
-                  </Layout.Body>
-                </NoProjectMessage>
-              </StyledPageContent>
+                </Layout.Body>
+              </Layout.Page>
             </Tabs>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>
@@ -236,10 +232,6 @@ export function NoAccess() {
   return <Alert type="warning">{t("You don't have access to this feature")}</Alert>;
 }
 
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
 const StyledAlert = styled(Alert)`
   grid-column: 1/3;
   margin: 0;
@@ -250,12 +242,14 @@ export function redirectToPerformanceHomepage(
   location: Location
 ) {
   // If there is no transaction name, redirect to the Performance landing page
-  browserHistory.replace({
-    pathname: `/organizations/${organization.slug}/performance/`,
-    query: {
-      ...location.query,
-    },
-  });
+  browserHistory.replace(
+    normalizeUrl({
+      pathname: `/organizations/${organization.slug}/performance/`,
+      query: {
+        ...location.query,
+      },
+    })
+  );
 }
 
 export default PageLayout;

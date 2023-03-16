@@ -130,6 +130,35 @@ class ProjectSerializerTest(TestCase):
         assert result["hasAccess"] is True
         assert result["isMember"] is True
 
+    def test_member_on_owner_team_access(self):
+        organization = self.create_organization()
+        manager_team = self.create_team(organization=organization, org_role="manager")
+        owner_team = self.create_team(organization=organization, org_role="owner")
+        self.create_member(
+            user=self.user,
+            organization=self.organization,
+            role="member",
+            teams=[manager_team, owner_team],
+        )
+
+        result = serialize(self.project, self.user)
+
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        result = serialize(self.project, self.user)
+        # after changing to allow_joinleave=False
+        assert result["hasAccess"] is True
+        assert result["isMember"] is False
+
+        self.create_team_membership(user=self.user, team=self.team)
+        result = serialize(self.project, self.user)
+        # after giving them access to team
+        assert result["hasAccess"] is True
+        assert result["isMember"] is True
+
     @mock.patch("sentry.features.batch_has")
     def test_project_batch_has(self, mock_batch):
         mock_batch.return_value = {
@@ -337,6 +366,16 @@ class ProjectSummarySerializerTest(SnubaTestCase, TestCase):
 
         result = serialize(self.project, self.user, ProjectSummarySerializer())
         assert result["hasReplays"] is True
+
+    def test_has_minified_stracktrace_flag(self):
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMinifiedStackTrace"] is False
+
+        self.project.first_event = timezone.now()
+        self.project.update(flags=F("flags").bitor(Project.flags.has_minified_stack_trace))
+
+        result = serialize(self.project, self.user, ProjectSummarySerializer())
+        assert result["hasMinifiedStackTrace"] is True
 
     def test_no_environments(self):
         # remove environments and related models

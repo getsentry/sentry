@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import signal
 from typing import Any, MutableMapping
 
 from arroyo import Topic
@@ -17,28 +16,19 @@ from sentry.utils import kafka_config
 def get_replays_recordings_consumer(
     topic: str,
     group_id: str,
-    max_batch_size: int,
     auto_offset_reset: str,
     force_topic: str | None,
     force_cluster: str | None,
-    **options: dict[str, str],
 ) -> StreamProcessor[KafkaPayload]:
     topic = force_topic or topic
     consumer_config = get_config(topic, group_id, auto_offset_reset, force_cluster)
     consumer = KafkaConsumer(consumer_config)
-    processor = StreamProcessor(
+    return StreamProcessor(
         consumer=consumer,
         topic=Topic(topic),
         processor_factory=ProcessReplayRecordingStrategyFactory(),
         commit_policy=ONCE_PER_SECOND,
     )
-
-    def handler(signum: int, frame: Any) -> None:
-        processor.signal_shutdown()
-
-    signal.signal(signal.SIGINT, handler)
-    signal.signal(signal.SIGTERM, handler)
-    return processor
 
 
 def get_config(

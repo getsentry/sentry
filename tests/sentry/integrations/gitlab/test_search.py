@@ -4,6 +4,7 @@ import responses
 from django.urls import reverse
 
 from fixtures.gitlab import GitLabTestCase
+from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.utils import json
 
 
@@ -197,7 +198,10 @@ class GitlabSearchTest(GitLabTestCase):
 
     def test_missing_installation(self):
         # remove organization integration aka "uninstalling" installation
-        self.installation.org_integration.delete()
+        org_integration = OrganizationIntegration.objects.get(
+            id=self.installation.org_integration.id
+        )
+        org_integration.delete()
         resp = self.client.get(self.url, data={"field": "project", "query": "GetSentry"})
 
         assert resp.status_code == 404

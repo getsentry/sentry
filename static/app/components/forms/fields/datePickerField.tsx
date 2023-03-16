@@ -92,7 +92,7 @@ const StyledInput = styled(Input)`
 
   &:focus:not(.focus-visible) {
     border-color: ${p => p.theme.border};
-    box-shadow: inset ${p => p.theme.dropShadowLight};
+    box-shadow: inset ${p => p.theme.dropShadowMedium};
   }
 `;
 

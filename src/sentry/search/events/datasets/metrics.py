@@ -29,7 +29,6 @@ class MetricsDatasetConfig(DatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
-            "transaction.duration": self._duration_filter_converter,  # Only for dry_run
             "environment": self.builder._environment_filter_converter,
             "transaction": self._transaction_filter_converter,
             "tags[transaction]": self._transaction_filter_converter,
@@ -62,8 +61,6 @@ class MetricsDatasetConfig(DatasetConfig):
         return metric_id
 
     def resolve_value(self, value: str) -> int:
-        if self.builder.dry_run:
-            return -1
         value_id = self.builder.resolve_tag_value(value)
 
         return value_id
@@ -633,15 +630,11 @@ class MetricsDatasetConfig(DatasetConfig):
         return self._resolve_transaction_alias(alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
-        if self.builder.dry_run:
-            return field_aliases.dry_run_default(self.builder, constants.TEAM_KEY_TRANSACTION_ALIAS)
         return field_aliases.resolve_team_key_transaction_alias(
             self.builder, resolve_metric_index=True
         )
 
     def _resolve_project_slug_alias(self, alias: str) -> SelectType:
-        if self.builder.dry_run:
-            return field_aliases.dry_run_default(self.builder, alias)
         return field_aliases.resolve_project_slug_alias(self.builder, alias)
 
     def _resolve_transaction_alias(self, alias: str) -> SelectType:
@@ -695,7 +688,8 @@ class MetricsDatasetConfig(DatasetConfig):
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
-        if value == "transaction":
+        operator = search_filter.operator
+        if value == "transaction" and operator == "=":
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
@@ -705,16 +699,6 @@ class MetricsDatasetConfig(DatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
-
-    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if (
-            self.builder.dry_run
-            and search_filter.value.raw_value == 900000
-            and search_filter.operator == "<"
-        ):
-            return None
-
-        return self.builder._default_filter_converter(search_filter)
 
     def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator

@@ -3,7 +3,7 @@ import {act, render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import EventView from 'sentry/utils/discover/eventView';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/eventsV2/data';
+import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/data';
 import TraceDetailsContent from 'sentry/views/performance/traceDetails/content';
 
 const SAMPLE_ERROR_DATA = {
@@ -99,15 +99,11 @@ describe('TraceDetailsContent', () => {
       );
 
       const errorText = await screen.findByText(
-        'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events:'
+        'The trace cannot be shown when all events are errors. An error occurred when attempting to fetch these error events: This is a test error'
       );
 
       const errorContainer = errorText.parentElement;
       expect(errorContainer).not.toBeNull();
-
-      expect(
-        within(errorContainer!).getByText('This is a test error')
-      ).toBeInTheDocument();
     });
   });
 });

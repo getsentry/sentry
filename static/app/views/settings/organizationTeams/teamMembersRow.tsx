@@ -1,12 +1,12 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import {PanelItem} from 'sentry/components/panels';
 import RoleSelectControl from 'sentry/components/roleSelectControl';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Member, Organization, TeamMember, User} from 'sentry/types';
 import {
   hasOrgRoleOverwrite,
@@ -109,6 +109,23 @@ const RemoveButton = (props: {
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
     return null;
+  }
+
+  if (member.flags['idp:provisioned']) {
+    return (
+      <Button
+        size="xs"
+        disabled
+        icon={<IconSubtract size="xs" isCircled />}
+        onClick={onClick}
+        aria-label={t('Remove')}
+        title={t(
+          "Membership to this team is managed through your organization's identity provider."
+        )}
+      >
+        {t('Remove')}
+      </Button>
+    );
   }
 
   return (

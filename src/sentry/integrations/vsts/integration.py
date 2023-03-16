@@ -35,6 +35,7 @@ from sentry.models import (
     generate_token,
 )
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
+from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,
@@ -117,6 +118,7 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
+        self.org_integration: RpcOrganizationIntegration | None
         self.default_identity: Identity | None = None
 
     def reinstall(self) -> None:
@@ -266,6 +268,8 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
         return fields
 
     def update_organization_config(self, data: MutableMapping[str, Any]) -> None:
+        if not self.org_integration:
+            return
         if "sync_status_forward" in data:
             project_ids_and_statuses = data.pop("sync_status_forward")
             if any(
@@ -290,9 +294,14 @@ class VstsIntegration(IntegrationInstallation, RepositoryMixin, VstsIssueSync): 
 
         config = self.org_integration.config
         config.update(data)
-        self.org_integration.update(config=config)
+        self.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config=config,
+        )
 
     def get_config_data(self) -> Mapping[str, Any]:
+        if not self.org_integration:
+            return {}
         config: MutableMapping[str, Any] = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
@@ -410,6 +419,14 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             # preserve previously created subscription information
             integration["metadata"]["subscription"] = integration_model.metadata["subscription"]
 
+            logger.info(
+                "vsts.build_integration",
+                extra={
+                    "organization_id": self.pipeline.organization.id,
+                    "user_id": user["id"],
+                    "account": account,
+                },
+            )
             assert OrganizationIntegration.objects.filter(
                 organization_id=self.pipeline.organization.id,
                 integration_id=integration_model.id,
@@ -436,6 +453,14 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
+                logger.info(
+                    "vsts.create_subscription_permission_error",
+                    extra={
+                        "organization_id": self.pipeline.organization.id,
+                        "error_message": str(e),
+                        "error_code": e.code,
+                    },
+                )
                 raise IntegrationProviderError(
                     "You do not have sufficient account access to create webhooks\n"
                     "on the selected Azure DevOps organization.\n"
@@ -474,6 +499,8 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             # Explicitly typing to satisfy mypy.
             location_url: str | None = response.json()["locationUrl"]
             return location_url
+
+        logger.info("vsts.get_base_url", extra={"responseCode": response.status_code})
         return None
 
     def setup(self) -> None:

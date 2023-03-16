@@ -5,7 +5,7 @@ from typing import Sequence
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, Team, User
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -16,14 +16,16 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     is all user ids from explicitly mentioned teams, excluding any already
     mentioned users.
     """
-    actors: Sequence[APIUser | Team] = ActorTuple.resolve_many(mentions)
+    actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
-    mentioned_team_users = list(
-        User.objects.get_from_teams(organization_id, actor_mentions["teams"])
-        .exclude(id__in={u.id for u in actor_mentions["users"]})
-        .values_list("id", flat=True)
+    team_users = user_service.get_many(
+        filter={
+            "organization_id": organization_id,
+            "team_ids": [t.id for t in actor_mentions["teams"]],
+        }
     )
+    mentioned_team_users = {u.id for u in team_users} - set({u.id for u in actor_mentions["users"]})
 
     return {
         "users": {user.id for user in actor_mentions["users"]},
@@ -38,7 +40,7 @@ def separate_actors(actors):
     return {"users": users, "teams": teams}
 
 
-def separate_resolved_actors(actors: Sequence[APIUser | Team]):
+def separate_resolved_actors(actors: Sequence[RpcUser | Team]):
     users = [actor for actor in actors if actor.class_name() == "User"]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 
@@ -57,8 +59,14 @@ class MentionsMixin:
 
             projects = self.context["projects"]
             organization_id = self.context["organization_id"]
-            users = User.objects.get_from_projects(organization_id, projects)
-            user_ids = users.filter(id__in=mentioned_user_ids).values_list("id", flat=True)
+            users = user_service.get_many(
+                filter={
+                    "user_ids": mentioned_user_ids,
+                    "organization_id": organization_id,
+                    "project_ids": [p.id for p in projects],
+                },
+            )
+            user_ids = [u.id for u in users]
 
             if len(mentioned_user_ids) > len(user_ids):
                 raise serializers.ValidationError("Cannot mention a non team member")

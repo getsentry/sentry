@@ -11,9 +11,10 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRule, Incident, User
+from sentry.incidents.models import AlertRule, Incident
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
-from sentry.models import Integration, Organization
+from sentry.models import Integration, Organization, User
+from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -51,14 +52,19 @@ def unfurl_metric_alerts(
         else:
             alert_filter_query |= Q(id=alert_rule_id, organization__slug=org_slug)
 
-    all_integration_orgs = integration.organizations.all()
+    org_integrations = integration_service.get_organization_integrations(
+        integration_id=integration.id
+    )
+    organizations = Organization.objects.filter(
+        id__in=[oi.organization_id for oi in org_integrations]
+    )
     alert_rule_map = {
         rule.id: rule
         for rule in AlertRule.objects.filter(
             alert_filter_query,
             # Filter by integration organization here as well to make sure that
             # we have permission to access these incidents.
-            organization__in=all_integration_orgs,
+            organization_id__in=[org.id for org in organizations],
         )
     }
 
@@ -73,11 +79,11 @@ def unfurl_metric_alerts(
                 incident_filter_query,
                 # Filter by integration organization here as well to make sure that
                 # we have permission to access these incidents.
-                organization__in=all_integration_orgs,
+                organization_id__in=organizations,
             )
         }
 
-    orgs_by_slug: dict[str, Organization] = {org.slug: org for org in all_integration_orgs}
+    orgs_by_slug: dict[str, Organization] = {org.slug: org for org in organizations}
 
     result = {}
     for link in links:
@@ -131,10 +137,16 @@ def map_metric_alert_query_args(url: str, args: Mapping[str, str | None]) -> Map
     return map_incident_args(url, data)
 
 
+metric_alerts_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
+customer_domain_metric_alerts_link_regex = re.compile(
+    r"^https?\://(?P<org_slug>[^/]+?)\.(?#url_prefix)[^/]+/alerts/rules/details/(?P<alert_rule_id>\d+)"
+)
+
 handler: Handler = Handler(
     fn=unfurl_metric_alerts,
-    matcher=re.compile(
-        r"^https?\://[^/]+/organizations/(?P<org_slug>[^/]+)/alerts/rules/details/(?P<alert_rule_id>\d+)"
-    ),
+    matcher=[metric_alerts_link_regex, customer_domain_metric_alerts_link_regex],
     arg_mapper=map_metric_alert_query_args,
 )

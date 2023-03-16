@@ -1,16 +1,18 @@
 import {browserHistory, RouteComponentProps} from 'react-router';
 
+import Breadcrumbs from 'sentry/components/breadcrumbs';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
 
-import MonitorForm from './monitorForm';
+import MonitorForm from './components/monitorForm';
 import {Monitor} from './types';
 
 type Props = AsyncView['props'] &
-  RouteComponentProps<{monitorId: string; orgId: string}, {}> & {
+  RouteComponentProps<{monitorSlug: string}, {}> & {
     organization: Organization;
   };
 
@@ -25,20 +27,21 @@ class EditMonitor extends AsyncView<Props, State> {
 
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
     const {params} = this.props;
-    return [['monitor', `/monitors/${params.monitorId}/`]];
+    return [
+      ['monitor', `/organizations/${this.orgSlug}/monitors/${params.monitorSlug}/`],
+    ];
   }
 
-  onUpdate = (data: Monitor) =>
-    this.setState(state => ({monitor: {...state.monitor, ...data}}));
-
   onSubmitSuccess = (data: Monitor) =>
-    browserHistory.push(`/organizations/${this.orgSlug}/crons/${data.id}/`);
+    browserHistory.push(
+      normalizeUrl(`/organizations/${this.orgSlug}/crons/${data.slug}/`)
+    );
 
   getTitle() {
     if (this.state.monitor) {
-      return `${this.state.monitor.name} - Monitors - ${this.orgSlug}`;
+      return `${this.state.monitor.name} - Crons - ${this.orgSlug}`;
     }
-    return `Monitors - ${this.orgSlug}`;
+    return `Crons - ${this.orgSlug}`;
   }
 
   renderBody() {
@@ -49,18 +52,34 @@ class EditMonitor extends AsyncView<Props, State> {
     }
 
     return (
-      <Layout.Body>
-        <Layout.Main fullWidth>
-          <h1>{t('Edit Monitor')}</h1>
-
-          <MonitorForm
-            monitor={monitor}
-            apiMethod="PUT"
-            apiEndpoint={`/monitors/${monitor.id}/`}
-            onSubmitSuccess={this.onSubmitSuccess}
-          />
-        </Layout.Main>
-      </Layout.Body>
+      <Layout.Page>
+        <Layout.Header>
+          <Layout.HeaderContent>
+            <Breadcrumbs
+              crumbs={[
+                {
+                  label: t('Crons'),
+                  to: `/organizations/${this.orgSlug}/crons/`,
+                },
+                {
+                  label: t('Editing %s', monitor.name),
+                },
+              ]}
+            />
+            <Layout.Title>{t('Edit Monitor')}</Layout.Title>
+          </Layout.HeaderContent>
+        </Layout.Header>
+        <Layout.Body>
+          <Layout.Main fullWidth>
+            <MonitorForm
+              monitor={monitor}
+              apiMethod="PUT"
+              apiEndpoint={`/organizations/${this.orgSlug}/monitors/${monitor.slug}/`}
+              onSubmitSuccess={this.onSubmitSuccess}
+            />
+          </Layout.Main>
+        </Layout.Body>
+      </Layout.Page>
     );
   }
 }

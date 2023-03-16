@@ -12,7 +12,7 @@ import ProjectSettingsNavigation from 'sentry/views/settings/project/projectSett
 type Props = {
   children: React.ReactNode;
   organization: Organization;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type InnerProps = Props & {project: Project};
 
@@ -45,12 +45,12 @@ function InnerProjectSettingsLayout({
   );
 }
 
-function ProjectSettingsLayout({params, ...props}: Props) {
-  const {orgId, projectId} = params;
-
+function ProjectSettingsLayout({organization, params, ...props}: Props) {
   return (
-    <ProjectContext orgId={orgId} projectId={projectId}>
-      {({project}) => <InnerProjectSettingsLayout {...{params, project, ...props}} />}
+    <ProjectContext orgId={organization.slug} projectId={params.projectId}>
+      {({project}) => (
+        <InnerProjectSettingsLayout {...{params, project, organization, ...props}} />
+      )}
     </ProjectContext>
   );
 }

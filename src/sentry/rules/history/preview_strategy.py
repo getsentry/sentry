@@ -1,29 +1,33 @@
 from typing import Any, Dict, Sequence
 
+from sentry.issues.grouptype import GroupCategory
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
-from sentry.types.issues import GroupCategory
 
 """
 Issue category specific components to computing a preview for a set of rules.
 
 To add support for a new issue category/dataset:
-    1. Add mapping from GroupCategory to Dataset
+    1. Update get_dataset_from_category
     2. Add mapping from Dataset to snuba column name
         a. The column name should be a field in sentry.snuba.events.Column
-    3. Add category-specific query params for UPDATE_KWARGS_FOR_GROUPS and UPDATE_KWARGS_FOR_GROUP
+    3. Add category-specific query params for get_update_kwargs_for_groups and get_update_kwargs_for_group
 """
 
-# Maps group category to dataset
-GROUP_CATEGORY_TO_DATASET: Dict[GroupCategory, Dataset] = {
-    GroupCategory.ERROR: Dataset.Events,
-    GroupCategory.PERFORMANCE: Dataset.Transactions,
-}
+
+def get_dataset_from_category(category: int) -> Dataset:
+    if category == GroupCategory.ERROR.value:
+        return Dataset.Events
+    elif category == GroupCategory.PERFORMANCE.value:
+        return Dataset.Transactions
+    return Dataset.IssuePlatform
+
 
 # Maps datasets to snuba column name
 DATASET_TO_COLUMN_NAME: Dict[Dataset, str] = {
     Dataset.Events: "event_name",
     Dataset.Transactions: "transaction_name",
+    Dataset.IssuePlatform: "issue_platform_name",
 }
 
 
@@ -65,10 +69,17 @@ Returns the rows that contain the group id.
 If there's a many-to-many relationship, the group id column should be arrayjoined.
 If there are no issue state changes (causes no group ids), then do not filter by group ids.
 """
-UPDATE_KWARGS_FOR_GROUPS = {
-    Dataset.Events: _events_from_groups_kwargs,
-    Dataset.Transactions: _transactions_from_groups_kwargs,
-}
+
+
+def get_update_kwargs_for_groups(
+    dataset: Dataset,
+    group_ids: Sequence[int],
+    kwargs: Dict[str, Any],
+    has_issue_state_condition: bool = True,
+) -> Dict[str, Any]:
+    if dataset == Dataset.Transactions:
+        return _transactions_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
+    return _events_from_groups_kwargs(group_ids, kwargs, has_issue_state_condition)
 
 
 def _events_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Dict[str, Any]:
@@ -84,7 +95,11 @@ def _transactions_from_group_kwargs(group_id: int, kwargs: Dict[str, Any]) -> Di
 """
 Returns the rows that reference the group id without arrayjoining.
 """
-UPDATE_KWARGS_FOR_GROUP = {
-    Dataset.Events: _events_from_group_kwargs,
-    Dataset.Transactions: _transactions_from_group_kwargs,
-}
+
+
+def get_update_kwargs_for_group(
+    dataset: Dataset, group_id: int, kwargs: Dict[str, Any]
+) -> Dict[str, Any]:
+    if dataset == Dataset.Transactions:
+        return _transactions_from_group_kwargs(group_id, kwargs)
+    return _events_from_group_kwargs(group_id, kwargs)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Optional, Set
 
 import sentry_sdk
 from django.core.cache import cache
@@ -19,14 +19,7 @@ from sentry.api.utils import (
 )
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
-from sentry.models import (
-    ApiKey,
-    Authenticator,
-    Organization,
-    Project,
-    ProjectStatus,
-    ReleaseProject,
-)
+from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.utils import auth
@@ -50,7 +43,7 @@ class OrganizationPermission(SentryPermission):
     def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return (
             organization.flags.require_2fa
-            and not Authenticator.objects.user_has_2fa(request.user)
+            and not request.user.has_2fa()
             and not is_active_superuser(request)
         )
 
@@ -448,7 +441,11 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         )
 
     def has_release_permission(
-        self, request: Request, organization: Organization, release: Release
+        self,
+        request: Request,
+        organization: Organization,
+        release: Optional[Release] = None,
+        project_ids: Optional[Set[int]] = None,
     ) -> bool:
         """
         Does the given request have permission to access this release, based
@@ -466,16 +463,28 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         if getattr(request, "auth", None) and request.auth.id:
             actor_id = "apikey:%s" % request.auth.id
         if actor_id is not None:
-            project_ids = sorted(self.get_requested_project_ids_unchecked(request))
+            requested_project_ids = project_ids
+            if requested_project_ids is None:
+                requested_project_ids = self.get_requested_project_ids_unchecked(request)
             key = "release_perms:1:%s" % hash_values(
-                [actor_id, organization.id, release.id] + project_ids
+                [actor_id, organization.id, release.id if release is not None else 0]
+                + sorted(requested_project_ids)
             )
             has_perms = cache.get(key)
         if has_perms is None:
-            has_perms = ReleaseProject.objects.filter(
-                release=release, project__in=self.get_projects(request, organization)
-            ).exists()
+            projects = self.get_projects(request, organization, project_ids=project_ids)
+            # XXX(iambriccardo): The logic here is that you have access to this release if any of your projects
+            # associated with this release you have release permissions to.  This is a bit of
+            # a problem because anyone can add projects to a release, so this check is easy
+            # to defeat.
+            if release is not None:
+                has_perms = ReleaseProject.objects.filter(
+                    release=release, project__in=projects
+                ).exists()
+            else:
+                has_perms = len(projects) > 0
+
             if key is not None and actor_id is not None:
                 cache.set(key, has_perms, 60)
 
-        return has_perms  # type: ignore[no-any-return]
+        return has_perms

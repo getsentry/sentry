@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import {components} from 'react-select';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
@@ -20,7 +20,7 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
 
@@ -166,7 +166,6 @@ export class RenderField extends Component<RenderProps, State> {
               onClick={() => handleDelete(index)}
               icon={<IconDelete color="gray300" />}
               size="sm"
-              type="button"
               aria-label={t('Delete')}
             />
           </DeleteButtonWrapper>
@@ -266,7 +265,6 @@ export class RenderField extends Component<RenderProps, State> {
           />
           <AddProjectWrapper>
             <Button
-              type="button"
               disabled={!selectedSentryProjectId || !selectedMappedValue}
               size="sm"
               priority="primary"
@@ -286,7 +284,6 @@ export class RenderField extends Component<RenderProps, State> {
             <NextButtonWrapper>
               {nextDescription ?? ''}
               <Button
-                type="button"
                 size="sm"
                 priority="primary"
                 icon={<IconOpen size="xs" />}

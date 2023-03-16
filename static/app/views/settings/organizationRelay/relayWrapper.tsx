@@ -6,7 +6,7 @@ import omit from 'lodash/omit';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -25,7 +25,7 @@ const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
 type Props = {
   organization: Organization;
-} & RouteComponentProps<{orgId: string}, {}>;
+} & RouteComponentProps<{}, {}>;
 
 type State = {
   relayActivities: Array<RelayActivity>;

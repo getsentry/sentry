@@ -34,13 +34,14 @@ import {Panel, PanelBody, PanelFooter} from 'sentry/components/panels';
 import Placeholder from 'sentry/components/placeholder';
 import {URL_PARAM} from 'sentry/constants/pageFilters';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {EChartClickHandler} from 'sentry/types/echarts';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';
@@ -120,12 +121,14 @@ class ReleasesAdoptionChart extends Component<Props> {
 
     const project = selection.projects[0];
 
-    router.push({
-      pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
-        params.seriesId
-      )}/`,
-      query: {project, environment: location.query.environment},
-    });
+    router.push(
+      normalizeUrl({
+        pathname: `/organizations/${organization?.slug}/releases/${encodeURIComponent(
+          params.seriesId
+        )}/`,
+        query: {project, environment: location.query.environment},
+      })
+    );
   };
 
   renderEmpty() {

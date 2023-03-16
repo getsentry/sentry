@@ -1,12 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import PageFiltersStore from 'sentry/stores/pageFiltersStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {DataCategory, PageFilters} from 'sentry/types';
+import {PageFilters} from 'sentry/types';
 import {OrganizationStats, PAGE_QUERY_PARAMS} from 'sentry/views/organizationStats';
 
 import {ChartDataTransform} from './usageChart';
@@ -118,6 +118,7 @@ describe('OrganizationStats', function () {
         statsPeriod: '5m',
         interval: '1m',
         groupBy: ['category', 'outcome'],
+        project: [-1],
         field: ['sum(quantity)'],
       },
       UsageStatsProjects: {
@@ -174,7 +175,7 @@ describe('OrganizationStats', function () {
     userEvent.click(screen.getByText('Attachments'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
-        query: {dataCategory: DataCategory.ATTACHMENTS},
+        query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
       })
     );
 
@@ -224,7 +225,24 @@ describe('OrganizationStats', function () {
   /**
    * Project Selection
    */
-  it('renders with no projects selected', () => {
+  it('renders single project without global-views', () => {
+    const newOrg = initializeOrg();
+    newOrg.organization.features = [
+      'team-insights',
+      // TODO(Leander): Remove the following check once the project-stats flag is GA
+      'project-stats',
+    ];
+
+    render(<OrganizationStats {...defaultProps} organization={newOrg.organization} />, {
+      context: newOrg.routerContext,
+    });
+
+    expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('usage-stats-chart')).toBeInTheDocument();
+    expect(screen.queryByText('usage-stats-table')).not.toBeInTheDocument();
+  });
+
+  it('renders default projects with global-views', () => {
     const newOrg = initializeOrg();
     newOrg.organization.features = [
       'global-views',
@@ -345,11 +363,7 @@ describe('OrganizationStats', function () {
       ...defaultSelection,
       projects: selectedProject,
     };
-    for (const features of [
-      ['team-insights'],
-      ['team-insights', 'project-stats'],
-      ['team-insights', 'global-views'],
-    ]) {
+    for (const features of [['team-insights'], ['team-insights', 'project-stats']]) {
       const newOrg = initializeOrg();
       newOrg.organization.features = features;
       render(
@@ -362,7 +376,6 @@ describe('OrganizationStats', function () {
       );
       act(() => PageFiltersStore.updateProjects(selectedProject, []));
       expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
-      expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
       cleanup();
     }
   });

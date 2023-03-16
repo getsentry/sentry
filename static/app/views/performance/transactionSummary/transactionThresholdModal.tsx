@@ -7,14 +7,14 @@ import set from 'lodash/set';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
@@ -176,7 +176,7 @@ class TransactionThresholdModal extends Component<Props, State> {
   renderModalFields() {
     return (
       <Fragment>
-        <Field
+        <FieldGroup
           data-test-id="response-metric"
           label={t('Calculation Method')}
           inline={false}
@@ -198,8 +198,8 @@ class TransactionThresholdModal extends Component<Props, State> {
               this.handleFieldChange('metric')(option.value);
             }}
           />
-        </Field>
-        <Field
+        </FieldGroup>
+        <FieldGroup
           data-test-id="response-time-threshold"
           label={t('Response Time Threshold (ms)')}
           inline={false}
@@ -223,7 +223,7 @@ class TransactionThresholdModal extends Component<Props, State> {
             step={100}
             min={100}
           />
-        </Field>
+        </FieldGroup>
       </Fragment>
     );
   }

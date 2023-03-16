@@ -5,12 +5,7 @@ import omit from 'lodash/omit';
 import FormField from 'sentry/components/forms/formField';
 import FormFieldControlState from 'sentry/components/forms/formField/controlState';
 import FormModel from 'sentry/components/forms/model';
-import {
-  Input,
-  InputGroup,
-  InputLeadingItems,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/inputGroup';
 import {t} from 'sentry/locale';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
@@ -65,11 +60,11 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
       }) => {
         return (
           <InputGroup>
-            <InputLeadingItems disablePointerEvents>
+            <InputGroup.LeadingItems disablePointerEvents>
               <FileName hasFile={!!fileName}>
                 {fileName || t('No file selected')}
               </FileName>
-            </InputLeadingItems>
+            </InputGroup.LeadingItems>
             <FileInput
               {...omit(fieldProps, 'value', 'onBlur', 'onKeyDown')}
               type="file"
@@ -78,10 +73,10 @@ export default function FileField({accept, hideControlState, ...props}: FileFiel
               onChange={e => handleFile(model, name, onChange, e)}
             />
             {!hideControlState && (
-              <InputTrailingItems disablePointerEvents>
+              <InputGroup.TrailingItems disablePointerEvents>
                 <FormFieldControlState name={name} model={model} />
                 <BrowseIndicator>Browse</BrowseIndicator>
-              </InputTrailingItems>
+              </InputGroup.TrailingItems>
             )}
           </InputGroup>
         );
@@ -98,7 +93,7 @@ const BrowseIndicator = styled('span')`
   color: ${p => p.theme.activeText};
 `;
 
-const FileInput = styled(Input)`
+const FileInput = styled(InputGroup.Input)`
   cursor: pointer;
   color: transparent;
 

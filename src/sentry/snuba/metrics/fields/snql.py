@@ -659,3 +659,59 @@ def _resolve_project_threshold_config(project_ids, org_id):
         org_id=org_id,
         use_case_id=UseCaseKey.PERFORMANCE,
     )
+
+
+def operation_if_column_snql(
+    operation, aggregate_filter, org_id, use_case_id, if_column, if_value, alias
+):
+    return Function(
+        operation,
+        [
+            Column("value"),
+            Function(
+                "and",
+                [
+                    aggregate_filter,
+                    Function(
+                        "equals",
+                        [
+                            Column(resolve_tag_key(use_case_id, org_id, if_column)),
+                            resolve_tag_value(use_case_id, org_id, if_value),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+        alias=alias,
+    )
+
+
+def timestamp_column_snql(operation: str, aggregate_filter, org_id, use_case_id, alias):
+    return Function(
+        operation,
+        [
+            Column("timestamp"),
+            aggregate_filter,
+        ],
+        alias=alias,
+    )
+
+
+def sum_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
+    return operation_if_column_snql(
+        "sumIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
+    )
+
+
+def uniq_if_column_snql(aggregate_filter, org_id, use_case_id, if_column, if_value, alias=None):
+    return operation_if_column_snql(
+        "uniqIf", aggregate_filter, org_id, use_case_id, if_column, if_value, alias
+    )
+
+
+def min_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
+    return timestamp_column_snql("minIf", aggregate_filter, org_id, use_case_id, alias)
+
+
+def max_timestamp(aggregate_filter, org_id, use_case_id, alias=None):
+    return timestamp_column_snql("maxIf", aggregate_filter, org_id, use_case_id, alias)

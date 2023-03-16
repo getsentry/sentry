@@ -141,3 +141,46 @@ class CURSOR_QUERY_PARAM(serializers.Serializer):  # type: ignore
         help_text="A pointer to the last object fetched and its sort order; used to retrieve the next or previous results.",
         required=False,
     )
+
+
+class MONITOR_PARAMS:
+    MONITOR_ID = OpenApiParameter(
+        name="monitor_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="The id of the monitor",
+    )
+    CHECKIN_ID = OpenApiParameter(
+        name="checkin_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="The id of the check-in",
+    )
+
+
+class EVENT_PARAMS:
+    EVENT_ID = OpenApiParameter(
+        name="event_id",
+        location="path",
+        required=True,
+        type=OpenApiTypes.UUID,
+        description="The id of the event",
+    )
+
+    FRAME_IDX = OpenApiParameter(
+        name="frame_idx",
+        location="query",
+        required=True,  # TODO: make not required
+        type=int,
+        description="Index of the frame that should be used for source map resolution.",
+    )
+
+    EXCEPTION_IDX = OpenApiParameter(
+        name="exception_idx",
+        location="query",
+        required=True,
+        type=int,
+        description="Index of the exception that should be used for source map resolution.",
+    )

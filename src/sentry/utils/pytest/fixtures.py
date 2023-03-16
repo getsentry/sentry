@@ -257,7 +257,7 @@ def default_activity(default_group, default_project, default_user):
         group=default_group,
         project=default_project,
         type=ActivityType.NOTE.value,
-        user=default_user,
+        user_id=default_user.id,
         data={},
     )
 
@@ -417,31 +417,30 @@ def reset_snuba(call_snuba):
         "/tests/sessions/drop",
         "/tests/metrics/drop",
         "/tests/generic_metrics/drop",
+        "/tests/search_issues/drop",
     ]
 
     assert all(
         response.status_code == 200
-        for response in ThreadPoolExecutor(4).map(call_snuba, init_endpoints)
+        for response in ThreadPoolExecutor(len(init_endpoints)).map(call_snuba, init_endpoints)
     )
 
 
 @pytest.fixture
-def set_sentry_option(request):
+def set_sentry_option():
     """
     A pytest-style wrapper around override_options.
 
     ```python
     def test_basic(set_sentry_option):
-        set_sentry_option("key", 1.0)
+        with set_sentry_option("key", 1.0):
+            do stuff
     ```
     """
     from sentry.testutils.helpers.options import override_options
 
     def inner(key, value):
-        ctx_mgr = override_options({key: value})
-        ctx_mgr.__enter__()
-
-        request.addfinalizer(lambda: ctx_mgr.__exit__(None, None, None))
+        return override_options({key: value})
 
     return inner
 

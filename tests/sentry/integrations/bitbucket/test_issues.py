@@ -3,7 +3,8 @@ import copy
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
-from sentry.models import ExternalIssue, Integration
+from sentry.models import ExternalIssue
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -11,13 +12,14 @@ from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class BitbucketIssueTest(APITestCase):
     def setUp(self):
         self.base_url = "https://api.bitbucket.org"
         self.shared_secret = "234567890"
         self.subject = "connect:1234567"
-        self.integration = Integration.objects.create(
+        self.integration = self.create_integration(
+            organization=self.organization,
             provider="bitbucket",
             external_id=self.subject,
             name="myaccount",
@@ -26,6 +28,9 @@ class BitbucketIssueTest(APITestCase):
                 "shared_secret": self.shared_secret,
                 "subject": self.subject,
             },
+        )
+        self.org_integration = integration_service.get_organization_integration(
+            integration_id=self.integration.id, organization_id=self.organization.id
         )
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -42,7 +47,6 @@ class BitbucketIssueTest(APITestCase):
             ("myaccount/repo1", "myaccount/repo1"),
             ("myaccount/repo2", "myaccount/repo2"),
         ]
-        self.org_integration = self.integration.add_organization(self.organization)
 
     def build_autocomplete_url(self):
         return "/extensions/bitbucket/search/baz/%d/" % self.integration.id
@@ -108,10 +112,12 @@ class BitbucketIssueTest(APITestCase):
             }""",
             content_type="application/json",
         )
-        self.org_integration.config = {
-            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
-        }
-        self.org_integration.save()
+        integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config={
+                "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
+            },
+        )
         installation = self.integration.get_installation(self.organization.id)
         fields = installation.get_link_issue_config(self.group)
         repo_field = [field for field in fields if field["name"] == "repo"][0]
@@ -130,10 +136,12 @@ class BitbucketIssueTest(APITestCase):
             }""",
             content_type="application/json",
         )
-        self.org_integration.config = {
-            "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
-        }
-        self.org_integration.save()
+        integration_service.update_organization_integration(
+            org_integration_id=self.org_integration.id,
+            config={
+                "project_issue_defaults": {str(self.group.project_id): {"repo": "myaccount/repo1"}}
+            },
+        )
         installation = self.integration.get_installation(self.organization.id)
         fields = installation.get_create_issue_config(self.group, self.user)
         for field in fields:

@@ -4,12 +4,12 @@ import {Manager, Popper, Reference} from 'react-popper';
 import styled from '@emotion/styled';
 
 import MenuHeader from 'sentry/components/actions/menuHeader';
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import Checkbox from 'sentry/components/checkbox';
 import {GetActorPropsFn} from 'sentry/components/deprecatedDropdownMenu';
 import MenuItem from 'sentry/components/menuItem';
 import {TeamSelection} from 'sentry/components/performance/teamKeyTransactionsManager';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, Team} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -141,12 +141,15 @@ class TeamKeyTransaction extends Component<Props, State> {
             <DropdownMenuHeader first>
               {t('My Teams with Access')}
               <ActionItem>
-                <CheckboxFancy
+                <Checkbox
                   aria-label={t('My Teams with Access')}
-                  isDisabled={!isMyTeamsEnabled}
-                  isChecked={teams.length === keyedTeams.size}
-                  isIndeterminate={teams.length > keyedTeams.size && keyedTeams.size > 0}
-                  onClick={myTeamsHandler}
+                  disabled={!isMyTeamsEnabled}
+                  checked={
+                    teams.length > keyedTeams.size && keyedTeams.size > 0
+                      ? 'indeterminate'
+                      : teams.length === keyedTeams.size
+                  }
+                  onChange={myTeamsHandler}
                 />
               </ActionItem>
             </DropdownMenuHeader>
@@ -284,7 +287,12 @@ function TeamKeyTransactionItem({team, isKeyed, disabled, onSelect}: ItemProps) 
           {!defined(isKeyed) ? null : disabled ? (
             t('Max %s', MAX_TEAM_KEY_TRANSACTIONS)
           ) : (
-            <CheckboxFancy aria-labelledby={id} isChecked={isKeyed} />
+            <Checkbox
+              onClick={e => e.stopPropagation()}
+              aria-labelledby={id}
+              checked={isKeyed}
+              onChange={onSelect}
+            />
           )}
         </ActionItem>
       </MenuItemContent>
@@ -399,6 +407,8 @@ const MenuItemContent = styled('div')`
 `;
 
 const ActionItem = styled('span')`
+  display: flex;
+  align-items: center;
   min-width: ${space(2)};
   margin-left: ${space(1)};
 `;

@@ -2,7 +2,7 @@ from django.http.response import HttpResponse
 from rest_framework.request import Request
 
 from sentry.auth.idpmigration import SSO_VERIFICATION_KEY, get_verification_value_from_key
-from sentry.models import Organization
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.web.frontend.base import BaseView
 from sentry.web.helpers import render_to_response
 
@@ -32,8 +32,5 @@ class AccountConfirmationView(BaseView):
         organization_id = verification_value.get("organization_id")
         if organization_id is None:
             return None
-        try:
-            org = Organization.objects.get(id=organization_id)
-        except Organization.DoesNotExist:
-            return None
-        return org.slug
+        org_context = organization_service.get_organization_by_id(id=organization_id, user_id=None)
+        return org_context.organization.slug if org_context is not None else None

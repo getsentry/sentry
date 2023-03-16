@@ -36,14 +36,13 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
     expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/95\.006% 4\.51%/);
 
-    expect(screen.getAllByRole('radio').length).toBe(3);
+    expect(screen.getAllByRole('radio').length).toBe(2);
 
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      // eslint-disable-next-line no-irregular-whitespace
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Crash Free User Rate 99.908%75%24.908% Session Duration p50 37s195ms—Show 2 Others"`
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Crash Free User Rate 99.908%75%24.908% Show 2 Others"` // eslint-disable-line no-irregular-whitespace
     );
   });
 
@@ -117,13 +116,12 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     });
     userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio').length).toBe(13);
+    expect(screen.getAllByRole('radio').length).toBe(12);
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      // eslint-disable-next-line no-irregular-whitespace
-      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Healthy 98.564%94.001%4.563% Abnormal 0%0%0% Errored 0.953%1.005%0.052% Crashed Session Rate 0.484%4.994%4.511% Crash Free User Rate 99.908%75%24.908% Healthy 98.994%72.022%26.972% Abnormal 0%0%0% Errored 0.914%2.493%1.579% Crashed User Rate 0.092%25.485%25.393% Session Duration p50 37s195ms—Session Count 205k9.8k—User Count 100k361—Hide 2 Others"`
+      `"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate 99.516%95.006%4.51% Healthy 98.564%94.001%4.563% Abnormal 0%0%0% Errored 0.953%1.005%0.052% Crashed Session Rate 0.484%4.994%4.511% Crash Free User Rate 99.908%75%24.908% Healthy 98.994%72.022%26.972% Abnormal 0%0%0% Errored 0.914%2.493%1.579% Crashed User Rate 0.092%25.485%25.393% Session Count 205k9.8k—User Count 100k361—Hide 2 Others"` // eslint-disable-line no-irregular-whitespace
     );
 
     // toggle back
@@ -132,7 +130,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     });
     userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio').length).toBe(3);
+    expect(screen.getAllByRole('radio').length).toBe(2);
   });
 
   it('does not show expanders if there is no health data', async () => {

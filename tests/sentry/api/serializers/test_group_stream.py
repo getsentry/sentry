@@ -1,3 +1,4 @@
+import datetime
 from unittest import mock
 
 from freezegun import freeze_time
@@ -7,15 +8,20 @@ from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializer,
     StreamGroupSerializerSnuba,
 )
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models import Environment
-from sentry.testutils import TestCase
+from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
+from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
 @region_silo_test
-class StreamGroupSerializerTestCase(TestCase):
+class StreamGroupSerializerTestCase(TestCase, SnubaTestCase, SearchIssueTestMixin):
     def test_environment(self):
         group = self.group
 
@@ -62,7 +68,7 @@ class StreamGroupSerializerTestCase(TestCase):
             "timestamp": cur_time.timestamp(),
             "start_timestamp": cur_time.timestamp(),
             "received": cur_time.timestamp(),
-            "fingerprint": [f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            "fingerprint": [f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         }
         event = self.store_event(
             data=event_data,
@@ -73,5 +79,22 @@ class StreamGroupSerializerTestCase(TestCase):
         assert serialized["count"] == "1"
         assert serialized["issueCategory"] == "performance"
         assert serialized["issueType"] == "performance_n_plus_one_db_queries"
+        assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
+        assert serialized["stats"]["24h"][-1][1] == 1
+
+    @freeze_time(before_now(days=1).replace(hour=13, minute=30, second=0, microsecond=0))
+    def test_profiling_issue(self):
+        proj = self.create_project()
+        cur_time = before_now(minutes=5).replace(tzinfo=datetime.timezone.utc)
+        event, occurrence, group_info = self.store_search_issue(
+            proj.id, 1, [f"{ProfileFileIOGroupType.type_id}-group100"], None, cur_time
+        )
+        assert group_info
+        serialized = serialize(
+            group_info.group, serializer=StreamGroupSerializerSnuba(stats_period="24h")
+        )
+        assert serialized["count"] == "1"
+        assert serialized["issueCategory"] == str(GroupCategory.PROFILE.name).lower()
+        assert serialized["issueType"] == str(ProfileFileIOGroupType.slug)
         assert [stat[1] for stat in serialized["stats"]["24h"][:-1]] == [0] * 23
         assert serialized["stats"]["24h"][-1][1] == 1

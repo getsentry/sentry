@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import Confirm from 'sentry/components/confirm';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import Input from 'sentry/components/input';
 import {t} from 'sentry/locale';
 
@@ -22,7 +22,7 @@ const ConfirmDelete = ({message, confirmInput, ...props}: Props) => (
     renderMessage={({disableConfirmButton}) => (
       <Fragment>
         <Alert type="error">{message}</Alert>
-        <Field
+        <FieldGroup
           flexibleControlStateSize
           inline={false}
           label={t(
@@ -35,7 +35,7 @@ const ConfirmDelete = ({message, confirmInput, ...props}: Props) => (
             placeholder={confirmInput}
             onChange={e => disableConfirmButton(e.target.value !== confirmInput)}
           />
-        </Field>
+        </FieldGroup>
       </Fragment>
     )}
   />

@@ -6,7 +6,7 @@ import round from 'lodash/round';
 import moment from 'moment';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import MarkLine from 'sentry/components/charts/components/markLine';
 import {DateTimeObject} from 'sentry/components/charts/utils';
@@ -16,7 +16,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {ColorOrAlias} from 'sentry/utils/theme';
 import toArray from 'sentry/utils/toArray';

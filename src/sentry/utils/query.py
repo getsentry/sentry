@@ -12,7 +12,14 @@ class InvalidQuerySetError(ValueError):
     pass
 
 
-def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_events=True):
+def celery_run_batch_query(
+    filter,
+    batch_size,
+    referrer,
+    state=None,
+    fetch_events=True,
+    tenant_ids=None,
+):
     """
     A tool for batched queries similar in purpose to RangeQuerySetWrapper that
     is used for celery tasks in issue merge/unmerge/reprocessing.
@@ -50,6 +57,7 @@ def celery_run_batch_query(filter, batch_size, referrer, state=None, fetch_event
             limit=batch_size,
             referrer=referrer,
             orderby=["-timestamp", "-event_id"],
+            tenant_ids=tenant_ids,
         )
     )
 
@@ -222,8 +230,13 @@ def bulk_delete_objects(
             params.append(value)
 
     for column, value in filters.items():
-        query.append(f"{quote_name(column)} = %s")
-        params.append(value)
+        if column.endswith("__in"):
+            column, _ = column.split("__")
+            query.append(f"{quote_name(column)} = ANY(%s)")
+            params.append(value)
+        else:
+            query.append(f"{quote_name(column)} = %s")
+            params.append(value)
 
     query = """
         delete from %(table)s

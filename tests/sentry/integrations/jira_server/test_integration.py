@@ -17,6 +17,8 @@ from sentry.models import (
     IntegrationExternalProject,
     OrganizationIntegration,
 )
+from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user.impl import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import APITestCase
 from sentry.testutils.factories import DEFAULT_EVENT_DATA
@@ -310,12 +312,11 @@ class JiraServerIntegrationTest(APITestCase):
                 "reporter",
                 "versions",
             ]
-
-            self.installation.org_integration.config = {
-                "issues_ignored_fields": ["customfield_10200"]
-            }
             # After ignoring "customfield_10200", it no longer shows up
-            self.installation.org_integration.save()
+            self.installation.org_integration = integration_service.update_organization_integration(
+                org_integration_id=self.installation.org_integration.id,
+                config={"issues_ignored_fields": ["customfield_10200"]},
+            )
             fields = self.installation.get_create_issue_config(group, self.user)
             field_names = [field["name"] for field in fields]
             assert field_names == [
@@ -348,10 +349,11 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        self.installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
-        }
-        self.installation.org_integration.save()
+
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+        )
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(
@@ -379,10 +381,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        self.installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10001"}}
-        }
-        self.installation.org_integration.save()
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10001"}}},
+        )
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -409,10 +411,10 @@ class JiraServerIntegrationTest(APITestCase):
             project_id=self.project.id,
         )
         group = event.group
-        self.installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"project": "10004"}}
-        }
-        self.installation.org_integration.save()
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"project": "10004"}}},
+        )
 
         with mock.patch.object(self.installation, "get_client", get_client):
             mock_get_issue_fields_return_value = json.loads(
@@ -453,10 +455,10 @@ class JiraServerIntegrationTest(APITestCase):
         group = event.group
         label_default = "hi"
 
-        self.installation.org_integration.config = {
-            "project_issue_defaults": {str(group.project_id): {"labels": label_default}}
-        }
-        self.installation.org_integration.save()
+        self.installation.org_integration = integration_service.update_organization_integration(
+            org_integration_id=self.installation.org_integration.id,
+            config={"project_issue_defaults": {str(group.project_id): {"labels": label_default}}},
+        )
 
         with mock.patch.object(self.installation, "get_client", get_client):
             fields = self.installation.get_create_issue_config(group, self.user)
@@ -629,7 +631,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         assign_issue_url = "https://jira.example.org/rest/api/2/issue/%s/assignee" % issue_id
         external_issue = ExternalIssue.objects.create(
@@ -643,7 +645,7 @@ class JiraServerIntegrationTest(APITestCase):
             json=[{"name": "Alive Tofu", "emailAddress": "Bob@example.com"}],
         )
         responses.add(responses.PUT, assign_issue_url, json={})
-        self.installation.sync_assignee_outbound(external_issue, self.user)
+        self.installation.sync_assignee_outbound(external_issue, user)
 
         assert len(responses.calls) == 2
 
@@ -655,7 +657,7 @@ class JiraServerIntegrationTest(APITestCase):
 
     @responses.activate
     def test_sync_assignee_outbound_no_email(self):
-        self.user = self.create_user(email="bob@example.com")
+        user = serialize_rpc_user(self.create_user(email="bob@example.com"))
         issue_id = "APP-123"
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
@@ -667,7 +669,7 @@ class JiraServerIntegrationTest(APITestCase):
             "https://jira.example.org/rest/api/2/user/assignable/search",
             json=[{"accountId": "deadbeef123", "displayName": "Dead Beef"}],
         )
-        self.installation.sync_assignee_outbound(external_issue, self.user)
+        self.installation.sync_assignee_outbound(external_issue, user)
 
         # No sync made as jira users don't have email addresses
         assert len(responses.calls) == 1

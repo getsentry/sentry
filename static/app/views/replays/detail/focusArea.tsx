@@ -22,14 +22,14 @@ function FocusArea({}: Props) {
       return (
         <Console
           breadcrumbs={replay?.getConsoleCrumbs()}
-          startTimestampMs={replay?.getReplay()?.startedAt?.getTime() || 0}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     case 'network':
       return (
         <NetworkList
-          replayRecord={replay?.getReplay()}
           networkSpans={replay?.getNetworkSpans()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
         />
       );
     case 'trace':
@@ -44,11 +44,16 @@ function FocusArea({}: Props) {
       return (
         <IssueList
           replayId={replay.getReplay()?.id}
-          projectId={replay.getReplay()?.projectId}
+          projectId={replay.getReplay()?.project_id}
         />
       );
     case 'dom':
-      return <DomMutations replay={replay} />;
+      return (
+        <DomMutations
+          replay={replay}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime() || 0}
+        />
+      );
     case 'memory':
       return (
         <MemoryChart
@@ -57,7 +62,7 @@ function FocusArea({}: Props) {
           memorySpans={replay?.getMemorySpans()}
           setCurrentTime={setCurrentTime}
           setCurrentHoverTime={setCurrentHoverTime}
-          startTimestampMs={replay?.getReplay()?.startedAt?.getTime()}
+          startTimestampMs={replay?.getReplay()?.started_at?.getTime()}
         />
       );
     default:

@@ -3,10 +3,11 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
+import {Button} from 'sentry/components/button';
 import {Body, Hovercard} from 'sentry/components/hovercard';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
 type Props = {
@@ -105,13 +106,13 @@ function IssueSyncListElement({
         )}
       </ClassNames>
       {(onClose || onOpen) && (
-        <StyledIcon
-          role="button"
+        <Button
+          size="xs"
+          borderless
+          icon={isLinked ? <IconClose /> : onOpen ? <IconAdd /> : null}
           aria-label={isLinked ? t('Close') : t('Add')}
           onClick={handleIconClick}
-        >
-          {isLinked ? <IconClose /> : onOpen ? <IconAdd /> : null}
-        </StyledIcon>
+        />
       )}
     </IssueSyncListElementContainer>
   );
@@ -122,6 +123,7 @@ export const IssueSyncListElementContainer = styled('div')`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  margin-right: -${space(1)};
 
   &:not(:last-child) {
     margin-bottom: ${space(2)};
@@ -148,11 +150,6 @@ const StyledHovercard = styled(Hovercard)`
     max-height: 300px;
     overflow-y: auto;
   }
-`;
-
-const StyledIcon = styled('span')`
-  color: ${p => p.theme.textColor};
-  cursor: pointer;
 `;
 
 export default IssueSyncListElement;

@@ -5,7 +5,7 @@ import * as qs from 'query-string';
 
 import BackgroundAvatar from 'sentry/components/avatar/backgroundAvatar';
 import LetterAvatar from 'sentry/components/letterAvatar';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {Avatar} from 'sentry/types';
 
 import Gravatar from './gravatar';
@@ -90,7 +90,7 @@ type BaseProps = DefaultProps & {
   /**
    * This is the size of the remote image to request.
    */
-  remoteImageSize?: typeof ALLOWED_SIZES[number];
+  remoteImageSize?: (typeof ALLOWED_SIZES)[number];
   size?: number;
   title?: string;
   /**

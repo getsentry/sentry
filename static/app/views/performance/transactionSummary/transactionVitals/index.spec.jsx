@@ -154,9 +154,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   afterEach(() => {
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it('render no access without feature', function () {

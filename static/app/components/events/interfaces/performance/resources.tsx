@@ -2,9 +2,11 @@ import styled from '@emotion/styled';
 
 import {IconDocs} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Event, Group} from 'sentry/types';
+import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 
-import EventDataSection from '../../eventDataSection';
+import {EventDataSection} from '../../eventDataSection';
 
 export type ResourceLink = {
   link: string;
@@ -12,17 +14,28 @@ export type ResourceLink = {
 };
 
 type Props = {
-  description: string;
-  links: ResourceLink[];
+  event: Event;
+  group: Group;
 };
 
 // This section provides users with resources on how to resolve an issue
-export function Resources(props: Props) {
+export function Resources({group, event}: Props) {
+  const config = getConfigForIssueType(group);
+
+  if (!config.resources) {
+    return null;
+  }
+
+  const links = [
+    ...config.resources.links,
+    ...(config.resources.linksByPlatform[event.platform ?? ''] ?? []),
+  ];
+
   return (
     <EventDataSection type="resources-and-whatever" title={t('Resources and Whatever')}>
-      {props.description}
+      {config.resources.description}
       <LinkSection>
-        {props.links.map(({link, text}) => (
+        {links.map(({link, text}) => (
           <a key={link} href={link} target="_blank" rel="noreferrer">
             <IconDocs /> {text}
           </a>

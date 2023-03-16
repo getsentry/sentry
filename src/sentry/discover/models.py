@@ -2,6 +2,7 @@ from django.db import models, transaction
 from django.db.models import Q, UniqueConstraint
 from django.utils import timezone
 
+from sentry import features, options
 from sentry.db.models import (
     BaseManager,
     FlexibleForeignKey,
@@ -11,8 +12,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.utils import RuleType
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -43,7 +43,7 @@ class DiscoverSavedQuery(Model):
 
     projects = models.ManyToManyField("sentry.Project", through=DiscoverSavedQueryProject)
     organization = FlexibleForeignKey("sentry.Organization")
-    created_by = FlexibleForeignKey("sentry.User", null=True, on_delete=models.SET_NULL)
+    created_by_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     name = models.CharField(max_length=255)
     query = JSONField()
     version = models.IntegerField(null=True)
@@ -58,13 +58,13 @@ class DiscoverSavedQuery(Model):
         db_table = "sentry_discoversavedquery"
         constraints = [
             UniqueConstraint(
-                fields=["organization", "created_by", "is_homepage"],
+                fields=["organization", "created_by_id", "is_homepage"],
                 condition=Q(is_homepage=True),
                 name="unique_user_homepage_query",
             )
         ]
 
-    __repr__ = sane_repr("organization_id", "created_by", "name")
+    __repr__ = sane_repr("organization_id", "created_by_id", "name")
 
     def set_projects(self, project_ids):
         with transaction.atomic():
@@ -99,19 +99,18 @@ class TeamKeyTransactionModelManager(BaseManager):
         if project is None:
             return
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
+        if features.has("organizations:dynamic-sampling", project.organization) and options.get(
+            "dynamic-sampling:enabled-biases"
+        ):
+            from sentry.dynamic_sampling import RuleType, get_enabled_user_biases
+
             # check if option is enabled
-            enabled_biases = DynamicSamplingFeatureMultiplexer.get_enabled_user_biases(
+            enabled_biases = get_enabled_user_biases(
                 project.get_option("sentry:dynamic_sampling_biases", None)
             )
             # invalidate project config only when the rule is enabled
             if RuleType.BOOST_KEY_TRANSACTIONS_RULE.value in enabled_biases:
-                transaction.on_commit(
-                    lambda: schedule_invalidate_project_config(
-                        project_id=project.id, trigger=trigger
-                    )
-                )
+                schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
 
     def post_save(self, instance, **kwargs):
         # this hook may be called from model hooks during an

@@ -2,14 +2,13 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 import capitalize from 'lodash/capitalize';
 
-import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import QuestionTooltip from 'sentry/components/questionTooltip';
-import Tooltip from 'sentry/components/tooltip';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   EventGroupComponent,
   EventGroupVariant,
@@ -67,14 +66,6 @@ function addFingerprintInfo(data: VariantData, variant: EventGroupVariant) {
 class GroupVariant extends Component<Props, State> {
   state: State = {
     showNonContributing: false,
-  };
-
-  handleShowNonContributing = () => {
-    this.setState({showNonContributing: true});
-  };
-
-  handleHideNonContributing = () => {
-    this.setState({showNonContributing: false});
   };
 
   getVariantData(): [VariantData, EventGroupComponent | undefined] {
@@ -238,14 +229,17 @@ class GroupVariant extends Component<Props, State> {
     const {showNonContributing} = this.state;
 
     return (
-      <ContributingToggle merged active={showNonContributing ? 'all' : 'relevant'}>
-        <Button barId="relevant" size="xs" onClick={this.handleHideNonContributing}>
+      <SegmentedControl
+        aria-label={t('Filter by contribution')}
+        size="xs"
+        value={showNonContributing ? 'all' : 'relevant'}
+        onChange={key => this.setState({showNonContributing: key === 'all'})}
+      >
+        <SegmentedControl.Item key="relevant">
           {t('Contributing values')}
-        </Button>
-        <Button barId="all" size="xs" onClick={this.handleShowNonContributing}>
-          {t('All values')}
-        </Button>
-      </ContributingToggle>
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="all">{t('All values')}</SegmentedControl.Item>
+      </SegmentedControl>
     );
   }
 
@@ -266,7 +260,7 @@ class GroupVariant extends Component<Props, State> {
             value: d[1],
           }))}
           isContextData
-          isSorted={false}
+          shouldSort={false}
         />
       </VariantWrapper>
     );
@@ -302,13 +296,6 @@ const ContributionIcon = styled(({isContributing, ...p}) =>
   )
 )`
   margin-right: ${space(1)};
-`;
-
-const ContributingToggle = styled(ButtonBar)`
-  justify-content: flex-end;
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    margin-top: ${space(0.5)};
-  }
 `;
 
 const GroupingTree = styled('div')`

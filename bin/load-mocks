@@ -28,7 +28,6 @@ from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     Broadcast,
-    CheckInStatus,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -39,10 +38,6 @@ from sentry.models import (
     Group,
     GroupRelease,
     GroupTombstone,
-    Monitor,
-    MonitorCheckIn,
-    MonitorStatus,
-    MonitorType,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -56,6 +51,13 @@ from sentry.models import (
     Team,
     User,
     UserReport,
+)
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    MonitorType,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -541,7 +543,7 @@ def main(
                     type=ActivityType.RELEASE.value,
                     project=project,
                     ident=release.version,
-                    user=user,
+                    user_id=user.id,
                     data={"version": release.version},
                 )
 
@@ -743,7 +745,7 @@ def main(
         type=ActivityType.RELEASE.value,
         project=project,
         ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
-        user=user,
+        user_id=user.id,
         data={"version": "4f38b65c62c4565aa94bba391ff8946922a8eed4"},
     )
 
@@ -900,124 +902,333 @@ def create_mock_transactions(
                     time.sleep(0.05)
 
     if load_performance_issues:
-        print(f"    > Loading performance issues data")  # NOQA
-        trace_id = uuid4().hex
-        transaction_user = generate_user()
-        frontend_root_span_id = uuid4().hex[:16]
 
-        n_plus_one_db_current_offset = timestamp
-        n_plus_one_db_duration = timedelta(milliseconds=100)
+        def load_n_plus_one_issue():
+            trace_id = uuid4().hex
+            transaction_user = generate_user()
+            frontend_root_span_id = uuid4().hex[:16]
 
-        parent_span_id = uuid4().hex[:16]
+            n_plus_one_db_current_offset = timestamp
+            n_plus_one_db_duration = timedelta(milliseconds=100)
 
-        source_span = {
-            "timestamp": (timestamp + n_plus_one_db_duration).timestamp(),
-            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
-            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
-            "op": "db",
-            "parent_span_id": parent_span_id,
-            "span_id": uuid4().hex[:16],
-            "hash": "858fea692d4d93e8",
-        }
+            parent_span_id = uuid4().hex[:16]
 
-        def make_repeating_span(duration):
-            nonlocal timestamp
-            nonlocal n_plus_one_db_current_offset
-            nonlocal n_plus_one_db_duration
-            n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(milliseconds=1)
-            n_plus_one_db_current_offset = timestamp + n_plus_one_db_duration
-            return {
-                "timestamp": (
-                    n_plus_one_db_current_offset + timedelta(milliseconds=duration)
-                ).timestamp(),
-                "start_timestamp": (
-                    n_plus_one_db_current_offset + timedelta(milliseconds=1)
-                ).timestamp(),
-                "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+            source_span = {
+                "timestamp": (timestamp + n_plus_one_db_duration).timestamp(),
+                "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+                "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
                 "op": "db",
-                "span_id": uuid4().hex[:16],
                 "parent_span_id": parent_span_id,
-                "hash": "63f1e89e6a073441",
+                "span_id": uuid4().hex[:16],
+                "hash": "858fea692d4d93e8",
             }
 
-        repeating_spans = [make_repeating_span(200) for _ in range(10)]
-
-        parent_span = {
-            "timestamp": (
-                timestamp + n_plus_one_db_duration + timedelta(milliseconds=200)
-            ).timestamp(),
-            "start_timestamp": timestamp.timestamp(),
-            "description": "new",
-            "op": "django.view",
-            "parent_span_id": uuid4().hex[:16],
-            "span_id": parent_span_id,
-            "hash": "0f43fb6f6e01ca52",
-        }
-
-        create_sample_event(
-            project=backend_project,
-            platform="transaction",
-            transaction="/n_plus_one_db/backend/",
-            event_id=uuid4().hex,
-            user=transaction_user,
-            timestamp=timestamp + n_plus_one_db_duration + timedelta(milliseconds=300),
-            start_timestamp=timestamp,
-            trace=trace_id,
-            parent_span_id=frontend_root_span_id,
-            spans=[
-                parent_span,
-                source_span,
-            ]
-            + repeating_spans,
-        )
-
-        time.sleep(1.0)
-
-        create_sample_event(
-            project=backend_project,
-            platform="transaction",
-            transaction="/file-io-main-thread/",
-            event_id=uuid4().hex,
-            user=transaction_user,
-            timestamp=timestamp + timedelta(milliseconds=300),
-            start_timestamp=timestamp,
-            trace=trace_id,
-            parent_span_id=frontend_root_span_id,
-            spans=[
-                parent_span,
-                {
-                    "timestamp": (timestamp + timedelta(milliseconds=200)).timestamp(),
-                    "start_timestamp": timestamp.timestamp(),
-                    "description": "1669031858711_file.txt (4.0 kB)",
-                    "op": "file.write",
+            def make_repeating_span(duration):
+                nonlocal timestamp
+                nonlocal n_plus_one_db_current_offset
+                nonlocal n_plus_one_db_duration
+                n_plus_one_db_duration += timedelta(milliseconds=duration) + timedelta(
+                    milliseconds=1
+                )
+                n_plus_one_db_current_offset = timestamp + n_plus_one_db_duration
+                return {
+                    "timestamp": (
+                        n_plus_one_db_current_offset + timedelta(milliseconds=duration)
+                    ).timestamp(),
+                    "start_timestamp": (
+                        n_plus_one_db_current_offset + timedelta(milliseconds=1)
+                    ).timestamp(),
+                    "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                    "op": "db",
                     "span_id": uuid4().hex[:16],
                     "parent_span_id": parent_span_id,
-                    "status": "ok",
+                    "hash": "63f1e89e6a073441",
+                }
+
+            repeating_spans = [make_repeating_span(200) for _ in range(10)]
+
+            parent_span = {
+                "timestamp": (
+                    timestamp + n_plus_one_db_duration + timedelta(milliseconds=200)
+                ).timestamp(),
+                "start_timestamp": timestamp.timestamp(),
+                "description": "new",
+                "op": "django.view",
+                "parent_span_id": uuid4().hex[:16],
+                "span_id": parent_span_id,
+                "hash": "0f43fb6f6e01ca52",
+            }
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/n_plus_one_db/backend/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + n_plus_one_db_duration + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=frontend_root_span_id,
+                spans=[
+                    parent_span,
+                    source_span,
+                ]
+                + repeating_spans,
+            )
+
+            time.sleep(1.0)
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/file-io-main-thread/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=frontend_root_span_id,
+                spans=[
+                    parent_span,
+                    {
+                        "timestamp": (timestamp + timedelta(milliseconds=200)).timestamp(),
+                        "start_timestamp": timestamp.timestamp(),
+                        "description": "1669031858711_file.txt (4.0 kB)",
+                        "op": "file.write",
+                        "span_id": uuid4().hex[:16],
+                        "parent_span_id": parent_span_id,
+                        "status": "ok",
+                        "data": {
+                            "blocked_ui_thread": True,
+                            "call_stack": [
+                                {
+                                    "function": "onClick",
+                                    "in_app": True,
+                                    "lineno": 2,
+                                    "module": "io.sentry.samples.android.MainActivity$$ExternalSyntheticLambda6",
+                                    "native": False,
+                                },
+                                {
+                                    "filename": "MainActivity.java",
+                                    "function": "lambda$onCreate$5$io-sentry-samples-android-MainActivity",
+                                    "in_app": True,
+                                    "lineno": 93,
+                                    "module": "io.sentry.samples.android.MainActivity",
+                                    "native": False,
+                                },
+                            ],
+                            "file.path": "/data/user/0/io.sentry.samples.android/files/1669031858711_file.txt",
+                            "file.size": 4010,
+                        },
+                    },
+                ],
+            )
+
+        def load_uncompressed_asset_issue():
+            time.sleep(1.0)
+            transaction_user = generate_user()
+            trace_id = uuid4().hex
+            parent_span_id = uuid4().hex[:16]
+
+            parent_span = {
+                "timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                "start_timestamp": timestamp.timestamp(),
+                "description": "new",
+                "op": "pageload",
+                "parent_span_id": uuid4().hex[:16],
+                "span_id": parent_span_id,
+                "hash": "0f43fb6f6e01ca52",
+            }
+
+            spans = [
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=1000)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                    "description": "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
+                    "op": "resource.script",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e9",
                     "data": {
-                        "blocked_ui_thread": True,
-                        "call_stack": [
-                            {
-                                "function": "onClick",
-                                "in_app": True,
-                                "lineno": 2,
-                                "module": "io.sentry.samples.android.MainActivity$$ExternalSyntheticLambda6",
-                                "native": False,
-                            },
-                            {
-                                "filename": "MainActivity.java",
-                                "function": "lambda$onCreate$5$io-sentry-samples-android-MainActivity",
-                                "in_app": True,
-                                "lineno": 93,
-                                "module": "io.sentry.samples.android.MainActivity",
-                                "native": False,
-                            },
-                        ],
-                        "file.path": "/data/user/0/io.sentry.samples.android/files/1669031858711_file.txt",
-                        "file.size": 4010,
+                        "Transfer Size": 1_000_000,
+                        "Encoded Body Size": 1_000_000,
+                        "Decoded Body Size": 1_000_000,
                     },
                 },
-            ],
-        )
+            ]
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/uncompressed-asset/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=parent_span_id,
+                spans=[parent_span] + spans,
+            )
+
+        def load_consecutive_db_issue():
+            time.sleep(1.0)
+            transaction_user = generate_user()
+            trace_id = uuid4().hex
+            parent_span_id = uuid4().hex[:16]
+
+            parent_span = {
+                "timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                "start_timestamp": timestamp.timestamp(),
+                "description": "new",
+                "op": "django.view",
+                "parent_span_id": uuid4().hex[:16],
+                "span_id": parent_span_id,
+                "hash": "0f43fb6f6e01ca52",
+            }
+
+            spans = [
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=1000)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                    "description": "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = 'customerName'",
+                    "op": "db",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e9",
+                },
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=2000)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=1000)).timestamp(),
+                    "description": "SELECT COUNT(*) FROM `customers`",
+                    "op": "db",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e7",
+                },
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=3000)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=2000)).timestamp(),
+                    "description": "SELECT COUNT(*) FROM `items`",
+                    "op": "db",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e6",
+                },
+            ]
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/consecutive-db/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=parent_span_id,
+                spans=[parent_span] + spans,
+            )
+
+        def load_render_blocking_asset_issue():
+            transaction_user = generate_user()
+            trace_id = uuid4().hex
+            parent_span_id = uuid4().hex[:16]
+
+            spans = [
+                {
+                    "timestamp": (timestamp + timedelta(milliseconds=1300)).timestamp(),
+                    "start_timestamp": (timestamp + timedelta(milliseconds=300)).timestamp(),
+                    "description": "https://example.com/asset.js",
+                    "op": "resource.script",
+                    "parent_span_id": parent_span_id,
+                    "span_id": uuid4().hex[:16],
+                    "hash": "858fea692d4d93e8",
+                    "data": {"Encoded Body Size": 1000001},
+                }
+            ]
+
+            create_sample_event(
+                project=frontend_project,
+                platform="transaction",
+                transaction="/render-blocking-asset/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=300),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                parent_span_id=parent_span_id,
+                spans=spans,
+                measurements={
+                    "fcp": {"value": 2500.0},
+                },
+            )
+
+        def load_m_n_plus_one_issue():
+            trace_id = uuid4().hex
+            transaction_user = generate_user()
+
+            parent_span_id = uuid4().hex[:16]
+            duration = 200
+
+            def make_repeating_span(i):
+                nonlocal timestamp
+                nonlocal duration
+                start_timestamp = timestamp + timedelta(milliseconds=i * (duration + 1))
+                end_timestamp = start_timestamp + timedelta(milliseconds=duration)
+                op = "http" if i % 2 == 0 else "db"
+                description = "GET /" if i % 2 == 0 else "SELECT * FROM authors WHERE id = %s"
+                hash = "63f1e89e6a073441" if i % 2 == 0 else "a109ff3ef40f7fb3"
+                return {
+                    "timestamp": end_timestamp.timestamp(),
+                    "start_timestamp": start_timestamp.timestamp(),
+                    "description": description,
+                    "op": op,
+                    "span_id": uuid4().hex[:16],
+                    "parent_span_id": parent_span_id,
+                    "hash": hash,
+                }
+
+            span_count = 10
+            repeating_spans = [make_repeating_span(i) for i in range(span_count)]
+
+            parent_span = {
+                "timestamp": (
+                    timestamp + timedelta(milliseconds=span_count * (duration + 1))
+                ).timestamp(),
+                "start_timestamp": timestamp.timestamp(),
+                "description": "execute",
+                "op": "graphql.execute",
+                "parent_span_id": uuid4().hex[:16],
+                "span_id": parent_span_id,
+                "hash": "0f43fb6f6e01ca52",
+            }
+
+            create_sample_event(
+                project=backend_project,
+                platform="transaction",
+                transaction="/m_n_plus_one_db/backend/",
+                event_id=uuid4().hex,
+                user=transaction_user,
+                timestamp=timestamp + timedelta(milliseconds=span_count * (duration + 1) + 100),
+                start_timestamp=timestamp,
+                trace=trace_id,
+                spans=[parent_span] + repeating_spans,
+            )
+
+        def load_performance_issues():
+            print(f"    > Loading performance issues data")  # NOQA
+            print(f"    > Loading n plus one issue")  # NOQA
+            load_n_plus_one_issue()
+            print(f"    > Loading consecutive db issue")  # NOQA
+            load_consecutive_db_issue()
+            print(f"    > Loading uncompressed asset issue")  # NOQA
+            load_uncompressed_asset_issue()
+            print(f"    > Loading render blocking asset issue")  # NOQA
+            load_render_blocking_asset_issue()
+            print(f"    > Loading MN+1 issue")  # NOQA
+            load_m_n_plus_one_issue()
+
+        load_performance_issues()
 
 
 if __name__ == "__main__":

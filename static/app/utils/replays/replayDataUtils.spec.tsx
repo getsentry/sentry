@@ -11,6 +11,7 @@ function createSpan(extra: {
   op: string;
   data?: Record<string, any>;
   description?: string;
+  startTimestamp?: number;
 }): ReplaySpan<Record<string, any>> {
   return {
     data: {},
@@ -56,7 +57,7 @@ describe('breadcrumbFactory', () => {
 
     const results = breadcrumbFactory(
       TestStubs.Event({
-        startedAt: new Date(0),
+        started_at: new Date(0),
       }),
       [],
       [],
@@ -102,7 +103,7 @@ describe('breadcrumbFactory', () => {
 
     const results = breadcrumbFactory(
       TestStubs.Event({
-        startedAt: new Date(0),
+        started_at: new Date(0),
       }),
       [],
       [],
@@ -128,6 +129,33 @@ describe('breadcrumbFactory', () => {
         },
       ]
     `);
+  });
+
+  it('sorts breadcrumbs by timestamp', () => {
+    const rawSpans = [
+      createSpan({...navigateSpan, startTimestamp: 30}),
+      createSpan({...lcpSpan, startTimestamp: 10}),
+      createSpan({...navigateSpan, startTimestamp: 40}),
+      createSpan({...navigateSpan, startTimestamp: 20}),
+    ];
+
+    const results = breadcrumbFactory(
+      TestStubs.Event({
+        started_at: new Date(0),
+      }),
+      [],
+      [],
+      rawSpans
+    );
+
+    function toTime(input: string | undefined) {
+      return new Date(input || '').getTime();
+    }
+
+    expect(results).toHaveLength(4);
+    expect(toTime(results[0].timestamp)).toBeLessThan(toTime(results[1].timestamp));
+    expect(toTime(results[1].timestamp)).toBeLessThan(toTime(results[2].timestamp));
+    expect(toTime(results[2].timestamp)).toBeLessThan(toTime(results[3].timestamp));
   });
 });
 
@@ -160,8 +188,8 @@ describe('isNetworkSpan', () => {
 describe('rrwebEventListFactory', () => {
   it('returns a list of replay events for highlights', function () {
     const replayRecord = {
-      startedAt: new Date(13),
-      finishedAt: new Date(213),
+      started_at: new Date(13),
+      finished_at: new Date(213),
     } as ReplayRecord;
 
     const results = rrwebEventListFactory(replayRecord, []);
@@ -184,8 +212,8 @@ describe('rrwebEventListFactory', () => {
     const endTimestampMs = 10_000;
 
     const replayRecord = {
-      startedAt: new Date(startTimestampMs),
-      finishedAt: new Date(endTimestampMs),
+      started_at: new Date(startTimestampMs),
+      finished_at: new Date(endTimestampMs),
     } as ReplayRecord;
 
     expect(

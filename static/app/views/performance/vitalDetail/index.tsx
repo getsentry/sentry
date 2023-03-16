@@ -1,15 +1,13 @@
 import {Component} from 'react';
 import {browserHistory, RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
+import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,6 +15,7 @@ import {WebVital} from 'sentry/utils/fields';
 import {PerformanceEventViewProvider} from 'sentry/utils/performance/contexts/performanceEventViewContext';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
@@ -44,13 +43,19 @@ type State = {
 
 class VitalDetail extends Component<Props, State> {
   state: State = {
-    eventView: generatePerformanceVitalDetailView(this.props.location),
+    eventView: generatePerformanceVitalDetailView(
+      this.props.location,
+      this.props.organization
+    ),
   };
 
   static getDerivedStateFromProps(nextProps: Readonly<Props>, prevState: State): State {
     return {
       ...prevState,
-      eventView: generatePerformanceVitalDetailView(nextProps.location),
+      eventView: generatePerformanceVitalDetailView(
+        nextProps.location,
+        nextProps.organization
+      ),
     };
   }
 
@@ -93,12 +98,14 @@ class VitalDetail extends Component<Props, State> {
     const {organization, location, router, api} = this.props;
     const {eventView} = this.state;
     if (!eventView) {
-      browserHistory.replace({
-        pathname: `/organizations/${organization.slug}/performance/`,
-        query: {
-          ...location.query,
-        },
-      });
+      browserHistory.replace(
+        normalizeUrl({
+          pathname: `/organizations/${organization.slug}/performance/`,
+          query: {
+            ...location.query,
+          },
+        })
+      );
       return null;
     }
 
@@ -112,27 +119,21 @@ class VitalDetail extends Component<Props, State> {
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>
         <PerformanceEventViewProvider value={{eventView: this.state.eventView}}>
           <PageFiltersContainer>
-            <StyledPageContent>
-              <NoProjectMessage organization={organization}>
-                <VitalDetailContent
-                  location={location}
-                  organization={organization}
-                  eventView={eventView}
-                  router={router}
-                  vitalName={vitalName || WebVital.LCP}
-                  api={api}
-                />
-              </NoProjectMessage>
-            </StyledPageContent>
+            <Layout.Page>
+              <VitalDetailContent
+                location={location}
+                organization={organization}
+                eventView={eventView}
+                router={router}
+                vitalName={vitalName || WebVital.LCP}
+                api={api}
+              />
+            </Layout.Page>
           </PageFiltersContainer>
         </PerformanceEventViewProvider>
       </SentryDocumentTitle>
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 export default withApi(withPageFilters(withProjects(withOrganization(VitalDetail))));

@@ -1,17 +1,15 @@
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
+import {Button} from 'sentry/components/button';
 import LogoSentry from 'sentry/components/logoSentry';
 import {t} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {
   extraQueryParameter,
   extraQueryParameterWithEmail,
-  isDemoWalkthrough,
   urlAttachQueryParams,
 } from 'sentry/utils/demoMode';
 
@@ -22,128 +20,60 @@ export default function DemoHeader() {
 
   const collapsed = !!useLegacyStore(PreferencesStore).collapsed;
 
-  let docsBtn, reqDemoBtn, signUpBtn;
+  const docsBtn = (
+    <DocsDemoBtn
+      onClick={() =>
+        trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
+      }
+      href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
+      external
+    >
+      {t('Documentation')}
+    </DocsDemoBtn>
+  );
 
-  if (isDemoWalkthrough()) {
-    docsBtn = (
-      <DocsDemoBtn
-        onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
-        }
-        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        {t('Documentation')}
-      </DocsDemoBtn>
-    );
+  const reqDemoBtn = (
+    <NewRequestDemoBtn
+      onClick={() =>
+        trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
+          organization: null,
+        })
+      }
+      href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
+      external
+    >
+      {t('Request a Demo')}
+    </NewRequestDemoBtn>
+  );
 
-    reqDemoBtn = (
-      <NewRequestDemoBtn
-        priority="form"
-        onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
-            organization: null,
-          })
-        }
-        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        {t('Request a Demo')}
-      </NewRequestDemoBtn>
-    );
+  const signUpBtn = (
+    <FreeTrial
+      onClick={() => {
+        const url =
+          sandboxData?.cta?.url ||
+          urlAttachQueryParams(
+            'https://sentry.io/signup/',
+            extraQueryParameterWithEmail()
+          );
 
-    signUpBtn = (
-      <FreeTrial
-        onClick={() => {
-          const url =
-            sandboxData?.cta?.url ||
-            urlAttachQueryParams(
-              'https://sentry.io/signup/',
-              extraQueryParameterWithEmail()
-            );
+        // Using window.open instead of href={} because we need to read `email`
+        // from localStorage when the user clicks the button.
+        window.open(url, '_blank');
 
-          // Using window.open instead of href={} because we need to read `email`
-          // from localStorage when the user clicks the button.
-          window.open(url, '_blank');
-
-          trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
-            cta: sandboxData?.cta?.id,
-            organization: null,
-          });
-        }}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        <FreeTrialTextLong>
-          {sandboxData?.cta?.title || t('Start Free Trial')}
-        </FreeTrialTextLong>
-        <FreeTrialTextShort>
-          {sandboxData?.cta?.shortTitle || t('Sign Up')}
-        </FreeTrialTextShort>
-      </FreeTrial>
-    );
-  } else {
-    docsBtn = (
-      <StyledExternalLink
-        onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.demo_click_docs', {organization: null})
-        }
-        href={urlAttachQueryParams('https://docs.sentry.io/', extraSearchParams)}
-        openInNewTab
-      >
-        {t('Documentation')}
-      </StyledExternalLink>
-    );
-
-    reqDemoBtn = (
-      <RequestDemoBtn
-        priority="form"
-        onClick={() =>
-          trackAdvancedAnalyticsEvent('growth.demo_click_request_demo', {
-            organization: null,
-          })
-        }
-        href={urlAttachQueryParams('https://sentry.io/_/demo/', extraSearchParams)}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        {t('Request a Demo')}
-      </RequestDemoBtn>
-    );
-
-    signUpBtn = (
-      <GetStarted
-        onClick={() => {
-          const url =
-            sandboxData?.cta?.url ||
-            urlAttachQueryParams(
-              'https://sentry.io/signup/',
-              extraQueryParameterWithEmail()
-            );
-
-          // Using window.open instead of href={} because we need to read `email`
-          // from localStorage when the user clicks the button.
-          window.open(url, '_blank');
-
-          trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
-            cta: sandboxData?.cta?.id,
-            organization: null,
-          });
-        }}
-        target="_blank"
-        rel="noreferrer noopener"
-      >
-        <GetStartedTextLong>
-          {sandboxData?.cta?.title || t('Sign Up for Free')}
-        </GetStartedTextLong>
-        <GetStartedTextShort>
-          {sandboxData?.cta?.shortTitle || t('Sign Up')}
-        </GetStartedTextShort>
-      </GetStarted>
-    );
-  }
+        trackAdvancedAnalyticsEvent('growth.demo_click_get_started', {
+          cta: sandboxData?.cta?.id,
+          organization: null,
+        });
+      }}
+    >
+      <FreeTrialTextLong>
+        {sandboxData?.cta?.title || t('Start Free Trial')}
+      </FreeTrialTextLong>
+      <FreeTrialTextShort>
+        {sandboxData?.cta?.shortTitle || t('Sign Up')}
+      </FreeTrialTextShort>
+    </FreeTrial>
+  );
 
   return (
     <Wrapper collapsed={collapsed}>
@@ -190,49 +120,6 @@ const StyledLogoSentry = styled(LogoSentry)`
   width: 130px;
   height: 30px;
   color: ${p => p.theme.textColor};
-`;
-
-const BaseButton = styled(Button)`
-  border-radius: 2rem;
-  text-transform: uppercase;
-`;
-
-const RequestDemoBtn = styled(BaseButton)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: none;
-  }
-`;
-
-const GetStartedTextShort = styled('span')`
-  display: none;
-`;
-
-const GetStartedTextLong = styled('span')``;
-
-// Note many of the colors don't come from the theme as they come from the marketing site
-const GetStarted = styled(BaseButton)`
-  border-color: transparent;
-  box-shadow: 0 2px 0 rgb(54 45 89 / 10%);
-  background-color: #e1567c;
-  color: #fff;
-  .short-text {
-    display: none;
-  }
-  @media (max-width: 650px) {
-    ${GetStartedTextLong} {
-      display: none;
-    }
-    ${GetStartedTextShort} {
-      display: inline;
-    }
-  }
-`;
-
-const StyledExternalLink = styled(ExternalLink)`
-  color: #584774;
-  @media (max-width: 500px) {
-    display: none;
-  }
 `;
 
 const FreeTrialTextShort = styled('span')`

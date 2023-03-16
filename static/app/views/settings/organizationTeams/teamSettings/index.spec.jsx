@@ -1,4 +1,5 @@
 import {browserHistory} from 'react-router';
+import selectEvent from 'react-select-event';
 
 import {
   render,
@@ -24,11 +25,14 @@ describe('TeamSettings', function () {
   it('can change slug', async function () {
     const team = TestStubs.Team();
     const putMock = MockApiClient.addMockResponse({
-      url: `/teams/org/${team.slug}/`,
+      url: `/teams/org-slug/${team.slug}/`,
       method: 'PUT',
+      body: {
+        slug: 'new-slug',
+      },
     });
 
-    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />);
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />);
 
     const input = screen.getByRole('textbox', {name: 'Name'});
     userEvent.clear(input);
@@ -37,7 +41,7 @@ describe('TeamSettings', function () {
     userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(putMock).toHaveBeenCalledWith(
-      `/teams/org/${team.slug}/`,
+      `/teams/org-slug/${team.slug}/`,
       expect.objectContaining({
         data: {
           slug: 'new-slug',
@@ -47,8 +51,63 @@ describe('TeamSettings', function () {
 
     await waitFor(() =>
       expect(browserHistory.replace).toHaveBeenCalledWith(
-        '/settings/org/teams/new-slug/settings/'
+        '/settings/org-slug/teams/new-slug/settings/'
       )
+    );
+  });
+
+  it('can set team org role', async function () {
+    const team = TestStubs.Team({orgRole: ''});
+    const putMock = MockApiClient.addMockResponse({
+      url: `/teams/org-slug/${team.slug}/`,
+      method: 'PUT',
+      body: {
+        slug: 'new-slug',
+        orgRole: 'owner',
+      },
+    });
+
+    const context = TestStubs.routerContext([
+      {
+        organization: TestStubs.Organization({
+          access: ['org:admin'],
+          features: ['org-roles-for-teams'],
+        }),
+      },
+    ]);
+
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+      context,
+    });
+
+    // set org role
+    const unsetDropdown = await screen.findByText('None');
+    await selectEvent.select(unsetDropdown, 'Owner');
+
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(putMock).toHaveBeenCalledWith(
+      `/teams/org-slug/${team.slug}/`,
+      expect.objectContaining({
+        data: {
+          orgRole: 'owner',
+        },
+      })
+    );
+
+    // unset org role
+    const setDropdown = await screen.findByText('Owner');
+    await selectEvent.select(setDropdown, 'None');
+
+    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(putMock).toHaveBeenCalledWith(
+      `/teams/org-slug/${team.slug}/`,
+      expect.objectContaining({
+        data: {
+          orgRole: '',
+        },
+      })
     );
   });
 
@@ -61,22 +120,60 @@ describe('TeamSettings', function () {
       },
     ]);
 
-    render(<TeamSettings team={team} params={{orgId: 'org', teamId: team.slug}} />, {
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
       context,
     });
 
     expect(screen.getByRole('button', {name: 'Remove Team'})).toBeDisabled();
   });
 
+  it('needs org:admin in order to set team org role', function () {
+    const team = TestStubs.Team();
+
+    const context = TestStubs.routerContext([
+      {
+        organization: TestStubs.Organization({
+          access: [],
+          features: ['org-roles-for-teams'],
+        }),
+      },
+    ]);
+
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+      context,
+    });
+
+    expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();
+  });
+
+  it('cannot set team org role for idp:provisioned team', function () {
+    const team = TestStubs.Team({flags: {'idp:provisioned': true}});
+
+    const context = TestStubs.routerContext([
+      {
+        organization: TestStubs.Organization({
+          access: ['org:admin'],
+          features: ['org-roles-for-teams'],
+        }),
+      },
+    ]);
+
+    render(<TeamSettings team={team} params={{teamId: team.slug}} />, {
+      context,
+    });
+
+    expect(screen.getByRole('textbox', {name: 'Organization Role'})).toBeDisabled();
+  });
+
   it('can remove team', async function () {
     const team = TestStubs.Team({hasAccess: true});
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/teams/org/${team.slug}/`,
+      url: `/teams/org-slug/${team.slug}/`,
       method: 'DELETE',
     });
     TeamStore.loadInitialData([{slug: 'team-slug', hasAccess: true}]);
 
-    render(<TeamSettings params={{orgId: 'org', teamId: team.slug}} team={team} />);
+    render(<TeamSettings params={{teamId: team.slug}} team={team} />);
 
     // Click "Remove Team button
     userEvent.click(screen.getByRole('button', {name: 'Remove Team'}));
@@ -86,14 +183,14 @@ describe('TeamSettings', function () {
     userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalledWith(
-      `/teams/org/${team.slug}/`,
+      `/teams/org-slug/${team.slug}/`,
       expect.objectContaining({
         method: 'DELETE',
       })
     );
 
     await waitFor(() =>
-      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org/teams/')
+      expect(browserHistory.replace).toHaveBeenCalledWith('/settings/org-slug/teams/')
     );
 
     expect(TeamStore.getAll()).toEqual([]);

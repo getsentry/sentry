@@ -1,21 +1,32 @@
+import {useEffect, useMemo} from 'react';
 import {mat3} from 'gl-matrix';
+
+import {CanvasView} from 'sentry/utils/profiling/canvasView';
 
 import {Rect} from './gl/utils';
 import {FlamegraphFrame} from './flamegraphFrame';
+import {SpanChartNode} from './spanChart';
+import {UIFrameNode} from './uiFrames';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
   ['highlight frame']: (
-    frame: FlamegraphFrame[] | null,
+    frames: FlamegraphFrame[] | null,
+    mode: 'hover' | 'selected'
+  ) => void;
+  ['highlight span']: (spans: SpanChartNode[] | null, mode: 'hover' | 'selected') => void;
+  ['highlight ui frame']: (
+    frames: UIFrameNode[] | null,
     mode: 'hover' | 'selected'
   ) => void;
   ['reset zoom']: () => void;
-  ['set config view']: (configView: Rect) => void;
+  ['set config view']: (configView: Rect, source: CanvasView<any>) => void;
   ['show in table view']: (frame: FlamegraphFrame) => void;
-  ['transform config view']: (transform: mat3) => void;
+  ['transform config view']: (transform: mat3, source: CanvasView<any>) => void;
   ['zoom at frame']: (frame: FlamegraphFrame, strategy: 'min' | 'exact') => void;
+  ['zoom at span']: (frame: SpanChartNode, strategy: 'min' | 'exact') => void;
 }
 
 type EventStore = {[K in keyof FlamegraphEvents]: Set<FlamegraphEvents[K]>};
@@ -31,9 +42,12 @@ export class CanvasScheduler {
     ['show in table view']: new Set<FlamegraphEvents['show in table view']>(),
     ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
     ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
+    ['highlight span']: new Set<FlamegraphEvents['highlight span']>(),
+    ['highlight ui frame']: new Set<FlamegraphEvents['highlight ui frame']>(),
     ['set config view']: new Set<FlamegraphEvents['set config view']>(),
     ['transform config view']: new Set<FlamegraphEvents['transform config view']>(),
     ['zoom at frame']: new Set<FlamegraphEvents['zoom at frame']>(),
+    ['zoom at span']: new Set<FlamegraphEvents['zoom at span']>(),
   };
 
   onDispose(cb: () => void): void {
@@ -171,4 +185,21 @@ export class CanvasPoolManager {
       scheduler.draw();
     }
   }
+}
+
+/**
+ * Creates a new instance of CanvasScheduler and registers it
+ * with the provided CanvasPoolManager.
+ * @param canvasPoolManager
+ * @returns
+ */
+export function useCanvasScheduler(canvasPoolManager: CanvasPoolManager) {
+  const scheduler = useMemo(() => new CanvasScheduler(), []);
+
+  useEffect(() => {
+    canvasPoolManager.registerScheduler(scheduler);
+    return () => canvasPoolManager.unregisterScheduler(scheduler);
+  }, [canvasPoolManager, scheduler]);
+
+  return scheduler;
 }

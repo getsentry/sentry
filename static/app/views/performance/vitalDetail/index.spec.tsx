@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {WebVital} from 'sentry/utils/fields';
 import {Browser} from 'sentry/utils/performance/vitals/constants';
+import {DEFAULT_STATS_PERIOD} from 'sentry/views/performance/data';
 import VitalDetail from 'sentry/views/performance/vitalDetail';
 import {vitalSupportedBrowsers} from 'sentry/views/performance/vitalDetail/utils';
 
@@ -211,47 +212,6 @@ describe('Performance > VitalDetail', function () {
         }),
       ],
     });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
-        field: 'count(sentry.transactions.measurements.lcp)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: ['measurement_rating'],
-          field: ['count(sentry.transactions.measurements.lcp)'],
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsField({
-        field: 'p75(sentry.transactions.measurements.cls)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          field: ['p75(sentry.transactions.measurements.cls)'],
-        }),
-      ],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: `/organizations/${organization.slug}/metrics/data/`,
-      body: TestStubs.MetricsFieldByMeasurementRating({
-        field: 'count(sentry.transactions.measurements.cls)',
-      }),
-      match: [
-        MockApiClient.matchQuery({
-          groupBy: ['measurement_rating'],
-          field: ['count(sentry.transactions.measurements.cls)'],
-        }),
-      ],
-    });
   });
 
   afterEach(function () {
@@ -273,9 +233,9 @@ describe('Performance > VitalDetail', function () {
       screen.getByText(textWithMarkupMatcher('The p75 for all transactions is 4500ms'))
     ).toBeInTheDocument();
 
-    expect(screen.getByText('Good 50%')).toBeInTheDocument();
-    expect(screen.getByText('Meh 33%')).toBeInTheDocument();
-    expect(screen.getByText('Poor 17%')).toBeInTheDocument();
+    expect(screen.getByText('Good 50%', {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('Meh 33%', {exact: false})).toBeInTheDocument();
+    expect(screen.getByText('Poor 17%', {exact: false})).toBeInTheDocument();
 
     // It shows a chart
     expect(screen.getByText('Duration p75')).toBeInTheDocument();
@@ -346,7 +306,7 @@ describe('Performance > VitalDetail', function () {
         transaction: 'something',
         project: undefined,
         environment: [],
-        statsPeriod: '24h',
+        statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,
         query: 'sometag:value has:measurements.lcp',
@@ -398,7 +358,7 @@ describe('Performance > VitalDetail', function () {
         transaction: 'something',
         project: undefined,
         environment: [],
-        statsPeriod: '24h',
+        statsPeriod: DEFAULT_STATS_PERIOD,
         start: undefined,
         end: undefined,
         query: 'anothertag:value has:measurements.cls',

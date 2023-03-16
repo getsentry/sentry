@@ -5,7 +5,7 @@ import isEqual from 'lodash/isEqual';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import MiniBarChart from 'sentry/components/charts/miniBarChart';
 import SessionsRequest from 'sentry/components/charts/sessionsRequest';
 import {DateTimeObject} from 'sentry/components/charts/utils';
@@ -14,7 +14,7 @@ import PanelTable from 'sentry/components/panels/panelTable';
 import Placeholder from 'sentry/components/placeholder';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   Project,

@@ -4,15 +4,15 @@ import styled from '@emotion/styled';
 import moment from 'moment';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {UserIdentityCategory, UserIdentityConfig, UserIdentityStatus} from 'sentry/types';
 import AsyncView from 'sentry/views/asyncView';
 import IdentityIcon from 'sentry/views/settings/components/identityIcon';

@@ -10,13 +10,15 @@ import {
   clearIndicators,
 } from 'sentry/actionCreators/indicator';
 import {createProject} from 'sentry/actionCreators/projects';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import TextOverflow from 'sentry/components/textOverflow';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import getPlatformName from 'sentry/utils/getPlatformName';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import useTeams from 'sentry/utils/useTeams';
@@ -41,6 +43,10 @@ export default function CreateProjectsFooter({
   genSkipOnboardingLink,
   clearPlatforms,
 }: Props) {
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
+
   const api = useApi();
   const {teams} = useTeams();
   const [persistedOnboardingState, setPersistedOnboardingState] =
@@ -51,8 +57,11 @@ export default function CreateProjectsFooter({
       // Do nothing if client state is not loaded yet.
       return;
     }
+
     try {
-      addLoadingMessage(t('Creating projects'));
+      addLoadingMessage(
+        singleSelectPlatform ? t('Creating project') : t('Creating projects')
+      );
 
       const responses = await Promise.all(
         platforms
@@ -82,7 +91,11 @@ export default function CreateProjectsFooter({
       clearIndicators();
       setTimeout(onComplete);
     } catch (err) {
-      addErrorMessage(t('Failed to create projects'));
+      addErrorMessage(
+        singleSelectPlatform
+          ? t('Failed to create project')
+          : t('Failed to create projects')
+      );
       Sentry.captureException(err);
     }
   };
@@ -97,26 +110,60 @@ export default function CreateProjectsFooter({
       {genSkipOnboardingLink()}
       <SelectionWrapper>
         {platforms.length ? (
-          <Fragment>
-            <div>{platforms.map(renderPlatform)}</div>
-            <PlatformSelected>
-              {tn('%s platform selected', '%s platforms selected', platforms.length)}
-              <ClearButton priority="link" onClick={clearPlatforms} size="zero">
-                {t('Clear')}
-              </ClearButton>
-            </PlatformSelected>
-          </Fragment>
+          singleSelectPlatform ? (
+            <Fragment>
+              <div>{platforms.map(renderPlatform)}</div>
+              <PlatformSelected>
+                {tct('[platform] selected', {
+                  platform: (
+                    <PlatformName>
+                      {getPlatformName(platforms[0]) ?? 'other'}
+                    </PlatformName>
+                  ),
+                })}
+                <ClearButton priority="link" onClick={clearPlatforms} size="zero">
+                  {t('Clear')}
+                </ClearButton>
+              </PlatformSelected>
+            </Fragment>
+          ) : (
+            <Fragment>
+              <div>{platforms.map(renderPlatform)}</div>
+              <PlatformsSelected>
+                {tn('%s platform selected', '%s platforms selected', platforms.length)}
+                <ClearButton priority="link" onClick={clearPlatforms} size="zero">
+                  {t('Clear')}
+                </ClearButton>
+              </PlatformsSelected>
+            </Fragment>
+          )
         ) : null}
       </SelectionWrapper>
       <ButtonWrapper>
-        <Button
-          priority="primary"
-          onClick={createProjects}
-          disabled={platforms.length === 0}
-          data-test-id="platform-select-next"
-        >
-          {tn('Create Project', 'Create Projects', platforms.length)}
-        </Button>
+        {singleSelectPlatform ? (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+            title={
+              platforms.length === 0
+                ? t('Select the platform you want to monitor')
+                : undefined
+            }
+          >
+            {t('Create Project')}
+          </Button>
+        ) : (
+          <Button
+            priority="primary"
+            onClick={createProjects}
+            disabled={platforms.length === 0}
+            data-test-id="platform-select-next"
+          >
+            {tn('Create Project', 'Create Projects', platforms.length)}
+          </Button>
+        )}
       </ButtonWrapper>
     </GenericFooter>
   );
@@ -144,6 +191,7 @@ const ButtonWrapper = styled(motion.div)`
   height: 100%;
   align-items: center;
   margin-right: ${space(4)};
+  margin-left: ${space(4)};
 `;
 
 ButtonWrapper.defaultProps = {
@@ -156,10 +204,22 @@ const SelectedPlatformIcon = styled(PlatformIcon)`
   margin-right: ${space(1)};
 `;
 
+const PlatformsSelected = styled('div')`
+  margin-top: ${space(1)};
+`;
+
 const PlatformSelected = styled('div')`
   margin-top: ${space(1)};
+  display: grid;
+  grid-template-columns: 1fr max-content max-content;
+  align-items: center;
 `;
 
 const ClearButton = styled(Button)`
   margin-left: ${space(2)};
+  padding: 0;
+`;
+
+const PlatformName = styled(TextOverflow)`
+  margin-right: ${space(0.5)};
 `;

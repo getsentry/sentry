@@ -17,7 +17,7 @@ class Mediator:
 
     Mediators provide a layer between User accessible components like Endpoints
     and the database. They encapsulate the logic necessary to create domain
-    objects, including all dependant objects, cross-object validations, etc.
+    objects, including all dependent objects, cross-object validations, etc.
 
     Mediators are intended to be composable and make it obvious where a piece
     of domain logic resides.

@@ -1,14 +1,14 @@
 import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
+import Checkbox from 'sentry/components/checkbox';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import {TextField} from 'sentry/components/forms';
 import Textarea from 'sentry/components/forms/controls/textarea';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 enum TracingCapturingPriorities {
   TRANSACTION_NAME = 'transaction_name',
@@ -60,12 +60,12 @@ function MultipleCheckboxField({
   otherTextField: React.ReactNode;
 }) {
   const handleClick = useCallback(
-    (newOption: Option) => {
+    (newOption: Option, checked: boolean) => {
       const newOptions = options.map(option => {
         if (option.value === newOption.value) {
           return {
             ...option,
-            checked: !option.checked,
+            checked,
           };
         }
         return option;
@@ -81,11 +81,8 @@ function MultipleCheckboxField({
       {options.map(option => {
         if (option.value === 'other') {
           return (
-            <CheckboxOtherOptionWrapper
-              key={option.value}
-              onClick={() => handleClick(option)}
-            >
-              <CheckboxFancy isChecked={option.checked} />
+            <CheckboxOtherOptionWrapper key={option.value}>
+              <Checkbox onChange={e => handleClick(option, e.target.checked)} />
               {option.title}
               {otherTextField}
             </CheckboxOtherOptionWrapper>
@@ -93,8 +90,11 @@ function MultipleCheckboxField({
         }
 
         return (
-          <CheckboxOption key={option.value} onClick={() => handleClick(option)}>
-            <CheckboxFancy isChecked={option.checked} />
+          <CheckboxOption key={option.value}>
+            <Checkbox
+              checked={option.checked}
+              onChange={e => handleClick(option, e.target.checked)}
+            />
             {option.title}
           </CheckboxOption>
         );
@@ -120,7 +120,7 @@ export function SamplingFeedback() {
           <Fragment>
             <Header>{t('Submit Feedback')}</Header>
             <Body showSelfHostedMessage={false}>
-              <Field
+              <FieldGroup
                 label={<Label>{t('What do you think about this feature?')}</Label>}
                 stacked
                 inline={false}
@@ -135,8 +135,8 @@ export function SamplingFeedback() {
                     onFieldChange('opinionAboutFeature', event.target.value)
                   }
                 />
-              </Field>
-              <Field
+              </FieldGroup>
+              <FieldGroup
                 label={
                   <Label>
                     {t(
@@ -187,7 +187,7 @@ export function SamplingFeedback() {
                     />
                   }
                 />
-              </Field>
+              </FieldGroup>
             </Body>
             <Footer
               primaryDisabledReason={
@@ -230,7 +230,7 @@ const Label = styled('strong')`
   display: inline-block;
 `;
 
-const CheckboxOption = styled('div')`
+const CheckboxOption = styled('label')`
   cursor: pointer;
   display: grid;
   grid-template-columns: max-content 1fr;

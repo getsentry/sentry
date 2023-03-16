@@ -1,10 +1,10 @@
+from sentry.issues.grouptype import PerformanceRenderBlockingAssetSpanGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
     def test_simple(self):
         key, value = "foo", "bar"
@@ -43,9 +43,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase):
                 **transaction_event_data,
                 "event_id": "a" * 32,
                 "timestamp": iso_format(before_now(minutes=1)),
-                "start_timestamp": iso_format(before_now(minutes=1)),
+                "start_timestamp": iso_format(before_now(minutes=1, seconds=5)),
                 "tags": {key: value},
-                "fingerprint": [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+                "fingerprint": [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
             },
             project_id=self.project.id,
         )

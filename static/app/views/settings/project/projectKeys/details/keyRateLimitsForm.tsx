@@ -10,7 +10,8 @@ import FormField from 'sentry/components/forms/formField';
 import InputControl from 'sentry/components/input';
 import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getExactDuration} from 'sentry/utils/formatters';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
@@ -27,11 +28,11 @@ type RateLimitValue = {
 type Props = {
   data: ProjectKey;
   disabled: boolean;
+  organization: Organization;
 } & Pick<
   RouteComponentProps<
     {
       keyId: string;
-      orgId: string;
       projectId: string;
     },
     {}
@@ -39,7 +40,7 @@ type Props = {
   'params'
 >;
 
-function KeyRateLimitsForm({data, disabled, params}: Props) {
+function KeyRateLimitsForm({data, disabled, organization, params}: Props) {
   function handleChangeWindow(
     onChange: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
     onBlur: (value: RateLimitValue, event: React.ChangeEvent<HTMLInputElement>) => void,
@@ -87,8 +88,8 @@ function KeyRateLimitsForm({data, disabled, params}: Props) {
     return PREDEFINED_RATE_LIMIT_VALUES;
   }
 
-  const {keyId, orgId, projectId} = params;
-  const apiEndpoint = `/projects/${orgId}/${projectId}/keys/${keyId}/`;
+  const {keyId, projectId} = params;
+  const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
 
   const disabledAlert = ({features}) => (
     <FeatureDisabled
@@ -108,7 +109,7 @@ function KeyRateLimitsForm({data, disabled, params}: Props) {
           children({...props, renderDisabled: disabledAlert})
         }
       >
-        {({hasFeature, features, organization, project, renderDisabled}) => (
+        {({hasFeature, features, project, renderDisabled}) => (
           <Panel>
             <PanelHeader>{t('Rate Limits')}</PanelHeader>
 

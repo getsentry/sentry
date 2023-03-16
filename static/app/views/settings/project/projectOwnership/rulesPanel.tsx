@@ -5,7 +5,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
 import {IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   'data-test-id': string;
@@ -31,11 +31,11 @@ function RulesPanel({
   function renderIcon() {
     switch (provider ?? '') {
       case 'github':
-        return <IconGithub size="md" />;
+        return <IconGithub size="sm" />;
       case 'gitlab':
-        return <IconGitlab size="md" />;
+        return <IconGitlab size="sm" />;
       default:
-        return <IconSentry size="md" />;
+        return <IconSentry size="sm" />;
     }
   }
 
@@ -52,11 +52,11 @@ function RulesPanel({
 
   return (
     <Panel data-test-id={dataTestId}>
-      <PanelHeader>
+      <PanelHeader hasButtons>
         <Container>
           {renderIcon()}
-          <Title>{renderTitle()}</Title>
-          {repoName && <Repository>{`- ${repoName}`}</Repository>}
+          {renderTitle()}
+          {repoName && <div>{`- ${repoName}`}</div>}
         </Container>
         <Container>
           {dateUpdated && (
@@ -65,7 +65,7 @@ function RulesPanel({
               <TimeSince date={dateUpdated} />
             </SyncDate>
           )}
-          <Controls>{controls}</Controls>
+          {controls}
         </Container>
       </PanelHeader>
 
@@ -92,15 +92,8 @@ export default RulesPanel;
 const Container = styled('div')`
   display: flex;
   align-items: center;
-  text-transform: none;
+  gap: ${space(0.75)};
 `;
-
-const Title = styled('div')`
-  padding: 0 ${space(0.5)} 0 ${space(1)};
-  font-size: initial;
-`;
-
-const Repository = styled('div')``;
 
 const InnerPanelBody = styled(PanelBody)`
   height: auto;
@@ -130,11 +123,6 @@ const StyledTextArea = styled(TextArea)`
 `;
 
 const SyncDate = styled('div')`
-  padding: 0 ${space(1)};
   font-weight: normal;
-`;
-const Controls = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(1)};
+  text-transform: none;
 `;

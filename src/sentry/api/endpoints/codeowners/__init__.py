@@ -15,6 +15,7 @@ from sentry.utils import metrics
 
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 100_000
+HIGHER_MAX_RAW_LENGTH = 3_000_000
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -25,6 +26,14 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
     class Meta:
         model = ProjectCodeOwners
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
+
+    def get_max_length(self) -> int:
+        if features.has(
+            "organizations:scaleable-codeowners-search",
+            self.context["project"].organization,
+        ):
+            return HIGHER_MAX_RAW_LENGTH
+        return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values
@@ -43,9 +52,10 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # we temporarily allow rows that already exceed this limit to still be updated.
         # We do something similar with ProjectOwnership at the API level.
         existing_raw = self.instance.raw if self.instance else ""
-        if len(attrs["raw"]) > MAX_RAW_LENGTH and len(existing_raw) <= MAX_RAW_LENGTH:
+        max_length = self.get_max_length()
+        if len(attrs["raw"]) > max_length and len(existing_raw) <= max_length:
             raise serializers.ValidationError(
-                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
+                {"raw": f"Raw needs to be <= {max_length} characters in length"}
             )
 
         # Ignore association errors and continue parsing CODEOWNERS for valid lines.
@@ -59,7 +69,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         # Convert IssueOwner syntax into schema syntax
         try:
             validated_data = create_schema_from_issue_owners(
-                issue_owners=issue_owner_rules, project_id=self.context["project"].id
+                issue_owners=issue_owner_rules,
+                project_id=self.context["project"].id,
+                add_owner_ids=True,
             )
             return {
                 **attrs,

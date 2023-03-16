@@ -21,7 +21,7 @@ import {
 import LoadingMask from 'sentry/components/loadingMask';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {
   EventsStats,
   MultiSeriesEventsStats,

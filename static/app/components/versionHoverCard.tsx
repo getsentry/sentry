@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {Client} from 'sentry/api';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import {Divider, Hovercard} from 'sentry/components/hovercard';
 import LastCommit from 'sentry/components/lastCommit';
@@ -14,7 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Deploy, Organization, Release, Repository} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';

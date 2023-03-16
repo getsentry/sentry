@@ -42,7 +42,8 @@ class NotificationSettingTypes(Enum):
 
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
-    # Notification when an issue happens shortly after your release.
+
+    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
     ACTIVE_RELEASE = 31
 
     # Notifications that require approval like a request to invite a member
@@ -55,6 +56,7 @@ class NotificationSettingTypes(Enum):
     QUOTA_ERRORS = 51
     QUOTA_TRANSACTIONS = 52
     QUOTA_ATTACHMENTS = 53
+    QUOTA_REPLAYS = 56
 
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
@@ -77,6 +79,7 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
     NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
     NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_REPLAYS: "quotaReplays",
     NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
     NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
@@ -139,7 +142,6 @@ class FineTuningAPIKey(Enum):
     QUOTA = "quota"
     REPORTS = "reports"
     WORKFLOW = "workflow"
-    ACTIVE_RELEASE = "activeRelease"
     SPIKE_PROTECTION = "spikeProtection"
 
 
@@ -185,6 +187,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
+    NotificationSettingTypes.QUOTA_REPLAYS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
     NotificationSettingTypes.QUOTA_WARNINGS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
@@ -196,10 +202,6 @@ VALID_VALUES_FOR_KEY = {
     NotificationSettingTypes.WORKFLOW: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.SUBSCRIBE_ONLY,
-        NotificationSettingOptionValues.NEVER,
-    },
-    NotificationSettingTypes.ACTIVE_RELEASE: {
-        NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.SPIKE_PROTECTION: {
@@ -251,14 +253,12 @@ class ActionTargetType(Enum):
     ISSUE_OWNERS = "IssueOwners"
     TEAM = "Team"
     MEMBER = "Member"
-    RELEASE_MEMBERS = "ReleaseMembers"
 
 
 ACTION_CHOICES = [
     (ActionTargetType.ISSUE_OWNERS.value, "Issue Owners"),
     (ActionTargetType.TEAM.value, "Team"),
     (ActionTargetType.MEMBER.value, "Member"),
-    (ActionTargetType.RELEASE_MEMBERS.value, "Release Members"),
 ]
 
 

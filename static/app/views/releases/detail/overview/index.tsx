@@ -15,13 +15,13 @@ import TransactionsList, {
   DropdownOption,
 } from 'sentry/components/discover/transactionsList';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import {Body, Main, Side} from 'sentry/components/layouts/thirds';
+import * as Layout from 'sentry/components/layouts/thirds';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ChangeData} from 'sentry/components/organizations/timeRangeSelector';
 import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   NewQuery,
   Organization,
@@ -40,8 +40,10 @@ import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import AsyncView from 'sentry/views/asyncView';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/transactionOverview/charts';
-import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 import {
   platformToPerformanceType,
@@ -457,8 +459,8 @@ class ReleaseOverview extends AsyncView<Props> {
                     const reloading = allReleasesReloading || thisReleaseReloading;
                     const errored = allReleasesErrored || thisReleaseErrored;
                     return (
-                      <Body>
-                        <Main>
+                      <Layout.Body>
+                        <Layout.Main>
                           {isReleaseArchived(release) && (
                             <ReleaseArchivedNotice
                               onRestore={() => this.handleRestore(project, refetchData)}
@@ -563,8 +565,8 @@ class ReleaseOverview extends AsyncView<Props> {
                               />
                             )}
                           </Feature>
-                        </Main>
-                        <Side>
+                        </Layout.Main>
+                        <Layout.Side>
                           <ReleaseStats
                             organization={organization}
                             release={release}
@@ -621,8 +623,8 @@ class ReleaseOverview extends AsyncView<Props> {
                               projectId={project.id}
                             />
                           )}
-                        </Side>
-                      </Body>
+                        </Layout.Side>
+                      </Layout.Body>
                     );
                   }}
                 </SessionsRequest>

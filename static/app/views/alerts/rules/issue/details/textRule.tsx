@@ -5,6 +5,7 @@ import type {Member, Team} from 'sentry/types';
 import type {IssueAlertRule} from 'sentry/types/alerts';
 import {AlertRuleComparisonType} from 'sentry/views/alerts/rules/metric/types';
 import {CHANGE_ALERT_CONDITION_IDS} from 'sentry/views/alerts/utils/constants';
+import {EVENT_FREQUENCY_PERCENT_CONDITION} from 'sentry/views/projectInstall/issueAlertOptions';
 
 /**
  * Translate Issue Alert Conditions to text
@@ -16,6 +17,20 @@ export function TextCondition({
 }) {
   if (CHANGE_ALERT_CONDITION_IDS.includes(condition.id)) {
     if (condition.comparisonType === AlertRuleComparisonType.PERCENT) {
+      if (condition.id === EVENT_FREQUENCY_PERCENT_CONDITION) {
+        return (
+          <Fragment>
+            {t(
+              // Double %% escapes
+              'Percent of sessions affected by an issue is %s%% higher in %s compared to %s ago',
+              condition.value,
+              condition.comparisonInterval,
+              condition.interval
+            )}
+          </Fragment>
+        );
+      }
+
       return (
         <Fragment>
           {t(
@@ -66,8 +81,12 @@ export function TextAction({
   }
 
   if (action.id === 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction') {
-    // Remove (optionally, an ID: XXX) from slack action
-    return <Fragment>{action.name.replace(/\(optionally.*\)/, '')}</Fragment>;
+    const name = action.name
+      // Hide the id "(optionally, an ID: XXX)"
+      .replace(/\(optionally.*\)/, '')
+      // Hide empty tags
+      .replace('and show tags [] in notification', '');
+    return <Fragment>{name}</Fragment>;
   }
 
   return <Fragment>{action.name}</Fragment>;

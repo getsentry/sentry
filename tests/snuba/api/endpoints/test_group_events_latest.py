@@ -1,13 +1,12 @@
 from sentry.models import Group
 from sentry.testutils import APITestCase, SnubaTestCase
+from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
-from sentry.utils.samples import load_data
 
 
 @region_silo_test
-class GroupEventsLatestTest(APITestCase, SnubaTestCase):
+class GroupEventsLatestTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
     endpoint = "sentry-api-0-events-latest"
 
     def setUp(self):
@@ -61,12 +60,8 @@ class GroupEventsLatestTest(APITestCase, SnubaTestCase):
         assert response.data["eventID"] == str(self.event2.event_id)
 
     def test_perf_issue(self):
-        event_data = load_data(
-            "transaction",
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
-        )
-        event = self.store_event(data=event_data, project_id=self.project.id)
-        url = f"/api/0/issues/{event.groups[0].id}/events/latest/"
+        event = self.create_performance_issue()
+        url = f"/api/0/issues/{event.group.id}/events/latest/"
         response = self.client.get(url, format="json")
         assert response.status_code == 200
         assert response.data["eventID"] == event.event_id

@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import Input from 'sentry/components/input';
 import Tag from 'sentry/components/tag';
@@ -10,7 +10,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import SelectOwners, {
   Owner,
@@ -65,8 +65,8 @@ class RuleBuilder extends Component<Props, State> {
     }));
   };
 
-  handleTypeChange = (val: string | number | boolean) => {
-    this.setState({type: val as string}); // TODO(ts): Add select value type as generic to select controls
+  handleTypeChange = (option: {label: string; value: string}) => {
+    this.setState({type: option.value});
     this.checkIsValid();
   };
 

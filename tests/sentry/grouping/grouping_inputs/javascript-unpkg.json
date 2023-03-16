@@ -1,0 +1,41 @@
+{
+  "platform": "javascript",
+  "exception": {
+    "values": [
+      {
+        "type": "Error",
+        "value": "bad",
+        "stacktrace": {
+          "frames": [
+            {
+              "function": "unpkg",
+              "module": "react-dom@16.13.1/umd/react-dom.production",
+              "filename": "/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "abs_path": "https://unpkg.com/react-dom@16.13.1/umd/react-dom.production.min.js",
+              "lineno": 61,
+              "colno": 68
+            },
+            {
+              "function": "cdnjs",
+              "abs_path": "https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js",
+              "lineno": 146,
+              "colno": 151
+            },
+            {
+              "function": "jsdelivr",
+              "abs_path": "https://cdn.jsdelivr.net/npm/jquery@3.2.1/dist/jquery.min.js",
+              "lineno": 146,
+              "colno": 151
+            },
+            {
+              "function": "esm.run",
+              "abs_path": "https://esm.run/d3@7.6.1",
+              "lineno": 146,
+              "colno": 151
+            }
+          ]
+        }
+      }
+    ]
+  }
+}

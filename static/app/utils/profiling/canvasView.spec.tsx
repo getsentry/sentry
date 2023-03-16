@@ -1,4 +1,4 @@
-import {vec2} from 'gl-matrix';
+import {mat3, vec2} from 'gl-matrix';
 
 import {
   makeCanvasMock,
@@ -15,7 +15,8 @@ import {Rect} from 'sentry/utils/profiling/gl/utils';
 const makeCanvasAndView = (
   canvas: HTMLCanvasElement,
   flamegraph: Flamegraph,
-  origin: vec2 = vec2.fromValues(0, 0)
+  origin: vec2 = vec2.fromValues(0, 0),
+  configSpaceTransform: Rect = Rect.Empty()
 ) => {
   const flamegraphCanvas = new FlamegraphCanvas(canvas, origin);
   const canvasView = new CanvasView<Flamegraph>({
@@ -26,6 +27,7 @@ const makeCanvasAndView = (
       minWidth: flamegraph.profile.minFrameDuration,
       barHeight: theme.SIZES.BAR_HEIGHT,
       depthOffset: theme.SIZES.FLAMEGRAPH_DEPTH_OFFSET,
+      configSpaceTransform,
     },
   });
 
@@ -51,6 +53,25 @@ describe('CanvasView', () => {
       const flamegraph = makeFlamegraph();
       const {view} = makeCanvasAndView(canvas, flamegraph);
       expect(view.configView).toEqual(new Rect(0, 0, 10, 50));
+    });
+
+    it('initializes config space transform', () => {
+      const canvas = makeCanvasMock();
+      const flamegraph = makeFlamegraph();
+      const {view} = makeCanvasAndView(canvas, flamegraph);
+      expect(mat3.exactEquals(view.configSpaceTransform, mat3.create())).toBe(true);
+    });
+
+    it('prevents invalid values on transform config space transform', () => {
+      const canvas = makeCanvasMock();
+      const flamegraph = makeFlamegraph();
+      const {view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        undefined,
+        new Rect(0, 0, 0, 0)
+      );
+      expect(mat3.exactEquals(view.configSpaceTransform, mat3.create())).toBe(true);
     });
 
     it('initializes config view with insufficient height', () => {
@@ -180,6 +201,166 @@ describe('CanvasView', () => {
         view.setConfigView(new Rect(0, 50, 1000, 25));
         expect(view.configView).toEqual(new Rect(0, 25, 1000, 25));
       });
+    });
+  });
+
+  describe('configSpaceTransform', () => {
+    it('initializes transform matrix', () => {
+      const canvas = makeCanvasMock({width: 1000, height: 1000});
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 1000,
+          events: [
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 1000},
+          ],
+        },
+        [{name: 'f0'}]
+      );
+      const {view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        vec2.fromValues(0, 0),
+        new Rect(500, 0, 0, 0)
+      );
+
+      expect(view.configSpace).toEqual(new Rect(0, 0, 1000, 50));
+      expect(
+        mat3.exactEquals(
+          view.configSpaceTransform,
+          mat3.fromValues(1, 0, 0, 0, 1, 0, 500, 0, 1)
+        )
+      ).toBe(true);
+    });
+    it('fromTransformedConfigView', () => {
+      const canvas = makeCanvasMock({width: 1000, height: 1000});
+      const flamegraph = makeFlamegraph({
+        startValue: 0,
+        endValue: 1000,
+        events: [],
+      });
+      const {view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        vec2.fromValues(0, 0),
+        new Rect(500, 0, 0, 0)
+      );
+
+      // Our frame origin is at 0, but we expect it to be at
+      // 500 because of the configSpaceTransform
+      const frame = new Rect(0, 0, 1000, 1).transformRect(
+        view.fromTransformedConfigView(new Rect(0, 0, 1000, 1000))
+      );
+
+      expect(frame.width).toBe(1000);
+      expect(frame.x).toBe(500);
+
+      expect(
+        // x is 2x scale,
+        mat3.exactEquals(
+          view.fromTransformedConfigView(new Rect(0, 0, 1000, 1000)),
+          mat3.fromValues(1, 0, 0, 0, 20, 0, 500, 0, 1)
+        )
+      ).toBe(true);
+    });
+
+    it('fromTransformedConfigSpace', () => {
+      const canvas = makeCanvasMock({width: 1000, height: 1000});
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 1000,
+          events: [
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 1000},
+          ],
+        },
+        [{name: 'f0'}]
+      );
+      const {view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        vec2.fromValues(0, 0),
+        new Rect(500, 0, 0, 0)
+      );
+
+      // we simulate config view change and expect the same result
+      view.setConfigView(new Rect(0, 0, 10, 1000));
+      const frame = new Rect(0, 0, 1000, 1).transformRect(
+        view.fromTransformedConfigSpace(new Rect(0, 0, 1000, 1000))
+      );
+
+      expect(frame.width).toBe(1000);
+      expect(frame.x).toBe(500);
+
+      expect(
+        // x is 2x scale,
+        mat3.exactEquals(
+          view.fromTransformedConfigSpace(new Rect(0, 0, 1000, 1000)),
+          mat3.fromValues(1, 0, 0, 0, 20, 0, 500, 0, 1)
+        )
+      ).toBe(true);
+    });
+    it('getTransformedConfigSpaceCursor', () => {
+      const canvas = makeCanvasMock({width: 1000, height: 1000});
+      const flamegraph = makeFlamegraph(
+        {
+          startValue: 0,
+          endValue: 1000,
+          events: [
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 1000},
+          ],
+        },
+        [{name: 'f0'}]
+      );
+      const {flamegraphCanvas, view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        vec2.fromValues(0, 0),
+        new Rect(500, 0, 0, 0)
+      );
+
+      // we simulate config view change and expect the same result
+      view.setConfigView(new Rect(0, 0, 10, 1000));
+
+      const cursor = view.getTransformedConfigSpaceCursor(
+        vec2.fromValues(500, 500),
+        flamegraphCanvas
+      );
+      // 500 - 500 offset = 0
+      expect(cursor[0]).toEqual(0);
+      expect(cursor[1]).toEqual(25);
+    });
+    it('getTransformedConfigViewCursor', () => {
+      const canvas = makeCanvasMock({width: 1000, height: 1000});
+      const flamegraph = makeFlamegraph({
+        startValue: 0,
+        endValue: 2000,
+        events: [
+          {type: 'O', frame: 0, at: 0},
+          {type: 'C', frame: 0, at: 10},
+        ],
+      });
+      const {flamegraphCanvas, view} = makeCanvasAndView(
+        canvas,
+        flamegraph,
+        vec2.fromValues(0, 0),
+        new Rect(100, 0, 0, 0)
+      );
+
+      view.setConfigView(new Rect(200, 0, 1000, 50));
+
+      // middle of screen at
+      // 200-100 at half screen of 1000 = 600
+      const cursor = view.getTransformedConfigViewCursor(
+        vec2.fromValues(500, 500),
+        flamegraphCanvas
+      );
+
+      expect(cursor[0]).toEqual(600);
+      expect(cursor[1]).toEqual(25);
     });
   });
 });

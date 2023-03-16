@@ -10,8 +10,10 @@ from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
     AuthIdentity,
     AuthProvider,
+    Organization,
     OrganizationMember,
     OrganizationOption,
+    OrganizationStatus,
     UserEmail,
 )
 from sentry.testutils import AuthProviderTestCase
@@ -207,6 +209,27 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
         assert resp.redirect_chain == [
             (next, 302),
+        ]
+
+    @with_feature("organizations:customer-domains")
+    def test_org_redirects_to_next_url_customer_domain(self):
+        user = self.create_user("bar@example.com")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+
+        next = f"/organizations/{self.organization.slug}/releases/"
+        resp = self.client.post(
+            self.path + "?next=" + self.organization.absolute_url(next), {"init": True}
+        )
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        assert resp.redirect_chain == [
+            (self.organization.absolute_url(next), 302),
         ]
 
     def test_org_login_doesnt_redirect_external(self):
@@ -1036,6 +1059,16 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # Check that we don't call send_one_time_account_confirm_link with an AnonymousUser
         resp = self.client.post(path, {"email": "foo@example.com"})
         assert resp.status_code == 200
+
+    def test_org_not_visible(self):
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        resp = self.client.get(self.path, follow=True)
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("/auth/login/", 302)]
+        self.assertTemplateUsed(resp, "sentry/login.html")
 
 
 @region_silo_test

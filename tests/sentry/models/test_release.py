@@ -8,7 +8,7 @@ from freezegun import freeze_time
 
 from sentry.api.exceptions import InvalidRepository
 from sentry.api.release_search import INVALID_SEMVER_MESSAGE
-from sentry.dynamic_sampling.latest_release_booster import ProjectBoostedReleases
+from sentry.dynamic_sampling import ProjectBoostedReleases
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import (
     Commit,
@@ -22,8 +22,6 @@ from sentry.models import (
     GroupRelease,
     GroupResolution,
     GroupStatus,
-    Integration,
-    OrganizationIntegration,
     Release,
     ReleaseCommit,
     ReleaseEnvironment,
@@ -501,19 +499,20 @@ class SetCommitsTestCase(TestCase):
     @receivers_raise_on_send()
     def test_resolution_support_with_integration(self, mock_sync_status_outbound):
         org = self.create_organization(owner=Factories.create_user())
-        integration = Integration.objects.create(provider="example", name="Example")
-        integration.add_organization(org, self.user)
-
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=org.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        integration = self.create_integration(
+            organization=org,
+            external_id="example:1",
+            provider="example",
+            name="Example",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
         project = self.create_project(organization=org, name="foo")
         group = self.create_group(project=project)
@@ -608,7 +607,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])
@@ -636,7 +635,7 @@ class SetRefsTest(SetRefsTestCase):
         ]
 
         with pytest.raises(InvalidRepository):
-            self.release.set_refs(refs, self.user)
+            self.release.set_refs(refs, self.user.id)
 
         assert len(Commit.objects.all()) == 0
         assert len(ReleaseHeadCommit.objects.all()) == 0
@@ -658,7 +657,7 @@ class SetRefsTest(SetRefsTestCase):
             {"repository": "test/repo", "commit": "previous-commit-id-3..current-commit-id-3"},
         ]
 
-        self.release.set_refs(refs, self.user, True)
+        self.release.set_refs(refs, self.user.id, True)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], "current-commit-id")
@@ -686,7 +685,7 @@ class SetRefsTest(SetRefsTestCase):
             },
         ]
 
-        self.release.set_refs(refs, self.user, False)
+        self.release.set_refs(refs, self.user.id, False)
 
         commits = Commit.objects.all().order_by("id")
         self.assert_commit(commits[0], refs[0]["commit"])

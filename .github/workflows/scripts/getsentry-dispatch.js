@@ -15,12 +15,14 @@ const DISPATCHES = [
   },
   {
     workflow: 'backend.yml',
-    pathFilterName: 'backend_dependencies',
+    pathFilterName: 'backend_src',
   },
 ];
 
 module.exports = {
-  dispatch: async ({github, context, fileChanges}) => {
+  dispatch: async ({github, context, core, fileChanges, mergeCommitSha}) => {
+    core.startGroup('Dispatching request to getsentry.');
+
     const shouldSkip = {
       frontend: fileChanges.frontend_all !== 'true',
       backend_dependencies: fileChanges.backend_dependencies !== 'true',
@@ -28,18 +30,30 @@ module.exports = {
 
     await Promise.all(
       DISPATCHES.map(({workflow, pathFilterName}) => {
+        const inputs = {
+          pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
+          skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
+
+          // sentrySHA is the sha getsentry should run against.
+          'sentry-sha': mergeCommitSha,
+          // prSHA is the sha actions should post commit statuses too.
+          'sentry-pr-sha': context.payload.pull_request.head.sha,
+        };
+
+        core.info(
+          `Sending dispatch for '${workflow}':\n${JSON.stringify(inputs, null, 2)}`
+        );
+
         return github.rest.actions.createWorkflowDispatch({
           owner: 'getsentry',
           repo: 'getsentry',
           workflow_id: workflow,
           ref: 'master',
-          inputs: {
-            pull_request_number: `${context.payload.pull_request.number}`, // needs to be string
-            skip: `${shouldSkip[pathFilterName]}`, // even though this is a boolean, it must be cast to a string
-            'sentry-sha': context.payload.pull_request.head.sha,
-          },
+          inputs,
         });
       })
     );
+
+    core.endGroup();
   },
 };

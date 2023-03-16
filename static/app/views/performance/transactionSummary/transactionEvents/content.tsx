@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 import omit from 'lodash/omit';
 
-import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/button';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -12,7 +12,7 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -38,7 +38,6 @@ type Props = {
   projects: Project[];
   setError: SetStateAction<string | undefined>;
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
-  totalEventCount: string;
   transactionName: string;
   percentileValues?: Record<EventsDisplayFilterName, number>;
   webVital?: WebVital;
@@ -62,7 +61,6 @@ function EventsContent(props: Props) {
     spanOperationBreakdownFilter,
     webVital,
     setError,
-    totalEventCount,
     projectId,
     projects,
   } = props;
@@ -70,6 +68,8 @@ function EventsContent(props: Props) {
   const eventView = originalEventView.clone();
   const transactionsListTitles = TRANSACTIONS_LIST_TITLES.slice();
   const project = projects.find(p => p.id === projectId);
+
+  const fields = [...eventView.fields];
 
   if (webVital) {
     transactionsListTitles.splice(3, 0, webVital);
@@ -85,18 +85,33 @@ function EventsContent(props: Props) {
     transactionsListTitles.splice(2, 1, t('%s duration', spanOperationBreakdownFilter));
   }
 
-  const showReplayCol =
-    organization.features.includes('session-replay-ui') && projectSupportsReplay(project);
-
-  if (showReplayCol) {
-    transactionsListTitles.push(t('replay'));
+  if (
+    organization.features.includes('profiling') &&
+    project &&
+    // only show for projects that already sent a profile
+    // once we have a more compact design we will show this for
+    // projects that support profiling as well
+    project.hasProfiles
+  ) {
+    transactionsListTitles.push(t('profile'));
+    fields.push({field: 'profile.id'});
   }
+
+  if (
+    organization.features.includes('session-replay') &&
+    project &&
+    projectSupportsReplay(project)
+  ) {
+    transactionsListTitles.push(t('replay'));
+    fields.push({field: 'replayId'});
+  }
+
+  eventView.fields = fields;
 
   return (
     <Layout.Main fullWidth>
-      <Search {...props} />
+      <Search {...props} eventView={eventView} />
       <EventsTable
-        totalEventCount={totalEventCount}
         eventView={eventView}
         organization={organization}
         routes={routes}
@@ -104,7 +119,6 @@ function EventsContent(props: Props) {
         setError={setError}
         columnTitles={transactionsListTitles}
         transactionName={transactionName}
-        showReplayCol={showReplayCol}
       />
     </Layout.Main>
   );

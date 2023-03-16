@@ -304,22 +304,14 @@ div.traceback > ul {
 
     &.is-expandable .title {
       cursor: pointer;
-
-      &:hover {
-        background: lighten(@blue-light, 36);
-      }
-    }
-
-    &.system-frame.is-expandable .title:hover {
-      background: darken(@white-dark, 5);
     }
 
     .title {
-      padding: 8px 20px;
+      padding: 6px 20px;
       font-size: 13px;
       margin: 0;
       line-height: 16px;
-      background: lighten(@blue-light, 35);
+      background: #faf9fb;
 
       word-break: break-all;
       /* for firefox */
@@ -333,10 +325,6 @@ div.traceback > ul {
       .informal {
         font-style: italic;
       }
-    }
-
-    &.system-frame .title {
-      background: @white-dark;
     }
 
     .title.as-table {
@@ -476,16 +464,11 @@ div.traceback > ul {
       display: none;
       background: #fff;
       margin: 0;
-      padding: 8px 0;
-
-      > li {
-        background: inherit;
-      }
 
       table.key-value {
         border-top: 1px solid @trim;
         padding: 0;
-        margin: 0 0 -8px;
+        margin: 0;
 
         td {
           border-bottom: 1px solid @trim !important;
@@ -548,6 +531,7 @@ div.traceback > ul {
     &.expanded {
       .expandable {
         height: auto;
+        max-width: 100%;
       }
     }
 
@@ -569,10 +553,9 @@ div.traceback > ul {
 
     &.collapsed {
       .title {
-        opacity: 0.7;
-        font-size: 12px;
         padding: 4px 20px 4px 20px;
-        background: lighten(@blue-light, 33);
+        background: #faf9fb;
+        min-height: 32px;
 
         &.is-expandable:hover {
           opacity: 1;
@@ -596,6 +579,7 @@ div.traceback > ul {
 
       .leads-to-app-hint {
         display: inline;
+        color: @gray-light;
       }
     }
   }
@@ -662,8 +646,6 @@ div.traceback > ul {
 
     > li {
       font-family: @font-family-code;
-      color: #222;
-      background-color: #f6f7f8;
       line-height: 24px;
       font-size: 12px;
       white-space: pre;
@@ -673,7 +655,6 @@ div.traceback > ul {
     }
 
     > li.active {
-      background-color: #f6f7f8;
       list-style-type: none;
       border-radius: 2px;
 
@@ -706,8 +687,8 @@ div.traceback > ul {
       }
 
       > li.active {
-        background-color: @purple;
-        color: #fff;
+        position: relative;
+        z-index: 0;
         list-style-type: inherit;
         border-radius: 0;
       }

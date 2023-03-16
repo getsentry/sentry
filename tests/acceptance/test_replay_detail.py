@@ -13,7 +13,7 @@ from sentry.replays.testutils import (
 )
 from sentry.testutils import ReplaysAcceptanceTestCase
 
-FEATURE_NAME = ["organizations:session-replay", "organizations:session-replay-ui"]
+FEATURE_NAME = ["organizations:session-replay"]
 
 
 class ReplayDetailTest(ReplaysAcceptanceTestCase):

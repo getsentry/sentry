@@ -1,9 +1,15 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
 
-import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelHeader,
+  PanelItem,
+} from 'sentry/components/panels';
 import Radio from 'sentry/components/radio';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {OrgRole} from 'sentry/types';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -17,7 +23,9 @@ const Label = styled('label')`
 type Props = {
   disabled: boolean;
   enforceAllowed: boolean;
+  enforceIdpRoleRestricted: boolean;
   enforceRetired: boolean;
+  isCurrentUser: boolean;
   roleList: OrgRole[];
   roleSelected: string;
   setSelected: (id: string) => void;
@@ -29,21 +37,37 @@ class OrganizationRoleSelect extends Component<Props> {
       disabled,
       enforceRetired,
       enforceAllowed,
+      isCurrentUser,
       roleList,
+      enforceIdpRoleRestricted,
       roleSelected,
       setSelected,
     } = this.props;
 
     return (
       <Panel>
-        <PanelHeader>{t('Organization Role')}</PanelHeader>
+        <PanelHeader>
+          <div>{t('Organization Role')}</div>
+        </PanelHeader>
+        {enforceIdpRoleRestricted && (
+          <PanelAlert>
+            {tct(
+              "[person] organization-level role is managed through your organization's identity provider.",
+              {person: isCurrentUser ? 'Your' : "This member's"}
+            )}
+          </PanelAlert>
+        )}
 
         <PanelBody>
           {roleList.map(role => {
             const {desc, name, id, allowed, isRetired: roleRetired} = role;
 
             const isRetired = enforceRetired && roleRetired;
-            const isDisabled = disabled || isRetired || (enforceAllowed && !allowed);
+            const isDisabled =
+              disabled ||
+              isRetired ||
+              (enforceAllowed && !allowed) ||
+              enforceIdpRoleRestricted;
 
             return (
               <PanelItem

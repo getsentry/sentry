@@ -11,6 +11,7 @@ from sentry.models import (
     ReleaseCommit,
 )
 from sentry.testutils import TestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils.suspect_resolutions.commit_correlation import (
     get_files_changed_in_releases,
@@ -18,6 +19,7 @@ from sentry.utils.suspect_resolutions.commit_correlation import (
 )
 
 
+@region_silo_test(stable=True)
 class CommitCorrelationTest(TestCase):
     def setup(self, status=GroupStatus.RESOLVED):
         project = self.create_project()

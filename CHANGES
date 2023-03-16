@@ -1,3 +1,197 @@
+23.3.0
+------
+
+### Stacktrace Codecov V2 (ongoing)
+
+This is the work post-MVP release.
+
+By: @armenzg (#44827)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44496)
+
+### Various fixes & improvements
+
+- fix(ecosystem): Preserve codeowners filters on update (#45810) by @scttcper
+- chore(trace_view): Add perf issues to the mock trace (#45794) by @wmak
+- feat(dynamic-sampling): Add prioritise low volume transaction rules [TET-736] (#45635) by @RaduW
+- ref(onboarding): Update experiment segments (#45843) by @priscilawebdev
+- ref(onboarding): Update copy (#45830) by @priscilawebdev
+- ref(dynamic-sampling): Update Health Check copy (#45826) by @ale-cota
+- chore(commit-context): Flag cleanup (#45804) by @snigdhas
+- ref(compactSelect): Maintain menu width while searching (#45356) by @vuluongj20
+- ref(outcomes) Add methods to build outcomes queries without django (#45730) by @markstory
+- feat(compactSelect): Add optional menu footer (#45339) by @vuluongj20
+- ref(dynamic-sampling): Add onboarding experiement to the ds page (temp test) -  (#45827) by @priscilawebdev
+- chore(view-hierarchy): Remove frontend feature flags (#45761) by @narsaynorath
+- chore(dashboards): Reintroduce release widget feature flag (#45791) by @shruthilayaj
+- fix (dyn-sampling): Change schedule interval for prioritise by project task [TET-788] (#45821) by @andriisoldatenko
+- chore(hybrid-cloud): Deprecate mediator destroyers (#45656) by @corps
+- feat(onboarding): Add view sample error button new design - (#45820) by @priscilawebdev
+- feat(onboarding): Add feature flag to control the View Sample Error button - (#45818) by @priscilawebdev
+- fix(onboarding): Fix issue when first error sent (#45817) by @priscilawebdev
+-  feat(source-maps): Add debug ids UI - (#45711) by @priscilawebdev
+- feat(sourcemaps): Add endpoint for listing all artifact bundles of a project (#45751) by @iambriccardo
+- chore(hybrid-cloud): Backfill installation_id to service hooks (#45800) by @corps
+- fix(issue-platform): Explicitly pass `culprit` as part of the occurrence, and store `subtitle` correctly (#45809) by @wedamija
+- feat(crons): Explain crontab syntax in monitor form (#45801) by @davidenwang
+- ref(hybrid-cloud): Denormalize user avatars 1/3 (#45685) by @mikejihbe
+
+_Plus 792 more_
+
+23.2.0
+------
+
+### Stacktrace Codecov MVP
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43819, #43667, #43675), @jangjodi (#43746)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44492, #44346, #44228)
+
+### Various fixes & improvements
+
+- perf(sentry): Add optional referrer to query.search for granularity (#44585) by @k-fish
+- bug(replay): Do not render the list page until project data has loaded (#44623) by @ryan953
+- fix(ui) Fix navigation between customer-domain accounts (#44625) by @markstory
+- feat(codeowners): [BE] Allow project members to edit project owner rules (#44508) by @jangjodi
+- ref(heartbeat): Update modal copy (#44658) by @priscilawebdev
+- Reverts for INC-307 (#44654) by @beezz
+- bump(dynamic-sampling): Bump sentry-relay to 0.8.18 (#44648) by @iambriccardo
+- feat(contexts): Add OpenTelemetry context (#44605) by @AbhiPrasad
+- fix: Avoid logging a `bad_report` for .NET events (#44291) by @Swatinem
+- chore(hybrid-cloud): Api* => Rpc* (#44646) by @corps
+- ref(hybrid-cloud): Isolate alert rules functionality by silo (#44644) by @mikejihbe
+- fix(api): Don't try and convert_args when http_method_not_allowed (#44635) by @evanpurkhiser
+- ref(api): Consistent relative endpoints import (#44640) by @evanpurkhiser
+- feat(profile-issues): Add profile category/type to search autocomplete (#44548) by @malwilley
+- fix(ui): Bring back Australia timezone (#44634) by @evanpurkhiser
+- feat: Deprecate legacy post process forwarder (#44631) by @lynnagara
+- fix(api): Remove inclusion of CHECKIN_ID in monitor check-in POST (#44630) by @evanpurkhiser
+- fix(source-maps): fixes too many values to unpack error in ArtifactSource (#44624) by @roggenkemper
+- ref(rules): Catch environment not existing (#44553) by @ceorourke
+- feat(analytics): improve analytics for soure map debugging (#44626) by @scefali
+- ref(tabs): Export `Item` as property of `TabList` & `TabPanels` (#44620) by @vuluongj20
+- feat(ui): Switch translate tct return type to react element (#44610) by @scttcper
+- feat: adds tracking for setup wizard (#44619) by @scefali
+- feat(team-roles): Amend PUT on OrganizationMemberDetailsEndpoint (#44599) by @leedongwei
+
+_Plus 637 more_
+
+23.1.1
+------
+
+### Post-GA fixes and improvements for derived code mappings
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43323, #43325, #43310)
+
+### Stacktrace Codecov MVP (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43650, #43649, #43404, #43353, #43201), @jangjodi (#43032, #43517, #43407, #43116)
+
+### Various fixes & improvements
+
+- ci(acceptance): Replace selenium finalizer with yield (#43711) by @mattgauntseo-sentry
+- test(profiles): test sample stats and raw weights across formats (#43685) by @JonasBa
+- fix(release_health) : bad granularity was causing limit validation error in MetricsLayer (#43729) by @RaduW
+- ref: upgrade structlog (#43680) by @asottile-sentry
+- ref(ui) Remove error for missing router context (#43693) by @markstory
+- ref(perf-issues): Increase unc asset duration threshold (#43722) by @k-fish
+- hotfix: handle empty series returns from get_series. (#43721) by @RaduW
+- Revert "feat(codecov): Get commit sha from Git blame  (#42978)" (7d918eb7) by @getsentry-bot
+- feat(perf-issues) Add project options for consecutive db (#43701) by @DominikB2014
+- fix(perf-issues): ensure php is not allowed to detect issues (#43694) by @DominikB2014
+- feat(codecov): Get commit sha from Git blame  (#42978) by @jangjodi
+- ref(mep): Allow up to 10 custom measurements (#43719) by @jan-auer
+- (perf-issues) Add detection rate project option to UI (#43698) by @DominikB2014
+- fix(txnames): Skip deleted projects (#43716) by @jjbayer
+- feat(release-health): Switch release health backend to MetricsLayer (#43545) by @RaduW
+- chore(hybrid-cloud): remove region to control, use outbox (#43361) by @corps
+- feat(hc): Use hybrid cloud services in AuthIdentityHandler (#43035) by @RyanSkonnord
+- fix(sourcemaps): ease check on valid url and add data for invalid url issue (#43709) by @roggenkemper
+- test(acceptance): Reduce flakiness by waiting for requests to complete (#43486) by @mattgauntseo-sentry
+- ref(hybrid-cloud): test for both urls in MonitorCheckinDetails (#43690) by @cathyteng17
+- ui(codecov): Fix codecov legend border (#43704) by @snigdhas
+- fix(tasks): Do not ignore exception by default (#43696) by @Zylphrex
+- ref: retry on 500s in docker pulls (#43700) by @asottile-sentry
+- Revert "CI(dispatch): Switch to merge commit sha where possible (#43570)" (f2dd50ad) by @getsentry-bot
+
+_Plus 285 more_
+
+23.1.0
+------
+
+### Derived Code Mappings (GA Release - JS and Python)
+
+Python is in EA already. We will first add JS to EA and then GA both of them.
+
+For JS, this will only apply to stacktraces that have source maps applied, otherwise, it is not possible to derive code mappings.
+
+Read https://github.com/getsentry/rfcs/pull/16 for more details.
+
+By: @armenzg (#42302)
+
+### Stacktrace linking and code mapping improvements (ongoing)
+
+Various improvements to configuring Code Mappings by a customer.
+
+This milestones is simply to track the various related PRs.
+
+By: @armenzg (#43105, #43104, #42810)
+
+### Post-GA fixes and improvements for derived code mappings (ongoing)
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43265, #43199, #42554, #42510, #42544, #42540, #42511, #42487)
+
+### Stacktrace Codecov Integration (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43114, #43025, #43024, #43015)
+
+### Various fixes & improvements
+
+- Revert "fix(domains) Remove usage or params.orgId in search (#43205)" (2fc1398b) by @getsentry-bot
+- ref(js): Convert events/userFeedback to a FC (#43283) by @evanpurkhiser
+- feat(replays): Remove calendar icon from Replays list table (#43252) by @ryan953
+- feat(replays): Remove the icon from the "Open Replay" preview in Issues (#43251) by @ryan953
+- ref(ui): Visually improve PageHeadingQuestionTooltip (#43277) by @evanpurkhiser
+- chore(ui): Upgrade babel, babel-loader, core-ui (#43286) by @scttcper
+- ref(scim): Use transaction instead of span (#43287) by @AniketDas-Tekky
+- feat(modal) Consolidate close prevention props (#43258) by @malwilley
+- fix(integrations): Use services to get organization data (#43284) by @leeandher
+- fix(useOverlay): Only enable maxSize modifier when open (#43193) by @vuluongj20
+- fix(domains) Use routing params in join-request route (#43271) by @markstory
+- fix(integrations): Use organization_id for finding the integration (#43279) by @leeandher
+- ref(js): Remove default Button export (#43280) by @evanpurkhiser
+- ref(js): Consistent spacing in eventEntry (#43230) by @evanpurkhiser
+- ref(replays): Rename Replay API fields to be snake_case and new names (#43206) by @ryan953
+- feat(replays): Convert fields to snake-case and add additional query aliases (#43194) by @cmanallen
+- feat(anr-rate): Update ANR rate defaults on project details (#43248) by @shruthilayaj
+- bug: Fix import of button (#43272) by @ryan953
+- Revert "ref(js): Remove default Button export (#43254)" (9f77d654) by @getsentry-bot
+- ci: Skip pip install when we have a cache hit in venv action (#43267) by @mattgauntseo-sentry
+- security(codeql): set codeql to weekly scans, on prs, and on master b… (#43213) by @mdtro
+- revert-revert: feat(hybrid-cloud): Move Integration/OrgIntegration to Control and implement IntegrationService (#43183) by @leeandher
+- chore: Add $schema to package.json + tsconfig.json (#43235) by @evanpurkhiser
+- ref(js): Export named Alert (#43255) by @evanpurkhiser
+
+_Plus 621 more_
+
 22.12.0
 -------
 

@@ -29,4 +29,4 @@ class UnsubscribeIncidentNotificationsView(UnsubscribeBaseView):
         )
 
     def unsubscribe(self, instance, user):
-        unsubscribe_from_incident(instance, user)
+        unsubscribe_from_incident(instance, user.id)

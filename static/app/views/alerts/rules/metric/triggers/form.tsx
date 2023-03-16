@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {Client} from 'sentry/api';
-import Field from 'sentry/components/forms/field';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {IconDiamond} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Config, Organization, Project} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
@@ -300,7 +300,7 @@ const StyledIconDiamond = styled(IconDiamond)`
   margin-right: ${space(0.75)};
 `;
 
-const StyledField = styled(Field)`
+const StyledField = styled(FieldGroup)`
   & > label > div:first-child > span {
     display: flex;
     flex-direction: row;

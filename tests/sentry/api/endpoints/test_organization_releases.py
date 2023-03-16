@@ -46,11 +46,11 @@ from sentry.testutils import (
     SnubaTestCase,
     TestCase,
 )
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-releases"
 
@@ -757,7 +757,7 @@ class OrganizationReleaseListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleasesStatsTest(APITestCase):
     endpoint = "sentry-api-0-organization-releases-stats"
 
@@ -1088,7 +1088,7 @@ class OrganizationReleasesStatsTest(APITestCase):
         assert [r["version"] for r in response.data] == []
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseCreateTest(APITestCase):
     def test_empty_release_version(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1136,7 +1136,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         release = Release.objects.get(
             version=response.data["version"], user_agent="sentry-cli/2.77.4"
         )
-        assert not release.owner
+        assert not release.owner_id
         assert release.organization == org
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
@@ -1338,7 +1338,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data["version"] == "1.2.3+dev"
 
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
-        assert not release.owner
+        assert not release.owner_id
 
     def test_features(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1362,7 +1362,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data["version"]
 
         release = Release.objects.get(organization_id=org.id, version=response.data["version"])
-        assert release.owner == self.user
+        assert release.owner_id == self.user.id
 
     def test_commits(self):
         user = self.create_user(is_staff=False, is_superuser=False)
@@ -1626,7 +1626,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         url = reverse("sentry-api-0-organization-releases", kwargs={"organization_slug": org.slug})
 
         # test right org, wrong permissions level
-        bad_api_key = ApiKey.objects.create(organization=org, scope_list=["project:read"])
+        with exempt_from_silo_limits():
+            bad_api_key = ApiKey.objects.create(organization=org, scope_list=["project:read"])
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1635,7 +1636,10 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test wrong org, right permissions level
-        wrong_org_api_key = ApiKey.objects.create(organization=org2, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            wrong_org_api_key = ApiKey.objects.create(
+                organization=org2, scope_list=["project:write"]
+            )
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1644,7 +1648,8 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.status_code == 403
 
         # test right org, right permissions level
-        good_api_key = ApiKey.objects.create(organization=org, scope_list=["project:write"])
+        with exempt_from_silo_limits():
+            good_api_key = ApiKey.objects.create(organization=org, scope_list=["project:write"])
         response = self.client.post(
             url,
             data={"version": "1.2.1", "projects": [project1.slug]},
@@ -1666,7 +1671,8 @@ class OrganizationReleaseCreateTest(APITestCase):
             organization_id=org.id, name="getsentry/sentry-plugins", provider="dummy"
         )
 
-        api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
+        with exempt_from_silo_limits():
+            api_token = ApiToken.objects.create(user=user, scope_list=["project:releases"])
 
         team1 = self.create_team(organization=org)
         self.create_member(teams=[team1], user=user, organization=org)
@@ -1730,7 +1736,7 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert response.data == {"refs": ["Invalid repository names: not_a_repo"]}
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
     def setUp(self):
         super().setUp()
@@ -1846,7 +1852,7 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
         self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseListEnvironmentsTest(APITestCase):
     def setUp(self):
         self.login_as(user=self.user)
@@ -1912,9 +1918,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         self.org = org
 
     def make_environment(self, name, project):
-        env = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name=name
-        )
+        env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
@@ -2000,7 +2004,7 @@ class OrganizationReleaseListEnvironmentsTest(APITestCase):
         assert response.status_code == 400
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
     def url(self):
@@ -2094,6 +2098,7 @@ class OrganizationReleaseCreateCommitPatch(ReleaseCommitPatchTest):
         self.assert_file_change(file_changes[3], "D", "templates/hola.html", commits[0].id)
 
 
+@region_silo_test(stable=True)
 class ReleaseSerializerWithProjectsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -2255,6 +2260,7 @@ class ReleaseSerializerWithProjectsTest(TestCase):
         assert not serializer.is_valid()
 
 
+@region_silo_test(stable=True)
 class ReleaseHeadCommitSerializerTest(unittest.TestCase):
     def setUp(self):
         super().setUp()

@@ -6,6 +6,7 @@ from typing import Any, Iterable, Mapping, MutableMapping
 import pytz
 
 from sentry.db.models import Model
+from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
 from sentry.models import Team, User, UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
@@ -28,7 +29,6 @@ from sentry.notifications.utils import (
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GROUP_CATEGORIES_CUSTOM_EMAIL, GROUP_TYPE_TO_TEXT, GroupCategory
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 
@@ -124,7 +124,7 @@ class AlertRuleNotification(ProjectNotification):
                 "/settings/account/notifications/alerts/?referrer=alert_email"
             ),
             "has_alert_integration": has_alert_integration(self.project),
-            "issue_type": GROUP_TYPE_TO_TEXT.get(self.group.issue_type, "Issue"),
+            "issue_type": self.group.issue_type.description,
             "subtitle": self.event.title,
         }
 
@@ -140,6 +140,12 @@ class AlertRuleNotification(ProjectNotification):
                     "subtitle": get_performance_issue_alert_subtitle(self.event),
                 },
             )
+
+        if getattr(self.event, "occurrence", None):
+            context["issue_title"] = self.event.occurrence.issue_title
+            context["subtitle"] = self.event.occurrence.subtitle
+            context["culprit"] = self.event.occurrence.culprit
+
         if self.group.issue_category not in GROUP_CATEGORIES_CUSTOM_EMAIL:
             generic_issue_data_html = get_generic_data(self.event)
             if generic_issue_data_html:

@@ -32,9 +32,7 @@ const event = TestStubs.Event({
 });
 
 describe('EventOrGroupHeader', function () {
-  const {organization, router, routerContext} = initializeOrg({
-    router: {orgId: 'orgId'},
-  } as Parameters<typeof initializeOrg>[0]);
+  const {organization, router, routerContext} = initializeOrg();
 
   describe('Group', function () {
     it('renders with `type = error`', function () {

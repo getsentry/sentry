@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SVGIconProps} from 'sentry/icons/svgIcon';
 
 import Icon from './icon';
@@ -56,6 +56,6 @@ const IconWrapper = styled('div')<Pick<Props, 'color'>>`
   border-radius: 50%;
   color: ${p => p.theme.white};
   background: ${p => p.theme[p.color] ?? p.color};
-  box-shadow: ${p => p.theme.dropShadowLightest};
+  box-shadow: ${p => p.theme.dropShadowLight};
   position: relative;
 `;

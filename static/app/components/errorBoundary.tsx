@@ -3,7 +3,7 @@ import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import DetailedError from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
 import getDynamicText from 'sentry/utils/getDynamicText';

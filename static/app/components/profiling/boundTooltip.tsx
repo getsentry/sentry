@@ -2,7 +2,7 @@ import {useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
@@ -49,7 +49,7 @@ function BoundTooltip({
   const physicalSpaceCursor = vec2.transformMat3(
     vec2.create(),
     cursor,
-    canvasView.fromConfigView(canvas.physicalSpace)
+    canvasView.fromTransformedConfigView(canvas.physicalSpace)
   );
 
   const logicalSpaceCursor = vec2.transformMat3(

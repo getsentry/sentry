@@ -2,19 +2,19 @@ import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {AriaTabListProps, useTabList} from '@react-aria/tabs';
-import {Item, useCollection} from '@react-stately/collections';
+import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import {useTabListState} from '@react-stately/tabs';
 import {Node, Orientation} from '@react-types/shared';
 
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
-import {TabListItemProps} from 'sentry/components/tabs/item';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import {TabsContext} from './index';
+import {Item, TabListItemProps} from './item';
 import {Tab} from './tab';
 import {tabsShouldForwardProp} from './utils';
 
@@ -157,6 +157,7 @@ function BaseTabList({
           value: key,
           label: item.props.children,
           disabled: item.props.disabled,
+          textValue: item.textValue,
         };
       });
   }, [state.collection, overflowTabs]);
@@ -183,24 +184,26 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <CompactSelect
-          options={overflowMenuItems}
-          value={[...state.selectionManager.selectedKeys][0]}
-          onChange={opt => state.setSelectedKey(opt.value)}
-          isDisabled={disabled}
-          position="bottom-end"
-          size="sm"
-          offset={4}
-          trigger={triggerProps => (
-            <OverflowMenuTrigger
-              {...triggerProps}
-              borderless
-              showChevron={false}
-              icon={<IconEllipsis />}
-              aria-label={t('More tabs')}
-            />
-          )}
-        />
+        <TabListOverflowWrap>
+          <CompactSelect
+            options={overflowMenuItems}
+            value={[...state.selectionManager.selectedKeys][0]}
+            onChange={opt => state.setSelectedKey(opt.value)}
+            disabled={disabled}
+            position="bottom-end"
+            size="sm"
+            offset={4}
+            trigger={triggerProps => (
+              <OverflowMenuTrigger
+                {...triggerProps}
+                borderless
+                showChevron={false}
+                icon={<IconEllipsis />}
+                aria-label={t('More tabs')}
+              />
+            )}
+          />
+        </TabListOverflowWrap>
       )}
     </TabListOuterWrap>
   );
@@ -239,6 +242,8 @@ export function TabList({items, ...props}: TabListProps) {
   );
 }
 
+TabList.Item = Item;
+
 const TabListOuterWrap = styled('div')`
   position: relative;
 `;
@@ -272,10 +277,12 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
       `};
 `;
 
-const OverflowMenuTrigger = styled(DropdownButton)`
+const TabListOverflowWrap = styled('div')`
   position: absolute;
   right: 0;
   bottom: ${space(0.75)};
+`;
+const OverflowMenuTrigger = styled(DropdownButton)`
   padding-left: ${space(1)};
   padding-right: ${space(1)};
 `;

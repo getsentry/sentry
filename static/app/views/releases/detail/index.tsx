@@ -5,8 +5,9 @@ import {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -15,8 +16,7 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Deploy,
   Organization,
@@ -171,11 +171,11 @@ class ReleasesDetail extends AsyncView<Props, State> {
 
     if (possiblyWrongProject) {
       return (
-        <PageContent>
+        <Layout.Page>
           <Alert type="error" showIcon>
             {t('This release may not be in your selected project.')}
           </Alert>
-        </PageContent>
+        </Layout.Page>
       );
     }
 
@@ -184,9 +184,9 @@ class ReleasesDetail extends AsyncView<Props, State> {
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -205,8 +205,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <NoProjectMessage organization={organization}>
-        <StyledPageContent>
+      <Layout.Page>
+        <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
             organization={organization}
@@ -229,8 +229,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
           >
             {this.props.children}
           </ReleaseContext.Provider>
-        </StyledPageContent>
-      </NoProjectMessage>
+        </NoProjectMessage>
+      </Layout.Page>
     );
   }
 }
@@ -297,11 +297,11 @@ class ReleasesDetailContainer extends AsyncComponent<
     if (has404Errors) {
       // This catches a 404 coming from the release endpoint and displays a custom error message.
       return (
-        <PageContent>
+        <Layout.Page withPadding>
           <Alert type="error" showIcon>
             {t('This release could not be found.')}
           </Alert>
-        </PageContent>
+        </Layout.Page>
       );
     }
 
@@ -316,9 +316,9 @@ class ReleasesDetailContainer extends AsyncComponent<
 
   renderLoading() {
     return (
-      <PageContent>
+      <Layout.Page>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -371,10 +371,6 @@ class ReleasesDetailContainer extends AsyncComponent<
     );
   }
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
 
 const ProjectsFooterMessage = styled('div')`
   display: grid;

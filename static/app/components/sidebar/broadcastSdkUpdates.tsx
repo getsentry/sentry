@@ -2,10 +2,11 @@ import styled from '@emotion/styled';
 import groupBy from 'lodash/groupBy';
 import partition from 'lodash/partition';
 
+import {Alert} from 'sentry/components/alert';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Tag from 'sentry/components/tag';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Organization,
   Project,
@@ -17,7 +18,6 @@ import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
 import withSdkUpdates from 'sentry/utils/withSdkUpdates';
 
-import Alert from '../alert';
 import Collapsible from '../collapsible';
 import List from '../list';
 import ListItem from '../list/listItem';
@@ -148,7 +148,7 @@ function BroadcastSdkUpdates({projects, sdkUpdates, organization}: Props) {
 
 export default withSdkUpdates(withProjects(withOrganization(BroadcastSdkUpdates)));
 
-export const UpdatesList = styled('div')`
+const UpdatesList = styled('div')`
   margin-top: ${space(3)};
   display: grid;
   grid-auto-flow: row;
@@ -163,16 +163,16 @@ const Header = styled('div')`
   align-items: center;
 `;
 
-export const SdkOutdatedVersion = styled('div')`
+const SdkOutdatedVersion = styled('div')`
   /* 24px + 8px to be aligned with the SdkProjectBadge data */
   padding-left: calc(24px + ${space(1)});
 `;
 
-export const OutdatedVersion = styled('span')`
+const OutdatedVersion = styled('span')`
   color: ${p => p.theme.gray400};
 `;
 
-export const SdkProjectBadge = styled(ProjectBadge)`
+const SdkProjectBadge = styled(ProjectBadge)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
   line-height: 1;
 `;
@@ -181,10 +181,8 @@ const StyledAlert = styled(Alert)`
   margin-top: ${space(2)};
 `;
 
-export const UpdateSuggestions = styled(List)`
+const UpdateSuggestions = styled(List)`
   /* 24px + 8px to be aligned with the project name
   * displayed by the SdkProjectBadge component */
   padding-left: calc(24px + ${space(1)});
 `;
-
-export const UpdateSuggestion = styled(ListItem)``;

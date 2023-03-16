@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import CheckboxFancy from 'sentry/components/checkboxFancy/checkboxFancy';
-import space from 'sentry/styles/space';
+import Checkbox from 'sentry/components/checkbox';
+import {space} from 'sentry/styles/space';
 import domId from 'sentry/utils/domId';
 
 const defaultRenderCheckbox = ({checkbox}) => checkbox;
@@ -15,7 +16,7 @@ type CheckboxRenderOptions = {
 interface Props extends React.HTMLAttributes<HTMLDivElement> {
   checked: boolean;
   children: React.ReactNode;
-  onCheckClick: (event: React.MouseEvent) => void;
+  onSelectedChange: () => void;
   multi?: boolean;
   /**
    * This is a render prop which may be used to augment the checkbox rendered
@@ -27,7 +28,7 @@ interface Props extends React.HTMLAttributes<HTMLDivElement> {
 
 function PageFilterRow({
   checked,
-  onCheckClick,
+  onSelectedChange,
   children,
   multi = true,
   renderCheckbox = defaultRenderCheckbox,
@@ -37,10 +38,12 @@ function PageFilterRow({
 
   const checkbox = (
     <MultiselectCheckbox
-      isDisabled={!multi}
-      isChecked={checked}
-      onClick={multi ? onCheckClick : undefined}
+      disabled={!multi}
+      checked={checked}
+      onClick={e => e.stopPropagation()}
+      onChange={multi ? onSelectedChange : undefined}
       aria-labelledby={rowId}
+      inputCss={multi && checkboxInputStyles}
     />
   );
 
@@ -49,25 +52,22 @@ function PageFilterRow({
       <Label id={rowId} multi={multi}>
         {children}
       </Label>
-      {renderCheckbox({checkbox, checked})}
+      <CheckboxContainer>{renderCheckbox({checkbox, checked})}</CheckboxContainer>
     </Container>
   );
 }
 
-const MultiselectCheckbox = styled(CheckboxFancy)`
-  position: relative;
+const checkboxInputStyles = css`
+  /* Make the hitbox of the checkbox a bit larger */
+  top: -${space(2)};
+  left: -${space(2)};
+  width: 48px;
+  height: 48px;
+`;
+
+const MultiselectCheckbox = styled(Checkbox)`
   margin: 0 ${space(1)};
   margin-right: ${space(0.75)};
-
-  /* Make the hitbox of the checkbox a bit larger */
-  &:after {
-    content: '';
-    position: absolute;
-    top: -${space(2)};
-    right: -${space(1.5)};
-    bottom: -${space(2)};
-    left: -${space(2)};
-  }
 `;
 
 const Container = styled('div')<{isChecked: boolean}>`
@@ -101,6 +101,10 @@ const Label = styled('div')<{multi: boolean}>`
     text-decoration: ${p => (p.multi ? 'underline' : null)};
     color: ${p => (p.multi ? p.theme.linkColor : null)};
   }
+`;
+
+const CheckboxContainer = styled('div')`
+  line-height: 0;
 `;
 
 export default PageFilterRow;

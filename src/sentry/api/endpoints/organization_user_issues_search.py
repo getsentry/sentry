@@ -23,7 +23,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
         project_ids = list(
             Project.objects.filter(
                 teams__in=OrganizationMemberTeam.objects.filter(
-                    organizationmember__user=request.user,
+                    organizationmember__user_id=request.user.id,
                     organizationmember__organization=organization,
                     is_active=True,
                 ).values("team")
@@ -38,6 +38,7 @@ class OrganizationUserIssuesSearchEndpoint(OrganizationEndpoint, EnvironmentMixi
                     project_ids=list({e.project_id for e in event_users}),
                     event_users=event_users,
                     limit=limit,
+                    tenant_ids={"organization_id": organization.id},
                 )
             ).order_by("-last_seen")[:limit]
         else:

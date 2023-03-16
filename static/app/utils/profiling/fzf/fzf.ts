@@ -113,6 +113,8 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   }
 
   const [score, matches] = calculateScore(text, pattern, sidx, eidx, caseSensitive);
+
+  // Fzf will return matches per each character, we will try to merge these together
   return {
     start: sidx,
     end: eidx,

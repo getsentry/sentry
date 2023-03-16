@@ -12,7 +12,7 @@ import {
 } from 'sentry/actionCreators/sentryAppTokens';
 import Avatar from 'sentry/components/avatar';
 import AvatarChooser, {Model} from 'sentry/components/avatarChooser';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import Form from 'sentry/components/forms/form';
@@ -22,7 +22,7 @@ import FormModel, {FieldValue} from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SENTRY_APP_PERMISSIONS} from 'sentry/constants';
 import {
   internalIntegrationForms,
@@ -30,7 +30,7 @@ import {
 } from 'sentry/data/forms/sentryApplication';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {InternalAppApiToken, Organization, Scope, SentryApp} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -135,7 +135,7 @@ class SentryAppFormModel extends FormModel {
   }
 }
 
-type Props = RouteComponentProps<{orgId: string; appSlug?: string}, {}> & {
+type Props = RouteComponentProps<{appSlug?: string}, {}> & {
   organization: Organization;
 };
 
@@ -185,9 +185,9 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
 
   handleSubmitSuccess = (data: SentryApp) => {
     const {app} = this.state;
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const type = this.isInternal ? 'internal' : 'public';
-    const baseUrl = `/settings/${orgId}/developer-settings/`;
+    const baseUrl = `/settings/${organization.slug}/developer-settings/`;
     const url = app ? `${baseUrl}?type=${type}` : `${baseUrl}${data.slug}/`;
     if (app) {
       addSuccessMessage(t('%s successfully saved.', data.name));
@@ -291,7 +291,6 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
             size="sm"
             icon={<IconDelete />}
             data-test-id="token-delete"
-            type="button"
           >
             {t('Revoke')}
           </Button>
@@ -448,7 +447,6 @@ class SentryApplicationDetails extends AsyncView<Props, State> {
                   icon={<IconAdd size="xs" isCircled />}
                   onClick={evt => this.onAddToken(evt)}
                   data-test-id="token-add"
-                  type="button"
                 >
                   {t('New Token')}
                 </Button>
@@ -503,6 +501,7 @@ export default withOrganization(SentryApplicationDetails);
 
 const StyledPanelItem = styled(PanelItem)`
   display: flex;
+  align-items: center;
   justify-content: space-between;
 `;
 

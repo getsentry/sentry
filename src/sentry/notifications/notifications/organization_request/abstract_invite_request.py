@@ -12,7 +12,6 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models import Team, User
@@ -28,10 +27,11 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
 
     @property
     def members_url(self) -> str:
-        url: str = absolute_uri(
-            reverse("sentry-organization-members", args=[self.organization.slug])
+        return str(
+            self.organization.absolute_url(
+                reverse("sentry-organization-members", args=[self.organization.slug])
+            )
         )
-        return url
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Access request to {self.organization.name}"
@@ -46,7 +46,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             ExternalProviders.EMAIL, recipient
         )
         if self.pending_member.requested_to_join:
-            context["settings_link"] = absolute_uri(
+            context["settings_link"] = self.organization.absolute_url(
                 reverse("sentry-organization-settings", args=[self.organization.slug])
             )
         else:

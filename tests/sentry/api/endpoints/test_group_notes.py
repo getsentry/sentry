@@ -1,18 +1,14 @@
-from sentry.models import (
-    Activity,
-    ExternalIssue,
-    GroupLink,
-    GroupSubscription,
-    Integration,
-    OrganizationIntegration,
-)
+import datetime
+
+from sentry.models import Activity, ExternalIssue, Group, GroupLink, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
+from sentry.tasks.merge import merge_groups
 from sentry.testutils import APITestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupNoteTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -21,7 +17,7 @@ class GroupNoteTest(APITestCase):
             group=group,
             project=group.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={"text": "hello world"},
         )
 
@@ -33,8 +29,73 @@ class GroupNoteTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(activity.id)
 
+    def test_note_merge(self):
+        """Test that when 2 (or more) issues with comments are merged, the chronological order of the comments are preserved."""
+        now = datetime.datetime.now()
 
-@region_silo_test
+        project1 = self.create_project()
+        event1 = self.store_event(data={}, project_id=project1.id)
+        group1 = event1.group
+        note1 = Activity.objects.create(
+            group=group1,
+            project=project1,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "This looks bad :)"},
+            datetime=now - datetime.timedelta(days=70),
+        )
+        note2 = Activity.objects.create(
+            group=group1,
+            project=project1,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "Yeah we should probably look into this"},
+            datetime=now - datetime.timedelta(days=66),
+        )
+
+        project2 = self.create_project()
+        group2 = self.create_group(project2)
+
+        note3 = Activity.objects.create(
+            group=group2,
+            project=project2,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "I have been a good Sentry :)"},
+            datetime=now - datetime.timedelta(days=90),
+        )
+        note4 = Activity.objects.create(
+            group=group2,
+            project=project2,
+            type=ActivityType.NOTE.value,
+            user_id=self.user.id,
+            data={"text": "You have been a bad user :)"},
+            datetime=now - datetime.timedelta(days=88),
+        )
+
+        with self.tasks():
+            merge_groups([group1.id], group2.id)
+
+        assert not Group.objects.filter(id=group1.id).exists()
+
+        self.login_as(user=self.user)
+
+        url = f"/api/0/issues/{group2.id}/comments/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 4
+
+        assert response.data[0]["id"] == str(note2.id)
+        assert response.data[0]["data"]["text"] == note2.data["text"]
+        assert response.data[1]["id"] == str(note1.id)
+        assert response.data[1]["data"]["text"] == note1.data["text"]
+        assert response.data[2]["id"] == str(note4.id)
+        assert response.data[2]["data"]["text"] == note4.data["text"]
+        assert response.data[3]["id"] == str(note3.id)
+        assert response.data[3]["data"]["text"] == note3.data["text"]
+
+
+@region_silo_test(stable=True)
 class GroupNoteCreateTest(APITestCase):
     def test_simple(self):
         group = self.group
@@ -50,7 +111,7 @@ class GroupNoteCreateTest(APITestCase):
         assert response.status_code == 201, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
-        assert activity.user == self.user
+        assert activity.user_id == self.user.id
         assert activity.group == group
         assert activity.data == {"text": "hello world"}
 
@@ -154,19 +215,19 @@ class GroupNoteCreateTest(APITestCase):
     def test_with_group_link(self):
         group = self.group
 
-        integration = Integration.objects.create(provider="example", external_id="123456")
-        integration.add_organization(group.organization, self.user)
-
-        OrganizationIntegration.objects.filter(
-            integration_id=integration.id, organization_id=group.organization.id
-        ).update(
-            config={
-                "sync_comments": True,
-                "sync_status_outbound": True,
-                "sync_status_inbound": True,
-                "sync_assignee_outbound": True,
-                "sync_assignee_inbound": True,
-            }
+        integration = self.create_integration(
+            organization=group.organization,
+            provider="example",
+            external_id="123456",
+            oi_params={
+                "config": {
+                    "sync_comments": True,
+                    "sync_status_outbound": True,
+                    "sync_status_inbound": True,
+                    "sync_assignee_outbound": True,
+                    "sync_assignee_inbound": True,
+                }
+            },
         )
 
         external_issue = ExternalIssue.objects.create(
@@ -182,7 +243,8 @@ class GroupNoteCreateTest(APITestCase):
         )
 
         self.user.name = "Sentry Admin"
-        self.user.save()
+        with exempt_from_silo_limits():
+            self.user.save()
         self.login_as(user=self.user)
 
         url = f"/api/0/issues/{group.id}/comments/"
@@ -194,6 +256,6 @@ class GroupNoteCreateTest(APITestCase):
                 assert response.status_code == 201, response.content
 
                 activity = Activity.objects.get(id=response.data["id"])
-                assert activity.user == self.user
+                assert activity.user_id == self.user.id
                 assert activity.group == group
                 assert activity.data == {"text": comment, "external_id": "123456789"}

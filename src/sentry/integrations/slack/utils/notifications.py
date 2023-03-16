@@ -66,8 +66,8 @@ def send_incident_alert_notification(
     client = SlackClient()
     try:
         client.post("/chat.postMessage", data=payload, timeout=5)
-    except ApiError as e:
-        logger.info("rule.fail.slack_post", extra={"error": str(e)})
+    except ApiError:
+        logger.info("rule.fail.slack_post", exc_info=True)
 
 
 def send_slack_response(

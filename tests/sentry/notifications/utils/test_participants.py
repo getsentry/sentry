@@ -1,10 +1,13 @@
 from typing import Iterable, Mapping, Optional, Sequence, Union
-from unittest import mock
 
 import pytest
 
 from sentry.eventstore.models import Event
-from sentry.models import GroupRelease, NotificationSetting, Project, ProjectOwnership, Team, User
+from sentry.models import NotificationSetting, Project, ProjectOwnership, Team, User
+from sentry.models.commit import Commit
+from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.grouprelease import GroupRelease
+from sentry.models.repository import Repository
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -12,16 +15,15 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.notifications.utils.participants import (
-    FALLTHROUGH_NOTIFICATION_LIMIT,
+    FALLTHROUGH_NOTIFICATION_LIMIT_EA,
     get_fallthrough_recipients,
     get_owner_reason,
     get_owners,
-    get_release_committers,
     get_send_to,
 )
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, Rule, dump_schema
-from sentry.services.hybrid_cloud.user import APIUser, UserService, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
@@ -29,6 +31,19 @@ from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data
+
+STACKTRACE = {
+    "frames": [
+        {
+            "function": "handledError",
+            "abs_path": "Application.java",
+            "module": "io.sentry.example.Application",
+            "in_app": True,
+            "lineno": 39,
+            "filename": "Application.java",
+        },
+    ]
+}
 
 
 class GetSendToMemberTest(TestCase):
@@ -46,8 +61,8 @@ class GetSendToMemberTest(TestCase):
 
     def test_send_to_user(self):
         assert self.get_send_to_member() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
-            ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -59,7 +74,7 @@ class GetSendToMemberTest(TestCase):
         )
 
         assert self.get_send_to_member() == {
-            ExternalProviders.SLACK: {user_service.serialize_user(self.user)}
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)}
         }
 
     def test_other_org_user(self):
@@ -70,8 +85,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
@@ -84,8 +99,8 @@ class GetSendToMemberTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_member(project_2, user_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
@@ -122,7 +137,7 @@ class GetSendToTeamTest(TestCase):
 
     def test_send_to_team(self):
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
         }
 
         NotificationSetting.objects.update_settings(
@@ -151,7 +166,7 @@ class GetSendToTeamTest(TestCase):
             team=self.team,
         )
         assert self.get_send_to_team() == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)}
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)}
         }
 
     def test_other_project_team(self):
@@ -160,8 +175,8 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -172,65 +187,10 @@ class GetSendToTeamTest(TestCase):
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
         assert self.get_send_to_team(project_2, team_2.id) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(user_2)},
-            ExternalProviders.SLACK: {user_service.serialize_user(user_2)},
+            ExternalProviders.EMAIL: {user_service.get_user(user_2.id)},
+            ExternalProviders.SLACK: {user_service.get_user(user_2.id)},
         }
         assert self.get_send_to_team(self.project, team_2.id) == {}
-
-
-class GetSentToReleaseMembersTest(TestCase):
-    def get_send_to_release_members(
-        self, event: Event
-    ) -> Mapping[ExternalProviders, Iterable[Union["Team", "User"]]]:
-        return get_send_to(
-            self.project,
-            target_type=ActionTargetType.RELEASE_MEMBERS,
-            target_identifier=None,
-            event=event,
-        )
-
-    def store_event(self, filename: str) -> Event:
-        return super().store_event(data=make_event_data(filename), project_id=self.project.id)
-
-    def setUp(self):
-        self.user2 = self.create_user(email="baz@example.com", is_active=True)
-        self.user3 = self.create_user(email="bar@example.com", is_active=True)
-
-        self.team2 = self.create_team(
-            organization=self.organization, members=[self.user, self.user2]
-        )
-        self.project.add_team(self.team2)
-        release = self.create_release(project=self.project, user=self.user)
-        GroupRelease.objects.create(
-            project_id=self.project.id,
-            group_id=self.group.id,
-            release_id=release.id,
-            environment=self.environment.name,
-        )
-
-    @mock.patch(
-        "sentry.notifications.utils.participants.get_release_committers",
-        wraps=get_release_committers,
-    )
-    def test_default_committer(self, spy_get_release_committers):
-        event = self.store_event("empty.lol")
-        event.group = self.group
-        with self.feature("organizations:active-release-notifications-enable"):
-            assert self.get_send_to_release_members(event) == {
-                ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
-                ExternalProviders.SLACK: {user_service.serialize_user(self.user)},
-            }
-            assert spy_get_release_committers.call_count == 1
-
-    @mock.patch(
-        "sentry.notifications.utils.participants.get_release_committers",
-        wraps=get_release_committers,
-    )
-    def test_flag_off_should_no_release_members(self, spy_get_release_committers):
-        event = self.store_event("empty.lol")
-        event.group = self.group
-        assert not self.get_send_to_release_members(event)
-        assert spy_get_release_committers.call_count == 1
 
 
 class GetSendToOwnersTest(TestCase):
@@ -244,17 +204,27 @@ class GetSendToOwnersTest(TestCase):
             event=event,
         )
 
-    def store_event(self, filename: str) -> Event:
+    def store_event_owners(self, filename: str) -> Event:
         return super().store_event(data=make_event_data(filename), project_id=self.project.id)
 
     def setUp(self):
         self.user2 = self.create_user(email="baz@example.com", is_active=True)
         self.user3 = self.create_user(email="bar@example.com", is_active=True)
+        self.user_suspect_committer = self.create_user(
+            email="suspectcommitter@example.com", is_active=True
+        )
 
         self.team2 = self.create_team(
             organization=self.organization, members=[self.user, self.user2]
         )
+        self.team_suspect_committer = self.create_team(
+            organization=self.organization, members=[self.user_suspect_committer]
+        )
         self.project.add_team(self.team2)
+        self.project.add_team(self.team_suspect_committer)
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id, name=self.organization.id
+        )
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -263,6 +233,7 @@ class GetSendToOwnersTest(TestCase):
                     grammar.Rule(Matcher("path", "*.py"), [Owner("team", self.team2.slug)]),
                     grammar.Rule(Matcher("path", "*.jsx"), [Owner("user", self.user.email)]),
                     grammar.Rule(Matcher("path", "*.jx"), [Owner("user", self.user3.email)]),
+                    grammar.Rule(Matcher("path", "*.java"), [Owner("user", self.user.email)]),
                     grammar.Rule(
                         Matcher("path", "*.cbl"),
                         [
@@ -286,17 +257,28 @@ class GetSendToOwnersTest(TestCase):
             team=self.team2,
         )
 
+        self.integration.add_organization(self.project.organization, self.user)
+
+    def create_sample_commit(self, user: User) -> Commit:
+        return self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.create_commit_author(project=self.project, user=user),
+            key="a" * 40,
+            message="fix: Fix bug",
+        )
+
     def test_empty(self):
-        event = self.store_event("empty.lol")
+        event = self.store_event_owners("empty.lol")
 
         assert self.get_send_to_owners(event) == {}
 
     def test_single_user(self):
-        event = self.store_event("user.jsx")
+        event = self.store_event_owners("user.jsx")
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
         # Make sure that disabling mail alerts works as expected
@@ -309,25 +291,25 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
     def test_single_user_no_teams(self):
-        event = self.store_event("user.jx")
+        event = self.store_event_owners("user.jx")
 
         assert self.get_send_to_owners(event) == {}
 
     def test_team_owners(self):
-        event = self.store_event("team.py")
+        event = self.store_event_owners("team.py")
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
             ExternalProviders.SLACK: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -340,15 +322,15 @@ class GetSendToOwnersTest(TestCase):
             project=self.project,
         )
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {user_service.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
             ExternalProviders.SLACK: {
-                user_service.serialize_user(self.user),
-                user_service.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
     def test_disable_alerts_multiple_scopes(self):
-        event = self.store_event("everyone.cbl")
+        event = self.store_event_owners("everyone.cbl")
 
         # Project-independent setting.
         NotificationSetting.objects.update_settings(
@@ -368,29 +350,263 @@ class GetSendToOwnersTest(TestCase):
         )
 
         assert self.get_send_to_owners(event) == {
-            ExternalProviders.EMAIL: {UserService.serialize_user(self.user)},
-            ExternalProviders.SLACK: {UserService.serialize_user(self.user)},
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
         }
 
     def test_fallthrough(self):
-        event = self.store_event("no_rule.cpp")
+        event = self.store_event_owners("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
             ExternalProviders.SLACK: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
+                user_service.get_user(self.user_suspect_committer.id),
             },
         }
 
     def test_without_fallthrough(self):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=False)
-        event = self.store_event("no_rule.cpp")
+        event = self.store_event_owners("no_rule.cpp")
 
         assert self.get_send_to_owners(event) == {}
+
+    @with_feature("organizations:streamline-targeting-context")
+    def test_send_to_suspect_committers(self):
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is not on.
+        """
+        # TODO: Delete this test once Commit Context has GA'd
+        release = self.create_release(project=self.project, version="v12")
+        event = self.store_event(
+            data={
+                "platform": "java",
+                "stacktrace": STACKTRACE,
+                "tags": {"sentry:release": release.version},
+            },
+            project_id=self.project.id,
+        )
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": self.repo.name,
+                    "author_email": "suspectcommitter@example.com",
+                    "author_name": "Suspect Committer",
+                    "message": "fix: Fix bug",
+                    "patch_set": [
+                        {"path": "src/main/java/io/sentry/example/Application.java", "type": "M"}
+                    ],
+                },
+            ]
+        )
+        GroupRelease.objects.create(
+            group_id=event.group.id, project_id=self.project.id, release_id=release.id
+        )
+
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user_suspect_committer.id),
+                user_service.get_user(self.user.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user_suspect_committer.id),
+                user_service.get_user(self.user.id),
+            },
+        }
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer is added as suggested assignee, where "organizations:commit-context"
+        flag is on.
+        """
+        self.commit = self.create_sample_commit(self.user_suspect_committer)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user_suspect_committer.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": self.commit.id},
+        )
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user_suspect_committer.id),
+                user_service.get_user(self.user.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user_suspect_committer.id),
+                user_service.get_user(self.user.id),
+            },
+        }
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_no_owners_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer is added as suggested assignee, where no user owns the file and
+        where the "organizations:commit-context" flag is on.
+        """
+        organization = self.create_organization(name="New Organization")
+        project_suspect_committer = self.create_project(
+            name="Suspect Committer Team Project",
+            organization=organization,
+            teams=[self.team_suspect_committer],
+        )
+        team_suspect_committer = self.create_team(
+            organization=organization, members=[self.user_suspect_committer]
+        )
+        project_suspect_committer.add_team(team_suspect_committer)
+        commit = self.create_sample_commit(self.user_suspect_committer)
+        event = self.store_event(
+            data={
+                "stacktrace": {
+                    "frames": [
+                        {
+                            "function": "handledError",
+                            "abs_path": "Application.lol",
+                            "module": "io.sentry.example.Application",
+                            "in_app": True,
+                            "lineno": 39,
+                            "filename": "Application.lol",
+                        },
+                    ]
+                },
+            },
+            project_id=project_suspect_committer.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user_suspect_committer.id,
+            project=project_suspect_committer,
+            organization=organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        assert get_send_to(
+            project_suspect_committer,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            target_identifier=None,
+            event=event,
+        ) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user_suspect_committer.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user_suspect_committer.id),
+            },
+        }
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_dupe_with_commit_context_feature_flag(self):
+        """
+        Test suspect committer/owner is added as suggested assignee once where the suspect
+        committer is also the owner and where the "organizations:commit-context" flag is on.
+        """
+        commit = self.create_sample_commit(self.user)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {user_service.get_user(self.user.id)},
+            ExternalProviders.SLACK: {user_service.get_user(self.user.id)},
+        }
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_exception_with_commit_context_feature_flag(self):
+        """
+        Test determine_eligible_recipients throws an exception when get_suspect_committers throws
+        an exception and returns the file owner, where "organizations:commit-context" flag is on.
+        """
+        invalid_commit_id = 10000
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=self.user3.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": invalid_commit_id},
+        )
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user.id),
+            },
+        }
+
+    @with_feature("organizations:streamline-targeting-context")
+    @with_feature("organizations:commit-context")
+    def test_send_to_suspect_committers_not_project_member_commit_context_feature_flag(self):
+        """
+        Test suspect committer is not added as suggested assignee where the suspect committer
+         is not part of the project and where the "organizations:commit-context" flag is on.
+        """
+        user_suspect_committer_no_team = self.create_user(
+            email="suspectcommitternoteam@example.com", is_active=True
+        )
+        commit = self.create_sample_commit(user_suspect_committer_no_team)
+        event = self.store_event(
+            data={
+                "stacktrace": STACKTRACE,
+            },
+            project_id=self.project.id,
+        )
+
+        GroupOwner.objects.create(
+            group=event.group,
+            user_id=user_suspect_committer_no_team.id,
+            project=self.project,
+            organization=self.organization,
+            type=GroupOwnerType.SUSPECT_COMMIT.value,
+            context={"commitId": commit.id},
+        )
+        assert self.get_send_to_owners(event) == {
+            ExternalProviders.EMAIL: {
+                user_service.get_user(self.user.id),
+            },
+            ExternalProviders.SLACK: {
+                user_service.get_user(self.user.id),
+            },
+        }
 
 
 class GetOwnersCase(TestCase):
@@ -440,12 +656,12 @@ class GetOwnersCase(TestCase):
         )
 
     def assert_recipients(
-        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, APIUser]]
+        self, expected: Iterable[Union[Team, User]], received: Iterable[Union[Team, RpcUser]]
     ) -> None:
         assert len(expected) == len(received)
         for recipient in expected:
             if isinstance(recipient, User):
-                assert UserService.serialize_user(recipient) in received
+                assert user_service.get_user(recipient.id) in received
             else:
                 assert recipient in received
 
@@ -500,52 +716,39 @@ class GetOwnersCase(TestCase):
     def test_get_owner_reason(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-
-        # Test feature flag
         owner_reason = get_owner_reason(
             project=self.project,
             event=event,
             target_type=ActionTargetType.ISSUE_OWNERS,
             fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
         )
-        assert owner_reason is None
-
-        with self.feature("organizations:issue-alert-fallback-targeting"):
-            owner_reason = get_owner_reason(
-                project=self.project,
-                event=event,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
-            )
-            assert (
-                owner_reason
-                == f"We notified all members in the {self.project.get_full_name()} project of this issue"
-            )
-            owner_reason = get_owner_reason(
-                project=self.project,
-                event=event,
-                target_type=ActionTargetType.ISSUE_OWNERS,
-                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
-            )
-            assert (
-                owner_reason
-                == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
-            )
+        assert (
+            owner_reason
+            == f"We notified all members in the {self.project.get_full_name()} project of this issue"
+        )
+        owner_reason = get_owner_reason(
+            project=self.project,
+            event=event,
+            target_type=ActionTargetType.ISSUE_OWNERS,
+            fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+        )
+        assert (
+            owner_reason
+            == f"We notified recently active members in the {self.project.get_full_name()} project of this issue"
+        )
 
     def test_get_owner_reason_member(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-        with self.feature("organizations:issue-alert-fallback-targeting"):
-            owner_reason = get_owner_reason(
-                project=self.project,
-                target_type=ActionTargetType.MEMBER,
-                event=event,
-                fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
-            )
-            assert owner_reason is None
+        owner_reason = get_owner_reason(
+            project=self.project,
+            target_type=ActionTargetType.MEMBER,
+            event=event,
+            fallthrough_choice=FallthroughChoiceType.ALL_MEMBERS,
+        )
+        assert owner_reason is None
 
 
-# @apply_feature_flag_on_cls("organizations:issue-alert-fallback-targeting")
 class GetSendToFallthroughTest(TestCase):
     def get_send_to_fallthrough(
         self,
@@ -604,8 +807,8 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("empty.py", self.project)
         assert self.get_send_to_fallthrough(event, self.project, None,) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -627,8 +830,8 @@ class GetSendToFallthroughTest(TestCase):
             event, self.project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             },
         }
 
@@ -675,8 +878,8 @@ class GetSendToFallthroughTest(TestCase):
             event, empty_project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
             }
         }
 
@@ -690,9 +893,9 @@ class GetSendToFallthroughTest(TestCase):
             event, self.project, FallthroughChoiceType.ALL_MEMBERS
         ) == {
             ExternalProviders.EMAIL: {
-                UserService.serialize_user(self.user),
-                UserService.serialize_user(self.user2),
-                UserService.serialize_user(self.user3),
+                user_service.get_user(self.user.id),
+                user_service.get_user(self.user2.id),
+                user_service.get_user(self.user3.id),
             }
         }
 
@@ -716,7 +919,7 @@ class GetSendToFallthroughTest(TestCase):
         event = self.store_event("admin.lol", self.project)
         # Check that the notified users are only the 2 active users.
         expected_notified_users = {
-            UserService.serialize_user(user) for user in [self.user, self.user2]
+            user_service.get_user(user.id) for user in [self.user, self.user2]
         }
         assert self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
@@ -724,15 +927,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
-        notified_users = [self.user, self.user2]
+        notifiable_users = [self.user, self.user2]
         for i in range(10):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -741,7 +944,7 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
@@ -751,15 +954,15 @@ class GetSendToFallthroughTest(TestCase):
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_over_20(self):
-        notified_users = [self.user, self.user2]
-        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT + 5):
+        notifiable_users = [self.user, self.user2]
+        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
             new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
             self.create_member(
                 user=new_user, organization=self.organization, role="owner", teams=[self.team2]
             )
-            notified_users.append(new_user)
+            notifiable_users.append(new_user)
 
-        for user in notified_users:
+        for user in notifiable_users:
             NotificationSetting.objects.update_settings(
                 ExternalProviders.SLACK,
                 NotificationSettingTypes.ISSUE_ALERTS,
@@ -768,10 +971,10 @@ class GetSendToFallthroughTest(TestCase):
             )
 
         event = self.store_event("admin.lol", self.project)
-        expected_notified_users = {UserService.serialize_user(user) for user in notified_users}
+        expected_notified_users = {user_service.get_user(user.id) for user in notifiable_users}
         notified_users = self.get_send_to_fallthrough(
             event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
         )[ExternalProviders.EMAIL]
 
-        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT
+        assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT_EA
         assert notified_users.issubset(expected_notified_users)

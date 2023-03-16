@@ -1,4 +1,4 @@
-from typing import MutableMapping
+from typing import MutableMapping, Optional, Sequence
 
 from arroyo import Message, Topic
 from confluent_kafka import Producer
@@ -10,6 +10,7 @@ from sentry.ingest.slicing import (
     map_logical_partition_to_slice,
     map_org_id_to_logical_partition,
 )
+from sentry.sentry_metrics.configuration import MetricsIngestConfiguration, UseCaseKey
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     MessageRoute,
     MessageRouter,
@@ -28,6 +29,32 @@ class MissingOrgInRoutingHeader(Exception):
     """
     Exception raised when the routing header does not contain an org_id.
     """
+
+
+def _validate_slicing_config() -> None:
+    """
+    Validates the generalized slicing config (not focusing on an individual
+    sliceable)
+    """
+    for (sliceable, assignments) in settings.SENTRY_SLICING_CONFIG.items():
+        acc = {}
+        for ((assign_lo, assign_hi), _slice_id) in assignments.items():
+            for logical_part in range(assign_lo, assign_hi):
+                if logical_part in acc:
+                    raise SlicingConfigurationException(
+                        f"'{sliceable}' has two assignments to logical partition {logical_part}"
+                    )
+                else:
+                    acc[logical_part] = _slice_id
+
+        missing_logical_parts = set(
+            range(0, settings.SENTRY_SLICING_LOGICAL_PARTITION_COUNT)
+        ) - set(acc.keys())
+
+        if not len(missing_logical_parts) == 0:
+            raise SlicingConfigurationException(
+                f"'{sliceable}' is missing logical partition assignments: {missing_logical_parts}"
+            )
 
 
 def _validate_slicing_consumer_config(sliceable: Sliceable) -> None:
@@ -69,6 +96,7 @@ class SlicingRouter(MessageRouter):
     ) -> None:
         self.__sliceable = sliceable
         self.__slice_to_producer: MutableMapping[int, MessageRoute] = {}
+        _validate_slicing_config()
         _validate_slicing_consumer_config(self.__sliceable)
 
         for (
@@ -81,9 +109,14 @@ class SlicingRouter(MessageRouter):
                 ),
                 topic=Topic(configuration["topic"]),
             )
-        assert len(self.__slice_to_producer) == len(
-            settings.SENTRY_SLICING_CONFIG[sliceable].keys()
-        )
+        # All logical partitions should be routed to a slice ID that's present in the slice
+        # ID to producer message route mapping
+        assert set(settings.SENTRY_SLICING_CONFIG[sliceable].values()).issubset(
+            self.__slice_to_producer.keys()
+        ), f"Unknown slice ID in SENTRY_SLICING_CONFIG for {sliceable}"
+
+    def get_all_producers(self) -> Sequence[Producer]:
+        return [route.producer for route in self.__slice_to_producer.values()]
 
     def get_route_for_message(self, message: Message[RoutingPayload]) -> MessageRoute:
         """
@@ -103,6 +136,15 @@ class SlicingRouter(MessageRouter):
 
         return producer
 
-    def shutdown(self) -> None:
-        for route in self.__slice_to_producer.values():
-            route.producer.flush()
+
+def get_slicing_router(config: MetricsIngestConfiguration) -> Optional[SlicingRouter]:
+    if config.is_output_sliced:
+        if config.use_case_id == UseCaseKey.PERFORMANCE:
+            sliceable = "generic_metrics"
+        else:
+            raise SlicingConfigurationException(
+                f"Slicing not supported for " f"{config.use_case_id}"
+            )
+        return SlicingRouter(sliceable=sliceable)
+    else:
+        return None

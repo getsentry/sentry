@@ -8,23 +8,10 @@ import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 
-export const DEFAULT_SORT = '-startedAt';
-
-export const REPLAY_LIST_FIELDS = [
-  'activity',
-  'countErrors',
-  'duration',
-  'finishedAt',
-  'id',
-  'projectId',
-  'startedAt',
-  'urls',
-  'user',
-];
+export const DEFAULT_SORT = '-started_at';
 
 type State = {
   fetchError: undefined | RequestError;
-  isFetching: boolean;
   pageLinks: null | string;
   replays: undefined | ReplayListRecord[];
 };
@@ -59,7 +46,6 @@ async function fetchReplayList({
 
     return {
       fetchError: undefined,
-      isFetching: false,
       pageLinks,
       replays: data.map(mapResponseToReplayRecord),
     };
@@ -67,7 +53,6 @@ async function fetchReplayList({
     if (error.responseJSON?.detail) {
       return {
         fetchError: error.responseJSON.detail,
-        isFetching: false,
         pageLinks: null,
         replays: [],
       };
@@ -75,7 +60,6 @@ async function fetchReplayList({
     Sentry.captureException(error);
     return {
       fetchError: error,
-      isFetching: false,
       pageLinks: null,
       replays: [],
     };

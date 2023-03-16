@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ActionButton from 'sentry/components/actions/button';
-import Button from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
+import {Button} from 'sentry/components/button';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import Input from 'sentry/components/input';
 import {
@@ -14,7 +14,7 @@ import {
 } from 'sentry/data/debugFileSources';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {uniqueId} from 'sentry/utils/guid';
 
 const CLEAR_PASSWORD_BUTTON_SIZE = 22;
@@ -105,7 +105,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
           : tct('Add [name] Repository', {name: DEBUG_SOURCE_TYPES.http})}
       </Header>
       <Body>
-        <Field
+        <FieldGroup
           label={t('Name')}
           inline={false}
           help={t('A display name for this repository')}
@@ -125,9 +125,9 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               })
             }
           />
-        </Field>
+        </FieldGroup>
         <hr />
-        <Field
+        <FieldGroup
           label={t('Download Url')}
           inline={false}
           help={t('Full URL to the symbol server')}
@@ -147,8 +147,8 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               })
             }
           />
-        </Field>
-        <Field
+        </FieldGroup>
+        <FieldGroup
           label={t('User')}
           inline={false}
           help={t('User for HTTP basic auth')}
@@ -167,8 +167,8 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
               })
             }
           />
-        </Field>
-        <Field
+        </FieldGroup>
+        <FieldGroup
           label={t('Password')}
           inline={false}
           help={t('Password for HTTP basic auth')}
@@ -193,14 +193,14 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             (typeof data.password === 'string' && !!data.password)) && (
             <ClearPasswordButton
               onClick={handleClearPassword}
-              icon={<IconClose size="14px" />}
+              icon={<IconClose legacySize="14px" />}
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}
               borderless
             />
           )}
-        </Field>
+        </FieldGroup>
         <hr />
         <StyledSelectField
           name="layout.type"

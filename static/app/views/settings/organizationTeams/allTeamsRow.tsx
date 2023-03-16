@@ -5,13 +5,13 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeam, leaveTeam} from 'sentry/actionCreators/teams';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct, tn} from 'sentry/locale';
 import TeamStore from 'sentry/stores/teamStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
@@ -180,6 +180,11 @@ class AllTeamsRow extends Component<Props, State> {
   render() {
     const {team, openMembership, organization} = this.props;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
+    const buttonHelpText = team.flags['idp:provisioned']
+      ? t(
+          "Membership to this team is managed through your organization's identity provider."
+        )
+      : undefined;
 
     const display = (
       <IdBadge
@@ -192,6 +197,8 @@ class AllTeamsRow extends Component<Props, State> {
     // You can only view team details if you have access to team -- this should account
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
+
+    const idpProvisioned = team.flags['idp:provisioned'];
 
     return (
       <TeamPanelItem>
@@ -211,7 +218,12 @@ class AllTeamsRow extends Component<Props, State> {
               ...
             </Button>
           ) : team.isMember ? (
-            <Button size="sm" onClick={this.handleLeaveTeam}>
+            <Button
+              size="sm"
+              onClick={this.handleLeaveTeam}
+              disabled={idpProvisioned}
+              title={buttonHelpText}
+            >
               {t('Leave Team')}
             </Button>
           ) : team.isPending ? (
@@ -225,11 +237,21 @@ class AllTeamsRow extends Component<Props, State> {
               {t('Request Pending')}
             </Button>
           ) : openMembership ? (
-            <Button size="sm" onClick={this.handleJoinTeam}>
+            <Button
+              size="sm"
+              onClick={this.handleJoinTeam}
+              disabled={idpProvisioned}
+              title={buttonHelpText}
+            >
               {t('Join Team')}
             </Button>
           ) : (
-            <Button size="sm" onClick={this.handleRequestAccess}>
+            <Button
+              size="sm"
+              onClick={this.handleRequestAccess}
+              disabled={idpProvisioned}
+              title={buttonHelpText}
+            >
               {t('Request Access')}
             </Button>
           )}

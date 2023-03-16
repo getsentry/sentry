@@ -17,7 +17,7 @@ from sentry.types.activity import ActivityType
 
 if TYPE_CHECKING:
     from sentry.models import Group, Release, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class GroupHistoryStatus:
@@ -211,7 +211,7 @@ def record_group_history_from_activity_type(
 def record_group_history(
     group: "Group",
     status: int,
-    actor: Optional[Union["APIUser", "Team"]] = None,
+    actor: Optional[Union["RpcUser", "Team"]] = None,
     release: Optional["Release"] = None,
 ):
     prev_history = get_prev_history(group, status)

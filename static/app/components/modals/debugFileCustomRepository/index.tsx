@@ -24,7 +24,6 @@ type AppStoreConnectInitialData = React.ComponentProps<
 type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
 type RouteParams = {
-  orgId: string;
   projectId: string;
 };
 
@@ -70,7 +69,7 @@ function DebugFileCustomRepository({
   organization,
   appStoreConnectSourcesQuantity,
 }: Props) {
-  const {orgId, projectId: projectSlug} = useParams<RouteParams>();
+  const {projectId: projectSlug} = useParams<RouteParams>();
   function handleSave(data?: Record<string, any>) {
     if (!data) {
       closeModal();
@@ -97,7 +96,7 @@ function DebugFileCustomRepository({
                 Header={Header}
                 Body={Body}
                 Footer={Footer}
-                orgSlug={orgId}
+                orgSlug={organization.slug}
                 projectSlug={projectSlug}
                 onSubmit={handleSave}
                 initialData={sourceConfig as AppStoreConnectInitialData}

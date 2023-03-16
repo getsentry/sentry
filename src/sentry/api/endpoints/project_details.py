@@ -11,6 +11,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, features
+from sentry import options as sentry_options
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
@@ -22,12 +23,11 @@ from sentry.api.serializers.rest_framework.origin import OriginField
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.datascrubbing import validate_pii_config_update
-from sentry.dynamic_sampling.feature_multiplexer import DynamicSamplingFeatureMultiplexer
-from sentry.dynamic_sampling.rules_generator import generate_rules
+from sentry.dynamic_sampling import generate_rules, get_supported_biases_ids, get_user_biases
 from sentry.grouping.enhancer import Enhancements, InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingRules, InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
-from sentry.lang.native.symbolicator import (
+from sentry.lang.native.sources import (
     InvalidSourcesError,
     parse_backfill_sources,
     parse_sources,
@@ -68,9 +68,7 @@ def clean_newline_inputs(value, case_insensitive=True):
 
 
 class DynamicSamplingBiasSerializer(serializers.Serializer):
-    id = serializers.ChoiceField(
-        required=True, choices=DynamicSamplingFeatureMultiplexer.get_supported_biases_ids()
-    )
+    id = serializers.ChoiceField(required=True, choices=get_supported_biases_ids())
     active = serializers.BooleanField(default=False)
 
     def validate(self, data):
@@ -129,6 +127,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     copy_from_project = serializers.IntegerField(required=False)
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(required=False, many=True)
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
+    performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
 
     def validate(self, data):
         max_delay = (
@@ -371,14 +370,12 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if "hasAlertIntegration" in expand:
             data["hasAlertIntegrationInstalled"] = has_alert_integration(project)
 
-        ds_feature_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-
         # Dynamic Sampling Logic
-        if ds_feature_multiplexer.is_on_dynamic_sampling:
+        if features.has(
+            "organizations:dynamic-sampling", project.organization
+        ) and sentry_options.get("dynamic-sampling:enabled-biases"):
             ds_bias_serializer = DynamicSamplingBiasSerializer(
-                data=ds_feature_multiplexer.get_user_biases(
-                    project.get_option("sentry:dynamic_sampling_biases", None)
-                ),
+                data=get_user_biases(project.get_option("sentry:dynamic_sampling_biases", None)),
                 many=True,
             )
             if not ds_bias_serializer.is_valid():
@@ -387,7 +384,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
             include_rules = request.GET.get("includeDynamicSamplingRules") == "1"
             if include_rules and is_active_superuser(request):
-                data["dynamicSamplingRules"] = generate_rules(project)
+                data["dynamicSamplingRules"] = {
+                    "rules": [],
+                    "rulesV2": generate_rules(project),
+                }
         else:
             data["dynamicSamplingBiases"] = None
             data["dynamicSamplingRules"] = None
@@ -433,8 +433,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
 
         result = serializer.validated_data
 
-        ds_flags_multiplexer = DynamicSamplingFeatureMultiplexer(project)
-        if result.get("dynamicSamplingBiases") and not ds_flags_multiplexer.is_on_dynamic_sampling:
+        if result.get("dynamicSamplingBiases") and not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and sentry_options.get("dynamic-sampling:enabled-biases")
+        ):
             return Response(
                 {"detail": ["dynamicSamplingBiases is not a valid field"]},
                 status=403,
@@ -547,7 +549,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("safeFields") is not None:
             if project.update_option("sentry:safe_fields", result["safeFields"]):
                 changed_proj_settings["sentry:safe_fields"] = result["safeFields"]
-        if "storeCrashReports" in result is not None:
+        if result.get("storeCrashReports") is not None:
             if project.get_option("sentry:store_crash_reports") != result["storeCrashReports"]:
                 changed_proj_settings["sentry:store_crash_reports"] = result["storeCrashReports"]
                 if result["storeCrashReports"] is None:
@@ -605,9 +607,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             )
 
         if "dynamicSamplingBiases" in result:
-            updated_biases = ds_flags_multiplexer.get_user_biases(
-                user_set_biases=result["dynamicSamplingBiases"]
-            )
+            updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):
                 changed_proj_settings["sentry:dynamic_sampling_biases"] = result[
                     "dynamicSamplingBiases"
@@ -618,6 +618,14 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             ):
                 changed_proj_settings["sentry:performance_issue_creation_rate"] = result[
                     "performanceIssueCreationRate"
+                ]
+        if "performanceIssueCreationThroughPlatform" in result:
+            if project.update_option(
+                "sentry:performance_issue_send_to_issues_platform",
+                result["performanceIssueCreationThroughPlatform"],
+            ):
+                changed_proj_settings["sentry:performance_issue_send_to_issues_platform"] = result[
+                    "performanceIssueCreationThroughPlatform"
                 ]
         # TODO(dcramer): rewrite options to use standard API config
         if has_project_write:
@@ -636,7 +644,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:safe_fields" in options:
                 project.update_option(
-                    "sentry:safe_fields", [s.strip().lower() for s in options["sentry:safe_fields"]]
+                    "sentry:safe_fields",
+                    [s.strip().lower() for s in options["sentry:safe_fields"]],
                 )
             if "sentry:store_crash_reports" in options:
                 project.update_option(
@@ -647,7 +656,8 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:relay_pii_config" in options:
                 project.update_option(
-                    "sentry:relay_pii_config", options["sentry:relay_pii_config"].strip() or None
+                    "sentry:relay_pii_config",
+                    options["sentry:relay_pii_config"].strip() or None,
                 )
             if "sentry:sensitive_fields" in options:
                 project.update_option(
@@ -691,7 +701,13 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if "sentry:reprocessing_active" in options:
                 project.update_option(
-                    "sentry:reprocessing_active", bool(options["sentry:reprocessing_active"])
+                    "sentry:reprocessing_active",
+                    bool(options["sentry:reprocessing_active"]),
+                )
+            if "filters:react-hydration-errors" in options:
+                project.update_option(
+                    "filters:react-hydration-errors",
+                    bool(options["filters:react-hydration-errors"]),
                 )
             if "filters:blacklisted_ips" in options:
                 project.update_option(
@@ -745,7 +761,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         )
 
         data = serialize(project, request.user, DetailedProjectSerializer())
-        if not ds_flags_multiplexer.is_on_dynamic_sampling:
+        if not (
+            features.has("organizations:dynamic-sampling", project.organization)
+            and sentry_options.get("dynamic-sampling:enabled-biases")
+        ):
             data["dynamicSamplingBiases"] = None
         # If here because the case of when no dynamic sampling is enabled at all, you would want to kick
         # out both keys actually

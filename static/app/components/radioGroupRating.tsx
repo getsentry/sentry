@@ -3,10 +3,10 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {getButtonStyles} from 'sentry/components/button';
-import Field from 'sentry/components/forms/field';
-import {FieldGroupProps} from 'sentry/components/forms/field/types';
+import FieldGroup from 'sentry/components/forms/fieldGroup';
+import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Option = {label: string; description?: string};
 
@@ -52,7 +52,7 @@ export function RadioGroupRating({
   );
 
   return (
-    <Field {...fieldProps}>
+    <FieldGroup {...fieldProps}>
       <Wrapper totalOptions={Object.keys(options).length}>
         {Object.entries(options).map(([key, option], index) => (
           <OptionWrapper key={key}>
@@ -69,7 +69,7 @@ export function RadioGroupRating({
           </OptionWrapper>
         ))}
       </Wrapper>
-    </Field>
+    </FieldGroup>
   );
 }
 

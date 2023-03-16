@@ -1,8 +1,8 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import {Replayer} from '@sentry-internal/rrweb';
+import {eventWithTime} from '@sentry-internal/rrweb/typings/types';
 import first from 'lodash/first';
-import {Replayer} from 'rrweb';
-import {eventWithTime} from 'rrweb/typings/types';
 
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
@@ -108,7 +108,7 @@ function useExtractedCrumbHtml({replay}: HookOpts) {
 
         try {
           // Run the replay to the end, we will capture data as it streams into the plugin
-          replayerRef.pause(replay.getReplay().finishedAt.getTime());
+          replayerRef.pause(replay.getReplay().finished_at.getTime());
         } catch (error) {
           Sentry.captureException(error);
         }

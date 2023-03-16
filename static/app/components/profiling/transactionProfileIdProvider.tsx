@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 
 import {PageFilters} from 'sentry/types';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const TransactionProfileContext = createContext<string | null | undefined>(undefined);
 
@@ -10,13 +11,16 @@ interface TransactionToProfileIdProviderProps {
   children: React.ReactNode;
   timestamp: string | undefined;
   transactionId: string | undefined;
+  projectId?: string | undefined;
 }
 
 export function TransactionProfileIdProvider({
+  projectId,
   timestamp,
   transactionId,
   children,
 }: TransactionToProfileIdProviderProps) {
+  const organization = useOrganization();
   // create a 24h timeframe relative from the transaction timestamp to use for
   // the profile events query
   const datetime: PageFilters['datetime'] | undefined = useMemo(() => {
@@ -35,15 +39,26 @@ export function TransactionProfileIdProvider({
     };
   }, [timestamp]);
 
+  const profileIdColumn = organization.features.includes('profiling-using-transactions')
+    ? 'profile.id'
+    : 'id';
+
+  const transactionIdColumn = organization.features.includes(
+    'profiling-using-transactions'
+  )
+    ? 'id'
+    : 'trace.transaction';
+
   const {status, data, error} = useProfileEvents({
-    fields: ['id'],
+    projects: projectId ? [projectId] : undefined,
+    fields: [profileIdColumn],
     referrer: 'transactionToProfileProvider',
     limit: 1,
     sort: {
       key: 'id',
       order: 'asc',
     },
-    query: `trace.transaction:${transactionId}`,
+    query: `${transactionIdColumn}:${transactionId}`,
     enabled: Boolean(transactionId),
     datetime,
   });
@@ -58,7 +73,7 @@ export function TransactionProfileIdProvider({
     }
   }, [status, error]);
 
-  const profileId = (data?.[0].data[0]?.id as string | undefined) ?? null;
+  const profileId = (data?.[0].data[0]?.[profileIdColumn] as string | undefined) ?? null;
 
   return (
     <TransactionProfileContext.Provider value={profileId}>

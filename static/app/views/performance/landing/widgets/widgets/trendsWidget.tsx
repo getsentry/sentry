@@ -1,6 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Truncate from 'sentry/components/truncate';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -9,8 +9,13 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
 import withProjects from 'sentry/utils/withProjects';
+import {
+  DisplayModes,
+  transactionSummaryRouteWithQuery,
+} from 'sentry/views/performance/transactionSummary/utils';
 import {CompareDurations} from 'sentry/views/performance/trends/changedTransactions';
 import {
+  getProjectID,
   getSelectedProjectPlatforms,
   handleTrendsClick,
   trendsTargetRoute,
@@ -92,10 +97,38 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, trendChangeType]
   );
 
+  const assembleAccordionItems = provided =>
+    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
+
+  const getChart = provided => () =>
+    (
+      <TrendsChart
+        {...provided}
+        {...rest}
+        isLoading={provided.widgetData.chart.isLoading}
+        statsData={provided.widgetData.chart.statsData}
+        query={eventView.query}
+        project={eventView.project}
+        environment={eventView.environment}
+        start={eventView.start}
+        end={eventView.end}
+        statsPeriod={eventView.statsPeriod}
+        transaction={provided.widgetData.chart.transactionsList[selectedListIndex]}
+        trendChangeType={trendChangeType}
+        trendFunctionField={trendFunctionField}
+        disableXAxis
+        disableLegend
+      />
+    );
+
   const getItems = provided =>
     provided.widgetData.chart.transactionsList.map(listItem => () => {
       const initialConditions = new MutableSearch([]);
       initialConditions.addFilterValues('transaction', [listItem.transaction]);
+
+      const {statsPeriod, start, end} = eventView;
+
+      const defaultPeriod = !start && !end ? DEFAULT_STATS_PERIOD : undefined;
 
       const trendsTarget = trendsTargetRoute({
         organization: props.organization,
@@ -103,12 +136,33 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
         initialConditions,
         additionalQuery: {
           trendFunction: trendFunctionField,
-          statsPeriod: eventView.statsPeriod || DEFAULT_STATS_PERIOD,
+          statsPeriod: statsPeriod || DEFAULT_STATS_PERIOD,
         },
       });
+
+      const transactionTarget = transactionSummaryRouteWithQuery({
+        orgSlug: props.organization.slug,
+        projectID: getProjectID(listItem, projects),
+        transaction: listItem.transaction,
+        query: trendsTarget.query,
+        additionalQuery: {
+          display: DisplayModes.TREND,
+          trendFunction: trendFunctionField,
+          statsPeriod: statsPeriod || defaultPeriod,
+          start,
+          end,
+        },
+      });
+
+      const target = organization.features.includes(
+        'performance-metrics-backed-transaction-summary'
+      )
+        ? transactionTarget
+        : trendsTarget;
+
       return (
         <Fragment>
-          <GrowLink to={trendsTarget}>
+          <GrowLink to={target}>
             <Truncate value={listItem.transaction} maxLength={40} />
           </GrowLink>
           <RightAlignedCell>
@@ -140,28 +194,7 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
             <Accordion
               expandedIndex={selectedListIndex}
               setExpandedIndex={setSelectListIndex}
-              headers={getItems(provided)}
-              content={
-                <TrendsChart
-                  {...provided}
-                  {...rest}
-                  isLoading={provided.widgetData.chart.isLoading}
-                  statsData={provided.widgetData.chart.statsData}
-                  query={eventView.query}
-                  project={eventView.project}
-                  environment={eventView.environment}
-                  start={eventView.start}
-                  end={eventView.end}
-                  statsPeriod={eventView.statsPeriod}
-                  transaction={
-                    provided.widgetData.chart.transactionsList[selectedListIndex]
-                  }
-                  trendChangeType={trendChangeType}
-                  trendFunctionField={trendFunctionField}
-                  disableXAxis
-                  disableLegend
-                />
-              }
+              items={assembleAccordionItems(provided)}
             />
           ),
           // accordion items height + chart height

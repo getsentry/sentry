@@ -1,15 +1,11 @@
 import {Location} from 'history';
 
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
+import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {NewQuery, Organization, Project, SelectValue} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {
-  MEPState,
-  METRIC_SEARCH_SETTING_PARAM,
-  METRIC_SETTING_PARAM,
-} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -22,7 +18,7 @@ import {
   vitalNameFromLocation,
 } from './vitalDetail/utils';
 
-export const DEFAULT_STATS_PERIOD = '24h';
+export const DEFAULT_STATS_PERIOD = '7d';
 export const DEFAULT_PROJECT_THRESHOLD_METRIC = 'duration';
 export const DEFAULT_PROJECT_THRESHOLD = 300;
 
@@ -39,6 +35,13 @@ export const COLUMN_TITLES = [
 ];
 
 const TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH = ['transaction'];
+
+export const getDefaultStatsPeriod = (organization: Organization) => {
+  if (organization?.features?.includes('performance-landing-page-stats-period')) {
+    return '14d';
+  }
+  return DEFAULT_STATS_PERIOD;
+};
 
 export enum PERFORMANCE_TERM {
   TPM = 'tpm',
@@ -389,26 +392,34 @@ export function getTermHelp(
   return PERFORMANCE_TERMS[term](organization);
 }
 
-function shouldAddDefaultConditions(location: Location) {
-  const {query} = location;
-  const searchQuery = decodeScalar(query.query, '');
-  const isDefaultQuery = decodeScalar(query.isDefaultQuery);
-  return !searchQuery && isDefaultQuery !== 'false';
-}
+function prepareQueryForLandingPage(searchQuery, withStaticFilters) {
+  const conditions = new MutableSearch(searchQuery);
 
-function isUsingLimitedSearch(location: Location, withStaticFilters: boolean) {
-  const {query} = location;
-  const mepSearchState = decodeScalar(query[METRIC_SEARCH_SETTING_PARAM], '');
-  const mepSettingState = decodeScalar(query[METRIC_SETTING_PARAM], ''); // TODO: Can be removed since it's for dev ui only.
-  return (
-    withStaticFilters &&
-    (mepSearchState === MEPState.metricsOnly || mepSettingState === MEPState.metricsOnly)
-  );
+  // If there is a bare text search, we want to treat it as a search
+  // on the transaction name.
+  if (conditions.freeText.length > 0) {
+    const parsedFreeText = conditions.freeText.join(' ');
+
+    // the query here is a user entered condition, no need to escape it
+    conditions.setFilterValues(
+      'transaction',
+      [wrapQueryInWildcards(parsedFreeText)],
+      false
+    );
+    conditions.freeText = [];
+  }
+  if (withStaticFilters) {
+    conditions.tokens = conditions.tokens.filter(
+      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
+    );
+  }
+  return conditions.formatString();
 }
 
 function generateGenericPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -441,41 +452,12 @@ function generateGenericPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = isLimitedSearch
-      ? decodeScalar(conditions.freeText, '')
-      : conditions.freeText.join(' ');
-
-    if (isLimitedSearch) {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
-    } else {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
-    }
-    conditions.freeText = [];
-  }
-  if (isLimitedSearch) {
-    conditions.tokens = conditions.tokens.filter(
-      token => token.key && TOKEN_KEYS_SUPPORTED_IN_LIMITED_SEARCH.includes(token.key)
-    );
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
   eventView.additionalConditions.addFilterValues('event.type', ['transaction']);
@@ -494,7 +476,8 @@ function generateGenericPerformanceEventView(
 
 function generateBackendPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -529,36 +512,12 @@ function generateBackendPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = isLimitedSearch
-      ? decodeScalar(conditions.freeText, '')
-      : conditions.freeText.join(' ');
-
-    if (isLimitedSearch) {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
-    } else {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
-    }
-    conditions.freeText = [];
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -571,7 +530,8 @@ function generateMobilePerformanceEventView(
   location: Location,
   projects: Project[],
   genericEventView: EventView,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -616,37 +576,12 @@ function generateMobilePerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = isLimitedSearch
-      ? // pick first element to search transactions by name
-        decodeScalar(conditions.freeText, '')
-      : conditions.freeText.join(' ');
-
-    if (isLimitedSearch) {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
-    } else {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
-    }
-    conditions.freeText = [];
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -657,7 +592,8 @@ function generateMobilePerformanceEventView(
 
 function generateFrontendPageloadPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -690,37 +626,12 @@ function generateFrontendPageloadPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    const parsedFreeText = isLimitedSearch
-      ? // pick first element to search transactions by name
-        decodeScalar(conditions.freeText, '')
-      : conditions.freeText.join(' ');
-
-    if (isLimitedSearch) {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
-    } else {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
-    }
-    conditions.freeText = [];
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -732,7 +643,8 @@ function generateFrontendPageloadPerformanceEventView(
 
 function generateFrontendOtherPerformanceEventView(
   location: Location,
-  withStaticFilters: boolean
+  withStaticFilters: boolean,
+  organization: Organization
 ): EventView {
   const {query} = location;
 
@@ -765,38 +677,12 @@ function generateFrontendOtherPerformanceEventView(
   savedQuery.widths = widths;
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-tpm');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-  const isLimitedSearch = isUsingLimitedSearch(location, withStaticFilters);
-
-  // This is not an override condition since we want the duration to appear in the search bar as a default.
-  if (shouldAddDefaultConditions(location) && !withStaticFilters) {
-    conditions.setFilterValues('transaction.duration', ['<15m']);
-  }
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0 && !isLimitedSearch) {
-    const parsedFreeText = isLimitedSearch
-      ? // pick first element to search transactions by name
-        decodeScalar(conditions.freeText, '')
-      : conditions.freeText.join(' ');
-
-    if (isLimitedSearch) {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`${parsedFreeText}`], false);
-    } else {
-      // the query here is a user entered condition, no need to escape it
-      conditions.setFilterValues('transaction', [`*${parsedFreeText}*`], false);
-    }
-
-    conditions.freeText = [];
-  }
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, withStaticFilters);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 
@@ -808,9 +694,14 @@ function generateFrontendOtherPerformanceEventView(
 export function generatePerformanceEventView(
   location: Location,
   projects: Project[],
-  {isTrends = false, withStaticFilters = false} = {}
+  {isTrends = false, withStaticFilters = false} = {},
+  organization: Organization
 ) {
-  const eventView = generateGenericPerformanceEventView(location, withStaticFilters);
+  const eventView = generateGenericPerformanceEventView(
+    location,
+    withStaticFilters,
+    organization
+  );
   if (isTrends) {
     return eventView;
   }
@@ -818,24 +709,40 @@ export function generatePerformanceEventView(
   const display = getCurrentLandingDisplay(location, projects, eventView);
   switch (display?.field) {
     case LandingDisplayField.FRONTEND_PAGELOAD:
-      return generateFrontendPageloadPerformanceEventView(location, withStaticFilters);
+      return generateFrontendPageloadPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.FRONTEND_OTHER:
-      return generateFrontendOtherPerformanceEventView(location, withStaticFilters);
+      return generateFrontendOtherPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.BACKEND:
-      return generateBackendPerformanceEventView(location, withStaticFilters);
+      return generateBackendPerformanceEventView(
+        location,
+        withStaticFilters,
+        organization
+      );
     case LandingDisplayField.MOBILE:
       return generateMobilePerformanceEventView(
         location,
         projects,
         eventView,
-        withStaticFilters
+        withStaticFilters,
+        organization
       );
     default:
       return eventView;
   }
 }
 
-export function generatePerformanceVitalDetailView(location: Location): EventView {
+export function generatePerformanceVitalDetailView(
+  location: Location,
+  organization: Organization
+): EventView {
   const {query} = location;
 
   const vitalName = vitalNameFromLocation(location);
@@ -863,26 +770,12 @@ export function generatePerformanceVitalDetailView(location: Location): EventVie
   };
 
   if (!query.statsPeriod && !hasStartAndEnd) {
-    savedQuery.range = DEFAULT_STATS_PERIOD;
+    savedQuery.range = getDefaultStatsPeriod(organization);
   }
   savedQuery.orderby = decodeScalar(query.sort, '-count');
 
   const searchQuery = decodeScalar(query.query, '');
-  const conditions = new MutableSearch(searchQuery);
-
-  // If there is a bare text search, we want to treat it as a search
-  // on the transaction name.
-  if (conditions.freeText.length > 0) {
-    // the query here is a user entered condition, no need to escape it
-    conditions.setFilterValues(
-      'transaction',
-      [`*${conditions.freeText.join(' ')}*`],
-      false
-    );
-    conditions.freeText = [];
-  }
-  conditions.setFilterValues('event.type', ['transaction']);
-  savedQuery.query = conditions.formatString();
+  savedQuery.query = prepareQueryForLandingPage(searchQuery, false);
 
   const eventView = EventView.fromNewQueryWithLocation(savedQuery, location);
 

@@ -15,24 +15,12 @@ const config: TransformOptions = {
       '@babel/preset-env',
       {
         useBuiltIns: 'usage',
-        corejs: '3.22',
+        corejs: '3.27',
       },
     ],
     '@babel/preset-typescript',
   ],
-  overrides: [
-    {
-      test: ['./docs-ui'],
-      presets: [
-        [
-          '@babel/preset-react',
-          {
-            runtime: 'automatic',
-          },
-        ],
-      ],
-    },
-  ],
+  overrides: [],
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',

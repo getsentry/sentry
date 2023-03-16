@@ -4,14 +4,18 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import Button from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {Button} from 'sentry/components/button';
+import {
+  CompactSelect,
+  SelectOption,
+  SelectSection,
+} from 'sentry/components/compactSelect';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
@@ -25,11 +29,7 @@ import Type from './breadcrumb/type';
 import Breadcrumbs from './breadcrumbs';
 import {getVirtualCrumb, transformCrumbs} from './utils';
 
-type FilterOptions = NonNullable<
-  React.ComponentProps<typeof SearchBarAction>['filterOptions']
->;
-
-type FilterOptionWithLevels = FilterOptions[0] & {levels?: BreadcrumbLevelType[]};
+type SelectOptionWithLevels = SelectOption<string> & {levels?: BreadcrumbLevelType[]};
 
 type Props = {
   data: {
@@ -55,7 +55,7 @@ const sortOptions = [
 
 function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}: Props) {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterSelections, setFilterSelections] = useState<FilterOptions>([]);
+  const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
@@ -83,11 +83,11 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     const typeOptions = getFilterTypes(initialBreadcrumbs);
     const levels = getFilterLevels(typeOptions);
 
-    const options: FilterOptions = [];
+    const options: SelectSection<string>[] = [];
 
     if (typeOptions.length) {
       options.push({
-        value: 'types',
+        key: 'types',
         label: t('Types'),
         options: typeOptions.map(typeOption => omit(typeOption, 'levels')),
       });
@@ -95,7 +95,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
     if (levels.length) {
       options.push({
-        value: 'levels',
+        key: 'levels',
         label: t('Levels'),
         options: levels,
       });
@@ -105,7 +105,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }, [initialBreadcrumbs]);
 
   function getFilterTypes(crumbs: ReturnType<typeof transformCrumbs>) {
-    const filterTypes: FilterOptionWithLevels[] = [];
+    const filterTypes: SelectOptionWithLevels[] = [];
 
     for (const index in crumbs) {
       const breadcrumb = crumbs[index];
@@ -134,8 +134,8 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
     return filterTypes;
   }
 
-  function getFilterLevels(types: FilterOptionWithLevels[]) {
-    const filterLevels: FilterOptions = [];
+  function getFilterLevels(types: SelectOptionWithLevels[]) {
+    const filterLevels: SelectOption<string>[] = [];
 
     for (const indexType in types) {
       for (const indexLevel in types[indexType].levels) {
@@ -147,6 +147,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
         filterLevels.push({
           value: `level-${level}`,
+          textValue: level,
           label: (
             <LevelWrap>
               <Level level={level} />
@@ -192,7 +193,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
   function applySelectedFilters(
     breadcrumbs: Crumb[],
-    selectedFilterOptions: FilterOptions
+    selectedFilterOptions: SelectOption<string>[]
   ) {
     const checkedTypeOptions = new Set(
       selectedFilterOptions
@@ -271,7 +272,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
-  const showReplay = !isShare && organization.features.includes('session-replay-ui');
+  const showReplay = !isShare && organization.features.includes('session-replay');
 
   const actions = (
     <SearchAndSortWrapper isFullWidth={showReplay}>
@@ -300,17 +301,15 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   return (
     <EventDataSection
       type={EntryType.BREADCRUMBS}
-      title={<h3>{t('Breadcrumbs')}</h3>}
+      title={t('Breadcrumbs')}
       actions={!showReplay ? actions : null}
-      wrapTitle={false}
-      isCentered
     >
       {showReplay ? (
         <Fragment>
           <EventReplay
+            organization={organization}
             replayId={replayId}
             projectSlug={projectSlug}
-            orgSlug={organization.slug}
             event={event}
           />
           {actions}
@@ -334,7 +333,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   );
 }
 
-export default BreadcrumbsContainer;
+export {BreadcrumbsContainer as Breadcrumbs};
 
 const SearchAndSortWrapper = styled('div')<{isFullWidth?: boolean}>`
   display: grid;

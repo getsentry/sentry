@@ -15,9 +15,12 @@
 - name: 'Trigger: Revert'
   color: 'A0CABD'
   description: 'add to a merged PR to revert it (skips CI)'
+- name: 'Trigger: Visual Snapshot'
+  color: '3E5E06'
+  description: 'add to a PR to run a visual snapshot diff'
 
 # Unito - notion.so/52d10dbfad474328850319e48b057a5b
-- name: "Sync: Jira"
+- name: 'Sync: Jira'
   color: 'A0CABD'
   description: 'apply to auto-create a Jira shadow ticket'
 
@@ -150,6 +153,9 @@
 - name: 'Component: Package'
   color: '584774'
   description: ''
+- name: 'Component: Performance'
+  color: '584774'
+  description: Performance product, including Performance Issues
 - name: 'Component: Relay'
   color: '584774'
   description: ''
@@ -197,6 +203,9 @@
 - name: 'Team: Dev Infrastructure'
   color: '8D5494'
   description: dev-infra
+- name: 'Team: Discover & Dashboards'
+  color: '8D5494'
+  description: discover-n-dashboards
 - name: 'Team: Ecosystem'
   color: '8D5494'
   description: ''
@@ -218,6 +227,13 @@
 - name: 'Team: Ingest'
   color: '8D5494'
   description: owners-ingest
+- name: 'Team: Issue Experience'
+  color: '8D5494'
+- name: 'Team: Issue Platform'
+  color: '8D5494'
+- name: 'Team: Mobile Developer Experience'
+  color: '8D5494'
+  description: team-mdx
 - name: 'Team: Mobile Platform'
   color: '8D5494'
   description: team-mobile
@@ -230,21 +246,30 @@
 - name: 'Team: Ops'
   color: '8D5494'
   description: ''
+- name: 'Team: Performance'
+  color: '8D5494'
+  description: 'team-performance'
+- name: 'Team: Replay'
+  color: '8D5494'
+  description: team-replay
 - name: 'Team: Revenue'
   color: '8D5494'
   description: ''
 - name: 'Team: Search & Storage'
   color: '8D5494'
   description: sns
+- name: 'Team: Security'
+  color: '8D5494'
+  description: ''
+- name: 'Team: Stacktrace'
+  color: '8D5494'
+  description: owners-stacktrace
 - name: 'Team: Support'
   color: '8D5494'
   description: ''
 - name: 'Team: Telemetry Experience'
   color: '8D5494'
   description: telemetry-experience
-- name: 'Team: Visibility'
-  color: '8D5494'
-  description: ''
 - name: 'Team: Web SDKs - Backend'
   color: '8D5494'
   description: team-web-sdk-backend
@@ -252,6 +277,9 @@
   color: '8D5494'
   description: team-web-sdk-frontend
 - name: 'Team: Workflow'
+  color: '8D5494'
+  description: ''
+- name: 'Team: Crons'
   color: '8D5494'
   description: ''
 
@@ -299,6 +327,9 @@
   description: ''
 
 # Platforms
+- name: 'Platform: .NET'
+  color: '584774'
+  description: ''
 - name: 'Platform: Cocoa'
   color: '584774'
   description: ''

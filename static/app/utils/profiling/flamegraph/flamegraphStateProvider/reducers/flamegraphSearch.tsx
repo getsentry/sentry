@@ -1,16 +1,23 @@
-import type Fuse from 'fuse.js';
-
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 export type FlamegraphSearchResult = {
   frame: FlamegraphFrame;
-  match: Fuse.RangeTuple;
+  match: ReadonlyArray<[number, number]>;
+};
+
+export type SpansSearchResult = {
+  match: ReadonlyArray<[number, number]>;
+  span: SpanChartNode;
 };
 
 export type FlamegraphSearch = {
   index: number | null;
   query: string;
-  results: Map<string, FlamegraphSearchResult>;
+  results: {
+    frames: Map<string, FlamegraphSearchResult>;
+    spans: Map<string, SpansSearchResult>;
+  };
 };
 
 type ClearFlamegraphSearchAction = {
@@ -45,7 +52,10 @@ export function flamegraphSearchReducer(
         ...state,
         query: '',
         index: null,
-        results: new Map(),
+        results: {
+          frames: new Map(),
+          spans: new Map(),
+        },
       };
     }
     case 'set results': {

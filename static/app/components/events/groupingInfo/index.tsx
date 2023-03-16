@@ -2,16 +2,16 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {Button} from 'sentry/components/button';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventGroupInfo, Organization} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import withOrganization from 'sentry/utils/withOrganization';
-import {groupingFeedbackTypes} from 'sentry/views/organizationGroupDetails/grouping/grouping';
+import {groupingFeedbackTypes} from 'sentry/views/issueDetails/grouping/grouping';
 
 import GroupingConfigSelect from './groupingConfigSelect';
 import GroupVariant from './groupingVariant';
@@ -19,7 +19,7 @@ import GroupVariant from './groupingVariant';
 type Props = AsyncComponent['props'] & {
   event: Event;
   organization: Organization;
-  projectId: string;
+  projectSlug: string;
   showGroupingConfig: boolean;
 };
 
@@ -29,11 +29,11 @@ type State = AsyncComponent['state'] & {
   isOpen: boolean;
 };
 
-class EventGroupingInfo extends AsyncComponent<Props, State> {
+class GroupingInfo extends AsyncComponent<Props, State> {
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {organization, event, projectId} = this.props;
+    const {organization, event, projectSlug} = this.props;
 
-    let path = `/projects/${organization.slug}/${projectId}/events/${event.id}/grouping-info/`;
+    let path = `/projects/${organization.slug}/${projectSlug}/events/${event.id}/grouping-info/`;
     if (this.state?.configOverride) {
       path = `${path}?config=${this.state.configOverride}`;
     }
@@ -74,9 +74,9 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
       .join(', ');
 
     return (
-      <SummaryGroupedBy data-test-id="loaded-grouping-info">{`(${t('grouped by')} ${
-        groupedBy || t('nothing')
-      })`}</SummaryGroupedBy>
+      <p data-test-id="loaded-grouping-info">
+        <strong>{t('Grouped by:')}</strong> {groupedBy || t('nothing')}
+      </p>
     );
   }
 
@@ -145,33 +145,21 @@ class EventGroupingInfo extends AsyncComponent<Props, State> {
   renderBody() {
     const {isOpen} = this.state;
 
-    const title = (
-      <Fragment>
-        {t('Event Grouping Information')}
-        {!isOpen && this.renderGroupInfoSummary()}
-      </Fragment>
-    );
-
-    const actions = (
-      <ToggleButton onClick={this.toggle} priority="link">
-        {isOpen ? t('Hide Details') : t('Show Details')}
-      </ToggleButton>
-    );
-
     return (
-      <EventDataSection type="grouping-info" title={title} actions={actions}>
-        {isOpen && this.renderGroupInfo()}
+      <EventDataSection
+        type="grouping-info"
+        title={t('Event Grouping Information')}
+        actions={
+          <ToggleButton onClick={this.toggle} priority="link">
+            {isOpen ? t('Hide Details') : t('Show Details')}
+          </ToggleButton>
+        }
+      >
+        {isOpen ? this.renderGroupInfo() : this.renderGroupInfoSummary()}
       </EventDataSection>
     );
   }
 }
-
-const SummaryGroupedBy = styled('small')`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    display: block;
-    margin: 0 !important;
-  }
-`;
 
 const ConfigHeader = styled('div')`
   display: flex;
@@ -205,4 +193,4 @@ const VariantDivider = styled('hr')`
   border-top: 1px solid ${p => p.theme.border};
 `;
 
-export default withOrganization(EventGroupingInfo);
+export const EventGroupingInfo = withOrganization(GroupingInfo);

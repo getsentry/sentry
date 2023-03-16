@@ -2,7 +2,7 @@ import {DOMAttributes, ReactNode, useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {IconGrabbable} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 import useSplitPanelTracking from 'sentry/utils/replays/hooks/useSplitPanelTracking';
 import useTimeout from 'sentry/utils/useTimeout';
@@ -217,9 +217,11 @@ function SplitPanel(props: Props) {
           onMouseDown={handleMouseDown}
         />
         <Panel>{getValFromSide(b, 'content') || b}</Panel>
+        {isMousedown ? <HoverMouseDiv /> : null}
       </SplitPanelContainer>
     );
   }
+
   const {top: a, bottom: b} = props;
   return (
     <SplitPanelContainer
@@ -235,6 +237,7 @@ function SplitPanel(props: Props) {
         onMouseDown={handleMouseDown}
       />
       <Panel>{getValFromSide(b, 'content') || b}</Panel>
+      {isMousedown ? <HoverMouseDiv /> : null}
     </SplitPanelContainer>
   );
 }
@@ -246,6 +249,7 @@ const SplitPanelContainer = styled('div')<{
   width: 100%;
   height: 100%;
 
+  position: relative;
   display: grid;
   overflow: auto;
   grid-template-${p => p.orientation}:
@@ -256,6 +260,14 @@ const SplitPanelContainer = styled('div')<{
 
 const Panel = styled('div')`
   overflow: hidden;
+`;
+
+const HoverMouseDiv = styled('div')`
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 `;
 
 type DividerProps = {isMousedown: boolean; slideDirection: 'leftright' | 'updown'};

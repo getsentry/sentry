@@ -1,11 +1,11 @@
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Feature from 'sentry/components/acl/feature';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeatureTourModal from 'sentry/components/modals/featureTourModal';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useRouter from 'sentry/utils/useRouter';
 import {PERFORMANCE_TOUR_STEPS} from 'sentry/views/performance/onboarding';
 
@@ -19,20 +19,16 @@ function MissingPerformanceButtons({organization}: Props) {
   const router = useRouter();
 
   function handleTourAdvance(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.performance_tour.advance',
-      eventName: 'Project Detail: Performance Tour Advance',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('project_detail.performance_tour.advance', {
+      organization,
       step,
       duration,
     });
   }
 
   function handleClose(step: number, duration: number) {
-    trackAnalyticsEvent({
-      eventKey: 'project_detail.performance_tour.close',
-      eventName: 'Project Detail: Performance Tour Close',
-      organization_id: parseInt(organization.id, 10),
+    trackAdvancedAnalyticsEvent('project_detail.performance_tour.close', {
+      organization,
       step,
       duration,
     });

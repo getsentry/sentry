@@ -11,7 +11,7 @@ from sentry.search.events import builder, constants, fields
 from sentry.search.events.datasets import field_aliases, filter_aliases
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -28,7 +28,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._project_slug_filter_converter,
             constants.EVENT_TYPE_ALIAS: self._event_type_converter,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._key_transaction_filter_converter,
-            "transaction.duration": self._duration_filter_converter,
             "transaction": self._transaction_filter_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
@@ -41,6 +40,9 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
             constants.PROJECT_NAME_ALIAS: self._resolve_project_slug_alias,
             constants.TEAM_KEY_TRANSACTION_ALIAS: self._resolve_team_key_transaction_alias,
             constants.TITLE_ALIAS: self._resolve_title_alias,
+            constants.PROJECT_DOT_ID_ALIAS: lambda alias: AliasedExpression(
+                self.builder.resolve_column(constants.PROJECT_ID_ALIAS), alias
+            ),
         }
 
     def resolve_metric(self, value: str) -> str:
@@ -245,6 +247,23 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                     result_type_fn=self.reflective_result_type(),
                 ),
                 fields.MetricsFunction(
+                    "sumIf",
+                    required_args=[
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["init", "crashed"]),
+                    ],
+                    snql_metric_layer=lambda args, alias: Function(
+                        "sum_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsCountersEntitySubscription.metric_key.
+                        [Column(SessionMRI.SESSION.value), args["if_col"], args["if_val"]],
+                        alias,
+                    ),
+                    default_result_type="integer",
+                ),
+                fields.MetricsFunction(
                     "percentile",
                     required_args=[
                         fields.with_default(
@@ -277,29 +296,28 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
                 fields.MetricsFunction(
                     "uniq",
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniq",
-                        [Column(self.resolve_metric(args["column"]))],
+                        "count_unique",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
+                        [
+                            Column(SessionMRI.USER.value),
+                        ],
                         alias,
                     ),
                 ),
                 fields.MetricsFunction(
                     "uniqIf",
                     required_args=[
-                        fields.ColumnTagArg("if_col"),
-                        fields.FunctionArg("if_val"),
-                    ],
-                    calculated_args=[
-                        {
-                            "name": "resolved_val",
-                            "fn": lambda args: self.resolve_value(args["if_val"]),
-                        }
+                        # Values domain restricted because of
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.get_snql_aggregations.
+                        fields.MetricArg("if_col", allowed_columns=["session.status"]),
+                        fields.SnQLStringArg("if_val", allowed_strings=["crashed"]),
                     ],
                     snql_metric_layer=lambda args, alias: Function(
-                        "uniqIf",
-                        [
-                            Column(self.resolve_metric(args["column"])),
-                            Function("equals", [args["if_col"], args["resolved_val"]]),
-                        ],
+                        "uniq_if_column",
+                        # We use the metric mri specified in
+                        # sentry.snuba.entity_subscription.MetricsSetsEntitySubscription.metric_key.
+                        [Column(SessionMRI.USER.value), args["if_col"], args["if_val"]],
                         alias,
                     ),
                     default_result_type="integer",
@@ -400,8 +418,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
         return AliasedExpression(self.builder.resolve_column("transaction"), alias)
 
     def _resolve_team_key_transaction_alias(self, _: str) -> SelectType:
-        if self.builder.dry_run:
-            return field_aliases.dry_run_default(self.builder, constants.TEAM_KEY_TRANSACTION_ALIAS)
         team_key_transactions = field_aliases.get_team_transactions(self.builder)
         count = len(team_key_transactions)
 
@@ -424,7 +440,8 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
-        if value == "transaction":
+        operator = search_filter.operator
+        if value == "transaction" and operator == "=":
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")
@@ -434,16 +451,6 @@ class MetricsLayerDatasetConfig(MetricsDatasetConfig):
 
     def _release_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         return filter_aliases.release_filter_converter(self.builder, search_filter)
-
-    def _duration_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
-        if (
-            self.builder.dry_run
-            and search_filter.value.raw_value == 900000
-            and search_filter.operator == "<"
-        ):
-            return None
-
-        return self.builder._default_filter_converter(search_filter)
 
     def _transaction_filter_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         operator = search_filter.operator

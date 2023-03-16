@@ -1,6 +1,8 @@
 from datetime import datetime, timezone
 from typing import Dict, List, Mapping, Protocol, Sequence, Tuple
 
+import sentry_sdk
+
 from sentry.ingest.transaction_clusterer.datasource.redis import get_redis_client
 from sentry.models import Project
 
@@ -54,7 +56,9 @@ class ProjectOptionRuleStore:
     _option_name = "sentry:transaction_name_cluster_rules"
 
     def read_sorted(self, project: Project) -> List[Tuple[ReplacementRule, int]]:
-        return project.get_option(self._option_name, default=[])  # type: ignore
+        ret = project.get_option(self._option_name, default=[])
+        # normalize tuple vs. list (write_pickle vs. write_json)
+        return [tuple(lst) for lst in ret]  # type: ignore[misc]
 
     def read(self, project: Project) -> RuleSet:
         return {rule: last_seen for rule, last_seen in self.read_sorted(project)}
@@ -64,11 +68,16 @@ class ProjectOptionRuleStore:
         return sorted(rules.items(), key=lambda p: p[0].count("/"), reverse=True)
 
     def write(self, project: Project, rules: RuleSet) -> None:
-        sorted_rules = self._sort(rules)
-        project.update_option(self._option_name, sorted_rules)
+        """Writes the rules to project options, sorted by depth."""
+        # we make sure the database stores lists such that they are json round trippable
+        converted_rules = [list(tup) for tup in self._sort(rules)]
+        project.update_option(self._option_name, converted_rules)
 
 
 class CompositeRuleStore:
+    #: Maximum number (non-negative integer) of rules to write to stores.
+    MERGE_MAX_RULES: int = 50
+
     def __init__(self, stores: List[RuleStore]):
         self._stores = stores
 
@@ -89,7 +98,26 @@ class CompositeRuleStore:
     def merge(self, project: Project) -> None:
         """Read rules from all stores, merge and write them back so they all are up-to-date."""
         merged_rules = self.read(project)
-        self.write(project, merged_rules)
+        trimmed_rules = self._trim_rules(merged_rules)
+        self.write(project, trimmed_rules)
+
+    def _trim_rules(self, rules: RuleSet) -> RuleSet:
+        sorted_rules = sorted(rules.items(), key=lambda p: p[1], reverse=True)
+        if self.MERGE_MAX_RULES < len(rules):
+            with sentry_sdk.configure_scope() as scope:
+                scope.set_tag("discarded", len(rules) - self.MERGE_MAX_RULES)
+                scope.set_context(
+                    "clustering_rules_max",
+                    {
+                        "num_existing_rules": len(rules),
+                        "max_amount": self.MERGE_MAX_RULES,
+                        "discarded_rules": sorted_rules[self.MERGE_MAX_RULES :],
+                    },
+                )
+                sentry_sdk.capture_message("Transaction clusterer discarded rules", level="warn")
+            sorted_rules = sorted_rules[: self.MERGE_MAX_RULES]
+
+        return {rule: last_seen for rule, last_seen in sorted_rules}
 
 
 class LocalRuleStore:

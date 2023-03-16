@@ -3,32 +3,25 @@ import {browserHistory, InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import PageHeading from 'sentry/components/pageHeading';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
-import {MAX_QUERY_LENGTH} from 'sentry/constants';
-import {t, tct} from 'sentry/locale';
-import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import {generateAggregateFields} from 'sentry/utils/discover/fields';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
-  canUseMetricsData,
   MEPConsumer,
   MEPSettingProvider,
   MEPState,
@@ -126,6 +119,11 @@ export function PerformanceLanding(props: Props) {
     if (transactionValues.length) {
       return transactionValues[0];
     }
+    if (conditions.freeText.length > 0) {
+      // raw text query will be wrapped in wildcards in generatePerformanceEventView
+      // so no need to wrap it here
+      return conditions.freeText.join(' ');
+    }
     return '';
   };
 
@@ -149,13 +147,8 @@ export function PerformanceLanding(props: Props) {
     ? SearchContainerWithFilterAndMetrics
     : SearchContainerWithFilter;
 
-  const shouldShowTransactionNameOnlySearch = canUseMetricsData(organization);
-  const shouldForceTransactionNameOnlySearch = organization.features.includes(
-    'performance-transaction-name-only-search-indexed'
-  );
-
   return (
-    <StyledPageContent data-test-id="performance-landing-v3">
+    <Layout.Page data-test-id="performance-landing-v3">
       <PageErrorProvider>
         <Tabs
           value={landingDisplay.field}
@@ -165,19 +158,15 @@ export function PerformanceLanding(props: Props) {
         >
           <Layout.Header>
             <Layout.HeaderContent>
-              <StyledHeading>
+              <Layout.Title>
                 {t('Performance')}
                 <PageHeadingQuestionTooltip
-                  title={tct(
-                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions. [link: Read the docs].',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/product/performance/" />
-                      ),
-                    }
+                  docsUrl="https://docs.sentry.io/product/performance/"
+                  title={t(
+                    'Your main view for transaction data with graphs that visualize transactions or trends, as well as a table where you can drill down on individual transactions.'
                   )}
                 />
-              </StyledHeading>
+              </Layout.Title>
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
@@ -196,7 +185,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{label}</Item>
+                <TabList.Item key={field}>{label}</TabList.Item>
               ))}
             </TabList>
           </Layout.Header>
@@ -204,7 +193,7 @@ export function PerformanceLanding(props: Props) {
           <Layout.Body data-test-id="performance-landing-body">
             <Layout.Main fullWidth>
               <TabPanels>
-                <Item key={landingDisplay.field}>
+                <TabPanels.Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
                     sendOutcomeAnalytics
                     organization={organization}
@@ -243,45 +232,21 @@ export function PerformanceLanding(props: Props) {
                                 <SearchFilterContainer>
                                   {pageFilters}
                                   <MEPConsumer>
-                                    {({metricSettingState}) => {
-                                      return (metricSettingState ===
-                                        MEPState.metricsOnly &&
-                                        shouldShowTransactionNameOnlySearch) ||
-                                        shouldForceTransactionNameOnlySearch ? (
-                                        // TODO replace `handleSearch prop` with transaction name search once
-                                        // transaction name search becomes the default search bar
-                                        <TransactionNameSearchBar
-                                          organization={organization}
-                                          eventView={eventView}
-                                          onSearch={(query: string) => {
-                                            handleSearch(
-                                              query,
-                                              metricSettingState ?? undefined
-                                            );
-                                          }}
-                                          query={getFreeTextFromQuery(derivedQuery)}
-                                        />
-                                      ) : (
-                                        <SearchBar
-                                          searchSource="performance_landing"
-                                          organization={organization}
-                                          projectIds={eventView.project}
-                                          query={derivedQuery}
-                                          fields={generateAggregateFields(
-                                            organization,
-                                            [...eventView.fields, {field: 'tps()'}],
-                                            ['epm()', 'eps()']
-                                          )}
-                                          onSearch={(query: string) =>
-                                            handleSearch(
-                                              query,
-                                              metricSettingState ?? undefined
-                                            )
-                                          }
-                                          maxQueryLength={MAX_QUERY_LENGTH}
-                                        />
-                                      );
-                                    }}
+                                    {({metricSettingState}) => (
+                                      // TODO replace `handleSearch prop` with transaction name search once
+                                      // transaction name search becomes the default search bar
+                                      <TransactionNameSearchBar
+                                        organization={organization}
+                                        eventView={eventView}
+                                        onSearch={(query: string) => {
+                                          handleSearch(
+                                            query,
+                                            metricSettingState ?? undefined
+                                          );
+                                        }}
+                                        query={getFreeTextFromQuery(derivedQuery)}
+                                      />
+                                    )}
                                   </MEPConsumer>
                                   <MetricsEventsDropdown />
                                 </SearchFilterContainer>
@@ -306,23 +271,15 @@ export function PerformanceLanding(props: Props) {
                       }}
                     </MetricsDataSwitcher>
                   </MetricsCardinalityProvider>
-                </Item>
+                </TabPanels.Item>
               </TabPanels>
             </Layout.Main>
           </Layout.Body>
         </Tabs>
       </PageErrorProvider>
-    </StyledPageContent>
+    </Layout.Page>
   );
 }
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
-`;
-
-const StyledHeading = styled(PageHeading)`
-  line-height: 40px;
-`;
 
 const SearchContainerWithFilter = styled('div')`
   display: grid;

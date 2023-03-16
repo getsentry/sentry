@@ -3,7 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import PanelProvider from 'sentry/utils/panelProvider';
 import SettingsHeader from 'sentry/views/settings/components/settingsHeader';
 
@@ -91,7 +91,7 @@ const DropdownBubble = styled(
   `
       : `
     top: calc(100% - 1px);
-    box-shadow: ${p.theme.dropShadowLight};
+    box-shadow: ${p.theme.dropShadowMedium};
   `};
 
   ${getMenuBorderRadius};

@@ -520,7 +520,7 @@ class TestCommentWebhook(TestCase):
             group=self.issue,
             project=self.project,
             type=ActivityType.NOTE.value,
-            user=self.user,
+            user_id=self.user.id,
             data={"text": "hello world"},
         )
         self.data = {

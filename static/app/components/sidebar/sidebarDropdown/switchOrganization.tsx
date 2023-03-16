@@ -8,9 +8,8 @@ import SidebarMenuItem from 'sentry/components/sidebar/sidebarMenuItem';
 import SidebarOrgSummary from 'sentry/components/sidebar/sidebarOrgSummary';
 import {IconAdd, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {OrganizationSummary} from 'sentry/types';
-import shouldUseLegacyRoute from 'sentry/utils/shouldUseLegacyRoute';
 import useResolveRoute from 'sentry/utils/useResolveRoute';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -18,33 +17,18 @@ import {OrganizationContext} from 'sentry/views/organizationContext';
 import Divider from './divider.styled';
 
 function OrganizationMenuItem({organization}: {organization: OrganizationSummary}) {
-  const currentOrganization = useContext(OrganizationContext);
-  const {slug} = organization;
-
   const menuItemProps: Partial<React.ComponentProps<typeof SidebarMenuItem>> = {};
 
-  const route = useResolveRoute(`/organizations/${slug}/issues/`, organization);
+  const route = useResolveRoute(
+    `/organizations/${organization.slug}/issues/`,
+    organization
+  );
 
-  if (shouldUseLegacyRoute(organization)) {
-    if (currentOrganization?.features.includes('customer-domains')) {
-      // Case:
-      // - Current org has customer domains, so we expect the current url be current-org-slug.sentry.io.
-      // - Switching to sentry.io/org-slug requires href instead of a React router change.
-      menuItemProps.href = route;
-      menuItemProps.openInNewTab = false;
-    } else {
-      // Case:
-      // - Current org does not have customer domains, so we expect the current url be sentry.io/current-org-slug
-      // - Switching to sentry.io/org-slug only requires a React router change.
-      menuItemProps.to = route;
-    }
-  } else {
-    // Case:
-    // - Switching to org-slug.sentry.io requires href instead of a React router change, regardless if current org has
-    //   customer domains or not.
-    menuItemProps.href = route;
-    menuItemProps.openInNewTab = false;
-  }
+  // While a router only transition works when we're in an org
+  // from org-less views (account settings) we need a page load.
+  // We also need a page load when switching customer domains.
+  menuItemProps.href = route;
+  menuItemProps.openInNewTab = false;
 
   return (
     <SidebarMenuItem {...menuItemProps}>
@@ -134,7 +118,7 @@ const SwitchOrganization = ({organizations, canCreateOrganization}: Props) => (
             {organizations && !!organizations.length && canCreateOrganization && (
               <Divider css={{marginTop: 0}} />
             )}
-            {<CreateOrganization canCreateOrganization={canCreateOrganization} />}
+            <CreateOrganization canCreateOrganization={canCreateOrganization} />
           </SwitchOrganizationMenu>
         )}
       </Fragment>

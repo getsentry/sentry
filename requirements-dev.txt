@@ -4,13 +4,15 @@ docker>=3.7.0,<3.8.0
 freezegun>=1.1.0
 honcho>=1.1.0
 openapi-core>=0.14.2
-pytest>=7.2
+pytest>=7.2.1
 pytest-cov>=4.0.0
 pytest-django>=4.4.0
-pytest-rerunfailures>=10
+pytest-fail-slow>=0.3.0
+pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.21.0
+sentry-cli
 
 # pre-commit dependencies
 pre-commit>=2.18.1

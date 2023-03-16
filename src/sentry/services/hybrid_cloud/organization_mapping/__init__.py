@@ -1,24 +1,52 @@
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
+
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional, TypedDict
 
 from django.utils import timezone
 
+from sentry.models import Organization
 from sentry.models.user import User
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
 
 
 @dataclass(frozen=True, eq=True)
-class APIOrganizationMapping:
-    id: int = -1
+class RpcOrganizationMapping:
     organization_id: int = -1
     slug: str = ""
+    name: str = ""
     region_name: str = ""
-    date_created: datetime = timezone.now()
+    date_created: datetime = field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
+
+
+class RpcOrganizationMappingUpdate(TypedDict):
+    """A set of values to be updated on an OrganizationMapping.
+
+    An absent key indicates that the attribute should not be updated. (Compare to a
+    `"customer_id": None` entry, which indicates that `customer_id` should be
+    overwritten with a null value.)
+    """
+
+    name: str
+    customer_id: Optional[str]
+
+
+def update_organization_mapping_from_instance(
+    organization: Organization,
+) -> RpcOrganizationMappingUpdate:
+    attributes = {
+        attr_name: getattr(organization, attr_name)
+        for attr_name in RpcOrganizationMappingUpdate.__annotations__.keys()
+    }
+    return RpcOrganizationMappingUpdate(**attributes)  # type: ignore
 
 
 class OrganizationMappingService(InterfaceWithLifecycle):
@@ -29,10 +57,11 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         user: User,
         organization_id: int,
         slug: str,
+        name: str,
         region_name: str,
         idempotency_key: Optional[str] = "",
         customer_id: Optional[str],
-    ) -> APIOrganizationMapping:
+    ) -> RpcOrganizationMapping:
         """
         This method returns a new or recreated OrganizationMapping object.
         If a record already exists with the same slug, the organization_id can only be
@@ -53,7 +82,15 @@ class OrganizationMappingService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
-    def update_customer_id(self, organization_id: int, customer_id: str) -> Any:
+    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+        pass
+
+    @abstractmethod
+    def verify_mappings(self, organization_id: int, slug: str) -> None:
+        pass
+
+    @abstractmethod
+    def delete(self, organization_id: int) -> None:
         pass
 
 

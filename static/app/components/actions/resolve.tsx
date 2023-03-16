@@ -2,14 +2,13 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomCommitsResolutionModal from 'sentry/components/customCommitsResolutionModal';
 import CustomResolutionModal from 'sentry/components/customResolutionModal';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Tooltip from 'sentry/components/tooltip';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {
@@ -189,12 +188,11 @@ class ResolveActions extends Component<Props> {
     const isDisabled = !projectSlug ? disabled : disableDropdown;
 
     return (
-      <DropdownMenuControl
+      <DropdownMenu
         items={items}
         trigger={triggerProps => (
           <DropdownTrigger
             {...triggerProps}
-            type="button"
             size={size}
             priority={priority}
             aria-label={t('More resolve options')}
@@ -274,7 +272,6 @@ class ResolveActions extends Component<Props> {
       <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
         <ButtonBar merged>
           <ResolveButton
-            type="button"
             priority={priority}
             size={size}
             title={t(
@@ -299,7 +296,20 @@ export default withOrganization(ResolveActions);
 const ResolveButton = styled(Button)<{priority?: 'primary'}>`
   box-shadow: none;
   border-radius: ${p => p.theme.borderRadiusLeft};
-  ${p => (p.priority === 'primary' ? `border-right-color: ${p.theme.background};` : '')}
+  ${p =>
+    p.priority === 'primary'
+      ? `
+     &::after {
+       content: '';
+       position: absolute;
+       top: -1px;
+       bottom: -1px;
+       right: -1px;
+       border-right: solid 1px currentColor;
+       opacity: 0.25;
+     }
+  `
+      : ''}
 `;
 
 const DropdownTrigger = styled(Button)`

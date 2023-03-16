@@ -2,16 +2,17 @@ import {Fragment} from 'react';
 import {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   keyName: React.ReactNode;
   value: React.ReactNode;
 };
 
-export const KeyValueTable = styled('dl')`
+export const KeyValueTable = styled('dl')<{noMargin?: boolean}>`
   display: grid;
   grid-template-columns: 50% 50%;
+  ${p => (p.noMargin ? 'margin-bottom: 0;' : null)}
 `;
 
 export const KeyValueTableRow = ({keyName, value}: Props) => {

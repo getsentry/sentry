@@ -70,24 +70,48 @@ export class Frame extends WeightedNode {
       // @TODO Our old node.js incorrectly sends file instead of path (fixed in SDK, but not all SDK's are upgraded :rip:)
       const pathOrFile = this.path || this.file;
 
-      if (pathOrFile?.startsWith('node:internal')) {
-        this.is_application = false;
-      }
-
-      if (this.image === undefined && pathOrFile) {
-        const match =
-          /node_modules(\/|\\)(?<maybeScopeOrPackage>.*?)(\/|\\)((?<maybePackage>.*)((\/|\\)))?/.exec(
-            pathOrFile
-          );
-        if (match?.groups) {
-          const {maybeScopeOrPackage, maybePackage} = match.groups;
-
-          if (maybeScopeOrPackage.startsWith('@')) {
-            this.image = `${maybeScopeOrPackage}/${maybePackage}`;
-          } else {
-            this.image = match.groups.maybeScopeOrPackage;
-          }
+      if (pathOrFile) {
+        if (pathOrFile.startsWith('node:internal')) {
           this.is_application = false;
+        }
+
+        if (this.image === undefined && pathOrFile) {
+          const match =
+            /node_modules(\/|\\)(?<maybeScopeOrPackage>.*?)(\/|\\)((?<maybePackage>.*)((\/|\\)))?/.exec(
+              pathOrFile
+            );
+          if (match?.groups) {
+            const {maybeScopeOrPackage, maybePackage} = match.groups;
+
+            if (maybeScopeOrPackage.startsWith('@')) {
+              this.image = `${maybeScopeOrPackage}/${maybePackage}`;
+            } else {
+              this.image = match.groups.maybeScopeOrPackage;
+            }
+            this.is_application = false;
+          }
+        }
+
+        // Extract the first component of node:namespace/pkg if there is one
+        // else return just the node:namespace
+        if (pathOrFile?.substring(0, 5) === 'node:') {
+          let image = '';
+          const l = pathOrFile.length;
+
+          for (let i = 0; i < l; i++) {
+            if (pathOrFile.charAt(i) === '/') {
+              image += '/';
+              i++;
+              while (i < l && pathOrFile.charAt(i) !== '/') {
+                image += pathOrFile.charAt(i);
+                i++;
+              }
+              break;
+            }
+            image += pathOrFile.charAt(i);
+          }
+
+          this.image = image;
         }
       }
     }

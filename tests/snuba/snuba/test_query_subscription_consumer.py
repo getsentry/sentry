@@ -126,7 +126,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer.flush()
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
-        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.signal_shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
         consumer.run()
@@ -151,7 +151,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer.flush()
 
         consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
-        mock_callback = Mock(side_effect=lambda *a, **k: consumer.shutdown())
+        mock_callback = Mock(side_effect=lambda *a, **k: consumer.signal_shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
         consumer.run()
@@ -184,7 +184,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
         def mock_callback(*args, **kwargs):
             if mock.call_count >= len(expected_calls):
-                consumer.shutdown()
+                consumer.signal_shutdown()
 
         mock = Mock(side_effect=mock_callback)
 
@@ -218,7 +218,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
         def mock_callback(*args, **kwargs):
             time.sleep(0.1)
-            consumer.shutdown()
+            consumer.signal_shutdown()
 
         mock = Mock(side_effect=mock_callback)
 

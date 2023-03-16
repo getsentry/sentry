@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ListLink from 'sentry/components/links/listLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -14,8 +14,8 @@ import {Panel, PanelBody, PanelHeader, PanelItem} from 'sentry/components/panels
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ENVIRONMENTS_KEY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Environment, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Environment, Organization, Project} from 'sentry/types';
 import {getDisplayName, getUrlRoutingName} from 'sentry/utils/environment';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import withApi from 'sentry/utils/withApi';
@@ -24,7 +24,8 @@ import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
 type Props = {
   api: Client;
-} & RouteComponentProps<{orgId: string; projectId: string}, {}>;
+  organization: Organization;
+} & RouteComponentProps<{projectId: string}, {}>;
 
 type State = {
   environments: null | Environment[];
@@ -59,8 +60,9 @@ class ProjectEnvironments extends Component<Props, State> {
       this.setState({isLoading: true});
     }
 
-    const {orgId, projectId} = this.props.params;
-    this.props.api.request(`/projects/${orgId}/${projectId}/environments/`, {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    this.props.api.request(`/projects/${organization.slug}/${projectId}/environments/`, {
       query: {
         visibility: isHidden ? 'hidden' : 'visible',
       },
@@ -71,8 +73,9 @@ class ProjectEnvironments extends Component<Props, State> {
   }
 
   fetchProjectDetails() {
-    const {orgId, projectId} = this.props.params;
-    this.props.api.request(`/projects/${orgId}/${projectId}/`, {
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    this.props.api.request(`/projects/${organization.slug}/${projectId}/`, {
       success: project => {
         this.setState({project});
       },
@@ -81,10 +84,13 @@ class ProjectEnvironments extends Component<Props, State> {
 
   // Toggle visibility of environment
   toggleEnv = (env: Environment, shouldHide: boolean) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     this.props.api.request(
-      `/projects/${orgId}/${projectId}/environments/${getUrlRoutingName(env)}/`,
+      `/projects/${organization.slug}/${projectId}/environments/${getUrlRoutingName(
+        env
+      )}/`,
       {
         method: 'PUT',
         data: {

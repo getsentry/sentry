@@ -11,7 +11,7 @@ import {
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import Access from 'sentry/components/acl/access';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
@@ -22,13 +22,14 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import type EventView from 'sentry/utils/discover/eventView';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -41,6 +42,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
+  MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -86,12 +88,13 @@ type Props = {
   isDuplicateRule?: boolean;
   ruleId?: string;
   sessionId?: string;
-} & RouteComponentProps<{orgId: string; projectId?: string; ruleId?: string}, {}> & {
+} & RouteComponentProps<{projectId?: string; ruleId?: string}, {}> & {
     onSubmitSuccess?: FormProps['onSubmitSuccess'];
   } & AsyncComponent['props'];
 
 type State = {
   aggregate: string;
+  alertType: MetricAlertType;
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
@@ -100,6 +103,7 @@ type State = {
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
+  isQueryValid: boolean;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -145,9 +149,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
     const {
-      aggregate,
+      aggregate: _aggregate,
       eventTypes: _eventTypes,
-      dataset,
+      dataset: _dataset,
       name,
       showMEPAlertBanner,
     } = location?.query ?? {};
@@ -158,14 +162,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggersClone.push(createDefaultTrigger(AlertRuleTriggerType.WARNING));
     }
 
+    const aggregate = _aggregate ?? rule.aggregate;
+    const dataset = _dataset ?? rule.dataset;
+
     return {
       ...super.getDefaultState(),
 
       name: name ?? rule.name ?? '',
-      aggregate: aggregate ?? rule.aggregate,
-      dataset: dataset ?? rule.dataset,
+      aggregate,
+      dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
+      isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
@@ -181,25 +189,28 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       showMEPAlertBanner: showMEPAlertBanner ?? false,
+      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
     };
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId} = this.props.params;
-
+    const {organization} = this.props;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
     return [
-      ['availableActions', `/organizations/${orgId}/alert-rules/available-actions/`],
+      [
+        'availableActions',
+        `/organizations/${organization.slug}/alert-rules/available-actions/`,
+      ],
     ];
   }
 
   goBack() {
     const {router} = this.props;
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
 
-    router.push(`/organizations/${orgId}/alerts/rules/`);
+    router.push(normalizeUrl(`/organizations/${organization.slug}/alerts/rules/`));
   }
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
@@ -445,6 +456,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    if (name === 'alertType') {
+      this.setState({
+        alertType: value as MetricAlertType,
+      });
+      return;
+    }
+
     if (
       [
         'aggregate',
@@ -454,19 +472,26 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'environment',
         'comparisonDelta',
         'projectId',
+        'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project}) => ({
-        [name]: value,
-        project: name === 'projectId' ? projects.find(({id}) => id === value) : _project,
-      }));
+      this.setState(({project: _project, aggregate, dataset, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
+        return {
+          [name]: value,
+          project:
+            name === 'projectId' ? projects.find(({id}) => id === value) : _project,
+          alertType: alertType !== newAlertType ? 'custom' : alertType,
+        };
+      });
     }
   };
 
   // We handle the filter update outside of the fieldChange handler since we
   // don't want to update the filter on every input change, just on blurs and
   // searches.
-  handleFilterUpdate = (query: string) => {
+  handleFilterUpdate = (query: string, isQueryValid: boolean) => {
     const {organization, sessionId} = this.props;
 
     trackAdvancedAnalyticsEvent('alert_builder.filter', {
@@ -475,7 +500,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query});
+    this.setState({query, isQueryValid});
   };
 
   handleSubmit = async (
@@ -681,12 +706,12 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
   };
 
   handleDeleteRule = async () => {
-    const {params} = this.props;
-    const {orgId, projectId, ruleId} = params;
+    const {organization, params} = this.props;
+    const {projectId, ruleId} = params;
 
     try {
       await this.api.requestPromise(
-        `/projects/${orgId}/${projectId}/alert-rules/${ruleId}/`,
+        `/projects/${organization.slug}/${projectId}/alert-rules/${ruleId}/`,
         {
           method: 'DELETE',
         }
@@ -760,6 +785,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       eventTypes,
       dataset,
       showMEPAlertBanner,
+      alertType,
     } = this.state;
 
     const chartProps = {
@@ -779,7 +805,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
     };
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     const wizardBuilderChart = (
       <TriggersChart
@@ -841,7 +866,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+          const formDisabled = loading || !(isActiveSuperuser() || hasAccess);
+          const submitDisabled = formDisabled || !this.state.isQueryValid;
 
           return (
             <Fragment>
@@ -858,7 +884,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
                     ruleId ? `${ruleId}/` : ''
                   }`}
-                  submitDisabled={disabled}
+                  submitDisabled={submitDisabled}
                   initialData={{
                     name,
                     dataset,
@@ -869,6 +895,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     environment: rule.environment || null,
                     owner: rule.owner,
                     projectId: project.id,
+                    alertType,
                   }}
                   saveOnBlur={false}
                   onSubmit={this.handleSubmit}
@@ -878,16 +905,14 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   extraButton={
                     rule.id ? (
                       <Confirm
-                        disabled={disabled}
+                        disabled={formDisabled}
                         message={t('Are you sure you want to delete this alert rule?')}
                         header={t('Delete Alert Rule?')}
                         priority="danger"
                         confirmText={t('Delete Rule')}
                         onConfirm={this.handleDeleteRule}
                       >
-                        <Button type="button" priority="danger">
-                          {t('Delete Rule')}
-                        </Button>
+                        <Button priority="danger">{t('Delete Rule')}</Button>
                       </Confirm>
                     ) : null
                   }
@@ -899,7 +924,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       project={project}
                       organization={organization}
                       router={router}
-                      disabled={disabled}
+                      disabled={formDisabled}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={
@@ -920,9 +945,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
                     <AlertListItem>{t('Set thresholds')}</AlertListItem>
-                    {thresholdTypeForm(disabled)}
-                    {triggerForm(disabled)}
-                    {ruleNameOwnerForm(disabled)}
+                    {thresholdTypeForm(formDisabled)}
+                    {triggerForm(formDisabled)}
+                    {ruleNameOwnerForm(formDisabled)}
                   </List>
                 </Form>
               </Main>

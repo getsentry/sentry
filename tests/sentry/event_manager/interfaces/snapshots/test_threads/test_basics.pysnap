@@ -1,5 +1,5 @@
 ---
-created: '2019-11-14T11:21:19.912555Z'
+created: '2023-03-03T20:23:23.178682Z'
 creator: sentry
 source: tests/sentry/event_manager/interfaces/test_threads.py
 ---
@@ -53,6 +53,7 @@ api_context:
       framesOmitted: null
       hasSystemFrames: true
       registers: null
+    state: null
 errors: null
 to_json:
   values:

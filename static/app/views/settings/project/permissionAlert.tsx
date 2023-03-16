@@ -1,5 +1,5 @@
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
 
 type Props = React.ComponentPropsWithoutRef<typeof Alert> &

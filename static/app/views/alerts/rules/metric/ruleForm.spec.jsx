@@ -160,6 +160,44 @@ describe('Incident Rules Form', () => {
         })
       );
     });
+
+    it('switches to custom metric and selects event.type:error', async () => {
+      organization.features = [...organization.features, 'performance-view'];
+      const rule = TestStubs.MetricRule();
+      createWrapper({
+        rule: {
+          ...rule,
+          id: undefined,
+          eventTypes: ['default'],
+        },
+      });
+
+      userEvent.click(screen.getAllByText('Number of Errors').at(1));
+      userEvent.click(await screen.findByText('Custom Metric'));
+
+      userEvent.click(screen.getAllByText('event.type:transaction').at(1));
+      userEvent.click(await screen.findByText('event.type:error'));
+      expect(screen.getAllByText('Custom Metric')).toHaveLength(2);
+      userEvent.click(screen.getByLabelText('Save Rule'));
+
+      expect(createRule).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: expect.objectContaining({
+            aggregate: 'count()',
+            alertType: 'custom',
+            dataset: 'events',
+            datasource: 'error',
+            environment: null,
+            eventTypes: ['error'],
+            name: 'My Incident Rule',
+            projectId: '2',
+            projects: ['project-slug'],
+            query: '',
+          }),
+        })
+      );
+    });
   });
 
   describe('Editing a rule', () => {
@@ -250,6 +288,7 @@ describe('Incident Rules Form', () => {
 
       userEvent.click(screen.getByText('event.type:error OR event.type:default'));
       userEvent.click(await screen.findByText('event.type:default'));
+      expect(screen.getAllByText('Number of Errors')).toHaveLength(2);
       userEvent.click(screen.getByLabelText('Save Rule'));
 
       expect(editRule).toHaveBeenLastCalledWith(

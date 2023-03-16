@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import CreateProject from 'sentry/views/projectInstall/createProject';
 
 const NewProject = () => (

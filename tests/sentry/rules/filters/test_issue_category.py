@@ -1,8 +1,8 @@
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.grouptype import GroupCategory, PerformanceRenderBlockingAssetSpanGroupType
 from sentry.rules.filters.issue_category import IssueCategoryFilter
 from sentry.testutils import RuleTestCase, SnubaTestCase
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.types.issues import GroupCategory, GroupType
 
 
 class IssueCategoryFilterErrorTest(RuleTestCase):
@@ -53,7 +53,7 @@ class IssueCategoryFilterPerformanceTest(
         tx_event = self.store_transaction(
             self.project.id,
             "test_transaction_category",
-            [f"{GroupType.PERFORMANCE_SLOW_SPAN.value}-group1"],
+            [f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"],
         )
 
         group_events = list(tx_event.build_group_events())

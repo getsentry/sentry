@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline';
 import ReplayView from 'sentry/components/replays/replayView';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import useUrlParams from 'sentry/utils/useUrlParams';

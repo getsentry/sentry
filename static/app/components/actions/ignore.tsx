@@ -1,14 +1,13 @@
 import styled from '@emotion/styled';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import CustomIgnoreCountModal from 'sentry/components/customIgnoreCountModal';
 import CustomIgnoreDurationModal from 'sentry/components/customIgnoreDurationModal';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import type {MenuItemProps} from 'sentry/components/dropdownMenuItem';
-import Tooltip from 'sentry/components/tooltip';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconMute} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {
@@ -265,7 +264,7 @@ const IgnoreActions = ({
       >
         {t('Ignore')}
       </IgnoreButton>
-      <DropdownMenuControl
+      <DropdownMenu
         size="sm"
         trigger={triggerProps => (
           <DropdownTrigger

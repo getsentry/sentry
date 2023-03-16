@@ -3,5 +3,5 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "include": ["static/app", "tests/js", "fixtures/js-stubs", "docs-ui", "config"]
+  "include": ["static/app", "tests/js", "fixtures/js-stubs", "config"]
 }

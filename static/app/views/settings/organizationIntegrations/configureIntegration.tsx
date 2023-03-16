@@ -5,8 +5,8 @@ import styled from '@emotion/styled';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Alert from 'sentry/components/alert';
-import Button from 'sentry/components/button';
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
@@ -24,23 +24,24 @@ import {
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {singleLineRenderer} from 'sentry/utils/marked';
 import withApi from 'sentry/utils/withApi';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-import AddIntegration from 'sentry/views/organizationIntegrations/addIntegration';
-import IntegrationAlertRules from 'sentry/views/organizationIntegrations/integrationAlertRules';
-import IntegrationCodeMappings from 'sentry/views/organizationIntegrations/integrationCodeMappings';
-import IntegrationExternalTeamMappings from 'sentry/views/organizationIntegrations/integrationExternalTeamMappings';
-import IntegrationExternalUserMappings from 'sentry/views/organizationIntegrations/integrationExternalUserMappings';
-import IntegrationItem from 'sentry/views/organizationIntegrations/integrationItem';
-import IntegrationMainSettings from 'sentry/views/organizationIntegrations/integrationMainSettings';
-import IntegrationRepos from 'sentry/views/organizationIntegrations/integrationRepos';
-import IntegrationServerlessFunctions from 'sentry/views/organizationIntegrations/integrationServerlessFunctions';
 import BreadcrumbTitle from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
+import AddIntegration from './addIntegration';
+import IntegrationAlertRules from './integrationAlertRules';
+import IntegrationCodeMappings from './integrationCodeMappings';
+import IntegrationExternalTeamMappings from './integrationExternalTeamMappings';
+import IntegrationExternalUserMappings from './integrationExternalUserMappings';
+import IntegrationItem from './integrationItem';
+import IntegrationMainSettings from './integrationMainSettings';
+import IntegrationRepos from './integrationRepos';
+import IntegrationServerlessFunctions from './integrationServerlessFunctions';
+
 type RouteParams = {
   integrationId: string;
-  orgId: string;
   providerKey: string;
 };
 type Props = RouteComponentProps<RouteParams, {}> & {
@@ -59,12 +60,16 @@ type State = AsyncView['state'] & {
 
 class ConfigureIntegration extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, integrationId} = this.props.params;
+    const {organization} = this.props;
+    const {integrationId} = this.props.params;
 
     return [
-      ['config', `/organizations/${orgId}/config/integrations/`],
-      ['integration', `/organizations/${orgId}/integrations/${integrationId}/`],
-      ['plugins', `/organizations/${orgId}/plugins/configs/`],
+      ['config', `/organizations/${organization.slug}/config/integrations/`],
+      [
+        'integration',
+        `/organizations/${organization.slug}/integrations/${integrationId}/`,
+      ],
+      ['plugins', `/organizations/${organization.slug}/plugins/configs/`],
     ];
   }
 
@@ -73,14 +78,16 @@ class ConfigureIntegration extends AsyncView<Props, State> {
       location,
       router,
       organization,
-      params: {orgId, providerKey},
+      params: {providerKey},
     } = this.props;
     // This page should not be accessible by members (unless its github or gitlab)
     const allowMemberConfiguration = ['github', 'gitlab'].includes(providerKey);
     if (!allowMemberConfiguration && !organization.access.includes('org:integrations')) {
-      router.push({
-        pathname: `/settings/${orgId}/integrations/${providerKey}/`,
-      });
+      router.push(
+        normalizeUrl({
+          pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
+        })
+      );
     }
     const value =
       (['codeMappings', 'userMappings', 'teamMappings'] as const).find(
@@ -144,11 +151,12 @@ class ConfigureIntegration extends AsyncView<Props, State> {
   handleJiraMigration = async () => {
     try {
       const {
-        params: {orgId, integrationId},
+        organization,
+        params: {integrationId},
       } = this.props;
 
       await this.api.requestPromise(
-        `/organizations/${orgId}/integrations/${integrationId}/issues/`,
+        `/organizations/${organization.slug}/integrations/${integrationId}/issues/`,
         {
           method: 'PUT',
           data: {},
@@ -232,7 +240,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
 
   // TODO(Steve): Refactor components into separate tabs and use more generic tab logic
   renderMainTab(provider: IntegrationProvider) {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const {integration} = this.state;
 
     const instructions =
@@ -247,7 +255,7 @@ class ConfigureIntegration extends AsyncView<Props, State> {
             allowUndo
             apiMethod="POST"
             initialData={integration.configData || {}}
-            apiEndpoint={`/organizations/${orgId}/integrations/${integration.id}/`}
+            apiEndpoint={`/organizations/${organization.slug}/integrations/${integration.id}/`}
           >
             <JsonForm
               fields={integration.configOrganization}

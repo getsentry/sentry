@@ -10,7 +10,7 @@ from rest_framework.request import Request
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry import features, quotas
-from sentry.api.base import LINK_HEADER
+from sentry.api.base import CURSOR_LINK_HEADER
 from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.mobile import get_readable_device_name
@@ -22,7 +22,14 @@ from sentry.models import Group, Organization, Project, Team
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, TIMEOUT_ERROR_MESSAGE
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.types import SnubaParams
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, profiles
+from sentry.snuba import (
+    discover,
+    functions,
+    issue_platform,
+    metrics_enhanced_performance,
+    metrics_performance,
+    profiles,
+)
 from sentry.utils import snuba
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import get_interval_from_range, get_rollup_from_request, parse_stats_period
@@ -36,6 +43,8 @@ DATASET_OPTIONS = {
     "metricsEnhanced": metrics_enhanced_performance,
     "metrics": metrics_performance,
     "profiles": profiles,
+    "issuePlatform": issue_platform,
+    "profile_functions": functions,
 }
 
 
@@ -253,7 +262,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             base_url = base_url + "?"
 
-        return cast(str, LINK_HEADER).format(
+        return cast(str, CURSOR_LINK_HEADER).format(
             uri=base_url,
             cursor=str(cursor),
             name=name,

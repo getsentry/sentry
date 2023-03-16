@@ -1,4 +1,4 @@
-from typing import Any, Mapping, Sequence
+from typing import Any, List, Mapping, Sequence, Tuple
 
 import sentry_sdk
 
@@ -12,16 +12,15 @@ from sentry.utils.committers import get_stacktrace_path_from_event_frame
 def find_commit_context_for_event(
     code_mappings: Sequence[RepositoryProjectPathConfig],
     frame: Mapping[str, Any],
-    logger: Any,
     extra: Mapping[str, Any],
-):
+) -> List[Tuple[Mapping[str, Any], RepositoryProjectPathConfig]]:
     """
-    Returns the Commit Context for an event frame using a source code integration, if it exists.
+
+    Get all the Commit Context for an event frame using a source code integration for all the matching code mappings
     code_mappings: List of RepositoryProjectPathConfig
     frame: Event frame
     """
-    commit_context = None
-    selected_code_mapping = None
+    result = []
     for code_mapping in code_mappings:
         if not code_mapping.organization_integration:
             continue
@@ -52,25 +51,13 @@ def find_commit_context_for_event(
                 "integrations.failed_to_fetch_commit_context",
                 organization_id=code_mapping.organization_integration.organization_id,
                 project_id=code_mapping.project.id,
+                group_id=extra["group"],
                 code_mapping_id=code_mapping.id,
                 provider=integration.provider,
                 error_message=e.text,
             )
 
-        logger.info(
-            "find_commit_context_for_event.integration_fetch",
-            extra=(extra or {}).update(
-                {
-                    "src_path": src_path,
-                    "stacktrace_path": stacktrace_path,
-                    "code_mapping_id": code_mapping.id,
-                    "found": True if commit_context else False,
-                }
-            ),
-        )
-
         if commit_context:
-            selected_code_mapping = code_mapping
-            break
+            result.append((commit_context, code_mapping))
 
-    return commit_context, selected_code_mapping
+    return result

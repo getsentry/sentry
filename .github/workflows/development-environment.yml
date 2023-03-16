@@ -59,11 +59,9 @@ jobs:
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb  # v1.1.0
 
       # This handles Python's cache
-      - name: Setup Python & cache
-        uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
           python-version: 3.8.13
-          cache: 'pip'
           cache-dependency-path: requirements-dev-frozen.txt
 
       # This tests starting up the dev services, loading mocks and pre-commit installation
@@ -72,10 +70,7 @@ jobs:
         # GHA pythons are miscompiled and report macos 10.16
         env:
           SYSTEM_VERSION_COMPAT: 0
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          make bootstrap
+        run: make bootstrap
 
   # The pyenv set up takes long, thus, separating it into its own
   pyenv-setup:
@@ -111,15 +106,13 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-      - uses: actions/setup-python@13ae5bb136fac2878aff31522b9efb785519f984  # v4.3.0
+      - uses: getsentry/action-setup-venv@9e3bbae3836b1b6f129955bf55a19e1d99a61c67 # v1.0.5
         with:
           python-version: 3.8.13
-          cache: pip
           cache-dependency-path: |
             requirements-dev.txt
             requirements-dev-frozen.txt
-      - name: install dependencies
-        run: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
+          install-cmd: pip install -r requirements-dev.txt -c requirements-dev-frozen.txt
       - name: run tests
         run: make test-tools
       - name: Handle artifacts

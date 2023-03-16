@@ -1,7 +1,7 @@
 from django.urls import reverse
 
 from sentry.models import Organization, OrganizationStatus, ScheduledDeletion
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import PermissionTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -53,6 +53,31 @@ class RemoveOrganizationTest(TestCase):
         )
 
         resp = self.client.get(self.path)
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
+
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is False
+
+    def test_renders_with_context_customer_domain(self):
+        path = reverse("sentry-customer-domain-restore-organization")
+
+        resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
+
+        assert resp.status_code == 200
+
+        self.assertTemplateUsed(resp, "sentry/restore-organization.html")
+
+        assert resp.context["deleting_organization"] == self.organization
+        assert resp.context["pending_deletion"] is True
+
+        Organization.objects.filter(id=self.organization.id).update(
+            status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        resp = self.client.get(path, SERVER_NAME=f"{self.organization.slug}.testserver")
 
         assert resp.status_code == 200
 

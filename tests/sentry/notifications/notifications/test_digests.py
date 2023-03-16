@@ -1,3 +1,4 @@
+import uuid
 from unittest import mock
 from unittest.mock import patch
 from urllib.parse import parse_qs
@@ -9,40 +10,38 @@ import sentry
 from sentry.digests.backends.base import Backend
 from sentry.digests.backends.redis import RedisBackend
 from sentry.digests.notifications import event_to_record
-from sentry.event_manager import EventManager
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import ProjectOwnership, Rule
 from sentry.tasks.digests import deliver_digest
 from sentry.testutils import TestCase
-from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers import override_options
+from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.slack import send_notification
 from sentry.utils import json
-from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 USER_COUNT = 2
 
 
-class DigestNotificationTest(TestCase):
+class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTestCase):
     def add_event(self, fingerprint: str, backend: Backend, event_type: str = "error") -> None:
         if event_type == "performance":
-            with override_options(
+            event = self.create_performance_issue()
+        elif event_type == "generic":
+            event_id = uuid.uuid4().hex
+            occurrence_data = self.build_occurrence_data(
+                event_id=event_id, project_id=self.project.id
+            )
+            occurrence, group_info = process_event_and_issue_occurrence(
+                occurrence_data,
                 {
-                    "performance.issues.n_plus_one_db.problem-creation": 1.0,
-                }
-            ):
-                data = dict(
-                    load_data(
-                        "transaction-n-plus-one",
-                        timestamp=before_now(days=1),
-                    )
-                )
-                event_manager = EventManager(data)
-                event_manager.normalize()
-                data = event_manager.get_data()
-                event = event_manager.save(self.project.id)
-
-            event = event.for_group(event.groups[0])
+                    "event_id": event_id,
+                    "project_id": self.project.id,
+                    "timestamp": before_now(minutes=1).isoformat(),
+                },
+            )
+            group = group_info.group
+            event = group.get_latest_event()
         else:
             event = self.store_event(
                 data={
@@ -52,12 +51,19 @@ class DigestNotificationTest(TestCase):
                 },
                 project_id=self.project.id,
             )
+
         backend.add(
             self.key, event_to_record(event, [self.rule]), increment_delay=0, maximum_delay=0
         )
 
     @patch.object(sentry, "digests")
-    def run_test(self, digests, event_count: int, performance_issues: bool = False):
+    def run_test(
+        self,
+        digests,
+        event_count: int,
+        performance_issues: bool = False,
+        generic_issues: bool = False,
+    ):
         backend = RedisBackend()
         digests.digest = backend.digest
 
@@ -65,7 +71,10 @@ class DigestNotificationTest(TestCase):
             self.add_event(f"group-{i}", backend, "error")
 
         if performance_issues:
-            self.add_event(f"group-{i}", backend, "performance")
+            self.add_event(f"group-{event_count+1}", backend, "performance")
+
+        if generic_issues:
+            self.add_event(f"group-{event_count+2}", backend, "generic")
 
         with self.tasks():
             deliver_digest(self.key)
@@ -89,10 +98,11 @@ class DigestNotificationTest(TestCase):
     def test_sends_digest_to_every_member(self):
         """Test that each member of the project the events are created in receive a digest email notification"""
         event_count = 4
-        self.run_test(event_count=event_count, performance_issues=True)
-        assert f"{event_count + 1} new alerts since" in mail.outbox[0].subject
+        self.run_test(event_count=event_count, performance_issues=True, generic_issues=True)
+        assert f"{event_count + 2} new alerts since" in mail.outbox[0].subject
         assert "N+1 Query" in mail.outbox[0].body
         assert "oh no" in mail.outbox[0].body
+        assert self.build_occurrence_data()["issue_title"] in mail.outbox[0].body
 
     def test_sends_alert_rule_notification_to_each_member(self):
         """Test that if there is only one event it is sent as a regular alert rule notification"""

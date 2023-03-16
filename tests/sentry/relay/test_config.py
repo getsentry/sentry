@@ -4,18 +4,26 @@ from unittest.mock import patch
 
 import pytest
 from freezegun import freeze_time
+from sentry_relay import validate_project_config
 
 from sentry.constants import ObjectStatus
-from sentry.dynamic_sampling.latest_release_booster import get_redis_client_for_ds
-from sentry.dynamic_sampling.latest_release_ttas import Platform
-from sentry.dynamic_sampling.rules_generator import HEALTH_CHECK_GLOBS
-from sentry.dynamic_sampling.utils import RESERVED_IDS, RuleType
-from sentry.models import ProjectKey
+from sentry.discover.models import TeamKeyTransaction
+from sentry.dynamic_sampling import (
+    ENVIRONMENT_GLOBS,
+    HEALTH_CHECK_GLOBS,
+    RESERVED_IDS,
+    Platform,
+    RuleType,
+    get_redis_client_for_ds,
+)
+from sentry.models import ProjectKey, ProjectTeam
 from sentry.models.transaction_threshold import TransactionMetric
 from sentry.relay.config import ProjectConfig, get_project_config
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import region_silo_test
+from sentry.utils import json
 from sentry.utils.safe import get_path
 
 PII_CONFIG = """
@@ -27,7 +35,6 @@ PII_CONFIG = """
         "@ip",
         "@mac"
       ],
-      "hide_rule": false,
       "redaction": {
         "method": "remove"
       }
@@ -49,12 +56,11 @@ DEFAULT_ENVIRONMENT_RULE = {
             {
                 "op": "glob",
                 "name": "trace.environment",
-                "value": ["*dev*", "*test*"],
+                "value": ENVIRONMENT_GLOBS,
                 "options": {"ignoreCase": True},
             }
         ],
     },
-    "active": True,
     "id": 1001,
 }
 
@@ -72,12 +78,21 @@ DEFAULT_IGNORE_HEALTHCHECKS_RULE = {
             }
         ],
     },
-    "active": True,
-    "id": RESERVED_IDS[RuleType.IGNORE_HEALTHCHECKS_RULE],
+    "id": RESERVED_IDS[RuleType.IGNORE_HEALTH_CHECKS_RULE],
 }
 
 
+def _validate_project_config(config):
+    # Relay keeps BTreeSets for these, so sort here as well:
+    config.get("transactionMetrics", {}).get("extractMetrics", []).sort()
+    for rule in config.get("metricConditionalTagging", []):
+        rule["targetMetrics"] = sorted(rule["targetMetrics"])
+
+    validate_project_config(json.dumps(config), strict=True)
+
+
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_get_project_config_non_visible(default_project):
     keys = ProjectKey.objects.filter(project=default_project)
     default_project.update(status=ObjectStatus.PENDING_DELETION)
@@ -86,6 +101,7 @@ def test_get_project_config_non_visible(default_project):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @pytest.mark.parametrize("full", [False, True], ids=["slim_config", "full_config"])
 def test_get_project_config(default_project, insta_snapshot, django_cache, full):
     # We could use the default_project fixture here, but we would like to avoid 1) hitting the db 2) creating a mock
@@ -95,6 +111,8 @@ def test_get_project_config(default_project, insta_snapshot, django_cache, full)
 
     cfg = get_project_config(default_project, full_config=full, project_keys=keys)
     cfg = cfg.to_dict()
+
+    _validate_project_config(cfg["config"])
 
     # Remove keys that change everytime
     cfg.pop("lastChange")
@@ -113,6 +131,7 @@ SOME_EXCEPTION = RuntimeError("foo")
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.generate_rules", side_effect=SOME_EXCEPTION)
 @mock.patch("sentry.relay.config.sentry_sdk")
 def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_project):
@@ -126,6 +145,7 @@ def test_get_experimental_config_dyn_sampling(mock_sentry_sdk, _, default_projec
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.capture_exception")
 def test_get_experimental_config_transaction_metrics_exception(
     mock_capture_exception, default_project
@@ -138,16 +158,16 @@ def test_get_experimental_config_transaction_metrics_exception(
     with Feature({"organizations:transaction-metrics-extraction": True}):
         cfg = get_project_config(default_project, full_config=True, project_keys=keys)
 
+    config = cfg.to_dict()["config"]
+
     # we check that due to exception we don't add `d:transactions/breakdowns.span_ops.ops.{op_name}@millisecond`
-    assert (
-        "breakdowns.span_ops.ops"
-        not in cfg.to_dict()["config"]["transactionMetrics"]["extractMetrics"]
-    )
-    assert cfg.to_dict()["config"]["transactionMetrics"]["extractCustomTags"] == []
+    assert "breakdowns.span_ops.ops" not in config["transactionMetrics"]["extractMetrics"]
+    assert config["transactionMetrics"]["extractCustomTags"] == []
     assert mock_capture_exception.call_count == 2
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @pytest.mark.parametrize("has_custom_filters", [False, True])
 @pytest.mark.parametrize("has_blacklisted_ips", [False, True])
 def test_project_config_uses_filter_features(
@@ -158,6 +178,7 @@ def test_project_config_uses_filter_features(
     blacklisted_ips = ["112.69.248.54"]
     default_project.update_option("sentry:error_messages", error_messages)
     default_project.update_option("sentry:releases", releases)
+    default_project.update_option("filters:react-hydration-errors", False)
 
     if has_blacklisted_ips:
         default_project.update_option("sentry:blacklisted_ips", blacklisted_ips)
@@ -166,6 +187,7 @@ def test_project_config_uses_filter_features(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     cfg_error_messages = get_path(cfg, "config", "filterSettings", "errorMessages")
     cfg_releases = get_path(cfg, "config", "filterSettings", "releases")
     cfg_client_ips = get_path(cfg, "config", "filterSettings", "clientIps")
@@ -184,17 +206,20 @@ def test_project_config_uses_filter_features(
 
 
 @pytest.mark.django_db
-@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["projects:custom-inbound-filters"])
+@region_silo_test(stable=True)
+@mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["organizations:profiling"])
 def test_project_config_exposed_features(default_project):
-    with Feature({"projects:custom-inbound-filters": True}):
+    with Feature({"organizations:profiling": True}):
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     cfg_features = get_path(cfg, "config", "features")
-    assert cfg_features == ["projects:custom-inbound-filters"]
+    assert cfg_features == ["organizations:profiling"]
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @mock.patch("sentry.relay.config.EXPOSABLE_FEATURES", ["badprefix:custom-inbound-filters"])
 def test_project_config_exposed_features_raise_exc(default_project):
     with Feature({"projects:custom-inbound-filters": True}):
@@ -207,68 +232,43 @@ def test_project_config_exposed_features_raise_exc(default_project):
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize(
-    "ds_basic,expected",
-    [
-        # dynamic-sampling: True
-        # `dynamic-sampling` flag has the highest precedence
-        (
-            True,
-            {
-                "rules": [
-                    DEFAULT_ENVIRONMENT_RULE,
-                    DEFAULT_IGNORE_HEALTHCHECKS_RULE,
-                    {
-                        "sampleRate": 0.1,
-                        "type": "trace",
-                        "active": True,
-                        "condition": {"op": "and", "inner": []},
-                        "id": 1000,
-                    },
-                ]
-            },
-        ),
-        (
-            False,
-            None,
-        ),
-    ],
-)
-def test_project_config_with_uniform_rules_based_on_plan_in_dynamic_sampling_rules(
-    default_project, ds_basic, expected
-):
-    """
-    Tests that dynamic sampling information return correct uniform rules
-    """
-    with Feature(
-        {
-            "organizations:dynamic-sampling": ds_basic,
-        }
-    ):
-        with mock.patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
-            return_value=0.1,
-        ):
-            cfg = get_project_config(default_project)
-
-    cfg = cfg.to_dict()
-    dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
-    assert dynamic_sampling == expected
-
-
-@pytest.mark.django_db
+@region_silo_test(stable=True)
+@patch("sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.apply_dynamic_factor")
+@patch("sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias.apply_dynamic_factor")
 @freeze_time("2022-10-21 18:50:25.000000+00:00")
-def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_rules(
-    default_project,
+def test_project_config_with_all_biases_enabled(
+    eval_dynamic_factor_tk, eval_dynamic_factor_lr, default_project, default_team
 ):
     """
     Tests that dynamic sampling information return correct uniform rules
     """
+    eval_dynamic_factor_tk.return_value = 2.0
+    eval_dynamic_factor_lr.return_value = 1.5
+
     redis_client = get_redis_client_for_ds()
     ts = time.time()
 
+    # We enable all biases for this project.
+    default_project.update_option(
+        "sentry:dynamic_sampling_biases",
+        [
+            {"id": "boostEnvironments", "active": True},
+            {"id": "ignoreHealthChecks", "active": True},
+            {"id": "boostLatestRelease", "active": True},
+            {"id": "boostKeyTransactions", "active": True},
+        ],
+    )
+    default_project.add_team(default_team)
+
+    # We create a team key transaction.
+    TeamKeyTransaction.objects.create(
+        organization=default_project.organization,
+        transaction="/foo",
+        project_team=ProjectTeam.objects.get(project=default_project, team=default_team),
+    )
+
     release_ids = []
-    for release_version in ("1.0", "2.0", "3.0", "4.0", "5.0", "6.0", "7.0"):
+    for release_version in ("1.0", "2.0", "3.0"):
         release = Factories.create_release(
             project=default_project,
             version=release_version,
@@ -277,9 +277,9 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
 
     # We mark the first release (1.0) as expired.
     time_to_adoption = Platform(default_project.platform).time_to_adoption
-    boosted_releases = [[release_ids[0], ts - time_to_adoption * 2]]
+    boosted_releases = [(release_ids[0], ts - time_to_adoption * 2)]
     for release_id in release_ids[1:]:
-        boosted_releases.append([release_id, ts])
+        boosted_releases.append((release_id, ts))
 
     for release, timestamp in boosted_releases:
         redis_client.hset(
@@ -287,40 +287,26 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
             f"ds::r:{release}:e:prod",
             timestamp,
         )
+
     with Feature(
         {
             "organizations:dynamic-sampling": True,
         }
     ):
         with patch(
-            "sentry.dynamic_sampling.rules_generator.quotas.get_blended_sample_rate",
+            "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
             return_value=0.1,
         ):
             cfg = get_project_config(default_project)
 
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     dynamic_sampling = get_path(cfg, "config", "dynamicSampling")
     assert dynamic_sampling == {
-        "rules": [
+        "rules": [],
+        "rulesV2": [
             {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ["*dev*", "*test*"],
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": 1001,
-            },
-            {
-                "sampleRate": 0.02,
+                "samplingValue": {"type": "sampleRate", "value": 0.02},
                 "type": "transaction",
                 "condition": {
                     "op": "or",
@@ -329,17 +315,45 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                             "op": "glob",
                             "name": "event.transaction",
                             "value": HEALTH_CHECK_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": 1002,
             },
             {
-                "sampleRate": 0.5,
+                "condition": {
+                    "inner": [
+                        {
+                            "name": "event.transaction",
+                            "op": "eq",
+                            "options": {"ignoreCase": True},
+                            "value": ["/foo"],
+                        }
+                    ],
+                    "op": "or",
+                },
+                "id": 1003,
+                "samplingValue": {"type": "factor", "value": 2.0},
+                "type": "transaction",
+            },
+            {
+                "samplingValue": {"type": "sampleRate", "value": 1.0},
                 "type": "trace",
-                "active": True,
+                "condition": {
+                    "op": "or",
+                    "inner": [
+                        {
+                            "op": "glob",
+                            "name": "trace.environment",
+                            "value": ENVIRONMENT_GLOBS,
+                        }
+                    ],
+                },
+                "id": 1001,
+            },
+            {
+                "samplingValue": {"type": "factor", "value": 1.5},
+                "type": "trace",
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -353,14 +367,14 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
                 "id": 1500,
                 "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
+                    "start": "2022-10-21T18:50:25Z",
+                    "end": "2022-10-21T19:50:25Z",
                 },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
-                "sampleRate": 0.5,
+                "samplingValue": {"type": "factor", "value": 1.5},
                 "type": "trace",
-                "active": True,
                 "condition": {
                     "op": "and",
                     "inner": [
@@ -374,107 +388,24 @@ def test_project_config_with_boosted_latest_releases_boost_in_dynamic_sampling_r
                 },
                 "id": 1501,
                 "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
+                    "start": "2022-10-21T18:50:25Z",
+                    "end": "2022-10-21T19:50:25Z",
                 },
+                "decayingFn": {"type": "linear", "decayedValue": 1.0},
             },
             {
-                "sampleRate": 0.5,
+                "samplingValue": {"type": "sampleRate", "value": 0.1},
                 "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["4.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1502,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["5.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1503,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["6.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1504,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            },
-            {
-                "sampleRate": 0.5,
-                "type": "trace",
-                "active": True,
-                "condition": {
-                    "op": "and",
-                    "inner": [
-                        {"op": "eq", "name": "trace.release", "value": ["7.0"]},
-                        {
-                            "op": "eq",
-                            "name": "trace.environment",
-                            "value": "prod",
-                        },
-                    ],
-                },
-                "id": 1505,
-                "timeRange": {
-                    "start": "2022-10-21 18:50:25+00:00",
-                    "end": "2022-10-21 19:50:25+00:00",
-                },
-            },
-            {
-                "sampleRate": 0.1,
-                "type": "trace",
-                "active": True,
                 "condition": {"op": "and", "inner": []},
                 "id": 1000,
             },
-        ]
+        ],
     }
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("transaction_metrics", ("with_metrics", "without_metrics"))
+@region_silo_test(stable=True)
 def test_project_config_with_breakdown(default_project, insta_snapshot, transaction_metrics):
     with Feature(
         {
@@ -484,6 +415,7 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     insta_snapshot(
         {
             "breakdownsV2": cfg["config"]["breakdownsV2"],
@@ -494,29 +426,35 @@ def test_project_config_with_breakdown(default_project, insta_snapshot, transact
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @pytest.mark.parametrize("has_metrics_extraction", (True, False))
 @pytest.mark.parametrize("abnormal_mechanism_rollout", (0, 1))
 def test_project_config_with_organizations_metrics_extraction(
     default_project, set_sentry_option, abnormal_mechanism_rollout, has_metrics_extraction
 ):
-    set_sentry_option(
+    with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
-    )
-    with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
-        cfg = get_project_config(default_project, full_config=True)
+    ):
+        with Feature({"organizations:metrics-extraction": has_metrics_extraction}):
+            cfg = get_project_config(default_project, full_config=True)
 
-    cfg = cfg.to_dict()
-    session_metrics = get_path(cfg, "config", "sessionMetrics")
-    if has_metrics_extraction:
-        assert session_metrics == {"drop": False, "version": 2 if abnormal_mechanism_rollout else 1}
-    else:
-        assert session_metrics is None
+        cfg = cfg.to_dict()
+        _validate_project_config(cfg["config"])
+        session_metrics = get_path(cfg, "config", "sessionMetrics")
+        if has_metrics_extraction:
+            assert session_metrics == {
+                "drop": False,
+                "version": 2 if abnormal_mechanism_rollout else 1,
+            }
+        else:
+            assert session_metrics is None
 
 
 @pytest.mark.django_db
 @pytest.mark.parametrize("has_project_transaction_threshold", (False, True))
 @pytest.mark.parametrize("has_project_transaction_threshold_overrides", (False, True))
+@region_silo_test(stable=True)
 def test_project_config_satisfaction_thresholds(
     default_project,
     insta_snapshot,
@@ -550,18 +488,22 @@ def test_project_config_satisfaction_thresholds(
         cfg = get_project_config(default_project, full_config=True)
 
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["metricConditionalTagging"])
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_with_span_attributes(default_project, insta_snapshot):
     # The span attributes config is not set with the flag turnd off
     cfg = get_project_config(default_project, full_config=True)
     cfg = cfg.to_dict()
+    _validate_project_config(cfg["config"])
     insta_snapshot(cfg["config"]["spanAttributes"])
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 @pytest.mark.parametrize("feature_flag", (False, True), ids=("feature_disabled", "feature_enabled"))
 @pytest.mark.parametrize(
     "killswitch", (False, True), ids=("killswitch_disabled", "killswitch_enabled")
@@ -581,38 +523,34 @@ def test_has_metric_extraction(default_project, feature_flag, killswitch):
     )
     with feature, options:
         config = get_project_config(default_project)
+        config = config.to_dict()["config"]
+        _validate_project_config(config)
         if killswitch or not feature_flag:
-            assert "transactionMetrics" not in config.to_dict()["config"]
+            assert "transactionMetrics" not in config
         else:
-            config = config.to_dict()["config"]["transactionMetrics"]
+            config = config["transactionMetrics"]
             assert config["extractMetrics"]
             assert config["customMeasurements"]["limit"] > 0
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("org_sample", (0.0, 1.0), ids=("no_orgs", "all_orgs"))
-def test_accept_transaction_names(default_project, org_sample):
-    options = override_options(
-        {
-            "relay.transaction-names-client-based": org_sample,
-        }
-    )
+def test_accept_transaction_names(default_project):
     feature = Feature(
         {
             "organizations:transaction-metrics-extraction": True,
         }
     )
-    with feature, options:
+    with feature:
         config = get_project_config(default_project).to_dict()["config"]
+
+        _validate_project_config(config)
         transaction_metrics_config = config["transactionMetrics"]
-        assert (
-            transaction_metrics_config["acceptTransactionNames"] == "clientBased"
-            if org_sample
-            else "strict"
-        )
+
+        assert transaction_metrics_config["acceptTransactionNames"] == "clientBased"
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_setattr(default_project):
     project_cfg = ProjectConfig(default_project)
     with pytest.raises(Exception) as exc_info:
@@ -621,12 +559,14 @@ def test_project_config_setattr(default_project):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_getattr(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.foo == "bar"
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_str(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert str(project_cfg) == '{"foo":"bar"}'
@@ -638,18 +578,21 @@ def test_project_config_str(default_project):
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_repr(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert repr(project_cfg) == '(ProjectConfig){"foo":"bar"}'
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_to_json_string(default_project):
     project_cfg = ProjectConfig(default_project, foo="bar")
     assert project_cfg.to_json_string() == '{"foo":"bar"}'
 
 
 @pytest.mark.django_db
+@region_silo_test(stable=True)
 def test_project_config_get_at_path(default_project):
     project_cfg = ProjectConfig(default_project, a=1, b="The b", foo="bar")
     assert project_cfg.get_at_path("b") == "The b"

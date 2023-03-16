@@ -4,18 +4,18 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -244,9 +244,7 @@ const TagsSideBar = (props: {
         />
       </StyledSectionHeading>
       {isLoading ? (
-        <Center>
-          <LoadingIndicator mini />
-        </Center>
+        <Placeholder height="200px" />
       ) : suspectTags.length ? (
         suspectTags.map(tag => (
           <RadioLabel key={tag}>
@@ -273,9 +271,7 @@ const TagsSideBar = (props: {
       </StyledSectionHeading>
 
       {isLoading ? (
-        <Center>
-          <LoadingIndicator mini />
-        </Center>
+        <Placeholder height="200px" />
       ) : otherTags.length ? (
         otherTags.map(tag => (
           <RadioLabel key={tag}>
@@ -293,12 +289,6 @@ const TagsSideBar = (props: {
     </StyledSide>
   );
 };
-
-const Center = styled('div')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-`;
 
 const RadioLabel = styled('label')`
   cursor: pointer;

@@ -9,6 +9,7 @@ from django.core.cache import cache
 
 from sentry import http
 from sentry.utils import json
+from sentry.utils.meta import Meta
 from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
 
@@ -30,8 +31,8 @@ def is_expired(ts):
 
 
 class Processor:
-    def __init__(self, vendor, mapping_url, regex, func):
-        self.vendor = vendor
+    def __init__(self, vendor: str, mapping_url, regex, func):
+        self.vendor: str = vendor
         self.mapping_url = mapping_url
         self.regex = re.compile(regex)
         self.func = func
@@ -112,15 +113,29 @@ def rewrite_exception(data):
     in place and returns `True` if a modification was performed or `False`
     otherwise.
     """
+    meta = Meta(data.get("_meta"))
     rv = False
-    for exc in get_path(data, "exception", "values", filter=True, default=()):
+
+    values_meta = meta.enter("exception", "values")
+    for index, exc in enumerate(get_path(data, "exception", "values", default=())):
+        if exc is None:
+            continue
+
+        processor: Processor
         for processor in error_processors.values():
             try:
+                original_value = exc.get("value")
                 if processor.try_process(exc):
+                    values_meta.enter(index, "value").add_remark(
+                        {"rule_id": f"@processing:{processor.vendor}", "type": "s"}, original_value
+                    )
                     rv = True
                     break
             except Exception as e:
                 logger.error('Failed to run processor "%s": %s', processor.vendor, e, exc_info=True)
                 data.setdefault("_metrics", {})["flag.processing.error"] = True
+
+    if meta.raw():
+        data["_meta"] = meta.raw()
 
     return rv

@@ -3,21 +3,22 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AutoSelectText from 'sentry/components/autoSelectText';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PlatformPicker from 'sentry/components/platformPicker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
 } & AsyncComponent['props'];
 
@@ -31,21 +32,23 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
   }
 
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
-    return [['keyList', `/projects/${orgId}/${projectId}/keys/`]];
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
+    return [['keyList', `/projects/${organization.slug}/${projectId}/keys/`]];
   }
 
   redirectToDocs = (platform: PlatformKey | null) => {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
 
     const installUrl = this.isGettingStarted
-      ? `/organizations/${orgId}/projects/${projectId}/getting-started/${platform}/`
+      ? `/organizations/${organization.slug}/projects/${projectId}/getting-started/${platform}/`
       : recreateRoute(`${platform}/`, {
           ...this.props,
           stepBack: -1,
         });
 
-    browserHistory.push(installUrl);
+    browserHistory.push(normalizeUrl(installUrl));
   };
 
   toggleDsn = () => {
@@ -53,10 +56,11 @@ class ProjectInstallOverview extends AsyncComponent<Props, State> {
   };
 
   render() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     const {keyList, showDsn} = this.state;
 
-    const issueStreamLink = `/organizations/${orgId}/issues/#welcome`;
+    const issueStreamLink = `/organizations/${organization.slug}/issues/#welcome`;
 
     return (
       <div>

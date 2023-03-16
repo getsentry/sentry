@@ -4,7 +4,7 @@ import {SectionHeading} from 'sentry/components/charts/styles';
 import Count from 'sentry/components/count';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {SpanSlug, SuspectSpan} from 'sentry/utils/performance/suspectSpans/types';

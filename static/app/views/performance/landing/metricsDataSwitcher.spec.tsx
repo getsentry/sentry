@@ -11,9 +11,14 @@ import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 
 const WrappedComponent = ({data, withStaticFilters = true}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 
@@ -112,10 +117,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();
@@ -150,23 +152,6 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
   });
 
-  it('renders with feature flag and no metrics data', async function () {
-    addMetricsDataMock({
-      metricsCount: 0,
-      nullCount: 0,
-      unparamCount: 0,
-    });
-    const project = TestStubs.Project();
-    const data = initializeData({
-      project: project.id,
-      projects: [project],
-      features,
-    });
-
-    wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
-  });
-
   it('renders with feature flag and checking dynamic sampled projects exist', async function () {
     addMetricsDataMock({
       metricsCount: 100,
@@ -199,7 +184,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-single-project-incompatible')
     ).toBeInTheDocument();
@@ -221,7 +206,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-incompatible')
     ).toBeInTheDocument();
@@ -243,7 +228,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-multi-project-all-incompatible')
     ).toBeInTheDocument();
@@ -263,7 +248,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
-    expect(await screen.findByTestId('smart-search-bar')).toBeInTheDocument();
+    expect(await screen.findByTestId('transaction-search-bar')).toBeInTheDocument();
     expect(
       await screen.findByTestId('landing-mep-alert-unnamed-discover')
     ).toBeInTheDocument();

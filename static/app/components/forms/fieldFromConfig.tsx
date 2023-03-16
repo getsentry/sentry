@@ -1,4 +1,4 @@
-import {FieldGroupProps} from 'sentry/components/forms/field/types';
+import {FieldGroupProps} from 'sentry/components/forms/fieldGroup/types';
 import SeparatorField from 'sentry/components/forms/fields/separatorField';
 import {Field} from 'sentry/components/forms/types';
 import {Scope} from 'sentry/types';

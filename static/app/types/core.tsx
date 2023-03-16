@@ -30,7 +30,7 @@ export type Actor = {
   email?: string;
 };
 
-export type Scope = typeof API_ACCESS_SCOPES[number];
+export type Scope = (typeof API_ACCESS_SCOPES)[number];
 
 export type DateString = Date | string | null;
 
@@ -46,8 +46,13 @@ export type Writable<T> = {-readonly [K in keyof T]: T[K]};
  * The option format used by react-select based components
  */
 export interface SelectValue<T> extends MenuListItemProps {
-  label: string | number | React.ReactElement;
   value: T;
+  /**
+   * In scenarios where you're using a react element as the label react-select
+   * will be unable to filter to that label. Use this to specify the plain text of
+   * the label.
+   */
+  textValue?: string;
 }
 
 /**
@@ -60,15 +65,43 @@ export type Choice = [
 
 export type Choices = Choice[];
 
-// https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
-// Note: the value of the enum on the frontend is plural,
-// but the value of the enum on the backend is singular
+/**
+ * @deprecated in favour of `DataCategoryExact` and `DATA_CATEGORY_INFO`.
+ * This legacy type used plurals which will cause compatibility issues when categories
+ * become more complex, e.g. processed transactions, session replays. Instead, access these values
+ * with `DATA_CATEGORY_INFO[category].plural`, where category is the `DataCategoryExact` enum value.
+ */
 export enum DataCategory {
   DEFAULT = 'default',
   ERRORS = 'errors',
   TRANSACTIONS = 'transactions',
   ATTACHMENTS = 'attachments',
   PROFILES = 'profiles',
+  REPLAYS = 'replays',
+}
+
+/**
+ * https://github.com/getsentry/relay/blob/master/relay-common/src/constants.rs
+ * Matches the backend singular backend enum directly.
+ * For display variations, refer to `DATA_CATEGORY_INFO` rather than manipulating these strings
+ */
+export enum DataCategoryExact {
+  ERROR = 'error',
+  TRANSACTION = 'transaction',
+  ATTACHMENT = 'attachment',
+  PROFILE = 'profile',
+  REPLAY = 'replay',
+  TRANSACTION_PROCESSED = 'transaction_processed',
+  TRANSACTION_INDEXED = 'transaction_indexed',
+}
+
+export interface DataCategoryInfo {
+  apiName: string;
+  displayName: string;
+  name: DataCategoryExact;
+  plural: string;
+  titleName: string;
+  uid: number;
 }
 
 export type EventType = 'error' | 'transaction' | 'attachment';

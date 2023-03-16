@@ -1,9 +1,8 @@
-import React from 'react';
 import styled from '@emotion/styled';
 
 import Card from 'sentry/components/card';
 import {IconCheckmark} from 'sentry/icons/iconCheckmark';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {title?: string};
 

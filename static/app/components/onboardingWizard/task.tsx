@@ -5,14 +5,14 @@ import moment from 'moment';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Avatar from 'sentry/components/avatar';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Card from 'sentry/components/card';
 import LetterAvatar from 'sentry/components/letterAvatar';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconCheckmark, IconClose, IconLock, IconSync} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AvatarUser, OnboardingTask, OnboardingTaskKey, Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
@@ -37,11 +37,13 @@ const recordAnalytics = (
 
 type Props = {
   forwardedRef: React.Ref<HTMLDivElement>;
+  hidePanel: () => void;
   /**
    * Fired when a task is completed. This will typically happen if there is a
    * supplemental component with the ability to complete a task
    */
   onMarkComplete: (taskKey: OnboardingTaskKey) => void;
+
   /**
    * Fired when the task has been skipped
    */
@@ -55,7 +57,7 @@ type Props = {
 };
 
 function Task(props: Props) {
-  const {task, onSkip, onMarkComplete, forwardedRef, organization} = props;
+  const {task, onSkip, onMarkComplete, forwardedRef, organization, hidePanel} = props;
   const routeContext = useRouteContext();
   const {router} = routeContext;
   const handleSkip = () => {
@@ -84,6 +86,7 @@ function Task(props: Props) {
       url.searchParams.append('referrer', 'onboarding_task');
       navigateTo(url.toString(), router);
     }
+    hidePanel();
   };
 
   if (taskIsDone(task) && task.completionSeen) {

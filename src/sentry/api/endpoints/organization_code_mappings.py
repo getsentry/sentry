@@ -12,7 +12,8 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
-from sentry.models import OrganizationIntegration, Project, Repository, RepositoryProjectPathConfig
+from sentry.models import Project, Repository, RepositoryProjectPathConfig
+from sentry.services.hybrid_cloud.integration import integration_service
 
 
 def gen_path_regex_field():
@@ -91,7 +92,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
     def create(self, validated_data):
         return RepositoryProjectPathConfig.objects.create(
-            organization_integration=self.org_integration, **validated_data
+            organization_integration_id=self.org_integration.id, **validated_data
         )
 
     def update(self, instance, validated_data):
@@ -105,13 +106,12 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
 
 class OrganizationIntegrationMixin:
     def get_organization_integration(self, organization, integration_id):
-        try:
-            return OrganizationIntegration.objects.get(
-                integration_id=integration_id,
-                organization=organization,
-            )
-        except OrganizationIntegration.DoesNotExist:
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization.id
+        )
+        if not org_integration:
             raise Http404
+        return org_integration
 
     def get_project(self, organization, project_id):
         try:
@@ -145,7 +145,7 @@ class OrganizationCodeMappingsEndpoint(OrganizationEndpoint, OrganizationIntegra
         if integration_id:
             # get_organization_integration will raise a 404 if no org_integration is found
             org_integration = self.get_organization_integration(organization, integration_id)
-            queryset = queryset.filter(organization_integration=org_integration)
+            queryset = queryset.filter(organization_integration_id=org_integration.id)
         else:
             # Filter by project
             projects = self.get_projects(request, organization)

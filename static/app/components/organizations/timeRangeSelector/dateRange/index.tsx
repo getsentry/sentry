@@ -10,7 +10,7 @@ import Checkbox from 'sentry/components/checkbox';
 import TimePicker from 'sentry/components/organizations/timeRangeSelector/timePicker';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 import {
@@ -204,13 +204,7 @@ class BaseDateRange extends Component<Props, State> {
             />
             <UtcPicker>
               {t('Use UTC')}
-              <Checkbox
-                onChange={onChangeUtc}
-                checked={utc || false}
-                style={{
-                  margin: '0 0 0 0.5em',
-                }}
-              />
+              <Checkbox onChange={onChangeUtc} checked={utc || false} />
             </UtcPicker>
           </TimeAndUtcPicker>
         )}
@@ -239,6 +233,7 @@ const UtcPicker = styled('div')`
   align-items: center;
   justify-content: flex-end;
   flex: 1;
+  gap: ${space(1)};
 `;
 
 export default DateRange;

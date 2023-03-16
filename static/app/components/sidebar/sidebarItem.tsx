@@ -6,7 +6,8 @@ import FeatureBadge from 'sentry/components/featureBadge';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import localStorage from 'sentry/utils/localStorage';
@@ -220,8 +221,7 @@ const StyledSidebarItem = styled(Link)`
   position: relative;
   cursor: pointer;
   font-size: 15px;
-  line-height: 32px;
-  height: 34px;
+  height: 30px;
   flex-shrink: 0;
 
   transition: 0.15s color linear;
@@ -260,12 +260,13 @@ const StyledSidebarItem = styled(Link)`
 
   &.focus-visible {
     outline: none;
-    background: #584c66;
-    padding: 0 19px;
-    margin: 0 -19px;
+    box-shadow: 0 0 0 2px ${p => p.theme.purple300};
+    border-radius: ${p => p.theme.borderRadius};
+    padding: 0 ${space(1)} 0 ${space(0.25)};
+    margin: 0 -${space(1)} 0 -${space(0.25)};
 
     &:before {
-      left: 0;
+      left: -18px;
     }
   }
 

@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
@@ -13,7 +13,7 @@ import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withProjects from 'sentry/utils/withProjects';
@@ -32,7 +32,6 @@ import {AlertWizardPanelContent} from './panelContent';
 import RadioPanelGroup from './radioPanelGroup';
 
 type RouteParams = {
-  orgId: string;
   projectId?: string;
 };
 
@@ -161,7 +160,7 @@ class AlertWizard extends Component<Props, State> {
     const title = t('Alert Creation Wizard');
     const panelContent = AlertWizardPanelContent[alertOption];
     return (
-      <Fragment>
+      <Layout.Page>
         <SentryDocumentTitle title={title} projectSlug={projectId} />
 
         <Layout.Header>
@@ -181,11 +180,10 @@ class AlertWizard extends Component<Props, State> {
           <Layout.Main fullWidth>
             <WizardBody>
               <WizardOptions>
-                <CategoryTitle>{t('Errors')}</CategoryTitle>
                 {getAlertWizardCategories(organization).map(
-                  ({categoryHeading, options}, i) => (
-                    <OptionsWrapper key={categoryHeading}>
-                      {i > 0 && <CategoryTitle>{categoryHeading} </CategoryTitle>}
+                  ({categoryHeading, options}) => (
+                    <div key={categoryHeading}>
+                      <CategoryTitle>{categoryHeading} </CategoryTitle>
                       <RadioPanelGroup
                         choices={options.map(alertType => {
                           return [alertType, AlertWizardAlertNames[alertType]];
@@ -194,7 +192,7 @@ class AlertWizard extends Component<Props, State> {
                         value={alertOption}
                         label="alert-option"
                       />
-                    </OptionsWrapper>
+                    </div>
                   )
                 )}
               </WizardOptions>
@@ -226,7 +224,7 @@ class AlertWizard extends Component<Props, State> {
             </WizardBody>
           </Layout.Main>
         </Layout.Body>
-      </Fragment>
+      </Layout.Page>
     );
   }
 }
@@ -247,6 +245,9 @@ const WizardBody = styled('div')`
 `;
 
 const WizardOptions = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(4)};
   flex: 3;
   margin-right: ${space(3)};
   padding-right: ${space(3)};
@@ -301,14 +302,6 @@ const ExampleHeader = styled('div')`
 
 const ExampleItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const OptionsWrapper = styled('div')`
-  margin-bottom: ${space(4)};
-
-  &:last-child {
-    margin-bottom: 0;
-  }
 `;
 
 const WizardFooter = styled('div')`

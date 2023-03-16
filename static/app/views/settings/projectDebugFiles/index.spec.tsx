@@ -14,7 +14,7 @@ describe('ProjectDebugFiles', function () {
   const props = {
     organization,
     project,
-    params: {orgId: organization.slug, projectId: project.slug},
+    params: {projectId: project.slug},
     location: {
       ...router.location,
       query: {

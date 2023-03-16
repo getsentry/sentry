@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {renderGlobalModal} from 'sentry-test/reactTestingLibrary';
+import {act, renderGlobalModal} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import {RedirectToProjectModal} from 'sentry/components/modals/redirectToProject';
@@ -26,16 +26,18 @@ describe('RedirectToProjectModal', function () {
 
     renderGlobalModal();
 
-    openModal(modalProps => (
-      <RedirectToProjectModal
-        {...modalProps}
-        routes={router.routes}
-        router={router}
-        location={router.location}
-        slug="new-slug"
-        params={{orgId: 'org-slug', projectId: 'project-slug'}}
-      />
-    ));
+    act(() =>
+      openModal(modalProps => (
+        <RedirectToProjectModal
+          {...modalProps}
+          routes={router.routes}
+          router={router}
+          location={router.location}
+          slug="new-slug"
+          params={{orgId: 'org-slug', projectId: 'project-slug'}}
+        />
+      ))
+    );
 
     jest.advanceTimersByTime(4900);
     expect(window.location.assign).not.toHaveBeenCalled();

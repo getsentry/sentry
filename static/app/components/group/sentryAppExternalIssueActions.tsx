@@ -7,10 +7,10 @@ import {deleteExternalIssue} from 'sentry/actionCreators/platformExternalIssues'
 import {Client} from 'sentry/api';
 import {IntegrationLink} from 'sentry/components/issueSyncListElement';
 import SentryAppComponentIcon from 'sentry/components/sentryAppComponentIcon';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Group,
   PlatformExternalIssue,
@@ -79,7 +79,7 @@ class SentryAppExternalIssueActions extends Component<Props, State> {
           onSubmitSuccess={this.onSubmitSuccess}
         />
       ),
-      {allowClickClose: false}
+      {closeEvents: 'escape-key'}
     );
   };
 

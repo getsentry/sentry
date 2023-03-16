@@ -5,7 +5,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def url(self):
         return reverse(
@@ -577,3 +577,26 @@ class OrganizationDashboardWidgetDetailsTestCase(OrganizationDashboardWidgetTest
         )
         assert response.status_code == 400, response.data
         assert "queries" in response.data, response.data
+
+    def test_save_with_total_count(self):
+        data = {
+            "title": "Test Query",
+            "displayType": "table",
+            "widgetType": "discover",
+            "limit": 5,
+            "queries": [
+                {
+                    "name": "",
+                    "conditions": "",
+                    "fields": [],
+                    "columns": ["total.count"],
+                    "aggregates": ["count()"],
+                }
+            ],
+        }
+        response = self.do_request(
+            "post",
+            self.url(),
+            data=data,
+        )
+        assert response.status_code == 200, response.data

@@ -25,7 +25,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user=request.user, id=note_id
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist
@@ -55,7 +55,7 @@ class GroupNotesDetailsEndpoint(GroupEndpoint):
 
         try:
             note = Activity.objects.get(
-                group=group, type=ActivityType.NOTE.value, user=request.user, id=note_id
+                group=group, type=ActivityType.NOTE.value, user_id=request.user.id, id=note_id
             )
         except Activity.DoesNotExist:
             raise ResourceDoesNotExist

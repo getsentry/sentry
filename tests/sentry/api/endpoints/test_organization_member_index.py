@@ -4,13 +4,7 @@ from django.core import mail
 
 from sentry import roles
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
-from sentry.models import (
-    Authenticator,
-    Integration,
-    InviteStatus,
-    OrganizationMember,
-    OrganizationMemberTeam,
-)
+from sentry.models import Authenticator, InviteStatus, OrganizationMember, OrganizationMemberTeam
 from sentry.testutils import APITestCase, TestCase
 from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -118,9 +112,7 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {
-            "teamRoles": ["You do not have permission to set that team-level role"]
-        }
+        assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
 
 
 class OrganizationMemberListTestBase(APITestCase):
@@ -197,17 +189,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
+        member_team = self.create_team(organization=self.organization, org_role="member")
+        user = self.create_user("zoo@localhost", username="zoo")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="owner",
+            teams=[member_team],
+        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user2.email
+        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(
@@ -524,10 +526,9 @@ class OrganizationMemberPermissionRoleTest(OrganizationMemberListTestBase):
 
     def test_user_has_external_user_associations_across_multiple_orgs(self):
         organization = self.create_organization(owner=self.user2)
-        integration = Integration.objects.create(
-            provider="github", name="GitHub", external_id="github:2"
+        integration = self.create_integration(
+            organization=self.organization, external_id="github:2", name="GitHub", provider="github"
         )
-        integration.add_organization(organization, self.user2)
         self.create_external_user(self.user2, organization, integration=integration)
 
         response = self.get_success_response(

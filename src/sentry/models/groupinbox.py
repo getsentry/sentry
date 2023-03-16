@@ -103,7 +103,7 @@ def remove_group_from_inbox(group, action=None, user=None, referrer=None):
                 project_id=group_inbox.group.project_id,
                 group_id=group_inbox.group_id,
                 type=ActivityType.MARK_REVIEWED.value,
-                user=user,
+                user_id=user.id,
             )
             record_group_history(group, GroupHistoryStatus.REVIEWED, actor=user)
 

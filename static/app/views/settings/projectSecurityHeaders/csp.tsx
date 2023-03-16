@@ -8,7 +8,7 @@ import {Panel, PanelBody, PanelHeader} from 'sentry/components/panels';
 import PreviewFeature from 'sentry/components/previewFeature';
 import formGroups from 'sentry/data/forms/cspReports';
 import {t, tct} from 'sentry/locale';
-import {Project, ProjectKey} from 'sentry/types';
+import {Organization, Project, ProjectKey} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -16,7 +16,9 @@ import ReportUri, {
   getSecurityDsn,
 } from 'sentry/views/settings/projectSecurityHeaders/reportUri';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}>;
+type Props = RouteComponentProps<{projectId: string}, {}> & {
+  organization: Organization;
+};
 
 type State = {
   keyList: null | ProjectKey[];
@@ -25,10 +27,11 @@ type State = {
 
 export default class ProjectCspReports extends AsyncView<Props, State> {
   getEndpoints(): ReturnType<AsyncView['getEndpoints']> {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     return [
-      ['keyList', `/projects/${orgId}/${projectId}/keys/`],
-      ['project', `/projects/${orgId}/${projectId}/`],
+      ['keyList', `/projects/${organization.slug}/${projectId}/keys/`],
+      ['project', `/projects/${organization.slug}/${projectId}/`],
     ];
   }
 
@@ -65,7 +68,8 @@ export default class ProjectCspReports extends AsyncView<Props, State> {
   }
 
   renderBody() {
-    const {orgId, projectId} = this.props.params;
+    const {organization} = this.props;
+    const {projectId} = this.props.params;
     const {project, keyList} = this.state;
     if (!keyList || !project) {
       return null;
@@ -77,13 +81,13 @@ export default class ProjectCspReports extends AsyncView<Props, State> {
 
         <PreviewFeature />
 
-        <ReportUri keyList={keyList} orgId={orgId} projectId={projectId} />
+        <ReportUri keyList={keyList} orgId={organization.slug} projectId={projectId} />
 
         <Form
           saveOnBlur
           apiMethod="PUT"
           initialData={project.options}
-          apiEndpoint={`/projects/${orgId}/${projectId}/`}
+          apiEndpoint={`/projects/${organization.slug}/${projectId}/`}
         >
           <Access access={['project:write']}>
             {({hasAccess}) => <JsonForm disabled={!hasAccess} forms={formGroups} />}
@@ -141,7 +145,7 @@ export default class ProjectCspReports extends AsyncView<Props, State> {
               information, take a look at [link:the article on html5rocks.com].`,
                 {
                   link: (
-                    <a href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
+                    <ExternalLink href="http://www.html5rocks.com/en/tutorials/security/content-security-policy/" />
                   ),
                 }
               )}

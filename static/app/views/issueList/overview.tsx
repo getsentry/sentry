@@ -9,12 +9,14 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
+import moment from 'moment';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers, indexMembersByProject} from 'sentry/actionCreators/members';
 import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {extractSelectionParameters} from 'sentry/components/organizations/pageFilters/utils';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
@@ -24,8 +26,7 @@ import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct, tn} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
-import {PageContent} from 'sentry/styles/organization';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   BaseGroup,
   Group,
@@ -414,6 +415,7 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
         GroupStore.onPopulateStats(groups, data);
+        this.trackTabViewed(groups, data);
       },
       error: err => {
         this.setState({
@@ -536,7 +538,6 @@ class IssueListOverview extends Component<Props, State> {
     transaction?.setTag('query.sort', this.getSort());
 
     this.setState({
-      queryCount: 0,
       itemsRemoved: 0,
       error: null,
     });
@@ -580,25 +581,26 @@ class IssueListOverview extends Component<Props, State> {
           return;
         }
 
-        const {orgId} = this.props.params;
         // If this is a direct hit, we redirect to the intended result directly.
         if (resp.getResponseHeader('X-Sentry-Direct-Hit') === '1') {
           let redirect: string;
           if (data[0] && data[0].matchingEventId) {
             const {id, matchingEventId} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/events/${matchingEventId}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/events/${matchingEventId}/`;
           } else {
             const {id} = data[0];
-            redirect = `/organizations/${orgId}/issues/${id}/`;
+            redirect = `/organizations/${organization.slug}/issues/${id}/`;
           }
 
-          browserHistory.replace({
-            pathname: redirect,
-            query: {
-              referrer: 'issue-list',
-              ...extractSelectionParameters(this.props.location.query),
-            },
-          });
+          browserHistory.replace(
+            normalizeUrl({
+              pathname: redirect,
+              query: {
+                referrer: 'issue-list',
+                ...extractSelectionParameters(this.props.location.query),
+              },
+            })
+          );
           return;
         }
 
@@ -613,32 +615,6 @@ class IssueListOverview extends Component<Props, State> {
             GroupStore.remove(this.state.reviewedIds);
           }
         }
-
-        const numPerfIssues = data.filter(
-          (group: BaseGroup) => group.issueCategory === IssueCategory.PERFORMANCE
-        ).length;
-
-        const page = this.props.location.query.page;
-
-        const endpointParams = this.getEndpointParams();
-        const tabQueriesWithCounts = getTabsWithCounts(organization);
-        const currentTabQuery = tabQueriesWithCounts.includes(
-          endpointParams.query as Query
-        )
-          ? endpointParams.query
-          : null;
-        const tab = getTabs(organization).find(
-          ([tabQuery]) => currentTabQuery === tabQuery
-        )?.[1];
-
-        trackAdvancedAnalyticsEvent('issues_tab.viewed', {
-          organization,
-          tab: tab?.analyticsName,
-          page: page ? parseInt(page, 10) : 0,
-          query,
-          num_perf_issues: numPerfIssues,
-          num_issues: data.length,
-        });
 
         this.fetchStats(data.map((group: BaseGroup) => group.id));
 
@@ -718,15 +694,18 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   get groupListEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues/`;
   }
 
   get groupCountsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-count/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-count/`;
   }
 
   get groupStatsEndpoint(): string {
-    return `/organizations/${this.props.params.orgId}/issues-stats/`;
+    const {organization} = this.props;
+    return `/organizations/${organization.slug}/issues-stats/`;
   }
 
   onRealtimeChange = (realtime: boolean) => {
@@ -821,16 +800,42 @@ class IssueListOverview extends Component<Props, State> {
     }
   }
 
-  onIssueListSidebarSearch = (query: string) => {
-    trackAdvancedAnalyticsEvent('search.searched', {
-      organization: this.props.organization,
-      query,
-      search_type: 'issues',
-      search_source: 'search_builder',
-    });
+  trackTabViewed(groups: string[], data: Group[]) {
+    const {organization, location} = this.props;
+    const page = location.query.page;
+    const endpointParams = this.getEndpointParams();
+    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
+      ? endpointParams.query
+      : null;
+    const tab = getTabs(organization).find(
+      ([tabQuery]) => currentTabQuery === tabQuery
+    )?.[1];
 
-    this.onSearch(query);
-  };
+    const numPerfIssues = groups.filter(
+      group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE
+    ).length;
+    // First and last seen are only available after the group has fetched stats
+    // Number of issues shown whose first seen is more than 30 days ago
+    const numOldIssues = data.filter((group: BaseGroup) =>
+      moment(new Date(group.firstSeen)).isBefore(moment().subtract(30, 'd'))
+    ).length;
+    // number of issues shown whose first seen is less than 7 days
+    const numNewIssues = data.filter((group: BaseGroup) =>
+      moment(new Date(group.firstSeen)).isAfter(moment().subtract(7, 'd'))
+    ).length;
+
+    trackAdvancedAnalyticsEvent('issues_tab.viewed', {
+      organization,
+      tab: tab?.analyticsName,
+      page: page ? parseInt(page, 10) : 0,
+      query: this.getQuery(),
+      num_perf_issues: numPerfIssues,
+      num_old_issues: numOldIssues,
+      num_new_issues: numNewIssues,
+      num_issues: data.length,
+    });
+  }
 
   onSearch = (query: string) => {
     if (query === this.state.query) {
@@ -951,9 +956,9 @@ class IssueListOverview extends Component<Props, State> {
 
   renderLoading(): React.ReactNode {
     return (
-      <PageContent>
+      <Layout.Page withPadding>
         <LoadingIndicator />
-      </PageContent>
+      </Layout.Page>
     );
   }
 
@@ -1094,19 +1099,34 @@ class IssueListOverview extends Component<Props, State> {
       });
     }
 
+    const links = parseLinkHeader(this.state.pageLinks);
+
     GroupStore.remove(itemIds);
-    this.setState({actionTaken: true});
-    this.fetchData(true);
+    const queryCount = this.state.queryCount - itemIds.length;
+    this.setState({
+      actionTaken: true,
+      queryCount,
+    });
+
+    if (GroupStore.getAllItemIds().length === 0) {
+      // If we run out of issues on the last page, navigate back a page to
+      // avoid showing an empty state - if not on the last page, just show a spinner
+      const shouldGoBackAPage = links?.previous?.results && !links?.next?.results;
+      this.transitionTo({cursor: shouldGoBackAPage ? links.previous.cursor : undefined});
+      this.fetchCounts(queryCount, true);
+    } else {
+      this.fetchData(true);
+    }
   };
 
   tagValueLoader = (key: string, search: string) => {
-    const {orgId} = this.props.params;
+    const {organization} = this.props;
     const projectIds = this.getSelectedProjectIds();
     const endpointParams = this.getEndpointParams();
 
     return fetchTagValues({
       api: this.props.api,
-      orgSlug: orgId,
+      orgSlug: organization.slug,
       tagKey: key,
       search,
       projectIds,
@@ -1130,28 +1150,14 @@ class IssueListOverview extends Component<Props, State> {
       issuesLoading,
       error,
     } = this.state;
-    const {organization, savedSearch, selection, location, router} = this.props;
-    const links = parseLinkHeader(pageLinks);
+    const {organization, selection, router} = this.props;
     const query = this.getQuery();
-    const queryPageInt = parseInt(location.query.page, 10);
-    // Cursor must be present for the page number to be used
-    const page = isNaN(queryPageInt) || !location.query.cursor ? 0 : queryPageInt;
-    const pageBasedCount = page * MAX_ITEMS + groupIds.length;
 
-    let pageCount = pageBasedCount > queryCount ? queryCount : pageBasedCount;
-    if (!links?.next?.results || this.allResultsVisible()) {
-      // On last available page
-      pageCount = queryCount;
-    } else if (!links?.previous?.results) {
-      // On first available page
-      pageCount = groupIds.length;
-    }
+    const numIssuesOnPage = groupIds.length;
 
-    // Subtract # items that have been marked reviewed
-    pageCount = Math.max(pageCount - itemsRemoved, 0);
     const modifiedQueryCount = Math.max(queryCount - itemsRemoved, 0);
     const displayCount = tct('[count] of [total]', {
-      count: pageCount,
+      count: numIssuesOnPage,
       total: (
         <StyledQueryCount
           hideParens
@@ -1171,7 +1177,7 @@ class IssueListOverview extends Component<Props, State> {
     );
 
     return (
-      <StyledPageContent>
+      <Layout.Page>
         <IssueListHeader
           organization={organization}
           query={query}
@@ -1182,16 +1188,11 @@ class IssueListOverview extends Component<Props, State> {
           onRealtimeChange={this.onRealtimeChange}
           router={router}
           displayReprocessingTab={showReprocessingTab}
-          savedSearch={savedSearch}
           selectedProjectIds={selection.projects}
         />
         <StyledBody>
           <StyledMain>
-            <IssueListFilters
-              organization={organization}
-              query={query}
-              onSearch={this.onSearch}
-            />
+            <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
               <IssueListActions
@@ -1236,9 +1237,13 @@ class IssueListOverview extends Component<Props, State> {
               </PanelBody>
             </Panel>
             <StyledPagination
-              caption={tct('Showing [displayCount] issues', {
-                displayCount,
-              })}
+              caption={
+                !issuesLoading
+                  ? tct('Showing [displayCount] issues', {
+                      displayCount,
+                    })
+                  : null
+              }
               pageLinks={pageLinks}
               onCursor={this.onCursorChange}
               paginationAnalyticsEvent={this.paginationAnalyticsEvent}
@@ -1250,7 +1255,7 @@ class IssueListOverview extends Component<Props, State> {
             sort={this.getSort()}
           />
         </StyledBody>
-      </StyledPageContent>
+      </Layout.Page>
     );
   }
 }
@@ -1273,17 +1278,9 @@ const StyledBody = styled('div')`
   gap: 0;
   padding: 0;
 
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto minmax(max-content, 1fr);
-  grid-template-areas:
-    'saved-searches'
-    'content';
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-rows: 1fr;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas: 'content saved-searches';
-  }
+  grid-template-rows: 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'content saved-searches';
 `;
 
 const StyledMain = styled('section')`
@@ -1301,8 +1298,4 @@ const StyledPagination = styled(Pagination)`
 
 const StyledQueryCount = styled(QueryCount)`
   margin-left: 0;
-`;
-
-const StyledPageContent = styled(PageContent)`
-  padding: 0;
 `;

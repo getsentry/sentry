@@ -1,24 +1,55 @@
-import {cloneElement, isValidElement} from 'react';
 import {RouteComponentProps} from 'react-router';
 
-import {Organization, Project} from 'sentry/types';
-import withOrganization from 'sentry/utils/withOrganization';
+import {Project} from 'sentry/types';
+import useOrganization from 'sentry/utils/useOrganization';
+import ProjectSourceMapsDetail from 'sentry/views/settings/projectSourceMaps/detail';
+import ProjectSourceMapsList from 'sentry/views/settings/projectSourceMaps/list';
 
-type RouteParams = {
-  orgId: string;
-};
+import {ProjectSourceMaps} from './projectSourceMaps';
+import {ProjectSourceMapsArtifacts} from './projectSourceMapsArtifacts';
 
-type Props = RouteComponentProps<RouteParams, {}> & {
+type Props = RouteComponentProps<
+  {orgId: string; projectId: string; bundleId?: string; name?: string},
+  {}
+> & {
   children: React.ReactNode;
-  organization: Organization;
   project: Project;
 };
 
-function ProjectSourceMapsContainer(props: Props) {
-  const {children, organization, project} = props;
-  return isValidElement(children)
-    ? cloneElement<any>(children, {organization, project})
-    : null;
-}
+export function ProjectSourceMapsContainer({params, location, ...props}: Props) {
+  const organization = useOrganization();
+  const sourceMapsDebugIds = organization.features.includes('source-maps-debug-ids');
 
-export default withOrganization(ProjectSourceMapsContainer);
+  if (!sourceMapsDebugIds) {
+    if (params.name) {
+      return (
+        <ProjectSourceMapsDetail
+          {...props}
+          location={location}
+          params={{...params, name: params.name}}
+          organization={organization}
+        />
+      );
+    }
+    return (
+      <ProjectSourceMapsList
+        {...props}
+        location={location}
+        params={params}
+        organization={organization}
+      />
+    );
+  }
+
+  if (params.bundleId) {
+    return (
+      <ProjectSourceMapsArtifacts
+        {...props}
+        location={location}
+        params={{...params, bundleId: params.bundleId}}
+      />
+    );
+  }
+
+  return <ProjectSourceMaps {...props} location={location} params={params} />;
+}

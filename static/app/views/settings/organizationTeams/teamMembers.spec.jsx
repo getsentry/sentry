@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
   openInviteMembersModal,
@@ -37,6 +37,11 @@ describe('TeamMembers', function () {
       method: 'GET',
       body: members,
     });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/`,
+      method: 'GET',
+      body: team,
+    });
 
     createMock = Client.addMockResponse({
       url: `/organizations/${organization.slug}/members/${member.id}/teams/${team.slug}/`,
@@ -47,7 +52,11 @@ describe('TeamMembers', function () {
   it('can add member to team with open membership', async function () {
     const org = TestStubs.Organization({access: [], openMembership: true});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -59,7 +68,11 @@ describe('TeamMembers', function () {
   it('can add member to team with team:admin permission', async function () {
     const org = TestStubs.Organization({access: ['team:admin'], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -71,7 +84,11 @@ describe('TeamMembers', function () {
   it('can add member to team with org:write permission', async function () {
     const org = TestStubs.Organization({access: ['org:write'], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -83,7 +100,11 @@ describe('TeamMembers', function () {
   it('can request access to add member to team without permission', async function () {
     const org = TestStubs.Organization({access: [], openMembership: false});
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />
     );
 
     userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
@@ -100,7 +121,11 @@ describe('TeamMembers', function () {
       }),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -118,7 +143,11 @@ describe('TeamMembers', function () {
       }),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -133,7 +162,11 @@ describe('TeamMembers', function () {
       organization: TestStubs.Organization({access: [], openMembership: true}),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -148,7 +181,11 @@ describe('TeamMembers', function () {
       organization: TestStubs.Organization({access: [], openMembership: false}),
     });
     render(
-      <TeamMembers params={{orgId: org.slug, teamId: team.slug}} organization={org} />,
+      <TeamMembers
+        params={{orgId: org.slug, teamId: team.slug}}
+        organization={org}
+        team={team}
+      />,
       {context: routerContext}
     );
 
@@ -167,6 +204,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
+        team={team}
       />
     );
 
@@ -199,6 +237,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organizationMember}
+        team={team}
       />
     );
 
@@ -232,6 +271,7 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: organization.slug, teamId: team.slug}}
         organization={organization}
+        team={team}
       />
     );
 
@@ -259,11 +299,59 @@ describe('TeamMembers', function () {
       <TeamMembers
         params={{orgId: orgWithTeamRoles.slug, teamId: team.slug}}
         organization={orgWithTeamRoles}
+        team={team}
       />
     );
     const admins = screen.queryAllByText('Team Admin');
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
     expect(contributors).toHaveLength(2);
+  });
+
+  it('cannot add or remove members if team is idp:provisioned', function () {
+    const team2 = TestStubs.Team({
+      flags: {
+        'idp:provisioned': true,
+      },
+    });
+
+    const me = TestStubs.Member({
+      id: '123',
+      email: 'foo@example.com',
+      role: 'owner',
+      flags: {
+        'idp:provisioned': true,
+      },
+    });
+
+    Client.clearMockResponses();
+    Client.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      method: 'GET',
+      body: [...members, me],
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team2.slug}/members/`,
+      method: 'GET',
+      body: members,
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${team.slug}/`,
+      method: 'GET',
+      body: team2,
+    });
+
+    render(
+      <TeamMembers
+        params={{orgId: organization.slug, teamId: team2.slug}}
+        organization={organization}
+        team={team2}
+      />
+    );
+
+    waitFor(() => {
+      expect(screen.findByRole('button', {name: 'Add Member'})).toBeDisabled();
+      expect(screen.findByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
   });
 });

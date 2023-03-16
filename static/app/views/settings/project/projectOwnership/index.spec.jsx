@@ -47,7 +47,7 @@ describe('Project Ownership', () => {
     it('renders', () => {
       const wrapper = render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />
@@ -57,6 +57,27 @@ describe('Project Ownership', () => {
       expect(
         screen.queryByRole('button', {name: 'Add CODEOWNERS'})
       ).not.toBeInTheDocument();
+    });
+
+    it('renders allows users to edit ownership rules', () => {
+      org = TestStubs.Organization({
+        access: ['project:read'],
+      });
+      render(
+        <ProjectOwnership
+          params={{projectId: project.slug}}
+          organization={org}
+          project={project}
+        />,
+        {context: TestStubs.routerContext([{organization: org}])}
+      );
+
+      expect(screen.queryByRole('button', {name: 'Edit'})).toBeEnabled();
+      expect(screen.getByTestId('project-permission-alert')).toHaveTextContent(
+        'These settings can only be edited by users with the organization owner, manager, or admin role.'
+      );
+      // eslint-disable-next-line jest-dom/prefer-in-document
+      expect(screen.getAllByTestId('project-permission-alert')).toHaveLength(1);
     });
   });
 
@@ -68,7 +89,7 @@ describe('Project Ownership', () => {
       });
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />,
@@ -76,10 +97,10 @@ describe('Project Ownership', () => {
       );
 
       // Renders button
-      expect(screen.getByRole('button', {name: 'Add CODEOWNERS'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
 
       // Opens modal
-      userEvent.click(screen.getByRole('button', {name: 'Add CODEOWNERS'}));
+      userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
   });
@@ -98,7 +119,7 @@ describe('Project Ownership', () => {
 
       render(
         <ProjectOwnership
-          params={{orgId: org.slug, projectId: project.slug}}
+          params={{projectId: project.slug}}
           organization={org}
           project={project}
         />
@@ -118,6 +139,22 @@ describe('Project Ownership', () => {
           })
         );
       });
+    });
+
+    it('should hide issue owners for issue-alert-fallback-targeting flag', () => {
+      const organization = {...org, features: ['issue-alert-fallback-targeting']};
+      render(
+        <ProjectOwnership
+          params={{orgId: organization.slug, projectId: project.slug}}
+          organization={organization}
+          project={project}
+        />
+      );
+
+      expect(screen.getByText('Prioritize Auto Assignment')).toBeInTheDocument();
+      expect(
+        screen.queryByText('Send alert to project members if there’s no assigned owner')
+      ).not.toBeInTheDocument();
     });
   });
 });

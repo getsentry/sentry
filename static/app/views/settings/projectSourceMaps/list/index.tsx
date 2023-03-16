@@ -12,7 +12,7 @@ import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, SourceMapsArchive} from 'sentry/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -22,7 +22,7 @@ import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
 import SourceMapsArchiveRow from './sourceMapsArchiveRow';
 
-type Props = RouteComponentProps<{orgId: string; projectId: string}, {}> & {
+type Props = RouteComponentProps<{projectId: string}, {}> & {
   organization: Organization;
   project: Project;
 };
@@ -50,9 +50,9 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
   }
 
   getArchivesUrl() {
-    const {orgId, projectId} = this.props.params;
+    const {organization, project} = this.props;
 
-    return `/projects/${orgId}/${projectId}/files/source-maps/`;
+    return `/projects/${organization.slug}/${project.slug}/files/source-maps/`;
   }
 
   handleSearch = (query: string) => {
@@ -98,20 +98,18 @@ class ProjectSourceMaps extends AsyncView<Props, State> {
 
   renderArchives() {
     const {archives} = this.state;
-    const {params} = this.props;
-    const {orgId, projectId} = params;
-
     if (!archives.length) {
       return null;
     }
+    const {organization, project} = this.props;
 
     return archives.map(a => {
       return (
         <SourceMapsArchiveRow
           key={a.name}
           archive={a}
-          orgId={orgId}
-          projectId={projectId}
+          orgId={organization.slug}
+          projectId={project.slug}
           onDelete={this.handleDelete}
         />
       );

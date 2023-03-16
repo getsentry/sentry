@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import {Body, Main} from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
@@ -20,7 +20,7 @@ import withRepositories from 'sentry/utils/withRepositories';
 import {ReleaseContext} from '..';
 
 // These props are required when using this HoC
-type DependentProps = RouteComponentProps<{orgId: string; release: string}, {}>;
+type DependentProps = RouteComponentProps<{release: string}, {}>;
 
 type HoCsProps = {
   api: Client;
@@ -105,7 +105,7 @@ function withReleaseRepos<P extends DependentProps>(
     }
 
     async fetchReleaseRepos() {
-      const {params, api, repositories, repositoriesLoading} = this.props;
+      const {params, api, organization, repositories, repositoriesLoading} = this.props;
 
       if (repositoriesLoading === undefined || repositoriesLoading === true) {
         return;
@@ -116,7 +116,7 @@ function withReleaseRepos<P extends DependentProps>(
         return;
       }
 
-      const {release, orgId} = params;
+      const {release} = params;
       const {project} = this.context;
 
       this.setState({isLoading: true});
@@ -124,7 +124,7 @@ function withReleaseRepos<P extends DependentProps>(
       try {
         const releasePath = encodeURIComponent(release);
         const releaseRepos = await api.requestPromise(
-          `/projects/${orgId}/${project.slug}/releases/${releasePath}/repositories/`
+          `/projects/${organization.slug}/${project.slug}/releases/${releasePath}/repositories/`
         );
         this.setState({releaseRepos, isLoading: false});
         this.setActiveReleaseRepo(this.props);
@@ -151,7 +151,6 @@ function withReleaseRepos<P extends DependentProps>(
       const noRepositoryOrgRelatedFound = !repositories?.length;
 
       if (noRepositoryOrgRelatedFound) {
-        const {orgId} = params;
         return (
           <Body>
             <Main fullWidth>
@@ -163,7 +162,10 @@ function withReleaseRepos<P extends DependentProps>(
                     'Connect a repository to see commit info, files changed, and authors involved in future releases.'
                   )}
                   action={
-                    <Button priority="primary" to={`/settings/${orgId}/repos/`}>
+                    <Button
+                      priority="primary"
+                      to={`/settings/${organization.slug}/repos/`}
+                    >
                       {t('Connect a repository')}
                     </Button>
                   }

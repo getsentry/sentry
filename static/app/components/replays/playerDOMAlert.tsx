@@ -1,26 +1,15 @@
-import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {IconClose, IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import localStorage from 'sentry/utils/localStorage';
+import {space} from 'sentry/styles/space';
+import useDismissAlert from 'sentry/utils/useDismissAlert';
 
 const LOCAL_STORAGE_KEY = 'replay-player-dom-alert-dismissed';
 
 function PlayerDOMAlert() {
-  const [isDismissed, setIsDismissed] = useState(true);
-
-  const handleDismiss = () => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, '1');
-    setIsDismissed(true);
-  };
-
-  useEffect(() => {
-    const val = localStorage.getItem(LOCAL_STORAGE_KEY);
-    setIsDismissed(val === '1');
-  }, []);
+  const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
 
   if (isDismissed) {
     return null;
@@ -29,14 +18,14 @@ function PlayerDOMAlert() {
   return (
     <DOMAlertContainer data-test-id="player-dom-alert">
       <DOMAlert>
-        <IconInfo size="xs" />
-        {t("Right click & inspect your app's DOM")}
+        <StyledIconInfo size="xs" />
+        <div>{t('Right click & inspect your app’s DOM with your browser')}</div>
         <DismissButton
           priority="link"
           size="sm"
           icon={<IconClose size="xs" />}
           aria-label={t('Close Alert')}
-          onClick={handleDismiss}
+          onClick={dismiss}
         />
       </DOMAlert>
     </DOMAlertContainer>
@@ -57,7 +46,7 @@ const DOMAlertContainer = styled('div')`
 
 const DOMAlert = styled('div')`
   display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   justify-items: center;
   padding: ${space(1)} ${space(2)};
   margin: 0 ${space(1)};
@@ -65,7 +54,12 @@ const DOMAlert = styled('div')`
   background-color: ${p => p.theme.blue400};
   border-radius: ${p => p.theme.borderRadius};
   gap: 0 ${space(1)};
-  line-height: 0;
+  line-height: 1em;
+`;
+
+const StyledIconInfo = styled(IconInfo)`
+  margin-top: 1px;
+  min-width: 12px; /* Prevnt the icon from scaling down whenever text wraps */
 `;
 
 const DismissButton = styled(Button)`

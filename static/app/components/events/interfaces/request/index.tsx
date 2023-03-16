@@ -1,17 +1,16 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import Button from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import ClippedBox from 'sentry/components/clippedBox';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import EventDataSection from 'sentry/components/events/eventDataSection';
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {getCurlCommand, getFullUrl} from 'sentry/components/events/interfaces/utils';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EntryRequest, EntryType, Event} from 'sentry/types/event';
 import {defined, isUrl} from 'sentry/utils';
 
@@ -56,20 +55,20 @@ export function Request({data, event}: Props) {
 
   if (!isPartial && fullUrl) {
     actions = (
-      <ButtonBar merged active={view}>
-        <Button barId="formatted" size="xs" onClick={() => setView('formatted')}>
+      <SegmentedControl aria-label={t('View')} size="xs" value={view} onChange={setView}>
+        <SegmentedControl.Item key="formatted">
           {/* Translators: this means "formatted" rendering (fancy tables) */}
           {t('Formatted')}
-        </Button>
-        <MonoButton barId="curl" size="xs" onClick={() => setView('curl')}>
-          curl
-        </MonoButton>
-      </ButtonBar>
+        </SegmentedControl.Item>
+        <SegmentedControl.Item key="curl" textValue="curl">
+          <Monospace>curl</Monospace>
+        </SegmentedControl.Item>
+      </SegmentedControl>
     );
   }
 
   const title = (
-    <Header key="title">
+    <Fragment>
       <ExternalLink href={fullUrl} title={fullUrl}>
         <Path>
           <strong>{data.method || 'GET'}</strong>
@@ -78,7 +77,7 @@ export function Request({data, event}: Props) {
         {fullUrl && <StyledIconOpen size="xs" />}
       </ExternalLink>
       <small>{parsedUrl ? parsedUrl.hostname : ''}</small>
-    </Header>
+    </Fragment>
   );
 
   return (
@@ -86,7 +85,6 @@ export function Request({data, event}: Props) {
       type={EntryType.REQUEST}
       title={title}
       actions={actions}
-      wrapTitle={false}
       className="request"
     >
       {view === 'curl' ? (
@@ -144,7 +142,7 @@ export function Request({data, event}: Props) {
   );
 }
 
-const MonoButton = styled(Button)`
+const Monospace = styled('span')`
   font-family: ${p => p.theme.text.familyMono};
 `;
 
@@ -156,11 +154,6 @@ const Path = styled('span')`
   & strong {
     margin-right: ${space(0.5)};
   }
-`;
-
-const Header = styled('h3')`
-  display: flex;
-  align-items: center;
 `;
 
 // Nudge the icon down so it is centered. the `external-icon` class

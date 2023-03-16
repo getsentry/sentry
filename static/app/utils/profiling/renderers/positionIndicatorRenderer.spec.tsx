@@ -27,7 +27,7 @@ describe('PositionIndicatorRenderer', () => {
       canvas as HTMLCanvasElement,
       LightFlamegraphTheme
     );
-    renderer.draw(configView, configSpace, mat3.identity(mat3.create()));
+    renderer.draw(configView, configSpace, mat3.create());
 
     expect(context.beginPath).not.toHaveBeenCalled();
   });

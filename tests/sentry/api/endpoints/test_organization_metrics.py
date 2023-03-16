@@ -21,7 +21,7 @@ from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import OrganizationMetricMetaIntegrationTestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 
 MOCKED_DERIVED_METRICS = copy.deepcopy(DERIVED_METRICS)
 MOCKED_DERIVED_METRICS.update(
@@ -55,7 +55,7 @@ perf_indexer_record = partial(indexer_record, UseCaseKey.PERFORMANCE)
 rh_indexer_record = partial(indexer_record, UseCaseKey.RELEASE_HEALTH)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricsPermissionTest(APITestCase):
 
     endpoints = (
@@ -72,20 +72,22 @@ class OrganizationMetricsPermissionTest(APITestCase):
 
     def test_permissions(self):
 
-        token = ApiToken.objects.create(user=self.user, scope_list=[])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=[])
 
         for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code == 403
 
-        token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
 
         for endpoint in self.endpoints:
             response = self.send_get_request(token, *endpoint)
             assert response.status_code in (200, 400, 404)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationTestCase):
 
     endpoint = "sentry-api-0-organization-metrics-index"
@@ -98,13 +100,13 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {
                 "name": "sentry.sessions.session",
                 "type": "counter",
-                "operations": ["sum"],
+                "operations": ["max_timestamp", "min_timestamp", "sum"],
                 "unit": None,
             },
             {
                 "name": "sentry.sessions.user",
                 "type": "set",
-                "operations": ["count_unique"],
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                 "unit": None,
             },
             {"name": "session.abnormal", "operations": [], "type": "numeric", "unit": "sessions"},
@@ -112,11 +114,18 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {"name": "session.all", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.all_user", "type": "numeric", "operations": [], "unit": "users"},
             {"name": "session.anr_rate", "operations": [], "type": "numeric", "unit": "percentage"},
+            {"name": "session.crash_free", "operations": [], "type": "numeric", "unit": "sessions"},
             {
                 "name": "session.crash_free_rate",
                 "type": "numeric",
                 "operations": [],
                 "unit": "percentage",
+            },
+            {
+                "name": "session.crash_free_user",
+                "operations": [],
+                "type": "numeric",
+                "unit": "users",
             },
             {
                 "name": "session.crash_free_user_rate",
@@ -139,6 +148,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             {"name": "session.crashed", "type": "numeric", "operations": [], "unit": "sessions"},
             {"name": "session.crashed_user", "type": "numeric", "operations": [], "unit": "users"},
             {
+                "name": "session.errored_preaggregated",
+                "operations": [],
+                "type": "numeric",
+                "unit": "sessions",
+            },
+            {
                 "name": "session.errored_user",
                 "type": "numeric",
                 "operations": [],
@@ -158,6 +173,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
             },
         ]
 
+    # TODO do we really need this test ?
     @patch(
         "sentry.snuba.metrics.datasource.get_public_name_from_mri",
         mocked_mri_resolver(["metric1", "metric2", "metric3"], get_public_name_from_mri),
@@ -171,9 +187,24 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         response = self.get_success_response(self.organization.slug, project=[self.project.id])
 
         assert response.data == [
-            {"name": "metric1", "type": "counter", "operations": ["sum"], "unit": None},
-            {"name": "metric2", "type": "set", "operations": ["count_unique"], "unit": None},
-            {"name": "metric3", "type": "set", "operations": ["count_unique"], "unit": None},
+            {
+                "name": "metric1",
+                "type": "counter",
+                "operations": ["max_timestamp", "min_timestamp", "sum"],
+                "unit": None,
+            },
+            {
+                "name": "metric2",
+                "type": "set",
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
+                "unit": None,
+            },
+            {
+                "name": "metric3",
+                "type": "set",
+                "operations": ["count_unique", "max_timestamp", "min_timestamp"],
+                "unit": None,
+            },
         ]
 
         self.store_session(
@@ -186,8 +217,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
         )
 
         response = self.get_success_response(self.organization.slug, project=[self.proj2.id])
+        # RaduW This is ridiculous we are asserting on a canned response of metric values
+        # It will break every time we add a new public metric or every time we change in any
+        # way the order in which the metrics are returned !
         assert response.data == self.session_metrics_meta
 
+    # TODO what exactly are we testing here ?
     @patch("sentry.snuba.metrics.fields.base.DERIVED_METRICS", MOCKED_DERIVED_METRICS)
     def test_metrics_index_derived_metrics_and_invalid_derived_metric(self):
         for errors, minute in [(0, 0), (2, 1)]:
@@ -208,7 +243,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 {
                     "name": "sentry.sessions.session.error",
                     "type": "set",
-                    "operations": ["count_unique"],
+                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                     "unit": None,
                 },
                 {
@@ -221,6 +256,12 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                     "name": "session.healthy",
                     "type": "numeric",
                     "operations": [],
+                    "unit": "sessions",
+                },
+                {
+                    "name": "sessions.errored.unique",
+                    "operations": [],
+                    "type": "numeric",
                     "unit": "sessions",
                 },
             ],
@@ -334,7 +375,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                         "count",
                         "histogram",
                         "max",
+                        "max_timestamp",
                         "min",
+                        "min_timestamp",
                         "p50",
                         "p75",
                         "p90",
@@ -363,7 +406,9 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                         "count",
                         "histogram",
                         "max",
+                        "max_timestamp",
                         "min",
+                        "min_timestamp",
                         "p50",
                         "p75",
                         "p90",
@@ -383,7 +428,7 @@ class OrganizationMetricsIndexIntegrationTest(OrganizationMetricMetaIntegrationT
                 {
                     "name": "transaction.user",
                     "type": "set",
-                    "operations": ["count_unique"],
+                    "operations": ["count_unique", "max_timestamp", "min_timestamp"],
                     "unit": None,
                 },
                 {

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {DateTimeObject} from 'sentry/components/charts/utils';
 import Link from 'sentry/components/links/link';
@@ -13,7 +13,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import PanelTable from 'sentry/components/panels/panelTable';
 import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {formatPercentage} from 'sentry/utils/formatters';
 import {ColorOrAlias} from 'sentry/utils/theme';

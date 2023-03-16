@@ -8,15 +8,15 @@ import {
 import {openModal} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelItem} from 'sentry/components/panels';
 import RepositoryEditForm from 'sentry/components/repositoryEditForm';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconDelete, IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Repository, RepositoryStatus} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 

@@ -5,7 +5,7 @@ import Link from 'sentry/components/links/link';
 import NavTabs from 'sentry/components/navTabs';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import recreateRoute from 'sentry/utils/recreateRoute';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
@@ -15,12 +15,13 @@ import ProjectFiltersChart from 'sentry/views/settings/project/projectFilters/pr
 import ProjectFiltersSettings from 'sentry/views/settings/project/projectFilters/projectFiltersSettings';
 
 type Props = {
+  organization: Organization;
   project: Project;
-} & RouteComponentProps<{filterType: string; orgId: string; projectId: string}, {}>;
+} & RouteComponentProps<{filterType: string; projectId: string}, {}>;
 
 function ProjectFilters(props: Props) {
-  const {project, params, location} = props;
-  const {orgId, projectId, filterType} = params;
+  const {organization, project, params, location} = props;
+  const {projectId, filterType} = params;
   if (!project) {
     return null;
   }
@@ -40,7 +41,7 @@ function ProjectFilters(props: Props) {
       </TextBlock>
 
       <div>
-        <ProjectFiltersChart project={project} params={params} />
+        <ProjectFiltersChart project={project} organization={organization} />
 
         {features.has('discard-groups') && (
           <NavTabs underlined style={{paddingTop: '30px'}}>
@@ -58,9 +59,18 @@ function ProjectFilters(props: Props) {
         )}
 
         {filterType === 'discarded-groups' ? (
-          <GroupTombstones orgId={orgId} projectId={project.slug} location={location} />
+          <GroupTombstones
+            orgId={organization.slug}
+            projectId={project.slug}
+            location={location}
+          />
         ) : (
-          <ProjectFiltersSettings project={project} params={params} features={features} />
+          <ProjectFiltersSettings
+            organization={organization}
+            project={project}
+            params={params}
+            features={features}
+          />
         )}
       </div>
     </Fragment>

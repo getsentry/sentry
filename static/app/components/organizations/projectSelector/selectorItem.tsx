@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
-import Button from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import Highlight from 'sentry/components/highlight';
 import {Hovercard} from 'sentry/components/hovercard';
 import IdBadge from 'sentry/components/idBadge';
@@ -10,7 +10,7 @@ import PageFilterRow from 'sentry/components/organizations/pageFilterRow';
 import BookmarkStar from 'sentry/components/projects/bookmarkStar';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {analytics} from 'sentry/utils/analytics';
 
@@ -20,7 +20,7 @@ type Props = {
   multi: boolean;
   organization: Organization;
   project: Project;
-  onMultiSelect?: (project: Project, event: React.MouseEvent) => void;
+  onMultiSelect?: (project: Project) => void;
 };
 
 function ProjectSelectorItem({
@@ -31,9 +31,8 @@ function ProjectSelectorItem({
   inputValue = '',
   isChecked = false,
 }: Props) {
-  const handleClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    onMultiSelect?.(project, event);
+  const onSelectedChange = () => {
+    onMultiSelect?.(project);
   };
 
   const handleBookmarkToggle = (isBookmarked: boolean) => {
@@ -68,7 +67,7 @@ function ProjectSelectorItem({
   return (
     <ProjectFilterRow
       checked={isChecked}
-      onCheckClick={handleClick}
+      onSelectedChange={onSelectedChange}
       multi={multi}
       renderCheckbox={({checkbox}) => (
         <Feature
