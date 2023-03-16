@@ -17,6 +17,8 @@ export function useCanvasScroll(
         return;
       }
 
+      // ideally we capture the new configView here and assert
+      // against its bounds, then decide if we preventDefault or not
       canvasPoolManager.dispatch('transform config view', [
         getTranslationMatrixFromPhysicalSpace(
           disablePanX ? 0 : evt.deltaX,

@@ -72,6 +72,7 @@ interface FlamegraphZoomViewProps {
   disableGrid?: boolean;
   disablePanX?: boolean;
   disableZoom?: boolean;
+  enableDefaultWheelEvents?: boolean;
 }
 
 function FlamegraphZoomView({
@@ -88,6 +89,8 @@ function FlamegraphZoomView({
   disablePanX = false,
   disableZoom = false,
   disableGrid = false,
+  // default should be false, need to change this, left as true for testing
+  enableDefaultWheelEvents = true,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -528,6 +531,8 @@ function FlamegraphZoomView({
     handleWheel: onWheelCenterZoom,
     handleScroll: onCanvasScroll,
     canvas: flamegraphCanvasRef,
+    canvasView: flamegraphView,
+    enableDefaultWheelEvents,
   });
 
   // When a user click anywhere outside the spans, clear cursor and selected node
