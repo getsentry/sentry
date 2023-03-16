@@ -11,13 +11,13 @@ from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedD
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass
@@ -119,7 +119,7 @@ class AppService(InterfaceWithLifecycle):
         *,
         filter: SentryAppInstallationFilterArgs,
         as_user: Optional[RpcUser] = None,
-        auth_context: Optional[AuthenticationContext] = None,
+        auth_context: Optional["AuthenticationContext"] = None,
     ) -> List[OpaqueSerializedResponse]:
         pass
 
