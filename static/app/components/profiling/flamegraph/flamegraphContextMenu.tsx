@@ -36,7 +36,11 @@ const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by frequency',
 ];
 const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
-const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = ['left heavy', 'call order'];
+const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
+  'alphabetical',
+  'left heavy',
+  'call order',
+];
 
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
@@ -45,6 +49,7 @@ interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
   profileGroup: ProfileGroup | null;
+  disableCallOrderSort?: boolean;
 }
 
 function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
@@ -221,18 +226,23 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
         </ProfilingContextMenuGroup>
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
-              })}
-              onClick={() => dispatch({type: 'set sorting', payload: sorting})}
-              checked={preferences.sorting === sorting}
-            >
-              {sorting}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
+          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+            if (props.disableCallOrderSort && sorting === 'call order') {
+              return null;
+            }
+            return (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+                })}
+                onClick={() => dispatch({type: 'set sorting', payload: sorting})}
+                checked={preferences.sorting === sorting}
+              >
+                {sorting}
+              </ProfilingContextMenuItemCheckbox>
+            );
+          })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
     </Fragment>

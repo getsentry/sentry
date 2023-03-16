@@ -399,6 +399,7 @@ export function AggregateFlamegraph(): ReactElement {
         disablePanX
         disableZoom
         disableGrid
+        disableCallOrderSort
       />
       <AggregateFlamegraphToolbar>
         <Button size="xs" onClick={() => scheduler.dispatch('reset zoom')}>

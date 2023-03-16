@@ -69,6 +69,7 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disableCallOrderSort?: boolean;
   disableGrid?: boolean;
   disablePanX?: boolean;
   disableZoom?: boolean;
@@ -88,6 +89,7 @@ function FlamegraphZoomView({
   disablePanX = false,
   disableZoom = false,
   disableGrid = false,
+  disableCallOrderSort = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -641,6 +643,7 @@ function FlamegraphZoomView({
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+        disableCallOrderSort={disableCallOrderSort}
       />
       {flamegraphCanvas &&
       flamegraphRenderer &&
