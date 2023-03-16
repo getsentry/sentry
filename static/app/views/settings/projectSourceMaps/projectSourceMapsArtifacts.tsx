@@ -75,29 +75,31 @@ function ArtifactsTableRow({
       </SizeColumn>
       <ActionsColumn>
         <Role role={downloadRole}>
-          {({hasRole}) => (
-            <Tooltip
-              title={tct(
-                'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                {
-                  downloadRole,
-                  orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                  settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
-                }
-              )}
-              disabled={hasRole}
-              isHoverable
-            >
-              <Button
-                size="sm"
-                icon={<IconDownload size="sm" />}
-                disabled={!hasRole}
-                href={downloadUrl}
-                title={hasRole ? t('Download Artifact') : undefined}
-                aria-label={t('Download Artifact')}
-              />
-            </Tooltip>
-          )}
+          {({hasRole}) => {
+            return (
+              <Tooltip
+                title={tct(
+                  'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+                  {
+                    downloadRole,
+                    orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                    settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+                  }
+                )}
+                disabled={hasRole}
+                isHoverable
+              >
+                <Button
+                  size="sm"
+                  icon={<IconDownload size="sm" />}
+                  disabled={!hasRole}
+                  href={downloadUrl}
+                  title={hasRole ? t('Download Artifact') : undefined}
+                  aria-label={t('Download Artifact')}
+                />
+              </Tooltip>
+            );
+          }}
         </Role>
       </ActionsColumn>
     </Fragment>
@@ -230,7 +232,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
           ? debugIdBundlesData?.[0].map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/releases/${encodeURIComponent(data.debugId)}/files/${
+              }/releases/${encodeURIComponent(params.bundleId)}/files/${
                 data.id
               }/?download=1`;
 
@@ -254,7 +256,9 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
           : artifactsData?.[0].map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/releases/${encodeURIComponent(data.name)}/files/${data.id}/?download=1`;
+              }/releases/${encodeURIComponent(params.bundleId)}/files/${
+                data.id
+              }/?download=1`;
 
               return (
                 <ArtifactsTableRow
