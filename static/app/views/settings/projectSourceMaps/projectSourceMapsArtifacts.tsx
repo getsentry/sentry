@@ -6,6 +6,8 @@ import {Role} from 'sentry/components/acl/role';
 import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
+import ListLink from 'sentry/components/links/listLink';
+import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
@@ -15,36 +17,127 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Artifact, Project} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
-type Props = RouteComponentProps<{bundleId: string}, {}> & {
-  project: Project;
-  tab: 'release' | 'debug-id';
+type DebugIdBundleArtifact = {
+  debugId: string;
+  filePath: string;
+  fileSize: number;
+  fileType: number;
+  id: string;
 };
 
-export function ProjectSourceMapsArtifacts({
-  params,
-  location,
-  router,
-  project,
-  tab,
-}: Props) {
+enum DebugIdBundleArtifactType {
+  INVALID = 0,
+  SOURCE = 1,
+  MINIFIED_SOURCE = 2,
+  SOURCE_MAP = 3,
+  INDEXED_RAM_BUNDLE = 4,
+}
+
+const debugIdBundleTypeLabels = {
+  [DebugIdBundleArtifactType.INVALID]: t('Invalid'),
+  [DebugIdBundleArtifactType.SOURCE]: t('Source'),
+  [DebugIdBundleArtifactType.MINIFIED_SOURCE]: t('Minified'),
+  [DebugIdBundleArtifactType.SOURCE_MAP]: t('Source Map'),
+  [DebugIdBundleArtifactType.INDEXED_RAM_BUNDLE]: t('Indexed RAM Bundle'),
+};
+
+function ArtifactsTableRow({
+  name,
+  downloadRole,
+  downloadUrl,
+  size,
+  orgSlug,
+  artifactColumnDetails,
+}: {
+  artifactColumnDetails: React.ReactNode;
+  downloadRole: string;
+  downloadUrl: string;
+  name: string;
+  orgSlug: string;
+  size: number;
+}) {
+  return (
+    <Fragment>
+      <ArtifactColumn>
+        <Name>{name || `(${t('empty')})`}</Name>
+        {artifactColumnDetails}
+      </ArtifactColumn>
+      <SizeColumn>
+        <FileSize bytes={size} />
+      </SizeColumn>
+      <ActionsColumn>
+        <Role role={downloadRole}>
+          {({hasRole}) => (
+            <Tooltip
+              title={tct(
+                'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
+                {
+                  downloadRole,
+                  orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
+                  settingsLink: <Link to={`/settings/${orgSlug}/#debugFilesRole`} />,
+                }
+              )}
+              disabled={hasRole}
+              isHoverable
+            >
+              <Button
+                size="sm"
+                icon={<IconDownload size="sm" />}
+                disabled={!hasRole}
+                href={downloadUrl}
+                title={hasRole ? t('Download Artifact') : undefined}
+                aria-label={t('Download Artifact')}
+              />
+            </Tooltip>
+          )}
+        </Role>
+      </ActionsColumn>
+    </Fragment>
+  );
+}
+
+type Props = RouteComponentProps<
+  {bundleId: string; orgId: string; projectId: string},
+  {}
+> & {
+  project: Project;
+};
+
+export function ProjectSourceMapsArtifacts({params, location, router, project}: Props) {
   const api = useApi();
   const organization = useOrganization();
-  const tabDebugIdBundlesActive = tab === 'debug-id';
+
+  // query params
   const query = decodeScalar(location.query.query);
   const cursor = location.query.cursor ?? '';
-  const downloadRole = organization.debugFilesRole;
+
+  // endpoints
   const artifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
   }/releases/${encodeURIComponent(params.bundleId)}/files/`;
   const debugIdBundlesEndpoint = ``;
 
-  const {data: artifactsData, isLoading: artifactsLoading} = useQuery(
+  // tab urls
+  const releaseBundlesUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/${params.bundleId}`
+  );
+  const debugIdsUrl = normalizeUrl(
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}`
+  );
+
+  const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
+
+  const {data: artifactsData, isLoading: artifactsLoading} = useQuery<
+    [Artifact[], any, any]
+  >(
     [
       artifactsEndpoint,
       {
@@ -64,7 +157,9 @@ export function ProjectSourceMapsArtifacts({
     }
   );
 
-  const {data: debugIdBundlesData, isLoading: debugIdBundlesLoading} = useQuery(
+  const {data: debugIdBundlesData, isLoading: debugIdBundlesLoading} = useQuery<
+    [DebugIdBundleArtifact[], any, any]
+  >(
     [
       debugIdBundlesEndpoint,
       {
@@ -84,14 +179,6 @@ export function ProjectSourceMapsArtifacts({
     }
   );
 
-  const data = tabDebugIdBundlesActive
-    ? debugIdBundlesData?.[0] ?? []
-    : artifactsData?.[0] ?? [];
-  const pageLinks = tabDebugIdBundlesActive
-    ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
-    : artifactsData?.[2]?.getResponseHeader('Link') ?? '';
-  const loading = tabDebugIdBundlesActive ? debugIdBundlesLoading : artifactsLoading;
-
   const handleSearch = useCallback(
     (newQuery: string) => {
       router.push({
@@ -104,8 +191,19 @@ export function ProjectSourceMapsArtifacts({
 
   return (
     <Fragment>
+      <SettingsPageHeader title={params.bundleId} />
+      <NavTabs underlined>
+        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
+          {t('Release Bundles')}
+        </ListLink>
+        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
+          {t('Debug ID Bundles')}
+        </ListLink>
+      </NavTabs>
       <SearchBarWithMarginBottom
-        placeholder={t('Search')}
+        placeholder={
+          tabDebugIdBundlesActive ? t('Filter by Path or ID ') : t('Filter by Path')
+        }
         onSearch={handleSearch}
         query={query}
       />
@@ -120,68 +218,77 @@ export function ProjectSourceMapsArtifacts({
             ? t('No artifacts match your search query.')
             : t('There are no artifacts in this archive.')
         }
-        isEmpty={data.length === 0}
-        isLoading={loading}
+        isEmpty={
+          (tabDebugIdBundlesActive
+            ? debugIdBundlesData?.[0] ?? []
+            : artifactsData?.[0] ?? []
+          ).length === 0
+        }
+        isLoading={tabDebugIdBundlesActive ? debugIdBundlesLoading : artifactsLoading}
       >
-        {data.map(({id, size, name, dist, dateCreated}) => {
-          const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-            project.slug
-          }/releases/${encodeURIComponent(name)}/files/${id}/?download=1`;
+        {tabDebugIdBundlesActive
+          ? debugIdBundlesData?.[0].map(data => {
+              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
+                project.slug
+              }/releases/${encodeURIComponent(data.debugId)}/files/${
+                data.id
+              }/?download=1`;
 
-          return (
-            <Fragment key={id}>
-              <NameColumn>
-                <Name>{name || `(${t('empty')})`}</Name>
-                <TimeAndDistWrapper>
-                  <TimeWrapper>
-                    <IconClock size="sm" />
-                    <TimeSince date={dateCreated} />
-                  </TimeWrapper>
-                  <StyledTag
-                    type={dist ? 'info' : undefined}
-                    tooltipText={dist ? undefined : t('No distribution set')}
-                  >
-                    {dist ?? t('none')}
-                  </StyledTag>
-                </TimeAndDistWrapper>
-              </NameColumn>
-              <SizeColumn>
-                <FileSize bytes={size} />
-              </SizeColumn>
-              <ActionsColumn>
-                <Role role={downloadRole}>
-                  {({hasRole}) => (
-                    <Tooltip
-                      title={tct(
-                        'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
-                        {
-                          downloadRole,
-                          orHigher: downloadRole !== 'owner' ? ` ${t('or higher')}` : '',
-                          settingsLink: (
-                            <Link to={`/settings/${organization.slug}/#debugFilesRole`} />
-                          ),
-                        }
-                      )}
-                      disabled={hasRole}
-                      isHoverable
-                    >
-                      <Button
-                        size="sm"
-                        icon={<IconDownload size="sm" />}
-                        disabled={!hasRole}
-                        href={downloadUrl}
-                        title={hasRole ? t('Download Artifact') : undefined}
-                        aria-label={t('Download Artifact')}
-                      />
-                    </Tooltip>
-                  )}
-                </Role>
-              </ActionsColumn>
-            </Fragment>
-          );
-        })}
+              return (
+                <ArtifactsTableRow
+                  key={data.id}
+                  size={data.fileSize}
+                  name={data.filePath}
+                  downloadRole={organization.debugFilesRole}
+                  downloadUrl={downloadUrl}
+                  orgSlug={organization.slug}
+                  artifactColumnDetails={
+                    <DebugIdAndFileTypeWrapper>
+                      <div>{data.debugId}</div>
+                      <div>{debugIdBundleTypeLabels[data.fileType]}</div>
+                    </DebugIdAndFileTypeWrapper>
+                  }
+                />
+              );
+            })
+          : artifactsData?.[0].map(data => {
+              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
+                project.slug
+              }/releases/${encodeURIComponent(data.name)}/files/${data.id}/?download=1`;
+
+              return (
+                <ArtifactsTableRow
+                  key={data.id}
+                  size={data.size}
+                  name={data.name}
+                  downloadRole={organization.debugFilesRole}
+                  downloadUrl={downloadUrl}
+                  orgSlug={organization.slug}
+                  artifactColumnDetails={
+                    <TimeAndDistWrapper>
+                      <TimeWrapper>
+                        <IconClock size="sm" />
+                        <TimeSince date={data.dateCreated} />
+                      </TimeWrapper>
+                      <StyledTag
+                        type={data.dist ? 'info' : undefined}
+                        tooltipText={data.dist ? undefined : t('No distribution set')}
+                      >
+                        {data.dist ?? t('none')}
+                      </StyledTag>
+                    </TimeAndDistWrapper>
+                  }
+                />
+              );
+            })}
       </StyledPanelTable>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination
+        pageLinks={
+          tabDebugIdBundlesActive
+            ? debugIdBundlesData?.[2]?.getResponseHeader('Link') ?? ''
+            : artifactsData?.[2]?.getResponseHeader('Link') ?? ''
+        }
+      />
     </Fragment>
   );
 }
@@ -207,17 +314,24 @@ const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${space(3)};
 `;
 
+const ArtifactColumn = styled('div')`
+  overflow-wrap: break-word;
+  word-break: break-all;
+  line-height: 140%;
+`;
+
+const Name = styled('div')`
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+`;
+
 const SizeColumn = styled('div')`
   display: flex;
   justify-content: flex-end;
   text-align: right;
   align-items: center;
-`;
-
-const Name = styled('div')`
-  padding-right: ${space(4)};
-  overflow-wrap: break-word;
-  word-break: break-all;
+  color: ${p => p.theme.subText};
 `;
 
 const TimeAndDistWrapper = styled('div')`
@@ -240,9 +354,7 @@ const StyledTag = styled(Tag)`
   margin-left: ${space(1)};
 `;
 
-const NameColumn = styled('div')`
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
+const DebugIdAndFileTypeWrapper = styled('div')`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.subText};
 `;
