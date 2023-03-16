@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
 import {RouteComponentProps} from 'react-router';
-import styled from '@emotion/styled';
 
 import {openEditOwnershipRules, openModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {IconEdit} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {CodeOwner, IssueOwnership, Organization, Project} from 'sentry/types';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -82,17 +81,6 @@ url:http://example.com/settings/* #product
 tags.sku_class:enterprise #enterprise`;
   }
 
-  getDetail() {
-    return tct(
-      `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
-      {
-        link: (
-          <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-        ),
-      }
-    );
-  }
-
   handleOwnershipSave = (text: string | null) => {
     this.setState(prevState => ({
       ...(prevState.ownership
@@ -144,12 +132,28 @@ tags.sku_class:enterprise #enterprise`;
         <SettingsPageHeader
           title={this.getOwnershipTitle()}
           action={
-            <Fragment>
-              {hasStreamlineTargetingContext ? (
+            <ButtonBar gap={1}>
+              {hasCodeowners && (
+                <Access access={['org:integrations']}>
+                  {({hasAccess}) =>
+                    hasAccess ? (
+                      <Button
+                        onClick={this.handleAddCodeOwner}
+                        size="sm"
+                        data-test-id="add-codeowner-button"
+                      >
+                        {t('Import CODEOWNERS')}
+                      </Button>
+                    ) : null
+                  }
+                </Access>
+              )}
+              {hasStreamlineTargetingContext && (
                 <Button
                   type="button"
                   size="sm"
                   icon={<IconEdit size="xs" />}
+                  priority="primary"
                   onClick={() =>
                     openEditOwnershipRules({
                       organization,
@@ -162,37 +166,21 @@ tags.sku_class:enterprise #enterprise`;
                 >
                   {t('Edit Rules')}
                 </Button>
-              ) : (
-                <Button
-                  to={{
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query: {project: project.id},
-                  }}
-                  size="sm"
-                >
-                  {t('View Issues')}
-                </Button>
               )}
-              {hasCodeowners && (
-                <Access access={['org:integrations']}>
-                  {({hasAccess}) =>
-                    hasAccess ? (
-                      <CodeOwnerButton
-                        onClick={this.handleAddCodeOwner}
-                        size="sm"
-                        priority="primary"
-                        data-test-id="add-codeowner-button"
-                      >
-                        {t('Add CODEOWNERS')}
-                      </CodeOwnerButton>
-                    ) : null
-                  }
-                </Access>
-              )}
-            </Fragment>
+            </ButtonBar>
           }
         />
-        <IssueOwnerDetails>{this.getDetail()}</IssueOwnerDetails>
+
+        <p>
+          {tct(
+            `Auto-assign issues to users and teams. To learn more, [link:read the docs].`,
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+              ),
+            }
+          )}
+        </p>
 
         <PermissionAlert
           access={!editOwnershipeRulesDisabled ? ['project:read'] : ['project:write']}
@@ -325,11 +313,3 @@ tags.sku_class:enterprise #enterprise`;
 }
 
 export default ProjectOwnership;
-
-const CodeOwnerButton = styled(Button)`
-  margin-left: ${space(1)};
-`;
-
-const IssueOwnerDetails = styled('div')`
-  padding-bottom: ${space(3)};
-`;
