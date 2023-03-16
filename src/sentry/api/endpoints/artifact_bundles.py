@@ -44,7 +44,9 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         def expose_artifact_bundle(debug_id_artifact_bundle):
             artifact_bundle = debug_id_artifact_bundle.artifact_bundle
 
+            # TODO(iambriccardo): Use a serializer for this.
             return {
+                "id": artifact_bundle.id,
                 "type": "artifact_bundle",
                 "name": str(artifact_bundle.bundle_id),
                 "date": debug_id_artifact_bundle.date_added.isoformat()[:19] + "Z",

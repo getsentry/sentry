@@ -48,12 +48,14 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
                 "type": "artifact_bundle",
+                "id": artifact_bundle_2.id,
             },
             {
                 "name": str(artifact_bundle_1.bundle_id),
                 "date": "2023-03-15T00:00:00Z",
                 "fileCount": 2,
                 "type": "artifact_bundle",
+                "id": artifact_bundle_1.id,
             },
         ]
 
@@ -70,6 +72,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 "date": "2023-03-15T01:00:00Z",
                 "fileCount": 2,
                 "type": "artifact_bundle",
+                "id": artifact_bundle_2.id,
             }
         ]
 
