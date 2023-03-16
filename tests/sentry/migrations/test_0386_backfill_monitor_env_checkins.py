@@ -16,8 +16,8 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
-    migrate_from = "0383_mv_user_avatar"
-    migrate_to = "0384_backfill_monitor_env_checkins"
+    migrate_from = "0385_service_hook_hc_fk"
+    migrate_to = "0386_backfill_monitor_env_checkins"
 
     def setup_before_migration(self, apps):
         self.monitor = Monitor.objects.create(

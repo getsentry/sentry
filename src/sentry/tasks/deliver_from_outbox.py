@@ -2,15 +2,10 @@ from __future__ import annotations
 
 from typing import Any, Mapping, Type
 
-from sentry.models import (
-    MONOLITH_REGION_NAME,
-    ControlOutbox,
-    OutboxBase,
-    RegionOutbox,
-    outbox_silo_modes,
-)
+from sentry.models import ControlOutbox, OutboxBase, RegionOutbox, outbox_silo_modes
 from sentry.silo import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.types.region import MONOLITH_REGION_NAME
 
 
 @instrumented_task(name="sentry.tasks.enqueue_outbox_jobs")

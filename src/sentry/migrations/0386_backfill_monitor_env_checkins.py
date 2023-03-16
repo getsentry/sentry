@@ -64,7 +64,7 @@ class Migration(CheckedMigration):
     is_dangerous = True
 
     dependencies = [
-        ("sentry", "0383_mv_user_avatar"),
+        ("sentry", "0385_service_hook_hc_fk"),
     ]
 
     operations = [

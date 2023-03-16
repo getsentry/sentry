@@ -26,9 +26,10 @@ from sentry.db.models import (
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models import LostPasswordHash, UserAvatar
 from sentry.models.authenticator import Authenticator
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
