@@ -4,9 +4,8 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import List, Sequence, cast
+from typing import TYPE_CHECKING, List, Sequence, cast
 
-from sentry.models import NotificationSetting
 from sentry.notifications.types import (
     NotificationScopeType,
     NotificationSettingOptionValues,
@@ -18,6 +17,9 @@ from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
+
+if TYPE_CHECKING:
+    from sentry.models import NotificationSetting
 
 
 class RpcNotificationSetting(RpcModel):
