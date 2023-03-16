@@ -18,6 +18,7 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   platform: PlatformType;
   stacktrace: StacktraceType;
   inlined?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   nativeV2?: boolean;
   stackView?: STACK_VIEW;
@@ -32,6 +33,7 @@ function StackTrace({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   nativeV2,
+  maxDepth,
   meta,
   inlined,
 }: Props) {
@@ -58,6 +60,7 @@ function StackTrace({
           meta={meta}
           hideIcon={inlined}
           inlined={inlined}
+          maxDepth={maxDepth}
         />
       </ErrorBoundary>
     );
@@ -77,6 +80,7 @@ function StackTrace({
           meta={meta}
           hideIcon={inlined}
           inlined={inlined}
+          maxDepth={maxDepth}
         />
       </ErrorBoundary>
     );
@@ -94,6 +98,7 @@ function StackTrace({
         meta={meta}
         hideIcon={inlined}
         inlined={inlined}
+        maxDepth={maxDepth}
       />
     </ErrorBoundary>
   );

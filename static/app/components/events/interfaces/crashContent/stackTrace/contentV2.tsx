@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
@@ -26,6 +27,7 @@ type Props = {
   hideIcon?: boolean;
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
 };
@@ -39,6 +41,7 @@ function Content({
   className,
   isHoverPreviewed,
   groupingCurrentLevel,
+  maxDepth,
   meta,
   hideIcon,
   includeSystemFrames = true,
@@ -235,12 +238,10 @@ function Content({
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });
+    }
 
-      if (!newestFirst) {
-        return convertedFrames;
-      }
-
-      return [...convertedFrames].reverse();
+    if (defined(maxDepth)) {
+      convertedFrames.splice(maxDepth);
     }
 
     if (!newestFirst) {
