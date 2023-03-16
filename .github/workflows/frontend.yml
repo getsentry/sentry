@@ -171,6 +171,12 @@ jobs:
           #      wouldn't be correct.
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
         run: |
           SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
