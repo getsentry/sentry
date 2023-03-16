@@ -186,17 +186,6 @@ describe('OrganizationStats', function () {
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
-
-    const inputQuery = 'proj-1';
-    userEvent.type(
-      screen.getByPlaceholderText('Filter your projects'),
-      `${inputQuery}{enter}`
-    );
-    expect(router.push).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: {query: inputQuery},
-      })
-    );
   });
 
   it('does not leak query params onto next page links', () => {
@@ -337,8 +326,8 @@ describe('OrganizationStats', function () {
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
-    // Doesn't render for single project view
-    expect(screen.queryByTestId('usage-stats-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
       endpoint,
