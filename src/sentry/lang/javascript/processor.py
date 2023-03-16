@@ -30,6 +30,7 @@ from sentry.models import (
     DebugIdArtifactBundle,
     EventError,
     Organization,
+    ProjectArtifactBundle,
     ReleaseArtifactBundle,
     ReleaseFile,
     SourceFileType,
@@ -705,9 +706,7 @@ class Fetcher:
         decided to take the first element from the result set, but we could use a stronger heuristic like taking the
         newest entry.
         """
-        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
-        #  we have permissions on not all the bundles.
-        return (
+        entry = (
             DebugIdArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 debug_id=debug_id,
@@ -716,6 +715,21 @@ class Fetcher:
             .order_by("-date_added")
             .select_related("artifact_bundle__file")[:1][0]
         )
+
+        if self.project:
+            lookup_allowed = ProjectArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle_id=entry.artifact_bundle_id,
+            ).exists()
+
+            if not lookup_allowed:
+                raise Exception(
+                    f"There are not artifact bundles bound to project {self.project.id}"
+                    f"that contain a debug_id {debug_id}"
+                )
+
+        return entry
 
     @staticmethod
     def _fetch_artifact_bundle_file(artifact_bundle):
@@ -878,8 +892,6 @@ class Fetcher:
         if self.release is None:
             return []
 
-        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
-        #  we have permissions on not all the bundles.
         entries = (
             ReleaseArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
@@ -890,6 +902,9 @@ class Fetcher:
             .select_related("artifact_bundle__file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
+        # TODO(iambriccardo): Return only the entries that have the current project bound to them.
+
+        # We want to log if the user has more artifacts than the current max.
         if len(entries) > MAX_ARTIFACTS_NUMBER:
             logger.debug(
                 f"The number of artifact bundles for the release {self.release.version}"
