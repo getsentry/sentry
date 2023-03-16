@@ -23,12 +23,6 @@ export const experimentList: {
     parameter: 'scenario',
     assignments: ['baseline', 'variant1', 'variant2'],
   },
-  {
-    key: 'APMSidebarExperiment',
-    type: ExperimentType.Organization,
-    parameter: 'exposed',
-    assignments: [0, 1],
-  },
 ];
 
 export const experimentConfig = experimentList.reduce(
