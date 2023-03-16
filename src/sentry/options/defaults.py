@@ -401,9 +401,6 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
-# Flag for enabling deobfuscation for ProGuard files in ingest consumer
-register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
-
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.

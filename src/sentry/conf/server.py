@@ -1308,8 +1308,6 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
-    # Enable View Hierarchies in issue details page
-    "organizations:mobile-view-hierarchies": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
     # Enable device.class as a selectable column
