@@ -892,4 +892,4 @@ def send_email(ctx, user, dry_run=False, email_override=None):
         message.send(to=(email_override,))
     else:
         message.add_users((user.id,))
-        message.send()
+        message.send_async()
