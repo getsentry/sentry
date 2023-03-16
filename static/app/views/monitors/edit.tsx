@@ -6,7 +6,7 @@ import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {useQuery} from 'sentry/utils/queryClient';
+import {useQuery, useQueryClient} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -17,21 +17,21 @@ import {Monitor} from './types';
 export default function EditMonitor() {
   const {monitorSlug} = useParams();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  const queryKeyUrl = `/organizations/${organization.slug}/monitors/${monitorSlug}/`;
 
   const {
     isLoading,
     isError,
     data: monitor,
     refetch,
-  } = useQuery<Monitor>(
-    [`/organizations/${organization.slug}/monitors/${monitorSlug}/`],
-    {
-      staleTime: 0,
-      cacheTime: 0,
-    }
-  );
+  } = useQuery<Monitor>([queryKeyUrl], {
+    staleTime: 0,
+  });
 
   function onSubmitSuccess(data: Monitor) {
+    queryClient.setQueryData([queryKeyUrl], data);
     browserHistory.push(
       normalizeUrl(`/organizations/${organization.slug}/crons/${data.slug}/`)
     );
