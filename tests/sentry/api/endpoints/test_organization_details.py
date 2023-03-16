@@ -298,7 +298,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value={"repositories": [{"full_name": "testgit/abc"}]},
+        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
@@ -391,7 +391,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
         responses.add(
