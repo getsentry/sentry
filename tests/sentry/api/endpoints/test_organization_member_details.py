@@ -3,6 +3,7 @@ from unittest.mock import patch
 from django.core import mail
 from django.db.models import F
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.auth.authenticators import RecoveryCodeInterface, TotpInterface
 from sentry.models import (
@@ -279,6 +280,23 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
 
         self.get_error_response(
             self.organization.slug, member_om.id, role="manager", status_code=400
+        )
+
+        member_om = OrganizationMember.objects.get(user_id=self.user.id)
+        assert member_om.role == "owner"
+
+    def test_update_membership_serializes_errors(self):
+        member_om = OrganizationMember.objects.get(
+            organization=self.organization, user_id=self.user.id
+        )
+
+        email = "admin@localhost"
+        response = self.get_error_response(
+            self.organization.slug, member_om.id, email=email, status_code=400
+        )
+        assert "email" in response.data
+        assert response.data["email"][0] == ErrorDetail(
+            string=f"The user {email} is already a member", code="invalid"
         )
 
         member_om = OrganizationMember.objects.get(user_id=self.user.id)

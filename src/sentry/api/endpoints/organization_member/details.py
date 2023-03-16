@@ -152,7 +152,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
         if not serializer.is_valid():
-            return Response(status=400)
+            return Response(serializer.errors, status=400)
 
         try:
             auth_provider = AuthProvider.objects.get(organization=organization)
