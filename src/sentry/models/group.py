@@ -143,6 +143,8 @@ class GroupStatus:
     # be deleted. In this state no new events shall be added to the group.
     REPROCESSING = 6
 
+    ESCALATING = 7
+
     # TODO(dcramer): remove in 9.0
     MUTED = IGNORED
 
