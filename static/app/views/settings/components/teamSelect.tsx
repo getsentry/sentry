@@ -19,7 +19,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
-import {getTopOrgRole} from 'sentry/utils/orgRole';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import useTeams from 'sentry/utils/useTeams';
 import {
   hasOrgRoleOverwrite,
@@ -97,10 +97,10 @@ function TeamSelect({
     selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
 
   // Determine if adding a team changes the minimum team-role
-  // get teams with org roles, if any
+  // Get org roles from team membership, if any
   const orgRolesFromTeams = teams
     .filter(team => slugsToFilter.includes(team.slug) && team.orgRole)
-    .map(team => team.orgRole ?? '');
+    .map(team => team.orgRole as string);
 
   if (selectedOrgRole) {
     orgRolesFromTeams.push(selectedOrgRole);
@@ -108,7 +108,7 @@ function TeamSelect({
 
   // Sort them and to get the highest priority role
   // Highest prio role may change minimum team role
-  const topOrgRole = getTopOrgRole(orgRolesFromTeams, orgRoleList)?.id;
+  const effectiveOrgRole = getEffectiveOrgRole(orgRolesFromTeams, orgRoleList)?.id;
 
   const renderBody = () => {
     const numTeams = selectedTeams?.length || selectedTeamRoles?.length;
@@ -123,9 +123,9 @@ function TeamSelect({
 
     return (
       <React.Fragment>
-        {organization.features.includes('team-roles') && topOrgRole && (
+        {organization.features.includes('team-roles') && effectiveOrgRole && (
           <RoleOverwritePanelAlert
-            orgRole={topOrgRole}
+            orgRole={effectiveOrgRole}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
@@ -143,7 +143,7 @@ function TeamSelect({
             />
           ))}
 
-        {topOrgRole &&
+        {effectiveOrgRole &&
           selectedTeamRoles &&
           /**
            * "Map + Find" operation is O(n * n), leaving it as it us because it is unlikely to cause performance issues because a Member is unlikely to be in 1000+ teams
@@ -166,7 +166,7 @@ function TeamSelect({
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
-                selectedOrgRole={topOrgRole}
+                selectedOrgRole={effectiveOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
                 onRemoveTeam={slug => onRemoveTeam(slug)}

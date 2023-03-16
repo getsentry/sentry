@@ -8,7 +8,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team, TeamMember, User} from 'sentry/types';
-import {getTopOrgRole} from 'sentry/utils/orgRole';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
@@ -81,21 +81,21 @@ const TeamRoleSelect = (props: {
   if (team.orgRole) {
     possibleOrgRoles.push(team.orgRole);
   }
-  const topOrgRole = getTopOrgRole(possibleOrgRoles, orgRoleList);
+  const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
 
-  const teamRoleId = member.teamRole || topOrgRole?.minimumTeamRole;
+  const teamRoleId = member.teamRole || effectiveOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
     !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: topOrgRole?.id, orgRoleList, teamRoleList})
+    hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})
   ) {
     return (
       <RoleName>
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={topOrgRole?.id}
+            orgRole={effectiveOrgRole?.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
