@@ -16,7 +16,7 @@
   color: 'A0CABD'
   description: 'add to a merged PR to revert it (skips CI)'
 - name: 'Trigger: Visual Snapshot'
-  color: '3E5E06'
+  color: 'A0CABD'
   description: 'add to a PR to run a visual snapshot diff'
 
 # Unito - notion.so/52d10dbfad474328850319e48b057a5b
