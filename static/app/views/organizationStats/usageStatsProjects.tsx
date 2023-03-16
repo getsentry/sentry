@@ -8,7 +8,6 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import {DateTimeObject, getSeriesApiInterval} from 'sentry/components/charts/utils';
 import SortLink, {Alignments, Directions} from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
-import SearchBar from 'sentry/components/searchBar';
 import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -311,21 +310,6 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
     );
   };
 
-  handleSearch = (query: string) => {
-    const {handleChangeState, tableQuery} = this.props;
-
-    if (query === tableQuery) {
-      return;
-    }
-
-    if (!query) {
-      handleChangeState({query: undefined, cursor: undefined});
-      return;
-    }
-
-    handleChangeState({query, cursor: undefined});
-  };
-
   mapSeriesToTable(projectStats?: UsageSeries): {
     tableStats: TableStat[];
     error?: Error;
@@ -419,19 +403,11 @@ class UsageStatsProjects extends AsyncComponent<Props, State> {
 
   renderComponent() {
     const {error, errors, loading} = this.state;
-    const {dataCategory, loadingProjects, tableQuery} = this.props;
+    const {dataCategory, loadingProjects} = this.props;
     const {headers, tableStats} = this.tableData;
 
     return (
       <Fragment>
-        <Container>
-          <SearchBar
-            defaultQuery=""
-            query={tableQuery}
-            placeholder={t('Filter your projects')}
-            onSearch={this.handleSearch}
-          />
-        </Container>
         <Container data-test-id="usage-stats-table">
           <UsageTable
             isLoading={loading || loadingProjects}

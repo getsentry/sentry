@@ -394,22 +394,25 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </div>
-              {!isSingleProject && (
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
-              )}
+              <ErrorBoundary mini>
+                {isSingleProject && (
+                  <PanelHeading>
+                    <Title>{t('All Projects')}</Title>
+                  </PanelHeading>
+                )}
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  projectIds={isSingleProject ? [ALL_ACCESS_PROJECTS] : this.projectIds}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </PageFiltersContainer>
@@ -482,6 +485,21 @@ const Body = styled(Layout.Body)`
 const HeadingSubtitle = styled('p')`
   margin-top: ${space(0.5)};
   margin-bottom: 0;
+`;
+
+const Title = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+  color: ${p => p.theme.gray400};
+  display: flex;
+  flex: 1;
+  align-items: center;
+`;
+
+const PanelHeading = styled('div')`
+  display: flex;
+  margin-bottom: ${space(2)};
+  align-items: center;
 `;
 
 const PageControl = styled('div')`
