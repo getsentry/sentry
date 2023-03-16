@@ -4,7 +4,7 @@ import json
 import os
 import urllib.request
 
-LABEL = "trigger-getsentry-external"
+LABEL = "Trigger: getsentry tests"
 
 
 def _has_write(repo_id: int, username: str, *, token: str) -> bool:
