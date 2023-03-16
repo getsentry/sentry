@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, TypedDict
 
@@ -22,7 +22,7 @@ class RpcOrganizationMapping:
     slug: str = ""
     name: str = ""
     region_name: str = ""
-    date_created: datetime = timezone.now()
+    date_created: datetime = field(default_factory=timezone.now)
     verified: bool = False
     customer_id: Optional[str] = None
 
