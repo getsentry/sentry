@@ -69,7 +69,7 @@ describe('FeatureFeedback', function () {
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
       // User enters additional feedback message
-      await userEvent.click(screen.getByTestId('widget-title-input'));
+      await userEvent.click(screen.getByPlaceholderText(/what did you expect/i));
       await userEvent.paste('this is a feedback message');
       await userEvent.keyboard('{enter}');
 
