@@ -13,9 +13,14 @@ export const ListWrap = styled('ul')`
 
   /* Add 1px to top padding if preceded by menu header, to account for the header's
   shadow border */
-  div[data-header] ~ &:first-of-type,
-  div[data-header] ~ div > &:first-of-type {
+  [data-menu-has-header='true'] > div > &:first-of-type {
     padding-top: calc(${space(0.5)} + 1px);
+  }
+
+  /* Add 1px to bottom padding if succeeded by menu footer, to account for the footer's
+  shadow border */
+  [data-menu-has-footer='true'] > div > &:last-of-type {
+    padding-bottom: calc(${space(0.5)} + 1px);
   }
 
   /* Remove top padding if preceded by search input, since search input already has
@@ -23,6 +28,10 @@ export const ListWrap = styled('ul')`
   input ~ &&:first-of-type,
   input ~ div > &&:first-of-type {
     padding-top: 0;
+  }
+
+  &:empty {
+    padding: 0;
   }
 
   /* Should scroll if it's in a non-composite select */
@@ -133,4 +142,17 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
   height: 1.4em;
   padding-bottom: 1px;
   pointer-events: none;
+`;
+
+export const EmptyMessage = styled('p')`
+  text-align: center;
+  color: ${p => p.theme.subText};
+  padding: ${space(1)} ${space(1.5)} ${space(1.5)};
+  margin: 0;
+
+  /* Message should only be displayed when _all_ preceding lists are empty */
+  display: block;
+  ul:not(:empty) ~ & {
+    display: none;
+  }
 `;

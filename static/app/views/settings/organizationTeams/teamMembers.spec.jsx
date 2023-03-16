@@ -18,6 +18,7 @@ describe('TeamMembers', function () {
 
   const organization = TestStubs.Organization();
   const team = TestStubs.Team();
+  const managerTeam = TestStubs.Team({orgRole: 'manager'});
   const members = TestStubs.Members();
   const member = TestStubs.Member({
     id: '9',
@@ -41,6 +42,11 @@ describe('TeamMembers', function () {
       url: `/teams/${organization.slug}/${team.slug}/`,
       method: 'GET',
       body: team,
+    });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${managerTeam.slug}/`,
+      method: 'GET',
+      body: managerTeam,
     });
 
     createMock = Client.addMockResponse({
@@ -306,6 +312,28 @@ describe('TeamMembers', function () {
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
     expect(contributors).toHaveLength(2);
+  });
+
+  it('adding member to manager team makes them team admin', async function () {
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${managerTeam.slug}/members/`,
+      method: 'GET',
+      body: [],
+    });
+    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    render(
+      <TeamMembers
+        params={{orgId: orgWithTeamRoles.slug, teamId: managerTeam.slug}}
+        organization={orgWithTeamRoles}
+        team={managerTeam}
+      />
+    );
+
+    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
+    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+
+    const admin = screen.queryByText('Team Admin');
+    expect(admin).toBeInTheDocument();
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {

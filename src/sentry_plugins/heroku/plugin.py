@@ -75,14 +75,15 @@ class HerokuReleaseHook(ReleaseHook):
 
         commit = slug.get("commit")
         app_name = data.get("app", {}).get("name")
-        if app_name:
-            self.finish_release(
-                version=commit,
-                url=f"http://{app_name}.herokuapp.com",
-                owner_id=user.id if user else None,
-            )
-        else:
-            self.finish_release(version=commit, owner_id=user.id if user else None)
+        if body.get("action") == "update":
+            if app_name:
+                self.finish_release(
+                    version=commit,
+                    url=f"http://{app_name}.herokuapp.com",
+                    owner_id=user.id if user else None,
+                )
+            else:
+                self.finish_release(version=commit, owner_id=user.id if user else None)
 
     def set_refs(self, release, **values):
         if not values.get("owner_id", None):

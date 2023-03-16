@@ -254,7 +254,7 @@ class UsageStatsOrganization<
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization} = this.props;
+    const {dataCategory, dataCategoryName, organization, projectIds} = this.props;
     const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata: Record<string, ScoreCardProps> = {
@@ -269,7 +269,11 @@ class UsageStatsOrganization<
         }),
         score: accepted,
         trend: (
-          <UsageStatsPerMin organization={organization} dataCategory={dataCategory} />
+          <UsageStatsPerMin
+            dataCategory={dataCategory}
+            organization={organization}
+            projectIds={projectIds}
+          />
         ),
       },
       filtered: {

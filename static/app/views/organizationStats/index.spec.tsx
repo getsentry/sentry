@@ -118,6 +118,7 @@ describe('OrganizationStats', function () {
         statsPeriod: '5m',
         interval: '1m',
         groupBy: ['category', 'outcome'],
+        project: [-1],
         field: ['sum(quantity)'],
       },
       UsageStatsProjects: {
@@ -185,7 +186,6 @@ describe('OrganizationStats', function () {
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
-
     const inputQuery = 'proj-1';
     userEvent.type(
       screen.getByPlaceholderText('Filter your projects'),
@@ -336,8 +336,8 @@ describe('OrganizationStats', function () {
 
     expect(screen.queryByText('My Projects')).not.toBeInTheDocument();
     expect(screen.getByTestId('usage-stats-chart')).toBeInTheDocument();
-    // Doesn't render for single project view
-    expect(screen.queryByTestId('usage-stats-table')).not.toBeInTheDocument();
+    expect(screen.getByTestId('usage-stats-table')).toBeInTheDocument();
+    expect(screen.getByText('All Projects')).toBeInTheDocument();
 
     expect(mockRequest).toHaveBeenCalledWith(
       endpoint,

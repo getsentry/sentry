@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.conf import settings
 from django.core.cache import cache
 from django.db import IntegrityError, models, transaction
@@ -98,6 +100,10 @@ class AbstractOnboardingTask(Model):
     date_completed = models.DateTimeField(default=timezone.now)
     project = FlexibleForeignKey("sentry.Project", db_constraint=False, null=True)
     data = JSONField()  # INVITE_MEMBER { invited_member: user.id }
+
+    # fields for typing
+    TASK_LOOKUP_BY_KEY: dict[str, int]
+    SKIPPABLE_TASKS: frozenset[int]
 
     class Meta:
         abstract = True

@@ -2,10 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence
 
 from sentry import features
-from sentry.experiments import manager as expt_manager
 from sentry.models import (
     ActorTuple,
     Group,
@@ -93,7 +92,12 @@ def get_participants_for_group(
         # Optionally remove the actor that created the activity from the recipients list.
         providers = get_providers_from_which_to_remove_user(user, participants_by_provider)
         for provider in providers:
-            del participants_by_provider[provider][user]
+            participants = participants_by_provider[provider]
+            participants_by_provider[provider] = {
+                participant: value
+                for (participant, value) in participants.items()
+                if not (participant.class_name() == "User" and participant.id == user.id)
+            }
 
     return participants_by_provider
 
@@ -338,19 +342,6 @@ def get_send_to(
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
-def should_use_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
-    """
-    Remove after IssueAlertFallbackExperiment experiment
-    Returns a tuple of (enabled, analytics_label)
-    """
-    if org.flags.early_adopter.is_set:
-        return (True, "early")
-    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
-    if org_exposed:
-        return (True, "expt")
-    return (False, "ctrl")
-
-
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
@@ -374,20 +365,13 @@ def get_fallthrough_recipients(
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
-        use_active_members, _ = should_use_issue_alert_fallback(org=project.organization)
-        if use_active_members:
-            return user_service.get_many(
-                filter={
-                    "user_ids": project.member_set.order_by("-user__last_active").values_list(
-                        "user_id", flat=True
-                    )
-                }
-            )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
-
-        # Return all members for non-EA orgs. This line will be removed once EA is over.
         return user_service.get_many(
-            filter=dict(user_ids=project.member_set.values_list("user_id", flat=True))
-        )
+            filter={
+                "user_ids": project.member_set.order_by("-user__last_active").values_list(
+                    "user_id", flat=True
+                )
+            }
+        )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 

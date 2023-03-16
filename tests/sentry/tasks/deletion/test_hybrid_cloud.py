@@ -5,7 +5,7 @@ import pytest
 from django.db.models import QuerySet
 from django.test import override_settings
 
-from sentry.models import ControlOutbox, OutboxScope, SavedSearch, find_regions_for_user
+from sentry.models import ControlOutbox, OutboxScope, SavedSearch
 from sentry.silo import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import (
     get_watermark,
@@ -14,6 +14,7 @@ from sentry.tasks.deletion.hybrid_cloud import (
 )
 from sentry.testutils.factories import Factories
 from sentry.testutils.silo import exempt_from_silo_limits, no_silo_test, region_silo_test
+from sentry.types.region import find_regions_for_user
 
 
 @pytest.fixture(autouse=True)

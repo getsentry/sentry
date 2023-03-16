@@ -69,6 +69,10 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disableCallOrderSort?: boolean;
+  disableGrid?: boolean;
+  disablePanX?: boolean;
+  disableZoom?: boolean;
 }
 
 function FlamegraphZoomView({
@@ -82,6 +86,10 @@ function FlamegraphZoomView({
   flamegraphView,
   setFlamegraphCanvasRef,
   setFlamegraphOverlayCanvasRef,
+  disablePanX = false,
+  disableZoom = false,
+  disableGrid = false,
+  disableCallOrderSort = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -112,7 +120,7 @@ function FlamegraphZoomView({
   }, [flamegraph, flamegraphOverlayCanvasRef, flamegraphTheme]);
 
   const gridRenderer: GridRenderer | null = useMemo(() => {
-    if (!flamegraphOverlayCanvasRef) {
+    if (!flamegraphOverlayCanvasRef || disableGrid) {
       return null;
     }
     return new GridRenderer(
@@ -120,7 +128,7 @@ function FlamegraphZoomView({
       flamegraphTheme,
       flamegraph.formatter
     );
-  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme]);
+  }, [flamegraphOverlayCanvasRef, flamegraph, flamegraphTheme, disableGrid]);
 
   const sampleTickRenderer: SampleTickRenderer | null = useMemo(() => {
     if (!isInternalFlamegraphDebugModeEnabled) {
@@ -506,12 +514,14 @@ function FlamegraphZoomView({
   const onWheelCenterZoom = useWheelCenterZoom(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager
+    canvasPoolManager,
+    disableZoom
   );
   const onCanvasScroll = useCanvasScroll(
     flamegraphCanvas,
     flamegraphView,
-    canvasPoolManager
+    canvasPoolManager,
+    disablePanX
   );
 
   useCanvasZoomOrScroll({
@@ -633,6 +643,7 @@ function FlamegraphZoomView({
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+        disableCallOrderSort={disableCallOrderSort}
       />
       {flamegraphCanvas &&
       flamegraphRenderer &&
@@ -657,6 +668,7 @@ const CanvasContainer = styled('div')`
   display: flex;
   flex-direction: column;
   height: 100%;
+  width: 100%;
   position: relative;
 `;
 

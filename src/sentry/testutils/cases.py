@@ -30,6 +30,7 @@ __all__ = (
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
+    "MonitorIngestTestCase",
 )
 import hashlib
 import inspect
@@ -2297,9 +2298,49 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
 
 
 class MonitorTestCase(APITestCase):
+    def _create_monitor(self, **kwargs):
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            **kwargs,
+        )
+
+
+class MonitorIngestTestCase(MonitorTestCase):
+    """
+    Base test case which provides support for both styles of legacy ingestion
+    endpoints, as well as sets up token and DSN authentication helpers
+    """
+
     @property
     def endpoint_with_org(self):
         raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def dsn_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
+
+    @property
+    def token_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def setUp(self):
+        super().setUp()
+        # DSN based auth
+        self.project_key = self.create_project_key()
+
+        # Token based auth
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            scopes=["project:write"],
+        )
+        app = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+        self.token = self.create_internal_integration_token(app, user=self.user)
 
     def _get_path_functions(self):
         # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
@@ -2310,14 +2351,4 @@ class MonitorTestCase(APITestCase):
             lambda monitor_id: reverse(
                 self.endpoint_with_org, args=[self.organization.slug, monitor_id]
             ),
-        )
-
-    def _create_monitor(self, **kwargs):
-        return Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
-            **kwargs,
         )

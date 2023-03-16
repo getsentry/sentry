@@ -87,4 +87,5 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     ProfileFileIOGroupType,
     ensure_aware(datetime.now()),
     "info",
+    "/api/123/",
 )

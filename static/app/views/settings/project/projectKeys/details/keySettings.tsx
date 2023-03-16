@@ -1,11 +1,10 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect, useState} from 'react';
 
 import {
   addErrorMessage,
   addLoadingMessage,
   addSuccessMessage,
 } from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -16,17 +15,24 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {Panel, PanelAlert, PanelBody, PanelHeader} from 'sentry/components/panels';
+import {
+  Panel,
+  PanelAlert,
+  PanelBody,
+  PanelFooter,
+  PanelHeader,
+} from 'sentry/components/panels';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
+import useApi from 'sentry/utils/useApi';
 import KeyRateLimitsForm from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
 import ProjectKeyCredentials from 'sentry/views/settings/project/projectKeys/projectKeyCredentials';
 import {ProjectKey} from 'sentry/views/settings/project/projectKeys/types';
 
 type Props = {
-  api: Client;
   data: ProjectKey;
   onRemove: () => void;
   organization: Organization;
@@ -36,13 +42,49 @@ type Props = {
   };
 };
 
-export function KeySettings({api, onRemove, data, organization, params}: Props) {
+export enum DynamicSDKLoaderOption {
+  HAS_DEBUG = 'hasDebug',
+  HAS_PERFORMANCE = 'hasPerformance',
+  HAS_REPLAY = 'hasReplay',
+}
+
+export const sdkLoaderOptions = {
+  [DynamicSDKLoaderOption.HAS_PERFORMANCE]: {
+    label: t('Enable Performance Monitoring'),
+  },
+  [DynamicSDKLoaderOption.HAS_REPLAY]: {
+    label: t('Enable Session Replay'),
+  },
+  [DynamicSDKLoaderOption.HAS_DEBUG]: {
+    label: t('Enable Debug Bundles'),
+  },
+};
+
+export function KeySettings({onRemove, organization, params, data}: Props) {
+  const api = useApi();
+  const [browserSdkVersion, setBrowserSdkVersion] = useState(data.browserSdkVersion);
+  const [dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions] = useState(
+    data.dynamicSdkLoaderOptions
+  );
+
+  useEffect(() => {
+    setBrowserSdkVersion(data.browserSdkVersion);
+  }, [data.browserSdkVersion]);
+
+  useEffect(() => {
+    setDynamicSDKLoaderOptions(data.dynamicSdkLoaderOptions);
+  }, [data.dynamicSdkLoaderOptions]);
+
   const {keyId, projectId} = params;
   const apiEndpoint = `/projects/${organization.slug}/${projectId}/keys/${keyId}/`;
   const loaderLink = getDynamicText({
     value: data.dsn.cdn,
     fixed: '__JS_SDK_LOADER_URL__',
   });
+
+  const hasJSSDKDynamicLoaderFeatureFlag = !!organization.features?.includes(
+    'js-sdk-dynamic-loader'
+  );
 
   const handleRemove = useCallback(async () => {
     addLoadingMessage(t('Revoking key\u2026'));
@@ -61,6 +103,67 @@ export function KeySettings({api, onRemove, data, organization, params}: Props) 
       addErrorMessage(t('Unable to revoke key'));
     }
   }, [organization, api, onRemove, keyId, projectId]);
+
+  const handleToggleDynamicSDKLoaderOption = useCallback(
+    async <T extends typeof dynamicSDKLoaderOptions, K extends keyof T>(
+      dynamicSdkLoaderOption: K,
+      value: T[K]
+    ) => {
+      const newDynamicSdkLoaderOptions = Object.keys(dynamicSDKLoaderOptions).reduce(
+        (acc, key) => {
+          if (key === dynamicSdkLoaderOption) {
+            return {...acc, [key]: value};
+          }
+          return {...acc, [key]: dynamicSDKLoaderOptions[key]};
+        },
+        {}
+      );
+
+      addLoadingMessage();
+
+      try {
+        const response = await api.requestPromise(apiEndpoint, {
+          method: 'PUT',
+          data: {
+            dynamicSdkLoaderOptions: newDynamicSdkLoaderOptions,
+          },
+        });
+
+        setDynamicSDKLoaderOptions(response.dynamicSdkLoaderOptions);
+
+        addSuccessMessage(t('Successfully updated dynamic SDK loader configuration'));
+      } catch (error) {
+        const message = t('Unable to updated dynamic SDK loader configuration');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
+      }
+    },
+    [api, apiEndpoint, dynamicSDKLoaderOptions, setDynamicSDKLoaderOptions]
+  );
+
+  const handleUpdateBrowserSDKVersion = useCallback(
+    async (newBrowserSDKVersion: typeof browserSdkVersion) => {
+      addLoadingMessage();
+
+      try {
+        const response = await api.requestPromise(apiEndpoint, {
+          method: 'PUT',
+          data: {
+            browserSdkVersion: newBrowserSDKVersion,
+          },
+        });
+
+        setBrowserSdkVersion(response.browserSdkVersion);
+
+        addSuccessMessage(t('Successfully updated SDK version'));
+      } catch (error) {
+        const message = t('Unable to updated SDK version');
+        handleXhrErrorResponse(message)(error);
+        addErrorMessage(message);
+      }
+    },
+    [api, apiEndpoint, setBrowserSdkVersion]
+  );
 
   return (
     <Access access={['project:write']}>
@@ -107,48 +210,82 @@ export function KeySettings({api, onRemove, data, organization, params}: Props) 
             disabled={!hasAccess}
           />
 
-          <Form saveOnBlur apiEndpoint={apiEndpoint} apiMethod="PUT" initialData={data}>
-            <Panel>
-              <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
-              <PanelBody>
-                <FieldGroup
-                  help={tct(
-                    'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
-                    {
-                      link: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
-                          What does the script provide?
-                        </ExternalLink>
-                      ),
-                    }
-                  )}
-                  inline={false}
-                  flexibleControlStateSize
-                >
-                  <TextCopyInput>
-                    {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
-                  </TextCopyInput>
-                </FieldGroup>
-                <SelectField
-                  name="browserSdkVersion"
-                  options={
-                    data.browserSdk
-                      ? data.browserSdk.choices.map(([value, label]) => ({
-                          value,
-                          label,
-                        }))
-                      : []
+          <Panel>
+            <PanelHeader>{t('JavaScript Loader')}</PanelHeader>
+            <PanelBody>
+              <FieldGroup
+                help={tct(
+                  'Copy this script into your website to setup your JavaScript SDK without any additional configuration. [link]',
+                  {
+                    link: (
+                      <ExternalLink href="https://docs.sentry.io/platforms/javascript/install/lazy-load-sentry/">
+                        What does the script provide?
+                      </ExternalLink>
+                    ),
                   }
-                  placeholder={t('4.x')}
-                  allowClear={false}
-                  disabled={!hasAccess}
-                  help={t(
-                    'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
-                  )}
-                />
-              </PanelBody>
-            </Panel>
-          </Form>
+                )}
+                inline={false}
+                flexibleControlStateSize
+              >
+                <TextCopyInput>
+                  {`<script src='${loaderLink}' crossorigin="anonymous"></script>`}
+                </TextCopyInput>
+              </FieldGroup>
+              <SelectField
+                name="browserSdkVersion"
+                options={
+                  data.browserSdk
+                    ? data.browserSdk.choices.map(([value, label]) => ({
+                        value,
+                        label,
+                      }))
+                    : []
+                }
+                value={browserSdkVersion}
+                onChange={value => handleUpdateBrowserSDKVersion(value)}
+                placeholder={t('4.x')}
+                allowClear={false}
+                disabled={!hasAccess}
+                help={t(
+                  'Select the version of the SDK that should be loaded. Note that it can take a few minutes until this change is live.'
+                )}
+              />
+            </PanelBody>
+            {hasJSSDKDynamicLoaderFeatureFlag && (
+              <PanelFooter>
+                {Object.entries(sdkLoaderOptions).map(([key, value]) => {
+                  const sdkLoaderOption = Object.keys(dynamicSDKLoaderOptions).find(
+                    dynamicSdkLoaderOption => dynamicSdkLoaderOption === key
+                  );
+
+                  if (!sdkLoaderOption) {
+                    return null;
+                  }
+
+                  return (
+                    <BooleanField
+                      label={value.label}
+                      key={key}
+                      name={key}
+                      value={dynamicSDKLoaderOptions[sdkLoaderOption]}
+                      onChange={() =>
+                        handleToggleDynamicSDKLoaderOption(
+                          sdkLoaderOption as DynamicSDKLoaderOption,
+                          !dynamicSDKLoaderOptions[sdkLoaderOption]
+                        )
+                      }
+                      disabled={!hasAccess}
+                      disabledReason={
+                        !hasAccess
+                          ? t('You do not have permission to edit this setting')
+                          : undefined
+                      }
+                    />
+                  );
+                })}
+              </PanelFooter>
+            )}
+          </Panel>
 
           <Panel>
             <PanelHeader>{t('Credentials')}</PanelHeader>

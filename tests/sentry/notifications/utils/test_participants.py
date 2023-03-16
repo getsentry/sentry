@@ -257,6 +257,8 @@ class GetSendToOwnersTest(TestCase):
             team=self.team2,
         )
 
+        self.integration.add_organization(self.project.organization, self.user)
+
     def create_sample_commit(self, user: User) -> Commit:
         return self.create_commit(
             project=self.project,
@@ -773,7 +775,6 @@ class GetSendToFallthroughTest(TestCase):
             organization=self.organization, members=[self.user, self.user2]
         )
         self.project.add_team(self.team2)
-        self.organization.flags.early_adopter = True
 
         ProjectOwnership.objects.create(
             project_id=self.project.id,
@@ -977,31 +978,3 @@ class GetSendToFallthroughTest(TestCase):
 
         assert len(notified_users) == FALLTHROUGH_NOTIFICATION_LIMIT_EA
         assert notified_users.issubset(expected_notified_users)
-
-    @with_feature("organizations:issue-alert-fallback-targeting")
-    def test_fallthrough_ga_limit(self):
-        self.organization.flags.early_adopter = False
-
-        notifiable_users = [self.user, self.user2]
-        for i in range(FALLTHROUGH_NOTIFICATION_LIMIT_EA + 5):
-            new_user = self.create_user(email=f"user_{i}@example.com", is_active=True)
-            self.create_member(
-                user=new_user, organization=self.organization, role="owner", teams=[self.team2]
-            )
-            notifiable_users.append(new_user)
-
-        for user in notifiable_users:
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.ISSUE_ALERTS,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-            )
-
-        event = self.store_event("admin.lol", self.project)
-        notified_users = self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
-        )[ExternalProviders.EMAIL]
-
-        # Check that we notify all possible folks with the GA limit.
-        assert len(notified_users) == len(notifiable_users)

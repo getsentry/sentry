@@ -28,6 +28,7 @@ from sentry.services.hybrid_cloud.user import (
     UserFilterArgs,
     UserSerializeType,
     UserService,
+    UserUpdateArgs,
 )
 
 
@@ -105,6 +106,16 @@ class DatabaseBackedUserService(UserService):
         return [
             self._FQ.serialize_rpc(u) for u in self._FQ.base_query().filter(actor_id__in=actor_ids)
         ]
+
+    def update_user(
+        self,
+        *,
+        user_id: int,
+        attrs: UserUpdateArgs,
+    ) -> Any:
+        if len(attrs):
+            User.objects.filter(id=user_id).update(**attrs)
+        return self.serialize_many(filter=dict(user_ids=[user_id]))[0]
 
     def close(self) -> None:
         pass
