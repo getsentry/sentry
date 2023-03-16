@@ -83,19 +83,19 @@ const TeamRoleSelect = (props: {
   }
   const effectiveOrgRole = getEffectiveOrgRole(possibleOrgRoles, orgRoleList);
 
-  const teamRoleId = member.teamRole || effectiveOrgRole.minimumTeamRole;
+  const teamRoleId = member.teamRole || effectiveOrgRole?.minimumTeamRole;
   const teamRole = teamRoleList.find(r => r.id === teamRoleId) || teamRoleList[0];
 
   if (
     !hasWriteAccess ||
-    hasOrgRoleOverwrite({orgRole: effectiveOrgRole.id, orgRoleList, teamRoleList})
+    hasOrgRoleOverwrite({orgRole: effectiveOrgRole?.id, orgRoleList, teamRoleList})
   ) {
     return (
       <RoleName>
         {teamRole.name}
         <IconWrapper>
           <RoleOverwriteIcon
-            orgRole={effectiveOrgRole.id}
+            orgRole={effectiveOrgRole?.id}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
