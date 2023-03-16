@@ -1045,6 +1045,59 @@ class FetchByUrlNewTest(FetchTest):
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
+    def test_one_archive_with_release_only(self):
+        dist = self.release.add_dist("android")
+
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            artifact_bundle=artifact_bundle,
+        )
+
+        # Fetching the source map with present url.
+        fetcher = Fetcher(organization=self.organization, release=self.release)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
+        fetcher.close()
+
+        # Fetching with release and dist.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
     def test_multiple_archives_with_release_dist_pair(self):
         dist = self.release.add_dist("android")
 
