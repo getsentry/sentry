@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import base64
-import dataclasses
 from typing import List, Mapping, Tuple
 
 from django.contrib.auth.models import AnonymousUser
@@ -134,10 +133,10 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        d: dict[str, bool] = {}
-        for f in dataclasses.fields(RpcAuthProviderFlags):
-            d[f.name] = bool(ap.flags[f.name])
-        return RpcAuthProviderFlags(**d)
+        return RpcAuthProviderFlags(
+            allow_unlinked=ap.allow_unlinked,
+            scim_enabled=ap.scim_enabled,
+        )
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(
