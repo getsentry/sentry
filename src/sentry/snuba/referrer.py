@@ -555,14 +555,15 @@ TSDB_4_SUFFIXES = {
     "alert_event_frequency_percent",
 }
 
-TSDBModelReferrer = enum.Enum(
-    "TSDBModelReferrer",
+TSDBModel4Referrer = enum.Enum(
+    "TSDBModel4Referrer",
     {f"TSDB_MODELID_4_{suffix}": f"tsdb-modelid:4.{suffix}" for suffix in TSDB_4_SUFFIXES},
 )
 
 
 Referrer = enum.Enum(
-    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModel4Referrer)],
 )
 
 
