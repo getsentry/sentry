@@ -72,7 +72,6 @@ default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, T
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
-default_manager.add("organizations:discover-query-builder-as-landing-page", OrganizationFeature, True)
 default_manager.add("organizations:ds-prioritise-by-project-bias", OrganizationFeature)
 default_manager.add("organizations:ds-prioritise-by-transaction-bias", OrganizationFeature)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature)
