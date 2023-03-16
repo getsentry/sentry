@@ -401,9 +401,6 @@ register("processing.can-use-scrubbers", default=True)
 # Set this value of the fraction of projects that you want to use it for.
 register("processing.sourcemapcache-processor", default=0.0)  # unused
 
-# Flag for enabling deobfuscation for ProGuard files in ingest consumer
-register("processing.view-hierarchies-deobfuscation-general-availability", default=0.0)
-
 # Killswitch for sending internal errors to the internal project or
 # `SENTRY_SDK_CONFIG.relay_dsn`. Set to `0` to only send to
 # `SENTRY_SDK_CONFIG.dsn` (the "upstream transport") and nothing else.
@@ -666,9 +663,6 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 
 # Killswitch for deriving code mappings
 register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the percentage of orgs we test under the dry run mode
-register("derive-code-mappings.dry-run.early-adopter-rollout", default=0.0)
-register("derive-code-mappings.dry-run.general-availability-rollout", default=0.0)
 # Allows adjusting the GA percentage
 register("derive-code-mappings.general-availability-rollout", default=0.0)
 register("hybrid_cloud.outbox_rate", default=0.0)

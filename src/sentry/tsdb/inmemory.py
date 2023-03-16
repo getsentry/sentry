@@ -71,6 +71,7 @@ class InMemoryTSDB(BaseTSDB):
         use_cache=False,
         jitter_value=None,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         self.validate_arguments([model], environment_ids if environment_ids is not None else [None])
 
@@ -139,6 +140,7 @@ class InMemoryTSDB(BaseTSDB):
         use_cache=False,
         jitter_value=None,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         self.validate_arguments([model], [environment_id])
 
