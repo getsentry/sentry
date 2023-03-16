@@ -14,7 +14,6 @@ from django.contrib.auth.models import AnonymousUser
 from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.organization import (
@@ -36,6 +35,8 @@ class RpcAuthenticatorType(IntEnum):
     def from_authenticator(
         self, auth: Type[BaseAuthentication]
     ) -> Optional["RpcAuthenticatorType"]:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if auth == ApiKeyAuthentication:
             return RpcAuthenticatorType.API_KEY_AUTHENTICATION
         if auth == TokenAuthentication:
@@ -43,6 +44,8 @@ class RpcAuthenticatorType(IntEnum):
         return None
 
     def as_authenticator(self) -> BaseAuthentication:
+        from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
+
         if self == self.API_KEY_AUTHENTICATION:
             return ApiKeyAuthentication()
         if self == self.TOKEN_AUTHENTICATION:
