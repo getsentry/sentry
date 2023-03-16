@@ -20,10 +20,7 @@ class ArtifactBundleSource:
 
     @cached_property
     def sorted_and_filtered_files(self) -> List[Tuple[str, dict]]:
-        files = [(file_path, info) for file_path, info in self._files.items()]
-        files.sort(key=lambda item: item[0])
-
-        return files
+        return sorted(list(self._files.items()))
 
     def __len__(self):
         return len(self.sorted_and_filtered_files)
@@ -41,16 +38,16 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
 
     def get(self, request: Request, project, bundle_id) -> Response:
         """
-        List a Project Artifact Bundle's Files
+        List files for a given project artifact bundle.
         ``````````````````````````````
 
-        Retrieve a list of artifact bundle files for a given artifact bundle.
+        Retrieve a list of files for a given artifact bundle.
 
         :pparam string organization_slug: the slug of the organization the
-                                          release belongs to.
-        :pparam string project_slug: the slug of the project to list the
-                                     release files of.
-        :pparam string bundle_id: bundle_id of the artifact bundle to read contents from.
+                                          artifact bundle belongs to.
+        :pparam string project_slug: the slug of the project the
+                                     artifact bundle belongs to.
+        :pparam string bundle_id: bundle_id of the artifact bundle to list files from.
         """
 
         try:
@@ -76,7 +73,9 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
             # We open the archive to fetch the number of files.
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
         except Exception:
-            return Response({"error": "The artifact bundle archive can't be opened"})
+            return Response(
+                {"error": f"The archive of artifact bundle {bundle_id} can't be opened"}
+            )
 
         def expose_artifact_bundle_file(file_path, info):
             headers = archive.normalize_headers(info.get("headers", {}))
@@ -97,15 +96,19 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                 [expose_artifact_bundle_file(file_path, info) for file_path, info in r],
                 request.user,
             )
-            # We must close the archive once all the results have been fetched, otherwise we will get an error.
-            archive.close()
 
             return serialized_results
 
-        return self.paginate(
-            request=request,
-            sources=[ArtifactBundleSource(archive.manifest.get("files", {}))],
-            paginator_cls=ChainPaginator,
-            max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
-            on_results=serialize_results,
-        )
+        try:
+            return self.paginate(
+                request=request,
+                sources=[ArtifactBundleSource(archive.manifest.get("files", {}))],
+                paginator_cls=ChainPaginator,
+                max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
+                on_results=serialize_results,
+            )
+        except Exception as exc:
+            raise exc
+        finally:
+            # We must close the archive before returning the value, otherwise we will get an error.
+            archive.close()

@@ -1965,7 +1965,7 @@ PROJECT_URLS = [
         name="sentry-api-0-project-release-stats",
     ),
     url(
-        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundle/(?P<bundle_id>[^/]+)/files/$",
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/$",
         ProjectArtifactBundleFilesEndpoint.as_view(),
         name="sentry-api-0-project-artifact-bundle-files",
     ),
