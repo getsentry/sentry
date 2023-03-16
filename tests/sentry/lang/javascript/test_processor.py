@@ -43,6 +43,7 @@ from sentry.models import (
     EventError,
     File,
     Release,
+    ReleaseArtifactBundle,
     ReleaseFile,
     SourceFileType,
 )
@@ -561,7 +562,58 @@ class FetchReleaseFileTest(TestCase):
         assert good_file.chunks.call_count == 1
 
 
-class FetchFileByUrlTest(TestCase):
+class FetchTest(TestCase):
+    @staticmethod
+    def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):
+        def remove_and_return(dictionary, key):
+            dictionary.pop(key)
+            return dictionary
+
+        compressed = BytesIO()
+        with zipfile.ZipFile(compressed, mode="w") as zip_file:
+            for file_path, info in files.items():
+                zip_file.writestr(file_path, bytes(info["content"]))
+
+            zip_file.writestr(
+                "manifest.json",
+                json.dumps(
+                    {
+                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+                        "files": {
+                            file_path: remove_and_return(info, "content")
+                            for file_path, info in files.items()
+                        }
+                    }
+                ),
+            )
+        compressed.seek(0)
+
+        file = File.objects.create(name=artifact_name, type=type)
+        file.putfile(compressed)
+
+        return file
+
+    @staticmethod
+    def get_invalid_compressed_zip_file(artifact_name, type="artifact.bundle"):
+        compressed = BytesIO(b"Invalid zip file")
+
+        file = File.objects.create(name=artifact_name, type=type)
+        file.putfile(compressed)
+
+        return file
+
+    @staticmethod
+    def relevant_calls(mock, prefix):
+        return [
+            call
+            for call in mock.mock_calls
+            if (call.args and call.args[0] or call.kwargs and call.kwargs["key"] or "").startswith(
+                prefix
+            )
+        ]
+
+
+class FetchByUrlTest(FetchTest):
     @responses.activate
     def test_simple(self):
         responses.add(
@@ -909,51 +961,411 @@ class FetchFileByUrlTest(TestCase):
         assert exc.value.data["url"] == url
 
 
-class FetchFileByDebugIdTest(TestCase):
-    def setUp(self):
-        super().setUp()
-        self.organization = self.create_organization()
+class FetchByUrlNewTest(FetchTest):
+    def test_one_archive_with_release_dist_pair(self):
+        dist = self.release.add_dist("android")
 
-    @staticmethod
-    def get_compressed_zip_file(artifact_name, files):
-        def remove_and_return(dictionary, key):
-            dictionary.pop(key)
-            return dictionary
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
 
-        compressed = BytesIO()
-        with zipfile.ZipFile(compressed, mode="w") as zip_file:
-            for file_path, info in files.items():
-                zip_file.writestr(file_path, bytes(info["content"]))
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
 
-            zip_file.writestr(
-                "manifest.json",
-                json.dumps(
-                    {
-                        # We remove the "content" key in the original dict, thus no subsequent calls should be made.
-                        "files": {
-                            file_path: remove_and_return(info, "content")
-                            for file_path, info in files.items()
-                        }
-                    }
-                ),
-            )
-        compressed.seek(0)
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle,
+        )
 
-        file = File.objects.create(name=artifact_name, type="artifact.bundle")
-        file.putfile(compressed)
+        # Fetching the minified source with present url.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
+        fetcher.close()
 
-        return file
+        # Fetching the source map with present url.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js.map")
+        assert result.url == "http://example.com/index.js.map"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json"}
+        assert result.encoding == "utf-8"
+        assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
+        fetcher.close()
 
-    @staticmethod
-    def relevant_calls(mock, prefix):
-        return [
-            call
-            for call in mock.mock_calls
-            if (call.args and call.args[0] or call.kwargs and call.kwargs["key"] or "").startswith(
-                prefix
-            )
+        # Fetching source with absent url.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/hello/main.js") is None
+        assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
+        fetcher.close()
+
+        # Fetching with no release.
+        fetcher = Fetcher(organization=self.organization, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+        # Fetching with no dist.
+        fetcher = Fetcher(organization=self.organization, release=self.release)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+        # Fetching with no release and no dist.
+        fetcher = Fetcher(organization=self.organization)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+    def test_one_archive_with_release_only(self):
+        dist = self.release.add_dist("android")
+
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            artifact_bundle=artifact_bundle,
+        )
+
+        # Fetching the source map with present url.
+        fetcher = Fetcher(organization=self.organization, release=self.release)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
+        fetcher.close()
+
+        # Fetching with release and dist.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        assert list(fetcher.open_archives.keys()) == []
+        fetcher.close()
+
+    def test_multiple_archives_with_release_dist_pair(self):
+        dist = self.release.add_dist("android")
+
+        file_1 = self.get_compressed_zip_file(
+            "bundle_1.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+        file_2 = self.get_compressed_zip_file(
+            "bundle_2.zip",
+            {
+                "main.js.map": {
+                    "url": "~/main.js.map",
+                    "type": "source_map",
+                    "content": b"FOO",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "main.js": {
+                    "url": "~/main.js",
+                    "type": "minified_source",
+                    "content": b"BAR",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "main.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle_1 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_1, artifact_count=2
+        )
+        artifact_bundle_2 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_2, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        # Fetching the minified source with present url in the first artifact.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert sorted(list(fetcher.open_archives.keys())) == [
+            artifact_bundle_1.id,
+            artifact_bundle_2.id,
         ]
+        fetcher.close()
 
+        # Fetching the minified source with present url in the second artifact.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/main.js")
+        assert result.url == "http://example.com/main.js"
+        assert result.body == b"BAR"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "main.js.map"}
+        assert result.encoding == "utf-8"
+        assert sorted(list(fetcher.open_archives.keys())) == [
+            artifact_bundle_1.id,
+            artifact_bundle_2.id,
+        ]
+        fetcher.close()
+
+    def test_multiple_archives_with_one_broken_and_with_release_dist_pair(self):
+        dist = self.release.add_dist("android")
+
+        file_1 = self.get_compressed_zip_file(
+            "bundle_1.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+        file_2 = self.get_invalid_compressed_zip_file("bundle_2.zip")
+
+        artifact_bundle_1 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_1, artifact_count=2
+        )
+        artifact_bundle_2 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_2, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        # Fetching source with present url.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result.url == "http://example.com/index.js"
+        assert result.body == b"bar"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "sourcemap": "index.js.map"}
+        assert result.encoding == "utf-8"
+        assert sorted(list(fetcher.open_archives.keys())) == [
+            artifact_bundle_1.id,
+            artifact_bundle_2.id,
+        ]
+        assert fetcher.open_archives[artifact_bundle_2.id] == INVALID_ARCHIVE
+        fetcher.close()
+
+        # Fetching source with absent url.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
+        assert sorted(list(fetcher.open_archives.keys())) == [
+            artifact_bundle_1.id,
+            artifact_bundle_2.id,
+        ]
+        assert fetcher.open_archives[artifact_bundle_2.id] == INVALID_ARCHIVE
+        fetcher.close()
+
+    def test_multiple_broken_archives_with_release_dist_pair(self):
+        dist = self.release.add_dist("android")
+
+        file_1 = self.get_invalid_compressed_zip_file("bundle_1.zip")
+        file_2 = self.get_invalid_compressed_zip_file("bundle_2.zip")
+
+        artifact_bundle_1 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_1, artifact_count=2
+        )
+        artifact_bundle_2 = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file_2, artifact_count=2
+        )
+
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
+        # We check if all archives are broken.
+        for key in sorted(list(fetcher.open_archives.keys())):
+            assert fetcher.open_archives[key] == INVALID_ARCHIVE
+        fetcher.close()
+
+    @patch("sentry.lang.javascript.processor.MAX_ARTIFACTS_NUMBER", 2)
+    def test_more_archives_than_allowed(self):
+        dist = self.release.add_dist("android")
+
+        # We create first 2 valid bundles and then 2 invalid ones, so that the two most recent ones will be returned
+        # by the query.
+        for bundle_name, valid in (
+            ("bundle_1.zip", True),
+            ("bundle_2.zip", True),
+            ("bundle_3.zip", False),
+            ("bundle_4.zip", False),
+        ):
+            file = (
+                self.get_compressed_zip_file(
+                    "bundle_1.zip",
+                    {
+                        "index.js.map": {
+                            "url": "~/index.js.map",
+                            "type": "source_map",
+                            "content": b"foo",
+                            "headers": {
+                                "content-type": "application/json",
+                            },
+                        },
+                        "index.js": {
+                            "url": "~/index.js",
+                            "type": "minified_source",
+                            "content": b"bar",
+                            "headers": {
+                                "content-type": "application/json",
+                                "sourcemap": "index.js.map",
+                            },
+                        },
+                    },
+                )
+                if valid
+                else self.get_invalid_compressed_zip_file(bundle_name)
+            )
+
+            artifact_bundle = ArtifactBundle.objects.create(
+                organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+            )
+            ReleaseArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                release_name=self.release.version,
+                dist_name=dist.name,
+                artifact_bundle=artifact_bundle,
+            )
+
+        # We expect that the last 2 bundles will be invalid, thus the fetch will fail.
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
+        # We check if all archives are broken.
+        for key in sorted(list(fetcher.open_archives.keys())):
+            assert fetcher.open_archives[key] == INVALID_ARCHIVE
+        fetcher.close()
+
+    def test_no_release_artifact_bundles_entries(self):
+        dist = self.release.add_dist("android")
+
+        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        result = fetcher.fetch_by_url_new("http://example.com/index.js")
+        assert result is None
+        assert len(fetcher.open_archives) == 0
+
+
+class FetchByDebugIdTest(FetchTest):
     def test_fetch_by_debug_id_with_valid_params(self):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
         file = self.get_compressed_zip_file(
@@ -975,7 +1387,7 @@ class FetchFileByDebugIdTest(TestCase):
                     "headers": {
                         "content-type": "application/json",
                         "debug-id": debug_id,
-                        "sourcemap": "~/index.js.map",
+                        "sourcemap": "index.js.map",
                     },
                 },
             },
@@ -1003,7 +1415,7 @@ class FetchFileByDebugIdTest(TestCase):
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
-        assert result.url == f"debug-id:{debug_id}"
+        assert result.url == f"debug-id://{debug_id}/~/index.js.map"
         assert result.body == b"foo"
         assert isinstance(result.body, bytes)
         assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
@@ -1015,13 +1427,13 @@ class FetchFileByDebugIdTest(TestCase):
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
         )
-        assert result.url == f"debug-id:{debug_id}"
+        assert result.url == f"debug-id://{debug_id}/~/index.js"
         assert result.body == b"bar"
         assert isinstance(result.body, bytes)
         assert result.headers == {
             "content-type": "application/json",
             "debug-id": debug_id,
-            "sourcemap": "~/index.js.map",
+            "sourcemap": "index.js.map",
         }
         assert result.encoding == "utf-8"
         fetcher.close()
