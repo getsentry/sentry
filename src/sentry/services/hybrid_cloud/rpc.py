@@ -165,12 +165,10 @@ class RpcService(InterfaceWithLifecycle):
         declare other base services.
         """
 
-        try:
-            next(cls._get_all_abstract_rpc_methods())
-        except StopIteration:
-            return False
-        else:
+        for _ in cls._get_all_abstract_rpc_methods():
             return True
+        else:
+            return False
 
     @classmethod
     @abstractmethod
