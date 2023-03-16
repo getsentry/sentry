@@ -549,6 +549,7 @@ TSDBModelReferrer = enum.Enum(
 # specific suffixes that apply to tsdb-modelid:4 referrers, these are optional
 # and are passed around through using `referrer_suffix`
 TSDB_4_SUFFIXES = {
+    "frequency_snoozes",
     "user_count_snoozes",
     "alert_event_frequency",
     "alert_event_uniq_user_frequency",
