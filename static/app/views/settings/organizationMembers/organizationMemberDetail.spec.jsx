@@ -686,7 +686,7 @@ describe('OrganizationMemberDetail', function () {
     });
   });
 
-  it('overwrites when member joins a manager team', () => {
+  it('overwrites when member joins a manager team', async () => {
     render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
       context: routerContext,
     });
@@ -699,9 +699,9 @@ describe('OrganizationMemberDetail', function () {
     const teamRoleSelect = within(teamRow).getByText('Contributor');
 
     // Join manager team
-    userEvent.click(screen.getByText('Add Team'));
+    await userEvent.click(screen.getByText('Add Team'));
     // Click the first item
-    userEvent.click(screen.getByText('#manager-team'));
+    await userEvent.click(screen.getByText('#manager-team'));
 
     // Role info box is shown
     expect(screen.queryByTestId('alert-role-overwrite')).toBeInTheDocument();

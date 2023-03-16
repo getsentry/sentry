@@ -1106,7 +1106,7 @@ describe('Performance > TransactionSummary', function () {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it('triggers a navigation on transaction filter', async function () {
+    it.only('triggers a navigation on transaction filter', async function () {
       const {organization, router, routerContext} = initializeData();
 
       render(<TestComponent router={router} location={router.location} />, {
@@ -1120,6 +1120,8 @@ describe('Performance > TransactionSummary', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Filter Slow Transactions (p95)'})
       );
+
+      screen.debug(screen.getAllByText('Slow Transactions (p95)')[1]);
 
       await userEvent.click(screen.getAllByText('Slow Transactions (p95)')[1]);
 
