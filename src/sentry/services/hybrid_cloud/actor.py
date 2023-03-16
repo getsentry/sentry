@@ -30,7 +30,7 @@ class RpcActor:
 
     def __post_init__(self) -> None:
         if (self.actor_type == ActorType.TEAM) == (self.slug is None):
-            raise ValueError
+            raise ValueError("Slugs are expected for teams only")
 
     @classmethod
     def from_object(cls, obj: Union["RpcActor", "User", "Team", "RpcUser"]) -> "RpcActor":
@@ -44,7 +44,7 @@ class RpcActor:
             return cls.from_orm_team(obj)
         if isinstance(obj, RpcUser):
             return cls.from_rpc_user(obj)
-        raise TypeError(str(type(obj)))
+        raise TypeError(f"Cannot build RpcActor from {type(obj)}")
 
     @classmethod
     def from_orm_user(cls, user: "User") -> "RpcActor":
