@@ -100,12 +100,12 @@ describe('Discover > SaveQueryButtonGroup', function () {
 
       expect(screen.getByRole('button', {name: /save as/i})).toBeInTheDocument();
       expect(
-        screen.queryByRole('button', {name: /saved for org/i})
-      ).not.toBeInTheDocument();
-      expect(
         screen.queryByRole('button', {name: /save changes/i})
       ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.queryByRole('menuitemradio', {name: /delete saved query/i})
+      ).not.toBeInTheDocument();
     });
 
     it('renders the correct set of buttons with the homepage query feature', () => {
@@ -122,15 +122,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
       ).toBeInTheDocument();
 
       expect(
-        screen.queryByRole('button', {name: /saved for org/i})
-      ).not.toBeInTheDocument();
-      expect(
         screen.queryByRole('button', {name: /save changes/i})
       ).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: /delete/i})).not.toBeInTheDocument();
+
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
       expect(
-        screen.queryByRole('button', {name: /add to dashboard/i})
-      ).not.toBeInTheDocument();
+        screen.queryByRole('menuitemradio', {name: /add to dashboard/i})
+      ).toBeInTheDocument();
     });
 
     it('hides the banner when save is complete.', () => {
@@ -208,11 +206,14 @@ describe('Discover > SaveQueryButtonGroup', function () {
       mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /save changes/i})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
+
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /delete saved query/i})
+      ).toBeInTheDocument();
     });
 
     it('treats undefined yAxis the same as count() when checking for changes', () => {
@@ -226,11 +227,13 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /save changes/i})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /delete saved query/i})
+      ).toBeInTheDocument();
     });
 
     it('converts string yAxis values to array when checking for changes', () => {
@@ -244,17 +247,20 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
 
       expect(screen.queryByRole('button', {name: /save as/i})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /saved for org/i})).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: /save changes/i})
       ).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /delete saved query/i})
+      ).toBeInTheDocument();
     });
 
     it('deletes the saved query', () => {
       mount(location, organization, router, errorsViewSaved, savedQuery, yAxis);
 
-      userEvent.click(screen.getByRole('button', {name: /delete/i}));
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      userEvent.click(screen.getByRole('menuitemradio', {name: /delete saved query/i}));
 
       expect(mockUtils).toHaveBeenCalledWith(
         expect.anything(), // api
@@ -278,11 +284,12 @@ describe('Discover > SaveQueryButtonGroup', function () {
       );
 
       expect(screen.queryByRole('button', {name: /save as/i})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: /saved for org/i})
-      ).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: /save changes/i})).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: /delete/i})).toBeInTheDocument();
+
+      userEvent.click(screen.getByRole('button', {name: /discover context menu/i}));
+      expect(
+        screen.getByRole('menuitemradio', {name: /delete saved query/i})
+      ).toBeInTheDocument();
     });
 
     describe('updates the saved query', () => {
