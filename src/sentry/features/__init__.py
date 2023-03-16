@@ -68,6 +68,7 @@ default_manager.add("organizations:crash-rate-alerts", OrganizationFeature)
 default_manager.add("organizations:custom-event-title", OrganizationFeature)
 default_manager.add("organizations:customer-domains", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-mep", OrganizationFeature, True)
+default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, True)
 default_manager.add("organizations:dashboards-template", OrganizationFeature, True)
 default_manager.add("organizations:discover", OrganizationFeature)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, True)
@@ -103,6 +104,7 @@ default_manager.add("organizations:minute-resolution-sessions", OrganizationFeat
 default_manager.add("organizations:mobile-view-hierarchies", OrganizationFeature, True)
 default_manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, True)
 default_manager.add("organizations:anr-rate", OrganizationFeature, True)
+default_manager.add("organizations:device-classification", OrganizationFeature, True)
 default_manager.add("organizations:monitors", OrganizationFeature, True)
 default_manager.add("organizations:native-stack-trace-v2", OrganizationFeature, True)
 default_manager.add("organizations:new-weekly-report", OrganizationFeature, True)
@@ -177,7 +179,6 @@ default_manager.add("organizations:transaction-metrics-extraction", Organization
 default_manager.add("organizations:use-metrics-layer", OrganizationFeature, True)
 default_manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, True)
 default_manager.add("organizations:u2f-superuser-form", OrganizationFeature, True)
-default_manager.add("organizations:commit-context-fallback", OrganizationFeature, True)
 
 # NOTE: Don't add features down here! Add them to their specific group and sort
 #       them alphabetically! The order features are registered is not important.
@@ -215,6 +216,7 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature)
 default_manager.add("organizations:onboarding-heartbeat-footer", OrganizationFeature, True)
+default_manager.add("organizations:onboarding-heartbeat-footer-with-view-sample-error", OrganizationFeature, True)
 default_manager.add("organizations:onboarding-project-deletion-on-back-click", OrganizationFeature, True)
 default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, True)
 default_manager.add("organizations:performance-view", OrganizationFeature)

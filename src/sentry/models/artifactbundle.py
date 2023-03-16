@@ -1,7 +1,6 @@
 import zipfile
 from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
-from uuid import UUID
 
 from django.db import models
 from django.utils import timezone
@@ -53,18 +52,6 @@ class ArtifactBundle(Model):
         db_table = "sentry_artifactbundle"
 
         unique_together = (("organization_id", "bundle_id"),)
-
-    @classmethod
-    def get_artifact_counts(cls, artifact_bundle_ids: List[int]) -> Dict[int, Tuple[UUID, int]]:
-        artifact_bundles = ArtifactBundle.objects.filter(id__in=artifact_bundle_ids)
-        bundles_with_counts = {}
-        for artifact_bundle in artifact_bundles:
-            bundles_with_counts[artifact_bundle.id] = (
-                artifact_bundle.bundle_id,
-                artifact_bundle.artifact_count,
-            )
-
-        return bundles_with_counts
 
 
 @region_silo_only_model
