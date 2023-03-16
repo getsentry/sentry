@@ -9,5 +9,8 @@ export function getEffectiveOrgRole(memberOrgRoles: string[], orgRoleList: OrgRo
   // sort by ascending index (high to low priority)
   memberOrgRoles.sort((a, b) => orgRoleMap[b].index - orgRoleMap[a].index);
 
-  return orgRoleMap[memberOrgRoles[0]]?.role;
+  if (!orgRoleMap[memberOrgRoles[0]]) {
+    throw new Error('Unable to find org role in list');
+  }
+  return orgRoleMap[memberOrgRoles[0]].role;
 }
