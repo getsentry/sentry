@@ -10,7 +10,7 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 from django.db import transaction
 
-from sentry.models import Environment, Project
+from sentry.models import Project
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -47,22 +47,9 @@ def process_message(message: Message[KafkaPayload]) -> None:
                 logger.debug("monitor does not exist: %s", params["monitor_slug"])
                 return
 
-            environment_name = params.get("environment")
-            if not environment_name:
-                environment_name = "production"
-
-            # TODO: assume these objects exist once backfill is completed
-            environment = Environment.get_or_create(project=project, name=environment_name)
-
-            monitorenvironment_defaults = {
-                "status": monitor.status,
-                "next_checkin": monitor.next_checkin,
-                "last_checkin": monitor.last_checkin,
-            }
-
-            monitor_environment = MonitorEnvironment.objects.get_or_create(
-                monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-            )[0]
+            monitor_environment = MonitorEnvironment.objects.ensure_environment(
+                project, monitor, params.get("environment")
+            )
 
             status = getattr(CheckInStatus, params["status"].upper())
             duration = (
