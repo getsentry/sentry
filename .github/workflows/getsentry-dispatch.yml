@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   dispatch:
-    if: github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'
+    if: "github.event.action != 'labeled' || github.event.label.name == 'Trigger: getsentry tests'"
     name: getsentry dispatch
     runs-on: ubuntu-20.04
     steps:
