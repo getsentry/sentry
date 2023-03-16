@@ -8,7 +8,7 @@ import useApi from 'sentry/utils/useApi';
 type Props = FormProps & {
   apiEndpoint: string;
   apiMethod: string;
-  onSubmit?: (data: Record<string, any>) => void;
+  onSubmit?: (data: Record<string, any>) => any | void;
 };
 
 function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
@@ -20,11 +20,11 @@ function ApiForm({onSubmit, apiMethod, apiEndpoint, ...otherProps}: Props) {
       onSuccess: (response: Record<string, any>) => void,
       onError: (error: any) => void
     ) => {
-      onSubmit?.(data);
+      const transformed = onSubmit?.(data);
       addLoadingMessage(t('Saving changes\u2026'));
       api.request(apiEndpoint, {
         method: apiMethod,
-        data,
+        data: transformed ?? data,
         success: response => {
           clearIndicators();
           onSuccess(response);
