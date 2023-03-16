@@ -123,6 +123,10 @@ function SetupDocs({search, route, router, location}: Props) {
     'onboarding-remove-multiselect-platform'
   );
 
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -202,8 +206,10 @@ function SetupDocs({search, route, router, location}: Props) {
 
   // log experiment on mount if feature enabled
   useEffect(() => {
-    logExperiment();
-  }, [logExperiment]);
+    if (heartbeatFooter) {
+      logExperiment();
+    }
+  }, [logExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -275,24 +281,62 @@ function SetupDocs({search, route, router, location}: Props) {
         </MainContent>
       </Wrapper>
 
-      {experimentAssignment === 'variant2' ? (
-        <FooterWithViewSampleErrorButton
-          projectSlug={project.slug}
-          projectId={project.id}
-          route={route}
-          router={router}
-          location={location}
-          newOrg
-        />
-      ) : experimentAssignment === 'variant1' ? (
-        <Footer
-          projectSlug={project.slug}
-          projectId={project.id}
-          route={route}
-          router={router}
-          location={location}
-          newOrg
-        />
+      {heartbeatFooter ? (
+        experimentAssignment === 'variant2' ? (
+          <FooterWithViewSampleErrorButton
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : experimentAssignment === 'variant1' ? (
+          <Footer
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : (
+          <FirstEventFooter
+            project={project}
+            organization={organization}
+            isLast={!nextProject}
+            hasFirstEvent={checkProjectHasFirstEvent(project)}
+            onClickSetupLater={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
+              }
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            handleFirstIssueReceived={() => {
+              const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+              setHasFirstEventMap(newHasFirstEventMap);
+            }}
+          />
+        )
       ) : (
         <FirstEventFooter
           project={project}
