@@ -49,6 +49,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
                                      artifact bundle belongs to.
         :pparam string bundle_id: bundle_id of the artifact bundle to list files from.
         """
+        query = request.GET.get("query")
 
         try:
             artifact_bundle = ArtifactBundle.objects.get(
@@ -102,7 +103,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
         try:
             return self.paginate(
                 request=request,
-                sources=[ArtifactBundleSource(archive.manifest.get("files", {}))],
+                sources=[ArtifactBundleSource(archive.get_files_by_file_path_or_debug_id(query))],
                 paginator_cls=ChainPaginator,
                 max_offset=MAX_ARTIFACT_BUNDLE_FILES_OFFSET,
                 on_results=serialize_results,
