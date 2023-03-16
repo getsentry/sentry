@@ -232,7 +232,14 @@ def load_data(
         if measurements:
             measurement_markers = {}
             for key, entry in measurements.items():
-                if key in ["fp", "fcp", "lcp", "fid"]:
+                if key in [
+                    "fp",
+                    "fcp",
+                    "lcp",
+                    "fid",
+                    "time_to_initial_display",
+                    "time_to_full_display",
+                ]:
                     measurement_markers[f"mark.{key}"] = {
                         "unit": "none",
                         "value": round(data["start_timestamp"] + entry["value"] / 1000, 3),
@@ -406,10 +413,13 @@ def create_sample_event_basic(
 def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_id, data):
     """A recursive function that creates the events of a trace"""
     frontend = data.get("frontend")
+    mobile = data.get("mobile")
+
     current_span_id = uuid4().hex[:16]
     spans = []
     new_start = start_timestamp + timedelta(milliseconds=random_normal(50, 25, 10))
     new_end = timestamp - timedelta(milliseconds=random_normal(50, 25, 10))
+
     for child in data["children"]:
         span_id = uuid4().hex[:16]
         description = f"GET {child['transaction']}"
@@ -440,10 +450,18 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
             span_id,
             child,
         )
+
+    if frontend:
+        platform = "javascript"
+    elif mobile:
+        platform = "android"
+    else:
+        platform = "python"
+
     for _ in range(data.get("errors", 0)):
         create_sample_event(
             project=data["project"],
-            platform="javascript" if frontend else "python",
+            platform=platform,
             user=user,
             transaction=data["transaction"],
             contexts={
@@ -454,22 +472,33 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
                 }
             },
         )
-    create_sample_event(
-        project=data["project"],
-        platform="javascript-transaction" if frontend else "transaction",
-        transaction=data["transaction"],
-        event_id=uuid4().hex,
-        user=user,
-        timestamp=timestamp,
-        start_timestamp=start_timestamp,
-        measurements={
+
+    if frontend:
+        txn_platform = "javascript-transaction"
+        measurements = {
             "fp": {"value": random_normal(1250 - 50, 200, 500)},
             "fcp": {"value": random_normal(1250 - 50, 200, 500)},
             "lcp": {"value": random_normal(2800 - 50, 400, 2000)},
             "fid": {"value": random_normal(5 - 0.125, 2, 1)},
         }
-        if frontend
-        else {},
+    elif mobile:
+        txn_platform = "android-transaction"
+        measurements = {
+            "time_to_initial_display": {"value": random_normal(2200 - 50, 400, 2000)},
+            "time_to_full_display": {"value": random_normal(3500 - 50, 400, 2000)},
+        }
+    else:
+        txn_platform = "transaction"
+        measurements = {}
+    create_sample_event(
+        project=data["project"],
+        platform=txn_platform,
+        transaction=data["transaction"],
+        event_id=uuid4().hex,
+        user=user,
+        timestamp=timestamp,
+        start_timestamp=start_timestamp,
+        measurements=measurements,
         # Root
         parent_span_id=parent_span_id,
         span_id=current_span_id,
