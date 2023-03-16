@@ -2,7 +2,9 @@ from copy import deepcopy
 from functools import cached_property
 from uuid import uuid4
 
+from arroyo.utils import metrics
 from confluent_kafka import Producer
+from confluent_kafka.admin import AdminClient
 from django.conf import settings
 from django.core import mail
 from django.test.utils import override_settings
@@ -25,9 +27,14 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.snuba.query_subscription_consumer import QuerySubscriptionConsumer, subscriber_registry
+from sentry.snuba.query_subscription_consumer import (
+    QuerySubscriptionConsumer,
+    get_query_subscription_consumer,
+    subscriber_registry,
+)
 from sentry.testutils import TestCase
-from sentry.utils import json
+from sentry.utils import json, kafka_config
+from sentry.utils.batching_kafka_consumer import create_topics
 
 
 @freeze_time()
@@ -40,11 +47,22 @@ class HandleSnubaQueryUpdateTest(TestCase):
         self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)
 
+        cluster_options = kafka_config.get_kafka_admin_cluster_options(
+            "default", {"allow.auto.create.topics": "true"}
+        )
+        self.admin_client = AdminClient(cluster_options)
+
+        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        create_topics(kafka_cluster, [self.topic])
+
     def tearDown(self):
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
+
+        self.admin_client.delete_topics([self.topic])
+        metrics._metrics_backend = None
 
     @cached_property
     def subscription(self):
@@ -93,7 +111,7 @@ class HandleSnubaQueryUpdateTest(TestCase):
     def topic(self):
         return uuid4().hex
 
-    def test(self):
+    def run_test(self, consumer):
         # Full integration test to ensure that when a subscription receives an update
         # the `QuerySubscriptionConsumer` successfully retries the subscription and
         # calls the correct callback, which should result in an incident being created.
@@ -120,8 +138,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
             return Incident.objects.filter(
                 type=IncidentType.ALERT_TRIGGERED.value, alert_rule=self.rule
             ).exclude(status=IncidentStatus.CLOSED.value)
-
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
 
         original_callback = subscriber_registry[INCIDENTS_SNUBA_SUBSCRIPTION_TYPE]
 
@@ -158,3 +174,11 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert out.subject == message.subject
         built_message = message.build(self.user.email)
         assert out.body == built_message.body
+
+    def test(self):
+        consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
+        self.run_test(consumer)
+
+    def test_arroyo(self):
+        consumer = get_query_subscription_consumer(self.topic, "hi", True, "earliest")
+        self.run_test(consumer)
