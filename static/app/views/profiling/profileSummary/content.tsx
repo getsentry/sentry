@@ -7,6 +7,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
 import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFlamegraphPanel';
+import {Flex} from 'sentry/components/profiling/flex';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
@@ -73,6 +74,7 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     'profiling-aggregate-flamegraph'
   );
 
+  const GridContainer = isAggregateFlamegraphEnabled ? PanelsGrid : 'div';
   return (
     <Fragment>
       <Layout.Main fullWidth>
@@ -84,34 +86,41 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
         {isAggregateFlamegraphEnabled && (
           <AggregateFlamegraphPanel transaction={props.transaction} />
         )}
-        <TableHeader>
-          <CompactSelect
-            triggerProps={{prefix: t('Filter'), size: 'xs'}}
-            value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
-            options={FILTER_OPTIONS}
-            onChange={opt => handleFilterChange(opt.value)}
-          />
-          <StyledPagination
-            pageLinks={
-              profiles.status === 'success'
-                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
-                : null
-            }
-            size="xs"
-          />
-        </TableHeader>
-        <ProfileEventsTable
-          columns={fields}
-          data={profiles.status === 'success' ? profiles.data[0] : null}
-          error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-          isLoading={profiles.status === 'loading'}
-          sort={sort}
-        />
-        <SuspectFunctionsTable
-          project={props.project}
-          transaction={props.transaction}
-          analyticsPageSource="profiling_transaction"
-        />
+        <GridContainer>
+          <Flex column gap={space(1)}>
+            <Flex justify="space-between">
+              <CompactSelect
+                triggerProps={{prefix: t('Filter'), size: 'xs'}}
+                value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+                options={FILTER_OPTIONS}
+                onChange={opt => handleFilterChange(opt.value)}
+              />
+              <StyledPagination
+                pageLinks={
+                  profiles.status === 'success'
+                    ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                    : null
+                }
+                size="xs"
+              />
+            </Flex>
+            <ProfileEventsTable
+              columns={fields}
+              data={profiles.status === 'success' ? profiles.data[0] : null}
+              error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+              isLoading={profiles.status === 'loading'}
+              sort={sort}
+            />
+          </Flex>
+
+          <div>
+            <SuspectFunctionsTable
+              project={props.project}
+              transaction={props.transaction}
+              analyticsPageSource="profiling_transaction"
+            />
+          </div>
+        </GridContainer>
       </Layout.Main>
     </Fragment>
   );
@@ -160,14 +169,18 @@ const FILTER_OPTIONS = [
   },
 ];
 
-const TableHeader = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: ${space(1)};
-`;
-
 const StyledPagination = styled(Pagination)`
   margin: 0 0 0 ${space(1)};
+`;
+
+const PanelsGrid = styled('div')`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: ${space(2)};
+  overflow: hidden;
+  @media (max-width: ${p => p.theme.breakpoints.xlarge}) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 `;
 
 export {ProfileSummaryContent};

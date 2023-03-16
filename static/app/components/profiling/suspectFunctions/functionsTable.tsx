@@ -202,7 +202,7 @@ const COLUMN_ORDER: TableColumnKey[] = [
   'name',
   'package',
   'count',
-  'p75',
+  // 'p75',
   'p99',
   'examples',
 ];
@@ -235,7 +235,7 @@ const COLUMNS: Record<Exclude<TableColumnKey, 'p95'>, TableColumn> = {
   },
   count: {
     key: 'count',
-    name: t('Total Occurrences'),
+    name: t('Count'),
     width: COL_WIDTH_UNDEFINED,
   },
   examples: {

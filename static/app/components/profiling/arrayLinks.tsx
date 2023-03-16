@@ -31,7 +31,7 @@ function ArrayLinks({items}: ArrayLinksProps) {
       {items.length > 1 ? (
         <ButtonContainer>
           <button onClick={() => setExpanded(!expanded)}>
-            {expanded ? t('[collapse]') : t('[+%s more]', items.length - 1)}
+            {expanded ? t('[collapse]') : t('[+%s]', items.length - 1)}
           </button>
         </ButtonContainer>
       ) : null}
