@@ -11,11 +11,11 @@ import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import theme from 'sentry/utils/theme';
 import RulesPanel from 'sentry/views/settings/project/projectOwnership/rulesPanel';
 
-interface Props extends ModalRenderProps {
+interface ViewCodeOwnerModalProps extends ModalRenderProps {
   codeowner: CodeOwner;
 }
 
-function ViewCodeOwnerModal({Body, Header, codeowner}: Props) {
+function ViewCodeOwnerModal({Body, Header, codeowner}: ViewCodeOwnerModalProps) {
   return (
     <Fragment>
       <Header closeButton>
