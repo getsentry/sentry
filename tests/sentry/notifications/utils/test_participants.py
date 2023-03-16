@@ -48,11 +48,14 @@ STACKTRACE = {
 
 
 class _ParticipantsTest(TestCase):
-    @staticmethod
-    def build_expected_recipients(
-        email: Iterable[int] = (), slack: Iterable[int] = ()
-    ) -> Mapping[ExternalProviders, Set[RpcActor]]:
-        return {
+    def assert_recipients_are(
+        self,
+        actual: Mapping[ExternalProviders, Set[RpcActor]],
+        *,
+        email: Iterable[int] = (),
+        slack: Iterable[int] = (),
+    ) -> None:
+        expected = {
             provider: {
                 RpcActor.from_rpc_user(user_service.get_user(user_id)) for user_id in user_ids
             }
@@ -62,6 +65,7 @@ class _ParticipantsTest(TestCase):
             ]
             if user_ids
         }
+        assert actual == expected
 
 
 class GetSendToMemberTest(_ParticipantsTest):
@@ -78,8 +82,8 @@ class GetSendToMemberTest(_ParticipantsTest):
         assert self.get_send_to_member(self.project, 900001) == {}
 
     def test_send_to_user(self):
-        assert self.get_send_to_member() == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_member(), email=[self.user.id], slack=[self.user.id]
         )
 
         NotificationSetting.objects.update_settings(
@@ -90,7 +94,7 @@ class GetSendToMemberTest(_ParticipantsTest):
             project=self.project,
         )
 
-        assert self.get_send_to_member() == self.build_expected_recipients(slack=[self.user.id])
+        self.assert_recipients_are(self.get_send_to_member(), slack=[self.user.id])
 
     def test_other_org_user(self):
         org_2 = self.create_organization()
@@ -99,8 +103,8 @@ class GetSendToMemberTest(_ParticipantsTest):
         team_3 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2, team_3])
 
-        assert self.get_send_to_member(project_2, user_2.id) == self.build_expected_recipients(
-            email=[user_2.id], slack=[user_2.id]
+        self.assert_recipients_are(
+            self.get_send_to_member(project_2, user_2.id), email=[user_2.id], slack=[user_2.id]
         )
         assert self.get_send_to_member(self.project, user_2.id) == {}
 
@@ -112,8 +116,8 @@ class GetSendToMemberTest(_ParticipantsTest):
         self.create_team(org_2, members=[user_3])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
-        assert self.get_send_to_member(project_2, user_2.id) == self.build_expected_recipients(
-            email=[user_2.id], slack=[user_2.id]
+        self.assert_recipients_are(
+            self.get_send_to_member(project_2, user_2.id), email=[user_2.id], slack=[user_2.id]
         )
         assert self.get_send_to_member(self.project, user_3.id) == {}
 
@@ -149,7 +153,7 @@ class GetSendToTeamTest(_ParticipantsTest):
         assert self.get_send_to_team(self.project, 900001) == {}
 
     def test_send_to_team(self):
-        assert self.get_send_to_team() == self.build_expected_recipients([self.user.id])
+        self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
         NotificationSetting.objects.update_settings(
             ExternalProviders.EMAIL,
@@ -178,15 +182,15 @@ class GetSendToTeamTest(_ParticipantsTest):
             NotificationSettingOptionValues.NEVER,
             team=self.team,
         )
-        assert self.get_send_to_team() == self.build_expected_recipients([self.user.id])
+        self.assert_recipients_are(self.get_send_to_team(), email=[self.user.id])
 
     def test_other_project_team(self):
         user_2 = self.create_user()
         team_2 = self.create_team(self.organization, members=[user_2])
         project_2 = self.create_project(organization=self.organization, teams=[team_2])
 
-        assert self.get_send_to_team(project_2, team_2.id) == self.build_expected_recipients(
-            email=[user_2.id], slack=[user_2.id]
+        self.assert_recipients_are(
+            self.get_send_to_team(project_2, team_2.id), email=[user_2.id], slack=[user_2.id]
         )
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -196,8 +200,8 @@ class GetSendToTeamTest(_ParticipantsTest):
         team_2 = self.create_team(org_2, members=[user_2])
         project_2 = self.create_project(organization=org_2, teams=[team_2])
 
-        assert self.get_send_to_team(project_2, team_2.id) == self.build_expected_recipients(
-            email=[user_2.id], slack=[user_2.id]
+        self.assert_recipients_are(
+            self.get_send_to_team(project_2, team_2.id), email=[user_2.id], slack=[user_2.id]
         )
         assert self.get_send_to_team(self.project, team_2.id) == {}
 
@@ -283,8 +287,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
     def test_single_user(self):
         event = self.store_event_owners("user.jsx")
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -296,9 +300,7 @@ class GetSendToOwnersTest(_ParticipantsTest):
             project=self.project,
         )
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            slack=[self.user.id]
-        )
+        self.assert_recipients_are(self.get_send_to_owners(event), slack=[self.user.id])
 
     def test_single_user_no_teams(self):
         event = self.store_event_owners("user.jx")
@@ -308,8 +310,10 @@ class GetSendToOwnersTest(_ParticipantsTest):
     def test_team_owners(self):
         event = self.store_event_owners("team.py")
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id, self.user2.id], slack=[self.user.id, self.user2.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id, self.user2.id],
+            slack=[self.user.id, self.user2.id],
         )
 
         # Make sure that disabling mail alerts works as expected
@@ -320,8 +324,10 @@ class GetSendToOwnersTest(_ParticipantsTest):
             user=self.user2,
             project=self.project,
         )
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id, self.user2.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
+            email=[self.user.id],
+            slack=[self.user.id, self.user2.id],
         )
 
     def test_disable_alerts_multiple_scopes(self):
@@ -344,14 +350,15 @@ class GetSendToOwnersTest(_ParticipantsTest):
             project=self.project,
         )
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
     def test_fallthrough(self):
         event = self.store_event_owners("no_rule.cpp")
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
             email=[self.user.id, self.user2.id, self.user_suspect_committer.id],
             slack=[self.user.id, self.user2.id, self.user_suspect_committer.id],
         )
@@ -396,7 +403,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             group_id=event.group.id, project_id=self.project.id, release_id=release.id
         )
 
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
             email=[self.user_suspect_committer.id, self.user.id],
             slack=[self.user_suspect_committer.id, self.user.id],
         )
@@ -424,7 +432,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": self.commit.id},
         )
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
+        self.assert_recipients_are(
+            self.get_send_to_owners(event),
             email=[self.user_suspect_committer.id, self.user.id],
             slack=[self.user_suspect_committer.id, self.user.id],
         )
@@ -473,13 +482,15 @@ class GetSendToOwnersTest(_ParticipantsTest):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": commit.id},
         )
-        assert get_send_to(
-            project_suspect_committer,
-            target_type=ActionTargetType.ISSUE_OWNERS,
-            target_identifier=None,
-            event=event,
-        ) == self.build_expected_recipients(
-            email=[self.user_suspect_committer.id], slack=[self.user_suspect_committer.id]
+        self.assert_recipients_are(
+            get_send_to(
+                project_suspect_committer,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                target_identifier=None,
+                event=event,
+            ),
+            email=[self.user_suspect_committer.id],
+            slack=[self.user_suspect_committer.id],
         )
 
     @with_feature("organizations:streamline-targeting-context")
@@ -505,8 +516,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": commit.id},
         )
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
     @with_feature("organizations:streamline-targeting-context")
@@ -532,8 +543,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": invalid_commit_id},
         )
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
     @with_feature("organizations:streamline-targeting-context")
@@ -562,8 +573,8 @@ class GetSendToOwnersTest(_ParticipantsTest):
             type=GroupOwnerType.SUSPECT_COMMIT.value,
             context={"commitId": commit.id},
         )
-        assert self.get_send_to_owners(event) == self.build_expected_recipients(
-            email=[self.user.id], slack=[self.user.id]
+        self.assert_recipients_are(
+            self.get_send_to_owners(event), email=[self.user.id], slack=[self.user.id]
         )
 
 
@@ -758,9 +769,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
     def test_feature_off_with_owner(self):
         event = self.store_event("empty.py", self.project)
-        assert self.get_send_to_fallthrough(
-            event, self.project, None
-        ) == self.build_expected_recipients([self.user.id, self.user2.id])
+        self.assert_recipients_are(
+            self.get_send_to_fallthrough(event, self.project, None),
+            email=[self.user.id, self.user2.id],
+        )
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_invalid_fallthrough_choice(self):
@@ -776,9 +788,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         ProjectOwnership.objects.get(project_id=self.project.id).update(fallthrough=True)
 
         event = self.store_event("empty.lol", self.project)
-        assert self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ALL_MEMBERS
-        ) == self.build_expected_recipients([self.user.id, self.user2.id])
+        self.assert_recipients_are(
+            self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.ALL_MEMBERS),
+            email=[self.user.id, self.user2.id],
+        )
 
         event = self.store_event("empty.lol", self.project)
         assert self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.NO_ONE) == {}
@@ -819,9 +832,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         )
 
         event = self.store_event("empty.lol", empty_project)
-        assert self.get_send_to_fallthrough(
-            event, empty_project, FallthroughChoiceType.ALL_MEMBERS
-        ) == self.build_expected_recipients([self.user.id, self.user2.id])
+        self.assert_recipients_are(
+            self.get_send_to_fallthrough(event, empty_project, FallthroughChoiceType.ALL_MEMBERS),
+            email=[self.user.id, self.user2.id],
+        )
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_all_members_multiple_teams(self):
@@ -829,9 +843,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
         self.project.add_team(team3)
 
         event = self.store_event("admin.lol", self.project)
-        assert self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ALL_MEMBERS
-        ) == self.build_expected_recipients([self.user.id, self.user2.id, self.user3.id])
+        self.assert_recipients_are(
+            self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.ALL_MEMBERS),
+            email=[self.user.id, self.user2.id, self.user3.id],
+        )
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_inactive_users(self):
@@ -852,9 +867,10 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
         event = self.store_event("admin.lol", self.project)
         # Check that the notified users are only the 2 active users.
-        assert self.get_send_to_fallthrough(
-            event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS
-        ) == self.build_expected_recipients([user.id for user in [self.user, self.user2]])
+        self.assert_recipients_are(
+            self.get_send_to_fallthrough(event, self.project, FallthroughChoiceType.ACTIVE_MEMBERS),
+            email=[user.id for user in [self.user, self.user2]],
+        )
 
     @with_feature("organizations:issue-alert-fallback-targeting")
     def test_fallthrough_admin_or_recent_under_20(self):
