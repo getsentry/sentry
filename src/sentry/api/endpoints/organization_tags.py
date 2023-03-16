@@ -37,6 +37,10 @@ class OrganizationTagsEndpoint(OrganizationEventsEndpointBase):
                 ):
                     results = [tag for tag in results if tag != "empty_stacktrace.js_console"]
 
+                # Filter out device.class from tags since it's already specified as a field in the frontend.
+                # This prevents the tag from being displayed twice.
+                results = [tag for tag in results if tag.key != "device.class"]
+
                 # Setting the tag for now since the measurement is still experimental
                 sentry_sdk.set_tag("custom_tags.count", len(results))
                 sentry_sdk.set_tag(
