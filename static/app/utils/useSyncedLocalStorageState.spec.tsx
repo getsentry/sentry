@@ -39,7 +39,7 @@ describe('useSyncedLocalStorageState', function () {
     expect(screen.getByText('Value is on')).toBeInTheDocument();
 
     // After clicking the button, they both should be 'Off'
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.getByRole('button', {name: 'Off'})).toBeInTheDocument();
     expect(screen.getByText('Value is off')).toBeInTheDocument();
 

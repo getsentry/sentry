@@ -81,7 +81,7 @@ describe('PluginDetailedView', function () {
 
     expect(screen.getByText('Installed')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add to Project'}));
 
     renderGlobalModal();
 
