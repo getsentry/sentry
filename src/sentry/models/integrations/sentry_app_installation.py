@@ -249,14 +249,14 @@ def prepare_ui_component(
     values: Any = None,
 ) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
-    from sentry.mediators import sentry_app_components
+    from sentry.sentry_apps import SentryAppComponentPreparer
 
     if values is None:
         values = []
     try:
-        sentry_app_components.Preparer.run(
+        SentryAppComponentPreparer(
             component=component, install=installation, project_slug=project_slug, values=values
-        )
+        ).run()
         return component
     except APIError:
         # TODO(nisanthan): For now, skip showing the UI Component if the API requests fail

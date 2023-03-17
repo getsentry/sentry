@@ -1,12 +1,12 @@
 from unittest.mock import call, patch
 
-from sentry.mediators.sentry_app_components import Preparer
+from sentry.sentry_apps import SentryAppComponentPreparer
 from sentry.testutils import TestCase
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class TestPreparerIssueLink(TestCase):
     def setUp(self):
         super().setUp()
@@ -20,7 +20,7 @@ class TestPreparerIssueLink(TestCase):
         self.component = self.sentry_app.components.first()
         self.project = self.install.organization.project_set.first()
 
-        self.preparer = Preparer(
+        self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
         )
 
@@ -51,7 +51,7 @@ class TestPreparerIssueLink(TestCase):
             },
         }
 
-        self.preparer.call()
+        self.preparer.run()
 
         assert (
             call(
@@ -89,6 +89,7 @@ class TestPreparerIssueLink(TestCase):
         )
 
 
+@control_silo_test(stable=True)
 class TestPreparerStacktraceLink(TestCase):
     def setUp(self):
         super().setUp()
@@ -102,14 +103,14 @@ class TestPreparerStacktraceLink(TestCase):
         self.component = self.sentry_app.components.first()
         self.project = self.install.organization.project_set.first()
 
-        self.preparer = Preparer(
+        self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
         )
 
     def test_prepares_components_url(self):
         self.component.schema = {"uri": "/redirection"}
 
-        self.preparer.call()
+        self.preparer.run()
 
         assert (
             self.component.schema["url"]
@@ -117,6 +118,7 @@ class TestPreparerStacktraceLink(TestCase):
         )
 
 
+@control_silo_test(stable=True)
 class TestPreparerAlertRuleAction(TestCase):
     def setUp(self):
         super().setUp()
@@ -171,7 +173,7 @@ class TestPreparerAlertRuleAction(TestCase):
 
     @patch("sentry.mediators.external_requests.SelectRequester.run")
     def test_prepares_components_requiring_requests(self, run):
-        self.preparer = Preparer(
+        self.preparer = SentryAppComponentPreparer(
             component=self.component,
             install=self.install,
             project_slug=self.project.slug,
@@ -182,7 +184,7 @@ class TestPreparerAlertRuleAction(TestCase):
             ],
         )
 
-        self.preparer.call()
+        self.preparer.run()
 
         assert (
             call(

@@ -11,8 +11,8 @@ from sentry.api.bases import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.mediators import sentry_app_components
 from sentry.models import Project, SentryAppComponent, SentryAppInstallation
+from sentry.sentry_apps import SentryAppComponentPreparer
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
@@ -38,7 +38,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
             raise ValidationError("Required parameter 'projectId' is missing")
 
         try:
-            project = Project.objects.get(id=project_id, organization_id=organization.id)
+            Project.objects.get(id=project_id, organization_id=organization.id)
         except Project.DoesNotExist:
             return Response([], status=404)
 
@@ -55,9 +55,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
 
             for component in _components:
                 try:
-                    sentry_app_components.Preparer.run(
-                        component=component, install=install, project=project
-                    )
+                    SentryAppComponentPreparer(component=component, install=install).run()
                 except APIError:
                     errors.append(str(component.uuid))
 

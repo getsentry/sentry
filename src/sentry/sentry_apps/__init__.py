@@ -566,7 +566,7 @@ class SentryAppComponentPreparer:
     project_slug: str | None = None
     values: List[Mapping[str, Any]] = dataclasses.field(default_factory=list)
 
-    def call(self) -> None:
+    def run(self) -> None:
         with transaction.atomic():
             if self.component.type == "issue-link":
                 self._prepare_issue_link()
