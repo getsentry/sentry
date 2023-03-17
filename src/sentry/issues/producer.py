@@ -1,9 +1,13 @@
+from __future__ import annotations
+
 from atexit import register
 from collections import deque
 from concurrent import futures
+from concurrent.futures import Future
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
+from arroyo.types import BrokerValue
 from django.conf import settings
 
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -37,7 +41,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
 occurrence_producer_futures = deque()
 
 
-def track_occurrence_producer_futures(future) -> None:
+def track_occurrence_producer_futures(future: Future[BrokerValue[KafkaPayload]]) -> None:
     global occurrence_producer_futures
     occurrence_producer_futures.append(future)
     if len(occurrence_producer_futures) >= settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT:
