@@ -7,7 +7,7 @@ AdjustedSampleRate = namedtuple("AdjustedSampleRate", "explicit_rates, global_ra
 
 
 def adjust_sample_rate(
-    classes: List[Tuple[str, float]], rate: float, total_classes: int, total: float
+    classes: List[Tuple[str, float]], rate: float, total_num_classes: int, total: float
 ) -> Tuple[MutableMapping[str, float], float]:
     """
     Adjusts sampling rates to bring the number of samples kept in each class as close to
@@ -18,7 +18,7 @@ def adjust_sample_rate(
 
     :param classes: a list of class id, num_samples in class
     :param rate: global rate of sampling desired
-    :param total_classes: total number of classes (including the explicitly specified in classes)
+    :param total_num_classes: total number of classes (including the explicitly specified in classes)
     :param total: total number of samples in all classes (including the explicitly specified classes)
 
     :return: a dictionary with explicit rates for individual classes class_name->rate and
@@ -32,17 +32,17 @@ def adjust_sample_rate(
     # total count for the unspecified classes
     total_implicit = total - total_explicit
     # total number of specified classes
-    total_explicit_classes = len(classes)
+    num_explicit_classes = len(classes)
     # total number of unspecified classes
-    total_implicit_classes = total_classes - total_explicit_classes
+    num_implicit_classes = total_num_classes - num_explicit_classes
 
     total_budget = total * rate
-    budget_per_class = total_budget / total_classes
+    budget_per_class = total_budget / total_num_classes
 
-    implicit_budget = budget_per_class * total_implicit_classes
-    explicit_budget = budget_per_class * total_explicit_classes
+    implicit_budget = budget_per_class * num_implicit_classes
+    explicit_budget = budget_per_class * num_explicit_classes
 
-    if total_explicit_classes == total_classes:
+    if num_explicit_classes == total_num_classes:
         # we have specified all classes
         explicit_rates = adjust_sample_rate_full(classes, rate)
         implicit_rate = rate  # doesn't really matter since everything is explicit
@@ -67,7 +67,6 @@ def adjust_sample_rate(
         # calculate the new global rate for the implicit transactions
         implicit_budget = total_budget - total_explicit
         implicit_rate = implicit_budget / total_implicit
-        pass
     else:
         # we can spend all the implicit budget on the implicit classes
         # and all the explicit budget on the explicit classes

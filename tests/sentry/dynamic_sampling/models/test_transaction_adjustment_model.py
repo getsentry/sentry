@@ -44,7 +44,7 @@ def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_h
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rate(
-        explict_transactions, sample_rate, total_classes=total_classes, total=total
+        explict_transactions, sample_rate, total_num_classes=total_classes, total=total
     )
 
     # make sure we maintain the required sample rate
@@ -70,7 +70,7 @@ def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_hi
     total_classes = len(transactions)
 
     trans, global_rate = adjust_sample_rate(
-        explict_transactions, sample_rate, total_classes=total_classes, total=total
+        explict_transactions, sample_rate, total_num_classes=total_classes, total=total
     )
 
     ideal_number_of_elements_per_class = total * sample_rate / total_classes
