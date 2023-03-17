@@ -5,8 +5,8 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
 import Link from 'sentry/components/links/link';
+import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import Truncate from 'sentry/components/truncate';
 import {t, tct} from 'sentry/locale';
 import DiscoverQuery from 'sentry/utils/discover/discoverQuery';
 import {
@@ -279,7 +279,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <Fragment>
               <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
+                <Tooltip title={transaction}>
+                  <TextOverflow>{transaction}</TextOverflow>
+                </Tooltip>
               </GrowLink>
               <RightAlignedCell>
                 <Tooltip title={listItem.title}>
@@ -307,7 +309,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <Fragment>
               <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
+                <Tooltip title={transaction}>
+                  <TextOverflow>{transaction}</TextOverflow>
+                </Tooltip>
               </GrowLink>
               <RightAlignedCell>
                 {tct('[count] errors', {
@@ -332,7 +336,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
             return (
               <Fragment>
                 <GrowLink to={transactionTarget}>
-                  <Truncate value={transaction} maxLength={40} />
+                  <Tooltip title={transaction}>
+                    <TextOverflow>{transaction}</TextOverflow>
+                  </Tooltip>
                 </GrowLink>
                 <RightAlignedCell>
                   <Count value={rightValue} />
@@ -354,7 +360,9 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
           return (
             <Fragment>
               <GrowLink to={transactionTarget}>
-                <Truncate value={transaction} maxLength={40} />
+                <Tooltip title={transaction}>
+                  <TextOverflow>{transaction}</TextOverflow>
+                </Tooltip>
               </GrowLink>
               <RightAlignedCell>{rightValue}</RightAlignedCell>
               {!props.withStaticFilters && (

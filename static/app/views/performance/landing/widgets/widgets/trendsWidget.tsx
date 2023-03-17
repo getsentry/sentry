@@ -1,7 +1,8 @@
 import {Fragment, useMemo, useState} from 'react';
 
 import {Button} from 'sentry/components/button';
-import Truncate from 'sentry/components/truncate';
+import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import TrendsDiscoverQuery from 'sentry/utils/performance/trends/trendsDiscoverQuery';
@@ -163,7 +164,9 @@ export function TrendsWidget(props: PerformanceWidgetProps) {
       return (
         <Fragment>
           <GrowLink to={target}>
-            <Truncate value={listItem.transaction} maxLength={40} />
+            <Tooltip title={listItem.transaction}>
+              <TextOverflow>{listItem.transaction}</TextOverflow>
+            </Tooltip>
           </GrowLink>
           <RightAlignedCell>
             <CompareDurations transaction={listItem} />

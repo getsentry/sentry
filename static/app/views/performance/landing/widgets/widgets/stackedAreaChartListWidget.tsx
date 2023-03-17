@@ -6,7 +6,8 @@ import _EventsRequest from 'sentry/components/charts/eventsRequest';
 import StackedAreaChart from 'sentry/components/charts/stackedAreaChart';
 import {getInterval} from 'sentry/components/charts/utils';
 import Count from 'sentry/components/count';
-import Truncate from 'sentry/components/truncate';
+import TextOverflow from 'sentry/components/textOverflow';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {
   axisLabelFormatter,
@@ -232,7 +233,9 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
       return (
         <Fragment>
           <GrowLink to={transactionTarget}>
-            <Truncate value={transaction} maxLength={40} />
+            <Tooltip title={transaction}>
+              <TextOverflow>{transaction}</TextOverflow>
+            </Tooltip>
           </GrowLink>
           <RightAlignedCell>
             <Count value={rightValue} />

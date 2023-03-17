@@ -79,7 +79,8 @@ const StyledDropdownButton = styled(DropdownButton)`
 `;
 
 const ListItemContainer = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content max-content;
   border-top: 1px solid ${p => p.theme.border};
   padding: ${space(1)} ${space(2)};
   font-size: ${p => p.theme.fontSizeMedium};
