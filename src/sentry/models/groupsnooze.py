@@ -30,6 +30,8 @@ class GroupSnooze(Model):
     - If ``user_count`` is set, the snooze is lfited when unique users match.
     - If ``user_window`` is set (in addition to count), the snooze is lifted
       when the rate unique users matches.
+    - If ``until_escalating`` is set, the snooze is lifted when the Group's occurances
+      exceeds the forecasted counts.
 
     NOTE: `window` and `user_window` are specified in minutes
     """
@@ -44,6 +46,7 @@ class GroupSnooze(Model):
     user_window = BoundedPositiveIntegerField(null=True)
     state = JSONField(null=True)
     actor_id = BoundedPositiveIntegerField(null=True)
+    until_escalating = models.BooleanField(default=False)
 
     objects = BaseManager(cache_fields=("group",))
 
