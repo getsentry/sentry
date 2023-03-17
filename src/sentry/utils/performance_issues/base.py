@@ -53,7 +53,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
-    DetectorType.FILE_IO_MAIN_THREAD: PerformanceDBMainThreadGroupType,
+    DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
 }
 
 
