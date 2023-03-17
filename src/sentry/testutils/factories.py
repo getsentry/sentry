@@ -868,8 +868,10 @@ class Factories:
     @staticmethod
     @exempt_from_silo_limits()
     def create_internal_integration_token(install, **kwargs):
+        user = kwargs.pop("user")
+        request = kwargs.pop("request", None)
         return SentryAppInstallationTokenCreator(sentry_app_installation=install, **kwargs).run(
-            user=kwargs.pop("user"), request=kwargs.pop("request", None)
+            user=user, request=request
         )
 
     @staticmethod

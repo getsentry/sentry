@@ -105,7 +105,7 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
             app_id: int | None = getattr(request.auth, "application_id", None)
 
             hook = hook_service.create_service_hook(
-                project_ids=[p.id for p in project],
+                project_ids=[project.id],
                 organization_id=project.organization.id,
                 url=result["url"],
                 actor_id=request.user.id,
