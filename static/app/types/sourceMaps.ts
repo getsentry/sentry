@@ -5,3 +5,11 @@ export type DebugIdBundle = {
   fileCount: number;
   release: string | null;
 };
+
+export type DebugIdBundleArtifact = {
+  debugId: string;
+  filePath: string;
+  fileSize: number;
+  fileType: number;
+  id: string;
+};

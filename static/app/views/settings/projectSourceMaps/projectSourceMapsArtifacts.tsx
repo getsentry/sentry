@@ -6,32 +6,24 @@ import {Role} from 'sentry/components/acl/role';
 import {Button} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
-import ListLink from 'sentry/components/links/listLink';
-import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
 import Tag from 'sentry/components/tag';
+import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
+import Version from 'sentry/components/version';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Artifact, Project} from 'sentry/types';
+import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-
-type DebugIdBundleArtifact = {
-  debugId: string;
-  filePath: string;
-  fileSize: number;
-  fileType: number;
-  id: string;
-};
 
 enum DebugIdBundleArtifactType {
   INVALID = 0,
@@ -125,14 +117,13 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const artifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
   }/releases/${encodeURIComponent(params.bundleId)}/files/`;
-  const debugIdBundlesEndpoint = ``;
+  const debugIdBundlesEndpoint = `/projects/${organization.slug}/${
+    project.slug
+  }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
 
-  // tab urls
-  const releaseBundlesUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/release-bundles/${params.bundleId}`
-  );
+  // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
-    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}`
+    `/settings/${organization.slug}/projects/${project.slug}/source-maps/debug-id-bundles/${params.bundleId}/`
   );
 
   const tabDebugIdBundlesActive = location.pathname === debugIdsUrl;
@@ -193,18 +184,28 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
 
   return (
     <Fragment>
-      <SettingsPageHeader title={params.bundleId} />
-      <NavTabs underlined>
-        <ListLink to={releaseBundlesUrl} index isActive={() => !tabDebugIdBundlesActive}>
-          {t('Release Bundles')}
-        </ListLink>
-        <ListLink to={debugIdsUrl} isActive={() => tabDebugIdBundlesActive}>
-          {t('Debug ID Bundles')}
-        </ListLink>
-      </NavTabs>
+      <SettingsPageHeader
+        title={
+          <Title>
+            {tabDebugIdBundlesActive
+              ? t('Debug Id Bundle Artifact')
+              : t('Release Artifact')}
+            {' ('}
+            <TextOverflow>
+              <Version
+                version={params.bundleId}
+                tooltipRawVersion
+                anchor={false}
+                truncate
+              />
+            </TextOverflow>
+            {')'}
+          </Title>
+        }
+      />
       <SearchBarWithMarginBottom
         placeholder={
-          tabDebugIdBundlesActive ? t('Filter by Path or ID ') : t('Filter by Path')
+          tabDebugIdBundlesActive ? t('Filter by Path or ID') : t('Filter by Path')
         }
         onSearch={handleSearch}
         query={query}
@@ -218,6 +219,8 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         emptyMessage={
           query
             ? t('No artifacts match your search query.')
+            : tabDebugIdBundlesActive
+            ? t('There are no artifacts in this bundle.')
             : t('There are no artifacts in this archive.')
         }
         isEmpty={
@@ -232,7 +235,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
           ? debugIdBundlesData?.[0].map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
-              }/releases/${encodeURIComponent(params.bundleId)}/files/${
+              }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${
                 data.id
               }/?download=1`;
 
@@ -361,4 +364,9 @@ const StyledTag = styled(Tag)`
 const DebugIdAndFileTypeWrapper = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
 `;
