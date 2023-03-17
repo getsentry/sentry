@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import Any, Dict
+from unittest import mock
 
+import msgpack
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.utils import timezone
 
-from sentry.monitors.consumers.check_in import _process_message
+from sentry.monitors.consumers.check_in import StoreMonitorCheckInStrategyFactory, _process_message
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -48,6 +52,56 @@ class MonitorConsumerTest(TestCase):
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
             **kwargs,
+        )
+
+    def valid_wrapper(self):
+        return {
+            "start_time": datetime.now().timestamp(),
+            "project_id": self.project.id,
+            "payload": self.valid_payload(),
+        }
+
+    def valid_payload(self, **overrides: Any):
+        self.guid_2 = uuid.uuid4().hex
+        payload = {
+            "monitor_slug": "my-monitor",
+            "status": "ok",
+            "duration": None,
+            "check_in_id": self.guid_2,
+            "environment": "production",
+        }
+        payload.update(overrides)
+        return json.dumps(payload)
+
+    def test_payload(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+
+        commit = mock.Mock()
+        partition = Partition(Topic("test"), 0)
+        StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(b"fake-key", msgpack.packb(self.valid_wrapper()), []),
+                    partition,
+                    1,
+                    datetime.now(),
+                )
+            )
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid_2)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.status == MonitorStatus.OK
+        assert monitor.last_checkin == checkin.date_added
+        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+        monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
+        assert monitor_environment.status == MonitorStatus.OK
+        assert monitor_environment.last_checkin == checkin.date_added
+        assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
+            checkin.date_added
         )
 
     @pytest.mark.django_db

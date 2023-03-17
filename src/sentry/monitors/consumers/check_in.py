@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 
 def _process_message(wrapper: Dict) -> None:
+    # TODO: validate payload schema
     params = json.loads(wrapper["payload"])
     start_time = to_datetime(float(wrapper["start_time"]))
     project_id = int(wrapper["project_id"])
