@@ -44,6 +44,7 @@ def main(slow=False):
         if not project.flags.has_transactions:
             project.update(flags=F("flags").bitor(Project.flags.has_transactions))
 
+    mobile_project = project_map["Ludic Science"]
     frontend_project = project_map["Fire"]
     backend_project = project_map["Earth"]
     service_projects = [
@@ -113,6 +114,46 @@ def main(slow=False):
                     "project": backend_project,
                     "transaction": "/api/plants/",
                     "performance_issues": ["n+1"],
+                    "children": [
+                        {
+                            "project": service_projects[0],
+                            "transaction": "/products/all/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[1],
+                            "transaction": "/analytics/",
+                            "children": [],
+                        },
+                        {
+                            "project": service_projects[2],
+                            "transaction": "tasks.create_invoice",
+                            "children": [],
+                        },
+                    ],
+                },
+            ],
+        },
+    )
+
+    print(f"    > Loading mobile trace")  # NOQA
+    # Normal trace
+    create_trace(
+        slow,
+        timestamp - timedelta(milliseconds=random_normal(4000, 250, 1000)),
+        timestamp,
+        generate_user(),
+        uuid4().hex,
+        None,
+        {
+            "project": mobile_project,
+            "transaction": "MainActivity",
+            "mobile": True,
+            "errors": 1,
+            "children": [
+                {
+                    "project": backend_project,
+                    "transaction": "/api/plants/",
                     "children": [
                         {
                             "project": service_projects[0],

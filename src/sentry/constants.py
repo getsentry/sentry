@@ -98,7 +98,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ap",
         "api",
         "app",
+        "as1",
         "at",
+        "au1",
         "auth",
         "authentication",
         "avatar",
@@ -116,6 +118,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "demo",
         "docs",
         "enterprise",
+        "eu1",
+        "eu2",
         "events",
         "expenses",
         "ext",
@@ -159,6 +163,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "register",
         "remote",
         "resources",
+        "sa1",
         "sales",
         "security",
         "sentry-apps",
@@ -176,6 +181,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "thanks",
         "themonitor",
         "trust",
+        "us1",
+        "us2",
         "vs",
         "welcome",
     )
@@ -329,6 +336,7 @@ NATIVE_UNKNOWN_STRING = "<unknown>"
 # LIMIT-OFFSET database queries.
 # These problems should be solved after we implement artifact bundles workflow.
 MAX_RELEASE_FILES_OFFSET = 20000
+MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.

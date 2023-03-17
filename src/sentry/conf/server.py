@@ -882,7 +882,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
-        "schedule": timedelta(hours=4),
+        # Run job every 4 hours at min 20
+        "schedule": crontab(minute=20, hour="*/4"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
@@ -1074,6 +1075,8 @@ SENTRY_FEATURES = {
     "organizations:discover-basic": True,
     # Enable discover 2 custom queries and saved queries
     "organizations:discover-query": True,
+    # Enable archive/escalating issue workflow
+    "organizations:escalating-issues": False,
     # Allows an org to have a larger set of project ownership rules per project
     "organizations:higher-ownership-limit": False,
     # Enable Performance view
@@ -1212,6 +1215,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Adds the ttid & ttfd vitals to the frontend
+    "organizations:mobile-vitals": False,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
@@ -1279,6 +1284,8 @@ SENTRY_FEATURES = {
     "organizations:streamline-targeting-context": False,
     # Enable Session Stats down to a minute resolution
     "organizations:minute-resolution-sessions": True,
+    # Enable access to Notification Actions and their endpoints
+    "organizations:notification-actions": False,
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     "organizations:notification-all-recipients": False,
     # Enable the new native stack trace design
@@ -1308,10 +1315,10 @@ SENTRY_FEATURES = {
     "organizations:dynamic-sampling": False,
     # Enable new DS bias: prioritise by transaction
     "organizations:ds-prioritise-by-transaction-bias": False,
-    # Enable View Hierarchies in issue details page
-    "organizations:mobile-view-hierarchies": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable device.class as a selectable column
+    "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
     # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button

@@ -135,6 +135,8 @@ type TestStubFixtures = {
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;
+  SourceMapsDebugIDBundles: OverridableStub;
+  SourceMapsDebugIDBundlesArtifacts: OverridableStub;
   Span: OverridableStub;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;

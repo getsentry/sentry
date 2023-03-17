@@ -27,7 +27,7 @@ describe('EventMetas', () => {
         quickTrace={null}
       />
     );
-    userEvent.hover(screen.getByText('5 months ago'));
+    await userEvent.hover(screen.getByText('5 months ago'));
     expect(await screen.findByText('Occurred')).toBeInTheDocument();
     expect(screen.getByText(/6:01:48 PM UTC/)).toBeInTheDocument();
     expect(screen.getByText('Received')).toBeInTheDocument();

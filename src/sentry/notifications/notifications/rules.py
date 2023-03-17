@@ -7,7 +7,7 @@ import pytz
 
 from sentry.db.models import Model
 from sentry.issues.grouptype import GROUP_CATEGORIES_CUSTOM_EMAIL, GroupCategory
-from sentry.models import Team, User, UserOption
+from sentry.models import UserOption
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import (
     ActionTargetType,
@@ -28,6 +28,7 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.plugins.base.structs import Notification
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
@@ -64,7 +65,7 @@ class AlertRuleNotification(ProjectNotification):
             else "sentry/emails/generic"
         )
 
-    def get_participants(self) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    def get_participants(self) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         return get_send_to(
             project=self.project,
             target_type=self.target_type,
@@ -82,11 +83,11 @@ class AlertRuleNotification(ProjectNotification):
         return self.group
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         timezone = pytz.timezone("UTC")
 
-        if recipient.class_name() == "User":
+        if recipient.actor_type == ActorType.USER:
             user_tz = UserOption.objects.get_value(user=recipient, key="timezone", default="UTC")
             try:
                 timezone = pytz.timezone(user_tz)
@@ -212,7 +213,7 @@ class AlertRuleNotification(ProjectNotification):
         for provider, participants in participants_by_provider.items():
             notify(provider, self, participants, shared_context)
 
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,

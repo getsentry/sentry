@@ -105,7 +105,7 @@ describe('Project Ownership', () => {
     expect(screen.queryByLabelText('Rule pattern')).not.toBeInTheDocument();
   });
 
-  it('can cancel', () => {
+  it('can cancel', async () => {
     const onCancel = jest.fn();
     render(
       <ProjectOwnershipModal
@@ -118,7 +118,7 @@ describe('Project Ownership', () => {
     );
 
     // Cancel
-    userEvent.click(screen.getByText('Cancel'));
+    await userEvent.click(screen.getByText('Cancel'));
     expect(onCancel).toHaveBeenCalled();
   });
 });

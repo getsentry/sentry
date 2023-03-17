@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict
 
 from django.db.models import prefetch_related_objects
@@ -9,6 +10,8 @@ from sentry.api.serializers.models.repository_project_path_config import (
 )
 from sentry.models import ProjectCodeOwners
 from sentry.ownership.grammar import convert_schema_to_rules_text
+
+logger = logging.getLogger(__name__)
 
 
 @register(ProjectCodeOwners)
@@ -25,15 +28,33 @@ class ProjectCodeOwnersSerializer(Serializer):
             "repository_project_path_config__organization_integration",
         )
 
-        return {
-            item: {
-                "provider": item.repository_project_path_config.organization_integration.integration.provider
+        attrs = {}
+        for item in item_list:
+            code_mapping = item.repository_project_path_config
+
+            integration = item.repository_project_path_config.organization_integration.integration
+            install = integration.get_installation(
+                item.repository_project_path_config.organization_integration.organization_id
+            )
+            codeowners_url = "unknown"
+            if item.repository_project_path_config.organization_integration:
+                try:
+                    codeowners_url = install.get_codeowner_file(
+                        code_mapping.repository, ref=code_mapping.default_branch
+                    )["html_url"]
+
+                except Exception:
+                    logger.exception("Could not get CODEOWNERS URL. Continuing execution.")
+
+            attrs[item] = {
+                "provider": integration.provider
                 if item.repository_project_path_config.organization_integration
                 else "unknown",
-                "codeMapping": item.repository_project_path_config,
+                "codeMapping": code_mapping,
+                "codeOwnersUrl": codeowners_url,
             }
-            for item in item_list
-        }
+
+        return attrs
 
     def rename_schema_identifier_for_parsing(self, schema: Dict[str, Any]) -> None:
         """
@@ -64,6 +85,7 @@ class ProjectCodeOwnersSerializer(Serializer):
             data["codeMapping"] = serialize(
                 config, user=user, serializer=RepositoryProjectPathConfigSerializer()
             )
+
         if "ownershipSyntax" in self.expand:
             data["ownershipSyntax"] = convert_schema_to_rules_text(obj.schema)
 
@@ -74,7 +96,8 @@ class ProjectCodeOwnersSerializer(Serializer):
         if "renameIdentifier" in self.expand and hasattr(obj, "schema") and obj.schema:
             self.rename_schema_identifier_for_parsing(obj.schema)
 
-        if "addSchema" in self.expand:
+        if "hasTargetingContext" in self.expand:
             data["schema"] = obj.schema
+            data["codeOwnersUrl"] = attrs.get("codeOwnersUrl", "unknown")
 
         return data

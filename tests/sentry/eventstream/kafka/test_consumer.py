@@ -5,6 +5,7 @@ import uuid
 from contextlib import contextmanager
 from unittest.mock import patch
 
+from arroyo.utils import metrics
 from confluent_kafka import Producer
 from confluent_kafka.admin import AdminClient
 from django.conf import settings
@@ -100,6 +101,7 @@ class PostProcessForwarderTest(TestCase):
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         self.admin_client.delete_topics([self.events_topic, self.commit_log_topic])
+        metrics._metrics_backend = None
 
     @patch(
         "sentry.eventstream.kafka.consumer_strategy.dispatch_post_process_group_task", autospec=True
@@ -156,4 +158,4 @@ class PostProcessForwarderTest(TestCase):
             occurrence_id=None,
         )
 
-        consumer.signal_shutdown()
+        consumer._shutdown()
