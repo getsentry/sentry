@@ -94,7 +94,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
             file_type = SourceFileType.from_lowercase_key(info.get("type"))
 
             return {
-                "id": base64.b64encode(bytes(file_path.encode("utf-8"))),
+                "id": base64.urlsafe_b64encode(bytes(file_path.encode("utf-8"))).decode("utf-8"),
                 # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
                 "fileType": file_type.value if file_type is not None else INVALID_SOURCE_FILE_TYPE,
                 "filePath": file_path,
