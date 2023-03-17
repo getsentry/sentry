@@ -5,6 +5,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.features import Feature
+from sentry.features.base import FeatureHandlerStrategy
 from sentry.models import User
 from sentry.testutils import TestCase
 
@@ -239,3 +240,20 @@ class FeatureManagerTest(TestCase):
             NotImplementedError, "User flags not allowed with entity_feature=True"
         ):
             manager.add("users:feature-2", features.UserFeature, True)
+
+    def test_entity_feature_shim(self):
+        manager = features.FeatureManager()
+
+        manager.add("feat:1", features.OrganizationFeature)
+        manager.add("feat:2", features.OrganizationFeature, False)
+        manager.add("feat:3", features.OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+
+        manager.add("feat:4", features.OrganizationFeature, True)
+        manager.add("feat:5", features.OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+
+        assert "feat:1" not in manager.entity_features
+        assert "feat:2" not in manager.entity_features
+        assert "feat:3" not in manager.entity_features
+
+        assert "feat:4" in manager.entity_features
+        assert "feat:5" in manager.entity_features
