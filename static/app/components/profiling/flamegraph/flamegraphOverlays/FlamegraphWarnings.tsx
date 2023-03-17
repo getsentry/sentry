@@ -23,7 +23,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
   if (profiles.type === 'errored') {
     return (
       <Overlay>
-        <p>{profiles.error || t('Failed to fetch profile')}</p>
+        <p>{profiles.error || t('Failed to load profile')}</p>
       </Overlay>
     );
   }
