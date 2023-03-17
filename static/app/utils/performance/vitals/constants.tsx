@@ -167,18 +167,18 @@ export const MOBILE_VITAL_DETAILS: Record<MobileVital, Vital> = {
   },
   [MobileVital.TimeToFullDisplay]: {
     slug: 'time_to_full_display',
-    name: t('Time to Full Display'),
+    name: t('Time To Full Display'),
     acronym: 'TTFD',
     description: t(
-      'The time between application launch and complete display of all resources and views'
+      'The time between application launch and complete display of all resources and views.'
     ),
     type: measurementType(MobileVital.TimeToFullDisplay),
   },
   [MobileVital.TimeToInitialDisplay]: {
     slug: 'time_to_initial_display',
-    name: t('Time to Initial Display'),
+    name: t('Time To Initial Display'),
     acronym: 'TTID',
-    description: t('The time it takes for an application to produce its first frame'),
+    description: t('The time it takes for an application to produce its first frame.'),
     poorThreshold: 2000,
     type: measurementType(MobileVital.TimeToInitialDisplay),
   },
