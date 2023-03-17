@@ -65,15 +65,17 @@ describe('EnvironmentSelector', function () {
 
   async function clickMenu() {
     const button = await screen.findByRole('button', {name: 'All Environments'});
-    userEvent.click(button);
+    await userEvent.click(button);
   }
 
   it('can select and change environments', async function () {
     renderSelector();
     await clickMenu();
 
-    screen.queryAllByRole('checkbox').forEach(box => userEvent.click(box));
-    userEvent.click(await screen.findByLabelText('Apply'));
+    for (const box of screen.queryAllByRole('checkbox')) {
+      await userEvent.click(box);
+    }
+    await userEvent.click(await screen.findByLabelText('Apply'));
 
     expect(onUpdate).toHaveBeenCalledWith(['dev', 'production', 'staging']);
   });
@@ -82,7 +84,7 @@ describe('EnvironmentSelector', function () {
     renderSelector();
     await clickMenu();
 
-    userEvent.click(screen.queryAllByRole('checkbox')[0]);
+    await userEvent.click(screen.queryAllByRole('checkbox')[0]);
     expect(onUpdate).not.toHaveBeenCalled();
 
     await clickMenu();
@@ -94,8 +96,12 @@ describe('EnvironmentSelector', function () {
     await clickMenu();
 
     // Click and unclick boxes
-    screen.queryAllByRole('checkbox').forEach(box => userEvent.click(box));
-    screen.queryAllByRole('checkbox').forEach(box => userEvent.click(box));
+    for (const box of screen.queryAllByRole('checkbox')) {
+      await userEvent.click(box);
+    }
+    for (const box of screen.queryAllByRole('checkbox')) {
+      await userEvent.click(box);
+    }
 
     await clickMenu();
     expect(onUpdate).not.toHaveBeenCalled();
@@ -105,7 +111,9 @@ describe('EnvironmentSelector', function () {
     const {rerender} = renderSelector();
 
     await clickMenu();
-    screen.queryAllByRole('checkbox').forEach(box => userEvent.click(box));
+    for (const box of screen.queryAllByRole('checkbox')) {
+      await userEvent.click(box);
+    }
     await clickMenu();
 
     // Changing projects will unselect environments. Project 2 has 1 environment
@@ -301,10 +309,10 @@ describe('EnvironmentSelector', function () {
 
     // Select something first, we want to make sure that having a changed
     // selection doesn't effect the quick select
-    userEvent.click(screen.getByRole('checkbox', {name: 'dev'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'dev'}));
 
     // Now 'quick select' the production environment
-    userEvent.click(screen.getByText('production'));
+    await userEvent.click(screen.getByText('production'));
 
     expect(onUpdate).toHaveBeenCalledTimes(1);
     expect(onUpdate).toHaveBeenCalledWith(['production']);

@@ -20,7 +20,7 @@ describe('groupDetails', () => {
       project,
     };
 
-    it('displays the correct tabs with all features enabled', () => {
+    it('displays the correct tabs with all features enabled', async () => {
       const orgWithFeatures = TestStubs.Organization({
         features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
       });
@@ -37,34 +37,34 @@ describe('groupDetails', () => {
         {organization: orgWithFeatures}
       );
 
-      userEvent.click(screen.getByRole('tab', {name: /details/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /details/i}));
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
-      userEvent.click(screen.getByRole('tab', {name: /activity/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /activity/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/activity/');
 
-      userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /user feedback/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/feedback/');
 
-      userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /attachments/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/attachments/');
 
-      userEvent.click(screen.getByRole('tab', {name: /tags/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
 
-      userEvent.click(screen.getByRole('tab', {name: /all events/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},
       });
 
-      userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /merged issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/merged/');
 
-      userEvent.click(screen.getByRole('tab', {name: /grouping/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /grouping/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/grouping/');
 
-      userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /similar issues/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/similar/');
     });
   });
@@ -78,7 +78,7 @@ describe('groupDetails', () => {
       project,
     };
 
-    it('displays the correct tabs with all features enabled', () => {
+    it('displays the correct tabs with all features enabled', async () => {
       const orgWithFeatures = TestStubs.Organization({
         features: ['grouping-tree-ui', 'similarity-view', 'event-attachments'],
       });
@@ -96,13 +96,13 @@ describe('groupDetails', () => {
         {organization: orgWithFeatures}
       );
 
-      userEvent.click(screen.getByRole('tab', {name: /details/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /details/i}));
       expect(browserHistory.push).toHaveBeenLastCalledWith('BASE_URL/');
 
-      userEvent.click(screen.getByRole('tab', {name: /tags/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /tags/i}));
       expect(browserHistory.push).toHaveBeenCalledWith('BASE_URL/tags/');
 
-      userEvent.click(screen.getByRole('tab', {name: /all events/i}));
+      await userEvent.click(screen.getByRole('tab', {name: /all events/i}));
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: 'BASE_URL/events/',
         query: {},

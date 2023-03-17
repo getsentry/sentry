@@ -1,11 +1,15 @@
-from django.urls import reverse
+from datetime import datetime, timedelta
 
-from sentry.models import ArtifactBundle, ProjectArtifactBundle
+from django.urls import reverse
+from freezegun import freeze_time
+
+from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
+@freeze_time("2023-03-15 00:00:00")
 class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
         project = self.create_project(name="foo")
@@ -15,12 +19,34 @@ class ArtifactBundlesEndpointTest(APITestCase):
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_1,
+            date_added=datetime.now(),
         )
+
         artifact_bundle_2 = self.create_artifact_bundle(self.organization, artifact_count=2)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_2,
+            date_added=datetime.now() + timedelta(hours=1),
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="v1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle_2,
+        )
+
+        artifact_bundle_3 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=project.id,
+            artifact_bundle=artifact_bundle_3,
+            date_added=datetime.now() + timedelta(hours=2),
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="v2.0",
+            artifact_bundle=artifact_bundle_3,
         )
 
         url = reverse(
@@ -28,18 +54,51 @@ class ArtifactBundlesEndpointTest(APITestCase):
             kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
         )
 
+        # We test without search.
         self.login_as(user=self.user)
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert len(response.data) == 2
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle_3.bundle_id),
+                "date": "2023-03-15T02:00:00Z",
+                "fileCount": 2,
+                "release": "v2.0",
+                "dist": None,
+            },
+            {
+                "bundleId": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
+                "fileCount": 2,
+                "release": "v1.0",
+                "dist": "android",
+            },
+            {
+                "bundleId": str(artifact_bundle_1.bundle_id),
+                "date": "2023-03-15T00:00:00Z",
+                "release": None,
+                "dist": None,
+                "fileCount": 2,
+            },
+        ]
 
-        # We expect the first bundle to be the most recent one.
-        assert response.data[0]["bundleId"] == str(artifact_bundle_2.bundle_id)
-        assert response.data[0]["fileCount"] == 2
+        # We test the search with a full bundle id.
+        self.login_as(user=self.user)
+        response = self.client.get(url + f"?query={artifact_bundle_2.bundle_id}")
 
-        assert response.data[1]["bundleId"] == str(artifact_bundle_1.bundle_id)
-        assert response.data[1]["fileCount"] == 2
+        assert response.status_code == 200, response.content
+        # By default we return the most recent bundle.
+        assert response.data == [
+            {
+                "bundleId": str(artifact_bundle_2.bundle_id),
+                "date": "2023-03-15T01:00:00Z",
+                "fileCount": 2,
+                "release": "v1.0",
+                "dist": "android",
+            },
+        ]
 
     def test_get_artifact_bundles_with_no_bundles(self):
         project = self.create_project(name="foo")
@@ -63,6 +122,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
+                date_added=datetime.now() + timedelta(hours=index),
             )
 
         for cursor, expected in [("10:0:1", 10), ("10:1:0", 5)]:
@@ -89,6 +149,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
+                date_added=datetime.now() + timedelta(hours=index),
             )
 
         url = reverse(
@@ -107,7 +168,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert list(map(lambda value: value["bundleId"], response.data)) == bundle_ids[::-1]
 
         self.login_as(user=self.user)
-        response = self.client.get(url + "?sortBy=name")
+        response = self.client.get(url + "?sortBy=bundleId")
         assert response.status_code == 400
         assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
 

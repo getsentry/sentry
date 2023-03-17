@@ -57,9 +57,9 @@ describe('Edit Modal', function () {
 
     // Method Field
     expect(screen.getByText('Method')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[0]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[0]);
     expect(await screen.findByText('What to do')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Replace'));
+    await userEvent.click(screen.getByText('Replace'));
 
     Object.values(MethodType)
       .filter(method => method !== MethodType.REPLACE)
@@ -69,7 +69,7 @@ describe('Edit Modal', function () {
 
     // Placeholder Field
     expect(screen.getByText('Custom Placeholder (Optional)')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[1]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[1]);
     expect(
       await screen.findByText('It will replace the default placeholder [Filtered]')
     ).toBeInTheDocument();
@@ -77,13 +77,13 @@ describe('Edit Modal', function () {
 
     // Type Field
     expect(screen.getByText('Data Type')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[2]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[2]);
     expect(
       await screen.findByText(
         'What to look for. Use an existing pattern or define your own using regular expressions.'
       )
     ).toBeInTheDocument();
-    userEvent.click(screen.getAllByText('Regex matches')[0]);
+    await userEvent.click(screen.getAllByText('Regex matches')[0]);
 
     Object.values(RuleType)
       .filter(ruleType => ruleType !== RuleType.PATTERN)
@@ -91,11 +91,11 @@ describe('Edit Modal', function () {
         expect(screen.getByText(getRuleLabel(ruleType))).toBeInTheDocument();
       });
 
-    userEvent.click(screen.getAllByText('Regex matches')[0]);
+    await userEvent.click(screen.getAllByText('Regex matches')[0]);
 
     // Regex matches Field
     expect(screen.getAllByText('Regex matches')).toHaveLength(2);
-    userEvent.hover(screen.getAllByTestId('more-information')[3]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[3]);
     expect(
       await screen.findByText('Custom regular expression (see documentation)')
     ).toBeInTheDocument();
@@ -111,7 +111,7 @@ describe('Edit Modal', function () {
 
     // Source Field
     expect(screen.getByText('Source')).toBeInTheDocument();
-    userEvent.hover(screen.getAllByTestId('more-information')[4]);
+    await userEvent.hover(screen.getAllByTestId('more-information')[4]);
     expect(
       await screen.findByText(
         'Where to look. In the simplest case this can be an attribute name.'
@@ -123,7 +123,7 @@ describe('Edit Modal', function () {
     );
 
     // Close Modal
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(handleCloseModal).toHaveBeenCalled();
   });
 
@@ -158,14 +158,14 @@ describe('Edit Modal', function () {
     expect(screen.queryByText('Regex matches')).not.toBeInTheDocument();
 
     // Source Field
-    userEvent.clear(screen.getByRole('textbox', {name: 'Source'}));
-    userEvent.type(
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Source'}));
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Source'}),
       valueSuggestions[2].value
     );
 
     // Save rule
-    userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Rule'}));
 
     expect(submitRules).toHaveBeenCalledWith(api, endpoint, [
       {

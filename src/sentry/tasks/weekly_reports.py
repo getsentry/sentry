@@ -770,7 +770,10 @@ def render_template_context(ctx, user):
             if ctx.organization.slug == "sentry":
                 logger.info(
                     "render_template_context.all_key_errors.num_projects",
-                    extra={"user_id": user.id, "num_user_projects": len(user_projects)},
+                    extra={
+                        "user_id": user.id if user else "",
+                        "num_user_projects": len(user_projects),
+                    },
                 )
             for project_ctx in user_projects:
                 if ctx.organization.slug == "sentry":
@@ -892,4 +895,4 @@ def send_email(ctx, user, dry_run=False, email_override=None):
         message.send(to=(email_override,))
     else:
         message.add_users((user.id,))
-        message.send()
+        message.send_async()

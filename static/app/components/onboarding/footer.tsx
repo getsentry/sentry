@@ -20,7 +20,6 @@ import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import GenericFooter from 'sentry/views/onboarding/components/genericFooter';
-import CreateSampleEventButton from 'sentry/views/onboarding/createSampleEventButton';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 export type OnboardingState = {
@@ -124,7 +123,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_received', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -142,6 +142,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectData,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   useEffect(() => {
@@ -160,7 +161,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.first_error_processed', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     onboardingContext.setProjectData({
@@ -179,6 +181,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     projectId,
     onboardingContext,
     projectSlug,
+    selectedProject,
   ]);
 
   // The explore button is only showed if Sentry has not yet received any errors OR the issue is still being processed
@@ -193,7 +196,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
 
     trackAdvancedAnalyticsEvent('onboarding.explore_sentry_button_clicked', {
       organization,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -214,7 +218,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     clientState,
     router,
     setClientState,
-    projectSlug,
+    selectedProject,
   ]);
 
   const handleSkipOnboarding = useCallback(() => {
@@ -265,7 +269,8 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     trackAdvancedAnalyticsEvent('onboarding.view_error_button_clicked', {
       organization,
       new_organization: !!newOrg,
-      project_slug: projectSlug,
+      project_id: projectId,
+      platform: selectedProject?.platform ?? 'other',
     });
 
     if (clientState) {
@@ -287,7 +292,7 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
     setClientState,
     onboardingContext,
     projectId,
-    projectSlug,
+    selectedProject,
   ]);
 
   return (
@@ -322,23 +327,6 @@ export function Footer({projectSlug, projectId, router, newOrg}: Props) {
           <Button priority="primary" onClick={handleViewError}>
             {t('View Error')}
           </Button>
-        ) : organization.features.includes(
-            'onboarding-heartbeat-footer-with-view-sample-error'
-          ) ? (
-          <CreateSampleEventButton
-            project={selectedProject}
-            source="targted-onboarding-heartbeat-footer"
-            priority="primary"
-            onCreateSampleGroup={() => {
-              trackAdvancedAnalyticsEvent('onboarding.view_sample_error_button_clicked', {
-                new_organization: !!newOrg,
-                project_slug: projectSlug,
-                organization,
-              });
-            }}
-          >
-            {t('View Sample Error')}
-          </CreateSampleEventButton>
         ) : (
           <Button
             priority="primary"

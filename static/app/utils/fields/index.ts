@@ -24,6 +24,7 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
   DEVICE_MODEL_ID = 'device.model_id',
@@ -513,6 +514,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Charging at the time of the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.DEVICE_CLASS]: {
+    desc: t('The estimated performance level of the device, graded low, medium, or high'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -1077,6 +1083,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.DEVICE_SIMULATOR,
   FieldKey.DEVICE_ONLINE,
   FieldKey.DEVICE_CHARGING,
+  FieldKey.DEVICE_CLASS,
   FieldKey.GEO_COUNTRY_CODE,
   FieldKey.GEO_REGION,
   FieldKey.GEO_CITY,
@@ -1268,3 +1275,9 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
     ])
   );
 }
+
+export function isDeviceClass(key): boolean {
+  return key === FieldKey.DEVICE_CLASS;
+}
+
+export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
