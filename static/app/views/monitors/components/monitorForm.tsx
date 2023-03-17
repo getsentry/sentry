@@ -1,4 +1,4 @@
-import {useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Observer} from 'mobx-react';
 
@@ -314,12 +314,6 @@ function MonitorForm({
             inline={false}
           />
         </InputGroup>
-        <StyledListItem>{t('Instrument your monitor')}</StyledListItem>
-        <ListItemSubText>
-          {t(
-            "Select an option from the list below and we'll walk you through the setup process."
-          )}
-        </ListItemSubText>
         <Observer>
           {() => {
             const currentSelectedSlug = form.current.getValue('project');
@@ -334,9 +328,17 @@ function MonitorForm({
             const {platform} = project;
 
             return (
-              <InputGroup>
-                <MonitorQuickStartGuide platform={platform} />
-              </InputGroup>
+              <Fragment>
+                <StyledListItem>{t('Instrument your monitor')}</StyledListItem>
+                <ListItemSubText>
+                  {t(
+                    "Select an option from the list below and we'll walk you through the setup process."
+                  )}
+                </ListItemSubText>
+                <InputGroup>
+                  <MonitorQuickStartGuide platform={platform} />
+                </InputGroup>
+              </Fragment>
             );
           }}
         </Observer>
