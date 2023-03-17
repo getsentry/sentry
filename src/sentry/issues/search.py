@@ -219,7 +219,9 @@ def _query_params_for_generic(
         if group_ids:
             filters = {
                 "group_id": sorted(group_ids),
-                "occurrence_type_id": get_group_types_by_category(GroupCategory.PROFILE.value),
+                "occurrence_type_id": list(
+                    get_group_types_by_category(GroupCategory.PROFILE.value)
+                ),
                 **filters,
             }
 
