@@ -211,6 +211,10 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.notifications import (
+    NotificationActionsDetailsEndpoint,
+    NotificationActionsIndexEndpoint,
+)
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -1317,6 +1321,17 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/invite-requests/(?P<member_id>[^\/]+)/$",
         OrganizationInviteRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-invite-request-detail",
+    ),
+    # Notification Actions
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/$",
+        NotificationActionsIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-actions",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
+        NotificationActionsDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-actions-details",
     ),
     # Monitors
     url(

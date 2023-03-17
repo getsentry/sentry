@@ -111,7 +111,7 @@ describe('ProjectSourceMaps', function () {
           '/projects/org-slug/project-slug/files/source-maps/',
           expect.objectContaining({
             query: expect.objectContaining({
-              orderby: '-date_added',
+              sortBy: '-date_added',
             }),
           })
         );
@@ -256,7 +256,7 @@ describe('ProjectSourceMaps', function () {
           '/projects/org-slug/project-slug/files/artifact-bundles/',
           expect.objectContaining({
             query: expect.objectContaining({
-              orderby: '-date_added',
+              sortBy: '-date_added',
             }),
           })
         );

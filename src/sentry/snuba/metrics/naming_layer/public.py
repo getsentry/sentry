@@ -77,6 +77,8 @@ class TransactionMetricKey(Enum):
     MEASUREMENTS_FRAMES_SLOW = "transaction.measurements.frames_slow"
     MEASUREMENTS_FRAMES_SLOW_RATE = "transaction.measurements.frames_slow_rate"
     MEASUREMENTS_FRAMES_TOTAL = "transaction.measurements.frames_total"
+    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = "transaction.measurements.time_to_initial_display"
+    MEASUREMENTS_TIME_TO_FULL_DISPLAY = "transaction.measurements.time_to_full_display"
     MEASUREMENTS_STALL_COUNT = "transaction.measurements.stall_count"
     MEASUREMENTS_STALL_LONGEST_TIME = "transaction.measurements.stall_longest_time"
     MEASUREMENTS_STALL_PERCENTAGE = "transaction.measurements.stall_percentage"
