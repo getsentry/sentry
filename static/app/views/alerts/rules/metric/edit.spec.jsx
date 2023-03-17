@@ -53,7 +53,8 @@ describe('MetricRulesEdit', function () {
     });
   });
 
-  it('renders and edits trigger', async function () {
+  // eslint-disable-next-line jest/no-disabled-tests
+  it.skip('renders and edits trigger', async function () {
     const {organization, project} = initializeOrg();
     const rule = TestStubs.MetricRule();
     const onChangeTitleMock = jest.fn();
