@@ -11,9 +11,9 @@ import {Organization} from 'sentry/types';
 import {EntrySpans, EntryType, EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import {WebVital} from 'sentry/utils/fields';
+import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {TraceError, TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 
 import {MERGE_LABELS_THRESHOLD_PERCENT} from './constants';
 import SpanTreeModel from './spanTreeModel';
@@ -526,7 +526,7 @@ export type VerticalMark = {
 
 function hasFailedThreshold(marks: Measurements): boolean {
   const names = Object.keys(marks);
-  const records = Object.values(WEB_VITAL_DETAILS).filter(vital =>
+  const records = Object.values(VITAL_DETAILS).filter(vital =>
     names.includes(vital.slug)
   );
 
@@ -557,6 +557,8 @@ export function getMeasurements(
     WebVital.FID,
     WebVital.LCP,
     WebVital.TTFB,
+    MobileVital.TimeToFullDisplay,
+    MobileVital.TimeToInitialDisplay,
   ]);
 
   const measurements = Object.keys(event.measurements)
@@ -598,7 +600,7 @@ export function getMeasurements(
       if (positionDelta <= MERGE_LABELS_THRESHOLD_PERCENT) {
         const verticalMark = mergedMeasurements.get(otherPos)!;
 
-        const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+        const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
         verticalMark.marks = {
           ...verticalMark.marks,
@@ -618,7 +620,7 @@ export function getMeasurements(
       }
     }
 
-    const {poorThreshold} = WEB_VITAL_DETAILS[`measurements.${name}`];
+    const {poorThreshold} = VITAL_DETAILS[`measurements.${name}`];
 
     const marks = {
       [name]: {
