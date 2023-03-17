@@ -13,11 +13,10 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
-from sentry.auth.access import get_cached_organization_member
 from sentry.auth.superuser import is_active_superuser
-from sentry.models import OrganizationMember
 from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery, parse_datetime_string
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils.dates import parse_stats_period
 
 logger = logging.getLogger(__name__)
@@ -206,13 +205,13 @@ def is_member_disabled_from_limit(request: Request, organization: Organization) 
         return False
 
     # must be a simple user at this point
-    try:
-        member = get_cached_organization_member(user.id, organization.id)
-    except OrganizationMember.DoesNotExist:
-        # if org member doesn't exist, we should be getting an auth error later
+    member = organization_service.check_membership_by_id(
+        organization_id=organization.id, user_id=user.id
+    )
+    if member is None:
         return False
     else:
-        return member.flags["member-limit:restricted"]  # type: ignore[no-any-return]
+        return member.flags.member_limit__restricted
 
 
 def generate_organization_hostname(org_slug: str) -> str:
