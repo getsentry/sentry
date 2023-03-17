@@ -3,10 +3,16 @@ from typing import Any
 
 from typing_extensions import TypedDict
 
-from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
+from sentry.api.serializers import (
+    EnvironmentSerializer,
+    ProjectSerializerResponse,
+    Serializer,
+    register,
+    serialize,
+)
 from sentry.models import Project
 
-from .models import Monitor, MonitorCheckIn
+from .models import Monitor, MonitorCheckIn, MonitorEnvironment
 
 
 @register(Monitor)
@@ -54,6 +60,59 @@ class MonitorSerializerResponse(TypedDict):
     lastCheckIn: datetime
     nextCheckIn: datetime
     project: ProjectSerializerResponse
+
+
+@register(MonitorEnvironment)
+class MonitorEnvironmentSerializer(Serializer):
+    def get_attrs(self, item_list, user):
+        # TODO(dcramer): assert on relations
+        projects = {
+            d["id"]: d
+            for d in serialize(
+                list(Project.objects.filter(id__in=[i.monitor.project_id for i in item_list])), user
+            )
+        }
+
+        return {
+            item: {
+                "project": projects[str(item.monitor.project_id)]
+                if item.monitor.project_id
+                else None
+            }
+            for item in item_list
+        }
+
+    def serialize(self, obj, attrs, user):
+        config = obj.monitor.config.copy()
+        if "schedule_type" in config:
+            config["schedule_type"] = obj.get_schedule_type_display()
+        return {
+            "id": str(obj.monitor.guid),
+            "status": obj.get_status_display(),
+            "type": obj.monitor.get_type_display(),
+            "name": obj.monitor.name,
+            "slug": obj.monitor.slug,
+            "config": config,
+            "lastCheckIn": obj.last_checkin,
+            "nextCheckIn": obj.next_checkin,
+            "dateCreated": obj.monitor.date_added,
+            "project": attrs["project"],
+            "environment": serialize(obj.environment, EnvironmentSerializer),
+        }
+
+
+class MonitorEnvironmentSerializerResponse(TypedDict):
+    id: str
+    name: str
+    slug: str
+    status: str
+    type: str
+    config: Any
+    dateCreated: datetime
+    lastCheckIn: datetime
+    nextCheckIn: datetime
+    project: ProjectSerializerResponse
+    environment: EnvironmentSerializer
 
 
 @register(MonitorCheckIn)

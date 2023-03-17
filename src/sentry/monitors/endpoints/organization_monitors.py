@@ -8,7 +8,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import Organization, Project
-from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.signals import first_cron_monitor_created
@@ -60,13 +60,15 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             return self.respond([])
 
         queryset = (
-            Monitor.objects.filter(
-                organization_id=organization.id, project_id__in=filter_params["project_id"]
+            MonitorEnvironment.objects.filter(
+                monitor__organization_id=organization.id,
+                monitor__project_id__in=filter_params["project_id"],
             )
             .annotate(status_order=DEFAULT_ORDERING_CASE)
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
             )
+            .filter(environment__name=filter_params.get("environment", "production"))
         )
         query = request.GET.get("query")
         if query:
@@ -89,7 +91,7 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
                 elif key == "type":
                     try:
                         queryset = queryset.filter(
-                            status__in=map_value_to_constant(MonitorType, value)
+                            type__in=map_value_to_constant(MonitorType, value)
                         )
                     except ValueError:
                         queryset = queryset.none()
