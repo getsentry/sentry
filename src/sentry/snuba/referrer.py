@@ -549,11 +549,15 @@ TSDBModelReferrer = enum.Enum(
 # specific suffixes that apply to tsdb-modelid referrers, these are optional
 # and are passed around through using `referrer_suffix`.
 TSDB_MODEL_TO_SUFFIXES = {
-    TSDBModel.group: {"frequency_snoozes", "alert_event_frequency", "alert_event_frequency"},
+    TSDBModel.group: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
     TSDBModel.group_performance: {
         "frequency_snoozes",
         "alert_event_frequency",
-        "alert_event_frequency",
+        "alert_event_frequency_percent",
     },
     TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
     TSDBModel.users_affected_by_perf_group: {
