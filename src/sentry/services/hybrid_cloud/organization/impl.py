@@ -170,9 +170,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def check_membership_by_id(
         self, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
+        from sentry.auth.access import get_cached_organization_member
+
         try:
-            member = OrganizationMember.objects.get(
-                organization_id=organization_id, user_id=user_id
+            member = get_cached_organization_member(
+                user_id=user_id, organization_id=organization_id
             )
         except OrganizationMember.DoesNotExist:
             return None
@@ -184,11 +186,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
     ) -> Optional[RpcUserOrganizationContext]:
         membership: Optional[RpcOrganizationMember] = None
         if user_id is not None:
-            try:
-                om = OrganizationMember.objects.get(organization_id=id, user_id=user_id)
-                membership = self.serialize_member(om)
-            except OrganizationMember.DoesNotExist:
-                pass
+            membership = self.check_membership_by_id(organization_id=id, user_id=user_id)
 
         try:
             query = Organization.objects.filter(id=id)

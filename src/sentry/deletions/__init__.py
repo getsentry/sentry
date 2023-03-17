@@ -164,3 +164,4 @@ load_defaults()
 get = default_manager.get
 register = default_manager.register
 exec_sync = default_manager.exec_sync
+exec_sync_many = default_manager.exec_sync_many

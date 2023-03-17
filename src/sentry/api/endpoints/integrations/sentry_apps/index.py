@@ -12,8 +12,8 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import SentryApp
+from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
@@ -86,16 +86,27 @@ class SentryAppsEndpoint(SentryAppsBaseEndpoint):
         serializer = SentryAppSerializer(data=data, access=request.access)
 
         if serializer.is_valid():
-            data["redirect_url"] = data["redirectUrl"]
-            data["webhook_url"] = data["webhookUrl"]
-            data["is_alertable"] = data["isAlertable"]
-            data["verify_install"] = data["verifyInstall"]
-            data["allowed_origins"] = data["allowedOrigins"]
-            data["is_internal"] = data.get("isInternal")
+            if data.get("isInternal"):
+                data["verifyInstall"] = False
+                data["author"] = data["author"] or organization.name
 
-            creator = InternalCreator if data.get("isInternal") else Creator
             try:
-                sentry_app = creator.run(request=request, **data)
+                sentry_app = SentryAppCreator(
+                    name=data["name"],
+                    author=data["author"],
+                    organization_id=organization.id,
+                    is_internal=data["isInternal"],
+                    scopes=data["scopes"],
+                    events=data["events"],
+                    webhook_url=data["webhookUrl"],
+                    redirect_url=data["redirectUrl"],
+                    is_alertable=data["isAlertable"],
+                    verify_install=data["verifyInstall"],
+                    schema=data["schema"],
+                    overview=data["overview"],
+                    allowed_origins=data["allowedOrigins"],
+                    popularity=data["popularity"],
+                ).run(user=request.user, request=request)
             except ValidationError as e:
                 # we generate and validate the slug here instead of the serializer since the slug never changes
                 return Response(e.detail, status=400)

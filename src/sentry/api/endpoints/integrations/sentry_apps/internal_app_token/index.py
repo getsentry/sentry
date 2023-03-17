@@ -6,9 +6,9 @@ from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases import SentryAppBaseEndpoint, SentryInternalAppTokenPermission
 from sentry.api.serializers.models.apitoken import ApiTokenSerializer
 from sentry.exceptions import ApiTokenLimitError
-from sentry.mediators.sentry_app_installation_tokens import Creator
 from sentry.models import ApiToken, SentryAppInstallation
 from sentry.models.integrations.sentry_app import MASKED_VALUE
+from sentry.sentry_apps import SentryAppInstallationTokenCreator
 
 
 @pending_silo_endpoint
@@ -42,9 +42,9 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         try:
-            api_token = Creator.run(
-                request=request, sentry_app_installation=sentry_app_installation, user=request.user
-            )
+            api_token = SentryAppInstallationTokenCreator(
+                sentry_app_installation=sentry_app_installation
+            ).run(request=request, user=request.user)
         except ApiTokenLimitError as e:
             return Response(str(e), status=status.HTTP_403_FORBIDDEN)
 

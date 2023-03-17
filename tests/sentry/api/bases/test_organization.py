@@ -123,8 +123,7 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
         with pytest.raises(SuperuserRequired):
             assert self.has_object_perm("GET", self.org, user=user)
 
-    @mock.patch("sentry.api.utils.get_cached_organization_member")
-    def test_member_limit_error(self, mock_get_org_member):
+    def test_member_limit_error(self):
         user = self.create_user()
         self.create_member(
             user=user,
@@ -143,7 +142,6 @@ class OrganizationPermissionTest(OrganizationPermissionBase):
                 "extra": {"next": f"/organizations/{self.org.slug}/disabled-member/"},
             }
         }
-        assert mock_get_org_member.call_count == 1
 
     @mock.patch("sentry.api.utils.get_cached_organization_member")
     def test_member_limit_with_superuser(self, mock_get_org_member):

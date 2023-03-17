@@ -99,9 +99,15 @@ class ServiceHook(Model):
     def get_audit_log_data(self):
         return {"url": self.url}
 
-    def add_project(self, project):
+    def add_project(self, project_or_project_id):
         """
         Add a project to the service hook.
-
         """
-        ServiceHookProject.objects.create(project_id=project.id, service_hook_id=self.id)
+        from sentry.models import Project
+
+        ServiceHookProject.objects.create(
+            project_id=project_or_project_id.id
+            if isinstance(project_or_project_id, Project)
+            else project_or_project_id,
+            service_hook_id=self.id,
+        )

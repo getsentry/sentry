@@ -53,7 +53,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         assert futures[0].kwargs["sentry_app"].id == self.app.id
         assert futures[0].kwargs["schema_defined_settings"] == self.schema_data
 
-    @patch("sentry.mediators.sentry_app_components.Preparer.run")
+    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
     def test_sentry_app_actions(self, mock_sentry_app_component_preparer):
         event = self.get_event()
 

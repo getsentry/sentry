@@ -18,6 +18,17 @@ class DeletionTaskManager:
         while task.chunk():
             pass
 
+    def exec_sync_many(self, instances):
+        if not instances:
+            return
+
+        task = self.get(
+            model=type(instances[0]),
+            query={"id__in": [i.id for i in instances]},
+        )
+        while task.chunk():
+            pass
+
     def get(self, task=None, **kwargs):
         if task is None:
             model = kwargs.get("model")

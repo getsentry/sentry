@@ -2,7 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import ValidationError
 
-from sentry.api.base import pending_silo_endpoint, region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import (
     OrganizationEndpoint,
     SentryAppBaseEndpoint,
@@ -11,14 +11,14 @@ from sentry.api.bases import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
-from sentry.mediators import sentry_app_components
 from sentry.models import Project, SentryAppComponent, SentryAppInstallation
+from sentry.sentry_apps.components import SentryAppComponentPreparer
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a
 #  project and the other takes a sentry app. It would be better to have a single
 #  endpoint that can take project_id or sentry_app_id as a query parameter.
-@pending_silo_endpoint
+@control_silo_endpoint
 class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
     def get(self, request: Request, sentry_app) -> Response:
         return self.paginate(
@@ -29,7 +29,7 @@ class SentryAppComponentsEndpoint(SentryAppBaseEndpoint):
         )
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
     @add_integration_platform_metric_tag
     def get(self, request: Request, organization) -> Response:
@@ -38,7 +38,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
             raise ValidationError("Required parameter 'projectId' is missing")
 
         try:
-            project = Project.objects.get(id=project_id, organization_id=organization.id)
+            Project.objects.get(id=project_id, organization_id=organization.id)
         except Project.DoesNotExist:
             return Response([], status=404)
 
@@ -55,9 +55,7 @@ class OrganizationSentryAppComponentsEndpoint(OrganizationEndpoint):
 
             for component in _components:
                 try:
-                    sentry_app_components.Preparer.run(
-                        component=component, install=install, project=project
-                    )
+                    SentryAppComponentPreparer(component=component, install=install).run()
                 except APIError:
                     errors.append(str(component.uuid))
 
