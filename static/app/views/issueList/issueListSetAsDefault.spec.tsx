@@ -42,7 +42,7 @@ describe('IssueListSetAsDefault', () => {
 
     render(<IssueListSetAsDefault {...defaultProps} />, {organization});
 
-    userEvent.click(screen.getByRole('button', {name: /set as default/i}));
+    await userEvent.click(screen.getByRole('button', {name: /set as default/i}));
 
     await waitFor(() => {
       expect(mockPinSearch).toHaveBeenCalledWith(
@@ -66,7 +66,7 @@ describe('IssueListSetAsDefault', () => {
 
     render(<IssueListSetAsDefault {...defaultProps} />, {organization});
 
-    userEvent.click(await screen.findByRole('button', {name: /remove default/i}));
+    await userEvent.click(await screen.findByRole('button', {name: /remove default/i}));
 
     await waitFor(() => {
       expect(mockUnpinSearch).toHaveBeenCalledWith(

@@ -18,5 +18,9 @@
   "devDependencies": {
     "@types/js-yaml": "^4.0.5",
     "@types/json-diff": "^0.7.0"
+  },
+  "volta": {
+    "node": "18.12.1",
+    "yarn": "1.22.5"
   }
 }

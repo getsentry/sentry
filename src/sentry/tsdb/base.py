@@ -364,6 +364,7 @@ class BaseTSDB(Service):
         environment_ids=None,
         use_cache=False,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         To get a range of data for group ID=[1, 2, 3]:
@@ -388,6 +389,7 @@ class BaseTSDB(Service):
         use_cache=False,
         jitter_value=None,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         range_set = self.get_range(
             model,
@@ -399,6 +401,7 @@ class BaseTSDB(Service):
             use_cache=use_cache,
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
         )
         sum_set = {key: sum(p for _, p in points) for (key, points) in range_set.items()}
         return sum_set
@@ -462,6 +465,7 @@ class BaseTSDB(Service):
         use_cache=False,
         jitter_value=None,
         tenant_ids=None,
+        referrer_suffix=None,
     ):
         """
         Count distinct items during a time range.

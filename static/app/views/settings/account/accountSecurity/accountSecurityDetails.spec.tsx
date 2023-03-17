@@ -117,11 +117,11 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
@@ -170,11 +170,11 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
 
       renderGlobalModal();
 
-      userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });
@@ -330,7 +330,7 @@ describe('AccountSecurityDetails', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Regenerate Codes'}));
 
       renderGlobalModal();
 
@@ -340,7 +340,7 @@ describe('AccountSecurityDetails', function () {
         )
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalled();
     });

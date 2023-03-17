@@ -11,12 +11,13 @@ from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cas
 from pydantic.fields import Field
 
 from sentry.services.hybrid_cloud import IdValueRpcModel, RpcModel
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 class RpcAvatar(RpcModel):
@@ -116,7 +117,7 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
 
 
-class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], RpcService):
+class UserService(RpcService):
     name = "user"
     local_mode = SiloMode.CONTROL
 
@@ -125,6 +126,23 @@ class UserService(FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeTyp
         from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
 
         return DatabaseBackedUserService()
+
+    @rpc_method
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: UserFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional["AuthenticationContext"] = None,
+        serializer: Optional[UserSerializeType] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
+        pass
 
     @rpc_method
     @abstractmethod

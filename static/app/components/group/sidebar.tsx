@@ -258,7 +258,9 @@ class BaseGroupSidebar extends Component<Props, State> {
           groupId={group.id}
           tagKeys={
             isMobilePlatform(project?.platform)
-              ? MOBILE_TAGS
+              ? !organization.features.includes('device-classification')
+                ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
+                : MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
               ? FRONTEND_TAGS
               : backend.some(val => val === project?.platform)

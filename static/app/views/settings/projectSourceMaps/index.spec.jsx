@@ -53,7 +53,7 @@ describe('ProjectSourceMaps', function () {
     ).toBeInTheDocument();
   });
 
-  it('deletes the archive', function () {
+  it('deletes the archive', async function () {
     const archive = TestStubs.SourceMapArchive();
 
     MockApiClient.addMockResponse({
@@ -69,10 +69,10 @@ describe('ProjectSourceMaps', function () {
     render(<ProjectSourceMaps {...props} />);
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Remove All Artifacts'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove All Artifacts'}));
 
     // Confirm Modal
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(deleteMock).toHaveBeenCalledWith(
       endpoint,
@@ -80,7 +80,7 @@ describe('ProjectSourceMaps', function () {
     );
   });
 
-  it('filters archives', function () {
+  it('filters archives', async function () {
     const mockRouter = {push: jest.fn()};
     const mock = MockApiClient.addMockResponse({
       url: endpoint,
@@ -103,8 +103,8 @@ describe('ProjectSourceMaps', function () {
     );
 
     const filterInput = screen.getByPlaceholderText('Filter Archives');
-    userEvent.clear(filterInput);
-    userEvent.type(filterInput, 'defg{enter}');
+    await userEvent.clear(filterInput);
+    await userEvent.type(filterInput, 'defg{enter}');
 
     expect(mockRouter.push).toHaveBeenCalledWith({
       query: {cursor: undefined, query: 'defg'},

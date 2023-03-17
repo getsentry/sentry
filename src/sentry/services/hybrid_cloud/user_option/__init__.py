@@ -7,8 +7,10 @@ from abc import abstractmethod
 from typing import Any, Iterable, List, Optional, TypedDict, cast
 
 from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
@@ -45,9 +47,7 @@ class UserOptionFilterArgs(TypedDict, total=False):
     organization_id: Optional[int]
 
 
-class UserOptionService(
-    FilterQueryInterface[UserOptionFilterArgs, RpcUserOption, None], RpcService
-):
+class UserOptionService(RpcService):
     name = "user_option"
     local_mode = SiloMode.CONTROL
 
@@ -56,6 +56,22 @@ class UserOptionService(
         from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
 
         return DatabaseBackedUserOptionService()
+
+    @rpc_method
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: UserOptionFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+        pass
 
     @rpc_method
     @abstractmethod
