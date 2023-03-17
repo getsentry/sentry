@@ -25,6 +25,7 @@ import {SelectValue} from 'sentry/types';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import MonitorQuickStartGuide from 'sentry/views/monitors/components/monitorQuickStartGuide';
 import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {
@@ -313,6 +314,32 @@ function MonitorForm({
             inline={false}
           />
         </InputGroup>
+        <StyledListItem>{t('Instrument your monitor')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            "Select an option from the list below and we'll walk you through the setup process."
+          )}
+        </ListItemSubText>
+        <Observer>
+          {() => {
+            const currentSelectedSlug = form.current.getValue('project');
+            if (!currentSelectedSlug) {
+              return null;
+            }
+            const project = projects.find(({slug}) => slug === currentSelectedSlug);
+
+            if (!project) {
+              return null;
+            }
+            const {platform} = project;
+
+            return (
+              <InputGroup>
+                <MonitorQuickStartGuide platform={platform} />
+              </InputGroup>
+            );
+          }}
+        </Observer>
       </StyledList>
     </Form>
   );
