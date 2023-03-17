@@ -136,12 +136,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       sourceMapsEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -160,12 +160,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       debugIdBundlesEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -311,6 +311,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                         tooltipText={tct('Associated with release "[distribution]"', {
                           distribution: data.dist,
                         })}
+                        type="info"
                       >
                         {data.dist}
                       </Tag>
@@ -320,6 +321,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                         tooltipText={tct('Associated with release "[releaseName]"', {
                           releaseName: data.release,
                         })}
+                        type="info"
                       >
                         {data.release}
                       </Tag>
@@ -397,7 +399,7 @@ const IDColumn = styled(Column)`
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
 `;
 
 const ActionsColumn = styled(Column)`
