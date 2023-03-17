@@ -1,5 +1,6 @@
 from typing import Dict, List, Tuple, TypedDict
 
+from django.db import transaction
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
@@ -88,8 +89,9 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             organization_id=self.context["organization"].id,
             **validated_data,
         )
-        action.save()
-        action.projects.set(projects)
+        with transaction.atomic():
+            action.save()
+            action.projects.set(projects)
         return action
 
     def update(
@@ -100,6 +102,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         for key, value in validated_data.items():
             setattr(instance, key, value)
         instance.type = service_type
-        instance.save()
-        instance.projects.set(projects)
+        with transaction.atomic():
+            instance.save()
+            instance.projects.set(projects)
         return instance
