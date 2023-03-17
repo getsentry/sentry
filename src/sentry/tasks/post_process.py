@@ -151,6 +151,9 @@ def handle_owner_assignment(job):
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
             from sentry.models import (
+                ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                ASSIGNEE_EXISTS_DURATION,
+                ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
                 ProjectOwnership,
@@ -186,13 +189,17 @@ def handle_owner_assignment(job):
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = f"assignee_exists:1:{group.id}"
+                    assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
                         # Cache for 1 day if it's assigned. We don't need to move that fast.
                         cache.set(
-                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                            assignee_key,
+                            assignees_exists,
+                            ASSIGNEE_EXISTS_DURATION
+                            if assignees_exists
+                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
                         )
 
                     if assignees_exists:

@@ -12,7 +12,7 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
     jest.clearAllMocks();
   });
 
-  it('renders a list', function () {
+  it('renders a list', async function () {
     render(
       <ProjectQuickLinks
         organization={organization}
@@ -31,19 +31,19 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
       name: 'Most Improved/Regressed Transactions',
     });
 
-    userEvent.click(userFeedback);
+    await userEvent.click(userFeedback);
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/user-feedback/',
       query: {project: '2'},
     });
 
-    userEvent.click(keyTransactions);
+    await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/',
       query: {project: '2'},
     });
 
-    userEvent.click(mostChangedTransactions);
+    await userEvent.click(mostChangedTransactions);
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/trends/',
       query: {
@@ -66,10 +66,10 @@ describe('ProjectDetail > ProjectQuickLinks', function () {
 
     const keyTransactions = screen.getByText('View Transactions');
 
-    userEvent.click(keyTransactions);
+    await userEvent.click(keyTransactions);
     expect(router.push).toHaveBeenCalledTimes(0);
 
-    userEvent.hover(keyTransactions);
+    await userEvent.hover(keyTransactions);
     expect(
       await screen.findByText("You don't have access to this feature")
     ).toBeInTheDocument();
