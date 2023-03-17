@@ -108,6 +108,11 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
+  const managerMember = TestStubs.Member({
+    id: 6,
+    roles: TestStubs.OrgRoleList(),
+    role: 'manager',
+  });
 
   beforeAll(() => {
     TeamStore.loadInitialData(teams);
@@ -143,6 +148,10 @@ describe('OrganizationMemberDetail', function () {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${orgRoleTeamMember.id}/`,
         body: orgRoleTeamMember,
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/members/${managerMember.id}/`,
+        body: managerMember,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/teams/`,
@@ -274,15 +283,15 @@ describe('OrganizationMemberDetail', function () {
         access: ['org:write'],
       });
       routerContext = TestStubs.routerContext([{organization}]);
-      render(<OrganizationMemberDetail params={{memberId: member.id}} />, {
+      render(<OrganizationMemberDetail params={{memberId: managerMember.id}} />, {
         context: routerContext,
       });
 
       userEvent.click(screen.getByText('Add Team'));
-      userEvent.click(screen.queryByText('#org-role-team'));
+      userEvent.hover(screen.queryByText('#org-role-team'));
       expect(
         await screen.findByText(
-          'Membership to a team with an organization role is managed by organization owners.'
+          'Membership to a team with an organization role is managed by org owners.'
         )
       ).toBeInTheDocument();
     });

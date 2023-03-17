@@ -37,10 +37,6 @@ type Props = {
    */
   enforceIdpProvisioned: boolean;
   /**
-   * Allow adding to teams with org role
-   */
-  hasOrgAdminAccess: boolean;
-  /**
    * callback when teams are added
    */
   onAddTeam: (teamSlug: string) => void;
@@ -54,6 +50,11 @@ type Props = {
    * if empty no confirm will be displayed.
    */
   confirmLastTeamRemoveMessage?: string;
+  /**
+   * Allow adding to teams with org role
+   * if the user is an org admin
+   */
+  isOrgAdmin?: boolean;
   /**
    * Used to determine whether we should show a loading state while waiting for teams
    */
@@ -82,7 +83,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
-  hasOrgAdminAccess,
+  isOrgAdmin,
   loadingTeams,
   enforceIdpProvisioned,
   menuHeader,
@@ -168,10 +169,10 @@ function TeamSelect({
                 key={r.teamSlug}
                 disabled={disabled}
                 enforceIdpProvisioned={enforceIdpProvisioned}
-                hasOrgAdminAccess={hasOrgAdminAccess}
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
+                isOrgAdmin={isOrgAdmin ?? false}
                 selectedOrgRole={effectiveOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
@@ -186,39 +187,44 @@ function TeamSelect({
   // Only show options that aren't selected in the dropdown
   const options = teams
     .filter(team => !slugsToFilter.some(slug => slug === team.slug))
-    .map((team, index) => ({
-      index,
-      value: team.slug,
-      searchKey: team.slug,
-      label: () => {
-        if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
-          return (
-            <Tooltip
-              title={t(
-                "Membership to this team is managed through your organization's identity provider."
-              )}
-            >
-              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-            </Tooltip>
-          );
-        }
-        if (team.orgRole && !hasOrgAdminAccess) {
-          return (
-            <Tooltip
-              title={t(
-                'Membership to a team with an organization role is managed by organization owners.'
-              )}
-            >
-              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-            </Tooltip>
-          );
-        }
-        return <DropdownTeamBadge avatarSize={18} team={team} />;
-      },
-      disabled:
-        (enforceIdpProvisioned && team.flags['idp:provisioned']) ||
-        (team.orgRole && !hasOrgAdminAccess),
-    }));
+    .map((team, index) => {
+      const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
+
+      return {
+        index,
+        value: team.slug,
+        searchKey: team.slug,
+        label: () => {
+          if (isIdpProvisioned) {
+            return (
+              <Tooltip
+                title={t(
+                  "Membership to this team is managed through your organization's identity provider."
+                )}
+              >
+                <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+              </Tooltip>
+            );
+          }
+
+          // TODO(team-roles): team admins can also manage membership
+          if (team.orgRole !== null && !isOrgAdmin) {
+            return (
+              <Tooltip
+                title={t(
+                  'Membership to a team with an organization role is managed by org owners.'
+                )}
+              >
+                <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+              </Tooltip>
+            );
+          }
+
+          return <DropdownTeamBadge avatarSize={18} team={team} />;
+        },
+        disabled: disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgAdmin),
+      };
+    });
 
   return (
     <Panel>
@@ -292,7 +298,7 @@ const ProjectTeamRow = ({
 
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
-  hasOrgAdminAccess: boolean;
+  isOrgAdmin: boolean;
   onChangeTeamRole: Props['onChangeTeamRole'];
   selectedOrgRole: Member['orgRole'];
   selectedTeamRole: Member['teamRoles'][0]['role'];
@@ -305,10 +311,10 @@ const MemberTeamRow = ({
   selectedTeamRole,
   onRemoveTeam,
   onChangeTeamRole,
+  isOrgAdmin,
   disabled,
   confirmMessage,
   enforceIdpProvisioned,
-  hasOrgAdminAccess,
 }: MemberTeamRowProps) => {
   const {teamRoleList, orgRoleList} = organization;
   const isRoleOverwritten = hasOrgRoleOverwrite({
@@ -325,20 +331,19 @@ const MemberTeamRow = ({
     ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
     : '';
 
+  const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
   const isRemoveDisabled =
-    disabled ||
-    (enforceIdpProvisioned && team.flags['idp:provisioned']) ||
-    (team.orgRole !== null && !hasOrgAdminAccess);
+    disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgAdmin);
 
   const buttonHelpText = () => {
-    if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
+    if (isIdpProvisioned) {
       return t(
         "Membership to this team is managed through your organization's identity provider."
       );
     }
-    if (team.orgRole && !hasOrgAdminAccess) {
+    if (team.orgRole !== null && !isOrgAdmin) {
       return t(
-        'Membership to a team with an organization role is managed by organization owners.'
+        'Membership to a team with an organization role is managed by org owners.'
       );
     }
     return undefined;

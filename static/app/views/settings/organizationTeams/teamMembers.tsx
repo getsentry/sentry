@@ -28,8 +28,7 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-
-import TeamMembersRow from './teamMembersRow';
+import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 
 type RouteParams = {
   teamId: string;
@@ -209,11 +208,7 @@ class TeamMembers extends AsyncView<Props, State> {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
-  renderDropdown(
-    hasWriteAccess: boolean,
-    hasTeamOrgRole: boolean,
-    hasOrgAdminAccess: boolean
-  ) {
+  renderDropdown(hasWriteAccess: boolean, isOrgAdmin: boolean) {
     const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
@@ -222,8 +217,9 @@ class TeamMembers extends AsyncView<Props, State> {
     // otherwise, `org:write` or `team:admin` permissions are required
     const hasOpenMembership = !!organization?.openMembership;
     const canAddMembers = hasOpenMembership || hasWriteAccess;
+
     const isDropdownDisabled =
-      team.flags['idp:provisioned'] || (hasTeamOrgRole && !hasOrgAdminAccess);
+      team.flags['idp:provisioned'] || (team.orgRole !== null && !isOrgAdmin);
 
     const items = (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
@@ -299,8 +295,9 @@ class TeamMembers extends AsyncView<Props, State> {
     const {teamMembersPageLinks} = this.state;
     const {access} = organization;
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
-    const hasTeamOrgRole = team.orgRole !== null;
-    const hasOrgAdminAccess = access.includes('org:admin');
+
+    // TODO(team-roles): team admins can also manage membership
+    const isOrgAdmin = access.includes('org:admin');
 
     return (
       <Fragment>
@@ -308,7 +305,7 @@ class TeamMembers extends AsyncView<Props, State> {
           <PanelHeader hasButtons>
             <div>{t('Members')}</div>
             <div style={{textTransform: 'none'}}>
-              {this.renderDropdown(hasWriteAccess, hasTeamOrgRole, hasOrgAdminAccess)}
+              {this.renderDropdown(hasWriteAccess, isOrgAdmin)}
             </div>
           </PanelHeader>
           {this.state.teamMembers.length ? (
@@ -317,11 +314,10 @@ class TeamMembers extends AsyncView<Props, State> {
                 <TeamMembersRow
                   key={member.id}
                   hasWriteAccess={hasWriteAccess}
-                  hasTeamOrgRole={hasTeamOrgRole}
-                  hasOrgAdminAccess={hasOrgAdminAccess}
+                  isOrgAdmin={isOrgAdmin}
+                  team={team}
                   member={member}
                   organization={organization}
-                  team={team}
                   removeMember={this.removeTeamMember}
                   updateMemberRole={this.updateTeamMemberRole}
                   user={config.user}

@@ -181,16 +181,20 @@ class AllTeamsRow extends Component<Props, State> {
   render() {
     const {team, openMembership, organization, access} = this.props;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const hasOrgAdminAccess = access.has('org:admin');
+    const hasAccess = access.has('org:write') || access.has('team:admin');
+
+    // TODO(team-roles): team admins can also manage membership
+    const isOrgAdmin = access.has('org:admin');
+
     const buttonHelpText = () => {
       if (team.flags['idp:provisioned']) {
         return t(
           "Membership to this team is managed through your organization's identity provider."
         );
       }
-      if (team.orgRole && !hasOrgAdminAccess) {
+      if (team.orgRole && (!hasAccess || !isOrgAdmin)) {
         return t(
-          'Membership to a team with an organization role is managed by organization owners.'
+          'Membership to a team with an organization role is managed by org owners.'
         );
       }
       return undefined;
@@ -218,7 +222,8 @@ class AllTeamsRow extends Component<Props, State> {
       }
       return 'block';
     };
-    const isDisabled = idpProvisioned || (team.orgRole !== null && !hasOrgAdminAccess);
+    // TODO(team-roles): team admins can also manage membership
+    const isDisabled = idpProvisioned || (team.orgRole !== null && !isOrgAdmin);
 
     return (
       <TeamPanelItem>

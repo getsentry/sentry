@@ -273,6 +273,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
 
     const {access, features, orgRoleList} = organization;
     const canEdit = access.includes('org:write') && !this.memberDeactivated;
+    const isOrgAdmin = access.includes('org:admin');
     const hasTeamRoles = features.includes('team-roles');
 
     const {email, expired, pending, invite_link: inviteLink} = member;
@@ -280,7 +281,6 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
     const showAuth = !pending;
     const currentUser = configStore.get('user');
     const isCurrentUser = currentUser.email === email;
-    const hasOrgAdminAccess = access.includes('org:admin');
 
     return (
       <Fragment>
@@ -403,7 +403,7 @@ class OrganizationMemberDetail extends AsyncView<Props, State> {
             <TeamSelect
               enforceIdpProvisioned
               disabled={!canEdit}
-              hasOrgAdminAccess={hasOrgAdminAccess}
+              isOrgAdmin={isOrgAdmin}
               organization={organization}
               selectedOrgRole={orgRole}
               selectedTeamRoles={teamRoles}

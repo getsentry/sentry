@@ -157,7 +157,6 @@ class ProjectTeams extends AsyncView<Props, State> {
         <SettingsPageHeader title={t('Project Teams for %s', project.slug)} />
         <TeamSelect
           disabled={!hasAccess}
-          hasOrgAdminAccess
           enforceIdpProvisioned={false}
           organization={organization}
           menuHeader={menuHeader}
