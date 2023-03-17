@@ -6,7 +6,12 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, Ty
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_all_group_type_ids,
+    get_group_type_by_type_id,
+    get_group_types_by_category,
+)
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import snuba
@@ -251,6 +256,14 @@ def _update_profiling_search_filters(
             )
         else:
             updated_filters.append(sf)
+
+    updated_filters.append(
+        SearchFilter(
+            SearchKey("occurrence_type_id"),
+            "IN",
+            SearchValue(raw_value=get_group_types_by_category(GroupCategory.PROFILE.value)),
+        )
+    )
 
     return updated_filters
 
