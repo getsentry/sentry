@@ -16,35 +16,29 @@ from sentry.models import ArtifactBundle, ArtifactBundleArchive, ProjectArtifact
 class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
-        cls, artifact_bundle: ArtifactBundle, file_id: str
+        cls, file_path: str, archive: ArtifactBundleArchive
     ) -> Union[Response, FileResponse]:
         try:
-            file_path = base64.urlsafe_b64decode(file_id).decode()
-
-            archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
-
             fp, headers = archive.get_file_by_file_path(file_path)
             file_info = archive.get_file_info(file_path)
-
-            response = FileResponse(
-                ClosesDependentFiles(fp, archive),
-                content_type=headers.get("content-type", "application/octet-stream"),
-            )
-            response["Content-Length"] = file_info.file_size if file_info is not None else None
-            response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
-                " ".join(file_path.split())
+        except Exception:
+            # In case we fail here, we want to close the fail before returning.
+            archive.close()
+            return Response(
+                {"error": f"The file {file_path} can't be found in the artifact bundle"},
+                status=404,
             )
 
-            return response
-        except Exception as exc:
-            raise exc
+        response = FileResponse(
+            ClosesDependentFiles(fp, archive),
+            content_type=headers.get("content-type", "application/octet-stream"),
+        )
+        response["Content-Length"] = file_info.file_size if file_info is not None else None
+        response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+            " ".join(file_path.split())
+        )
 
-    @classmethod
-    def get_file_from_artifact_bundle(
-        cls, artifact_bundle: ArtifactBundle, file_id: str
-    ) -> Response:
-        # TODO(imbriccardo): Implement non-downloadble response.
-        pass
+        return response
 
 
 @region_silo_endpoint
@@ -71,7 +65,10 @@ class ProjectArtifactBundleFileDetailsEndpoint(
         :pparam string file_id: the ID of the file to retrieve.
         :auth: required
         """
-        download_requested = request.GET.get("download") is not None
+        if not has_download_permission(request, project):
+            return Response(
+                {"error": "You don't have the permissions to download this file"}, status=403
+            )
 
         try:
             artifact_bundle = ArtifactBundle.objects.get(
@@ -92,9 +89,20 @@ class ProjectArtifactBundleFileDetailsEndpoint(
                 status=400,
             )
 
-        if download_requested and has_download_permission(request, project):
-            return self.download_file_from_artifact_bundle(artifact_bundle, file_id)
-        elif download_requested:
-            return Response(status=403)
-        else:
-            return self.get_file_from_artifact_bundle(artifact_bundle, file_id)
+        try:
+            file_path = base64.urlsafe_b64decode(file_id).decode()
+        except Exception:
+            return Response(
+                {"error": f"The file_id {file_id} is invalid"},
+                status=400,
+            )
+
+        try:
+            archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+        except Exception:
+            return Response(
+                {"error": f"The artifact bundle {artifact_bundle.bundle_id} can't be opened"},
+                status=400,
+            )
+
+        return self.download_file_from_artifact_bundle(file_path, archive)

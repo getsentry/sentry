@@ -41,7 +41,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
 
         return file
 
-    def test_archive_download_with_valid_file_id(self):
+    def test_archive_download(self):
         project = self.create_project(name="foo")
 
         file = self.get_compressed_zip_file(
@@ -92,7 +92,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         self.create_member(user=user, organization=project.organization, role="owner")
         self.login_as(user=user)
 
-        response = self.client.get(url + "?download=1")
+        response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="index.js.map"'
         assert response.get("Content-Length") == str(3)
@@ -111,23 +111,53 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         )
 
         self.login_as(user=self.user)
-        response = self.client.get(url + "?download=1")
+        response = self.client.get(url)
         assert response.status_code == 200, response.content
         assert response.get("Content-Disposition") == 'attachment; filename="index.js"'
         assert response.get("Content-Length") == str(3)
         assert response.get("Content-Type") == "application/json"
         assert b"bar" == b"".join(response.streaming_content)
 
+        # Download as a superuser with non-existing file
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "bundle_id": artifact_bundle.bundle_id,
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+        assert response.status_code == 404, response.content
+
+        # Download as a superuser with invalid base64 file_id
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "bundle_id": artifact_bundle.bundle_id,
+                "file_id": 1234,
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+        assert response.status_code == 400, response.content
+
         # Download as a user without sufficient role
         self.organization.update_option("sentry:debug_files_role", "owner")
         user_no_role = self.create_user("bar@localhost")
         self.create_member(user=user_no_role, organization=project.organization, role="member")
         self.login_as(user=user_no_role)
-        response = self.client.get(url + "?download=1")
+        response = self.client.get(url)
         assert response.status_code == 403, response.content
 
         # Download as a user with no permissions
         user_no_permission = self.create_user("baz@localhost", username="baz")
         self.login_as(user=user_no_permission)
-        response = self.client.get(url + "?download=1")
+        response = self.client.get(url)
         assert response.status_code == 403, response.content
