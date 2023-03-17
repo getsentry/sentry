@@ -1,5 +1,6 @@
 from io import BytesIO
 
+from sentry.api.utils import generate_region_url
 from sentry.models import File, UserAvatar
 from sentry.testutils.cases import TestMigrations
 
@@ -26,4 +27,4 @@ class TestBackfillUserAvatarsMigration(TestMigrations):
         assert self.user_letter.avatar_url is None
 
         assert self.user_upload.avatar_type == 1
-        assert self.user_upload.avatar_url == f"https://sentry.io/avatar/{self.avatar.ident}/"
+        assert self.user_upload.avatar_url == f"{generate_region_url()}/avatar/{self.avatar.ident}/"
