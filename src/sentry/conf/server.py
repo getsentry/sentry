@@ -1215,6 +1215,8 @@ SENTRY_FEATURES = {
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
     "organizations:issue-list-removal-action": False,
+    # Adds the ttid & ttfd vitals to the frontend
+    "organizations:mobile-vitals": True,
     # Prefix host with organization ID when giving users DSNs (can be
     # customized with SENTRY_ORG_SUBDOMAIN_TEMPLATE)
     "organizations:org-subdomains": False,
