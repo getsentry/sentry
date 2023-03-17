@@ -31,7 +31,10 @@ from sentry.models.integrations.sentry_app import (
     default_uuid,
     generate_slug,
 )
-from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
+from sentry.sentry_apps.installations import (
+    SentryAppInstallationCreator,
+    SentryAppInstallationTokenCreator,
+)
 from sentry.services.hybrid_cloud.hook import hook_service
 
 Schema = Mapping[str, Any]

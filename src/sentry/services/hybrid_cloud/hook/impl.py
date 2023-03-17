@@ -6,7 +6,7 @@ from django.db import transaction
 
 from sentry import deletions
 from sentry.models import ServiceHook
-from sentry.sentry_apps import expand_events
+from sentry.sentry_apps.apps import expand_events
 from sentry.services.hybrid_cloud.hook import HookService, RpcServiceHook
 
 
