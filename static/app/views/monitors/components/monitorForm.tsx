@@ -317,27 +317,23 @@ function MonitorForm({
         <Observer>
           {() => {
             const currentSelectedSlug = form.current.getValue('project');
-            if (!currentSelectedSlug) {
-              return null;
-            }
             const project = projects.find(({slug}) => slug === currentSelectedSlug);
-
-            if (!project) {
-              return null;
-            }
-            const {platform} = project;
 
             return (
               <Fragment>
                 <StyledListItem>{t('Instrument your monitor')}</StyledListItem>
                 <ListItemSubText>
-                  {t(
-                    "Select an option from the list below and we'll walk you through the setup process."
-                  )}
+                  {project
+                    ? t(
+                        "Select an option from the list below and we'll walk you through the setup process."
+                      )
+                    : t('Select a project to see instrumentation options')}
                 </ListItemSubText>
-                <InputGroup>
-                  <MonitorQuickStartGuide platform={platform} />
-                </InputGroup>
+                {project && (
+                  <InputGroup>
+                    <MonitorQuickStartGuide platform={project?.platform} />
+                  </InputGroup>
+                )}
               </Fragment>
             );
           }}
