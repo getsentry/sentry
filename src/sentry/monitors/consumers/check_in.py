@@ -18,7 +18,7 @@ from sentry.monitors.models import (
     MonitorEnvironment,
     MonitorStatus,
 )
-from sentry.signals import first_cron_checkin_received, first_cron_monitor_created
+from sentry.monitors.utils import signal_first_checkin
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
@@ -89,36 +89,14 @@ def _process_message(wrapper: Dict) -> None:
                     date_updated=start_time,
                 )
 
-                if not project.flags.has_cron_checkins:
-                    # Backfill users that already have cron monitors
-                    if not project.flags.has_cron_monitors:
-                        first_cron_monitor_created.send_robust(
-                            project=project, user=None, sender=Project
-                        )
-
-                    first_cron_checkin_received.send_robust(
-                        project=project, monitor_id=str(monitor.guid), sender=Project
-                    )
+                signal_first_checkin(project, monitor)
 
             if check_in.status == CheckInStatus.ERROR and monitor.status != MonitorStatus.DISABLED:
                 monitor.mark_failed(start_time)
                 monitor_environment.mark_failed(start_time)
-                return
-
-            monitor_params = {
-                "last_checkin": start_time,
-                "next_checkin": monitor.get_next_scheduled_checkin(start_time),
-            }
-
-            if check_in.status == CheckInStatus.OK and monitor.status != MonitorStatus.DISABLED:
-                monitor_params["status"] = MonitorStatus.OK
-
-            Monitor.objects.filter(id=monitor.id).exclude(last_checkin__gt=start_time).update(
-                **monitor_params
-            )
-            MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
-                last_checkin__gt=start_time
-            ).update(**monitor_params)
+            else:
+                monitor.mark_ok(check_in, start_time)
+                monitor_environment.mark_ok(check_in, start_time)
     except Exception:
         # Skip this message and continue processing in the consumer.
         logger.exception("Failed to process check-in", exc_info=True)
