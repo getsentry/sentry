@@ -2464,10 +2464,10 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         project = event.project
         event_id = event.event_id
 
-        use_platform = options.get("performance.issues.send_to_issues_platform", True)
+        use_platform = options.get("performance.issues.send_to_issues_platform", False)
         if use_platform:
             per_project_option = project.get_option(
-                "sentry:performance_issue_send_to_issues_platform", True
+                "sentry:performance_issue_send_to_issues_platform", False
             )
             if per_project_option:
                 performance_problems = job["performance_problems"]
