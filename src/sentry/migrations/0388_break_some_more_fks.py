@@ -379,7 +379,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0374_breaking_even_more_keys"),
+        ("sentry", "0387_add_until_escalating_column_to_groupsnooze"),
     ]
 
     operations = (

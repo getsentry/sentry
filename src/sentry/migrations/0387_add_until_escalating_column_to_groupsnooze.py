@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0387_add_until_escalating_column_to_groupsnooze"),
+        ("sentry", "0386_backfill_monitor_env_checkins"),
     ]
 
     operations = [
