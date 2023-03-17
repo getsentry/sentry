@@ -1,4 +1,4 @@
-import type {ReplayRecord} from 'sentry/views/replays/types';
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
 
 type SimpleStub<T = any> = () => T;
 
@@ -100,6 +100,7 @@ type TestStubFixtures = {
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
   ReplayError: OverridableStub;
+  ReplayList: OverridableStubList<ReplayListRecord>;
   ReplayRRWebDivHelloWorld: OverridableStub;
   ReplayRRWebNode: OverridableStub;
   ReplayRecord: OverridableStub<ReplayRecord>;
