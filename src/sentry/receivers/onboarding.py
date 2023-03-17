@@ -77,7 +77,7 @@ def record_new_project(project, user, **kwargs):
     success = OrganizationOnboardingTask.objects.record(
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_PROJECT,
-        user=user,
+        user_id=user.id,
         status=OnboardingTaskStatus.COMPLETE,
         project_id=project.id,
     )
@@ -85,7 +85,7 @@ def record_new_project(project, user, **kwargs):
         OrganizationOnboardingTask.objects.record(
             organization_id=project.organization_id,
             task=OnboardingTask.SECOND_PLATFORM,
-            user=user,
+            user_id=user.id,
             status=OnboardingTaskStatus.PENDING,
             project_id=project.id,
         )
@@ -97,7 +97,7 @@ def record_raven_installed(project, user, **kwargs):
         organization_id=project.organization_id,
         task=OnboardingTask.FIRST_EVENT,
         status=OnboardingTaskStatus.PENDING,
-        user=user,
+        user_id=user.id,
         project_id=project.id,
     )
 
@@ -456,7 +456,7 @@ def record_plugin_enabled(plugin, project, user, **kwargs):
         organization_id=project.organization_id,
         task=task,
         status=status,
-        user=user,
+        user_id=user.id,
         project_id=project.id,
         data={"plugin": plugin.slug},
     )
