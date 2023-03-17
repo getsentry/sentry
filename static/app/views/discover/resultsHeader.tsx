@@ -7,7 +7,6 @@ import {stringify} from 'query-string';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import {Client} from 'sentry/api';
-import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -196,14 +195,7 @@ class ResultsHeader extends Component<Props, State> {
             homepageQuery={homepageQuery}
           />
         </Layout.HeaderActions>
-        {isHomepage && (
-          <Feature
-            organization={organization}
-            features={['discover-query-builder-as-landing-page']}
-          >
-            {({hasFeature}) => hasFeature && this.renderBanner()}
-          </Feature>
-        )}
+        {isHomepage && this.renderBanner()}
       </Layout.Header>
     );
   }
