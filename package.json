@@ -160,7 +160,6 @@
     "typescript": "^4.9.4",
     "u2f-api": "1.0.10",
     "url-loader": "^4.1.0",
-    "util": "^0.12.5",
     "webpack": "5.75.0",
     "webpack-cli": "5.0.1",
     "webpack-remove-empty-scripts": "^1.0.1",

@@ -1,22 +1,86 @@
-// webpack fallback handles this
-// eslint-disable-next-line
-import {format} from 'util';
+import {Fragment} from 'react';
+import {chromeLight, ObjectInspector} from 'react-inspector';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {getMeta} from 'sentry/components/events/meta/metaProxy';
 import {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import isObject from 'lodash/isObject';
 import {objectIsEmpty} from 'sentry/utils';
 
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
 }
 
+const formatRegExp = /%[sdj%]/g;
+function isObject(arg) {
+  return typeof arg === 'object' && arg !== null;
+}
+function isNull(arg) {
+  return arg === null;
+}
+const format = function (...args) {
+  const INSPECTOR_THEME = {
+    ...chromeLight,
+    BASE_BACKGROUND_COLOR: 'none',
+    OBJECT_PREVIEW_OBJECT_MAX_PROPERTIES: 1,
+  };
+
+  const f = args[0];
+  if (typeof f !== 'string') {
+    const objects: any[] = [];
+    for (let i = 0; i < arguments.length; i++) {
+      objects.push(
+        // @ts-expect-error
+        <ObjectInspector key={i} data={arguments[i]} theme={INSPECTOR_THEME} />
+      );
+    }
+    return <Fragment>{objects}</Fragment>;
+  }
+
+  let i = 1;
+  const len = args.length;
+  const pieces: any[] = [];
+
+  // @ts-expect-error
+  const str = String(f).replace(formatRegExp, function (x) {
+    if (x === '%%') {
+      return '%';
+    }
+    if (i >= len) {
+      return x;
+    }
+    switch (x) {
+      case '%s':
+        return String(args[i++]);
+      case '%d':
+        return Number(args[i++]);
+      case '%j':
+        try {
+          return JSON.stringify(args[i++]);
+        } catch (_) {
+          return '[Circular]';
+        }
+      default:
+        return x;
+    }
+  });
+  pieces.push(str);
+  for (let x = args[i]; i < len; x = args[++i]) {
+    if (isNull(x) || !isObject(x)) {
+      pieces.push(' ' + x);
+    } else {
+      pieces.push(' ');
+      // @ts-expect-error
+      pieces.push(<ObjectInspector data={x} theme={INSPECTOR_THEME} />);
+    }
+  }
+  return <Fragment>{pieces}</Fragment>;
+};
+
 /**
  * Attempt to emulate the browser console as much as possible
  */
 function MessageFormatter({breadcrumb}: Props) {
-  let logMessage = '';
+  let logMessage: any = '';
 
   if (!breadcrumb.data?.arguments) {
     // There is a possibility that we don't have arguments as we could be receiving an exception type breadcrumb.
@@ -42,9 +106,7 @@ function MessageFormatter({breadcrumb}: Props) {
     logMessage = format(...breadcrumb.data.arguments);
   }
 
-  // TODO(replays): Add better support for AnnotatedText (e.g. we use message
-  // args from breadcrumb.data.arguments and not breadcrumb.message directly)
-  return <AnnotatedText meta={getMeta(breadcrumb, 'message')} value={logMessage} />;
+  return logMessage;
 }
 
 export default MessageFormatter;
