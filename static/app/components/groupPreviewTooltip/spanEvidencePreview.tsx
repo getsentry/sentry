@@ -23,6 +23,7 @@ type SpanEvidencePreviewBodyProps = {
   onRequestBegin: () => void;
   onRequestEnd: () => void;
   onUnmount: () => void;
+  projectSlug?: string;
 };
 
 const makeGroupPreviewRequestUrl = ({
@@ -52,6 +53,7 @@ const SpanEvidencePreviewBody = ({
   onRequestBegin,
   onRequestEnd,
   onUnmount,
+  projectSlug,
 }: SpanEvidencePreviewBodyProps) => {
   const {data, isLoading, isError} = useQuery<EventTransaction>(
     [endpointUrl, {query: {referrer: 'api.issues.preview-performance'}}],
@@ -83,7 +85,7 @@ const SpanEvidencePreviewBody = ({
   if (data) {
     return (
       <SpanEvidencePreviewWrapper data-test-id="span-evidence-preview-body">
-        <SpanEvidenceKeyValueList event={data} />
+        <SpanEvidenceKeyValueList event={data} projectSlug={projectSlug} />
       </SpanEvidencePreviewWrapper>
     );
   }
@@ -124,6 +126,7 @@ export const SpanEvidencePreview = ({
           onRequestEnd={onRequestEnd}
           onUnmount={reset}
           endpointUrl={endpointUrl}
+          projectSlug={projectSlug}
         />
       }
     >

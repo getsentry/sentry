@@ -9,14 +9,20 @@ import {t, tct} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import {Organization} from 'sentry/types';
 import useApi from 'sentry/utils/useApi';
+import {useRouteContext} from 'sentry/utils/useRouteContext';
 import withOrganization from 'sentry/utils/withOrganization';
 
-type Props = {
+type OrganizationProps = {
   organization: Organization;
-  children?: React.ReactNode;
 };
 
-function DeletionInProgress({organization}: Props) {
+type BodyProps = {
+  children?: React.ReactNode;
+  // Organization can be null in account settings
+  organization?: Organization;
+};
+
+function DeletionInProgress({organization}: OrganizationProps) {
   return (
     <Layout.Body>
       <Layout.Main>
@@ -33,7 +39,7 @@ function DeletionInProgress({organization}: Props) {
   );
 }
 
-function DeletionPending({organization}: Props) {
+function DeletionPending({organization}: OrganizationProps) {
   const api = useApi();
   const [isRestoring, setIsRestoring] = useState(false);
 
@@ -98,21 +104,46 @@ function DeletionPending({organization}: Props) {
   );
 }
 
-function OrganizationDetailsBody({children, organization}: Props) {
+function OrganizationDetailsBody({children, organization}: BodyProps) {
   const status = organization?.status?.id;
+  const routeContext = useRouteContext();
 
-  if (status === 'pending_deletion') {
+  if (organization && status === 'pending_deletion') {
     return <DeletionPending organization={organization} />;
   }
 
-  if (status === 'deletion_in_progress') {
+  if (organization && status === 'deletion_in_progress') {
     return <DeletionInProgress organization={organization} />;
   }
+
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+  const slug = organization?.slug;
+
+  const gettingStartedRoutes = [
+    `/getting-started/${routeContext.params.projectId}/${routeContext.params.platform}/`,
+    `/${slug}/${routeContext.params.projectId}/getting-started/${routeContext.params.platform}/`,
+  ];
+
+  const onboardingRoutes = [
+    `/onboarding/welcome/`,
+    `/onboarding/setup-docs/`,
+    `/onboarding/select-platform/`,
+    `/onboarding/${slug}/welcome/`,
+    `/onboarding/${slug}/setup-docs/`,
+    `/onboarding/${slug}/select-platform/`,
+  ];
+
+  const showFooter = !heartbeatFooter
+    ? true
+    : !gettingStartedRoutes.includes(routeContext.location.pathname) &&
+      !onboardingRoutes.includes(routeContext.location.pathname);
 
   return (
     <Fragment>
       <ErrorBoundary>{children}</ErrorBoundary>
-      <Footer />
+      {showFooter && <Footer />}
     </Fragment>
   );
 }

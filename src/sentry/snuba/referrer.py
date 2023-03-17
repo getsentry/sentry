@@ -355,6 +355,10 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
+        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"
@@ -542,8 +546,25 @@ TSDBModelReferrer = enum.Enum(
     {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
 )
 
+# specific suffixes that apply to tsdb-modelid:4 referrers, these are optional
+# and are passed around through using `referrer_suffix`
+TSDB_4_SUFFIXES = {
+    "frequency_snoozes",
+    "user_count_snoozes",
+    "alert_event_frequency",
+    "alert_event_uniq_user_frequency",
+    "alert_event_frequency_percent",
+}
+
+TSDBModel4Referrer = enum.Enum(
+    "TSDBModel4Referrer",
+    {f"TSDB_MODELID_4_{suffix}": f"tsdb-modelid:4.{suffix}" for suffix in TSDB_4_SUFFIXES},
+)
+
+
 Referrer = enum.Enum(
-    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModel4Referrer)],
 )
 
 

@@ -11,7 +11,7 @@ from sentry.models import EventAttachment, File
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils.safe import get_path
-from tests.symbolicator import normalize_exception
+from tests.symbolicator import normalize_native_exception
 
 # IMPORTANT:
 # For these tests to run, write `symbolicator.enabled: true` into your
@@ -86,7 +86,7 @@ class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
                 "contexts": event.data.get("contexts"),
                 "exception": {
                     "values": [
-                        normalize_exception(x)
+                        normalize_native_exception(x)
                         for x in get_path(event.data, "exception", "values") or ()
                     ]
                 },

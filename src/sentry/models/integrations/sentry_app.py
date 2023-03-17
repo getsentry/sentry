@@ -70,7 +70,7 @@ def default_uuid():
     return str(uuid.uuid4())
 
 
-def generate_slug(name, is_internal=False):
+def generate_slug(name: str, is_internal=False) -> str:
     slug = slugify(name)
     # for internal, add some uuid to make it unique
     if is_internal:

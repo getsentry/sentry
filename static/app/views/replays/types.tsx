@@ -93,6 +93,7 @@ export type ReplayListLocationQuery = {
   utc?: 'true' | 'false';
 };
 
+// Sync with REPLAY_LIST_FIELDS below
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
@@ -105,6 +106,19 @@ export type ReplayListRecord = Pick<
   | 'urls'
   | 'user'
 >;
+
+// Sync with ReplayListRecord above
+export const REPLAY_LIST_FIELDS: (keyof ReplayListRecord)[] = [
+  'activity',
+  'count_errors',
+  'duration',
+  'finished_at',
+  'id',
+  'project_id',
+  'started_at',
+  'urls',
+  'user',
+];
 
 export type ReplaySegment = {
   dateAdded: string;

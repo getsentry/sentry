@@ -7,8 +7,14 @@ from .unlink_identity import MsTeamsUnlinkIdentityView
 from .webhook import MsTeamsWebhookEndpoint
 
 urlpatterns = [
-    url(r"^webhook/$", MsTeamsWebhookEndpoint.as_view()),
-    url(r"^configure/$", MsTeamsExtensionConfigurationView.as_view()),
+    url(
+        r"^webhook/$",
+        MsTeamsWebhookEndpoint.as_view(),
+    ),
+    url(
+        r"^configure/$",
+        MsTeamsExtensionConfigurationView.as_view(),
+    ),
     url(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",
         MsTeamsLinkIdentityView.as_view(),

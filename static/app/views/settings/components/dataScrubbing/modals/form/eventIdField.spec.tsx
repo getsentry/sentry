@@ -21,7 +21,7 @@ describe('EventIdField', function () {
     expect(screen.getByPlaceholderText('XXXXXXXXXXXXXX')).toBeInTheDocument();
     expect(screen.getByRole('textbox')).toHaveValue('');
 
-    userEvent.hover(screen.getByTestId('more-information'));
+    await userEvent.hover(screen.getByTestId('more-information'));
 
     expect(
       await screen.findByText(
@@ -29,7 +29,7 @@ describe('EventIdField', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox'),
       '887ab369df634e74aea708bcafe1a175{enter}'
     );
@@ -73,7 +73,7 @@ describe('EventIdField', function () {
       />
     );
 
-    userEvent.hover(screen.getByTestId('icon-close'));
+    await userEvent.hover(screen.getByTestId('icon-close'));
 
     expect(await screen.findByText('Clear event ID')).toBeInTheDocument();
 

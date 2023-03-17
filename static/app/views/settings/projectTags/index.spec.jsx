@@ -68,11 +68,11 @@ describe('ProjectTags', function () {
     const tagCount = screen.getAllByTestId('tag-row').length;
 
     // Remove the first tag
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove tag'})[0]);
 
     // Press confirm in modal
     renderGlobalModal();
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     // Wait for the tag to have been removed in the store
     await waitFor(() =>

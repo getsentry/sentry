@@ -56,19 +56,23 @@ describe('ProjectDetail > ProjectCharts', () => {
     jest.resetAllMocks();
   });
 
-  it('renders ANR options', () => {
+  it('renders ANR options', async () => {
     renderProjectCharts(['anr-rate'], 'android');
 
-    userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.getByText('Foreground ANR Rate')).toBeInTheDocument();
     expect(screen.getByText('ANR Rate')).toBeInTheDocument();
   });
 
-  it('does not render ANR options for non-android platforms', () => {
+  it('does not render ANR options for non-android platforms', async () => {
     renderProjectCharts(['anr-rate'], 'python');
 
-    userEvent.click(screen.getByRole('button', {name: 'Display Crash Free Sessions'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Display Crash Free Sessions'})
+    );
 
     expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
     expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();

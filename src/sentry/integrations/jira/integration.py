@@ -902,7 +902,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         account_id = possible_user.get("accountId")
                         email = client.get_email(account_id)
                     # match on lowercase email
-                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break

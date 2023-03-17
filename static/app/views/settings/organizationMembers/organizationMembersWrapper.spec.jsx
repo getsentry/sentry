@@ -55,10 +55,10 @@ describe('OrganizationMembersWrapper', function () {
     });
   });
 
-  it('can invite member', function () {
+  it('can invite member', async function () {
     render(<OrganizationMembersWrapper organization={organization} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe('OrganizationMembersWrapper', function () {
     expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
 
-  it('can invite without permissions', function () {
+  it('can invite without permissions', async function () {
     const org = TestStubs.Organization({
       features: ['invite-members'],
       access: [],
@@ -86,7 +86,7 @@ describe('OrganizationMembersWrapper', function () {
 
     render(<OrganizationMembersWrapper organization={org} {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
 

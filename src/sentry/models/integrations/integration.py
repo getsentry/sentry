@@ -13,8 +13,9 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager import BaseManager
 from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_orgs
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.signals import integration_added
+from sentry.types.region import find_regions_for_orgs
 
 logger = logging.getLogger(__name__)
 

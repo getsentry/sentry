@@ -18,6 +18,7 @@ describe('TeamMembers', function () {
 
   const organization = TestStubs.Organization();
   const team = TestStubs.Team();
+  const managerTeam = TestStubs.Team({orgRole: 'manager'});
   const members = TestStubs.Members();
   const member = TestStubs.Member({
     id: '9',
@@ -42,6 +43,11 @@ describe('TeamMembers', function () {
       method: 'GET',
       body: team,
     });
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${managerTeam.slug}/`,
+      method: 'GET',
+      body: managerTeam,
+    });
 
     createMock = Client.addMockResponse({
       url: `/organizations/${organization.slug}/members/${member.id}/teams/${team.slug}/`,
@@ -59,8 +65,12 @@ describe('TeamMembers', function () {
       />
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -75,8 +85,12 @@ describe('TeamMembers', function () {
       />
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -91,8 +105,12 @@ describe('TeamMembers', function () {
       />
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(createMock).toHaveBeenCalled();
   });
@@ -107,8 +125,12 @@ describe('TeamMembers', function () {
       />
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
 
     expect(openTeamAccessRequestModal).toHaveBeenCalled();
   });
@@ -129,8 +151,12 @@ describe('TeamMembers', function () {
       {context: routerContext}
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getByTestId('invite-member'));
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
@@ -151,8 +177,12 @@ describe('TeamMembers', function () {
       {context: routerContext}
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getByTestId('invite-member'));
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
@@ -170,8 +200,12 @@ describe('TeamMembers', function () {
       {context: routerContext}
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getByTestId('invite-member'));
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
@@ -189,8 +223,12 @@ describe('TeamMembers', function () {
       {context: routerContext}
     );
 
-    userEvent.click((await screen.findAllByRole('button', {name: 'Add Member'}))[0]);
-    userEvent.click(screen.getByTestId('invite-member'));
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
   });
@@ -211,7 +249,7 @@ describe('TeamMembers', function () {
     await screen.findAllByRole('button', {name: 'Add Member'});
 
     expect(deleteMock).not.toHaveBeenCalled();
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     expect(deleteMock).toHaveBeenCalled();
   });
@@ -251,7 +289,7 @@ describe('TeamMembers', function () {
 
     // Can only remove self
     expect(screen.getByRole('button', {name: 'Remove'})).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button', {name: 'Remove'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove'}));
     expect(deleteMock).toHaveBeenCalled();
   });
 
@@ -306,6 +344,32 @@ describe('TeamMembers', function () {
     expect(admins).toHaveLength(3);
     const contributors = screen.queryAllByText('Contributor');
     expect(contributors).toHaveLength(2);
+  });
+
+  it('adding member to manager team makes them team admin', async function () {
+    Client.addMockResponse({
+      url: `/teams/${organization.slug}/${managerTeam.slug}/members/`,
+      method: 'GET',
+      body: [],
+    });
+    const orgWithTeamRoles = TestStubs.Organization({features: ['team-roles']});
+    render(
+      <TeamMembers
+        params={{orgId: orgWithTeamRoles.slug, teamId: managerTeam.slug}}
+        organization={orgWithTeamRoles}
+        team={managerTeam}
+      />
+    );
+
+    await userEvent.click(
+      (
+        await screen.findAllByRole('button', {name: 'Add Member'})
+      )[0]
+    );
+    await userEvent.click(screen.getAllByTestId('letter_avatar-avatar')[0]);
+
+    const admin = screen.queryByText('Team Admin');
+    expect(admin).toBeInTheDocument();
   });
 
   it('cannot add or remove members if team is idp:provisioned', function () {

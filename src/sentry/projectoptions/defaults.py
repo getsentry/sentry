@@ -14,7 +14,9 @@ LATEST_EPOCH = 9
 # epoch instead.
 LEGACY_GROUPING_CONFIG = "legacy:2019-03-12"
 DEFAULT_GROUPING_CONFIG = "newstyle:2019-10-29"
-BETA_GROUPING_CONFIG = "mobile:2021-02-12"
+# NOTE: this is empty for now to migrate projects off the deprecated
+# `mobile` strategy via grouping auto-updates.
+BETA_GROUPING_CONFIG = ""
 register(
     key="sentry:grouping_config",
     epoch_defaults={
@@ -98,6 +100,10 @@ register(key="sentry:span_attributes", epoch_defaults={1: ["exclusive-time"]})
 # Rate at which performance issues are created per project. Defaults to on (rate of 1.0), system flags and options will determine if an organization creates issues.
 # Can be used to turn off a projects detection for users if there is a project-specific issue.
 register(key="sentry:performance_issue_creation_rate", default=1.0)
+
+# Rate at which performance issues are created through issues platform per project. Defaults to False, system flags and options will determine if an organization creates issues through platform.
+# Can be used to turn off issue creation for users if there is a project-specific issue.
+register(key="sentry:performance_issue_send_to_issues_platform", default=False)
 
 DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS = {
     "n_plus_one_db_detection_rate": 1.0,

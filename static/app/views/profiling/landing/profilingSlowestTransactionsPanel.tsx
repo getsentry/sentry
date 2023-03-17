@@ -134,8 +134,8 @@ function SlowestTransactionPanelItem({
     [projects.projects, transaction]
   );
 
-  if (!transactionProject) {
-    throw Error('Cannot find project for slowest transaction');
+  if (!transactionProject && !projects.fetching && projects.projects.length > 0) {
+    return null;
   }
 
   const key: SlowestTransactionsFields = 'p95()';
@@ -148,24 +148,36 @@ function SlowestTransactionPanelItem({
     <PanelItem key={transaction.transaction}>
       <Flex justify="space-between" gap={space(1)}>
         <PlatformIcon platform={transactionProject?.platform ?? 'default'} />
-        <Flex.Item grow={1}>
-          <Link
-            to={generateProfileSummaryRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug: transactionProject?.slug!,
-              transaction: transaction.transaction as string,
-            })}
-            onClick={() => {
-              trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
-                source: 'slowest_transaction_panel',
-                organization,
-              });
+        <Flex.Item
+          grow={1}
+          onClick={onOpen}
+          css={{
+            cursor: 'pointer',
+          }}
+        >
+          <div
+            css={{
+              maxWidth: 'fit-content',
             }}
           >
-            <TextTruncateOverflow>
-              {transaction.transaction as string}
-            </TextTruncateOverflow>
-          </Link>
+            <Link
+              to={generateProfileSummaryRouteWithQuery({
+                orgSlug: organization.slug,
+                projectSlug: transactionProject?.slug!,
+                transaction: transaction.transaction as string,
+              })}
+              onClick={() => {
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+                  source: 'slowest_transaction_panel',
+                  organization,
+                });
+              }}
+            >
+              <TextTruncateOverflow>
+                {transaction.transaction as string}
+              </TextTruncateOverflow>
+            </Link>
+          </div>
         </Flex.Item>
 
         <PerformanceDuration

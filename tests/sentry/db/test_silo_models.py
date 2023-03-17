@@ -2,12 +2,10 @@ from sentry.api.serializers.base import registry
 from sentry.incidents.models import AlertRuleTriggerAction
 from sentry.models import (
     Actor,
-    ApiApplication,
     AuthProviderDefaultTeams,
     NotificationSetting,
     OrganizationMember,
     SentryApp,
-    ServiceHook,
     Team,
     User,
 )
@@ -35,7 +33,6 @@ fk_emeptions = {
     (OrganizationIntegration, PagerDutyService),
     (OrganizationIntegration, RepositoryProjectPathConfig),
     (NotificationSetting, Actor),
-    (ServiceHook, ApiApplication),
     (User, Actor),
     (AlertRuleTriggerAction, SentryApp),
 }

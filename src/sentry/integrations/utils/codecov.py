@@ -54,11 +54,11 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
         if not integration_installation:
             continue
 
-        repos = integration_installation.get_client().get_repositories()
+        repos = integration_installation.get_client().get_repositories()  # List[Dict[str, Any]]
         if not repos:
             continue
 
-        owner_username, _ = repos[0].split("/")
+        owner_username, _ = repos[0].get("full_name").split("/")
         url = CODECOV_REPOS_URL.format(service="gh", owner_username=owner_username)
         response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
         if response.status_code == 404:
@@ -94,7 +94,7 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     with configure_scope() as scope:
         response = requests.get(
             url,
-            params={},
+            params={"walk_back": 10},
             headers={"Authorization": f"Bearer {codecov_token}"},
             timeout=CODECOV_TIMEOUT,
         )

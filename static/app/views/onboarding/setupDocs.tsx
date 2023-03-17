@@ -1,14 +1,16 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Alert, alertStyles} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {Footer} from 'sentry/components/onboarding/footer';
+import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
@@ -18,9 +20,9 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withProjects from 'sentry/utils/withProjects';
-import {Footer} from 'sentry/views/onboarding/components/footer';
+import {useExperiment} from 'sentry/utils/useExperiment';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 
 import FirstEventFooter from './components/firstEventFooter';
 import FullIntroduction from './components/fullIntroduction';
@@ -28,7 +30,6 @@ import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
-
 /**
  * The documentation will include the following string should it be missing the
  * verification example, which currently a lot of docs are.
@@ -38,9 +39,7 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 type PlatformDoc = {html: string; link: string};
 
 type Props = {
-  projects: Project[];
   search: string;
-  loadingProjects?: boolean;
 } & StepProps;
 
 function ProjectDocs(props: {
@@ -81,7 +80,7 @@ function ProjectDocs(props: {
 
   const docs = props.platformDocs !== null && (
     <DocsWrapper key={props.platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+      <DocumentationWrapper dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
       {missingExampleWarning()}
     </DocsWrapper>
   );
@@ -108,25 +107,26 @@ function ProjectDocs(props: {
   );
 }
 
-function SetupDocs({
-  organization,
-  projects: rawProjects,
-  search,
-  loadingProjects,
-  route,
-  router,
-  location,
-}: Props) {
-  const heartbeatFooter = !!organization?.features.includes(
-    'onboarding-heartbeat-footer'
+function SetupDocs({search, route, router, location}: Props) {
+  const api = useApi();
+  const organization = useOrganization();
+  const {projects: rawProjects} = useProjects();
+  const [clientState, setClientState] = usePersistedOnboardingState();
+  const {logExperiment, experimentAssignment} = useExperiment(
+    'OnboardingNewFooterExperiment',
+    {
+      logExperimentOnMount: false,
+    }
   );
 
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
   );
 
-  const api = useApi();
-  const [clientState, setClientState] = usePersistedOnboardingState();
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -144,6 +144,7 @@ function SetupDocs({
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
+
   // store what projects have sent first event in state based project.firstEvent
   const [hasFirstEventMap, setHasFirstEventMap] = useState<Record<string, boolean>>(
     projects.reduce((accum, project: Project) => {
@@ -151,15 +152,14 @@ function SetupDocs({
       return accum;
     }, {} as Record<string, boolean>)
   );
+
   const checkProjectHasFirstEvent = (project: Project) => {
     return !!hasFirstEventMap[project.id];
   };
 
   const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(
-    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
-  );
+  const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
@@ -170,28 +170,6 @@ function SetupDocs({
 
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
-
-  useEffect(() => {
-    // should not redirect if we don't have an active client state or projects aren't loaded
-    if (!clientState || loadingProjects) {
-      return;
-    }
-    if (
-      // If no projects remaining, then we can leave
-      !project
-    ) {
-      // marke onboarding as complete
-      setClientState({
-        ...clientState,
-        state: 'finished',
-      });
-      browserHistory.push(
-        normalizeUrl(
-          `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
-        )
-      );
-    }
-  });
 
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
@@ -225,6 +203,13 @@ function SetupDocs({
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    if (heartbeatFooter) {
+      logExperiment();
+    }
+  }, [logExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -296,10 +281,20 @@ function SetupDocs({
         </MainContent>
       </Wrapper>
 
-      {project &&
-        (heartbeatFooter ? (
+      {heartbeatFooter ? (
+        experimentAssignment === 'variant2' ? (
+          <FooterWithViewSampleErrorButton
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : experimentAssignment === 'variant1' ? (
           <Footer
             projectSlug={project.slug}
+            projectId={project.id}
             route={route}
             router={router}
             location={location}
@@ -341,25 +336,49 @@ function SetupDocs({
               setHasFirstEventMap(newHasFirstEventMap);
             }}
           />
-        ))}
+        )
+      ) : (
+        <FirstEventFooter
+          project={project}
+          organization={organization}
+          isLast={!nextProject}
+          hasFirstEvent={checkProjectHasFirstEvent(project)}
+          onClickSetupLater={() => {
+            const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+            trackAdvancedAnalyticsEvent(
+              'growth.onboarding_clicked_setup_platform_later',
+              {
+                organization,
+                platform: currentPlatform,
+                project_index: projectIndex,
+              }
+            );
+            if (!project.platform || !clientState) {
+              browserHistory.push(orgIssuesURL);
+              return;
+            }
+            // if we have a next project, switch to that
+            if (nextProject) {
+              setNewProject(nextProject.id);
+            } else {
+              setClientState({
+                ...clientState,
+                state: 'finished',
+              });
+              browserHistory.push(orgIssuesURL);
+            }
+          }}
+          handleFirstIssueReceived={() => {
+            const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+            setHasFirstEventMap(newHasFirstEventMap);
+          }}
+        />
+      )}
     </Fragment>
   );
 }
 
-export default withProjects(SetupDocs);
-
-type AlertType = React.ComponentProps<typeof Alert>['type'];
-
-const getAlertSelector = (type: AlertType) =>
-  type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
-
-const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
-  css`
-    ${getAlertSelector(type)} {
-      ${alertStyles({theme: p.theme, type})};
-      display: block;
-    }
-  `;
+export default SetupDocs;
 
 const AnimatedContentWrapper = styled(motion.div)`
   overflow: hidden;
@@ -375,44 +394,6 @@ AnimatedContentWrapper.defaultProps = {
     height: 0,
   },
 };
-
-const Content = styled(motion.div)`
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p {
-    margin-bottom: 18px;
-  }
-
-  div[data-language] {
-    margin-bottom: ${space(2)};
-  }
-
-  code {
-    color: ${p => p.theme.pink400};
-  }
-
-  h2 {
-    font-size: 1.4em;
-  }
-
-  .alert h5 {
-    font-size: 1em;
-    margin-bottom: 0.625rem;
-  }
-
-  /**
-   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
-   */
-  .content-flush-bottom *:last-child {
-    margin-bottom: 0;
-  }
-
-  ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
-`;
 
 const DocsWrapper = styled(motion.div)``;
 

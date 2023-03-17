@@ -119,8 +119,6 @@ def _do_symbolicate_event(
     queue_switches: int = 0,
     has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.native.processing import get_symbolication_function
-
     if data is None:
         data = processing.event_processing_store.get(cache_key)
 
@@ -181,6 +179,11 @@ def _do_symbolicate_event(
             from_symbolicate=True,
             has_attachments=has_attachments,
         )
+
+    if data["platform"] in ("javascript", "node"):
+        from sentry.lang.javascript.processing import get_symbolication_function
+    else:
+        from sentry.lang.native.processing import get_symbolication_function
 
     symbolication_function = get_symbolication_function(data)
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
