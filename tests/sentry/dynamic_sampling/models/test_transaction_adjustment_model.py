@@ -23,19 +23,18 @@ test_resample_cases = [
     create_transaction_counts(big=30, med=10, small=30),
     create_transaction_counts(big=30, med=3, small=5),
 ]
+sample_rates = [0.01, 0.1, 0.5, 0.9, 0.99, 1.0]
+excluded_transactions = [
+    (0, None),  # full resample
+    (3, None),  # exclude first 3
+    (0, -3),  # exclude last 3
+    (3, -3),  # take 3 from both ends
+]
 
 
-@pytest.mark.parametrize("sample_rate", [0.01, 0.1, 0.5, 0.9, 0.99, 1.0])
+@pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
-@pytest.mark.parametrize(
-    "idx_low,idx_high",
-    [
-        (0, None),  # full resample
-        (3, None),  # exclude first 3
-        (0, -3),  # exclude last 3
-        (3, -3),  # take 3 from both ends
-    ],
-)
+@pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
 def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_high):
     """
     Tests that the overall sampling rate is maintained after applying new rates
@@ -55,17 +54,9 @@ def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_h
     assert new_sampled_transactions == pytest.approx(old_sampled_transactions)
 
 
-@pytest.mark.parametrize("sample_rate", [0.01, 0.1, 0.5, 0.9, 0.99, 1.0])
+@pytest.mark.parametrize("sample_rate", sample_rates)
 @pytest.mark.parametrize("transactions", test_resample_cases)
-@pytest.mark.parametrize(
-    "idx_low,idx_high",
-    [
-        (0, None),  # full resample
-        (3, None),  # exclude first 3
-        (0, -3),  # exclude last 3
-        (3, -3),  # take 3 from both ends
-    ],
-)
+@pytest.mark.parametrize("idx_low,idx_high", excluded_transactions)
 def test_explicit_elements_ideal_rate(sample_rate, transactions, idx_low, idx_high):
     """
     Tests that the explicitly specified elements are sampled at their ideal rate.
