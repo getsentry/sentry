@@ -16,16 +16,16 @@ describe('Collapsible', function () {
     expect(screen.queryByLabelText('Collapse')).not.toBeInTheDocument();
   });
 
-  it('expands items', function () {
+  it('expands items', async function () {
     render(<Collapsible>{items}</Collapsible>);
 
     // expand
-    userEvent.click(screen.getByLabelText('Show 2 hidden items'));
+    await userEvent.click(screen.getByLabelText('Show 2 hidden items'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // collapse back
-    userEvent.click(screen.getByLabelText('Collapse'));
+    await userEvent.click(screen.getByLabelText('Collapse'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });
@@ -43,7 +43,7 @@ describe('Collapsible', function () {
     expect(screen.queryByLabelText(/hidden item/)).not.toBeInTheDocument();
   });
 
-  it('takes custom buttons', function () {
+  it('takes custom buttons', async function () {
     render(
       <Collapsible
         collapseButton={({onCollapse}) => (
@@ -62,12 +62,12 @@ describe('Collapsible', function () {
     expect(screen.getByText(/Custom/)).toBeInTheDocument();
 
     // custom expand
-    userEvent.click(screen.getByLabelText('Expand'));
+    await userEvent.click(screen.getByLabelText('Expand'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(7);
 
     // custom collapse back
-    userEvent.click(screen.getByText('Custom Collapse'));
+    await userEvent.click(screen.getByText('Custom Collapse'));
 
     expect(screen.getAllByText(/Item/)).toHaveLength(5);
   });

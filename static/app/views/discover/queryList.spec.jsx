@@ -129,8 +129,8 @@ describe('Discover > QueryList', function () {
     const withinCard = within(card);
     expect(withinCard.getByText('Saved query #1')).toBeInTheDocument();
 
-    userEvent.click(withinCard.getByTestId('menu-trigger'));
-    userEvent.click(withinCard.getByText('Duplicate Query'));
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    await userEvent.click(withinCard.getByText('Duplicate Query'));
 
     await waitFor(() => {
       expect(browserHistory.push).toHaveBeenCalledWith({
@@ -157,8 +157,8 @@ describe('Discover > QueryList', function () {
     const card = screen.getAllByTestId(/card-*/).at(1);
     const withinCard = within(card);
 
-    userEvent.click(withinCard.getByTestId('menu-trigger'));
-    userEvent.click(withinCard.getByText('Delete Query'));
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    await userEvent.click(withinCard.getByText('Delete Query'));
 
     await waitFor(() => {
       expect(queryChangeMock).toHaveBeenCalled();
@@ -167,7 +167,7 @@ describe('Discover > QueryList', function () {
     expect(deleteMock).toHaveBeenCalled();
   });
 
-  it('redirects to Discover on card click', function () {
+  it('redirects to Discover on card click', async function () {
     render(
       <QueryList
         organization={organization}
@@ -179,7 +179,7 @@ describe('Discover > QueryList', function () {
       {context: routerContext}
     );
 
-    userEvent.click(screen.getAllByTestId(/card-*/).at(0));
+    await userEvent.click(screen.getAllByTestId(/card-*/).at(0));
     expect(router.push).toHaveBeenLastCalledWith({
       pathname: '/organizations/org-slug/discover/results/',
       query: {id: '1', statsPeriod: '14d'},
@@ -201,8 +201,8 @@ describe('Discover > QueryList', function () {
     const card = screen.getAllByTestId(/card-*/).at(0);
     const withinCard = within(card);
 
-    userEvent.click(withinCard.getByTestId('menu-trigger'));
-    userEvent.click(withinCard.getByText('Delete Query'));
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
+    await userEvent.click(withinCard.getByText('Delete Query'));
 
     expect(deleteMock).toHaveBeenCalled();
     expect(queryChangeMock).not.toHaveBeenCalled();
@@ -215,7 +215,7 @@ describe('Discover > QueryList', function () {
     });
   });
 
-  it('renders Add to Dashboard in context menu', function () {
+  it('renders Add to Dashboard in context menu', async function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
@@ -233,7 +233,7 @@ describe('Discover > QueryList', function () {
     const card = screen.getAllByTestId(/card-*/).at(0);
     const withinCard = within(card);
 
-    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
     expect(
       screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
@@ -247,7 +247,7 @@ describe('Discover > QueryList', function () {
     expect(screen.getByRole('menuitemradio', {name: 'Delete Query'})).toBeInTheDocument();
   });
 
-  it('only renders Delete Query and Duplicate Query in context menu', function () {
+  it('only renders Delete Query and Duplicate Query in context menu', async function () {
     render(
       <QueryList
         organization={organization}
@@ -261,7 +261,7 @@ describe('Discover > QueryList', function () {
     const card = screen.getAllByTestId(/card-*/).at(0);
     const withinCard = within(card);
 
-    userEvent.click(withinCard.getByTestId('menu-trigger'));
+    await userEvent.click(withinCard.getByTestId('menu-trigger'));
 
     expect(
       screen.queryByRole('menuitemradio', {name: 'Add to Dashboard'})
@@ -307,7 +307,7 @@ describe('Discover > QueryList', function () {
     );
   });
 
-  it('Set as Default updates the homepage query', function () {
+  it('Set as Default updates the homepage query', async function () {
     render(
       <QueryList
         organization={organization}
@@ -318,8 +318,8 @@ describe('Discover > QueryList', function () {
       />
     );
 
-    userEvent.click(screen.getByTestId('menu-trigger'));
-    userEvent.click(screen.getByText('Set as Default'));
+    await userEvent.click(screen.getByTestId('menu-trigger'));
+    await userEvent.click(screen.getByText('Set as Default'));
     expect(updateHomepageMock).toHaveBeenCalledWith(
       '/organizations/org-slug/discover/homepage/',
       expect.objectContaining({
@@ -355,13 +355,13 @@ describe('Discover > QueryList', function () {
 
       expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
 
-      userEvent.click(contextMenu);
+      await userEvent.click(contextMenu);
 
       const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
 
-      userEvent.click(addToDashboardMenuItem);
+      await userEvent.click(addToDashboardMenuItem);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {
@@ -418,13 +418,13 @@ describe('Discover > QueryList', function () {
 
       expect(screen.queryByTestId('add-to-dashboard')).not.toBeInTheDocument();
 
-      userEvent.click(contextMenu);
+      await userEvent.click(contextMenu);
 
       const addToDashboardMenuItem = await screen.findByTestId('add-to-dashboard');
 
-      userEvent.click(addToDashboardMenuItem);
+      await userEvent.click(addToDashboardMenuItem);
 
-      waitFor(() => {
+      await waitFor(() => {
         expect(openAddToDashboardModal).toHaveBeenCalledWith(
           expect.objectContaining({
             widget: {

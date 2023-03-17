@@ -101,7 +101,7 @@ describe('ProjectDetail > ProjectLatestReleases', function () {
       'https://docs.sentry.io/product/releases/'
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Get Tour'}));
 
     renderGlobalModal();
     expect(screen.getByRole('dialog')).toBeInTheDocument();

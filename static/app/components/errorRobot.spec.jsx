@@ -40,9 +40,9 @@ describe('ErrorRobot', function () {
       expect(getIssues).toHaveBeenCalled();
     });
 
-    it('Renders installation instructions', function () {
+    it('Renders installation instructions', async function () {
       createWrapper();
-      userEvent.click(screen.getByText('Installation Instructions'));
+      await userEvent.click(screen.getByText('Installation Instructions'));
       expect(routerContext.context.router.push).toHaveBeenCalledWith(
         '/org-slug/project-slug/getting-started/'
       );
