@@ -331,7 +331,7 @@ function MonitorForm({
                 </ListItemSubText>
                 {project && (
                   <InputGroup>
-                    <MonitorQuickStartGuide platform={project?.platform} />
+                    <MonitorQuickStartGuide platform={project.platform} />
                   </InputGroup>
                 )}
               </Fragment>
