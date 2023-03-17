@@ -84,6 +84,7 @@ const TitleAndActions = styled('div')<{isNarrow?: boolean}>`
 `;
 const TitleWrapper = styled('div')`
   flex: 1;
+  overflow: hidden;
 `;
 
 const Title = styled('div')<TitleProps>`
