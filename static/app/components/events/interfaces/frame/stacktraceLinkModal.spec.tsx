@@ -99,8 +99,11 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), 'sourceUrl');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      'sourceUrl'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });
@@ -130,11 +133,11 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Repository URL'}),
       'sourceUrl{enter}'
     );
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).not.toHaveBeenCalled();
     });
@@ -199,8 +202,11 @@ describe('StacktraceLinkModal', () => {
     expect(screen.getByRole('dialog')).toSnapshot();
 
     // Paste and save suggestion
-    userEvent.paste(screen.getByRole('textbox', {name: 'Repository URL'}), suggestion);
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Repository URL'}),
+      suggestion
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(closeModal).toHaveBeenCalled();
     });

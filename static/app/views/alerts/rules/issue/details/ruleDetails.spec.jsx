@@ -110,7 +110,7 @@ describe('AlertRuleDetails', () => {
     createWrapper();
 
     expect(await screen.findByLabelText('Next')).toBeEnabled();
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/mock-pathname/',
@@ -124,8 +124,8 @@ describe('AlertRuleDetails', () => {
     createWrapper();
 
     expect(await screen.findByText('Last 7 days')).toBeInTheDocument();
-    userEvent.click(screen.getByText('Last 7 days'));
-    userEvent.click(screen.getByText('Last 24 hours'));
+    await userEvent.click(screen.getByText('Last 7 days'));
+    await userEvent.click(screen.getByText('Last 24 hours'));
 
     expect(context.router.push).toHaveBeenCalledWith({
       query: {

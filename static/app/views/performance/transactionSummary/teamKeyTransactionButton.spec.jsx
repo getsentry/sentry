@@ -8,7 +8,7 @@ import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummar
 
 async function clickTeamKeyTransactionDropdown() {
   await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
-  userEvent.click(screen.getByRole('button'));
+  await userEvent.click(screen.getByRole('button'));
 }
 
 describe('TeamKeyTransactionButton', function () {
@@ -185,7 +185,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
+    await userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
     expect(postTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -220,7 +220,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
+    await userEvent.click(screen.getByRole('checkbox', {name: teams[0].slug}));
     expect(deleteTeamKeyTransactionsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -258,7 +258,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
 
     // all teams should be checked now
     await waitFor(() => {
@@ -303,7 +303,7 @@ describe('TeamKeyTransactionButton', function () {
 
     await clickTeamKeyTransactionDropdown();
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'My Teams with Access'}));
 
     // all teams should be unchecked now
     await waitFor(() => {

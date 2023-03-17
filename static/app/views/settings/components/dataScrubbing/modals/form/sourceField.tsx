@@ -344,20 +344,20 @@ class SourceField extends Component<Props, State> {
   handleKeyDown = (_value: string, event: React.KeyboardEvent<HTMLInputElement>) => {
     event.persist();
 
-    const {keyCode} = event;
+    const {key} = event;
     const {activeSuggestion, suggestions} = this.state;
 
-    if (keyCode === 8 || keyCode === 32) {
+    if (key === 'Backspace' || key === ' ') {
       this.toggleSuggestions(true);
       return;
     }
 
-    if (keyCode === 13) {
+    if (key === 'Enter') {
       this.handleClickSuggestionItem(suggestions[activeSuggestion]);
       return;
     }
 
-    if (keyCode === 38) {
+    if (key === 'ArrowUp') {
       if (activeSuggestion === 0) {
         return;
       }
@@ -367,7 +367,7 @@ class SourceField extends Component<Props, State> {
       return;
     }
 
-    if (keyCode === 40) {
+    if (key === 'ArrowDown') {
       if (activeSuggestion === suggestions.length - 1) {
         return;
       }

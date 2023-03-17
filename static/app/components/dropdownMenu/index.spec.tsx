@@ -3,7 +3,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 
 describe('DropdownMenu', function () {
-  it('renders a basic menu', function () {
+  it('renders a basic menu', async function () {
     const onAction = jest.fn();
 
     render(
@@ -26,7 +26,7 @@ describe('DropdownMenu', function () {
     );
 
     // Open the mneu
-    userEvent.click(screen.getByRole('button', {name: 'This is a Menu'}));
+    await userEvent.click(screen.getByRole('button', {name: 'This is a Menu'}));
 
     // The mneu is open
     expect(screen.getByRole('menu')).toBeInTheDocument();
@@ -47,11 +47,11 @@ describe('DropdownMenu', function () {
       screen.getByRole('menuitemradio', {name: 'Item Two'})
     ).toHaveAccessibleDescription('Another description here');
 
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Item One'}));
     expect(onAction).toHaveBeenCalled();
   });
 
-  it('renders disabled items', function () {
+  it('renders disabled items', async function () {
     const onAction = jest.fn();
 
     render(
@@ -68,7 +68,7 @@ describe('DropdownMenu', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
     const menuItem = screen.getByRole('menuitemradio', {name: 'Item One'});
 
@@ -77,11 +77,11 @@ describe('DropdownMenu', function () {
     // See: https://github.com/testing-library/jest-dom/issues/144#issuecomment-577235097
     expect(menuItem).toHaveAttribute('aria-disabled', 'true');
 
-    userEvent.click(menuItem);
+    await userEvent.click(menuItem);
     expect(onAction).not.toHaveBeenCalled();
   });
 
-  it('renders submenus', function () {
+  it('renders submenus', async function () {
     const onAction = jest.fn();
 
     render(
@@ -108,7 +108,7 @@ describe('DropdownMenu', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
     // Sub item won't be visible until we hover over it's parent
     expect(
@@ -120,25 +120,25 @@ describe('DropdownMenu', function () {
     expect(parentItem).toHaveAttribute('aria-haspopup', 'true');
     expect(parentItem).toHaveAttribute('aria-expanded', 'false');
 
-    userEvent.hover(parentItem);
+    await userEvent.hover(parentItem);
 
     // The sub item is now visibile
     const subItem = screen.getByRole('menuitemradio', {name: 'Sub Item'});
     expect(subItem).toBeInTheDocument();
 
     // Menu does not close when hovering over it
-    userEvent.unhover(parentItem);
-    userEvent.hover(subItem);
+    await userEvent.unhover(parentItem);
+    await userEvent.hover(subItem);
     expect(subItem).toBeInTheDocument();
 
     // Menu is closed when hovering the other menu item
-    userEvent.unhover(subItem);
-    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item Two'}));
+    await userEvent.unhover(subItem);
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item Two'}));
     expect(subItem).not.toBeInTheDocument();
 
     // Click the menu item
-    userEvent.hover(parentItem);
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.hover(parentItem);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
     expect(onAction).toHaveBeenCalled();
 
     // Entire menu system is closed
@@ -148,20 +148,20 @@ describe('DropdownMenu', function () {
     );
 
     // Pressing Esc closes the entire menu system
-    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
-    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
-    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
-    userEvent.keyboard('{Esc}');
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.keyboard('{Escape}');
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'
     );
 
     // Clicking outside closes the entire menu system
-    userEvent.click(screen.getByRole('button', {name: 'Menu'}));
-    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
-    userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
-    userEvent.click(document.body);
+    await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Sub Item'}));
+    await userEvent.click(document.body);
     expect(screen.getByRole('button', {name: 'Menu'})).toHaveAttribute(
       'aria-expanded',
       'false'

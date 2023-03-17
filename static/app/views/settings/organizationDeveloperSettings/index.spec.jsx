@@ -86,16 +86,16 @@ describe('Organization Developer Settings', function () {
       const deleteButton = await screen.findByRole('button', {name: 'Delete'});
       expect(deleteButton).toHaveAttribute('aria-disabled', 'false');
 
-      userEvent.click(deleteButton);
+      await userEvent.click(deleteButton);
       renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
 
       const input = await within(dialog).findByPlaceholderText('sample-app');
-      userEvent.paste(input, 'sample-app');
+      await userEvent.type(input, 'sample-app');
       const confirmDeleteButton = await screen.findByRole('button', {name: 'Confirm'});
 
-      userEvent.click(confirmDeleteButton);
+      await userEvent.click(confirmDeleteButton);
 
       await screen.findByText('No public integrations have been created yet.');
     });
@@ -116,9 +116,9 @@ describe('Organization Developer Settings', function () {
       const publishButton = await screen.findByRole('button', {name: 'Publish'});
 
       expect(publishButton).toHaveAttribute('aria-disabled', 'false');
-      userEvent.click(publishButton);
+      await userEvent.click(publishButton);
 
-      const {waitForModalToHide} = renderGlobalModal();
+      renderGlobalModal();
       const dialog = await screen.findByRole('dialog');
       expect(dialog).toBeInTheDocument();
       const questionnaire = [
@@ -140,7 +140,7 @@ describe('Organization Developer Settings', function () {
 
       for (const {question, answer} of questionnaire) {
         const element = within(dialog).getByRole('textbox', {name: question});
-        userEvent.paste(element, answer);
+        await userEvent.type(element, answer);
       }
 
       const requestPublishButton = await within(dialog).findByLabelText(
@@ -148,9 +148,7 @@ describe('Organization Developer Settings', function () {
       );
       expect(requestPublishButton).toHaveAttribute('aria-disabled', 'false');
 
-      userEvent.click(requestPublishButton);
-
-      await waitForModalToHide();
+      await userEvent.click(requestPublishButton);
 
       expect(mock).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/publish-request/`,

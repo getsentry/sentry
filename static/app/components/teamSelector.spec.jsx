@@ -47,33 +47,33 @@ describe('Team Selector', function () {
     TeamStore.loadInitialData(teams);
   });
 
-  it('renders options', function () {
+  it('renders options', async function () {
     createWrapper();
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
     expect(screen.getByText('#team2')).toBeInTheDocument();
     expect(screen.getByText('#team3')).toBeInTheDocument();
   });
 
-  it('selects an option', function () {
+  it('selects an option', async function () {
     const onChangeMock = jest.fn();
     createWrapper({onChange: onChangeMock});
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     const option = screen.getByText('#team1');
-    userEvent.click(option);
+    await userEvent.click(option);
     expect(onChangeMock).toHaveBeenCalledWith(
       expect.objectContaining({value: 'team1'}),
       expect.anything()
     );
   });
 
-  it('respects the team filter', function () {
+  it('respects the team filter', async function () {
     const teamFilter = team => team.slug === 'team1';
     createWrapper({teamFilter});
 
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -82,9 +82,9 @@ describe('Team Selector', function () {
     expect(screen.queryByText('#team3')).not.toBeInTheDocument();
   });
 
-  it('respects the project filter', function () {
+  it('respects the project filter', async function () {
     createWrapper({project});
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -92,10 +92,10 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button').length).toBe(2);
   });
 
-  it('respects the team and project filter', function () {
+  it('respects the team and project filter', async function () {
     const teamFilter = team => team.slug === 'team1' || team.slug === 'team2';
     createWrapper({teamFilter, project});
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
@@ -106,16 +106,16 @@ describe('Team Selector', function () {
     expect(screen.getAllByRole('button').length).toBe(1);
   });
 
-  it('allows you to add teams outside of project', function () {
+  it('allows you to add teams outside of project', async function () {
     createWrapper({project});
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
 
     // team2 and team3 should have add to project buttons
     const addToProjectButtons = screen.getAllByRole('button');
 
-    userEvent.click(addToProjectButtons[0]);
+    await userEvent.click(addToProjectButtons[0]);
 
     expect(addTeamToProject).toHaveBeenCalled();
   });
@@ -123,16 +123,16 @@ describe('Team Selector', function () {
   it('allows searching by slug with useId', async function () {
     const onChangeMock = jest.fn();
     createWrapper({useId: true, onChange: onChangeMock});
-    userEvent.type(screen.getByText('Select...'), '{keyDown}');
+    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/teams/`,
     });
 
-    userEvent.type(screen.getByLabelText('Select a team'), 'team2');
+    await userEvent.type(screen.getByLabelText('Select a team'), 'team2');
 
     expect(screen.getByText('#team2')).toBeInTheDocument();
-    userEvent.click(screen.getByText('#team2'));
+    await userEvent.click(screen.getByText('#team2'));
     expect(onChangeMock).toHaveBeenCalledWith(
       expect.objectContaining({value: '2'}),
       expect.anything()

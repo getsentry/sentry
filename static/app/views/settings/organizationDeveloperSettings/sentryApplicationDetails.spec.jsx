@@ -67,21 +67,22 @@ describe('Sentry Application Details', function () {
     it('saves', async function () {
       renderComponent();
 
-      userEvent.paste(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
-      userEvent.paste(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Test App');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Author'}), 'Sentry');
 
-      userEvent.paste(
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Webhook URL'}),
         'https://webhook.com'
       );
 
-      userEvent.paste(
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Redirect URL'}),
         'https://webhook.com/setup'
       );
 
-      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
-      userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}), '');
+      await userEvent.paste('{}');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Rule Action'}));
 
       await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
       await selectEvent.select(
@@ -89,9 +90,9 @@ describe('Sentry Application Details', function () {
         'Admin'
       );
 
-      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       const data = {
         name: 'Test App',
@@ -344,7 +345,7 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
-      userEvent.click(screen.getByRole('button', {name: 'New Token'}));
+      await userEvent.click(screen.getByRole('button', {name: 'New Token'}));
 
       await waitFor(() => {
         expect(screen.getAllByRole('textbox', {name: 'Token value'})).toHaveLength(2);
@@ -359,15 +360,15 @@ describe('Sentry Application Details', function () {
       });
 
       renderComponent();
-      userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Revoke'}));
       expect(await screen.findByText('No tokens created yet.')).toBeInTheDocument();
     });
 
-    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', () => {
+    it('removing webhookURL unsets isAlertable and changes webhookDisabled to true', async () => {
       renderComponent();
 
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).toBeChecked();
-      userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}), '');
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Webhook URL'}), '');
       expect(screen.getByRole('checkbox', {name: 'Alert Rule Action'})).not.toBeChecked();
     });
   });
@@ -401,20 +402,21 @@ describe('Sentry Application Details', function () {
       });
     });
 
-    it('updates app with correct data', function () {
+    it('updates app with correct data', async function () {
       renderComponent();
 
-      userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
-      userEvent.paste(
+      await userEvent.clear(screen.getByRole('textbox', {name: 'Redirect URL'}));
+      await userEvent.type(
         screen.getByRole('textbox', {name: 'Redirect URL'}),
         'https://hello.com/'
       );
 
-      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
+      await userEvent.paste('{}');
 
-      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
@@ -431,16 +433,17 @@ describe('Sentry Application Details', function () {
     it('submits with no-access for event subscription when permission is revoked', async () => {
       renderComponent();
 
-      userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
 
-      userEvent.paste(screen.getByRole('textbox', {name: 'Schema'}), '{}');
+      await userEvent.click(screen.getByRole('textbox', {name: 'Schema'}));
+      await userEvent.paste('{}');
 
       await selectEvent.select(
         screen.getByRole('textbox', {name: 'Issue & Event'}),
         'No Access'
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(editAppRequest).toHaveBeenCalledWith(
         `/sentry-apps/${sentryApp.slug}/`,
@@ -490,7 +493,7 @@ describe('Sentry Application Details', function () {
     it('renders the error', async () => {
       renderComponent();
 
-      userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
       expect(
         await screen.findByText(

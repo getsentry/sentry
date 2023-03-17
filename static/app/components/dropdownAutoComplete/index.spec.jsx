@@ -26,7 +26,7 @@ describe('DropdownAutoComplete', function () {
     expect(screen.getByRole('button')).toHaveTextContent('Click Me!');
   });
 
-  it('does not allow the dropdown to be closed without allowActorToggle', function () {
+  it('does not allow the dropdown to be closed without allowActorToggle', async function () {
     render(
       <DropdownAutoComplete items={items}>{() => 'Click Me!'}</DropdownAutoComplete>
     );
@@ -38,17 +38,17 @@ describe('DropdownAutoComplete', function () {
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
     // Clicking once opens the menu
-    userEvent.click(actor);
+    await userEvent.click(actor);
     expect(actor).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('listbox')).toBeInTheDocument();
 
     // Clicking again does not close the menu
-    userEvent.click(actor);
+    await userEvent.click(actor);
     expect(actor).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('toggles dropdown menu when actor is clicked and allowActorToggle=true', function () {
+  it('toggles dropdown menu when actor is clicked and allowActorToggle=true', async function () {
     render(
       <DropdownAutoComplete allowActorToggle items={items}>
         {() => 'Click Me!'}
@@ -57,12 +57,12 @@ describe('DropdownAutoComplete', function () {
     const actor = screen.getByRole('button');
 
     // Clicking once opens
-    userEvent.click(actor);
+    await userEvent.click(actor);
     expect(actor).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('listbox')).toBeInTheDocument();
 
     // Clicking again closes
-    userEvent.click(actor);
+    await userEvent.click(actor);
     expect(actor).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });

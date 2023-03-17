@@ -31,7 +31,7 @@ describe('StackTracePreview', () => {
       </StackTracePreview>
     );
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     await waitFor(() => {
       expect(mockGet).toHaveBeenCalled();
@@ -46,7 +46,7 @@ describe('StackTracePreview', () => {
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     await waitFor(() => {
       expect(mockGet).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe('StackTracePreview', () => {
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByText(/Failed to load stack trace/)).toBeInTheDocument();
   });
@@ -74,7 +74,7 @@ describe('StackTracePreview', () => {
 
     render(<StackTracePreview issueId="issue">Preview Trigger</StackTracePreview>);
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(
       await screen.findByText(/There is no stack trace available for this issue./)
@@ -144,7 +144,7 @@ describe('StackTracePreview', () => {
       organization: {features},
     });
 
-    userEvent.hover(screen.getByText(/Preview Trigger/));
+    await userEvent.hover(screen.getByText(/Preview Trigger/));
 
     expect(await screen.findByTestId(component)).toBeInTheDocument();
   });

@@ -13,7 +13,7 @@ describe('ConfirmDelete', function () {
     ModalStore.reset();
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -21,13 +21,13 @@ describe('ConfirmDelete', function () {
       </ConfirmDelete>
     );
     const globalModal = renderGlobalModal();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // jest had an issue rendering root component snapshot so using ModalDialog instead
     expect(globalModal.container).toSnapshot();
   });
 
-  it('confirm button is disabled and bypass prop is false when modal opens', function () {
+  it('confirm button is disabled and bypass prop is false when modal opens', async function () {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -35,12 +35,12 @@ describe('ConfirmDelete', function () {
       </ConfirmDelete>
     );
     renderGlobalModal();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button stays disabled with non-matching input', function () {
+  it('confirm button stays disabled with non-matching input', async function () {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -48,13 +48,13 @@ describe('ConfirmDelete', function () {
       </ConfirmDelete>
     );
     renderGlobalModal();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
-    userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'Cool');
+    await userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'Cool');
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeDisabled();
   });
 
-  it('confirm button is enabled when confirm input matches', function () {
+  it('confirm button is enabled when confirm input matches', async function () {
     const mock = jest.fn();
     render(
       <ConfirmDelete message="Are you sure?" onConfirm={mock} confirmInput="CoolOrg">
@@ -62,12 +62,12 @@ describe('ConfirmDelete', function () {
       </ConfirmDelete>
     );
     renderGlobalModal();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
-    userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'CoolOrg');
+    await userEvent.type(screen.getByPlaceholderText('CoolOrg'), 'CoolOrg');
     expect(screen.getByRole('button', {name: 'Confirm'})).toBeEnabled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(mock).toHaveBeenCalled();
     expect(mock.mock.calls).toHaveLength(1);

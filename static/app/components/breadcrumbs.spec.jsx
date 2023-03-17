@@ -42,17 +42,17 @@ describe('Breadcrumbs', () => {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('generates correct links', () => {
+  it('generates correct links', async () => {
     createWrapper();
-    userEvent.click(screen.getByText('Test 1'));
+    await userEvent.click(screen.getByText('Test 1'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test1');
-    userEvent.click(screen.getByText('Test 2'));
+    await userEvent.click(screen.getByText('Test 2'));
     expect(routerContext.context.router.push).toHaveBeenCalledWith('/test2');
   });
 
-  it('does not make links where no `to` is provided', () => {
+  it('does not make links where no `to` is provided', async () => {
     createWrapper();
-    userEvent.click(screen.getByText('Test 3'));
+    await userEvent.click(screen.getByText('Test 3'));
     expect(routerContext.context.router.push).not.toHaveBeenCalled();
   });
 
@@ -78,12 +78,12 @@ describe('Breadcrumbs', () => {
       />,
       {context: routerContext}
     );
-    userEvent.hover(screen.getByText('dropdown crumb'));
+    await userEvent.hover(screen.getByText('dropdown crumb'));
 
     const item3 = await screen.findByText('item3');
     expect(item3).toBeInTheDocument();
 
-    userEvent.click(item3);
+    await userEvent.click(item3);
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({label: 'item3'}));
   });
 });

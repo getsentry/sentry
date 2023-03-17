@@ -114,9 +114,9 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
-    userEvent.click(screen.getByText('environment'));
+    await userEvent.click(screen.getByText('environment'));
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('link', {
         name: 'environment, abcd123, 66% of all events. View events with this tag value.',
       })
@@ -189,7 +189,9 @@ describe('Tags', function () {
     await waitForElementToBeRemoved(
       () => screen.queryAllByTestId('loading-placeholder')[0]
     );
-    userEvent.click(screen.getByRole('button', {name: 'Expand color tag distribution'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Expand color tag distribution'})
+    );
     expect(
       screen.getByRole('link', {
         name: 'Other color tag values, 16% of all events. View other tags.',

@@ -60,7 +60,7 @@ describe('SettingsLayout', function () {
     expect(getTestnav()).toBeInTheDocument();
   });
 
-  it('can toggle mobile navigation', function () {
+  it('can toggle mobile navigation', async function () {
     render(
       <BreadcrumbContextProvider>
         <SettingsLayout
@@ -76,7 +76,7 @@ describe('SettingsLayout', function () {
 
     expect(getTestnav()).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Open the menu'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Open the menu'}));
     expect(getTestnav()).toBeInTheDocument();
   });
 });

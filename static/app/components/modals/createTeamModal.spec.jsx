@@ -30,8 +30,8 @@ describe('CreateTeamModal', function () {
       />
     );
 
-    userEvent.type(screen.getByText('Team Name'), 'new-team');
-    userEvent.click(screen.getByLabelText('Create Team'));
+    await userEvent.type(screen.getByText('Team Name'), 'new-team');
+    await userEvent.click(screen.getByLabelText('Create Team'));
 
     await waitFor(() => expect(createTeam).toHaveBeenCalledTimes(1));
     expect(onClose).toHaveBeenCalled();

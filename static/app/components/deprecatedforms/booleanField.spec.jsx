@@ -18,13 +18,13 @@ describe('BooleanField', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('toggles', function () {
+  it('toggles', async function () {
     const onChange = jest.fn();
     render(<BooleanField name="fieldName" onChange={onChange} />);
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(true);
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
     expect(onChange).toHaveBeenCalledWith(false);
   });
 });

@@ -32,7 +32,7 @@ describe('tags table', function () {
       />
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(
@@ -71,7 +71,7 @@ describe('tags table', function () {
       />
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(

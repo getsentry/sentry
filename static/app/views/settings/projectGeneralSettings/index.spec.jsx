@@ -107,7 +107,7 @@ describe('projectGeneralSettings', function () {
     expect(getField('checkbox', 'Enable JavaScript source fetching')).not.toBeChecked();
   });
 
-  it('project admins can remove project', function () {
+  it('project admins can remove project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'DELETE',
@@ -115,11 +115,11 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
 
     // Click confirmation button
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
     expect(removePageFiltersStorage).toHaveBeenCalledWith('org-slug');
@@ -133,12 +133,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
     // Click confirmation button
     renderGlobalModal();
-    userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
@@ -165,12 +165,12 @@ describe('projectGeneralSettings', function () {
 
     render(<ProjectGeneralSettings params={{projectId: project.slug}} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
     // Click confirmation button
     renderGlobalModal();
-    userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.type(getField('textbox', 'Organization Owner'), 'billy@sentry.io');
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
@@ -271,13 +271,16 @@ describe('projectGeneralSettings', function () {
       {context: routerContext}
     );
 
-    userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), 'New Project');
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Name'}),
+      'New Project'
+    );
 
     // Slug does not save on blur
     expect(putMock).not.toHaveBeenCalled();
 
     // Saves when clicking save
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     // Redirects the user
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalled());
@@ -321,7 +324,7 @@ describe('projectGeneralSettings', function () {
       expect(autoResolveSlider).toHaveValue('12');
 
       // Click cancel
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
       await act(tick);
 
       // Cancel row should disappear
@@ -348,7 +351,7 @@ describe('projectGeneralSettings', function () {
       expect(putMock).not.toHaveBeenCalled();
 
       // Click "Save"
-      userEvent.click(screen.queryByRole('button', {name: 'Save'}));
+      await userEvent.click(screen.queryByRole('button', {name: 'Save'}));
       await act(tick);
 
       // API endpoint should have been called

@@ -61,7 +61,7 @@ describe('TraceView', () => {
       expect(screen.queryByTestId('span-row-3')).not.toBeInTheDocument();
     });
 
-    it('should expand grouped siblings when clicked, and then regroup when clicked again', async () => {
+    it('should expand grouped siblings when clicked, async and then regroup when clicked again', async () => {
       const builder = new TransactionEventBuilder();
 
       builder.addSpan(
@@ -81,7 +81,7 @@ describe('TraceView', () => {
       );
 
       const groupedSiblingsSpan = await screen.findByText('Autogrouped — http —');
-      userEvent.click(groupedSiblingsSpan);
+      await userEvent.click(groupedSiblingsSpan);
 
       await waitFor(() =>
         expect(screen.queryByText('Autogrouped — http —')).not.toBeInTheDocument()
@@ -93,7 +93,7 @@ describe('TraceView', () => {
 
       const regroupButton = await screen.findByText('Regroup');
       expect(regroupButton).toBeInTheDocument();
-      userEvent.click(regroupButton);
+      await userEvent.click(regroupButton);
 
       await waitFor(() =>
         expect(screen.queryByTestId('span-row-6')).not.toBeInTheDocument()
@@ -163,7 +163,7 @@ describe('TraceView', () => {
       expect(grouped).toBeInTheDocument();
     });
 
-    it('should expand/collapse only the sibling group that is clicked, even if multiple groups have the same op and description', async () => {
+    it('should expand/collapse only the sibling group that is clicked, async even if multiple groups have the same op and description', async () => {
       const builder = new TransactionEventBuilder();
 
       builder.addSpan(
@@ -204,19 +204,19 @@ describe('TraceView', () => {
       expect(screen.queryAllByText('group me')).toHaveLength(2);
 
       const firstGroup = screen.queryAllByText('Autogrouped — http —')[0];
-      userEvent.click(firstGroup);
+      await userEvent.click(firstGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
       const secondGroup = await screen.findByText('Autogrouped — http —');
-      userEvent.click(secondGroup);
+      await userEvent.click(secondGroup);
       expect(await screen.findAllByText('group me')).toHaveLength(10);
 
       const firstRegroup = screen.queryAllByText('Regroup')[0];
-      userEvent.click(firstRegroup);
+      await userEvent.click(firstRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(6);
 
       const secondRegroup = await screen.findByText('Regroup');
-      userEvent.click(secondRegroup);
+      await userEvent.click(secondRegroup);
       expect(await screen.findAllByText('group me')).toHaveLength(2);
     });
 
@@ -306,7 +306,7 @@ describe('TraceView', () => {
         'embedded-transaction-badge'
       );
       expect(embeddedTransactionBadge).toBeInTheDocument();
-      userEvent.click(embeddedTransactionBadge);
+      await userEvent.click(embeddedTransactionBadge);
       expect(fetchEmbeddedTransactionMock).toHaveBeenCalled();
       expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();
     });
@@ -433,7 +433,7 @@ describe('TraceView', () => {
         'embedded-transaction-badge'
       );
       expect(embeddedTransactionBadge).toBeInTheDocument();
-      userEvent.click(embeddedTransactionBadge);
+      await userEvent.click(embeddedTransactionBadge);
       expect(fetchEmbeddedTransactionMock1).toHaveBeenCalled();
       expect(fetchEmbeddedTransactionMock2).toHaveBeenCalled();
       expect(await screen.findByText(/i am embedded :\)/i)).toBeInTheDocument();

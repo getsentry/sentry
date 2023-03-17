@@ -50,10 +50,10 @@ const openMenu = async (row, column = 0) => {
 
   const labels = within(queryField).queryAllByTestId('label');
   if (labels.length > 0) {
-    userEvent.click(labels[column]);
+    await userEvent.click(labels[column]);
   } else {
     // For test adding a new column, no existing label.
-    userEvent.click(screen.getByText('(Required)'));
+    await userEvent.click(screen.getByText('(Required)'));
   }
 };
 
@@ -61,7 +61,7 @@ const selectByLabel = async (label, options) => {
   await openMenu(options.at);
   const menuOptions = screen.getAllByTestId('menu-list-item-label'); // TODO: Can likely switch to menuitem role and match against label
   const opt = menuOptions.find(e => e.textContent.includes(label));
-  userEvent.click(opt);
+  await userEvent.click(opt);
 };
 
 describe('Discover -> ColumnEditModal', function () {
@@ -110,7 +110,7 @@ describe('Discover -> ColumnEditModal', function () {
   ];
 
   describe('basic rendering', function () {
-    it('renders fields and basic controls, delete and grab buttons', async function () {
+    it('renders fields and basic controls, async delete and grab buttons', async function () {
       mountModal(
         {
           columns,
@@ -317,7 +317,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       await waitFor(() => {
         expect(onApply).toHaveBeenCalledWith([
@@ -361,7 +361,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['apdex', '300', undefined, undefined]},
@@ -387,7 +387,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['failure_rate', '', undefined, undefined]},
@@ -414,7 +414,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_miserable', 'user', '300', undefined]},
       ]);
@@ -440,7 +440,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_unique', '300', undefined, undefined]},
       ]);
@@ -465,7 +465,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
       ]);
@@ -485,23 +485,23 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
 
-      userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
+      await userEvent.hover(await screen.findByTestId('arithmeticErrorWarning'));
       expect(await screen.findByText('Division by 0 is not allowed')).toBeInTheDocument();
 
       const input = screen.getAllByRole('textbox')[0];
       expect(input).toHaveValue('1 / 0');
 
-      userEvent.clear(input);
-      userEvent.type(input, '1+1+1+1+1+1+1+1+1+1+1+1');
-      userEvent.click(document.body);
+      await userEvent.clear(input);
+      await userEvent.type(input, '1+1+1+1+1+1+1+1+1+1+1+1');
+      await userEvent.click(document.body);
 
       await waitFor(() => expect(input).toHaveValue('1+1+1+1+1+1+1+1+1+1+1+1'));
 
-      userEvent.hover(screen.getByTestId('arithmeticErrorWarning'));
+      await userEvent.hover(screen.getByTestId('arithmeticErrorWarning'));
       expect(await screen.findByText('Maximum operators exceeded')).toBeInTheDocument();
     });
 
-    it('resets required field to previous value if cleared', function () {
+    it('resets required field to previous value if cleared', async function () {
       const initialColumnVal = '0.6';
       mountModal(
         {
@@ -523,12 +523,12 @@ describe('Discover -> ColumnEditModal', function () {
 
       const input = screen.getAllByRole('textbox')[2]; // The numeric input
       expect(input).toHaveValue(initialColumnVal);
-      userEvent.clear(input);
-      userEvent.click(document.body); // Unfocusing the input should revert it to the previous value
+      await userEvent.clear(input);
+      await userEvent.click(document.body); // Unfocusing the input should revert it to the previous value
 
       expect(input).toHaveValue(initialColumnVal);
 
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {
           kind: 'function',
@@ -570,7 +570,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_if', 'user', 'equals', '300']},
         {kind: 'function', function: ['p95', '']},
@@ -601,7 +601,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
         {kind: 'equation', field: 'count() +  (count() - count()) * 5'},
@@ -634,7 +634,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       // Because spans.db is still a selected column it isn't swapped
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count', '', undefined, undefined]},
@@ -669,7 +669,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
         {kind: 'function', function: ['count', '', undefined, undefined]},
@@ -700,7 +700,7 @@ describe('Discover -> ColumnEditModal', function () {
       });
 
       // Apply the changes so we can see the new columns.
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
       // With the way the parser works only tokens up to the error will be updated
       expect(onApply).toHaveBeenCalledWith([
         {kind: 'function', function: ['count_unique', 'user', undefined, undefined]},
@@ -713,7 +713,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('adding rows', function () {
-    it('allows rows to be added, but only up to 20', async function () {
+    it('allows rows to be added, async but only up to 20', async function () {
       mountModal(
         {
           columns: [columns[0]],
@@ -723,7 +723,7 @@ describe('Discover -> ColumnEditModal', function () {
       );
       expect(await screen.findByTestId('queryField')).toBeInTheDocument();
       for (let i = 2; i <= 20; i++) {
-        userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
         expect(await screen.findAllByTestId('queryField')).toHaveLength(i);
       }
 
@@ -732,7 +732,7 @@ describe('Discover -> ColumnEditModal', function () {
   });
 
   describe('removing rows', function () {
-    it('allows rows to be removed, but not the last one', async function () {
+    it('allows rows to be removed, async but not the last one', async function () {
       mountModal(
         {
           columns: [columns[0], columns[1]],
@@ -742,7 +742,7 @@ describe('Discover -> ColumnEditModal', function () {
       );
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
-      userEvent.click(screen.getByTestId('remove-column-0'));
+      await userEvent.click(screen.getByTestId('remove-column-0'));
 
       expect(await screen.findByTestId('queryField')).toBeInTheDocument();
 
@@ -769,7 +769,7 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
       expect(await screen.findAllByTestId('queryField')).toHaveLength(3);
-      userEvent.click(screen.getByTestId('remove-column-0'));
+      await userEvent.click(screen.getByTestId('remove-column-0'));
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
@@ -794,7 +794,7 @@ describe('Discover -> ColumnEditModal', function () {
       expect(await screen.findAllByTestId('queryField')).toHaveLength(3);
       expect(screen.getByTestId('arithmeticErrorWarning')).toBeInTheDocument();
 
-      userEvent.click(screen.getByTestId('remove-column-0'));
+      await userEvent.click(screen.getByTestId('remove-column-0'));
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
@@ -814,22 +814,22 @@ describe('Discover -> ColumnEditModal', function () {
       );
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
       // Remove a column, then add a blank one an select a value in it.
-      userEvent.click(screen.getByTestId('remove-column-0'));
+      await userEvent.click(screen.getByTestId('remove-column-0'));
 
-      userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
 
       expect(await screen.findAllByTestId('queryField')).toHaveLength(2);
 
       await selectByLabel('title', {name: 'field', at: 1});
 
-      userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       expect(onApply).toHaveBeenCalledWith([columns[1], {kind: 'field', field: 'title'}]);
     });
   });
 
   describe('custom performance metrics', function () {
-    it('allows selecting custom performance metrics in dropdown', function () {
+    it('allows selecting custom performance metrics in dropdown', async function () {
       render(
         <ColumnEditModal
           Header={stubEl}
@@ -859,8 +859,8 @@ describe('Discover -> ColumnEditModal', function () {
         />
       );
       expect(screen.getByText('event.type')).toBeInTheDocument();
-      userEvent.click(screen.getByText('event.type'));
-      userEvent.type(screen.getAllByText('event.type')[0], 'custom');
+      await userEvent.click(screen.getByText('event.type'));
+      await userEvent.type(screen.getAllByText('event.type')[0], 'custom');
       expect(screen.getByText('measurements.custom.kibibyte')).toBeInTheDocument();
     });
   });

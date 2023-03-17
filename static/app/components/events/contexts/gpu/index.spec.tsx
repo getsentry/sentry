@@ -49,7 +49,7 @@ describe('gpu event context', function () {
     });
 
     expect(screen.getByText('API Type')).toBeInTheDocument(); // subject
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -59,7 +59,7 @@ describe('gpu event context', function () {
     ).toBeInTheDocument(); // tooltip description
 
     expect(screen.getByText('Name')).toBeInTheDocument(); // subject
-    userEvent.hover(screen.getAllByText(/redacted/)[1]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[1]);
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

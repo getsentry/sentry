@@ -208,7 +208,7 @@ describe('Quick Context Content Issue Column', function () {
 
       // When there's more than one commit, any past the first start out hidden
       const expandButton = await screen.findByTestId('expand-commit-list');
-      userEvent.click(expandButton);
+      await userEvent.click(expandButton);
 
       // Check that they're both there
       expect(screen.getByText(/MD/i)).toBeInTheDocument();

@@ -36,9 +36,9 @@ describe('CustomResolutionModal', () => {
 
     selectEvent.openMenu(screen.getByText('e.g. 1.0.4'));
     expect(await screen.findByText('1.2.0')).toBeInTheDocument();
-    userEvent.click(screen.getByText('1.2.0'));
+    await userEvent.click(screen.getByText('1.2.0'));
 
-    userEvent.click(screen.getByText('Save Changes'));
+    await userEvent.click(screen.getByText('Save Changes'));
     expect(onSelected).toHaveBeenCalledWith({
       inRelease: 'sentry-android-shop@1.2.0',
     });

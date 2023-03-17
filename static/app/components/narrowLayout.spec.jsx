@@ -20,7 +20,7 @@ describe('NarrowLayout', function () {
     expect(screen.getByText('Sign out')).toBeInTheDocument();
   });
 
-  it('can logout', function () {
+  it('can logout', async function () {
     const mock = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',
@@ -28,7 +28,7 @@ describe('NarrowLayout', function () {
     });
     render(<NarrowLayout showLogout />);
 
-    userEvent.click(screen.getByText('Sign out'));
+    await userEvent.click(screen.getByText('Sign out'));
     expect(mock).toHaveBeenCalled();
   });
 });

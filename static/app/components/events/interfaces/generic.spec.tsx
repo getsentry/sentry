@@ -19,7 +19,7 @@ describe('Generic entry', function () {
 
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(

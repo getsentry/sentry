@@ -26,7 +26,7 @@ describe('TeamMembers', () => {
     TeamStore.reset();
   });
 
-  it('can request membership', () => {
+  it('can request membership', async () => {
     const {routerContext} = initializeOrg({
       organization,
       router: {
@@ -44,7 +44,7 @@ describe('TeamMembers', () => {
       }
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Request Access'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Request Access'}));
     expect(joinMock).toHaveBeenCalled();
 
     expect(screen.queryByTestId('test')).not.toBeInTheDocument();

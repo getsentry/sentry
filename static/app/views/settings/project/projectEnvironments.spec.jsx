@@ -114,7 +114,7 @@ describe('ProjectEnvironments', function () {
       });
     });
 
-    it('hides', function () {
+    it('hides', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(false),
@@ -127,7 +127,7 @@ describe('ProjectEnvironments', function () {
       // XXX(epurkhiser): In the future we should improve the accessability of
       // lists, because right now there's no way to associate the hide button
       // with it's environment
-      userEvent.click(screen.getAllByRole('button', {name: 'Hide'})[0]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Hide'})[0]);
 
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}production/`,
@@ -137,7 +137,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('hides names requiring encoding', function () {
+    it('hides names requiring encoding', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: [{id: '1', name: '%app_env%', isHidden: false}],
@@ -150,7 +150,7 @@ describe('ProjectEnvironments', function () {
 
       renderComponent(false);
 
-      userEvent.click(screen.getByRole('button', {name: 'Hide'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Hide'}));
 
       expect(hideMock).toHaveBeenCalledWith(
         `${baseUrl}%25app_env%25/`,
@@ -160,7 +160,7 @@ describe('ProjectEnvironments', function () {
       );
     });
 
-    it('shows', function () {
+    it('shows', async function () {
       MockApiClient.addMockResponse({
         url: baseUrl,
         body: TestStubs.Environments(true),
@@ -168,7 +168,7 @@ describe('ProjectEnvironments', function () {
 
       renderComponent(true);
 
-      userEvent.click(screen.getByRole('button', {name: 'Show'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Show'}));
 
       expect(showMock).toHaveBeenCalledWith(
         `${baseUrl}zzz/`,

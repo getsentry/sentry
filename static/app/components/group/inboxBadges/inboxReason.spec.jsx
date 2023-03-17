@@ -26,7 +26,7 @@ describe('InboxReason', () => {
   it('has a tooltip', async () => {
     render(<InboxReason inbox={inbox} />);
     const tag = screen.getByText('New Issue');
-    userEvent.hover(tag);
+    await userEvent.hover(tag);
 
     expect(
       await screen.findByText('Mark Reviewed to remove this label')
@@ -50,7 +50,7 @@ describe('InboxReason', () => {
       />
     );
     const tag = screen.getByText('Unignored');
-    userEvent.hover(tag);
+    await userEvent.hover(tag);
 
     expect(await screen.findByText('Affected 10 user(s)')).toBeInTheDocument();
   });

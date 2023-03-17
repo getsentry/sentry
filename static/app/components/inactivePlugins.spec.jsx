@@ -17,11 +17,11 @@ describe('InactivePlugins', function () {
     expect(container).toSnapshot();
   });
 
-  it('enables a plugin', function () {
+  it('enables a plugin', async function () {
     const enableFn = jest.fn();
     const plugins = TestStubs.Plugins();
     render(<InactivePlugins onEnablePlugin={enableFn} plugins={plugins} />);
-    userEvent.click(screen.getByRole('button', {name: plugins[0].name}));
+    await userEvent.click(screen.getByRole('button', {name: plugins[0].name}));
     expect(enableFn).toHaveBeenCalledWith(expect.objectContaining(plugins[0]));
   });
 });

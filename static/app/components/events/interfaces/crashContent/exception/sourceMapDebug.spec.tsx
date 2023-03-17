@@ -171,7 +171,7 @@ describe('SourceMapDebug', () => {
       screen.queryByText(textWithMarkupMatcher(expandedMessage))
     ).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();

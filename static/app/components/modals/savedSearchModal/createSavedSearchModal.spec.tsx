@@ -51,9 +51,9 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is not changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
@@ -74,14 +74,14 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
-    userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    userEvent.type(
+    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
+    await userEvent.type(
       screen.getByRole('textbox', {name: /filter issues/i}),
       'is:resolved{enter}'
     );
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
@@ -107,15 +107,18 @@ describe('CreateSavedSearchModal', function () {
 
       render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
 
-      userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /name/i}),
+        'new search name'
+      );
 
       // Hovering over the visibility dropdown shows disabled reason
-      userEvent.hover(screen.getByText(/only me/i));
+      await userEvent.hover(screen.getByText(/only me/i));
       await screen.findByText(
         /only organization admins can create global saved searches/i
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Save'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
       await waitFor(() => {
         expect(createMock).toHaveBeenCalledWith(
@@ -136,9 +139,9 @@ describe('CreateSavedSearchModal', function () {
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {
       expect(createMock).toHaveBeenCalledWith(
         '/organizations/org-slug/searches/',

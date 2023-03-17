@@ -119,15 +119,15 @@ describe('Breadcrumbs', () => {
     it('should filter crumbs based on crumb message', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'hi');
 
       expect(
         await screen.findByText('Sorry, no breadcrumbs match your search query')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Clear'));
+      await userEvent.click(screen.getByLabelText('Clear'));
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'up');
 
       expect(
         screen.queryByText('Sorry, no breadcrumbs match your search query')
@@ -136,20 +136,20 @@ describe('Breadcrumbs', () => {
       expect(screen.getAllByText(textWithMarkupMatcher('sup'))).toHaveLength(3);
     });
 
-    it('should filter crumbs based on crumb level', function () {
+    it('should filter crumbs based on crumb level', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'war');
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
       expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(5);
     });
 
-    it('should filter crumbs based on crumb category', function () {
+    it('should filter crumbs based on crumb category', async function () {
       render(<Breadcrumbs {...props} />);
 
-      userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
+      await userEvent.type(screen.getByPlaceholderText('Search breadcrumbs'), 'error');
 
       expect(screen.getAllByText(textWithMarkupMatcher('error'))).toHaveLength(2);
     });
@@ -167,14 +167,14 @@ describe('Breadcrumbs', () => {
       expect(screen.getByTestId('last-crumb')).toBeInTheDocument();
     });
 
-    it('should display the correct number of crumbs with a filter', function () {
+    it('should display the correct number of crumbs with a filter', async function () {
       props.data.values = props.data.values.slice(0, 4);
 
       render(<Breadcrumbs {...props} />);
 
       const searchInput = screen.getByPlaceholderText('Search breadcrumbs');
 
-      userEvent.type(searchInput, 'sup');
+      await userEvent.type(searchInput, 'sup');
 
       expect(screen.queryByTestId('crumb')).not.toBeInTheDocument();
 

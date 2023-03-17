@@ -233,7 +233,7 @@ describe('ProjectsDashboard', function () {
           params={{orgId: org.slug}}
         />
       );
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('Search for projects by name'),
         'project2',
         '{enter}'

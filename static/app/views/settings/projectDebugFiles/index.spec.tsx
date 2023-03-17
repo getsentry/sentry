@@ -72,12 +72,12 @@ describe('ProjectDebugFiles', function () {
     renderGlobalModal();
 
     // Delete button
-    userEvent.click(screen.getByTestId('delete-dif'));
+    await userEvent.click(screen.getByTestId('delete-dif'));
 
     // Confirm Modal
     await screen.findByRole('dialog');
 
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(deleteMock).toHaveBeenCalled();
   });

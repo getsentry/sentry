@@ -41,7 +41,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
       </Fragment>
     );
 
-    userEvent.click(
+    await userEvent.click(
       await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
@@ -51,7 +51,7 @@ describe('OrganizationSecurityAndPrivacy', function () {
     jest.spyOn(console, 'error').mockImplementation(() => {});
 
     // Confirm but has API failure
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(
       await screen.findByRole('checkbox', {
@@ -83,14 +83,14 @@ describe('OrganizationSecurityAndPrivacy', function () {
       </Fragment>
     );
 
-    userEvent.click(
+    await userEvent.click(
       await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     );
 
     // Cancel
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
     expect(
       screen.getByRole('checkbox', {
@@ -114,13 +114,13 @@ describe('OrganizationSecurityAndPrivacy', function () {
       </Fragment>
     );
 
-    userEvent.click(
+    await userEvent.click(
       await screen.findByRole('checkbox', {
         name: 'Enable to require and enforce two-factor authentication for all members',
       })
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     expect(
       screen.getByRole('checkbox', {

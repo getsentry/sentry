@@ -22,7 +22,7 @@ describe('getCustomFieldRenderer', function () {
       ),
       {context: routerContext}
     );
-    userEvent.click(await screen.findByText('abcd'));
+    await userEvent.click(await screen.findByText('abcd'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/performance/trace/abcd/',
       query: {
@@ -51,7 +51,7 @@ describe('getCustomFieldRenderer', function () {
       {context: routerContext}
     );
 
-    userEvent.click(await screen.findByText('defg'));
+    await userEvent.click(await screen.findByText('defg'));
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/discover/${project.slug}:defg/`,
       query: {
@@ -89,7 +89,7 @@ describe('getCustomFieldRenderer', function () {
       {context: routerContext}
     );
 
-    userEvent.click(await screen.findByText('<< unparameterized >>'));
+    await userEvent.click(await screen.findByText('<< unparameterized >>'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         pathname: `/organizations/org-slug/discover/results/`,

@@ -26,7 +26,7 @@ describe('Confirm', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('renders custom confirm button & callbacks work', function () {
+  it('renders custom confirm button & callbacks work', async function () {
     const mock = jest.fn();
     render(
       <Confirm
@@ -42,16 +42,16 @@ describe('Confirm', function () {
       </Confirm>
     );
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('trigger-btn'));
+    await userEvent.click(screen.getByTestId('trigger-btn'));
 
     const confirmBtn = screen.getByTestId('confirm-btn');
     expect(confirmBtn).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
-    userEvent.click(confirmBtn);
+    await userEvent.click(confirmBtn);
     expect(mock).toHaveBeenCalled();
   });
-  it('renders custom cancel button & callbacks work', function () {
+  it('renders custom cancel button & callbacks work', async function () {
     const mock = jest.fn();
     render(
       <Confirm
@@ -67,16 +67,16 @@ describe('Confirm', function () {
       </Confirm>
     );
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('trigger-btn'));
+    await userEvent.click(screen.getByTestId('trigger-btn'));
 
     const cancelBtn = screen.getByTestId('cancel-btn');
     expect(cancelBtn).toBeInTheDocument();
 
     expect(mock).not.toHaveBeenCalled();
-    userEvent.click(cancelBtn);
+    await userEvent.click(cancelBtn);
     expect(mock).toHaveBeenCalled();
   });
-  it('clicking action button opens Modal', function () {
+  it('clicking action button opens Modal', async function () {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -85,12 +85,12 @@ describe('Confirm', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
-  it('clicks Confirm in modal and calls `onConfirm` callback', function () {
+  it('clicks Confirm in modal and calls `onConfirm` callback', async function () {
     const mock = jest.fn();
     render(
       <Confirm message="Are you sure?" onConfirm={mock}>
@@ -101,10 +101,10 @@ describe('Confirm', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     // Click "Confirm" button, should be last button
-    userEvent.click(screen.getByText('Confirm'));
+    await userEvent.click(screen.getByText('Confirm'));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(mock).toHaveBeenCalled();

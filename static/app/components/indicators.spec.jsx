@@ -10,7 +10,6 @@ import Indicators from 'sentry/components/indicators';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 
 // Make sure we use `duration: null` to test add/remove
-jest.useFakeTimers();
 
 jest.mock('framer-motion', () => ({
   ...jest.requireActual('framer-motion'),
@@ -20,7 +19,6 @@ jest.mock('framer-motion', () => ({
 describe('Indicators', function () {
   beforeEach(function () {
     act(() => clearIndicators());
-    act(jest.runAllTimers);
   });
 
   it('renders nothing by default', function () {
@@ -69,7 +67,6 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {duration: null}));
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
@@ -78,7 +75,6 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', 'loading', {duration: null}));
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
   });
@@ -88,12 +84,10 @@ describe('Indicators', function () {
 
     // action creators don't return anything
     act(() => addMessage('Loading', '', {duration: null}));
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
 
     // If no indicator is specified, will remove all indicators
     act(() => clearIndicators());
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
@@ -102,12 +96,10 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {duration: null}));
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('Loading');
 
     // Old indicator gets replaced when a new one is added
     act(() => addMessage('success', 'success', {duration: null}));
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('success');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
@@ -133,17 +125,14 @@ describe('Indicators', function () {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {append: true, duration: null}));
-    act(jest.runAllTimers);
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
     act(() => addMessage('Success', 'success', {append: true, duration: null}));
-    act(jest.runAllTimers);
     // Toasts get appended to the end
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
     expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
 
     act(() => addMessage('Error', 'error', {append: true, duration: null}));
-    act(jest.runAllTimers);
     // Toasts get appended to the end
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
     expect(screen.getByTestId('toast-success')).toHaveTextContent('Success');
@@ -151,25 +140,23 @@ describe('Indicators', function () {
 
     // clears all toasts
     act(() => clearIndicators());
-    act(jest.runAllTimers);
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
   });
 
-  it('dismisses on click', function () {
+  it('dismisses on click', async function () {
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Loading', '', {append: true, duration: null}));
-    act(jest.runAllTimers);
     expect(screen.getByTestId('toast')).toHaveTextContent('Loading');
 
-    userEvent.click(screen.getByTestId('toast'));
-    act(jest.runAllTimers);
+    await userEvent.click(screen.getByTestId('toast'));
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
   });
 
   it('hides after 10s', function () {
+    jest.useFakeTimers();
     const {container} = render(<Indicators />);
 
     act(() => addMessage('Duration', '', {append: true, duration: 10000}));
@@ -183,5 +170,6 @@ describe('Indicators', function () {
     act(() => jest.advanceTimersByTime(2));
     expect(container).toHaveTextContent('');
     expect(screen.queryByTestId('toast')).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 });

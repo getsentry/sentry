@@ -20,7 +20,7 @@ describe('ProjectPluginRow', function () {
     expect(container).toSnapshot();
   });
 
-  it('calls `onChange` when clicked', function () {
+  it('calls `onChange` when clicked', async function () {
     const onChange = jest.fn();
 
     render(
@@ -28,12 +28,12 @@ describe('ProjectPluginRow', function () {
       {context: routerContext}
     );
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     expect(onChange).toHaveBeenCalledWith('amazon-sqs', true);
   });
 
-  it('can not enable/disable or configure plugin without `project:write`', function () {
+  it('can not enable/disable or configure plugin without `project:write`', async function () {
     const onChange = jest.fn();
 
     render(
@@ -45,7 +45,7 @@ describe('ProjectPluginRow', function () {
       }
     );
 
-    userEvent.click(screen.getByRole('checkbox'));
+    await userEvent.click(screen.getByRole('checkbox'));
 
     expect(onChange).not.toHaveBeenCalled();
   });

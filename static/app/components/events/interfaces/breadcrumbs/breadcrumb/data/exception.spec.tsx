@@ -61,7 +61,7 @@ describe('Breadcrumb Data Exception', function () {
     expect(
       screen.getByText('<sentry_ios_cocoapods.ViewController: 0x100e09ec0>')
     ).toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -98,7 +98,7 @@ describe('Breadcrumb Data Exception', function () {
     expect(
       screen.queryByText('<sentry_ios_cocoapods.ViewController: 0x100e09ec0>')
     ).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

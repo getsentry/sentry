@@ -103,7 +103,7 @@ describe('Command Palette Modal', function () {
     // first two typed characters of a sequence in most cases. This test only
     // types two characters to match in-app behaviour even though it's unclear
     // why it works that way
-    userEvent.type(screen.getByRole('textbox'), 'bi');
+    await userEvent.type(screen.getByRole('textbox'), 'bi');
 
     expect(mockRequests.organization).toHaveBeenLastCalledWith(
       expect.anything(),
@@ -118,7 +118,7 @@ describe('Command Palette Modal', function () {
     expect(badges[0]).toHaveTextContent('billy-org Dashboard');
     expect(badges[1]).toHaveTextContent('billy-org Settings');
 
-    userEvent.click(badges[0]);
+    await userEvent.click(badges[0]);
 
     expect(navigateTo).toHaveBeenCalledWith('/billy-org/', expect.anything(), undefined);
   });

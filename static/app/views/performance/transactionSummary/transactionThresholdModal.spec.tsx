@@ -68,13 +68,13 @@ describe('TransactionThresholdModal', function () {
     });
   });
 
-  it('can update threshold', function () {
+  it('can update threshold', async function () {
     mountModal(eventView, organization, onApply);
 
-    userEvent.clear(screen.getByRole('spinbutton'));
-    userEvent.type(screen.getByRole('spinbutton'), '1000{enter}');
+    await userEvent.clear(screen.getByRole('spinbutton'));
+    await userEvent.type(screen.getByRole('spinbutton'), '1000{enter}');
 
-    userEvent.click(screen.getByTestId('apply-threshold'));
+    await userEvent.click(screen.getByTestId('apply-threshold'));
 
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
@@ -92,7 +92,7 @@ describe('TransactionThresholdModal', function () {
       'Transaction Duration'
     );
 
-    userEvent.click(screen.getByTestId('apply-threshold'));
+    await userEvent.click(screen.getByTestId('apply-threshold'));
 
     expect(postTransactionThresholdMock).toHaveBeenCalledWith(
       '/organizations/org-slug/project-transaction-threshold-override/',
@@ -123,7 +123,7 @@ describe('TransactionThresholdModal', function () {
       },
     });
 
-    userEvent.click(screen.getByTestId('reset-all'));
+    await userEvent.click(screen.getByTestId('reset-all'));
 
     expect(deleteTransactionThresholdMock).toHaveBeenCalledTimes(1);
     // Replace with project fallback

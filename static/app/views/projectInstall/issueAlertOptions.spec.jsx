@@ -115,7 +115,7 @@ describe('IssueAlertOptions', function () {
     expect(screen.getByTestId('range-input')).toHaveValue(null);
   });
 
-  it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', () => {
+  it('should provide fallthroughType with issue action for issue-alert-fallback-targeting', async () => {
     MockApiClient.addMockResponse({
       url: URL,
       body: TestStubs.MOCK_RESP_VERBOSE,
@@ -123,7 +123,7 @@ describe('IssueAlertOptions', function () {
     const org = {...organization, features: ['issue-alert-fallback-targeting']};
 
     render(<IssueAlertOptions {...props} organization={org} />);
-    userEvent.click(screen.getByLabelText(/When there are more than/i));
+    await userEvent.click(screen.getByLabelText(/When there are more than/i));
     expect(props.onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         actions: [

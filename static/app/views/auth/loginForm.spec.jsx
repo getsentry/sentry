@@ -5,10 +5,10 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import ConfigStore from 'sentry/stores/configStore';
 import LoginForm from 'sentry/views/auth/loginForm';
 
-function doLogin() {
-  userEvent.type(screen.getByRole('textbox', {name: 'Account'}), 'test@test.com');
-  userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
-  userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+async function doLogin() {
+  await userEvent.type(screen.getByRole('textbox', {name: 'Account'}), 'test@test.com');
+  await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
+  await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 }
 
 describe('LoginForm', function () {
@@ -27,7 +27,7 @@ describe('LoginForm', function () {
 
     const authConfig = {};
     render(<LoginForm api={api} authConfig={authConfig} />);
-    doLogin();
+    await doLogin();
 
     expect(await screen.findByText('Bad username password')).toBeInTheDocument();
   });
@@ -50,7 +50,7 @@ describe('LoginForm', function () {
 
     const authConfig = {};
     render(<LoginForm api={api} authConfig={authConfig} />);
-    doLogin();
+    await doLogin();
 
     expect(mockRequest).toHaveBeenCalledWith(
       '/auth/login/',

@@ -168,26 +168,26 @@ describe('OrganizationStats', function () {
   /**
    * Router Handling
    */
-  it('pushes state changes to the route', () => {
+  it('pushes state changes to the route', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    userEvent.click(screen.getByText('Category'));
-    userEvent.click(screen.getByText('Attachments'));
+    await userEvent.click(screen.getByText('Category'));
+    await userEvent.click(screen.getByText('Attachments'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
       })
     );
 
-    userEvent.click(screen.getByText('Periodic'));
-    userEvent.click(screen.getByText('Cumulative'));
+    await userEvent.click(screen.getByText('Periodic'));
+    await userEvent.click(screen.getByText('Cumulative'));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {transform: ChartDataTransform.CUMULATIVE},
       })
     );
     const inputQuery = 'proj-1';
-    userEvent.type(
+    await userEvent.type(
       screen.getByPlaceholderText('Filter your projects'),
       `${inputQuery}{enter}`
     );

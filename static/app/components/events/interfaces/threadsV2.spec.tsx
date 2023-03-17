@@ -228,21 +228,21 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle full stack trace button', function () {
+      it('toggle full stack trace button', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
+        await userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by display option', function () {
+      it('toggle sort by display option', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -256,8 +256,8 @@ describe('ThreadsV2', function () {
         expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
 
         // Switch to recent last
-        userEvent.click(screen.getByText('Newest'));
-        userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByText('Oldest'));
 
         // Recent last is checked
         expect(screen.getByText('Oldest')).toBeInTheDocument();
@@ -271,8 +271,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on recent first
-        userEvent.click(screen.getByText('Oldest'));
-        userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -285,7 +285,7 @@ describe('ThreadsV2', function () {
       it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -299,7 +299,7 @@ describe('ThreadsV2', function () {
         });
 
         // Hover over the Minified option
-        userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(displayOptions.minified));
 
         // Minified option is disabled
         expect(
@@ -880,21 +880,21 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle full stack trace button', function () {
+      it('toggle full stack trace button', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
+        await userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by option', function () {
+      it('toggle sort by option', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -903,7 +903,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Newest'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Newest'}));
 
         // Sort by options
         expect(screen.getAllByText('Newest')).toHaveLength(2);
@@ -916,7 +916,7 @@ describe('ThreadsV2', function () {
         );
 
         // Click on recent last
-        userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Oldest'));
 
         // Recent last is enabled
         expect(screen.queryByText('Newest')).not.toBeInTheDocument();
@@ -928,8 +928,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Switch back to recent first
-        userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
-        userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
+        await userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -942,7 +942,7 @@ describe('ThreadsV2', function () {
       it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -951,7 +951,7 @@ describe('ThreadsV2', function () {
         });
 
         // Hover over absolute file paths option
-        userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
+        await userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
 
         // Absolute file paths option is disabled
         expect(
@@ -959,7 +959,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Hover over Minified option
-        userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(displayOptions.minified));
 
         // Minified option is disabled
         expect(
@@ -974,7 +974,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on verbose function name option
-        userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
+        await userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
 
         // Function name is now verbose
         expect(
@@ -989,7 +989,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
-        userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
+        await userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
 
         // Address is now absolute
         expect(
@@ -1002,7 +1002,7 @@ describe('ThreadsV2', function () {
         });
 
         // Click on raw stack trace option
-        userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
         // Download button is displayed
         expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();

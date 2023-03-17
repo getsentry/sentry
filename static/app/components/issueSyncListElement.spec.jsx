@@ -8,15 +8,15 @@ describe('IssueSyncListElement', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('can open', function () {
+  it('can open', async function () {
     const onOpen = jest.fn();
     render(<IssueSyncListElement integrationType="github" onOpen={onOpen} />);
     expect(onOpen).not.toHaveBeenCalled();
-    userEvent.click(screen.getByText('GitHub Issue'));
+    await userEvent.click(screen.getByText('GitHub Issue'));
     expect(onOpen).toHaveBeenCalled();
   });
 
-  it('can close', function () {
+  it('can close', async function () {
     const onClose = jest.fn();
     const onOpen = jest.fn();
 
@@ -31,7 +31,7 @@ describe('IssueSyncListElement', function () {
     );
 
     expect(onClose).not.toHaveBeenCalled();
-    userEvent.click(screen.getByRole('button', {name: 'Close'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close'}));
     expect(onClose).toHaveBeenCalled();
   });
 });

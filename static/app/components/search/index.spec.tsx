@@ -68,20 +68,19 @@ const makeSearchProps = (partial: Partial<SearchProps> = {}): SearchProps => {
 describe('Search', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+  });
+
+  it('renders search results from source', async () => {
     jest.useFakeTimers();
-  });
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-  it('renders search results from source', () => {
     render(<Search {...makeSearchProps()} />, {
       context: TestStubs.routerContext(),
     });
 
-    userEvent.click(screen.getByPlaceholderText('Search Input'));
-    userEvent.keyboard('Export');
+    await userEvent.click(screen.getByPlaceholderText('Search Input'), {delay: null});
+    await userEvent.keyboard('Export', {delay: null});
 
     jest.advanceTimersByTime(500);
+    jest.useRealTimers();
 
     expect(
       screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Export/))
@@ -91,7 +90,7 @@ describe('Search', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('navigates to a route when item has to prop', () => {
+  it('navigates to a route when item has to prop', async () => {
     render(
       <Search
         {...makeSearchProps({
@@ -118,10 +117,10 @@ describe('Search', () => {
     // @ts-ignore this is a partial mock of the window object
     const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
 
-    userEvent.click(screen.getByPlaceholderText('Search Input'));
-    userEvent.keyboard('Import');
+    await userEvent.click(screen.getByPlaceholderText('Search Input'));
+    await userEvent.keyboard('Import');
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Import/))
     );
 
@@ -130,7 +129,7 @@ describe('Search', () => {
     expect(opener.location.href).toBe('https://vandelayindustries.io/import');
   });
 
-  it('calls item action when it is a function', () => {
+  it('calls item action when it is a function', async () => {
     render(
       <Search
         {...makeSearchProps({
@@ -157,10 +156,10 @@ describe('Search', () => {
     // @ts-ignore this is a partial mock of the window object
     const windowSpy = jest.spyOn(window, 'open').mockReturnValue(opener);
 
-    userEvent.click(screen.getByPlaceholderText('Search Input'));
-    userEvent.keyboard('Import');
+    await userEvent.click(screen.getByPlaceholderText('Search Input'));
+    await userEvent.keyboard('Import');
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByText(textWithMarkupMatcher(/Vandelay Industries - Import/))
     );
 
@@ -189,8 +188,8 @@ describe('Search', () => {
       }
     );
 
-    userEvent.click(screen.getByPlaceholderText('Search Input'));
-    userEvent.keyboard('Vandelay');
+    await userEvent.click(screen.getByPlaceholderText('Search Input'));
+    await userEvent.keyboard('Vandelay');
 
     expect(await screen.findAllByText(/Vandelay/)).toHaveLength(5);
     for (let i = 0; i < 5; i++) {
@@ -199,7 +198,7 @@ describe('Search', () => {
       ).toBeInTheDocument();
     }
   });
-  it('shows no search result', () => {
+  it('shows no search result', async () => {
     render(
       <Search
         {...makeSearchProps({
@@ -212,8 +211,8 @@ describe('Search', () => {
       }
     );
 
-    userEvent.click(screen.getByPlaceholderText('Search Input'));
-    userEvent.keyboard('Vandelay');
+    await userEvent.click(screen.getByPlaceholderText('Search Input'));
+    await userEvent.keyboard('Vandelay');
 
     expect(screen.getByText(/No results/)).toBeInTheDocument();
   });

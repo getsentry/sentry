@@ -69,7 +69,7 @@ describe('EventCustomPerformanceMetrics', function () {
     expect(screen.queryByText('Largest Contentful Paint')).not.toBeInTheDocument();
   });
 
-  it('should render custom performance metrics context menu', function () {
+  it('should render custom performance metrics context menu', async function () {
     const {router, organization} = initializeOrg();
     const event = TestStubs.Event({
       measurements: {
@@ -85,7 +85,7 @@ describe('EventCustomPerformanceMetrics', function () {
     );
 
     expect(screen.getByLabelText('Widget actions')).toBeInTheDocument();
-    userEvent.click(screen.getByLabelText('Widget actions'));
+    await userEvent.click(screen.getByLabelText('Widget actions'));
     expect(screen.getByText('Show events with this value')).toBeInTheDocument();
     expect(screen.getByText('Hide events with this value')).toBeInTheDocument();
     expect(screen.getByText('Show events with values greater than')).toBeInTheDocument();

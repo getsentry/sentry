@@ -61,7 +61,7 @@ describe('user event context', function () {
 
     expect(screen.getByText('ID')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -72,7 +72,7 @@ describe('user event context', function () {
 
     expect(screen.getByText('IP Address')).toBeInTheDocument(); // subject
     expect(screen.getByText('None')).toBeInTheDocument(); // value
-    userEvent.hover(screen.getByText('None'));
+    await userEvent.hover(screen.getByText('None'));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

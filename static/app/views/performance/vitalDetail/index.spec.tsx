@@ -251,10 +251,10 @@ describe('Performance > VitalDetail', function () {
     });
 
     // Fill out the search box, and submit it.
-    userEvent.type(
-      await screen.findByLabelText('Search events'),
-      'user.email:uhoh*{enter}'
-    );
+    await userEvent.click(await screen.findByLabelText('Search events'));
+    await userEvent.paste('user.email:uhoh*');
+    await userEvent.keyboard('{enter}');
+
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
@@ -296,7 +296,7 @@ describe('Performance > VitalDetail', function () {
       await screen.findByRole('heading', {name: 'Largest Contentful Paint'})
     ).toBeInTheDocument();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('See transaction summary of the transaction something')
     );
 
@@ -348,7 +348,7 @@ describe('Performance > VitalDetail', function () {
 
     expect(await screen.findByText('Cumulative Layout Shift')).toBeInTheDocument();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByLabelText('See transaction summary of the transaction something')
     );
 
@@ -375,7 +375,7 @@ describe('Performance > VitalDetail', function () {
     expect(screen.getByText('0.215').closest('td')).toBeInTheDocument();
   });
 
-  it('can switch vitals with dropdown menu', function () {
+  it('can switch vitals with dropdown menu', async function () {
     const newRouter = {
       ...router,
       location: {
@@ -403,11 +403,11 @@ describe('Performance > VitalDetail', function () {
 
     const button = screen.getByRole('button', {name: /web vitals: lcp/i});
     expect(button).toBeInTheDocument();
-    userEvent.click(button);
+    await userEvent.click(button);
 
     const menuItem = screen.getByRole('menuitemradio', {name: /fcp/i});
     expect(menuItem).toBeInTheDocument();
-    userEvent.click(menuItem);
+    await userEvent.click(menuItem);
 
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({

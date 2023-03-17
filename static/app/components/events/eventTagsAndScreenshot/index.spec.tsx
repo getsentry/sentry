@@ -305,7 +305,7 @@ describe('EventTagsAndScreenshot', function () {
       );
 
       // Display help text when hovering question element
-      userEvent.hover(screen.getByTestId('more-information'));
+      await userEvent.hover(screen.getByTestId('more-information'));
 
       expect(
         await screen.findByText(
@@ -314,7 +314,7 @@ describe('EventTagsAndScreenshot', function () {
       ).toBeInTheDocument();
 
       // Screenshot is clickable
-      userEvent.click(screen.getByTestId('image-viewer'));
+      await userEvent.click(screen.getByTestId('image-viewer'));
 
       // Open 'view screenshot' dialog
       expect(screen.getByRole('dialog')).toBeInTheDocument();
@@ -322,7 +322,7 @@ describe('EventTagsAndScreenshot', function () {
         within(screen.getByRole('dialog')).getByText('Screenshot')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText('Close Modal'));
+      await userEvent.click(screen.getByLabelText('Close Modal'));
 
       expect(container).toSnapshot();
     });
@@ -336,7 +336,7 @@ describe('EventTagsAndScreenshot', function () {
       });
     });
 
-    it('has context, tags and attachments', async function () {
+    it('has context, async tags and attachments', async function () {
       const {container} = render(
         <EventTagsAndScreenshot
           event={{...event, tags, contexts}}

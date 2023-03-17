@@ -177,12 +177,12 @@ describe('IssueRuleEditor', function () {
       });
       createWrapper();
       renderGlobalModal();
-      userEvent.click(screen.getByLabelText('Delete Rule'));
+      await userEvent.click(screen.getByLabelText('Delete Rule'));
 
       expect(
         await screen.findByText('Are you sure you want to delete this rule?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByTestId('confirm-button'));
 
       await waitFor(() => expect(deleteMock).toHaveBeenCalled());
       expect(browserHistory.replace).toHaveBeenCalledWith(
@@ -193,7 +193,7 @@ describe('IssueRuleEditor', function () {
     it('sends correct environment value', async function () {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'production');
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
@@ -210,7 +210,7 @@ describe('IssueRuleEditor', function () {
     it('strips environment value if "All environments" is selected', async function () {
       createWrapper();
       await selectEvent.select(screen.getByText('staging'), 'All Environments');
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
       expect(mock).not.toHaveBeenCalledWith(
@@ -225,7 +225,7 @@ describe('IssueRuleEditor', function () {
 
     it('updates the alert onboarding task', async function () {
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => expect(updateOnboardingTask).toHaveBeenCalledTimes(1));
       expect(metric.startTransaction).toHaveBeenCalledTimes(1);
@@ -324,7 +324,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -347,7 +347,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);
@@ -369,7 +369,7 @@ describe('IssueRuleEditor', function () {
         body: {uuid},
       });
       createWrapper();
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'), {delay: null});
 
       await waitFor(() => expect(addLoadingMessage).toHaveBeenCalledTimes(2));
       jest.advanceTimersByTime(1000);

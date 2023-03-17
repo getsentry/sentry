@@ -7,7 +7,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -123,10 +122,10 @@ describe('OrganizationMembersList', function () {
       context: TestStubs.routerContext([{organization}]),
     });
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
@@ -146,10 +145,10 @@ describe('OrganizationMembersList', function () {
       context: TestStubs.routerContext([{organization}]),
     });
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
 
@@ -168,10 +167,10 @@ describe('OrganizationMembersList', function () {
       context: TestStubs.routerContext([{organization}]),
     });
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
@@ -197,10 +196,10 @@ describe('OrganizationMembersList', function () {
       context: TestStubs.routerContext([{organization}]),
     });
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
@@ -223,10 +222,10 @@ describe('OrganizationMembersList', function () {
       context: TestStubs.routerContext([{organization}]),
     });
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
+    await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
 
@@ -235,7 +234,7 @@ describe('OrganizationMembersList', function () {
     expect(OrganizationsStore.getAll()).toEqual([organization]);
   });
 
-  it('can re-send SSO link to member', function () {
+  it('can re-send SSO link to member', async function () {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${members[0].id}/`,
       method: 'PUT',
@@ -250,11 +249,11 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Resend SSO link'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resend SSO link'}));
     expect(inviteMock).toHaveBeenCalled();
   });
 
-  it('can re-send invite to member', function () {
+  it('can re-send invite to member', async function () {
     const inviteMock = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/members/${members[1].id}/`,
       method: 'PUT',
@@ -269,11 +268,11 @@ describe('OrganizationMembersList', function () {
 
     expect(inviteMock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button', {name: 'Resend invite'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Resend invite'}));
     expect(inviteMock).toHaveBeenCalled();
   });
 
-  it('can search organization members', function () {
+  it('can search organization members', async function () {
     const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
@@ -285,7 +284,7 @@ describe('OrganizationMembersList', function () {
       context: routerContext,
     });
 
-    userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
+    await userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/members/',
@@ -297,12 +296,12 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    userEvent.keyboard('{enter}');
+    await userEvent.keyboard('{enter}');
 
     expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
   });
 
-  it('can filter members', function () {
+  it('can filter members', async function () {
     const searchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
       body: [],
@@ -312,8 +311,8 @@ describe('OrganizationMembersList', function () {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-    userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
 
     expect(searchMock).toHaveBeenLastCalledWith(
       '/organizations/org-slug/members/',
@@ -323,14 +322,16 @@ describe('OrganizationMembersList', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Member'}));
 
     for (const [filter, label] of [
       ['isInvited', 'Invited'],
       ['has2fa', '2FA'],
       ['ssoLinked', 'SSO Linked'],
     ]) {
-      userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+      );
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/members/',
@@ -340,7 +341,7 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
+      await userEvent.click(screen.getByRole('checkbox', {name: `Toggle ${label}`}));
 
       expect(searchMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/members/',
@@ -350,7 +351,9 @@ describe('OrganizationMembersList', function () {
         })
       );
 
-      userEvent.click(screen.getByRole('checkbox', {name: `Enable ${label} filter`}));
+      await userEvent.click(
+        screen.getByRole('checkbox', {name: `Enable ${label} filter`})
+      );
     }
   });
 
@@ -419,12 +422,12 @@ describe('OrganizationMembersList', function () {
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
-      userEvent.click(screen.getByRole('button', {name: 'Approve'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
       renderGlobalModal();
-      userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByTestId('confirm-button'));
 
-      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
+      expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
         'invite_request.approved',
@@ -459,9 +462,9 @@ describe('OrganizationMembersList', function () {
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
-      userEvent.click(screen.getByRole('button', {name: 'Deny'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
 
-      await waitForElementToBeRemoved(() => screen.queryByText('Pending Members'));
+      expect(screen.queryByText('Pending Members')).not.toBeInTheDocument();
 
       expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith('invite_request.denied', {
         invite_status: joinRequest.inviteStatus,
@@ -494,10 +497,10 @@ describe('OrganizationMembersList', function () {
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
 
-      userEvent.click(screen.getByRole('button', {name: 'Approve'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
       renderGlobalModal();
-      userEvent.click(screen.getByTestId('confirm-button'));
+      await userEvent.click(screen.getByTestId('confirm-button'));
 
       expect(updateWithApprove).toHaveBeenCalledWith(
         `/organizations/org-slug/invite-requests/${inviteRequest.id}/`,

@@ -28,11 +28,11 @@ describe('AwsLambdaCloudformation', () => {
     );
 
     // Open configuration fields
-    userEvent.click(screen.getByRole('button', {name: "I've created the stack"}));
+    await userEvent.click(screen.getByRole('button', {name: "I've created the stack"}));
 
     // XXX(epurkhiser): This form is pretty wonky with how it works, and
     // probably needs cleaned up again in the future. I couldn't get
-    // userEvent.type to work here because of something relating to the
+    // await userEvent.type to work here because of something relating to the
     // validation I think.
 
     // Fill out fields
@@ -44,7 +44,7 @@ describe('AwsLambdaCloudformation', () => {
     ]);
 
     expect(screen.getByRole('button', {name: 'Next'})).toBeEnabled();
-    userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     const query = qs.stringify({
       accountNumber: '599817902985',

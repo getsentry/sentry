@@ -21,13 +21,13 @@ describe('ProviderItem', function () {
     ).toBeInTheDocument();
   });
 
-  it('calls configure callback', function () {
+  it('calls configure callback', async function () {
     const mock = jest.fn();
     render(<ProviderItem organization={org} provider={provider} onConfigure={mock} />, {
       context: routerContext,
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Configure'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
     expect(mock).toHaveBeenCalledWith('dummy', expect.anything());
   });
 

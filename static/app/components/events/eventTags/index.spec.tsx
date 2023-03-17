@@ -32,7 +32,7 @@ describe('event tags', function () {
       {organization}
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -84,7 +84,7 @@ describe('event tags', function () {
     expect(screen.getByText('iOS')).toBeInTheDocument();
 
     expect(screen.getByText('app.device')).toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(

@@ -4,7 +4,7 @@ import {SwitchOrganization} from 'sentry/components/sidebar/sidebarDropdown/swit
 
 describe('SwitchOrganization', function () {
   const routerContext = TestStubs.routerContext();
-  it('can list organizations', function () {
+  it('can list organizations', async function () {
     jest.useFakeTimers();
     render(
       <SwitchOrganization
@@ -17,7 +17,7 @@ describe('SwitchOrganization', function () {
       {context: TestStubs.routerContext()}
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses organizationUrl when customer domain is enabled', function () {
+  it('uses organizationUrl when customer domain is enabled', async function () {
     jest.useFakeTimers();
     render(
       <SwitchOrganization
@@ -58,7 +58,7 @@ describe('SwitchOrganization', function () {
       {context: routerContext}
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
@@ -76,7 +76,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('does not use organizationUrl when customer domain is disabled', function () {
+  it('does not use organizationUrl when customer domain is disabled', async function () {
     jest.useFakeTimers();
     render(
       <SwitchOrganization
@@ -97,7 +97,7 @@ describe('SwitchOrganization', function () {
       {context: routerContext}
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
@@ -112,7 +112,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('uses sentryUrl when current org has customer domain enabled', function () {
+  it('uses sentryUrl when current org has customer domain enabled', async function () {
     jest.useFakeTimers();
     const currentOrg = TestStubs.Organization({
       name: 'Organization 2',
@@ -134,7 +134,7 @@ describe('SwitchOrganization', function () {
       {organization: currentOrg}
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('does not use sentryUrl when current org does not have customer domain feature', function () {
+  it('does not use sentryUrl when current org does not have customer domain feature', async function () {
     jest.useFakeTimers();
     const currentOrg = TestStubs.Organization({
       name: 'Organization 2',
@@ -187,7 +187,7 @@ describe('SwitchOrganization', function () {
       {organization: currentOrg, context: routerContext}
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();
@@ -205,13 +205,13 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('shows "Create an Org" if they have permission', function () {
+  it('shows "Create an Org" if they have permission', async function () {
     jest.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization organizations={[]} />, {
       context: routerContext,
     });
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
@@ -222,18 +222,18 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('does not have "Create an Org" if they do not have permission', function () {
+  it('does not have "Create an Org" if they do not have permission', async function () {
     jest.useFakeTimers();
     render(<SwitchOrganization canCreateOrganization={false} organizations={[]} />);
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.queryByTestId('sidebar-create-org')).not.toBeInTheDocument();
     jest.useRealTimers();
   });
 
-  it('uses sentry URL for "Create an Org"', function () {
+  it('uses sentry URL for "Create an Org"', async function () {
     const currentOrg = TestStubs.Organization({
       name: 'Organization',
       slug: 'org',
@@ -249,7 +249,7 @@ describe('SwitchOrganization', function () {
       organization: currentOrg,
     });
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('sidebar-create-org')).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('SwitchOrganization', function () {
     jest.useRealTimers();
   });
 
-  it('shows orgs pending deletion with a special icon', function () {
+  it('shows orgs pending deletion with a special icon', async function () {
     const orgPendingDeletion = TestStubs.Organization({
       slug: 'org-2',
       status: {id: 'pending_deletion', name: 'pending_deletion'},
@@ -274,14 +274,14 @@ describe('SwitchOrganization', function () {
       />
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByTestId('pending-deletion-icon')).toBeInTheDocument();
     jest.useRealTimers();
   });
 
-  it('renders when there is no current organization', function () {
+  it('renders when there is no current organization', async function () {
     // This can occur when disabled members of an organization will not have a current organization.
     jest.useFakeTimers();
     render(
@@ -294,7 +294,7 @@ describe('SwitchOrganization', function () {
       />
     );
 
-    userEvent.hover(screen.getByTestId('sidebar-switch-org'));
+    await userEvent.hover(screen.getByTestId('sidebar-switch-org'), {delay: null});
     act(() => jest.advanceTimersByTime(500));
 
     expect(screen.getByRole('list')).toBeInTheDocument();

@@ -243,7 +243,7 @@ describe('OsSummary', function () {
           }}
         />
       );
-      userEvent.hover(screen.getByText(/redacted/));
+      await userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
@@ -270,7 +270,7 @@ describe('OsSummary', function () {
           }}
         />
       );
-      userEvent.hover(screen.getByText(/redacted/));
+      await userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
@@ -325,7 +325,7 @@ describe('GpuSummary', function () {
           }}
         />
       );
-      userEvent.hover(screen.getByText(/redacted/));
+      await userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
           textWithMarkupMatcher(
@@ -497,7 +497,7 @@ describe('UserSummary', function () {
           }}
         />
       );
-      userEvent.hover(screen.getByText(/redacted/));
+      await userEvent.hover(screen.getByText(/redacted/));
       expect(
         await screen.findByText(
           textWithMarkupMatcher(

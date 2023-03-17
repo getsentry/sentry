@@ -167,11 +167,11 @@ describe('Request entry', function () {
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(5);
 
-    userEvent.click(await screen.findByLabelText('Expand'));
+    await userEvent.click(await screen.findByLabelText('Expand'));
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(7);
 
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
       await screen.findByText(

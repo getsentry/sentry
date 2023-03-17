@@ -56,7 +56,7 @@ describe('SelectField', function () {
       </Form>
     );
     await selectEvent.select(screen.getByText('Select...'), 'a');
-    userEvent.click(screen.getByText('submit'));
+    await userEvent.click(screen.getByText('submit'));
     expect(mock).toHaveBeenCalledWith(
       {fieldName: 'a'},
       expect.anything(),
@@ -106,7 +106,7 @@ describe('SelectField', function () {
         </Form>
       );
       await selectEvent.select(screen.getByText('Select...'), 'a');
-      userEvent.click(screen.getByText('submit'));
+      await userEvent.click(screen.getByText('submit'));
       expect(mock).toHaveBeenCalledWith(
         {fieldName: ['a']},
         expect.anything(),

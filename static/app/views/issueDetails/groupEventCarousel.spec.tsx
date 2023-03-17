@@ -51,31 +51,31 @@ describe('GroupEventCarousel', () => {
     );
   });
 
-  it('can copy event ID', () => {
+  it('can copy event ID', async () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    userEvent.click(screen.getByText(testEvent.id));
+    await userEvent.click(screen.getByText(testEvent.id));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(testEvent.id);
   });
 
-  it('can copy event link', () => {
+  it('can copy event link', async () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: /copy event link/i}));
+    await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: /copy event link/i}));
 
     expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
       `http://localhost/organizations/org-slug/issues/group-id/events/event-id/`
     );
   });
 
-  it('links to full event details when org has discover', () => {
+  it('links to full event details when org has discover', async () => {
     render(<GroupEventCarousel {...defaultProps} />, {
       organization: TestStubs.Organization({features: ['discover-basic']}),
     });
 
-    userEvent.click(screen.getByRole('button', {name: /event actions/i}));
+    await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
 
     expect(
       within(screen.getByRole('menuitemradio', {name: /full event details/i})).getByRole(
@@ -84,11 +84,11 @@ describe('GroupEventCarousel', () => {
     ).toHaveAttribute('href', `/organizations/org-slug/discover/project-slug:event-id/`);
   });
 
-  it('can open event JSON', () => {
+  it('can open event JSON', async () => {
     render(<GroupEventCarousel {...defaultProps} />);
 
-    userEvent.click(screen.getByRole('button', {name: /event actions/i}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7 B)'}));
+    await userEvent.click(screen.getByRole('button', {name: /event actions/i}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'JSON (7 B)'}));
 
     expect(window.open).toHaveBeenCalledWith(
       `/api/0/projects/org-slug/project-slug/events/event-id/json/`

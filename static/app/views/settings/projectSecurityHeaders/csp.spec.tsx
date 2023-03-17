@@ -40,7 +40,7 @@ describe('ProjectCspReports', function () {
     expect(container).toSnapshot();
   });
 
-  it('can enable default ignored sources', function () {
+  it('can enable default ignored sources', async function () {
     render(
       <ProjectCspReports
         route={{}}
@@ -61,7 +61,9 @@ describe('ProjectCspReports', function () {
     expect(mock).not.toHaveBeenCalled();
 
     // Click Regenerate Token
-    userEvent.click(screen.getByRole('checkbox', {name: 'Use default ignored sources'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Use default ignored sources'})
+    );
 
     expect(mock).toHaveBeenCalledWith(
       projectUrl,
@@ -76,7 +78,7 @@ describe('ProjectCspReports', function () {
     );
   });
 
-  it('can set additional ignored sources', function () {
+  it('can set additional ignored sources', async function () {
     render(
       <ProjectCspReports
         route={{}}
@@ -96,13 +98,13 @@ describe('ProjectCspReports', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.type(
+    await userEvent.type(
       screen.getByRole('textbox', {name: 'Additional ignored sources'}),
       'test\ntest2'
     );
 
     // Focus on other element, trigerring onBlur
-    userEvent.tab();
+    await userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
       projectUrl,

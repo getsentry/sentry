@@ -32,11 +32,11 @@ describe('OrganizationTeams', function () {
         />
       );
 
-    it('opens "create team modal" when creating a new team from header', function () {
+    it('opens "create team modal" when creating a new team from header', async function () {
       createWrapper();
 
       // Click "Create Team" in Panel Header
-      userEvent.click(screen.getByLabelText('Create Team'));
+      await userEvent.click(screen.getByLabelText('Create Team'));
 
       // action creator to open "create team modal" is called
       expect(openCreateTeamModal).toHaveBeenCalledWith(
@@ -84,7 +84,7 @@ describe('OrganizationTeams', function () {
       act(() => void TeamStore.loadInitialData(mockTeams, false, null));
 
       createWrapper({access: new Set([])});
-      act(() => void userEvent.click(screen.getByLabelText('Join Team')));
+      await userEvent.click(screen.getByLabelText('Join Team'));
       await act(() => tick());
 
       expect(getOrgMock).toHaveBeenCalledTimes(1);
@@ -240,7 +240,7 @@ describe('OrganizationTeams', function () {
       createWrapper({
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
-      userEvent.click(screen.getAllByLabelText('Approve')[0]);
+      await userEvent.click(screen.getAllByLabelText('Approve')[0]);
 
       await tick();
 
@@ -266,7 +266,7 @@ describe('OrganizationTeams', function () {
         onRemoveAccessRequest: onUpdateRequestListMock,
       });
 
-      userEvent.click(screen.getAllByLabelText('Deny')[0]);
+      await userEvent.click(screen.getAllByLabelText('Deny')[0]);
 
       await tick();
 

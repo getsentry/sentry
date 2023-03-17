@@ -59,15 +59,15 @@ describe('CodeOwnerFileTable', () => {
 
     expect(screen.getByText('example/repo-name')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Actions'}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Sync'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Sync'}));
 
     await waitFor(() => {
       expect(onUpdate).toHaveBeenCalledWith(newCodeowner);
     });
 
-    userEvent.click(screen.getByRole('button', {name: 'Actions'}));
-    userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Actions'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
     await waitFor(() => {
       expect(onDelete).toHaveBeenCalledWith(codeowner);

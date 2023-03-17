@@ -82,7 +82,7 @@ describe('Project Ownership', () => {
   });
 
   describe('with codeowners', () => {
-    it('codeowners button opens modal', () => {
+    it('codeowners button opens modal', async () => {
       org = TestStubs.Organization({
         features: ['integrations-codeowners'],
         access: ['org:integrations'],
@@ -100,7 +100,7 @@ describe('Project Ownership', () => {
       expect(screen.getByRole('button', {name: 'Import CODEOWNERS'})).toBeInTheDocument();
 
       // Opens modal
-      userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Import CODEOWNERS'}));
       expect(openModal).toHaveBeenCalled();
     });
   });
@@ -126,8 +126,8 @@ describe('Project Ownership', () => {
       );
 
       // Switch to Assign To Issue Owner
-      userEvent.click(screen.getByText('Auto-assign to suspect commits'));
-      userEvent.click(screen.getByText('Auto-assign to issue owner'));
+      await userEvent.click(screen.getByText('Auto-assign to suspect commits'));
+      await userEvent.click(screen.getByText('Auto-assign to issue owner'));
 
       await waitFor(() => {
         expect(updateOwnership).toHaveBeenCalledWith(

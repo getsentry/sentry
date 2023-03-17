@@ -28,11 +28,11 @@ describe('Tag', () => {
     );
     expect(screen.getByText('Tooltip')).toBeInTheDocument();
     expect(screen.queryByText('lorem ipsum')).not.toBeInTheDocument();
-    userEvent.hover(screen.getByText('Tooltip'));
+    await userEvent.hover(screen.getByText('Tooltip'));
     expect(await screen.findByText('lorem ipsum')).toBeInTheDocument();
   });
 
-  it('with dismiss', () => {
+  it('with dismiss', async () => {
     const mockCallback = jest.fn();
 
     render(
@@ -44,7 +44,7 @@ describe('Tag', () => {
     expect(screen.getByRole('button', {name: 'Dismiss'})).toBeInTheDocument();
 
     expect(mockCallback).toHaveBeenCalledTimes(0);
-    userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Dismiss'}));
     expect(mockCallback).toHaveBeenCalledTimes(1);
   });
 

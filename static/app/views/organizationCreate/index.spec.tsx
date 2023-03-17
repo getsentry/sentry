@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationCreate from 'sentry/views/organizationCreate';
@@ -26,7 +26,7 @@ describe('OrganizationCreate', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('creates a new org', function () {
+  it('creates a new org', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -37,27 +37,29 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
-    userEvent.click(
+    await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: 'I agree to the Terms of Service and the Privacy Policy',
       })
     );
-    userEvent.click(screen.getByText('Create Organization'));
+    await userEvent.click(screen.getByText('Create Organization'));
 
-    expect(orgCreateMock).toHaveBeenCalledWith(
-      '/organizations/',
-      expect.objectContaining({
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
-      })
-    );
+    await waitFor(() => {
+      expect(orgCreateMock).toHaveBeenCalledWith(
+        '/organizations/',
+        expect.objectContaining({
+          data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        })
+      );
+    });
     expect(window.location.assign).toHaveBeenCalledTimes(1);
     expect(window.location.assign).toHaveBeenCalledWith(
       '/organizations/org-slug/projects/new/'
     );
   });
 
-  it('creates a new org with customer domain feature', function () {
+  it('creates a new org with customer domain feature', async function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
@@ -70,20 +72,23 @@ describe('OrganizationCreate', function () {
     render(<OrganizationCreate />);
     expect(screen.getByText('Create a New Organization')).toBeInTheDocument();
 
-    userEvent.paste(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
-    userEvent.click(
+    await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
+    await userEvent.click(
       screen.getByRole('checkbox', {
         name: 'I agree to the Terms of Service and the Privacy Policy',
       })
     );
-    userEvent.click(screen.getByText('Create Organization'));
+    await userEvent.click(screen.getByText('Create Organization'));
 
-    expect(orgCreateMock).toHaveBeenCalledWith(
-      '/organizations/',
-      expect.objectContaining({
-        data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
-      })
-    );
+    await waitFor(() => {
+      expect(orgCreateMock).toHaveBeenCalledWith(
+        '/organizations/',
+        expect.objectContaining({
+          data: {agreeTerms: true, defaultTeam: true, name: 'Good Burger'},
+        })
+      );
+    });
+
     expect(window.location.assign).toHaveBeenCalledTimes(1);
     expect(window.location.assign).toHaveBeenCalledWith(
       'https://org-slug.sentry.io/projects/new/'

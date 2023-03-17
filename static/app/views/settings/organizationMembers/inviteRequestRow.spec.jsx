@@ -90,7 +90,7 @@ describe('InviteRequestRow', function () {
     expect(screen.getByRole('button', {name: 'Deny'})).toBeInTheDocument();
   });
 
-  it('admin can approve invite request', function () {
+  it('admin can approve invite request', async function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -106,16 +106,16 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Approve'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
     renderGlobalModal();
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(screen.getByTestId('confirm-button'));
 
     expect(mockApprove).toHaveBeenCalledWith(inviteRequest);
     expect(mockDeny).not.toHaveBeenCalled();
   });
 
-  it('admin can deny invite request', function () {
+  it('admin can deny invite request', async function () {
     const mockApprove = jest.fn();
     const mockDeny = jest.fn();
 
@@ -131,7 +131,7 @@ describe('InviteRequestRow', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Deny'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Deny'}));
 
     expect(mockDeny).toHaveBeenCalledWith(inviteRequest);
     expect(mockApprove).not.toHaveBeenCalled();

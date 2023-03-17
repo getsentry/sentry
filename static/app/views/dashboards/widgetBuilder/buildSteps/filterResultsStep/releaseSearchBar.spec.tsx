@@ -24,7 +24,7 @@ describe('Release Search Bar', function () {
     });
   });
 
-  it('does not allow search conditions with keys not equal to release, project, or environment', function () {
+  it('does not allow search conditions with keys not equal to release, project, or environment', async function () {
     render(
       <ReleaseSearchBar
         onClose={undefined}
@@ -42,9 +42,9 @@ describe('Release Search Bar', function () {
       />
     );
     const textbox = screen.getByRole('textbox');
-    userEvent.click(textbox);
-    userEvent.type(textbox, 'test-key:10 ');
-    userEvent.keyboard('{arrowleft}');
+    await userEvent.click(textbox);
+    await userEvent.type(textbox, 'test-key:10 ');
+    await userEvent.keyboard('{arrowleft}');
 
     expect(
       screen.getByText('Invalid key. "test-key" is not a supported search key.')

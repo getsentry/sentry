@@ -38,7 +38,7 @@ describe('AcceptProjectTransfer', function () {
     expect(getMock).toHaveBeenCalled();
   });
 
-  it('submits', function () {
+  it('submits', async function () {
     render(
       <AcceptProjectTransfer
         location={{
@@ -48,7 +48,7 @@ describe('AcceptProjectTransfer', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
 
     expect(postMock).toHaveBeenCalledWith(
       endpoint,

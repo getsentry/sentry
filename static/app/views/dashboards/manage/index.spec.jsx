@@ -69,12 +69,12 @@ describe('Dashboards > Detail', function () {
     ).toBeInTheDocument();
   });
 
-  it('creates new dashboard', function () {
+  it('creates new dashboard', async function () {
     const org = TestStubs.Organization({features: FEATURES});
 
     render(<ManageDashboards organization={org} location={{query: {}}} router={{}} />);
 
-    userEvent.click(screen.getByTestId('dashboard-create'));
+    await userEvent.click(screen.getByTestId('dashboard-create'));
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/dashboards/new/',

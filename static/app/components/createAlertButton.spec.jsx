@@ -39,14 +39,14 @@ describe('CreateAlertFromViewButton', () => {
     jest.resetAllMocks();
   });
 
-  it('should trigger onClick callback', () => {
+  it('should trigger onClick callback', async () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error',
       projects: [2],
     });
     renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
@@ -89,9 +89,9 @@ describe('CreateAlertFromViewButton', () => {
     expect(GuideStore.state.anchors).toEqual(new Set(['alerts_write_owner']));
   });
 
-  it('redirects to alert wizard with no project', () => {
+  it('redirects to alert wizard with no project', async () => {
     renderSimpleComponent(organization);
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(navigateTo).toHaveBeenCalledWith(
       `/organizations/org-slug/alerts/wizard/?`,
       expect.objectContaining({
@@ -113,14 +113,14 @@ describe('CreateAlertFromViewButton', () => {
     );
   });
 
-  it('removes a duplicate project filter', () => {
+  it('removes a duplicate project filter', async () => {
     const eventView = EventView.fromSavedQuery({
       ...DEFAULT_EVENT_VIEW,
       query: 'event.type:error project:project-slug',
       projects: [2],
     });
     renderComponent(organization, eventView);
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(context.context.router.push).toHaveBeenCalledWith({
       pathname: `/organizations/org-slug/alerts/new/metric/`,
       query: expect.objectContaining({

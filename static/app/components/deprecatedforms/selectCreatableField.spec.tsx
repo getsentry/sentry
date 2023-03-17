@@ -4,48 +4,48 @@ import Form from 'sentry/components/deprecatedforms/form';
 import SelectCreatableField from 'sentry/components/deprecatedforms/selectCreatableField';
 
 describe('SelectCreatableField', function () {
-  it('can add user input into select field when using options', function () {
+  it('can add user input into select field when using options', async function () {
     render(
       <SelectCreatableField options={[{value: 'foo', label: 'Foo'}]} name="fieldName" />
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'bar');
+    await userEvent.type(screen.getByRole('textbox'), 'bar');
     expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    userEvent.click(screen.getByText('Create "bar"'));
+    await userEvent.click(screen.getByText('Create "bar"'));
 
     // Should have 'bar' selected
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('can add user input into select field when using choices', function () {
+  it('can add user input into select field when using choices', async function () {
     render(<SelectCreatableField choices={['foo']} name="fieldName" />);
 
-    userEvent.type(screen.getByRole('textbox'), 'bar');
+    await userEvent.type(screen.getByRole('textbox'), 'bar');
     expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    userEvent.click(screen.getByText('Create "bar"'));
+    await userEvent.click(screen.getByText('Create "bar"'));
 
     // Should have 'bar' selected
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('can add user input into select field when using paired choices', function () {
+  it('can add user input into select field when using paired choices', async function () {
     render(<SelectCreatableField choices={[['foo', 'foo']]} name="fieldName" />);
 
-    userEvent.type(screen.getByRole('textbox'), 'bar');
+    await userEvent.type(screen.getByRole('textbox'), 'bar');
     expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    userEvent.click(screen.getByText('Create "bar"'));
+    await userEvent.click(screen.getByText('Create "bar"'));
 
     // Should have 'bar' selected
     expect(screen.getByText('bar')).toBeInTheDocument();
   });
 
-  it('with Form context', function () {
+  it('with Form context', async function () {
     const submitMock = jest.fn();
     render(
       <Form onSubmit={submitMock}>
@@ -54,13 +54,13 @@ describe('SelectCreatableField', function () {
       {}
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'bar');
+    await userEvent.type(screen.getByRole('textbox'), 'bar');
     expect(screen.getByRole('textbox')).toHaveValue('bar');
 
     // Click on create option
-    userEvent.click(screen.getByText('Create "bar"'));
+    await userEvent.click(screen.getByText('Create "bar"'));
 
-    userEvent.click(screen.getByRole('button', {name: /save/i}));
+    await userEvent.click(screen.getByRole('button', {name: /save/i}));
 
     expect(submitMock).toHaveBeenCalledWith(
       {

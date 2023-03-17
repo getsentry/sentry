@@ -344,7 +344,7 @@ describe('Performance > Content', function () {
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: '/apple/cart'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(data.router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -380,7 +380,7 @@ describe('Performance > Content', function () {
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     const link = screen.getByRole('button', {name: 'View Trends'});
 
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(pageFilters.updateDateTime).toHaveBeenCalledTimes(0);
 
@@ -428,7 +428,7 @@ describe('Performance > Content', function () {
     });
 
     const trendsLinks = await screen.findAllByTestId('landing-header-trends');
-    userEvent.click(trendsLinks[0]);
+    await userEvent.click(trendsLinks[0]);
 
     expect(await screen.findByTestId('performance-landing-v3')).toBeInTheDocument();
     expect(browserHistory.push).toHaveBeenCalledWith(

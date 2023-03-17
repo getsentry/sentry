@@ -107,7 +107,7 @@ describe('TransactionThresholdButton', function () {
 
     const button = screen.getByRole('button');
     await waitFor(() => expect(button).toBeEnabled());
-    userEvent.click(button);
+    await userEvent.click(button);
 
     renderGlobalModal();
 

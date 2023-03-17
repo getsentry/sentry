@@ -29,7 +29,7 @@ describe('Performance > Contexts > pageError', function () {
 
     const button = await screen.findByTestId('pageErrorButton');
 
-    userEvent.click(button);
+    await userEvent.click(button);
 
     expect(await screen.findByTestId('errorAlert')).toHaveTextContent('Fresh new error');
   });

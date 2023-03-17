@@ -68,8 +68,8 @@ function enterSearch(el, text) {
 }
 
 // Might swap on/off the skiphover to check perf later.
-function clickEl(el) {
-  userEvent.click(el, undefined, {skipHover: true, skipPointerEventsCheck: true});
+async function clickEl(el) {
+  await userEvent.click(el, {skipHover: true});
 }
 
 function _initializeData(
@@ -328,7 +328,7 @@ describe('Performance > Trends', function () {
     expect(menuActions).toHaveLength(3);
 
     const menuAction = menuActions[2];
-    clickEl(menuAction);
+    await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -384,7 +384,7 @@ describe('Performance > Trends', function () {
     expect(menuActions).toHaveLength(3);
 
     const menuAction = menuActions[0];
-    clickEl(menuAction);
+    await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -414,7 +414,7 @@ describe('Performance > Trends', function () {
     expect(menuActions).toHaveLength(3);
 
     const menuAction = menuActions[1];
-    clickEl(menuAction);
+    await clickEl(menuAction);
 
     expect(browserHistory.push).toHaveBeenCalledWith({
       query: expect.objectContaining({
@@ -439,11 +439,11 @@ describe('Performance > Trends', function () {
     for (const trendFunction of TRENDS_FUNCTIONS) {
       // Open dropdown
       const dropdown = await getTrendDropdown();
-      clickEl(dropdown);
+      await clickEl(dropdown);
 
       // Select function
       const option = screen.getByRole('option', {name: trendFunction.label});
-      clickEl(option);
+      await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({
@@ -518,11 +518,11 @@ describe('Performance > Trends', function () {
     for (const parameter of TRENDS_PARAMETERS) {
       // Open dropdown
       const dropdown = await getParameterDropdown();
-      clickEl(dropdown);
+      await clickEl(dropdown);
 
       // Select parameter
       const option = screen.getByRole('option', {name: parameter.label});
-      clickEl(option);
+      await clickEl(option);
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.objectContaining({

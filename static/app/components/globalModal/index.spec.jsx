@@ -29,7 +29,7 @@ describe('GlobalModal', function () {
     expect(screen.queryByTestId('modal-test')).not.toBeInTheDocument();
   });
 
-  it('calls onClose handler when close button is clicked', function () {
+  it('calls onClose handler when close button is clicked', async function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -44,12 +44,12 @@ describe('GlobalModal', function () {
       )
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
 
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when modal is clicked out of', function () {
+  it('calls onClose handler when modal is clicked out of', async function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -64,12 +64,12 @@ describe('GlobalModal', function () {
       )
     );
 
-    userEvent.click(screen.getByTestId('modal-backdrop'));
+    await userEvent.click(screen.getByTestId('modal-backdrop'));
 
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when escape key is pressed', function () {
+  it('calls onClose handler when escape key is pressed', async function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -85,12 +85,12 @@ describe('GlobalModal', function () {
     );
 
     expect(screen.getByText('Hi')).toBeInTheDocument();
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
 
     expect(closeSpy).toHaveBeenCalled();
   });
 
-  it('calls onClose handler when closeModal prop is called', function () {
+  it('calls onClose handler when closeModal prop is called', async function () {
     renderGlobalModal();
     const closeSpy = jest.fn();
 
@@ -100,7 +100,7 @@ describe('GlobalModal', function () {
       })
     );
 
-    userEvent.click(screen.getByRole('button', {name: 'Yo'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Yo'}));
 
     expect(closeSpy).toHaveBeenCalled();
   });
@@ -123,11 +123,11 @@ describe('GlobalModal', function () {
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Clicking outside of modal doesn't close
-    userEvent.click(screen.getByTestId('outside-test'));
+    await userEvent.click(screen.getByTestId('outside-test'));
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Pressing escape _does_ close
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
     await waitForModalToHide();
   });
@@ -150,12 +150,12 @@ describe('GlobalModal', function () {
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Clicking outside of modal doesn't close
-    userEvent.click(screen.getByTestId('modal-backdrop'));
+    await userEvent.click(screen.getByTestId('modal-backdrop'));
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
     expect(closeSpy).not.toHaveBeenCalled();
 
     // Pressing escape _does_ close
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     await waitForModalToHide();
     expect(closeSpy).toHaveBeenCalled();
   });
@@ -178,12 +178,12 @@ describe('GlobalModal', function () {
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Pressing escape doesn't close
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
     expect(closeSpy).not.toHaveBeenCalled();
 
     // Clicking outside of modal _does_ close
-    userEvent.click(screen.getByTestId('modal-backdrop'));
+    await userEvent.click(screen.getByTestId('modal-backdrop'));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
   });
@@ -206,15 +206,15 @@ describe('GlobalModal', function () {
     expect(screen.getByTestId('modal-test')).toBeInTheDocument();
 
     // Clicking outside of modal doesn't close
-    userEvent.click(screen.getByTestId('modal-backdrop'));
+    await userEvent.click(screen.getByTestId('modal-backdrop'));
     expect(closeSpy).not.toHaveBeenCalled();
 
     // Pressing escape doesn't close
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(closeSpy).not.toHaveBeenCalled();
 
     // Clicking an explicit close button does close
-    userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Close Modal'}));
     expect(closeSpy).toHaveBeenCalled();
     await waitForModalToHide();
   });

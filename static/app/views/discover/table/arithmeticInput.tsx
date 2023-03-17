@@ -206,6 +206,10 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
       this.blur();
       return;
     }
+
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      this.updateAutocompleteOptions();
+    }
   };
 
   handleKeyUp = (event: React.KeyboardEvent<HTMLInputElement>) => {

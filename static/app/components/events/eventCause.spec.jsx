@@ -154,11 +154,11 @@ describe('EventCause', function () {
       }
     );
 
-    userEvent.click(await screen.findByText('Show more'));
+    await userEvent.click(await screen.findByText('Show more'));
     expect(screen.getAllByTestId('commit-row')).toHaveLength(2);
 
     // and hides
-    userEvent.click(screen.getByText('Show less'));
+    await userEvent.click(screen.getByText('Show less'));
     expect(await screen.findByTestId('commit-row')).toBeInTheDocument();
   });
 

@@ -23,22 +23,22 @@ describe('Button', function () {
     expect(container).toSnapshot();
   });
 
-  it('calls `onClick` callback', function () {
+  it('calls `onClick` callback', async function () {
     const spy = jest.fn();
     render(<Button onClick={spy}>Click me</Button>);
-    userEvent.click(screen.getByText('Click me'));
+    await userEvent.click(screen.getByText('Click me'));
 
     expect(spy).toHaveBeenCalled();
   });
 
-  it('does not call `onClick` on disabled buttons', function () {
+  it('does not call `onClick` on disabled buttons', async function () {
     const spy = jest.fn();
     render(
       <Button onClick={spy} disabled>
         Click me
       </Button>
     );
-    userEvent.click(screen.getByText('Click me'));
+    await userEvent.click(screen.getByText('Click me'));
 
     expect(spy).not.toHaveBeenCalled();
   });

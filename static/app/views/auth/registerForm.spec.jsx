@@ -8,12 +8,12 @@ import RegisterForm from 'sentry/views/auth/registerForm';
 describe('Register', function () {
   const api = new MockApiClient();
 
-  function doLogin(apiRequest) {
-    userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
-    userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
-    userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
+  async function doLogin(apiRequest) {
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'joe');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Email'}), 'test@test.com');
+    await userEvent.type(screen.getByRole('textbox', {name: 'Password'}), '12345pass');
 
-    userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
     expect(apiRequest).toHaveBeenCalledWith(
       '/auth/register/',
@@ -42,7 +42,7 @@ describe('Register', function () {
     const authConfig = {};
 
     render(<RegisterForm api={api} authConfig={authConfig} />);
-    doLogin(mockRequest);
+    await doLogin(mockRequest);
 
     expect(await screen.findByText('Registration failed')).toBeInTheDocument();
   });
@@ -66,7 +66,7 @@ describe('Register', function () {
     const authConfig = {};
 
     render(<RegisterForm api={api} authConfig={authConfig} />);
-    doLogin(mockRequest);
+    await doLogin(mockRequest);
 
     await waitFor(() => expect(ConfigStore.get('user')).toEqual(userObject));
     expect(browserHistory.push).toHaveBeenCalledWith({pathname: '/next/'});
