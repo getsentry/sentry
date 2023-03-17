@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {fireEvent, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -73,7 +73,7 @@ describe('SettingsSearch', function () {
 
   it('can focus when hotkey is pressed', function () {
     render(<SettingsSearch />);
-    userEvent.keyboard('/', {keyboardMap: [{code: 'Slash', key: '/', keyCode: 191}]});
+    fireEvent.keyDown(document.body, {key: 'Slash', code: 'Slash', keyCode: 191});
     expect(screen.getByPlaceholderText('Search')).toHaveFocus();
   });
 
@@ -82,7 +82,7 @@ describe('SettingsSearch', function () {
       context: routerContext,
     });
 
-    userEvent.type(screen.getByPlaceholderText('Search'), 'bil{enter}');
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'bil');
 
     expect(orgsMock.mock.calls).toEqual([
       [
@@ -101,7 +101,7 @@ describe('SettingsSearch', function () {
       ],
     ]);
 
-    userEvent.click(
+    await userEvent.click(
       await screen.findByText(textWithMarkupMatcher('billy-org Dashboard'))
     );
 

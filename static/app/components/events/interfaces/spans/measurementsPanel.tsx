@@ -5,7 +5,7 @@ import {toPercent} from 'sentry/components/performance/waterfall/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
-import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import {Vital} from 'sentry/utils/performance/vitals/types';
 
 import {
@@ -48,7 +48,7 @@ function MeasurementsPanel(props: Props) {
         }
 
         const vitalLabels: VitalLabel[] = Object.keys(verticalMark.marks).map(name => ({
-          vital: WEB_VITAL_DETAILS[`measurements.${name}`],
+          vital: VITAL_DETAILS[`measurements.${name}`],
           isPoorValue: verticalMark.marks[name].failedThreshold,
         }));
 

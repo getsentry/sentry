@@ -13,7 +13,7 @@ export function useAggregateFlamegraphQuery({transaction}: {transaction: string}
   const conditions = new MutableSearch([]);
   conditions.setFilterValues('transaction_name', [transaction]);
 
-  return useQuery<Profiling.ProfileInput>(
+  return useQuery<Profiling.Schema>(
     [
       url,
       {

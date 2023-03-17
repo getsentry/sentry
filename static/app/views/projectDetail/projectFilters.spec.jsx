@@ -26,7 +26,7 @@ describe('ProjectDetail > ProjectFilters', () => {
       {context: TestStubs.routerContext()}
     );
 
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     // Should suggest all semver tags
     await screen.findByText('release');
@@ -35,7 +35,7 @@ describe('ProjectDetail > ProjectFilters', () => {
     expect(screen.getByText('.stage')).toBeInTheDocument();
     expect(screen.getByText('.version')).toBeInTheDocument();
 
-    userEvent.type(screen.getByRole('textbox'), 'release.version:');
+    await userEvent.type(screen.getByRole('textbox'), 'release.version:');
 
     await screen.findByText('sentry@0.5.3');
   });
