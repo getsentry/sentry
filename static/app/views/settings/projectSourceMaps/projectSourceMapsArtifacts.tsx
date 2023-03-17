@@ -203,11 +203,13 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         subtitle={
           <VersionAndDetails>
             {params.bundleId}
-            <DebugIdBundlesTags
-              dist={debugIdBundlesData?.[0]?.dist}
-              release={debugIdBundlesData?.[0]?.release}
-              loading={debugIdBundlesLoading}
-            />
+            {tabDebugIdBundlesActive && (
+              <DebugIdBundlesTags
+                dist={debugIdBundlesData?.[0]?.dist}
+                release={debugIdBundlesData?.[0]?.release}
+                loading={debugIdBundlesLoading}
+              />
+            )}
           </VersionAndDetails>
         }
       />
