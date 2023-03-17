@@ -1261,3 +1261,9 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
     ])
   );
 }
+
+export function isDeviceClass(key): boolean {
+  return key === FieldKey.DEVICE_CLASS;
+}
+
+export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];
