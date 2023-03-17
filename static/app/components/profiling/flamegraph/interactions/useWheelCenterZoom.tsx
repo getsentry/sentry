@@ -18,6 +18,8 @@ export function useWheelCenterZoom(
         return;
       }
 
+      evt.preventDefault();
+
       const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
       canvasPoolManager.dispatch('transform config view', [
         getCenterScaleMatrixFromMousePosition(
