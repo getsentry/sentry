@@ -136,12 +136,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       sourceMapsEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
