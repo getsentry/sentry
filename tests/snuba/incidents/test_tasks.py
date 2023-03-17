@@ -41,6 +41,7 @@ from sentry.utils.batching_kafka_consumer import create_topics
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
+        self.topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default"}}
         )
