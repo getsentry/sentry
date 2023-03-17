@@ -42,7 +42,7 @@ class TestPrioritiseProjectsTask(BaseMetricsLayerTestCase, TestCase, SnubaTestCa
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction"},
-            hours_before_now=1,
+            minutes_before_now=30,
             value=count,
             project_id=proj.id,
             org_id=org.id,
