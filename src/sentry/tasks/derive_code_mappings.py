@@ -122,6 +122,9 @@ def derive_code_mappings(
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
         raise error
+    except Exception:
+        logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
+        return
 
     if not trees:
         logger.error("The tree is empty. Investigate.")

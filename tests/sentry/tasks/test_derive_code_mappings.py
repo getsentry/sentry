@@ -76,6 +76,20 @@ class TestTaskBehavior(BaseDeriveCodeMappings):
                 with pytest.raises(UnableToAcquireLock):
                     derive_code_mappings(self.project.id, self.event_data)
 
+    @patch("sentry.tasks.derive_code_mappings.logger")
+    def test_raises_generic_errors(self, mock_logger):
+        with patch("sentry.tasks.derive_code_mappings.SUPPORTED_LANGUAGES", ["other"]):
+            with patch(
+                "sentry.integrations.github.client.GitHubClientMixin.get_trees_for_org",
+                side_effect=Exception("foo"),
+            ):
+                derive_code_mappings(self.project.id, self.event_data)
+                assert mock_logger.exception.call_count == 1
+                assert (
+                    mock_logger.exception.call_args.args[0]
+                    == "Unexpected error type while calling `get_trees_for_org()`."
+                )
+
 
 class TestJavascriptDeriveCodeMappings(BaseDeriveCodeMappings):
     def setUp(self):
