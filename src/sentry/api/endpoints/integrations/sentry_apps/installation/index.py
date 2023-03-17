@@ -8,8 +8,8 @@ from sentry.api.bases import SentryAppInstallationsBaseEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SENTRY_APP_SLUG_MAX_LENGTH
-from sentry.mediators.sentry_app_installations import Creator
 from sentry.models import SentryAppInstallation
+from sentry.sentry_apps import SentryAppInstallationCreator
 
 
 class SentryAppInstallationsSerializer(serializers.Serializer):
@@ -56,8 +56,8 @@ class SentryAppInstallationsEndpoint(SentryAppInstallationsBaseEndpoint):
                 sentry_app__slug=slug, organization=organization
             )
         except SentryAppInstallation.DoesNotExist:
-            install = Creator.run(
-                organization=organization, slug=slug, user=request.user, request=request
-            )
+            install = SentryAppInstallationCreator(
+                organization_id=organization.id, slug=slug, notify=True
+            ).run(user=request.user, request=request)
 
         return Response(serialize(install))
