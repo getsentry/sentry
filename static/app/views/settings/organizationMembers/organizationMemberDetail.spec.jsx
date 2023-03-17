@@ -267,8 +267,8 @@ describe('OrganizationMemberDetail', function () {
         context: routerContext,
       });
 
-      userEvent.click(screen.getByText('Add Team'));
-      userEvent.hover(screen.queryByText('#idp-member-team'));
+      await userEvent.click(screen.getByText('Add Team'));
+      await userEvent.hover(screen.queryByText('#idp-member-team'));
       expect(
         await screen.findByText(
           "Membership to this team is managed through your organization's identity provider."
@@ -287,8 +287,8 @@ describe('OrganizationMemberDetail', function () {
         context: routerContext,
       });
 
-      userEvent.click(screen.getByText('Add Team'));
-      userEvent.hover(screen.queryByText('#org-role-team'));
+      await userEvent.click(screen.getByText('Add Team'));
+      await userEvent.hover(screen.queryByText('#org-role-team'));
       expect(
         await screen.findByText(
           'Membership to a team with an organization role is managed by org owners.'
