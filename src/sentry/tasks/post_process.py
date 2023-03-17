@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -151,6 +151,9 @@ def handle_owner_assignment(job):
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
             from sentry.models import (
+                ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                ASSIGNEE_EXISTS_DURATION,
+                ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
                 ProjectOwnership,
@@ -186,13 +189,17 @@ def handle_owner_assignment(job):
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = f"assignee_exists:1:{group.id}"
+                    assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
                         # Cache for 1 day if it's assigned. We don't need to move that fast.
                         cache.set(
-                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                            assignee_key,
+                            assignees_exists,
+                            ASSIGNEE_EXISTS_DURATION
+                            if assignees_exists
+                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
                         )
 
                     if assignees_exists:
@@ -807,19 +814,22 @@ def process_commits(job: PostProcessJob) -> None:
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
 
-                integrations = Integration.objects.filter(
-                    organizations=event.project.organization,
-                    provider__in=["github", "gitlab"],
+                integration_cache_key = (
+                    f"commit-context-scm-integration:{event.project.organization_id}"
                 )
-                use_fallback = (
-                    features.has(
-                        "organizations:commit-context-fallback", event.project.organization
+                has_integrations = cache.get(integration_cache_key)
+                if has_integrations is None:
+                    integrations = Integration.objects.filter(
+                        organizations=event.project.organization,
+                        provider__in=["github", "gitlab"],
                     )
-                    and not integrations.exists()
-                )
+                    has_integrations = integrations.exists()
+                    # Cache the integrations check for 4 hours
+                    cache.set(integration_cache_key, has_integrations, 14400)
+
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and not use_fallback
+                    and has_integrations
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):

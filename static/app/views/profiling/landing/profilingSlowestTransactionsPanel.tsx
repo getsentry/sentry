@@ -134,8 +134,8 @@ function SlowestTransactionPanelItem({
     [projects.projects, transaction]
   );
 
-  if (!transactionProject) {
-    throw Error('Cannot find project for slowest transaction');
+  if (!transactionProject && !projects.fetching && projects.projects.length > 0) {
+    return null;
   }
 
   const key: SlowestTransactionsFields = 'p95()';

@@ -28,7 +28,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
             PromptsActivity,
             Release,
             Repository,
-            ServiceHook,
             Team,
         )
 
@@ -38,7 +37,6 @@ class OrganizationDeletionTask(ModelDeletionTask):
         model_list = (
             OrganizationMember,
             Repository,
-            ServiceHook,
             CommitAuthor,
             Incident,
             AlertRule,

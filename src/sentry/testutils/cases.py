@@ -1511,6 +1511,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
+        "measurements.time_to_initial_display": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }

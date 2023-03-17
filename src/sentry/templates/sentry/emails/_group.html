@@ -52,11 +52,14 @@
         {% else %}
           <a href="{{group.get_absolute_url}}">{{group.title|truncatechars:40}}</a>
         {% endif %}
-        <br />
         {% if transaction %}
           <span class="event-subtitle">{{ transaction }}</span>
         {% endif %}
-      </h3>
+        <br />
+        {% if metadata.value %}
+          <small>{{ metadata.value|truncatechars:100|soft_break:40 }}</small>
+        {% endif %}
+     </h3>
     </div>
   {% endif %}
 </div>

@@ -43,6 +43,7 @@ class Creator(Mediator):
             service_hooks.Creator.run(
                 application=self.api_application,
                 actor=self.install,
+                installation_id=self.install.id,
                 projects=[],
                 organization=self.organization,
                 events=self.sentry_app.events,

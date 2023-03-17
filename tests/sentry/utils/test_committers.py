@@ -852,7 +852,6 @@ class GetEventFileCommitters(CommitTestCase):
         with pytest.raises(Commit.DoesNotExist):
             get_serialized_event_file_committers(self.project, event)
 
-    @with_feature("organizations:commit-context-fallback")
     @with_feature("organizations:commit-context")
     def test_commit_context_fallback(self):
         Integration.objects.all().delete()

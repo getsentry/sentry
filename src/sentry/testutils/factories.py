@@ -50,6 +50,7 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Actor,
+    ArtifactBundle,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -508,7 +509,7 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(
+    def create_artifact_bundle_zip(
         org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
         import zipfile
@@ -535,11 +536,29 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_release_archive(cls, org, release: str, project=None, dist=None):
-        bundle = cls.create_artifact_bundle(org, release, project)
+        bundle = cls.create_artifact_bundle_zip(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
         file_.putfile(ContentFile(bundle))
         release = Release.objects.get(organization__slug=org, version=release)
         return update_artifact_index(release, dist, file_)
+
+    @classmethod
+    @exempt_from_silo_limits()
+    def create_artifact_bundle(
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+    ):
+        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        file_ = File.objects.create(name="artifact-bundle.zip")
+        file_.putfile(ContentFile(bundle))
+        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
+        # mock it with an arbitrary value.
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org.id,
+            bundle_id=uuid4(),
+            file=file_,
+            artifact_count=artifact_count,
+        )
+        return artifact_bundle
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -1412,7 +1431,7 @@ class Factories:
             "organization": organization,
             "type": ActionService.SENTRY_NOTIFICATION,
             "target_type": ActionTarget.USER,
-            "target_identifier": 1,
+            "target_identifier": "1",
             "target_display": "Sentry User",
             "trigger_type": ActionTrigger.AUDIT_LOG,
             **kwargs,
