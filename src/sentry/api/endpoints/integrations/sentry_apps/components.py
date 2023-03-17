@@ -12,7 +12,7 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.coreapi import APIError
 from sentry.models import Project, SentryAppComponent, SentryAppInstallation
-from sentry.sentry_apps import SentryAppComponentPreparer
+from sentry.sentry_apps.components import SentryAppComponentPreparer
 
 
 # TODO(mgaeta): These endpoints are doing the same thing, but one takes a

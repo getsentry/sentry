@@ -14,7 +14,7 @@ from sentry.models import (
     actor,
 )
 from sentry.models.integrations.integration_feature import IntegrationTypes
-from sentry.sentry_apps import SentryAppCreator
+from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
 from sentry.testutils.silo import control_silo_test

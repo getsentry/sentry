@@ -13,7 +13,7 @@ from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryApp
-from sentry.sentry_apps import SentryAppCreator
+from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)

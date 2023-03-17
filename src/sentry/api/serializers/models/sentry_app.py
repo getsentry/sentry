@@ -29,7 +29,7 @@ class SentryAppSerializer(Serializer):
         }
 
     def serialize(self, obj, attrs, user, access):
-        from sentry.sentry_apps import consolidate_events
+        from sentry.sentry_apps.apps import consolidate_events
 
         data = {
             "allowedOrigins": obj.application.get_allowed_origins(),

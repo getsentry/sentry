@@ -13,7 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
 from sentry.mediators import InstallationNotifier
-from sentry.sentry_apps import SentryAppUpdater
+from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 

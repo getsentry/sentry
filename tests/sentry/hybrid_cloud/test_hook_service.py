@@ -1,5 +1,6 @@
 from sentry.models import ServiceHook
-from sentry.sentry_apps import consolidate_events, expand_events
+from sentry.sentry_apps import expand_events
+from sentry.sentry_apps.apps import consolidate_events
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import all_silo_test, exempt_from_silo_limits

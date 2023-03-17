@@ -108,7 +108,7 @@ class AuthProvider(Model):
 
     def enable_scim(self, user):
         from sentry.models import SentryAppInstallation, SentryAppInstallationForProvider
-        from sentry.sentry_apps import SentryAppCreator
+        from sentry.sentry_apps.apps import SentryAppCreator
 
         if (
             not self.get_provider().can_use_scim(self.organization, user)

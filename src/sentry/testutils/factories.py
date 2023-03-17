@@ -99,11 +99,8 @@ from sentry.models.notificationaction import (
     NotificationAction,
 )
 from sentry.models.releasefile import update_artifact_index
-from sentry.sentry_apps import (
-    SentryAppCreator,
-    SentryAppInstallationCreator,
-    SentryAppInstallationTokenCreator,
-)
+from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
+from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset

@@ -1,6 +1,6 @@
 from unittest.mock import call, patch
 
-from sentry.sentry_apps import SentryAppComponentPreparer
+from sentry.sentry_apps.components import SentryAppComponentPreparer
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json

@@ -7,7 +7,7 @@ from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
 from sentry.models import SentryAppAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
-from sentry.sentry_apps import SentryAppUpdater
+from sentry.sentry_apps.apps import SentryAppUpdater
 from sentry.utils import email
 
 

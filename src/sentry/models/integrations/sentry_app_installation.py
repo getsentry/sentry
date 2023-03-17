@@ -249,7 +249,7 @@ def prepare_ui_component(
     values: Any = None,
 ) -> SentryAppComponent | None:
     from sentry.coreapi import APIError
-    from sentry.sentry_apps import SentryAppComponentPreparer
+    from sentry.sentry_apps.components import SentryAppComponentPreparer
 
     if values is None:
         values = []

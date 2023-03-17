@@ -28,7 +28,7 @@ from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 
-from ...sentry_apps import SentryAppCreator
+from ...sentry_apps.apps import SentryAppCreator
 from .client import VercelClient
 
 logger = logging.getLogger("sentry.integrations.vercel")
