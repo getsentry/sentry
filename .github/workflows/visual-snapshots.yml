@@ -2,6 +2,7 @@
 name: visual-snapshots
 on:
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
