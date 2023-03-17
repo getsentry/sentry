@@ -1,6 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {reactHooks, render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {useParams} from 'sentry/utils/useParams';
 import ProfileFlamegraph from 'sentry/views/profiling/profileFlamechart';
 import ProfilesAndTransactionProvider from 'sentry/views/profiling/profilesProvider';
@@ -45,12 +46,11 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 describe('Flamegraph', function () {
+  beforeEach(() => {
+    const project = TestStubs.Project({slug: 'foo-project'});
+    reactHooks.act(() => void ProjectsStore.loadInitialData([project]));
+  });
   it('renders', async function () {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
-    });
-
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/foo-project/profiling/profiles/profile-id/',
       statusCode: 404,
