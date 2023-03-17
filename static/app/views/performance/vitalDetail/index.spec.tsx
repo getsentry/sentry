@@ -251,10 +251,10 @@ describe('Performance > VitalDetail', function () {
     });
 
     // Fill out the search box, and submit it.
-    await userEvent.type(
-      await screen.findByLabelText('Search events'),
-      'user.email:uhoh*{enter}'
-    );
+    await userEvent.click(await screen.findByLabelText('Search events'));
+    await userEvent.paste('user.email:uhoh*');
+    await userEvent.keyboard('{enter}');
+
     // Check the navigation.
     expect(browserHistory.push).toHaveBeenCalledTimes(1);
     expect(browserHistory.push).toHaveBeenCalledWith({
