@@ -11,11 +11,13 @@ from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedD
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.mediators.external_requests.alert_rule_action_requester import AlertRuleActionResult
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass
@@ -110,10 +112,23 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     uuids: List[str]
 
 
-class AppService(
-    FilterQueryInterface[SentryAppInstallationFilterArgs, RpcSentryAppInstallation, None],
-    InterfaceWithLifecycle,
-):
+class AppService(InterfaceWithLifecycle):
+    @abc.abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: SentryAppInstallationFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional["AuthenticationContext"] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @abc.abstractmethod
+    def get_many(
+        self, *, filter: SentryAppInstallationFilterArgs
+    ) -> List[RpcSentryAppInstallation]:
+        pass
+
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
@@ -132,7 +147,8 @@ class AppService(
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
 
-    def serialize_sentry_app(self, app: SentryApp) -> RpcSentryApp:
+    @classmethod
+    def serialize_sentry_app(cls, app: SentryApp) -> RpcSentryApp:
         return RpcSentryApp(
             id=app.id,
             scope_list=app.scope_list,
@@ -175,8 +191,9 @@ class AppService(
     ) -> Mapping[str, Any]:
         pass
 
+    @classmethod
     def serialize_sentry_app_installation(
-        self, installation: SentryAppInstallation, app: Optional[SentryApp] = None
+        cls, installation: SentryAppInstallation, app: Optional[SentryApp] = None
     ) -> RpcSentryAppInstallation:
         if app is None:
             app = installation.sentry_app
@@ -185,7 +202,7 @@ class AppService(
             id=installation.id,
             organization_id=installation.organization_id,
             status=installation.status,
-            sentry_app=self.serialize_sentry_app(app),
+            sentry_app=cls.serialize_sentry_app(app),
             date_deleted=installation.date_deleted,
             uuid=app.uuid,
         )
