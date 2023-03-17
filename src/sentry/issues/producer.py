@@ -39,7 +39,7 @@ occurrence_producer_futures = []
 def track_occurrence_producer_futures(future) -> None:
     global occurrence_producer_futures
     occurrence_producer_futures.append(future)
-    if len(occurrence_producer_futures) >= 1:
+    if len(occurrence_producer_futures) >= settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT:
         future = occurrence_producer_futures.pop(0)
         future.result()
 
