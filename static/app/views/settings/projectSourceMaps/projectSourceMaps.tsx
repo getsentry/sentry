@@ -26,7 +26,7 @@ import Version from 'sentry/components/version';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, SourceMapsArchive} from 'sentry/types';
+import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -34,14 +34,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type DebugIdBundle = {
-  bundleId: string;
-  date: string;
-  dist: string;
-  fileCount: number;
-  release: string;
-};
 
 enum SORT_BY {
   ASC = 'date_added',
@@ -272,7 +264,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   : t('Switch to descending order')
               }
             >
-              <IconArrow direction={sortBy === SORT_BY.DESC ? 'down' : 'up'} />
+              <IconArrow
+                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
             </Tooltip>
           </DateUploadedColumn>,
           '',
@@ -311,10 +306,30 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                 }/source-maps/debug-id-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
                   <Tags>
-                    {data.dist && <Tag>{data.dist}</Tag>}
-                    {data.release && <Tag>{data.release}</Tag>}
+                    {data.dist && (
+                      <Tag
+                        tooltipText={tct('Associated with release "[distribution]"', {
+                          distribution: data.dist,
+                        })}
+                      >
+                        {data.dist}
+                      </Tag>
+                    )}
+                    {data.release && (
+                      <Tag
+                        tooltipText={tct('Associated with release "[releaseName]"', {
+                          releaseName: data.release,
+                        })}
+                      >
+                        {data.release}
+                      </Tag>
+                    )}
                     {!data.dist && !data.release && (
-                      <Tag tooltipText={t('No release and dist set')}>{t('none')}</Tag>
+                      <Tag
+                        tooltipText={t('Not associated with a release or distribution')}
+                      >
+                        {t('none')}
+                      </Tag>
                     )}
                   </Tags>
                 }
