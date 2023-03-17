@@ -38,7 +38,7 @@ jobs:
       - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
         name: Checkout sentry
         with:
-          ref: ${{ github.head_ref }} # We want to get the sha from master
+          ref: 'master'
 
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
@@ -71,11 +71,9 @@ jobs:
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn build-acceptance
-
       - name: Build chartcuterie configuration module
         run: |
           make build-chartcuterie-config
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -97,7 +95,7 @@ jobs:
         uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
         with:
           save-only: true
-          artifact-name: 'visual-snapshots-base'
+          artifact-name: 'acceptance-visual-snapshots-base'
           snapshot-path: .artifacts/visual-snapshots
 
   take-pr-acceptance-snapshots:
@@ -155,11 +153,9 @@ jobs:
           SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
         run: |
           yarn build-acceptance
-
       - name: Build chartcuterie configuration module
         run: |
           make build-chartcuterie-config
-
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -181,11 +177,11 @@ jobs:
         uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
         with:
           save-only: true
-          artifact-name: 'visual-snapshots-pr'
+          artifact-name: 'acceptance-visual-snapshots-pr'
           snapshot-path: .artifacts/visual-snapshots
 
-  diff-snapshots:
-    name: Diff snapshots
+  diff-acceptance-snapshots:
+    name: Diff Acceptance snapshots
     needs: [take-master-acceptance-snapshots, take-pr-acceptance-snapshots]
     runs-on: ubuntu-20.04
     if: |
@@ -198,6 +194,139 @@ jobs:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-          base-artifact-name: 'visual-snapshots-base'
+          base-artifact-name: 'acceptance-visual-snapshots-base'
           base-branch: ''
-          artifact-name: 'visual-snapshots-pr'
+          artifact-name: 'acceptance-visual-snapshots-pr'
+
+  take-master-frontend-snapshots:
+    name: Take Default Branch Frontend Snapshots
+    runs-on: ubuntu-20.04
+    if: |
+      contains( github.event.pull_request.labels.*.name, 'Trigger: Visual Snapshot')
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        # XXX: When updating this, make sure you also update MATRIX_INSTANCE_TOTAL.
+        instance: [0, 1, 2, 3]
+    env:
+      VISUAL_HTML_ENABLE: 1
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        name: Checkout sentry
+        with:
+          ref: 'master'
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          CI_NODE_TOTAL: 4
+          CI_NODE_INDEX: ${{ matrix.instance }}
+        run: |
+          SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
+
+      - name: Save snapshots
+        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        with:
+          save-only: true
+          artifact-name: 'frontend-visual-snapshots-base'
+          snapshot-path: .artifacts/visual-snapshots
+
+  take-pr-frontend-snapshots:
+    name: Take PR Frontend Snapshots
+    runs-on: ubuntu-20.04
+    if: |
+      contains( github.event.pull_request.labels.*.name, 'Trigger: Visual Snapshot')
+    timeout-minutes: 30
+    strategy:
+      # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
+      # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
+      fail-fast: false
+      matrix:
+        instance: [0, 1, 2, 3]
+    env:
+      VISUAL_HTML_ENABLE: 1
+
+    steps:
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+        name: Checkout sentry
+
+      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
+
+      - name: node_modules cache
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
+        id: nodemodulescache
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('yarn.lock', 'api-docs/yarn.lock') }}
+
+      - name: Install Javascript Dependencies
+        if: steps.nodemodulescache.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile
+
+      - name: Build CSS
+        run: NODE_ENV=production yarn build-css
+
+      - name: jest
+        env:
+          GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
+          CI_NODE_TOTAL: 4
+          CI_NODE_INDEX: ${{ matrix.instance }}
+        run: |
+          SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
+      - name: Create Images from HTML
+        uses: getsentry/action-html-to-image@dc153dae538e6e1138f77156d8e62e3b2b897f41 # main
+        with:
+          base-path: .artifacts/visual-snapshots/jest
+          css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
+
+      - name: Save snapshots
+        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        with:
+          save-only: true
+          artifact-name: 'frontend-visual-snapshots-pr'
+          snapshot-path: .artifacts/visual-snapshots
+
+  diff-frontend-snapshots:
+    name: Diff Frontend snapshots
+    needs: [take-master-frontend-snapshots, take-pr-frontend-snapshots]
+    runs-on: ubuntu-20.04
+    if: |
+      contains( github.event.pull_request.labels.*.name, 'Trigger: Visual Snapshot')
+    timeout-minutes: 25
+    steps:
+      - name: Diff snapshots
+        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        with:
+          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
+          gcs-bucket: 'sentry-visual-snapshots'
+          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
+          base-artifact-name: 'frontend-visual-snapshots-base'
+          base-branch: ''
+          artifact-name: 'frontend-visual-snapshots-pr'
