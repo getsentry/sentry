@@ -32,9 +32,6 @@ export function useCanvasZoomOrScroll({
         setLastInteraction(null);
       }, 300);
 
-      // We need to prevent the default behavior of the wheel event or we
-      // risk triggering back/forward browser navigation
-      evt.preventDefault();
       // When we zoom, we want to clear cursor so that any tooltips
       // rendered on the flamegraph are removed from the flamegraphView
       setConfigSpaceCursor(null);

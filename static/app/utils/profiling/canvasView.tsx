@@ -73,6 +73,18 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.minWidth = minWidth;
   }
 
+  isViewAtTopEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.bottom === this.configView.bottom
+      : space.top === this.configView.top;
+  }
+
+  isViewAtBottomEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.top === this.configView.top
+      : space.bottom === this.configView.bottom;
+  }
+
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
     switch (this.mode) {
       case 'stretchToFit': {
