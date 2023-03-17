@@ -85,7 +85,7 @@ function ReleasesSelectControl({
           ],
         },
       ]}
-      onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
+      onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
       onClose={() => {
         resetSearch();
         handleChangeFilter?.({
