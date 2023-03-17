@@ -6,7 +6,7 @@
 #
 # from django.urls import reverse
 #
-# from sentry.models import ArtifactBundle, File
+# from sentry.models import ArtifactBundle, File, ProjectArtifactBundle
 # from sentry.testutils import APITestCase
 #
 #
@@ -69,6 +69,11 @@
 #
 #         artifact_bundle = ArtifactBundle.objects.create(
 #             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+#         )
+#         ProjectArtifactBundle.objects.create(
+#             organization_id=self.organization.id,
+#             project_id=project.id,
+#             artifact_bundle=artifact_bundle,
 #         )
 #
 #         url = reverse(
