@@ -39,7 +39,6 @@ def adjust_sample_rate(
     total_budget = total * rate
     budget_per_class = total_budget / total_classes
 
-    # We have two cases we can spend all the budget in the implicit classes or not
     implicit_budget = budget_per_class * total_implicit_classes
     explicit_budget = budget_per_class * total_explicit_classes
 
@@ -61,7 +60,7 @@ def adjust_sample_rate(
         explicit_rates = adjust_sample_rate_full(classes, explicit_rate)
     elif total_explicit < explicit_budget:
         # we would not be able to spend all explicit budget we can only
-        # send a maximum of total_explicit ao set the explicit rate to 1 for
+        # send a maximum of total_explicit so set the explicit rate to 1 for
         # all explicit classes and reevaluate the available budget for the implicit classes
         explicit_rates = {name: 1.0 for name, _count in classes}
 
