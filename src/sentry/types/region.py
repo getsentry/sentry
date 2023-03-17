@@ -7,6 +7,7 @@ from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
+from sentry.api.utils import generate_region_url
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -144,11 +145,16 @@ def get_local_region() -> Region:
     from django.conf import settings
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        # In SAAS monolith mode (pre-region deployment), we use US region
+        address = generate_region_url()
+        if settings.SENTRY_SINGLE_ORGANIZATION:
+            address = "/"  # In ST or self-hosted, we rely on relative addresses
+
         # This is a dummy value used to make region.to_url work
         return Region(
             name=MONOLITH_REGION_NAME,
             id=0,
-            address="/",
+            address=address,
             category=RegionCategory.MULTI_TENANT,
         )
 

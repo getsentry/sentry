@@ -2,6 +2,7 @@
 
 from django.db import migrations
 
+from sentry.api.utils import generate_region_url
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
@@ -16,7 +17,7 @@ def backfill_user_avatar(apps, schema_editor):
             continue
         user.avatar_type = avatar.avatar_type
         if avatar.avatar_type == 1:
-            user.avatar_url = f"https://sentry.io/avatar/{avatar.ident}/"
+            user.avatar_url = f"{generate_region_url()}/avatar/{avatar.ident}/"
         user.save()
 
 
@@ -41,6 +42,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             backfill_user_avatar,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["auth_user"]},
+            hints={"tables": ["auth_user", "sentry_useravatar"]},
         )
     ]
