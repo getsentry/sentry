@@ -118,6 +118,7 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
+  'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
   'component:superuser-access-category': React.FC<any>;
 };
