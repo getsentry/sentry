@@ -382,6 +382,12 @@ export const PERFORMANCE_TERMS: Record<PERFORMANCE_TERM, TermFormatter> = {
     t(
       'The percentage of the transaction duration in which the application is in a stalled state.'
     ),
+  timeToFullDisplay: () =>
+    t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+  timeToInitialDisplay: () =>
+    t('The time it takes for an application to produce its first frame'),
 };
 
 export function getTermHelp(
