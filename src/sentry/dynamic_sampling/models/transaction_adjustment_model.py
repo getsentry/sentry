@@ -43,9 +43,7 @@ def adjust_sample_rate(
     implicit_budget = budget_per_class * total_implicit_classes
     explicit_budget = budget_per_class * total_explicit_classes
 
-    # assert implicit_budget+explicit_budget == total_budget
-
-    if total_implicit == 0:
+    if total_explicit_classes == total_classes:
         # we have specified all classes
         explicit_rates = adjust_sample_rate_full(classes, rate)
         implicit_rate = rate  # doesn't really matter since everything is explicit
@@ -63,10 +61,8 @@ def adjust_sample_rate(
         explicit_rates = adjust_sample_rate_full(classes, explicit_rate)
     elif total_explicit < explicit_budget:
         # we would not be able to spend all explicit budget we can only
-        # send a maximum of total_explicit, set the explicit rate to 1 for
+        # send a maximum of total_explicit ao set the explicit rate to 1 for
         # all explicit classes and reevaluate the available budget for the implicit classes
-
-        # set all rates for the explict classes to 1
         explicit_rates = {name: 1.0 for name, _count in classes}
 
         # calculate the new global rate for the implicit transactions
