@@ -87,7 +87,6 @@ class TestDjangoNodeStorage:
         assert Node.objects.filter(id=node.id).exists()
         assert not Node.objects.filter(id=node2.id).exists()
 
-    # @region_silo_test(stable=True)
     def test_cache(self):
         node_1 = ("a" * 32, {"foo": "a"})
         node_2 = ("b" * 32, {"foo": "b"})
@@ -97,7 +96,7 @@ class TestDjangoNodeStorage:
             Node.objects.create(id=node_id, data=compress(json_dumps(data).encode("utf8")))
 
         # Get / get multi populates cache
-        # assert self.ns.get(node_1[0]) == node_1[1]
+        assert self.ns.get(node_1[0]) == node_1[1]
         assert self.ns.get_multi([node_2[0], node_3[0]]) == {
             node_2[0]: node_2[1],
             node_3[0]: node_3[1],
