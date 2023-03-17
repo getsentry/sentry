@@ -27,3 +27,4 @@ export * from './system';
 export * from './user';
 export * from './sandbox';
 export * from './sessions';
+export * from './sourceMaps';
