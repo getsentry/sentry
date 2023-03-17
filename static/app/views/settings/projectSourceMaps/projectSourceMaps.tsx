@@ -311,10 +311,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                         tooltipText={tct('Associated with release "[distribution]"', {
                           distribution: data.dist,
                         })}
-<<<<<<< HEAD
                         type="info"
-=======
->>>>>>> master
                       >
                         {data.dist}
                       </Tag>
@@ -324,10 +321,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                         tooltipText={tct('Associated with release "[releaseName]"', {
                           releaseName: data.release,
                         })}
-<<<<<<< HEAD
                         type="info"
-=======
->>>>>>> master
                       >
                         {data.release}
                       </Tag>
