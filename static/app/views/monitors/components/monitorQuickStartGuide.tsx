@@ -8,6 +8,8 @@ import {SelectValue} from 'sentry/types';
 import {
   CLICronQuickStart,
   CurlCronQuickStart,
+  NodeJsCronQuickStart,
+  PHPCronQuickStart,
   PythonCronQuickStart,
   QuickStartProps,
 } from 'sentry/views/monitors/components/quickStartEntries';
@@ -39,6 +41,16 @@ const onboardingGuides: Record<string, OnboardingGuide> = {
     label: 'Python',
     platforms: new Set(['python', 'python-celery']),
     guide: ({slug}: QuickStartProps) => <PythonCronQuickStart slug={slug} />,
+  },
+  php: {
+    label: 'PHP',
+    platforms: new Set(['php', 'php-laravel']),
+    guide: ({slug}: QuickStartProps) => <PHPCronQuickStart slug={slug} />,
+  },
+  nodejs: {
+    label: 'Node.js',
+    platforms: new Set(['node', 'javascript']),
+    guide: ({slug}: QuickStartProps) => <NodeJsCronQuickStart slug={slug} />,
   },
 };
 

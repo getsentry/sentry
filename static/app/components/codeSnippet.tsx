@@ -3,6 +3,7 @@
 import Prism from 'prismjs';
 import 'prismjs/components/prism-bash.min';
 import 'prismjs/components/prism-python.min';
+import 'prismjs/components/prism-javascript.min';
 
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
