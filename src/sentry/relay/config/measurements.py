@@ -43,6 +43,8 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "stall_total_time", "unit": "millisecond"},
     {"name": "ttfb.requesttime", "unit": "millisecond"},
     {"name": "ttfb", "unit": "millisecond"},
+    {"name": "time_to_full_display", "unit": "millisecond"},
+    {"name": "time_to_initial_display", "unit": "millisecond"},
 ]
 
 

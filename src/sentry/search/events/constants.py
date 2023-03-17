@@ -223,6 +223,8 @@ METRICS_MAP = {
     "measurements.frames_slow": "d:transactions/measurements.frames_slow@none",
     "measurements.frames_total": "d:transactions/measurements.frames_total@none",
     "measurements.lcp": "d:transactions/measurements.lcp@millisecond",
+    "measurements.time_to_initial_display": "d:transactions/measurements.time_to_initial_display@millisecond",
+    "measurements.time_to_full_display": "d:transactions/measurements.time_to_full_display@millisecond",
     "measurements.stall_count": "d:transactions/measurements.stall_count@none",
     "measurements.stall_stall_longest_time": "d:transactions/measurements.stall_longest_time@millisecond",
     "measurements.stall_stall_total_time": "d:transactions/measurements.stall_total_time@millisecond",

@@ -1,6 +1,4 @@
 ---
-created: '2023-03-03T12:37:18.951044Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -122,6 +120,10 @@ config:
     - name: ttfb.requesttime
       unit: millisecond
     - name: ttfb
+      unit: millisecond
+    - name: time_to_full_display
+      unit: millisecond
+    - name: time_to_initial_display
       unit: millisecond
     maxCustomMeasurements: 10
   piiConfig:

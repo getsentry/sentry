@@ -96,6 +96,12 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
     MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
+    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
+        "d:transactions/measurements.time_to_initial_display@millisecond"
+    )
+    MEASUREMENTS_TIME_TO_FULL_DISPLAY = (
+        "d:transactions/measurements.time_to_full_display@millisecond"
+    )
     MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
     MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
     MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"
