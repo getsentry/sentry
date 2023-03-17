@@ -90,9 +90,9 @@ class EventIdField extends Component<Props, State> {
   };
 
   handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const {keyCode} = event;
+    const {key} = event;
 
-    if (keyCode === 13 && this.isEventIdValid()) {
+    if (key === 'Enter' && this.isEventIdValid()) {
       this.props.onUpdateEventId(this.state.value);
     }
   };

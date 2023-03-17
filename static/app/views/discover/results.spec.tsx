@@ -305,7 +305,7 @@ describe('Results', function () {
       );
 
       // perform a search
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('Search for events, users, tags, and more'),
         'geo:canada{enter}'
       );
@@ -431,7 +431,7 @@ describe('Results', function () {
         }
       );
 
-      userEvent.click(await screen.findByRole('button', {name: /Display/}));
+      await userEvent.click(await screen.findByRole('button', {name: /Display/}));
 
       expect(screen.queryByText('Top 5 Daily')).not.toBeInTheDocument();
       expect(screen.queryByText('Top 5 Period')).not.toBeInTheDocument();
@@ -938,13 +938,13 @@ describe('Results', function () {
         }
       );
 
-      userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Show Tags'}));
 
       await waitFor(() => expect(mockRequests.eventFacetsMock).toHaveBeenCalled());
 
       // TODO(edward): update this to be less generic
-      userEvent.click(screen.getByText('environment'));
-      userEvent.click(screen.getByText('foo'));
+      await userEvent.click(screen.getByText('environment'));
+      await userEvent.click(screen.getByText('foo'));
 
       // since environment collides with the environment field, it is wrapped with `tags[...]`
       expect(
@@ -1133,11 +1133,7 @@ describe('Results', function () {
       });
 
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1165,7 +1161,7 @@ describe('Results', function () {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
       );
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
 
       expect(mockHomepageUpdate).toHaveBeenCalledWith(
         '/organizations/org-slug/discover/homepage/',
@@ -1203,11 +1199,7 @@ describe('Results', function () {
         },
       });
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1234,11 +1226,11 @@ describe('Results', function () {
       await waitFor(() =>
         expect(screen.getByRole('button', {name: /set as default/i})).toBeEnabled()
       );
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Total Period'));
-      userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByText('Total Period'));
+      await userEvent.click(screen.getByText('Previous Period'));
 
       const rerenderData = initializeOrg({
         ...initializeOrg(),
@@ -1269,11 +1261,7 @@ describe('Results', function () {
         body: {...TRANSACTION_VIEWS[0], name: ''},
       });
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1306,11 +1294,11 @@ describe('Results', function () {
       );
 
       await screen.findAllByText(TRANSACTION_VIEWS[0].name);
-      userEvent.click(screen.getByText('Set as Default'));
+      await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Total Period'));
-      userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByText('Total Period'));
+      await userEvent.click(screen.getByText('Previous Period'));
       const rerenderData = initializeOrg({
         ...initializeOrg(),
         organization,
@@ -1334,11 +1322,7 @@ describe('Results', function () {
 
     it('links back to the homepage through the Discover breadcrumb', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1370,11 +1354,7 @@ describe('Results', function () {
 
     it('links back to the Saved Queries through the Saved Queries breadcrumb', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
@@ -1404,11 +1384,7 @@ describe('Results', function () {
 
     it('allows users to Set As Default on the All Events query', () => {
       const organization = TestStubs.Organization({
-        features: [
-          'discover-basic',
-          'discover-query',
-          'discover-query-builder-as-landing-page',
-        ],
+        features: ['discover-basic', 'discover-query'],
       });
 
       const initialData = initializeOrg({
