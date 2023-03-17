@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {PlatformKey} from 'sentry/data/platformCategories';
@@ -78,7 +79,7 @@ export default function MonitorQuickStartGuide({monitorSlug, platform}: Props) {
 
   return (
     <Fragment>
-      <CompactSelect
+      <FullWidthSelect
         options={getOptionsForPlatform(platform)}
         onChange={handleOnChange}
         triggerProps={{style: {width: '100%'}}}
@@ -87,3 +88,7 @@ export default function MonitorQuickStartGuide({monitorSlug, platform}: Props) {
     </Fragment>
   );
 }
+
+const FullWidthSelect = styled(CompactSelect)`
+  width: 100%;
+` as typeof CompactSelect;
