@@ -1431,7 +1431,7 @@ class Factories:
             "organization": organization,
             "type": ActionService.SENTRY_NOTIFICATION,
             "target_type": ActionTarget.USER,
-            "target_identifier": 1,
+            "target_identifier": "1",
             "target_display": "Sentry User",
             "trigger_type": ActionTrigger.AUDIT_LOG,
             **kwargs,
