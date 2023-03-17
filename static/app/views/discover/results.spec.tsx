@@ -305,10 +305,11 @@ describe('Results', function () {
       );
 
       // perform a search
-      await userEvent.type(
-        screen.getByPlaceholderText('Search for events, users, tags, and more'),
-        'geo:canada{enter}'
+      await userEvent.click(
+        screen.getByPlaceholderText('Search for events, users, tags, and more')
       );
+      await userEvent.paste('geo:canada');
+      await userEvent.keyboard('{enter}');
 
       // should only be called with saved queries
       expect(mockRequests.mockVisit).not.toHaveBeenCalled();
