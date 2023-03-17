@@ -355,9 +355,6 @@ def ruleactivity_migrations():
             old_name="user",
             new_name="user_id",
         ),
-        migrations.AlterUniqueTogether(
-            "projectbookmark", (("user_id", "feature", "organization_id", "project_id"),)
-        ),
     ]
 
     return database_operations + [
