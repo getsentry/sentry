@@ -69,6 +69,9 @@ class RpcUser(RpcModel):
     useremails: List[RpcUserEmail] = Field(default_factory=list)
     authenticators: List[RpcAuthenticator] = Field(default_factory=list)
 
+    def __hash__(self) -> int:
+        return hash((self.id, self.pk))
+
     def has_usable_password(self) -> bool:
         return self.password_usable
 
