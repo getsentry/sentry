@@ -18,11 +18,7 @@ import {DEFAULT_EVENT_VIEW} from './data';
 import Homepage from './homepage';
 
 describe('Discover > Homepage', () => {
-  const features = [
-    'global-views',
-    'discover-query',
-    'discover-query-builder-as-landing-page',
-  ];
+  const features = ['global-views', 'discover-query'];
   let initialData, organization, mockHomepage;
 
   beforeEach(() => {
