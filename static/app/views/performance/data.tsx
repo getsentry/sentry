@@ -551,8 +551,10 @@ function generateMobilePerformanceEventView(
     'tpm()',
     'p75(measurements.frames_slow_rate)',
     'p75(measurements.frames_frozen_rate)',
-    'p75(measurements.time_to_initial_display)',
   ];
+  if (organization.features.includes('mobile-vitals')) {
+    fields.push('p75(measurements.time_to_initial_display)');
+  }
 
   // At this point, all projects are mobile projects.
   // If in addition to that, all projects are react-native projects,
