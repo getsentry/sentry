@@ -15,6 +15,7 @@ from sentry.models import Integration, Team, User
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.slack import post_message
 from sentry.types.integrations import ExternalProviders
@@ -43,13 +44,17 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):  # type: ignore
         return
 
 
-def get_attachments(
+def _get_attachments(
     notification: BaseNotification,
-    recipient: Team | User,
+    recipient: RpcActor,
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> List[SlackAttachment]:
-    extra_context = (extra_context_by_actor_id or {}).get(recipient.actor_id, {})
+    extra_context = (
+        extra_context_by_actor_id[recipient.actor_id]
+        if extra_context_by_actor_id and recipient.actor_id
+        else {}
+    )
     context = get_context(notification, recipient, shared_context, extra_context)
     cls = get_message_builder(notification.message_builder)
     attachments = cls(notification, context, recipient).build()
@@ -60,7 +65,7 @@ def get_attachments(
 
 def _notify_recipient(
     notification: BaseNotification,
-    recipient: Team | User,
+    recipient: RpcActor,
     attachments: List[SlackAttachment],
     channel: str,
     integration: Integration,
@@ -108,7 +113,7 @@ def _notify_recipient(
 @register_notification_provider(ExternalProviders.SLACK)
 def send_notification_as_slack(
     notification: BaseNotification,
-    recipients: Iterable[Team | User],
+    recipients: Iterable[RpcActor | Team | User],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None,
 ) -> None:
@@ -123,7 +128,7 @@ def send_notification_as_slack(
     for recipient, integrations_by_channel in data.items():
         with sentry_sdk.start_span(op="notification.send_slack", description="send_one"):
             with sentry_sdk.start_span(op="notification.send_slack", description="gen_attachments"):
-                attachments = get_attachments(
+                attachments = _get_attachments(
                     notification,
                     recipient,
                     shared_context,
