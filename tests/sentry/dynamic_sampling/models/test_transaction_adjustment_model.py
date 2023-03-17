@@ -25,20 +25,15 @@ test_resample_cases = [
 ]
 
 
-# @pytest.mark.parametrize("sample_rate", [0.01, 0.1, 0.5, 0.9, 0.99, 1.0])
-# @pytest.mark.parametrize("transactions", test_resample_cases)
-# @pytest.mark.parametrize("idx_low,idx_high", [
-#     (0, None),  # full resample
-#     (3, None),  # exclude first 3
-#     (0, -3),  # exclude last 3
-#     (3, -3)  # take 3 from both ends
-# ])
-@pytest.mark.parametrize("sample_rate", [0.1])
-@pytest.mark.parametrize("transactions", [create_transaction_counts(big=6, med=0, small=2)])
+@pytest.mark.parametrize("sample_rate", [0.01, 0.1, 0.5, 0.9, 0.99, 1.0])
+@pytest.mark.parametrize("transactions", test_resample_cases)
 @pytest.mark.parametrize(
     "idx_low,idx_high",
     [
+        (0, None),  # full resample
         (3, None),  # exclude first 3
+        (0, -3),  # exclude last 3
+        (3, -3),  # take 3 from both ends
     ],
 )
 def test_maintains_overall_sample_rate(sample_rate, transactions, idx_low, idx_high):
