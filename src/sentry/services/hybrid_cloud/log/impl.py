@@ -1,5 +1,3 @@
-from dataclasses import asdict
-
 import sentry_sdk
 from django.db import IntegrityError
 
@@ -66,7 +64,7 @@ class OutboxBackedLogService(LogService):
             shard_identifier=event.organization_id,
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
-            payload=asdict(event),
+            payload=event.__dict__,
         ).save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
