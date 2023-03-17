@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 from django.db import IntegrityError
 
 from sentry import audit_log
-from sentry.mediators.sentry_apps import Creator, InternalCreator
 from sentry.models import (
     ApiApplication,
     AuditLogEntry,
@@ -12,15 +11,23 @@ from sentry.models import (
     SentryAppComponent,
     SentryAppInstallation,
     User,
+    actor,
 )
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.sentry_apps import SentryAppCreator
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.faux import faux
+from sentry.testutils.silo import control_silo_test
 
 
+@control_silo_test(stable=True)
 class TestCreator(TestCase):
     def setUp(self):
+        actor.pre_save.disconnect(
+            dispatch_uid="handle_actor_pre_save",
+            sender="sentry.User",
+            receiver=actor.handle_actor_pre_save,
+        )
         self.user = self.create_user(email="foo@bar.com", username="scuba_steve")
         self.org = self.create_organization(owner=self.user)
         self.creator = SentryAppCreator(
@@ -31,6 +38,11 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             is_internal=False,
+        )
+
+    def tearDown(self):
+        actor.pre_save.connect(
+            actor.handle_actor_pre_save, dispatch_uid="handle_actor_pre_save", sender="sentry.User"
         )
 
     def test_slug(self):
@@ -109,26 +121,24 @@ class TestCreator(TestCase):
             target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
         ).exists()
 
-    @patch("sentry.mediators.sentry_apps.creator.Creator.log")
     @patch("sentry.models.integrations.integration_feature.IntegrationFeature.objects.create")
-    def test_raises_error_creating_integration_feature(self, mock_create, mock_log):
+    def test_raises_error_creating_integration_feature(self, mock_create):
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)
-        mock_log.assert_called_with(sentry_app="nulldb", error_message="")
 
     def test_creates_audit_log_entry(self):
         request = self.make_request(user=self.user, method="GET")
-        Creator.run(
+        SentryAppCreator(
             name="nulldb",
-            user=self.user,
             author="Sentry",
-            organization=self.org,
-            scopes=("project:read",),
+            organization_id=self.org.id,
+            scopes=[
+                "project:read",
+            ],
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
-            request=request,
             is_internal=False,
-        )
+        ).run(user=self.user, request=request)
         assert AuditLogEntry.objects.filter(event=audit_log.get_event_id("SENTRY_APP_ADD")).exists()
 
     def test_blank_schema(self):
@@ -175,15 +185,19 @@ class TestInternalCreator(TestCase):
         self.project = self.create_project(organization=self.org)
 
     def run_creator(self, **kwargs):
-        return InternalCreator.run(
+        return SentryAppCreator(
+            is_internal=True,
+            verify_install=False,
+            author=kwargs.pop("author", self.org.name),
             name="nulldb",
-            user=self.user,
-            organization=self.org,
-            scopes=("project:read",),
+            organization_id=self.org.id,
+            scopes=[
+                "project:read",
+            ],
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             **kwargs,
-        )
+        ).run(user=self.user, request=kwargs.pop("request", None))
 
     def test_slug(self):
         sentry_app = self.run_creator()
@@ -221,35 +235,37 @@ class TestInternalCreator(TestCase):
 
     @patch("sentry.utils.audit.create_audit_entry")
     def test_audits(self, create_audit_entry):
-        InternalCreator.run(
+        SentryAppCreator(
             name="nulldb",
-            user=self.user,
             author="Sentry",
-            organization=self.org,
-            scopes=("project:read",),
+            organization_id=self.org.id,
+            is_internal=True,
+            verify_install=False,
+            scopes=[
+                "project:read",
+            ],
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
-            request=MagicMock(),
-        )
+        ).run(user=self.user, request=MagicMock())
 
         call = faux(create_audit_entry)
-        assert call.kwarg_equals("organization", self.org)
+        assert call.kwarg_equals("organization_id", self.org.id)
         assert call.kwarg_equals("target_object", self.org.id)
         assert call.kwarg_equals("event", audit_log.get_event_id("INTERNAL_INTEGRATION_ADD"))
 
     @patch("sentry.analytics.record")
     @patch("sentry.utils.audit.create_audit_entry")
     def test_records_analytics(self, create_audit_entry, record):
-        sentry_app = InternalCreator.run(
+        sentry_app = SentryAppCreator(
             name="nulldb",
-            user=self.user,
             author="Sentry",
-            organization=self.org,
-            scopes=("project:read",),
+            organization_id=self.org.id,
+            is_internal=True,
+            verify_install=False,
+            scopes=["project:read"],
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
-            request=MagicMock(),
-        )
+        ).run(user=self.user, request=MagicMock())
 
         assert faux(record).args_equals("internal_integration.created")
         assert faux(record).kwargs == {

@@ -5,9 +5,9 @@ from sentry import options
 from sentry.api.base import pending_silo_endpoint
 from sentry.api.bases.sentryapps import COMPONENT_TYPES, SentryAppBaseEndpoint
 from sentry.constants import SentryAppStatus
-from sentry.mediators.sentry_apps import Updater
 from sentry.models import SentryAppAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatarTypes
+from sentry.sentry_apps import SentryAppUpdater
 from sentry.utils import email
 
 
@@ -47,11 +47,10 @@ class SentryAppPublishRequestEndpoint(SentryAppBaseEndpoint):
                 status=400,
             )
 
-        Updater.run(
-            user=request.user,
+        SentryAppUpdater(
             sentry_app=sentry_app,
             status=SentryAppStatus.PUBLISH_REQUEST_INPROGRESS_STR,
-        )
+        ).run(user=request.user)
 
         message = f"User {request.user.email} of organization {sentry_app.owner.slug} wants to publish {sentry_app.slug}\n"
 

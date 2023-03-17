@@ -13,7 +13,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework import SentryAppSerializer
 from sentry.constants import SentryAppStatus
 from sentry.mediators import InstallationNotifier
-from sentry.mediators.sentry_apps import Updater
+from sentry.sentry_apps import SentryAppUpdater
 from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 
@@ -47,8 +47,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
 
         if serializer.is_valid():
             result = serializer.validated_data
-            updated_app = Updater.run(
-                user=request.user,
+            updated_app = SentryAppUpdater(
                 sentry_app=sentry_app,
                 name=result.get("name"),
                 author=result.get("author"),
@@ -64,7 +63,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
                 overview=result.get("overview"),
                 allowed_origins=result.get("allowedOrigins"),
                 popularity=result.get("popularity"),
-            )
+            ).run(user=request.user)
 
             return Response(serialize(updated_app, request.user, access=request.access))
 
