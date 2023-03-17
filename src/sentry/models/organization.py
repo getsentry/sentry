@@ -113,7 +113,7 @@ class OrganizationManager(BaseManager):
             else:
                 return list(self.filter())
 
-        qs = OrganizationMember.objects.filter(user=user).select_related("organization")
+        qs = OrganizationMember.objects.filter(user_id=user.id).select_related("organization")
         if only_visible:
             qs = qs.filter(organization__status=OrganizationStatus.ACTIVE)
 

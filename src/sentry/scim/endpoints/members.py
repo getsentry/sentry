@@ -117,7 +117,7 @@ def _scim_member_serializer_with_expansion(organization):
     care about this and rely on the behavior of setting "active" to false
     to delete a member.
     """
-    auth_provider = AuthProvider.objects.get(organization=organization)
+    auth_provider = AuthProvider.objects.get(organization_id=organization.id)
     expand = ["active"]
 
     if auth_provider.provider == ACTIVE_DIRECTORY_PROVIDER_NAME:

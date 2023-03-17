@@ -65,7 +65,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             initiate_login(request, next_uri)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
@@ -74,7 +74,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
 
         if not auth_provider:
-            response = self.handle_basic_auth(request, organization=organization)
+            response = self.handle_basic_auth(request, organization_id=organization.id)
         else:
             response = self.handle_sso(request, organization, auth_provider)
 

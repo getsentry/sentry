@@ -41,7 +41,7 @@ def install_slack(organization: Organization, workspace_id: str = "TXXXXXXX1") -
         name="Awesome Team",
         provider="slack",
     )
-    OrganizationIntegration.objects.create(organization=organization, integration=integration)
+    OrganizationIntegration.objects.create(organization_id=organization.id, integration=integration)
     return integration
 
 

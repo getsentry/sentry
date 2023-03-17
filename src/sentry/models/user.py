@@ -336,10 +336,10 @@ class User(BaseModel, AbstractBaseUser):
             "user.merge", extra={"from_user_id": from_user.id, "to_user_id": to_user.id}
         )
 
-        for obj in OrganizationMember.objects.filter(user=from_user):
+        for obj in OrganizationMember.objects.filter(user_id=from_user.id):
             try:
                 with transaction.atomic():
-                    obj.update(user=to_user)
+                    obj.update(user_id=to_user.id)
             # this will error if both users are members of obj.org
             except IntegrityError:
                 pass

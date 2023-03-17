@@ -240,7 +240,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["hasAuthProvider"] is False
 
         with exempt_from_silo_limits():
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True

@@ -53,7 +53,7 @@ class TeamManager(BaseManager):
             team_list = list(base_team_qs)
         else:
             try:
-                om = OrganizationMember.objects.get(user=user, organization=organization)
+                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []

@@ -382,7 +382,9 @@ class ProjectUpdateTest(APITestCase):
             isBookmarked="true",
             status_code=403,
         )
-        assert not ProjectBookmark.objects.filter(user=user, project_id=self.project.id).exists()
+        assert not ProjectBookmark.objects.filter(
+            user_id=user.id, project_id=self.project.id
+        ).exists()
 
     def test_member_changes_permission_denied(self):
         project = self.create_project()
@@ -405,7 +407,7 @@ class ProjectUpdateTest(APITestCase):
 
         assert Project.objects.get(id=project.id).slug != "zzz"
 
-        assert not ProjectBookmark.objects.filter(user=user, project_id=project.id).exists()
+        assert not ProjectBookmark.objects.filter(user_id=user.id, project_id=project.id).exists()
 
     def test_name(self):
         self.get_success_response(self.org_slug, self.proj_slug, name="hello world")

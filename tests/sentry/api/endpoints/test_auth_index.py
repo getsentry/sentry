@@ -389,7 +389,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -414,7 +414,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_no_sso_user_has_password_self_hosted(self):
         from sentry.auth.superuser import Superuser
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -434,7 +434,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
     def test_superuser_no_sso_self_hosted_no_password_or_u2f(self):
         from sentry.auth.superuser import Superuser
 
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -454,7 +454,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         from sentry.auth.superuser import Superuser
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -477,7 +477,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         from sentry.auth.superuser import Superuser
 
         with self.settings(SENTRY_SELF_HOSTED=False):
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -500,7 +500,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
 
@@ -525,7 +525,7 @@ class AuthVerifyEndpointSuperuserTest(AuthProviderTestCase, APITestCase):
         with self.settings(
             SENTRY_SELF_HOSTED=True, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True
         ):
-            AuthProvider.objects.create(organization=self.organization, provider="dummy")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
             user = self.create_user("foo@example.com", is_superuser=True)
 

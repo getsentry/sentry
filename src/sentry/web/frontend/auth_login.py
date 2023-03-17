@@ -77,7 +77,7 @@ class AuthLoginView(BaseView):
             return None
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             return None
 

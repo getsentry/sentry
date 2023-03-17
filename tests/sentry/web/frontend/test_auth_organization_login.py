@@ -304,7 +304,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # create a second org that the user belongs to, ensure they are redirected to correct
         self.create_organization(name="zap", owner=user)
 
-        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+        auth_provider = AuthProvider.objects.create(organization_id=org1.id, provider="dummy")
 
         email = user.emails.all()[:1].get()
         email.is_verified = False
@@ -391,7 +391,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     @mock.patch("sentry.auth.helper.AuthIdentityHandler.warn_about_ambiguous_email")
     def test_flow_as_unauthenticated_existing_matched_user_with_ambiguous_email(self, mock_warning):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         secondary_email = "foo@example.com"
         users = {self.create_user() for _ in range(2)}
@@ -658,7 +658,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the identity automatically as they don't have a password.
         This is specifically testing an unauthenticated flow.
         """
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         # setup a 'previous' identity, such as when we migrated Google from
         # the old idents to the new
@@ -723,7 +723,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         the existing entry attached to bar, and re-bind the entry owned by foo.
         """
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         # setup a 'previous' identity, such as when we migrated Google from
@@ -937,7 +937,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         # create a second org that the user belongs to, ensure they are redirected to correct
         self.create_organization(name="zap", owner=user)
 
-        auth_provider = AuthProvider.objects.create(organization=org1, provider="dummy")
+        auth_provider = AuthProvider.objects.create(organization_id=org1.id, provider="dummy")
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
         resp = self.client.post(path, {"init": True})
@@ -1050,7 +1050,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         assert resp.redirect_chain == [("/auth/2fa/", 302)]
 
     def test_anonymous_user_with_automatic_migration(self):
-        AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
         resp = self.client.post(self.path, {"init": True})
         assert resp.status_code == 200
 
