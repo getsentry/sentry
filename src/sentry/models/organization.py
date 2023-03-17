@@ -349,14 +349,18 @@ class Organization(Model, SnowflakeIdMixin):
         )
         return len(owners[:2]) == 1
 
-    def get_members_with_org_roles(self, roles: Collection[str]):
-        members_with_role = set(
-            self.member_set.filter(
-                role__in=roles,
-                user__isnull=False,
-                user__is_active=True,
-            ).values_list("id", flat=True)
+    def get_members_with_org_roles(
+        self,
+        roles: Collection[str],
+        include_null_users: bool = False,
+    ):
+        members_with_role = self.member_set.filter(
+            role__in=roles,
         )
+        if not include_null_users:
+            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+
+        members_with_role = set(members_with_role.values_list("id", flat=True))
 
         teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
 

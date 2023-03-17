@@ -544,8 +544,10 @@ class Factories:
 
     @classmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(cls, org, artifact_count=0):
-        bundle = cls.create_artifact_bundle_zip(org.slug)
+    def create_artifact_bundle(
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+    ):
+        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
         file_.putfile(ContentFile(bundle))
         # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
@@ -1429,7 +1431,7 @@ class Factories:
             "organization": organization,
             "type": ActionService.SENTRY_NOTIFICATION,
             "target_type": ActionTarget.USER,
-            "target_identifier": 1,
+            "target_identifier": "1",
             "target_display": "Sentry User",
             "trigger_type": ActionTrigger.AUDIT_LOG,
             **kwargs,

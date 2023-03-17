@@ -136,7 +136,7 @@ describe('Threads', () => {
   });
 
   describe('Thread selector', () => {
-    it('renders thread selector with state', () => {
+    it('renders thread selector with state', async () => {
       const threadsEntry = entries[1];
       render(
         <Threads
@@ -149,11 +149,13 @@ describe('Threads', () => {
       expect(
         screen.getByText('ViewController.captureNSException (RUNNABLE)')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByText('ViewController.captureNSException (RUNNABLE)'));
+      await userEvent.click(
+        screen.getByText('ViewController.captureNSException (RUNNABLE)')
+      );
       expect(screen.getByText('State')).toBeInTheDocument();
     });
 
-    it('maps android vm states to java vm states', () => {
+    it('maps android vm states to java vm states', async () => {
       const threadsEntry = entries[1];
       threadsEntry.data.values[0].state = 'kWaitingPerformingGc';
       render(
@@ -169,7 +171,9 @@ describe('Threads', () => {
       expect(
         screen.getByText('ViewController.captureNSException (WAITING)')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByText('ViewController.captureNSException (WAITING)'));
+      await userEvent.click(
+        screen.getByText('ViewController.captureNSException (WAITING)')
+      );
       expect(screen.getByText('State')).toBeInTheDocument();
     });
   });

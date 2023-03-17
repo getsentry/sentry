@@ -149,8 +149,9 @@ describe('groupEvents', () => {
     const input = screen.getByPlaceholderText('Search for events, users, tags, and more');
 
     for (const item of list) {
-      userEvent.clear(input);
-      userEvent.type(input, `${item.searchTerm}{enter}`);
+      await userEvent.clear(input);
+      await userEvent.paste(`${item.searchTerm}`);
+      await userEvent.keyboard('[Enter>]');
 
       expect(browserHistory.push).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -224,7 +225,7 @@ describe('groupEvents', () => {
     );
   });
 
-  it('does not make attachments request, when feature not enabled', async () => {
+  it('does not make attachments request, async when feature not enabled', async () => {
     const org = initializeOrg();
 
     render(

@@ -42,12 +42,9 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         resp = self.client.post(path, {"status": "ok"}, **self.token_auth_headers)
 
         # Slug based check-ins only work when using the organization routes.
-        # This is a 400 unfortunately since we cannot differentiate between a
-        # bad UUID or a missing slug since they are sharing parameters
-        assert resp.status_code == 400, resp.content
+        assert resp.status_code == 404, resp.content
 
     def test_headers_on_creation(self):
-
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
             path = path_func(monitor.guid)
@@ -64,7 +61,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     @patch("sentry.analytics.record")
     def test_passing(self, mock_record):
-
         first_monitor_id = None
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
@@ -103,7 +99,6 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
         )
 
     def test_failing(self):
-
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
             path = path_func(monitor.guid)
@@ -127,16 +122,8 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_disabled(self):
-
         for path_func in self._get_path_functions():
-            monitor = Monitor.objects.create(
-                organization_id=self.organization.id,
-                project_id=self.project.id,
-                next_checkin=timezone.now() - timedelta(minutes=1),
-                type=MonitorType.CRON_JOB,
-                status=MonitorStatus.DISABLED,
-                config={"schedule": "* * * * *"},
-            )
+            monitor = self._create_monitor(status=MonitorStatus.DISABLED)
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
@@ -158,15 +145,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             )
 
     def test_pending_deletion(self):
-
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            status=MonitorStatus.PENDING_DELETION,
-            config={"schedule": "* * * * *"},
-        )
+        monitor = self._create_monitor(status=MonitorStatus.PENDING_DELETION)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
@@ -175,21 +154,61 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             assert resp.status_code == 404
 
     def test_deletion_in_progress(self):
-
-        monitor = Monitor.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            next_checkin=timezone.now() - timedelta(minutes=1),
-            type=MonitorType.CRON_JOB,
-            status=MonitorStatus.DELETION_IN_PROGRESS,
-            config={"schedule": "* * * * *"},
-        )
+        monitor = self._create_monitor(status=MonitorStatus.DELETION_IN_PROGRESS)
 
         for path_func in self._get_path_functions():
             path = path_func(monitor.guid)
 
             resp = self.client.post(path, {"status": "error"}, **self.token_auth_headers)
             assert resp.status_code == 404
+
+    def test_monitor_creation_via_checkin(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"my-new-monitor-{i}"
+            path = path_func(slug)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+            monitor = Monitor.objects.get(slug=slug)
+            assert monitor.config["schedule"] == "5 * * * *"
+
+            checkins = MonitorCheckIn.objects.filter(monitor=monitor)
+            assert len(checkins) == 1
+
+    def test_monitor_update_via_checkin(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            monitor = self._create_monitor(slug=f"my-new-monitor-{i}")
+            path = path_func(monitor.guid)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 201, resp.content
+
+            monitor = Monitor.objects.get(guid=monitor.guid)
+            assert monitor.config["schedule"] == "5 * * * *"
+
+    def test_monitor_creation_invalid_slug(self):
+        for i, path_func in enumerate(self._get_path_functions()):
+            slug = f"@my-new-monitor-{i}"
+            path = path_func(slug)
+
+            resp = self.client.post(
+                path,
+                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                **self.dsn_auth_headers,
+            )
+            assert resp.status_code == 400, resp.content
+            assert (
+                resp.data["slug"][0]
+                == "Invalid monitor slug. Must match the pattern [a-zA-Z0-9_-]+"
+            )
 
     def test_with_dsn_auth(self):
         for path_func in self._get_path_functions():
@@ -253,8 +272,13 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
         assert resp.status_code == 404
 
-    def test_rate_limit(self):
+    def test_with_dsn_and_missing_monitor_without_create(self):
+        path = reverse(self.endpoint, args=["my-missing-monitor"])
+        resp = self.client.post(path, {"status": "ok"}, **self.dsn_auth_headers)
 
+        assert resp.status_code == 404
+
+    def test_rate_limit(self):
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
 

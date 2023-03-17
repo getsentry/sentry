@@ -1,6 +1,4 @@
 ---
-created: '2023-02-28T14:42:11.964248Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 breakdownsV2:
@@ -944,6 +942,8 @@ transactionMetrics:
   - d:transactions/measurements.stall_longest_time@millisecond
   - d:transactions/measurements.stall_percentage@ratio
   - d:transactions/measurements.stall_total_time@millisecond
+  - d:transactions/measurements.time_to_full_display@millisecond
+  - d:transactions/measurements.time_to_initial_display@millisecond
   - d:transactions/measurements.ttfb.requesttime@millisecond
   - d:transactions/measurements.ttfb@millisecond
   - s:transactions/user@none

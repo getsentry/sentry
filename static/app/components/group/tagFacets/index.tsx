@@ -16,7 +16,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 import TagFacetsDistributionMeter from './tagFacetsDistributionMeter';
 
-export const MOBILE_TAGS = ['device', 'os', 'release', 'environment', 'transaction'];
+export const MOBILE_TAGS = [
+  'device',
+  'device.class',
+  'os',
+  'release',
+  'environment',
+  'transaction',
+];
 
 export const FRONTEND_TAGS = ['browser', 'transaction', 'release', 'url', 'environment'];
 
