@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Mapping
+from typing import Any, Mapping
 
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 
 from .base import GroupActivityNotification
-
-if TYPE_CHECKING:
-    from sentry.models import Team, User
 
 
 class NoteActivityNotification(GroupActivityNotification):
@@ -31,5 +29,5 @@ class NoteActivityNotification(GroupActivityNotification):
     ) -> str:
         return self.title
 
-    def get_message_description(self, recipient: Team | User, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: RpcActor, provider: ExternalProviders) -> Any:
         return self.get_context()["text_description"]

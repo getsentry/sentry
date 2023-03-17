@@ -23,6 +23,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.sdk import configure_scope
@@ -249,10 +250,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         self,
         type_: NotificationSettingTypes,
         parent: Organization | Project,
-        recipients: Iterable[Team | User | RpcUser],
+        recipients: Iterable[RpcActor | Team | User | RpcUser],
     ) -> QuerySet:
-        from sentry.models import Team
-
         """
         Find all of a project/organization's notification settings for a list of
         users or teams. Note that this WILL work with a mixed list. This will
@@ -262,12 +261,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         team_ids: MutableSet[int] = set()
         actor_ids: MutableSet[int] = set()
 
-        for recipient in recipients:
-            if type(recipient) == Team:
+        for raw_recipient in recipients:
+            recipient = RpcActor.from_object(raw_recipient)
+            if recipient.actor_type == ActorType.TEAM:
                 team_ids.add(recipient.id)
-            if recipient.class_name() == "User":
+            if recipient.actor_type == ActorType.USER:
                 user_ids.add(recipient.id)
-            actor_ids.add(recipient.actor_id)
+            if recipient.actor_id is not None:
+                actor_ids.add(recipient.actor_id)
 
         # If the list would be empty, don't bother querying.
         if not actor_ids:
@@ -294,23 +295,25 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
     def filter_to_accepting_recipients(
         self,
         parent: Union[Organization, Project],
-        recipients: Iterable[Team | RpcUser],
+        recipients: Iterable[RpcActor | Team | RpcUser],
         type: NotificationSettingTypes = NotificationSettingTypes.ISSUE_ALERTS,
-    ) -> Mapping[ExternalProviders, Iterable[Team | RpcUser]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Filters a list of teams or users down to the recipients by provider who
         are subscribed to alerts. We check both the project level settings and
         global default settings.
         """
+        recipient_actors = [RpcActor.from_object(r) for r in recipients]
+
         notification_settings = notifications_service.get_settings_for_recipient_by_parent(
-            type=type, parent_id=parent.id, recipients=list(recipients)
+            type=type, parent_id=parent.id, recipients=recipient_actors
         )
         notification_settings_by_recipient = transform_to_notification_settings_by_recipient(
-            notification_settings, recipients
+            notification_settings, recipient_actors
         )
 
         mapping = defaultdict(set)
-        for recipient in recipients:
+        for recipient in recipient_actors:
             providers = where_should_recipient_be_notified(
                 notification_settings_by_recipient, recipient, type
             )
@@ -320,7 +323,7 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
 
     def get_notification_recipients(
         self, project: Project
-    ) -> Mapping[ExternalProviders, Iterable[Team | User]]:
+    ) -> Mapping[ExternalProviders, Iterable[RpcActor]]:
         """
         Return a set of users that should receive Issue Alert emails for a given
         project. To start, we get the set of all users. Then we fetch all of
@@ -398,8 +401,11 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 )
 
     def has_any_provider_settings(
-        self, recipient: Team | User, provider: ExternalProviders
+        self, recipient: RpcActor | Team | User, provider: ExternalProviders
     ) -> bool:
+        if recipient.actor_id is None:
+            return False
+
         # Explicitly typing to satisfy mypy.
         has_settings: bool = (
             self._filter(provider=provider, target_ids={recipient.actor_id})

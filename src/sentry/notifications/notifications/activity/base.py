@@ -14,12 +14,13 @@ from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
 from sentry.notifications.utils import send_activity_notification
 from sentry.notifications.utils.avatar import avatar_as_html
-from sentry.notifications.utils.participants import get_participants_for_group
+from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_group
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
-    from sentry.models import Activity, Team, User
+    from sentry.models import Activity
 
 
 class ActivityNotification(ProjectNotification, abc.ABC):
@@ -48,7 +49,7 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         }
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         return {**context, **get_reason_context(context)}
@@ -62,15 +63,13 @@ class ActivityNotification(ProjectNotification, abc.ABC):
         pass
 
     @abc.abstractmethod
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         pass
 
     def send(self) -> None:
         return send_activity_notification(self)
 
-    def get_log_params(self, recipient: Team | User) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> Mapping[str, Any]:
         return {"activity": self.activity, **super().get_log_params(recipient)}
 
 
@@ -94,9 +93,7 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
     def user(self) -> RpcUser | None:
         return user_service.get_user(self.activity.user_id)
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | RpcUser, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """This is overridden by the activity subclasses."""
         return get_participants_for_group(self.group, self.user)
 
@@ -185,15 +182,15 @@ class GroupActivityNotification(ActivityNotification, abc.ABC):
 
         return mark_safe(description.format(**context))
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         from sentry.integrations.message_builder import get_title_link
 
         return get_title_link(self.group, None, False, True, self, provider)
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         from sentry.integrations.message_builder import build_attachment_title
 
         return build_attachment_title(self.group)
 
-    def get_log_params(self, recipient: Team | User, **kwargs: Any) -> Mapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor, **kwargs: Any) -> Mapping[str, Any]:
         return {"group": self.group.id, **super().get_log_params(recipient)}

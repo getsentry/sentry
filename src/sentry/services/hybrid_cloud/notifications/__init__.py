@@ -5,7 +5,7 @@
 
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Optional, Protocol, Sequence
+from typing import TYPE_CHECKING, List, Sequence
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -13,6 +13,7 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
@@ -31,19 +32,6 @@ class RpcNotificationSetting:
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
 
 
-class MayHaveActor(Protocol):
-    @property
-    def id(self) -> int:
-        pass
-
-    @property
-    def actor_id(self) -> Optional[int]:
-        pass
-
-    def class_name(self) -> str:
-        pass
-
-
 class NotificationsService(InterfaceWithLifecycle):
     @abstractmethod
     def get_settings_for_recipient_by_parent(
@@ -51,7 +39,7 @@ class NotificationsService(InterfaceWithLifecycle):
         *,
         type: NotificationSettingTypes,
         parent_id: int,
-        recipients: Sequence[MayHaveActor],
+        recipients: Sequence[RpcActor],
     ) -> List[RpcNotificationSetting]:
         pass
 
@@ -71,7 +59,8 @@ class NotificationsService(InterfaceWithLifecycle):
     ) -> List[RpcNotificationSetting]:
         pass
 
-    def _serialize_notification_settings(
+    @classmethod
+    def serialize_notification_setting(
         self, setting: "NotificationSetting"
     ) -> RpcNotificationSetting:
         return RpcNotificationSetting(

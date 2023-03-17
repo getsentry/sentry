@@ -55,7 +55,6 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.notify import notify
-from sentry.notifications.utils.participants import split_participants_and_context
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -462,15 +461,15 @@ def get_notification_group_title(
 
 def send_activity_notification(notification: ActivityNotification | UserReportNotification) -> None:
     participants_by_provider = notification.get_participants_with_group_subscription_reason()
-    if not participants_by_provider:
+    if participants_by_provider.is_empty():
         return
 
     # Only calculate shared context once.
     shared_context = notification.get_context()
 
-    for provider, participants_with_reasons in participants_by_provider.items():
-        participants_, extra_context = split_participants_and_context(participants_with_reasons)
-        notify(provider, notification, participants_, shared_context, extra_context)
+    split = participants_by_provider.split_participants_and_context()
+    for (provider, participants, extra_context) in split:
+        notify(provider, notification, participants, shared_context, extra_context)
 
 
 @dataclass

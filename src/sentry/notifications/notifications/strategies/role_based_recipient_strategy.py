@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Iterable, MutableMapping, Optional
 from sentry import roles
 from sentry.models import OrganizationMember
 from sentry.roles.manager import OrganizationRole
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
@@ -20,15 +21,17 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
     def __init__(self, organization: Organization):
         self.organization = organization
 
-    def get_member(self, user: RpcUser) -> OrganizationMember:
+    def get_member(self, user: RpcUser | RpcActor) -> OrganizationMember:
         # cache the result
-        if user.class_name() != "User":
+        actor = RpcActor.from_object(user)
+        if actor.actor_type != ActorType.USER:
             raise OrganizationMember.DoesNotExist()
-        if user.id not in self.member_by_user_id:
-            self.member_by_user_id[user.id] = OrganizationMember.objects.get(
-                user_id=user.id, organization=self.organization
+        user_id = actor.id
+        if user_id not in self.member_by_user_id:
+            self.member_by_user_id[user_id] = OrganizationMember.objects.get(
+                user_id=user_id, organization=self.organization
             )
-        return self.member_by_user_id[user.id]
+        return self.member_by_user_id[user_id]
 
     def set_member_in_cache(self, member: OrganizationMember) -> None:
         """

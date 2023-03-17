@@ -5,6 +5,7 @@ from sentry.api.serializers import Serializer
 from sentry.models import NotificationSetting, Team, User
 from sentry.notifications.helpers import get_fallback_settings
 from sentry.notifications.types import VALID_VALUES_FOR_KEY, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 
 
 class NotificationSettingsSerializer(Serializer):  # type: ignore
@@ -103,7 +104,7 @@ class NotificationSettingsSerializer(Serializer):  # type: ignore
             types_to_serialize,
             project_ids,
             organization_ids,
-            recipient=obj,
+            recipient=RpcActor.from_object(obj),
         )
 
         # Forgive the variable name, I wanted the following lines to be legible.
