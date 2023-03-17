@@ -78,8 +78,9 @@ def adjust_sample_rate(
         # and all the explicit budget on the explicit classes
         # the calculation of rates can be done independently for explicit and
         # implicit classes
-        implicit_rate = rate
-        explicit_rates = adjust_sample_rate_full(classes, rate)
+        implicit_rate = implicit_budget / total_implicit
+        explicit_rate = explicit_budget / total_explicit
+        explicit_rates = adjust_sample_rate_full(classes, explicit_rate)
     return explicit_rates, implicit_rate
 
 
