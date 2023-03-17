@@ -1001,7 +1001,10 @@ class Factories:
         if not actor:
             actor = Factories.create_user()
         if not org:
-            org = Factories.create_organization(owner=actor)
+            if project:
+                org = project.organization
+            else:
+                org = Factories.create_organization(owner=actor)
         if not project:
             project = Factories.create_project(organization=org)
         if events is None:
