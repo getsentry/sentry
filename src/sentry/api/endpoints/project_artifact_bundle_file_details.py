@@ -21,14 +21,13 @@ class ProjectArtifactBundleFileDetailsMixin:
         try:
             file_path = base64.urlsafe_b64decode(file_id).decode()
 
-            archive_file_fp = artifact_bundle.file.getfile()
-            archive = ArtifactBundleArchive(archive_file_fp, build_memory_map=False)
+            archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
 
             fp, headers = archive.get_file_by_file_path(file_path)
             file_info = archive.get_file_info(file_path)
 
             response = FileResponse(
-                ClosesDependentFiles(fp, archive_file_fp),
+                ClosesDependentFiles(fp, archive),
                 content_type=headers.get("content-type", "application/octet-stream"),
             )
             response["Content-Length"] = file_info.file_size if file_info is not None else None
@@ -38,10 +37,7 @@ class ProjectArtifactBundleFileDetailsMixin:
 
             return response
         except Exception as exc:
-            return Response(
-                {"error": f"An error occurred while downloading the file with id {file_id}"},
-                status=400,
-            )
+            raise exc
 
     @classmethod
     def get_file_from_artifact_bundle(
