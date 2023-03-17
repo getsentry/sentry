@@ -43,7 +43,7 @@ class ProjectKeyService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_project_key(self, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
+    def get_project_key(self, *, project_id: str, role: ProjectKeyRole) -> Optional[RpcProjectKey]:
         pass
 
 
