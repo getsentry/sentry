@@ -263,7 +263,10 @@ describe('ProjectSourceMaps', function () {
       });
 
       // Chip
-      expect(await screen.findByText('none')).toBeInTheDocument();
+      await userEvent.hover(screen.getByText('none'));
+      expect(
+        await screen.findByText('Not associated with a release or distribution')
+      ).toBeInTheDocument();
       // Artifacts
       expect(screen.getByText('39')).toBeInTheDocument();
       // Date Uploaded

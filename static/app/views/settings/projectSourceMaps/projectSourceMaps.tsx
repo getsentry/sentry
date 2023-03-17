@@ -308,19 +308,16 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   <Tags>
                     {data.dist && (
                       <Tag
-                        tooltipText={tct(
-                          'This is bound to the distribution "[distribution]"',
-                          {
-                            distribution: data.dist,
-                          }
-                        )}
+                        tooltipText={tct('Associated with release "[distribution]"', {
+                          distribution: data.dist,
+                        })}
                       >
                         {data.dist}
                       </Tag>
                     )}
                     {data.release && (
                       <Tag
-                        tooltipText={tct('This is bound to the release "[releaseName]"', {
+                        tooltipText={tct('Associated with release "[releaseName]"', {
                           releaseName: data.release,
                         })}
                       >
@@ -328,7 +325,11 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                       </Tag>
                     )}
                     {!data.dist && !data.release && (
-                      <Tag tooltipText={t('No release and dist set')}>{t('none')}</Tag>
+                      <Tag
+                        tooltipText={t('Not associated with a release or distribution')}
+                      >
+                        {t('none')}
+                      </Tag>
                     )}
                   </Tags>
                 }
