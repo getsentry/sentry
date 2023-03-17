@@ -266,7 +266,9 @@ class FeatureManager(RegisteredFeatureManager):
             return None
 
     @staticmethod
-    def _shim_feature_strategy(entity_feature_strategy: bool | FeatureHandlerStrategy):
+    def _shim_feature_strategy(
+        entity_feature_strategy: bool | FeatureHandlerStrategy,
+    ) -> FeatureHandlerStrategy:
         """
         Shim layer for old API to register a feature until all the features have been converted
         """
