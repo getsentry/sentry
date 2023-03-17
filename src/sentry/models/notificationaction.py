@@ -224,6 +224,14 @@ class NotificationAction(AbstractNotificationAction):
     def fire(self, *args, **kwargs):
         handler = NotificationAction._handlers[self.trigger_type].get(self.service_type)
         if handler:
+            logger.info(
+                "fire_handler",
+                extra={
+                    "action_id": self.id,
+                    "trigger": NotificationAction.get_trigger_text(self.trigger_type),
+                    "service": ActionService.get_name(self.service_type),
+                },
+            )
             return handler(action=self, *args, **kwargs)
         else:
             logger.error(
