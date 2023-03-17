@@ -1517,6 +1517,8 @@ def is_duration_measurement(key):
         "measurements.ttfb.requesttime",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+        "measurements.time_to_full_display",
+        "measurements.time_to_initial_display",
     ]
 
 
