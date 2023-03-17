@@ -21,20 +21,18 @@ export function useCanvasScroll(
         Math.abs(evt.deltaY) > Math.abs(evt.deltaX) ? 'vertical' : 'horizontal';
       const scrollDirection = evt.deltaY > 0 ? 'down' : 'up';
 
-      // if the view is inverted, then the top edge is the bottom edge
-      // and the bottom edge is the top edge so we need to invert the checks
-
-      const isTopEdge = view.inverted
-        ? view.configSpace.bottom === view.configView.bottom
-        : view.configSpace.top === view.configView.top;
-      const isBottomEdge = view.inverted
-        ? view.configSpace.top === view.configView.top
-        : view.configSpace.bottom === view.configView.bottom;
-
-      if (isTopEdge && direction === 'vertical' && scrollDirection === 'up') {
+      if (
+        view.isViewAtTopEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'up'
+      ) {
         return;
       }
-      if (isBottomEdge && direction === 'vertical' && scrollDirection === 'down') {
+      if (
+        view.isViewAtBottomEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'down'
+      ) {
         return;
       }
 
