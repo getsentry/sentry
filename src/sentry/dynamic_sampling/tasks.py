@@ -3,7 +3,7 @@ from typing import Optional, Sequence, Tuple
 
 from sentry import features, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
-from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate
+from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate_full
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
@@ -182,17 +182,13 @@ def process_transaction_biases(project_transactions: ProjectTransactions) -> Non
         # no sampling => no rebalancing
         return
 
-    named_rates, global_rate = adjust_sample_rate(
-        transactions=transactions,
-        rate=sample_rate,
-        max_explicit_transactions=MAX_TRANSACTIONS_PER_PROJECT,
-    )
+    named_rates = adjust_sample_rate_full(transactions=transactions, rate=sample_rate)
 
     set_transactions_resampling_rates(
         org_id=org_id,
         proj_id=project_id,
         named_rates=named_rates,
-        default_rate=global_rate,
+        default_rate=sample_rate,
         ttl_ms=CACHE_KEY_TTL,
     )
 
