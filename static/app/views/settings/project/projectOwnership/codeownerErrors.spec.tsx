@@ -6,7 +6,7 @@ describe('CodeownerErrors', () => {
   const project = TestStubs.Project();
   const org = TestStubs.Organization();
 
-  it('should render errors', () => {
+  it('should render errors', async () => {
     const codeowner = TestStubs.CodeOwner({
       errors: {
         missing_user_emails: ['santry@example.com'],
@@ -24,7 +24,7 @@ describe('CodeownerErrors', () => {
       />
     );
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByText(
         'There were 3 ownership issues within Sentry on the latest sync with the CODEOWNERS file'
       )

@@ -27,7 +27,7 @@ describe('ArithmeticInput', function () {
     {kind: 'equation', field: 'transaction.duration+measurements.lcp'},
   ];
 
-  it('can toggle autocomplete dropdown on focus and blur', function () {
+  it('can toggle autocomplete dropdown on focus and blur', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -43,17 +43,17 @@ describe('ArithmeticInput', function () {
     expect(screen.queryByText('Fields')).not.toBeInTheDocument();
 
     // focus the input
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     expect(screen.getByText('Fields')).toBeInTheDocument();
 
     // moves focus away from the input
-    userEvent.tab();
+    await userEvent.tab();
 
     expect(screen.queryByText('Fields')).not.toBeInTheDocument();
   });
 
-  it('renders only numeric options in autocomplete', function () {
+  it('renders only numeric options in autocomplete', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -67,7 +67,7 @@ describe('ArithmeticInput', function () {
     );
 
     // focus the input
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     const listItems = screen.getAllByRole('listitem');
 
@@ -87,7 +87,7 @@ describe('ArithmeticInput', function () {
     });
   });
 
-  it('can use keyboard to select an option', function () {
+  it('can use keyboard to select an option', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -101,34 +101,34 @@ describe('ArithmeticInput', function () {
     );
 
     // focus the input
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     for (const column of numericColumns) {
-      userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
       expect(
         screen.getByRole('listitem', {name: generateFieldAsString(column)})
       ).toHaveClass('active', {exact: false});
     }
 
     for (const operator of operators) {
-      userEvent.keyboard('{ArrowDown}');
+      await userEvent.keyboard('{ArrowDown}');
       expect(screen.getByRole('listitem', {name: operator})).toHaveClass('active', {
         exact: false,
       });
     }
 
     // wrap around to the first option again
-    userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
 
     for (const operator of [...operators].reverse()) {
-      userEvent.keyboard('{ArrowUp}');
+      await userEvent.keyboard('{ArrowUp}');
       expect(screen.getByRole('listitem', {name: operator})).toHaveClass('active', {
         exact: false,
       });
     }
 
     for (const column of [...numericColumns].reverse()) {
-      userEvent.keyboard('{ArrowUp}');
+      await userEvent.keyboard('{ArrowUp}');
       expect(
         screen.getByRole('listitem', {name: generateFieldAsString(column)})
       ).toHaveClass('active', {
@@ -137,15 +137,15 @@ describe('ArithmeticInput', function () {
     }
 
     // the update is buffered until blur happens
-    userEvent.keyboard('{enter}');
-    userEvent.keyboard('{esc}');
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Escape}');
 
     expect(screen.getByRole('textbox')).toHaveValue(
       `${generateFieldAsString(numericColumns[0])} `
     );
   });
 
-  it('can use mouse to select an option', function () {
+  it('can use mouse to select an option', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -158,16 +158,16 @@ describe('ArithmeticInput', function () {
       />
     );
 
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
-    userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2])));
+    await userEvent.click(screen.getByText(generateFieldAsString(numericColumns[2])));
 
     expect(screen.getByRole('textbox')).toHaveValue(
       `${generateFieldAsString(numericColumns[2])} `
     );
   });
 
-  it('autocompletes the current term when it is in the front', function () {
+  it('autocompletes the current term when it is in the front', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -182,20 +182,16 @@ describe('ArithmeticInput', function () {
 
     const element = screen.getByRole('textbox') as HTMLInputElement;
 
-    userEvent.type(element, 'lcp + transaction.duration');
-
-    element.setSelectionRange(2, 2);
-
-    userEvent.click(screen.getByRole('textbox'));
-
-    userEvent.click(screen.getByText('measurements.lcp'));
+    await userEvent.type(element, 'lcp + transaction.duration');
+    await userEvent.type(element, '{ArrowLeft>24}');
+    await userEvent.click(screen.getByText('measurements.lcp'));
 
     expect(screen.getByRole('textbox')).toHaveValue(
       'measurements.lcp  + transaction.duration'
     );
   });
 
-  it('autocompletes the current term when it is in the end', function () {
+  it('autocompletes the current term when it is in the end', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -208,16 +204,16 @@ describe('ArithmeticInput', function () {
       />
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'transaction.duration + lcp');
+    await userEvent.type(screen.getByRole('textbox'), 'transaction.duration + lcp');
 
-    userEvent.click(screen.getByText('measurements.lcp'));
+    await userEvent.click(screen.getByText('measurements.lcp'));
 
     expect(screen.getByRole('textbox')).toHaveValue(
       'transaction.duration + measurements.lcp '
     );
   });
 
-  it('handles autocomplete on invalid term', function () {
+  it('handles autocomplete on invalid term', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -231,13 +227,13 @@ describe('ArithmeticInput', function () {
     );
 
     // focus the input
-    userEvent.type(screen.getByRole('textbox'), 'foo + bar');
-    userEvent.keyboard('{keydown}');
+    await userEvent.type(screen.getByRole('textbox'), 'foo + bar');
+    await userEvent.keyboard('{keydown}');
 
     expect(screen.getAllByText('No items found')).toHaveLength(2);
   });
 
-  it('can hide Fields options', function () {
+  it('can hide Fields options', async function () {
     render(
       <ArithmeticInput
         name="refinement"
@@ -251,7 +247,7 @@ describe('ArithmeticInput', function () {
     );
 
     // focus the input
-    userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('textbox'));
 
     expect(screen.getByText('Operators')).toBeInTheDocument();
     expect(screen.queryByText('Fields')).not.toBeInTheDocument();

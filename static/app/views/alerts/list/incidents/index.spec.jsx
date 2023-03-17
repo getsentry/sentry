@@ -222,7 +222,7 @@ describe('IncidentsList', () => {
     const input = await screen.findByPlaceholderText('Search by name');
     expect(input).toBeInTheDocument();
     const testQuery = 'test name';
-    userEvent.type(input, `${testQuery}{enter}`);
+    await userEvent.type(input, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

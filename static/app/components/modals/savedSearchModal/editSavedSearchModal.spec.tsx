@@ -63,17 +63,17 @@ describe('EditSavedSearchModal', function () {
 
     render(<EditSavedSearchModal {...defaultProps} />);
 
-    userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
 
-    userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    userEvent.type(screen.getByRole('textbox', {name: /filter issues/i}), 'test');
+    await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
+    await userEvent.type(screen.getByRole('textbox', {name: /filter issues/i}), 'test');
 
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
 
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(editMock).toHaveBeenCalledWith(
@@ -90,8 +90,6 @@ describe('EditSavedSearchModal', function () {
   });
 
   it('can edit a saved search without org:write', async function () {
-    jest.useFakeTimers();
-
     const editMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/saved-search-id/',
       method: 'PUT',
@@ -113,19 +111,19 @@ describe('EditSavedSearchModal', function () {
       />
     );
 
-    userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
-    userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
 
-    userEvent.clear(screen.getByTestId('smart-search-input'));
-    userEvent.type(screen.getByTestId('smart-search-input'), 'test');
+    await userEvent.clear(screen.getByTestId('smart-search-input'));
+    await userEvent.type(screen.getByTestId('smart-search-input'), 'test');
 
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
 
     // Hovering over the visibility dropdown shows disabled reason
-    userEvent.hover(screen.getByText(/only me/i));
+    await userEvent.hover(screen.getByText(/only me/i));
     await screen.findByText(/only organization admins can create global saved searches/i);
 
-    userEvent.click(screen.getByRole('button', {name: 'Save'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     await waitFor(() => {
       expect(editMock).toHaveBeenCalledWith(

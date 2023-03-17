@@ -85,7 +85,7 @@ describe('Group > OwnedBy', () => {
     expect(screen.getByText('No one')).toBeInTheDocument();
   });
 
-  it('allows project:write to edit owners', () => {
+  it('allows project:write to edit owners', async () => {
     render(
       <OwnedBy
         group={TestStubs.Group()}
@@ -94,7 +94,7 @@ describe('Group > OwnedBy', () => {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Create Ownership Rule'));
+    await userEvent.click(screen.getByLabelText('Create Ownership Rule'));
 
     expect(openIssueOwnershipRuleModal).toHaveBeenCalledWith(
       expect.objectContaining({issueId: '1'})

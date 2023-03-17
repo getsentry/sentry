@@ -38,7 +38,7 @@ describe('SentryAppExternalIssueActions', () => {
     jest.clearAllMocks();
   });
 
-  it('renders without an external issue linked', () => {
+  it('renders without an external issue linked', async () => {
     render(
       <SentryAppExternalIssueActions
         group={group}
@@ -56,7 +56,7 @@ describe('SentryAppExternalIssueActions', () => {
     expect(screen.getByLabelText('Add')).toBeInTheDocument();
 
     // Open The Modal
-    userEvent.click(link);
+    await userEvent.click(link);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     // renders the Create Issue form fields, based on schema
@@ -66,7 +66,7 @@ describe('SentryAppExternalIssueActions', () => {
     }
 
     // Click the link tab
-    userEvent.click(screen.getByText('Link'));
+    await userEvent.click(screen.getByText('Link'));
 
     // renders the Link Issue form fields, based on schema
     expect(component.schema.link.required_fields).toHaveLength(1);
@@ -91,15 +91,15 @@ describe('SentryAppExternalIssueActions', () => {
     const {waitForModalToHide} = renderGlobalModal();
 
     // Open The Modal
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
     );
 
     // Click the link tab
-    userEvent.click(screen.getByText('Link'));
+    await userEvent.click(screen.getByText('Link'));
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), '99');
-    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Issue'}), '99');
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitForModalToHide();
 
@@ -131,17 +131,17 @@ describe('SentryAppExternalIssueActions', () => {
     const {waitForModalToHide} = renderGlobalModal();
 
     // Open The Modal
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('link', {name: `${component.sentryApp.name} Issue`})
     );
 
-    userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'foo');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'foo');
 
-    userEvent.clear(screen.getByRole('textbox', {name: 'Description'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'bar');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Description'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Description'}), 'bar');
 
-    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitForModalToHide();
 
@@ -177,7 +177,7 @@ describe('SentryAppExternalIssueActions', () => {
     expect(screen.getByLabelText('Remove')).toBeInTheDocument();
   });
 
-  it('deletes a Linked Issue', () => {
+  it('deletes a Linked Issue', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/issues/${group.id}/external-issues/${externalIssue.id}/`,
       method: 'DELETE',
@@ -191,7 +191,7 @@ describe('SentryAppExternalIssueActions', () => {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Remove'));
+    await userEvent.click(screen.getByLabelText('Remove'));
     expect(request).toHaveBeenCalledTimes(1);
   });
 });
