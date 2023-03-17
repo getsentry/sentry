@@ -46,6 +46,8 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     }
 
     const newContainer = document.createElement('div');
+    newContainer.setAttribute('data-test-id', 'flamegraph-zoom-view-container');
+
     this.container = newContainer;
     parent.appendChild(newContainer);
 
@@ -82,13 +84,13 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   }
 
   setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
+    // @TODO for now just dont do anything as it will throw in tests
   }
 
   setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
   ) {
-    throw new Error('Method `setSearchResults` not implemented.');
+    // @TODO for now just dont do anything as it will throw in tests
   }
 }
