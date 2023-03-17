@@ -118,7 +118,7 @@ describe('EventAttachments', function () {
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: /preview/i})).toBeDisabled();
-    userEvent.hover(screen.getByRole('button', {name: /preview/i}));
+    await userEvent.hover(screen.getByRole('button', {name: /preview/i}));
 
     await screen.findByText(/insufficient permissions to preview attachments/i);
   });
@@ -146,7 +146,7 @@ describe('EventAttachments', function () {
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: /preview/i}));
+    await userEvent.click(screen.getByRole('button', {name: /preview/i}));
 
     expect(screen.getByText('file contents')).toBeInTheDocument();
   });
@@ -174,8 +174,8 @@ describe('EventAttachments', function () {
 
     expect(await screen.findByText('Attachments (2)')).toBeInTheDocument();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
-    userEvent.click(
+    await userEvent.click(screen.getAllByRole('button', {name: 'Delete'})[0]);
+    await userEvent.click(
       within(screen.getByRole('dialog')).getByRole('button', {name: /delete/i})
     );
 

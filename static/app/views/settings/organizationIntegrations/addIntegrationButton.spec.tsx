@@ -6,7 +6,7 @@ import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegratio
 describe('AddIntegrationButton', function () {
   const provider = TestStubs.GitHubIntegrationProvider();
 
-  it('Opens the setup dialog on click', function () {
+  it('Opens the setup dialog on click', async function () {
     const focus = jest.fn();
     const open = jest.fn().mockReturnValue({focus, close: jest.fn()});
     // any is needed here because getSentry has different types for global
@@ -20,7 +20,7 @@ describe('AddIntegrationButton', function () {
       />
     );
 
-    userEvent.click(screen.getByLabelText('Add integration'));
+    await userEvent.click(screen.getByLabelText('Add integration'));
     expect(open.mock.calls).toHaveLength(1);
     expect(focus.mock.calls).toHaveLength(1);
     expect(open.mock.calls[0][2]).toBe(

@@ -14,7 +14,7 @@ describe('GroupTags', function () {
     });
   });
 
-  it('navigates to issue details events tab with correct query params', function () {
+  it('navigates to issue details events tab with correct query params', async function () {
     render(
       <GroupTags
         group={group}
@@ -36,7 +36,7 @@ describe('GroupTags', function () {
     // Check headers have been sorted alphabetically
     expect(headers).toEqual(['browser', 'device', 'environment', 'url', 'user']);
 
-    userEvent.click(screen.getByText('david'));
+    await userEvent.click(screen.getByText('david'));
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/1/events/',
