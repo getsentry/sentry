@@ -191,7 +191,9 @@ class ArtifactBundleArchive:
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file_by_file_path(self, file_path: str) -> Tuple[IO, dict]:
-        return self._zip_file.open(file_path), self.manifest.get(file_path, {}).get("headers", {})
+        files = self.manifest.get("files", {})
+        file_info = files.get(file_path, {})
+        return self._zip_file.open(file_path), file_info.get("headers", {})
 
     def get_files_by(self, block: Callable[[str, dict], bool]) -> Dict[str, dict]:
         files = self.manifest.get("files", {})

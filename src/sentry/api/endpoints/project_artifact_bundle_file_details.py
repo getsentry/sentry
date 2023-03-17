@@ -37,7 +37,7 @@ class ProjectArtifactBundleFileDetailsMixin:
             )
 
             return response
-        except Exception:
+        except Exception as exc:
             return Response(
                 {"error": f"An error occurred while downloading the file with id {file_id}"},
                 status=400,
