@@ -11,7 +11,7 @@ import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-import {isSchema} from '../../utils/profiling/guards/profile';
+import {isSchema, isSentrySampledProfile} from '../../utils/profiling/guards/profile';
 
 function fetchFlamegraphs(
   api: Client,
@@ -33,6 +33,9 @@ function fetchFlamegraphs(
 function getTransactionId(input: Profiling.ProfileInput): string | null {
   if (isSchema(input)) {
     return input.metadata.transactionID;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.id;
   }
   return null;
 }

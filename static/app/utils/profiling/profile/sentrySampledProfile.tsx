@@ -5,9 +5,11 @@ import {Frame} from './../frame';
 import {Profile} from './profile';
 import {createSentrySampleProfileFrameIndex} from './utils';
 
-function sortSentrySampledProfileSamples(
-  samples: Readonly<Profiling.SentrySampledProfile['profile']['samples']>
-) {
+type WeightedSample = Profiling.SentrySampledProfile['profile']['samples'][0] & {
+  weight: number;
+};
+
+function sortSentrySampledProfileSamples(samples: Readonly<WeightedSample[]>) {
   return [...samples].sort((a, b) => {
     return a.stack_id - b.stack_id;
   });
@@ -23,40 +25,44 @@ export class SentrySampledProfile extends Profile {
     frameIndex: ReturnType<typeof createSentrySampleProfileFrameIndex>,
     options: {type: 'flamechart' | 'flamegraph'}
   ): Profile {
+    const weightedSamples: WeightedSample[] = sampledProfile.profile.samples.map(
+      (sample, i) => {
+        // falling back to the current sample timestamp has the effect
+        // of giving the last sample a weight of 0
+        const nextSample = sampledProfile.profile.samples[i + 1] ?? sample;
+        return {
+          ...sample,
+          weight: nextSample.elapsed_since_start_ns - sample.elapsed_since_start_ns,
+        };
+      }
+    );
+
     const {stacks, thread_metadata = {}} = sampledProfile.profile;
     const samples =
       options.type === 'flamegraph'
-        ? sortSentrySampledProfileSamples(sampledProfile.profile.samples)
-        : sampledProfile.profile.samples;
+        ? sortSentrySampledProfileSamples(weightedSamples)
+        : weightedSamples;
 
-    const startedAt = parseInt(samples[0].elapsed_since_start_ns, 10);
-    const endedAt = parseInt(samples[samples.length - 1].elapsed_since_start_ns, 10);
+    const startedAt = samples[0].elapsed_since_start_ns;
+    const endedAt = samples[samples.length - 1].elapsed_since_start_ns;
     if (Number.isNaN(startedAt) || Number.isNaN(endedAt)) {
       throw TypeError('startedAt or endedAt is NaN');
     }
+
     const threadId = parseInt(samples[0].thread_id, 10);
-    const threadName = `thread: ${
-      thread_metadata[samples[0].thread_id]?.name || threadId
-    }`;
-    const profileTransactionName = sampledProfile.transactions?.[0]?.name;
     const profile = new SentrySampledProfile({
       duration: endedAt - startedAt,
       startedAt,
       endedAt,
       unit: 'nanoseconds',
-      name: profileTransactionName
-        ? `${profileTransactionName} (${threadName})`
-        : threadName,
+      name: thread_metadata[samples[0].thread_id]?.name || '',
       threadId,
       type: options.type,
     });
 
-    let previousSampleWeight = 0;
-
     for (let i = 0; i < samples.length; i++) {
       const sample = samples[i];
       const stack = stacks[sample.stack_id];
-      const sampleWeight = parseInt(sample.elapsed_since_start_ns, 10);
 
       profile.appendSampleWithWeight(
         stack.map(n => {
@@ -66,10 +72,8 @@ export class SentrySampledProfile extends Profile {
 
           return frameIndex[n];
         }),
-        sampleWeight - previousSampleWeight
+        sample.weight
       );
-
-      previousSampleWeight = sampleWeight;
     }
 
     return profile.build();

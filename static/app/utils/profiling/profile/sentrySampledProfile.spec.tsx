@@ -33,22 +33,15 @@ export const makeSentrySampledProfile = (
           {
             stack_id: 0,
             thread_id: '0',
-            elapsed_since_start_ns: '0',
+            elapsed_since_start_ns: 0,
           },
           {
             stack_id: 1,
             thread_id: '0',
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
           },
         ],
         frames: [
-          {
-            function: 'foo',
-            instruction_addr: '',
-            lineno: 2,
-            colno: 2,
-            file: 'main.c',
-          },
           {
             function: 'main',
             instruction_addr: '',
@@ -56,8 +49,15 @@ export const makeSentrySampledProfile = (
             colno: 1,
             file: 'main.c',
           },
+          {
+            function: 'foo',
+            instruction_addr: '',
+            lineno: 2,
+            colno: 2,
+            file: 'main.c',
+          },
         ],
-        stacks: [[0], [0, 1]],
+        stacks: [[1, 0], [0]],
       },
     },
     profile
@@ -90,26 +90,22 @@ describe('SentrySampledProfile', () => {
 
   it('tracks discarded samples', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transactions: [
-        {
-          id: '',
-          name: 'foo',
-          active_thread_id: '1',
-          relative_start_ns: '0',
-          relative_end_ns: '1000000',
-          trace_id: '1',
-        },
-      ],
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
       profile: {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
         ],
@@ -127,31 +123,27 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.stats.discardedSamplesCount).toBe(1);
+    expect(profile.stats.discardedSamplesCount).toBe(2);
   });
 
   it('tracks negative samples', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transactions: [
-        {
-          id: '',
-          name: 'foo',
-          active_thread_id: '1',
-          relative_start_ns: '0',
-          relative_end_ns: '1000000',
-          trace_id: '1',
-        },
-      ],
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
       profile: {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
           {
             stack_id: 0,
-            elapsed_since_start_ns: '-1000',
+            elapsed_since_start_ns: -1000,
             thread_id: '0',
           },
         ],
@@ -174,31 +166,27 @@ describe('SentrySampledProfile', () => {
 
   it('tracks raw weights', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transactions: [
-        {
-          id: '',
-          name: 'foo',
-          active_thread_id: '1',
-          relative_start_ns: '0',
-          relative_end_ns: '1000000',
-          trace_id: '1',
-        },
-      ],
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
       profile: {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
           {
             stack_id: 0,
-            elapsed_since_start_ns: '2000',
+            elapsed_since_start_ns: 2000,
             thread_id: '0',
           },
           {
             stack_id: 0,
-            elapsed_since_start_ns: '3000',
+            elapsed_since_start_ns: 3000,
             thread_id: '0',
           },
         ],
@@ -216,26 +204,22 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.rawWeights.length).toBe(3);
+    expect(profile.rawWeights.length).toBe(2);
   });
 
   it('derives a profile name from the transaction.name and thread_id', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transactions: [
-        {
-          id: '',
-          name: 'foo',
-          active_thread_id: '1',
-          relative_start_ns: '0',
-          relative_end_ns: '1000000',
-          trace_id: '1',
-        },
-      ],
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
       profile: {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
         ],
@@ -253,7 +237,8 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.name).toBe('foo (thread: bar)');
+    expect(profile.name).toBe('bar');
+    expect(profile.threadId).toBe(0);
   });
 
   it('derives a profile name from just thread_id', () => {
@@ -262,7 +247,7 @@ describe('SentrySampledProfile', () => {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
         ],
@@ -276,7 +261,8 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.name).toBe('thread: 0');
+    expect(profile.name).toBe('');
+    expect(profile.threadId).toBe(0);
   });
 
   it('derives a profile name from just thread name', () => {
@@ -285,7 +271,7 @@ describe('SentrySampledProfile', () => {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
         ],
@@ -303,63 +289,33 @@ describe('SentrySampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(profile.name).toBe('thread: foo');
-  });
-
-  it('throws a TypeError when it cannot parse startedAt or endedAt', () => {
-    const sampledProfile = makeSentrySampledProfile({
-      profile: {
-        samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 'a1000',
-            thread_id: '0',
-          },
-        ],
-        thread_metadata: {
-          '0': {
-            name: 'foo',
-          },
-        },
-      },
-    });
-
-    expect(() =>
-      SentrySampledProfile.FromProfile(
-        sampledProfile,
-        createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
-        {type: 'flamechart'}
-      )
-    ).toThrow(new TypeError('startedAt or endedAt is NaN'));
+    expect(profile.name).toBe('foo');
+    expect(profile.threadId).toBe(0);
   });
 
   it('flamegraph tracks node occurences', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transactions: [
-        {
-          id: '',
-          name: 'foo',
-          active_thread_id: '1',
-          relative_start_ns: '0',
-          relative_end_ns: '1000000',
-          trace_id: '1',
-        },
-      ],
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
       profile: {
         samples: [
           {
             stack_id: 0,
-            elapsed_since_start_ns: '1000',
+            elapsed_since_start_ns: 1000,
             thread_id: '0',
           },
           {
             stack_id: 1,
-            elapsed_since_start_ns: '2000',
+            elapsed_since_start_ns: 2000,
             thread_id: '0',
           },
           {
             stack_id: 0,
-            elapsed_since_start_ns: '3000',
+            elapsed_since_start_ns: 3000,
             thread_id: '0',
           },
         ],
@@ -380,7 +336,7 @@ describe('SentrySampledProfile', () => {
       {type: 'flamegraph'}
     );
 
-    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].count).toBe(2);
     expect(profile.callTree.children[0].children[0].count).toBe(1);
   });
 });
