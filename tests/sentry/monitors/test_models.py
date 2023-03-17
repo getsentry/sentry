@@ -103,6 +103,7 @@ class MonitorTestCase(TestCase):
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
                         "name": monitor.name,
+                        "slug": monitor.slug,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (unknown)"},
@@ -140,6 +141,7 @@ class MonitorTestCase(TestCase):
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
                         "name": monitor.name,
+                        "slug": monitor.slug,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (duration)"},
@@ -180,6 +182,7 @@ class MonitorTestCase(TestCase):
                         "config": {"schedule_type": 2, "schedule": [1, "month"]},
                         "id": str(monitor.guid),
                         "name": monitor.name,
+                        "slug": monitor.slug,
                     }
                 },
                 "logentry": {"formatted": "Monitor failure: test monitor (missed_checkin)"},

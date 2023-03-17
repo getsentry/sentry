@@ -74,12 +74,12 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeEnabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeEnabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeEnabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
 
     // Prioritize low-volume transactions is not available
     expect(
@@ -87,7 +87,7 @@ describe('Dynamic Sampling', function () {
     ).not.toBeInTheDocument();
   });
 
-  it('renders disabled default UI, when user has not permission to edit', async function () {
+  it('renders disabled default UI, async when user has not permission to edit', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -118,7 +118,7 @@ describe('Dynamic Sampling', function () {
 
     expect(prioritizenewReleases).toBeDisabled();
     expect(prioritizenewReleases).toBeChecked();
-    userEvent.hover(prioritizenewReleases);
+    await userEvent.hover(prioritizenewReleases);
     expect(
       await screen.findByText('You do not have permission to edit this setting')
     ).toBeInTheDocument();
@@ -137,15 +137,15 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeDisabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeDisabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeDisabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
   });
 
-  it('user can toggle option', function () {
+  it('user can toggle option', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -163,7 +163,9 @@ describe('Dynamic Sampling', function () {
 
     render(<DynamicSampling project={project} />, {organization});
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize new releases'})
+    );
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
@@ -180,7 +182,7 @@ describe('Dynamic Sampling', function () {
     );
   });
 
-  it('render and toggle "Prioritize low-volume transactions" option', function () {
+  it('render and toggle "Prioritize low-volume transactions" option', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -208,7 +210,7 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeTransactionNames).toBeEnabled();
     expect(prioritizeTransactionNames).not.toBeChecked();
 
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('checkbox', {name: 'Prioritize low-volume transactions'})
     );
 

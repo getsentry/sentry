@@ -60,6 +60,7 @@ def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
 
 
 class RpcAuthentication(BaseAuthentication):  # type: ignore
+    www_authenticate_realm = "api"
     types: List[RpcAuthenticatorType]
 
     def __init__(self, types: List[RpcAuthenticatorType]):
@@ -74,6 +75,12 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
             return response.user, response.auth
 
         return None
+
+    # What does this do you may ask?  Actually, it tricks the django request_framework to returning the correct 401
+    # over 403 in unauthenticated cases, due to some deep library code nonsense.  Tests fail if you remove.
+    # Otherwise, this authenticate header value means absolutely nothing to clients.
+    def authenticate_header(self, request: Request) -> str:
+        return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 @dataclass(eq=True)
@@ -129,6 +136,7 @@ class AuthenticatedToken:
     kind: str = "system"
     user_id: Optional[int] = None  # only relevant for ApiToken
     organization_id: Optional[int] = None
+    application_id: Optional[int] = None  # only relevant for ApiToken
     allowed_origins: List[str] = field(default_factory=list)
     audit_log_data: Dict[str, Any] = field(default_factory=dict)
     scopes: List[str] = field(default_factory=list)
@@ -152,6 +160,7 @@ class AuthenticatedToken:
             kind=kind,
             user_id=getattr(token, "user_id", None),
             organization_id=getattr(token, "organization_id", None),
+            application_id=getattr(token, "application_id", None),
             allowed_origins=token.get_allowed_origins(),
             audit_log_data=token.get_audit_log_data(),
             scopes=token.get_scopes(),

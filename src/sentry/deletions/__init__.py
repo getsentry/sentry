@@ -129,6 +129,9 @@ def load_defaults():
         models.OrganizationIntegration, defaults.OrganizationIntegrationDeletionTask
     )
     default_manager.register(models.OrganizationMemberTeam, BulkModelDeletionTask)
+    default_manager.register(
+        models.PlatformExternalIssue, defaults.PlatformExternalIssueDeletionTask
+    )
     default_manager.register(models.Project, defaults.ProjectDeletionTask)
     default_manager.register(models.ProjectBookmark, BulkModelDeletionTask)
     default_manager.register(models.ProjectKey, BulkModelDeletionTask)
@@ -143,6 +146,14 @@ def load_defaults():
     default_manager.register(
         models.RepositoryProjectPathConfig, defaults.RepositoryProjectPathConfigDeletionTask
     )
+    default_manager.register(models.SentryApp, defaults.SentryAppDeletionTask)
+    default_manager.register(
+        models.SentryAppInstallation, defaults.SentryAppInstallationDeletionTask
+    )
+    default_manager.register(
+        models.SentryAppInstallationToken, defaults.SentryAppInstallationTokenDeletionTask
+    )
+    default_manager.register(models.ServiceHook, defaults.ServiceHookDeletionTask)
     default_manager.register(models.SavedSearch, BulkModelDeletionTask)
     default_manager.register(models.Team, defaults.TeamDeletionTask)
     default_manager.register(models.UserReport, BulkModelDeletionTask)
@@ -152,3 +163,5 @@ load_defaults()
 
 get = default_manager.get
 register = default_manager.register
+exec_sync = default_manager.exec_sync
+exec_sync_many = default_manager.exec_sync_many
