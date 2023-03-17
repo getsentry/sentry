@@ -105,18 +105,6 @@ class RpcModel(pydantic.BaseModel):
         return cls(**fields)
 
 
-class IdValueRpcModel(RpcModel):
-    """An RPC model that can be hashed or compared by an ID field."""
-
-    id: int = -1
-
-    def __hash__(self) -> int:
-        return hash((type(self), id))
-
-    def __eq__(self, other: Any) -> bool:
-        return isinstance(other, type(self)) and self.id == other.id
-
-
 ServiceInterface = TypeVar("ServiceInterface", bound=InterfaceWithLifecycle)
 
 

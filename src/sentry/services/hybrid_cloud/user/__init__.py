@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cas
 
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import IdValueRpcModel, RpcModel
+from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -42,7 +42,7 @@ class RpcAuthenticator(RpcModel):
     config: Any = None
 
 
-class RpcUser(IdValueRpcModel):
+class RpcUser(RpcModel):
     id: int = -1
     pk: int = -1
     name: str = ""
