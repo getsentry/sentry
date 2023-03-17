@@ -54,34 +54,31 @@ class MonitorConsumerTest(TestCase):
             **kwargs,
         )
 
-    def valid_wrapper(self):
+    def get_valid_wrapper(self, monitor_slug: str) -> Dict[str, Any]:
         return {
             "start_time": datetime.now().timestamp(),
             "project_id": self.project.id,
-            "payload": self.valid_payload(),
+            "payload": self.valid_payload(monitor_slug),
         }
 
-    def valid_payload(self, **overrides: Any):
-        self.guid_2 = uuid.uuid4().hex
+    def valid_payload(self, monitor_slug: str) -> str:
+        self.message_guid = uuid.uuid4().hex
         payload = {
-            "monitor_slug": "my-monitor",
+            "monitor_slug": monitor_slug,
             "status": "ok",
             "duration": None,
-            "check_in_id": self.guid_2,
+            "check_in_id": self.message_guid,
             "environment": "production",
         }
-        payload.update(overrides)
         return json.dumps(payload)
 
-    def test_payload(self) -> None:
-        monitor = self._create_monitor(slug="my-monitor")
-
+    def send_message(self, wrapper: Dict[str, Any]) -> None:
         commit = mock.Mock()
         partition = Partition(Topic("test"), 0)
         StoreMonitorCheckInStrategyFactory().create_with_partitions(commit, {partition: 0}).submit(
             Message(
                 BrokerValue(
-                    KafkaPayload(b"fake-key", msgpack.packb(self.valid_wrapper()), []),
+                    KafkaPayload(b"fake-key", msgpack.packb(wrapper), []),
                     partition,
                     1,
                     datetime.now(),
@@ -89,7 +86,12 @@ class MonitorConsumerTest(TestCase):
             )
         )
 
-        checkin = MonitorCheckIn.objects.get(guid=self.guid_2)
+    def test_payload(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+
+        self.send_message(self.get_valid_wrapper(monitor.slug))
+
+        checkin = MonitorCheckIn.objects.get(guid=self.message_guid)
         assert checkin.status == CheckInStatus.OK
 
         monitor = Monitor.objects.get(id=monitor.id)
