@@ -1,0 +1,116 @@
+# import base64
+# import io
+# import json
+# import zipfile
+# from uuid import uuid4
+#
+# from django.urls import reverse
+#
+# from sentry.models import ArtifactBundle, File
+# from sentry.testutils import APITestCase
+#
+#
+# class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
+#     @staticmethod
+#     def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):
+#         def remove_and_return(dictionary, key):
+#             dictionary.pop(key)
+#             return dictionary
+#
+#         compressed = io.BytesIO()
+#         with zipfile.ZipFile(compressed, mode="w") as zip_file:
+#             for file_path, info in files.items():
+#                 zip_file.writestr(file_path, bytes(info["content"]))
+#
+#             zip_file.writestr(
+#                 "manifest.json",
+#                 json.dumps(
+#                     {
+#                         # We remove the "content" key in the original dict, thus no subsequent calls should be made.
+#                         "files": {
+#                             file_path: remove_and_return(info, "content")
+#                             for file_path, info in files.items()
+#                         }
+#                     }
+#                 ),
+#             )
+#         compressed.seek(0)
+#
+#         file = File.objects.create(name=artifact_name, type=type)
+#         file.putfile(compressed)
+#
+#         return file
+#
+#     def test_archive_download_with_valid_file_id(self):
+#         project = self.create_project(name="foo")
+#
+#         file = self.get_compressed_zip_file(
+#             "bundle.zip",
+#             {
+#                 "/_/_/index.js.map": {
+#                     "url": "~/index.js.map",
+#                     "type": "source_map",
+#                     "content": b"foo",
+#                     "headers": {
+#                         "content-type": "application/json",
+#                     },
+#                 },
+#                 "/_/_/index.js": {
+#                     "url": "~/index.js",
+#                     "type": "minified_source",
+#                     "content": b"bar",
+#                     "headers": {
+#                         "content-type": "application/json",
+#                         "sourcemap": "index.js.map",
+#                     },
+#                 },
+#             },
+#         )
+#
+#         artifact_bundle = ArtifactBundle.objects.create(
+#             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+#         )
+#
+#         url = reverse(
+#             "sentry-api-0-project-artifact-bundle-file-details",
+#             kwargs={
+#                 "organization_slug": project.organization.slug,
+#                 "project_slug": project.slug,
+#                 "bundle_id": artifact_bundle.bundle_id,
+#                 "file_id": base64.urlsafe_b64encode(b"/_/_/index.js.map").decode("utf-8"),
+#             },
+#         )
+#
+#         # Download as a user with sufficient role
+#         self.organization.update_option("sentry:debug_files_role", "admin")
+#         user = self.create_user("baz@localhost")
+#         self.create_member(user=user, organization=project.organization, role="owner")
+#         self.login_as(user=user)
+#
+#         response = self.client.get(url + "?download=1")
+#         print(response)
+#         # assert response.status_code == 200, response.content
+#         # assert response.get("Content-Disposition") == 'attachment; filename="appli catios n.js"'
+#         # assert response.get("Content-Length") == str(f.size)
+#         # assert response.get("Content-Type") == "application/octet-stream"
+#         # assert b"File contents here" == b"".join(response.streaming_content)
+#         #
+#         # # Download as a superuser
+#         # self.login_as(user=self.user)
+#         # response = self.client.get(url + "?download=1")
+#         # assert response.get("Content-Type") == "application/octet-stream"
+#         # assert b"File contents here" == b"".join(response.streaming_content)
+#         #
+#         # # # Download as a user without sufficient role
+#         # self.organization.update_option("sentry:debug_files_role", "owner")
+#         # user_no_role = self.create_user("bar@localhost")
+#         # self.create_member(user=user_no_role, organization=project.organization, role="member")
+#         # self.login_as(user=user_no_role)
+#         # response = self.client.get(url + "?download=1")
+#         # assert response.status_code == 403, response.content
+#         #
+#         # # Download as a user with no permissions
+#         # user_no_permission = self.create_user("baz@localhost", username="baz")
+#         # self.login_as(user=user_no_permission)
+#         # response = self.client.get(url + "?download=1")
+#         # assert response.status_code == 403, response.content

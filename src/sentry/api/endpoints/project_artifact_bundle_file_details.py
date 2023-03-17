@@ -1,9 +1,15 @@
+import base64
+import posixpath
+from typing import Union
+
+from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
+from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
 from sentry.models import ArtifactBundle, ArtifactBundleArchive, ProjectArtifactBundle
 
 
@@ -11,18 +17,31 @@ class ProjectArtifactBundleFileDetailsMixin:
     @classmethod
     def download_file_from_artifact_bundle(
         cls, artifact_bundle: ArtifactBundle, file_id: str
-    ) -> Response:
+    ) -> Union[Response, FileResponse]:
         try:
-            # We open the archive to fetch the number of files.
-            ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
-        except Exception:
-            return Response(
-                {
-                    "error": f"The archive of artifact bundle {artifact_bundle.bundle_id} can't be opened"
-                }
+            file_path = base64.urlsafe_b64decode(file_id).decode()
+
+            archive_file_fp = artifact_bundle.file.getfile()
+            archive = ArtifactBundleArchive(archive_file_fp, build_memory_map=False)
+
+            fp, headers = archive.get_file_by_file_path(file_path)
+            file_info = archive.get_file_info(file_path)
+
+            response = FileResponse(
+                ClosesDependentFiles(fp, archive_file_fp),
+                content_type=headers.get("content-type", "application/octet-stream"),
+            )
+            response["Content-Length"] = file_info.file_size if file_info is not None else None
+            response["Content-Disposition"] = 'attachment; filename="%s"' % posixpath.basename(
+                " ".join(file_path.split())
             )
 
-        return Response()
+            return response
+        except Exception:
+            return Response(
+                {"error": f"An error occurred while downloading the file with id {file_id}"},
+                status=400,
+            )
 
     @classmethod
     def get_file_from_artifact_bundle(
