@@ -217,7 +217,11 @@ def _query_params_for_generic(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
         if group_ids:
-            filters = {"group_id": sorted(group_ids), **filters}
+            filters = {
+                "group_id": sorted(group_ids),
+                "occurrence_type_id": get_group_types_by_category(GroupCategory.PROFILE.value),
+                **filters,
+            }
 
         params = query_partial(
             dataset=snuba.Dataset.IssuePlatform,
@@ -256,14 +260,6 @@ def _update_profiling_search_filters(
             )
         else:
             updated_filters.append(sf)
-
-    updated_filters.append(
-        SearchFilter(
-            SearchKey("occurrence_type_id"),
-            "IN",
-            SearchValue(raw_value=get_group_types_by_category(GroupCategory.PROFILE.value)),
-        )
-    )
 
     return updated_filters
 
