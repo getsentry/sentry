@@ -99,6 +99,7 @@ class GroupSnooze(Model):
             start=start,
             end=end,
             tenant_ids={"organization_id": self.group.project.organization_id},
+            referrer_suffix="frequency_snoozes",
         )[self.group_id]
 
         if rate >= self.count:
@@ -120,6 +121,7 @@ class GroupSnooze(Model):
             start=start,
             end=end,
             tenant_ids={"organization_id": self.group.project.organization_id},
+            referrer_suffix="user_count_snoozes",
         )[self.group_id]
 
         if rate >= self.user_count:

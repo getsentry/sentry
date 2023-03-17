@@ -236,6 +236,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             use_cache=True,
             jitter_value=event.group_id,
             tenant_ids={"organization_id": event.group.project.organization_id},
+            referrer_suffix="alert_event_frequency",
         )
         return sums[event.group_id]
 
@@ -259,6 +260,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             use_cache=True,
             jitter_value=event.group_id,
             tenant_ids={"organization_id": event.group.project.organization_id},
+            referrer_suffix="alert_event_uniq_user_frequency",
         )
         return totals[event.group_id]
 
@@ -367,6 +369,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                 use_cache=True,
                 jitter_value=event.group_id,
                 tenant_ids={"organization_id": event.group.project.organization_id},
+                referrer_suffix="alert_event_frequency_percent",
             )[event.group_id]
             if issue_count > avg_sessions_in_interval:
                 # We want to better understand when and why this is happening, so we're logging it for now

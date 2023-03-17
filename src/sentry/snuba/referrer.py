@@ -546,8 +546,25 @@ TSDBModelReferrer = enum.Enum(
     {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
 )
 
+# specific suffixes that apply to tsdb-modelid:4 referrers, these are optional
+# and are passed around through using `referrer_suffix`
+TSDB_4_SUFFIXES = {
+    "frequency_snoozes",
+    "user_count_snoozes",
+    "alert_event_frequency",
+    "alert_event_uniq_user_frequency",
+    "alert_event_frequency_percent",
+}
+
+TSDBModel4Referrer = enum.Enum(
+    "TSDBModel4Referrer",
+    {f"TSDB_MODELID_4_{suffix}": f"tsdb-modelid:4.{suffix}" for suffix in TSDB_4_SUFFIXES},
+)
+
+
 Referrer = enum.Enum(
-    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModel4Referrer)],
 )
 
 
