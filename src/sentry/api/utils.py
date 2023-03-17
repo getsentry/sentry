@@ -13,6 +13,9 @@ from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
 from sentry import options
+
+# Unfortunately, this function is imported as an export of this module in several places, keep it.
+from sentry.auth.access import get_cached_organization_member  # noqa
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organization import Organization
 from sentry.search.utils import InvalidQuery, parse_datetime_string
