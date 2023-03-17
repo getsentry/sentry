@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import base64
-from typing import List, Mapping, Tuple
+from typing import List, Mapping, Tuple, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -133,10 +133,7 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        return RpcAuthProviderFlags(
-            allow_unlinked=ap.allow_unlinked,
-            scim_enabled=ap.scim_enabled,
-        )
+        return cast(RpcAuthProviderFlags, RpcAuthProviderFlags.serialize_by_field_name(ap))
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(

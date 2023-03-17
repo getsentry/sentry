@@ -47,10 +47,12 @@ def unescape_flag_name(flag_name: str) -> str:
 class DatabaseBackedOrganizationService(OrganizationService):
     @classmethod
     def _serialize_member_flags(cls, member: OrganizationMember) -> RpcOrganizationMemberFlags:
-        result = RpcOrganizationMemberFlags()
-        for field_name in RpcOrganizationMemberFlags.__fields__:
-            setattr(result, field_name, bool(getattr(member.flags, unescape_flag_name(field_name))))
-        return result
+        return cast(
+            RpcOrganizationMemberFlags,
+            RpcOrganizationMemberFlags.serialize_by_field_name(
+                member.flags, name_transform=unescape_flag_name, value_transform=bool
+            ),
+        )
 
     @classmethod
     def serialize_member(
@@ -102,11 +104,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
 
     @classmethod
     def _serialize_flags(cls, org: Organization) -> RpcOrganizationFlags:
-        result = RpcOrganizationFlags()
-        for field_name in result.__fields__:
-            value = getattr(org.flags, field_name)
-            setattr(result, field_name, bool(value))
-        return result
+        return cast(
+            RpcOrganizationFlags,
+            RpcOrganizationFlags.serialize_by_field_name(org.flags, value_transform=bool),
+        )
 
     @classmethod
     def _serialize_team(cls, team: Team) -> RpcTeam:

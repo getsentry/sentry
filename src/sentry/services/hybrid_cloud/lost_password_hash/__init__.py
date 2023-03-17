@@ -5,7 +5,6 @@
 
 import datetime
 from abc import abstractmethod
-from dataclasses import fields
 from typing import cast
 
 from sentry.models import LostPasswordHash
@@ -42,12 +41,7 @@ class LostPasswordHashService(RpcService):
 
     @classmethod
     def serialize_lostpasswordhash(cls, lph: LostPasswordHash) -> "RpcLostPasswordHash":
-        args = {
-            field.name: getattr(lph, field.name)
-            for field in fields(RpcLostPasswordHash)
-            if hasattr(lph, field.name)
-        }
-        return RpcLostPasswordHash(**args)
+        return cast(RpcLostPasswordHash, RpcLostPasswordHash.serialize_by_field_name(lph))
 
 
 class RpcLostPasswordHash(RpcModel):
