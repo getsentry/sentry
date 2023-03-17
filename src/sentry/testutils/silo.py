@@ -134,7 +134,8 @@ class SiloModeTest:
 
     def _call(self, decorated_obj: Any, stable: bool) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
-        is_function = callable(decorated_obj)
+        is_function = inspect.isfunction(decorated_obj)
+
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
