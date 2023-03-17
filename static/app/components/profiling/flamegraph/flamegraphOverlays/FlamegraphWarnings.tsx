@@ -5,6 +5,7 @@ import {t} from 'sentry/locale';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 interface FlamegraphWarningProps {
   flamegraph: Flamegraph;
@@ -13,6 +14,19 @@ interface FlamegraphWarningProps {
 export function FlamegraphWarnings(props: FlamegraphWarningProps) {
   const orgSlug = useOrganization().slug;
   const params = useParams();
+  const profiles = useProfiles();
+
+  if (profiles.type === 'loading') {
+    return null;
+  }
+
+  if (profiles.type === 'errored') {
+    return (
+      <Overlay>
+        <p>{profiles.error || t('Failed to fetch profile')}</p>
+      </Overlay>
+    );
+  }
 
   // A profile may be empty while we are fetching it from the network; while that is happening an empty profile is
   // passed down to the view so that all the components can be loaded and initialized ahead of time.
