@@ -6,8 +6,8 @@ from sentry.testutils.cases import TestMigrations
 
 
 class TestBackfillUserAvatarsMigration(TestMigrations):
-    migrate_from = "0384_backfill_installation_ids"
-    migrate_to = "0385_backfill_user_avatars"
+    migrate_from = "0387_add_until_escalating_column_to_groupsnooze"
+    migrate_to = "0388_backfill_user_avatars"
 
     def setup_before_migration(self, apps):
         self.user_letter = self.create_user(email="a@example.com")
