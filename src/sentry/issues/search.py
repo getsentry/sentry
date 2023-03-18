@@ -6,7 +6,12 @@ from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, Ty
 
 from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_all_group_type_ids,
+    get_group_type_by_type_id,
+    get_group_types_by_category,
+)
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import snuba
@@ -212,7 +217,13 @@ def _query_params_for_generic(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
         if group_ids:
-            filters = {"group_id": sorted(group_ids), **filters}
+            filters = {
+                "group_id": sorted(group_ids),
+                "occurrence_type_id": list(
+                    get_group_types_by_category(GroupCategory.PROFILE.value)
+                ),
+                **filters,
+            }
 
         params = query_partial(
             dataset=snuba.Dataset.IssuePlatform,
