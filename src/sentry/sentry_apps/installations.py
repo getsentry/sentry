@@ -14,7 +14,6 @@ from sentry.models import (
     ApiApplication,
     ApiGrant,
     ApiToken,
-    Organization,
     SentryApp,
     SentryAppInstallation,
     SentryAppInstallationToken,
@@ -70,7 +69,7 @@ class SentryAppInstallationTokenCreator:
         if request and self.generate_audit:
             create_audit_entry(
                 request=request,
-                organization=self.organization,
+                organization=self.organization_id,
                 target_object=api_token.id,
                 event=audit_log.get_event_id("INTERNAL_INTEGRATION_ADD_TOKEN"),
                 data={"sentry_app": self.sentry_app.name},
@@ -82,7 +81,7 @@ class SentryAppInstallationTokenCreator:
         analytics.record(
             "sentry_app_installation_token.created",
             user_id=user.id,
-            organization_id=self.organization.id,
+            organization_id=self.organization_id,
             sentry_app_installation_id=self.sentry_app_installation.id,
             sentry_app=self.sentry_app.slug,
         )
@@ -92,8 +91,8 @@ class SentryAppInstallationTokenCreator:
         return self.sentry_app_installation.sentry_app
 
     @cached_property
-    def organization(self) -> Organization:
-        return self.sentry_app_installation.organization
+    def organization_id(self) -> int:
+        return self.sentry_app_installation.organization_id
 
 
 @dataclasses.dataclass
