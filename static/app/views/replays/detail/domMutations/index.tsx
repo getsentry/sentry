@@ -62,7 +62,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   };
 
   return (
-    <MutationContainer>
+    <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
       <MutationItemContainer>
         {isLoading || !actions ? (
@@ -92,13 +92,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
           </AutoSizer>
         )}
       </MutationItemContainer>
-    </MutationContainer>
+    </FluidHeight>
   );
 }
-
-const MutationContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const MutationItemContainer = styled('div')`
   position: relative;
