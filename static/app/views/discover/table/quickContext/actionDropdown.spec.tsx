@@ -70,7 +70,7 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const menuOptions = await screen.findAllByRole('menuitemradio');
     expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -92,7 +92,7 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const menuOptions = await screen.findAllByRole('menuitemradio');
     expect(menuOptions.map(e => e.textContent)).toEqual([
@@ -114,11 +114,11 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addAsColumn = await screen.findByRole('menuitemradio', {name: 'Add as column'});
 
-    userEvent.click(addAsColumn);
+    await userEvent.click(addAsColumn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -142,11 +142,11 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addToFilter = await screen.findByRole('menuitemradio', {name: 'Add to filter'});
 
-    userEvent.click(addToFilter);
+    await userEvent.click(addToFilter);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -170,13 +170,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const addToFilter = await screen.findByRole('menuitemradio', {
       name: 'Exclude from filter',
     });
 
-    userEvent.click(addToFilter);
+    await userEvent.click(addToFilter);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -200,13 +200,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const showGreaterThanBtn = await screen.findByRole('menuitemradio', {
       name: 'Show values greater than',
     });
 
-    userEvent.click(showGreaterThanBtn);
+    await userEvent.click(showGreaterThanBtn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -230,13 +230,13 @@ describe('Quick Context Actions', function () {
     const trigger = await screen.findByTestId('quick-context-action-trigger');
     expect(trigger).toBeInTheDocument();
 
-    userEvent.click(trigger);
+    await userEvent.click(trigger);
 
     const showLessThanBtn = await screen.findByRole('menuitemradio', {
       name: 'Show values less than',
     });
 
-    userEvent.click(showLessThanBtn);
+    await userEvent.click(showLessThanBtn);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({

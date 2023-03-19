@@ -1,11 +1,11 @@
 import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
 import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
 import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
@@ -33,7 +33,7 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 
       <ButtonActionsWrapper>
         <ShareButton />
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
+        <FeedbackButton />
         <DeleteButton />
       </ButtonActionsWrapper>
 

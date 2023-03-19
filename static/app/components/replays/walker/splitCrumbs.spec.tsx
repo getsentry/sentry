@@ -137,7 +137,7 @@ describe('splitCrumbs', () => {
     expect(screen.getByText('3 Pages')).toBeInTheDocument();
     expect(screen.queryByRole('listitem')).not.toBeInTheDocument();
 
-    userEvent.hover(screen.getByText('3 Pages'));
+    await userEvent.hover(screen.getByText('3 Pages'));
     await waitFor(() => {
       expect(screen.getAllByRole('listitem')).toHaveLength(3);
     });

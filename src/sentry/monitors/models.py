@@ -62,6 +62,7 @@ def get_monitor_context(monitor):
 
     return {
         "id": str(monitor.guid),
+        "slug": monitor.slug,
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
@@ -256,6 +257,16 @@ class Monitor(Model):
         monitor_failed.send(monitor=self, sender=type(self))
         return True
 
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
@@ -388,3 +399,13 @@ class MonitorEnvironment(Model):
             return False
 
         return True
+
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
