@@ -360,6 +360,10 @@ class DebugFilesUploadTest(APITestCase):
         assert response.status_code == 200, response.content
         assert list(map(lambda value: value["id"], response.data)) == release_ids[::-1]
 
+        response = self.client.get(url + "?sortBy=invalid")
+        assert response.status_code == 400
+        assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
+
     def test_source_maps_delete_archive(self):
         project = self.create_project(name="foo")
 
