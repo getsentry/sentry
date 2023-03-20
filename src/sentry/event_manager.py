@@ -78,9 +78,10 @@ from sentry.grouping.api import (
 )
 from sentry.grouping.result import CalculatedHashes
 from sentry.ingest.inbound_filters import FilterStatKeys
-from sentry.issues.grouptype import GroupCategory, PerformanceNPlusOneGroupType, reduce_noise
+from sentry.issues.grouptype import GroupCategory, reduce_noise
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
+from sentry.issues.utils import write_occurrence_to_platform
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -2464,33 +2465,26 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
         project = event.project
         event_id = event.event_id
 
-        use_platform = options.get("performance.issues.send_to_issues_platform", False)
-        if use_platform:
-            per_project_option = project.get_option(
-                "sentry:performance_issue_send_to_issues_platform", False
-            )
-            if per_project_option:
-                performance_problems = job["performance_problems"]
-                for problem in performance_problems:
-                    # handle only N+1 db query detector first
-                    if problem.type.type_id == PerformanceNPlusOneGroupType.type_id:
-                        occurrence = IssueOccurrence(
-                            id=uuid.uuid4().hex,
-                            resource_id=None,
-                            project_id=project.id,
-                            event_id=event_id,
-                            fingerprint=[problem.fingerprint],
-                            type=problem.type,
-                            issue_title=problem.title,
-                            subtitle=problem.desc,
-                            culprit=event.transaction,
-                            evidence_data=problem.evidence_data,
-                            evidence_display=problem.evidence_display,
-                            detection_time=event.datetime,
-                            level="info",
-                        )
+        performance_problems = job["performance_problems"]
+        for problem in performance_problems:
+            if write_occurrence_to_platform(problem, options, project):
+                occurrence = IssueOccurrence(
+                    id=uuid.uuid4().hex,
+                    resource_id=None,
+                    project_id=project.id,
+                    event_id=event_id,
+                    fingerprint=[problem.fingerprint],
+                    type=problem.type,
+                    issue_title=problem.title,
+                    subtitle=problem.desc,
+                    culprit=event.transaction,
+                    evidence_data=problem.evidence_data,
+                    evidence_display=problem.evidence_display,
+                    detection_time=event.datetime,
+                    level="info",
+                )
 
-                        produce_occurrence_to_kafka(occurrence)
+                produce_occurrence_to_kafka(occurrence)
 
 
 @metrics.wraps("event_manager.save_transaction_events")

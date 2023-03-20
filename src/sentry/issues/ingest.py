@@ -26,7 +26,7 @@ from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 from sentry.utils import metrics
 
-from .utils import skip_group_processing
+from .utils import can_create_group
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -40,11 +40,10 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    should_skip_group_processing = skip_group_processing(occurrence_data, options, event.project)
     # Do not hash fingerprints for performance issues because they're already
     # hashed in save_aggregate_performance
     # This check should be removed once perf issues are created through the platform
-    if not should_skip_group_processing:
+    if can_create_group(occurrence_data, options, event.project):
         process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
@@ -64,7 +63,7 @@ def save_issue_occurrence(
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
 
-        if should_skip_group_processing:
+        if not can_create_group(occurrence_data, options, event.project):
             return occurrence, group_info
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
@@ -166,7 +165,7 @@ def save_issue_from_occurrence(
 
     # This forces an early return to skip extra processing steps
     # for performance issues because they are already created/updated in save_transaction
-    return_group_info_early = skip_group_processing(occurrence, options, project)
+    return_group_info_early = not can_create_group(occurrence, options, project)
 
     if not existing_grouphash:
         if return_group_info_early:
@@ -232,7 +231,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    skip_consume = skip_group_processing(occurrence, options, event.project)
+    skip_consume = can_create_group(occurrence, options, event.project)
 
     eventstream.insert(
         event=group_event,
