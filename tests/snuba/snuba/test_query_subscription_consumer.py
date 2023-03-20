@@ -8,7 +8,6 @@ from uuid import uuid4
 
 import pytz
 from confluent_kafka import Producer
-from confluent_kafka.admin import AdminClient
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.test.utils import override_settings
@@ -23,8 +22,7 @@ from sentry.snuba.query_subscription_consumer import (
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.utils import json, kafka_config
-from sentry.utils.batching_kafka_consumer import create_topics
+from sentry.utils import json
 
 
 class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
@@ -68,6 +66,17 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
     def topic(self):
         return uuid4().hex
 
+    @cached_property
+    def producer(self):
+        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        conf = {
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[kafka_cluster]["common"][
+                "bootstrap.servers"
+            ],
+            "session.timeout.ms": 6000,
+        }
+        return Producer(conf)
+
     def setUp(self):
         super().setUp()
         self.override_settings_cm = override_settings(
@@ -76,30 +85,11 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         self.override_settings_cm.__enter__()
         self.orig_registry = deepcopy(subscriber_registry)
 
-        cluster_options = kafka_config.get_kafka_admin_cluster_options(
-            "default", {"allow.auto.create.topics": "true"}
-        )
-        self.admin_client = AdminClient(cluster_options)
-
-        self.kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
-        create_topics(self.kafka_cluster, [self.topic])
-
     def tearDown(self):
         super().tearDown()
         self.override_settings_cm.__exit__(None, None, None)
         subscriber_registry.clear()
         subscriber_registry.update(self.orig_registry)
-        self.admin_client.delete_topics([self.topic])
-
-    @cached_property
-    def producer(self):
-        conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[self.kafka_cluster]["common"][
-                "bootstrap.servers"
-            ],
-            "session.timeout.ms": 6000,
-        }
-        return Producer(conf)
 
     @cached_property
     def registration_key(self):
@@ -195,7 +185,7 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
             consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
 
         def mock_callback(*args, **kwargs):
-            if mock.call_count >= len(expected_calls):
+            if mock1.call_count >= len(expected_calls):
                 consumer.signal_shutdown()
 
         mock1 = Mock(side_effect=mock_callback)
