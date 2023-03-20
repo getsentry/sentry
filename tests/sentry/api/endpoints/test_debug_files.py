@@ -323,6 +323,43 @@ class DebugFilesUploadTest(APITestCase):
         assert response.data[0]["fileCount"] == 0
         assert response.data[1]["fileCount"] == 2
 
+    def test_source_maps_sorting(self):
+        project = self.create_project(name="foo")
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release2 = Release.objects.create(organization_id=project.organization_id, version="2")
+        release.add_project(project)
+        release2.add_project(project)
+
+        ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application.js", type="release.file"),
+            name="http://example.com/application.js",
+        )
+        ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="application2.js", type="release.file"),
+            name="http://example.com/application2.js",
+        )
+
+        url = reverse(
+            "sentry-api-0-source-maps",
+            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+        )
+
+        release_ids = [release.id, release2.id]
+
+        self.login_as(user=self.user)
+        response = self.client.get(url + "?sortBy=date_added")
+        assert response.status_code == 200, response.content
+        assert list(map(lambda value: value["id"], response.data)) == release_ids
+
+        response = self.client.get(url + "?sortBy=-date_added")
+        assert response.status_code == 200, response.content
+        assert list(map(lambda value: value["id"], response.data)) == release_ids[::-1]
+
     def test_source_maps_delete_archive(self):
         project = self.create_project(name="foo")
 
