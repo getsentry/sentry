@@ -190,7 +190,7 @@ class ArtifactBundleArchive:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
-    def get_file_by_file_path(self, file_path: str) -> Tuple[IO, dict]:
+    def get_file(self, file_path: str) -> Tuple[IO, dict]:
         files = self.manifest.get("files", {})
         file_info = files.get(file_path, {})
         return self._zip_file.open(file_path), file_info.get("headers", {})

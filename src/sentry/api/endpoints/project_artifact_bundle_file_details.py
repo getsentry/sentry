@@ -19,7 +19,7 @@ class ProjectArtifactBundleFileDetailsMixin:
         cls, file_path: str, archive: ArtifactBundleArchive
     ) -> Union[Response, FileResponse]:
         try:
-            fp, headers = archive.get_file_by_file_path(file_path)
+            fp, headers = archive.get_file(file_path)
             file_info = archive.get_file_info(file_path)
         except Exception:
             # In case we fail here, we want to close the fail before returning.
