@@ -73,6 +73,12 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     });
   }
 
+  componentWillUnmount() {
+    this._isMounted = false;
+  }
+
+  private _isMounted = true;
+
   recordAnalytics({eventCreated, retries, duration}) {
     const {organization, project, source} = this.props;
 
@@ -134,6 +140,12 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     // before redirecting.
     const t0 = performance.now();
     const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
+
+    // Navigated away before event was created
+    if (!this._isMounted) {
+      return;
+    }
+
     const t1 = performance.now();
 
     clearIndicators();
