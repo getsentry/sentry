@@ -77,6 +77,19 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
         return trigger_type_value
 
+    def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:
+        registration = NotificationAction.get_registration(
+            trigger_type=data["trigger_type"],
+            service_type=data["service_type"],
+            target_type=data["target_type"],
+        )
+        if not registration:
+            raise serializers.ValidationError(
+                "Combination of trigger_type, service_type and target_type has not been registered."
+            )
+        registration.validate_action(data=data)
+        return data
+
     class Meta:
         model = NotificationAction
         fields = list(NotificationActionInputData.__annotations__.keys())

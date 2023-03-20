@@ -160,7 +160,8 @@ class ActionRegistration(metaclass=ABCMeta):
         """
         pass
 
-    def validate_action(self, data: NotificationActionInputData) -> None:
+    @classmethod
+    def validate_action(cls, data: NotificationActionInputData) -> None:
         """
         Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
 
