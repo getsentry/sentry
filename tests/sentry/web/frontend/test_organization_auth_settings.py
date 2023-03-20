@@ -18,6 +18,7 @@ from sentry.models import (
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
+from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 
 @region_silo_test
@@ -434,7 +435,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "scim_enabled")
         assert auth_provider.get_scim_token() is not None
-        assert auth_provider.get_scim_url() is not None
+        assert get_scim_url(auth_provider, auth_provider.organization) is not None
 
         # "add" some scim users
         u1 = self.create_user()
@@ -467,8 +468,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
-        assert auth_provider.get_scim_token() is None
-        assert auth_provider.get_scim_url() is None
+        assert get_scim_url(auth_provider, auth_provider.organization) is None
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
                 organization=self.organization, provider="dummy_scim"

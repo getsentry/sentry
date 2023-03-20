@@ -14,7 +14,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.models.organizationmember import OrganizationMember
-from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.authprovider")
 
@@ -95,16 +94,8 @@ class AuthProvider(Model):
         else:
             logger.warning(
                 "SCIM disabled but tried to access token",
-                extra={"organization_id": self.organization.id},
+                extra={"organization_id": self.organization_id},
             )
-            return None
-
-    def get_scim_url(self):
-        if self.flags.scim_enabled:
-            # the SCIM protocol doesn't use trailing slashes in URLs
-            return absolute_uri(f"api/0/organizations/{self.organization.slug}/scim/v2")
-
-        else:
             return None
 
     def enable_scim(self, user):
