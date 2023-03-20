@@ -100,7 +100,7 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
           <IconMail size="md" />
           {expired
             ? t('Expired Invite')
-            : tct('Invited [roleName]', {orgRoleNamesString})}
+            : tct('Invited [orgRoleNamesString]', {orgRoleNamesString})}
         </InvitedRole>
       );
     }
