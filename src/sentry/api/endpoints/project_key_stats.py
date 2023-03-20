@@ -43,7 +43,7 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
             raise ParseError(detail="Invalid request data")
 
         try:
-            outcomes_query = QueryDefinition.build(
+            outcomes_query = QueryDefinition(
                 fields=["sum(quantity)"],
                 start=stats_params["start"].isoformat(),
                 end=stats_params["end"].isoformat(),

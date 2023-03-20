@@ -225,47 +225,6 @@ class QueryDefinition:
     """
 
     @classmethod
-    def build(
-        cls,
-        *,
-        fields: List[str],
-        start: Optional[str] = None,
-        end: Optional[str] = None,
-        stats_period: Optional[str] = None,
-        organization_id: Optional[int] = None,
-        project_ids: Optional[List[int]] = None,
-        key_id: Optional[int] = None,
-        interval: Optional[str] = None,
-        outcome: Optional[List[str]] = None,
-        group_by: Optional[List[str]] = None,
-        category: Optional[List[str]] = None,
-        reason: Optional[str] = None,
-        allow_minute_resolution: bool = True,
-    ) -> QueryDefinition:
-        """
-        Factory method for building a `QueryDefintion` from python primitives.
-
-        Ideally this would be the constructor, but we have cross repository dependencies
-        that need to be addressed first.
-        """
-        # TODO(mark) remove this once callers are using __init__()
-        return cls(
-            fields=fields,
-            start=start,
-            end=end,
-            stats_period=stats_period,
-            group_by=group_by,
-            outcome=outcome,
-            interval=interval,
-            reason=reason,
-            category=category,
-            key_id=key_id,
-            project_ids=project_ids,
-            organization_id=organization_id,
-            allow_minute_resolution=allow_minute_resolution,
-        )
-
-    @classmethod
     def from_query_dict(
         cls,
         query: QueryDict,
