@@ -391,7 +391,7 @@ function FlamegraphZoomViewMinimap({
         onMouseLeave={onMinimapCanvasMouseUp}
         onDoubleClick={onMinimapCanvasDoubleClick}
         cursor={getMinimapCanvasCursor(
-          flamegraphMiniMapView?.configView,
+          flamegraphMiniMapView?.toOriginConfigView(flamegraphMiniMapView.configView),
           configSpaceCursor,
           miniMapConfigSpaceBorderSize
         )}

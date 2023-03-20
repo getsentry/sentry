@@ -249,6 +249,7 @@ describe('SentrySampledProfile', () => {
 
   it('derives a profile name from just thread_id', () => {
     const sampledProfile = makeSentrySampledProfile({
+      platform: 'python',
       profile: {
         samples: [
           {
@@ -297,6 +298,126 @@ describe('SentrySampledProfile', () => {
 
     expect(profile.name).toBe('foo');
     expect(profile.threadId).toBe(0);
+  });
+
+  it('derives a coca profile name from active thread id', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 1000,
+            thread_id: '0',
+          },
+        ],
+        thread_metadata: {},
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.name).toBe('com.apple.main-thread');
+    expect(profile.threadId).toBe(0);
+  });
+
+  it('derives a coca profile name from queue label', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 1000,
+            thread_id: '1',
+            queue_address: '0x000000016bec7180',
+          },
+        ],
+        thread_metadata: {},
+        queue_metadata: {
+          '0x000000016bec7180': {label: 'sentry-http-transport'},
+        },
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.name).toBe('sentry-http-transport');
+    expect(profile.threadId).toBe(1);
+  });
+
+  it('derives a coca profile name from queue label thats main thread', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 1,
+        trace_id: '1',
+      },
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 1000,
+            thread_id: '1',
+            queue_address: '0x000000016bec7180',
+          },
+        ],
+        thread_metadata: {},
+        queue_metadata: {
+          '0x000000016bec7180': {label: 'com.apple.main-thread'},
+        },
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.name).toBe('com.apple.main-thread');
+    expect(profile.threadId).toBe(1);
+  });
+
+  it('derives a coca profile name from queue label thats not main thread', () => {
+    const sampledProfile = makeSentrySampledProfile({
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 0,
+        trace_id: '1',
+      },
+      profile: {
+        samples: [
+          {
+            stack_id: 0,
+            elapsed_since_start_ns: 1000,
+            thread_id: '1',
+            queue_address: '0x000000016bec7180',
+          },
+        ],
+        thread_metadata: {},
+        queue_metadata: {
+          '0x000000016bec7180': {label: 'com.apple.main-thread'},
+        },
+      },
+    });
+
+    const profile = SentrySampledProfile.FromProfile(
+      sampledProfile,
+      createSentrySampleProfileFrameIndex(sampledProfile.profile.frames),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.name).toBe('');
+    expect(profile.threadId).toBe(1);
   });
 
   it('flamegraph tracks node occurences', () => {

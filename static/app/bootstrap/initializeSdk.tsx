@@ -2,7 +2,7 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {BrowserTracing} from '@sentry/tracing';
+import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
