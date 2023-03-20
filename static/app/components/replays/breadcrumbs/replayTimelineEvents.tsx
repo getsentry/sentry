@@ -8,7 +8,7 @@ import {space} from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Color} from 'sentry/utils/theme';
-import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
+import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbItem';
 
 const NODE_SIZES = [8, 12, 16];
 
