@@ -165,7 +165,7 @@ class ActionRegistration(metaclass=ABCMeta):
         Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
 
         :param data: The input data sent to the API before updating/creating NotificationActions
-        :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but does is not valid.
+        :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but is not valid.
         """
         pass
 
