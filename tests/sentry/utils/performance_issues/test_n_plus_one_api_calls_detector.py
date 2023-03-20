@@ -356,6 +356,16 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
+            "description": "GET http://service.io/resource",  # New JS SDK removes query string from description
+            "hash": "a",
+            "data": {
+                "http.query": "graphql=somequery",
+                "url": "http://service.io",
+            },
+        },
+        {
+            "span_id": "a",
+            "op": "http.client",
             "hash": "b",
             "description": "GET /_next/data/LjdprRSkUtLP0bMUoWLur/items.json?collection=hello",
         },
