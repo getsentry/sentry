@@ -409,7 +409,9 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+  display: flex;
+  align-items: center;
   gap: ${space(2)};
   position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
@@ -453,7 +455,9 @@ const TriggerText = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ActionsColumn = styled(FlexCenter)`
+const ActionsColumn = styled('div')`
+  display: flex;
+  align-items: center;
   justify-content: center;
   padding: ${space(1)};
 `;
