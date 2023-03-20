@@ -1,7 +1,10 @@
-import {useState} from 'react';
+import React, {useState} from 'react';
+import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import space from 'sentry/styles/space';
 
 function IssueCategoryFilter() {
   const items: SelectOption<string>[] = [
@@ -14,14 +17,25 @@ function IssueCategoryFilter() {
   const handleChange = option => setSelectedValue(option);
 
   return (
-    <CompactSelect
-      options={items}
-      value={selectedValue.value}
-      onChange={handleChange}
-      menuWidth={250}
-      size="md"
-    />
+    <React.Fragment>
+      <CompactSelect
+        options={items}
+        value={selectedValue.value}
+        triggerLabel={
+          <React.Fragment>
+            <Icon /> {selectedValue.label}
+          </React.Fragment>
+        }
+        onChange={handleChange}
+        menuWidth={250}
+        size="md"
+      />
+    </React.Fragment>
   );
 }
+
+const Icon = styled(IconStack)`
+  margin-right: ${space(1)};
+`;
 
 export default IssueCategoryFilter;
