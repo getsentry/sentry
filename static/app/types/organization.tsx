@@ -127,6 +127,7 @@ export interface Member {
   name: string;
   orgRole: OrgRole['id'];
   orgRoleList: OrgRole[]; // TODO: Move to global store
+  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
   pending: boolean | undefined;
   projects: string[];
 

@@ -49,10 +49,6 @@ export type Project = {
   hasUserReports?: boolean;
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: Release;
-  /**
-   * @deprecated Use project slug instead
-   */
-  name?: string;
   options?: Record<string, boolean | string>;
   sessionStats?: {
     currentCrashFreeRate: number | null;

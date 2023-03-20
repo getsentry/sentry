@@ -2,7 +2,6 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -41,6 +40,8 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       },
     }
   );
@@ -96,11 +97,7 @@ function ProfileFlamegraph(): React.ReactElement {
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
-              {profiles.type === 'errored' ? (
-                <Alert type="error" showIcon>
-                  {profiles.error}
-                </Alert>
-              ) : profiles.type === 'loading' ? (
+              {profiles.type === 'loading' ? (
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>

@@ -22,7 +22,7 @@ describe('AccountSubscriptions', function () {
     expect(wrapper.container).toSnapshot();
   });
 
-  it('renders list and can toggle', function () {
+  it('renders list and can toggle', async function () {
     Client.addMockResponse({
       url: ENDPOINT,
       body: TestStubs.Subscriptions(),
@@ -40,7 +40,7 @@ describe('AccountSubscriptions', function () {
 
     expect(mock).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByTestId('switch')[0]);
+    await userEvent.click(screen.getAllByTestId('switch')[0]);
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

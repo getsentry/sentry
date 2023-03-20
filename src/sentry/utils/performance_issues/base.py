@@ -62,6 +62,7 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
@@ -134,11 +135,17 @@ class PerformanceDetector(ABC):
             return False
 
         try:
-            rate = options.get(system_option)
-        except options.UnknownOption:
-            rate = 0
+            creation_option_value: bool | float | None = options.get(system_option)
+            if isinstance(creation_option_value, bool):
+                return not creation_option_value
+            elif isinstance(
+                creation_option_value, float
+            ):  # If the option is a float, we are controlling it with a rate. TODO - make all detectors use boolean
+                return creation_option_value > random.random()
+            return False
 
-        return rate > random.random()
+        except options.UnknownOption:
+            return False
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
