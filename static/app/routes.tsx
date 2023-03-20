@@ -513,18 +513,20 @@ function buildRoutes() {
             };
           })}
         />
-        <Route path="debug-id-bundles/">
-          <IndexRoute
-            component={make(async () => {
-              const {ProjectSourceMapsContainer} = await import(
-                'sentry/views/settings/projectSourceMaps'
-              );
-              return {
-                default: ProjectSourceMapsContainer,
-              };
-            })}
-          />
+        <Route
+          path="debug-id-bundles/"
+          name={t('Debug ID Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
           <Route
+            name={t('Artifact Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -536,18 +538,20 @@ function buildRoutes() {
             })}
           />
         </Route>
-        <Route path="release-bundles/">
-          <IndexRoute
-            component={make(async () => {
-              const {ProjectSourceMapsContainer} = await import(
-                'sentry/views/settings/projectSourceMaps'
-              );
-              return {
-                default: ProjectSourceMapsContainer,
-              };
-            })}
-          />
+        <Route
+          path="release-bundles/"
+          name={t('Release Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
           <Route
+            name={t('Artifact Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(

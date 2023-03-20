@@ -13,12 +13,27 @@ function renderReleaseBundlesMockRequests({
   projectSlug: string;
   empty?: boolean;
 }) {
-  const files = MockApiClient.addMockResponse({
+  const sourceMaps = MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${projectSlug}/files/source-maps/`,
+    body: empty
+      ? []
+      : [
+          TestStubs.SourceMapArchive(),
+          TestStubs.SourceMapArchive({
+            id: 2,
+            name: 'abc',
+            fileCount: 3,
+            date: '2023-05-06T13:41:00Z',
+          }),
+        ],
+  });
+
+  const sourceMapsFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/releases/bea7335dfaebc0ca6e65a057/files/`,
     body: empty ? [] : [TestStubs.SourceMapArtifact()],
   });
 
-  return {files};
+  return {sourceMaps, sourceMapsFiles};
 }
 
 function renderDebugIdBundlesMockRequests({
@@ -31,11 +46,16 @@ function renderDebugIdBundlesMockRequests({
   empty?: boolean;
 }) {
   const artifactBundles = MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
+    body: empty ? [] : TestStubs.SourceMapsDebugIDBundles(),
+  });
+
+  const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
     body: empty ? [] : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
   });
 
-  return {artifactBundles};
+  return {artifactBundlesFiles, artifactBundles};
 }
 
 describe('ProjectSourceMapsArtifacts', function () {
@@ -79,9 +99,9 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       // Title
-      expect(screen.getByRole('heading')).toHaveTextContent(
-        'Release Artifact (bea7335dfaebc0ca6e65a057)'
-      );
+      expect(screen.getByRole('heading')).toHaveTextContent('Artifact Bundle');
+      // Subtitle
+      expect(screen.getByText('bea7335dfaebc0ca6e65a057')).toBeInTheDocument();
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Path')).toBeInTheDocument();
@@ -187,9 +207,16 @@ describe('ProjectSourceMapsArtifacts', function () {
       );
 
       // Title
-      expect(screen.getByRole('heading')).toHaveTextContent(
-        'Debug Id Bundle Artifact (7227e105-744e-4066-8c69-3e5e344723fc)'
-      );
+      expect(screen.getByRole('heading')).toHaveTextContent('Artifact Bundle');
+      // Subtitle
+      expect(
+        screen.getByText('7227e105-744e-4066-8c69-3e5e344723fc')
+      ).toBeInTheDocument();
+      // Chip
+      await userEvent.hover(await screen.findByText('none'));
+      expect(
+        await screen.findByText('Not associated with a release or distribution')
+      ).toBeInTheDocument();
 
       // Search bar
       expect(screen.getByPlaceholderText('Filter by Path or ID')).toBeInTheDocument();
