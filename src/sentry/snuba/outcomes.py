@@ -229,8 +229,9 @@ class QueryDefinition:
         cls,
         *,
         fields: List[str],
-        start: str,
-        end: str,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        stats_period: Optional[str] = None,
         organization_id: Optional[int] = None,
         project_ids: Optional[List[int]] = None,
         key_id: Optional[int] = None,
@@ -269,6 +270,8 @@ class QueryDefinition:
             query_dict["query"] = query
         if key_id is not None:
             query_dict["key_id"] = key_id
+        if stats_period is not None:
+            query_dict["statsPeriod"] = stats_period
 
         params: MutableMapping[str, Any] = {"organization_id": organization_id}
         if project_ids is not None:
