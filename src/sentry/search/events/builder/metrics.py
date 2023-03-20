@@ -125,6 +125,8 @@ class MetricsQueryBuilder(QueryBuilder):
         if col.startswith("tags["):
             tag_match = constants.TAG_KEY_RE.search(col)
             col = tag_match.group("tag") if tag_match else col
+        if col in constants.METRIC_UNAVAILBLE_COLUMNS:
+            raise IncompatibleMetricsQuery(f"{col} is unavailable")
 
         if self.use_metrics_layer:
             if col in ["project_id", "timestamp"]:

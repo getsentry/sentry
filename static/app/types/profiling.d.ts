@@ -3,7 +3,7 @@ declare namespace Profiling {
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
-    elapsed_since_start_ns: string;
+    elapsed_since_start_ns: number;
     queue_address?: string;
   };
 
@@ -30,9 +30,7 @@ declare namespace Profiling {
     name: string;
     trace_id: string;
     id: string;
-    active_thread_id: string;
-    relative_start_ns: string;
-    relative_end_ns: string;
+    active_thread_id: number;
   };
 
   type SentrySampledProfile = {
@@ -68,7 +66,7 @@ declare namespace Profiling {
       thread_metadata?: Record<string, {name?: string; priority?: number}>;
       queue_metadata?: Record<string, {label: string}>;
     };
-    transactions?: SentrySampledProfileTransaction[];
+    transaction: SentrySampledProfileTransaction;
   };
 
   ////////////////
@@ -92,6 +90,7 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
+    samples_profiles?: number[][];
     type: 'sampled';
   }
 
@@ -154,6 +153,7 @@ declare namespace Profiling {
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>;
     };
     measurements?: {
       screen_frame_rates?: {
