@@ -120,7 +120,7 @@ export const GroupEventCarousel = ({
         <EventLabelContainer>
           <div>
             <EventIdLabel>Event ID:</EventIdLabel>{' '}
-            <Tooltip title={event.id}>
+            <Tooltip overlayStyle={{maxWidth: 'max-content'}} title={event.id}>
               <Clipboard value={event.id}>
                 <EventId>
                   {getShortEventId(event.id)}

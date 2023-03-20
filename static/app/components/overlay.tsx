@@ -136,7 +136,12 @@ const Overlay = styled(
   /* Override z-index from useOverlayPosition */
   z-index: ${p => p.theme.zIndex.dropdown} !important;
   ${p => p.animated && `will-change: transform, opacity;`}
-  ${p => p.overlayStyle as any}
+
+  /* Specificity hack to allow override styles to have higher specificity than
+   * styles provided in any styled components which extend Overlay */
+  :where(*) {
+    ${p => p.overlayStyle as any}
+  }
 `;
 
 interface PositionWrapperProps extends React.HTMLAttributes<HTMLDivElement> {
