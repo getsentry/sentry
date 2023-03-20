@@ -327,9 +327,7 @@ class AuthService(RpcService):
     # This is potentially a large list
     @rpc_method
     @abc.abstractmethod
-    def get_org_ids_with_scim(
-        self,
-    ) -> List[int]:
+    def get_org_ids_with_scim(self) -> List[int]:
         """
         This method returns a list of org ids that have scim enabled
         :return:
@@ -338,7 +336,7 @@ class AuthService(RpcService):
 
     @rpc_method
     @abc.abstractmethod
-    def get_auth_providers(self, organization_id: int) -> List[RpcAuthProvider]:
+    def get_auth_providers(self, *, organization_id: int) -> List[RpcAuthProvider]:
         """
         This method returns a list of auth providers for an org
         :return:
@@ -349,6 +347,7 @@ class AuthService(RpcService):
     @abc.abstractmethod
     def handle_new_membership(
         self,
+        *,
         request: Request,
         organization: RpcOrganization,
         auth_identity: RpcAuthIdentity,

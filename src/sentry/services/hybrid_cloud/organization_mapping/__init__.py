@@ -95,17 +95,17 @@ class OrganizationMappingService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
+    def update(self, *, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         pass
 
     @rpc_method
     @abstractmethod
-    def verify_mappings(self, organization_id: int, slug: str) -> None:
+    def verify_mappings(self, *, organization_id: int, slug: str) -> None:
         pass
 
     @rpc_method
     @abstractmethod
-    def delete(self, organization_id: int) -> None:
+    def delete(self, *, organization_id: int) -> None:
         pass
 
 

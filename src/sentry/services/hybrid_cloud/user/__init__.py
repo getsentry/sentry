@@ -151,6 +151,7 @@ class UserService(RpcService):
     @abstractmethod
     def get_many_by_email(
         self,
+        *,
         emails: List[str],
         is_active: bool = True,
         is_verified: bool = True,
@@ -168,7 +169,7 @@ class UserService(RpcService):
     @rpc_method
     @abstractmethod
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
+        self, *, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -184,7 +185,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_from_group(self, group: "Group") -> List[RpcUser]:
+    def get_from_group(self, *, group: "Group") -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
@@ -195,12 +196,7 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def update_user(
-        self,
-        *,
-        user_id: int,
-        attrs: UserUpdateArgs,
-    ) -> Any:
+    def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         # Returns a serialized user
         pass
 

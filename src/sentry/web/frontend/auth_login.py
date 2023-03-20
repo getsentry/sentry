@@ -253,7 +253,7 @@ class AuthLoginView(BaseView):
 
                         if settings.SENTRY_SINGLE_ORGANIZATION:
                             om = organization_service.check_membership_by_email(
-                                org_context.organization.id, user.email
+                                organization_id=org_context.organization.id, email=user.email
                             )
                             if om is None:
                                 request.session.pop("_next", None)

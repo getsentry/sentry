@@ -31,6 +31,7 @@ class LostPasswordHashService(RpcService):
     @abstractmethod
     def get_or_create(
         self,
+        *,
         user_id: int,
     ) -> "RpcLostPasswordHash":
         """

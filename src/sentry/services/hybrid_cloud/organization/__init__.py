@@ -192,6 +192,7 @@ class OrganizationService(RpcService):
     @abstractmethod
     def get_organizations(
         self,
+        *,
         user_id: Optional[int],
         scope: Optional[str],
         only_visible: bool,
@@ -214,7 +215,7 @@ class OrganizationService(RpcService):
     @rpc_method
     @abstractmethod
     def check_membership_by_email(
-        self, organization_id: int, email: str
+        self, *, organization_id: int, email: str
     ) -> Optional[RpcOrganizationMember]:
         """
         Used to look up an organization membership by an email
@@ -224,7 +225,7 @@ class OrganizationService(RpcService):
     @rpc_method
     @abstractmethod
     def check_membership_by_id(
-        self, organization_id: int, user_id: int
+        self, *, organization_id: int, user_id: int
     ) -> Optional[RpcOrganizationMember]:
         """
         Used to look up an organization membership by a user id
@@ -282,6 +283,7 @@ class OrganizationService(RpcService):
     @abstractmethod
     def get_all_org_roles(
         self,
+        *,
         organization_member: Optional[RpcOrganizationMember] = None,
         member_id: Optional[int] = None,
     ) -> List[str]:
@@ -289,7 +291,7 @@ class OrganizationService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_top_dog_team_member_ids(self, organization_id: int) -> List[int]:
+    def get_top_dog_team_member_ids(self, *, organization_id: int) -> List[int]:
         pass
 
 
