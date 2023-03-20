@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
@@ -16,7 +17,6 @@ import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 
 type Props = {
-  access: Record<string, any>;
   api: Client;
   openMembership: boolean;
   organization: Organization;
@@ -179,12 +179,14 @@ class AllTeamsRow extends Component<Props, State> {
   };
 
   render() {
-    const {team, openMembership, organization, access} = this.props;
+    const {team, openMembership, organization} = this.props;
+    const {access} = organization;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const hasAccess = access.has('org:write') || access.has('team:admin');
+    const hasAccess = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
-    const isOrgAdmin = access.has('org:admin');
+    // org:admin is a unique scope that only org owners have
+    const isOrgOwner = access.includes('org:admin');
 
     const buttonHelpText = () => {
       if (team.flags['idp:provisioned']) {
@@ -192,7 +194,7 @@ class AllTeamsRow extends Component<Props, State> {
           "Membership to this team is managed through your organization's identity provider."
         );
       }
-      if (team.orgRole && (!hasAccess || !isOrgAdmin)) {
+      if (team.orgRole && (!hasAccess || !isOrgOwner)) {
         return t(
           'Membership to a team with an organization role is managed by org owners.'
         );
@@ -213,17 +215,15 @@ class AllTeamsRow extends Component<Props, State> {
     const canViewTeam = team.hasAccess;
 
     const idpProvisioned = team.flags['idp:provisioned'];
-    const teamOrgRole = team.orgRole
-      ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
-      : null;
+    const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
     const roleDisplay = () => {
-      if (teamOrgRole === null && this.getTeamRoleName() === null) {
+      if (orgRoleFromTeam === null && this.getTeamRoleName() === null) {
         return 'none';
       }
       return 'block';
     };
     // TODO(team-roles): team admins can also manage membership
-    const isDisabled = idpProvisioned || (team.orgRole !== null && !isOrgAdmin);
+    const isDisabled = idpProvisioned || (team.orgRole !== null && !isOrgOwner);
 
     return (
       <TeamPanelItem>
@@ -236,8 +236,8 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <div style={{display: roleDisplay()}}>{teamOrgRole}</div>
-        <div style={{display: roleDisplay()}}>{this.getTeamRoleName()}</div>
+        <DisplayRole display={roleDisplay()}>{orgRoleFromTeam}</DisplayRole>
+        <DisplayRole display={roleDisplay()}>{this.getTeamRoleName()}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -320,4 +320,8 @@ const TeamPanelItem = styled(PanelItem)`
       display: block !important;
     }
   }
+`;
+
+const DisplayRole = styled('div')<{display: string}>`
+  display: ${props => props.display};
 `;

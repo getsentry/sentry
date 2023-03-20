@@ -22,7 +22,6 @@ function AllTeamsList({organization, openMembership, teamList, access}: Props) {
     <AllTeamsRow
       team={team}
       organization={organization}
-      access={access}
       openMembership={openMembership}
       key={team.slug}
     />

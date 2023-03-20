@@ -16,7 +16,7 @@ import {
 
 const TeamMembersRow = (props: {
   hasWriteAccess: boolean;
-  isOrgAdmin: boolean;
+  isOrgOwner: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
@@ -30,7 +30,7 @@ const TeamMembersRow = (props: {
     member,
     user,
     hasWriteAccess,
-    isOrgAdmin,
+    isOrgOwner,
     removeMember,
     updateMemberRole,
   } = props;
@@ -53,7 +53,7 @@ const TeamMembersRow = (props: {
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
           hasOrgRoleFromTeam={team.orgRole !== null}
-          isOrgAdmin={isOrgAdmin}
+          isOrgOwner={isOrgOwner}
           onClick={() => removeMember(member)}
           member={member}
           user={user}
@@ -123,12 +123,12 @@ const TeamRoleSelect = (props: {
 const RemoveButton = (props: {
   hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
-  isOrgAdmin: boolean;
+  isOrgOwner: boolean;
   member: TeamMember;
   onClick: () => void;
   user: User;
 }) => {
-  const {member, user, hasWriteAccess, isOrgAdmin, hasOrgRoleFromTeam, onClick} = props;
+  const {member, user, hasWriteAccess, isOrgOwner, hasOrgRoleFromTeam, onClick} = props;
 
   const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
@@ -143,7 +143,7 @@ const RemoveButton = (props: {
         "Membership to this team is managed through your organization's identity provider."
       );
     }
-    if (hasOrgRoleFromTeam && !isOrgAdmin) {
+    if (hasOrgRoleFromTeam && !isOrgOwner) {
       return t(
         'Membership to a team with an organization role is managed by org owners and team admins.'
       );
@@ -151,7 +151,7 @@ const RemoveButton = (props: {
     return undefined;
   };
 
-  if (isIdpProvisioned || (hasOrgRoleFromTeam && !isOrgAdmin)) {
+  if (isIdpProvisioned || (hasOrgRoleFromTeam && !isOrgOwner)) {
     return (
       <Button
         size="xs"

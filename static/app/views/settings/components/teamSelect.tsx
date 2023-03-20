@@ -54,7 +54,7 @@ type Props = {
    * Allow adding to teams with org role
    * if the user is an org admin
    */
-  isOrgAdmin?: boolean;
+  isOrgOwner?: boolean;
   /**
    * Used to determine whether we should show a loading state while waiting for teams
    */
@@ -83,7 +83,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
-  isOrgAdmin,
+  isOrgOwner,
   loadingTeams,
   enforceIdpProvisioned,
   menuHeader,
@@ -172,7 +172,7 @@ function TeamSelect({
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
-                isOrgAdmin={isOrgAdmin ?? false}
+                isOrgOwner={isOrgOwner ?? false}
                 selectedOrgRole={effectiveOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
@@ -208,7 +208,7 @@ function TeamSelect({
           }
 
           // TODO(team-roles): team admins can also manage membership
-          if (team.orgRole !== null && !isOrgAdmin) {
+          if (team.orgRole !== null && !isOrgOwner) {
             return (
               <Tooltip
                 title={t(
@@ -222,7 +222,7 @@ function TeamSelect({
 
           return <DropdownTeamBadge avatarSize={18} team={team} />;
         },
-        disabled: disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgAdmin),
+        disabled: disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgOwner),
       };
     });
 
@@ -298,7 +298,7 @@ const ProjectTeamRow = ({
 
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
-  isOrgAdmin: boolean;
+  isOrgOwner: boolean;
   onChangeTeamRole: Props['onChangeTeamRole'];
   selectedOrgRole: Member['orgRole'];
   selectedTeamRole: Member['teamRoles'][0]['role'];
@@ -311,7 +311,7 @@ const MemberTeamRow = ({
   selectedTeamRole,
   onRemoveTeam,
   onChangeTeamRole,
-  isOrgAdmin,
+  isOrgOwner,
   disabled,
   confirmMessage,
   enforceIdpProvisioned,
@@ -327,13 +327,13 @@ const MemberTeamRow = ({
     ? teamRoleList[1] // set as team admin
     : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
 
-  const teamOrgRole = team.orgRole
+  const orgRoleFromTeam = team.orgRole
     ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
     : '';
 
   const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
   const isRemoveDisabled =
-    disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgAdmin);
+    disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgOwner);
 
   const buttonHelpText = () => {
     if (isIdpProvisioned) {
@@ -341,7 +341,7 @@ const MemberTeamRow = ({
         "Membership to this team is managed through your organization's identity provider."
       );
     }
-    if (team.orgRole !== null && !isOrgAdmin) {
+    if (team.orgRole !== null && !isOrgOwner) {
       return t(
         'Membership to a team with an organization role is managed by org owners.'
       );
@@ -355,7 +355,7 @@ const MemberTeamRow = ({
         <TeamBadge team={team} />
       </StyledLink>
 
-      <TeamOrgRole>{teamOrgRole}</TeamOrgRole>
+      <TeamOrgRole>{orgRoleFromTeam}</TeamOrgRole>
 
       {organization.features.includes('team-roles') && onChangeTeamRole && (
         <React.Fragment>

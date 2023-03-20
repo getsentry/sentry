@@ -208,7 +208,7 @@ class TeamMembers extends AsyncView<Props, State> {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
-  renderDropdown(hasWriteAccess: boolean, isOrgAdmin: boolean) {
+  renderDropdown(hasWriteAccess: boolean, isOrgOwner: boolean) {
     const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
@@ -219,7 +219,7 @@ class TeamMembers extends AsyncView<Props, State> {
     const canAddMembers = hasOpenMembership || hasWriteAccess;
 
     const isDropdownDisabled =
-      team.flags['idp:provisioned'] || (team.orgRole !== null && !isOrgAdmin);
+      team.flags['idp:provisioned'] || (team.orgRole !== null && !isOrgOwner);
 
     const items = (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
@@ -297,7 +297,8 @@ class TeamMembers extends AsyncView<Props, State> {
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
-    const isOrgAdmin = access.includes('org:admin');
+    // org:admin is a unique scope that only org owners have
+    const isOrgOwner = access.includes('org:admin');
 
     return (
       <Fragment>
@@ -305,7 +306,7 @@ class TeamMembers extends AsyncView<Props, State> {
           <PanelHeader hasButtons>
             <div>{t('Members')}</div>
             <div style={{textTransform: 'none'}}>
-              {this.renderDropdown(hasWriteAccess, isOrgAdmin)}
+              {this.renderDropdown(hasWriteAccess, isOrgOwner)}
             </div>
           </PanelHeader>
           {this.state.teamMembers.length ? (
@@ -314,7 +315,7 @@ class TeamMembers extends AsyncView<Props, State> {
                 <TeamMembersRow
                   key={member.id}
                   hasWriteAccess={hasWriteAccess}
-                  isOrgAdmin={isOrgAdmin}
+                  isOrgOwner={isOrgOwner}
                   team={team}
                   member={member}
                   organization={organization}

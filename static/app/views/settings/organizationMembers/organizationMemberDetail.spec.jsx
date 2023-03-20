@@ -32,7 +32,7 @@ describe('OrganizationMemberDetail', function () {
     },
   });
   const managerTeam = TestStubs.Team({id: '5', orgRole: 'manager', slug: 'manager-team'});
-  const orgRoleTeam = TestStubs.Team({
+  const otherManagerTeam = TestStubs.Team({
     id: '4',
     slug: 'org-role-team',
     name: 'Org Role Team',
@@ -49,7 +49,7 @@ describe('OrganizationMemberDetail', function () {
     }),
     idpTeam,
     managerTeam,
-    orgRoleTeam,
+    otherManagerTeam,
   ];
 
   const teamAssignment = {
@@ -96,14 +96,14 @@ describe('OrganizationMemberDetail', function () {
       },
     ],
   });
-  const orgRoleTeamMember = TestStubs.Member({
+  const managerTeamMember = TestStubs.Member({
     id: 5,
     roles: TestStubs.OrgRoleList(),
     dateCreated: new Date(),
-    teams: [orgRoleTeam.slug],
+    teams: [otherManagerTeam.slug],
     teamRoles: [
       {
-        teamSlug: orgRoleTeam.slug,
+        teamSlug: otherManagerTeam.slug,
         role: null,
       },
     ],
@@ -146,8 +146,8 @@ describe('OrganizationMemberDetail', function () {
         body: idpTeamMember,
       });
       MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/members/${orgRoleTeamMember.id}/`,
-        body: orgRoleTeamMember,
+        url: `/organizations/${organization.slug}/members/${managerTeamMember.id}/`,
+        body: managerTeamMember,
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/members/${managerMember.id}/`,
@@ -221,11 +221,31 @@ describe('OrganizationMemberDetail', function () {
         access: [],
       });
       routerContext = TestStubs.routerContext([{organization}]);
-      render(<OrganizationMemberDetail params={{memberId: orgRoleTeamMember.id}} />, {
+      render(<OrganizationMemberDetail params={{memberId: managerTeamMember.id}} />, {
         context: routerContext,
       });
       expect(screen.getByText('Manager Team')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Remove'})).toBeDisabled();
+    });
+
+    it('cannot join org role team if missing org:admin', async function () {
+      organization = TestStubs.Organization({
+        teams,
+        features: ['team-roles'],
+        access: ['org:write'],
+      });
+      routerContext = TestStubs.routerContext([{organization}]);
+      render(<OrganizationMemberDetail params={{memberId: managerMember.id}} />, {
+        context: routerContext,
+      });
+
+      await userEvent.click(screen.getByText('Add Team'));
+      await userEvent.hover(screen.queryByText('#org-role-team'));
+      expect(
+        await screen.findByText(
+          'Membership to a team with an organization role is managed by org owners.'
+        )
+      ).toBeInTheDocument();
     });
 
     it('joins a team and assign a team-role', async function () {
@@ -272,26 +292,6 @@ describe('OrganizationMemberDetail', function () {
       expect(
         await screen.findByText(
           "Membership to this team is managed through your organization's identity provider."
-        )
-      ).toBeInTheDocument();
-    });
-
-    it('cannot join org role team if missing org:admin', async function () {
-      organization = TestStubs.Organization({
-        teams,
-        features: ['team-roles'],
-        access: ['org:write'],
-      });
-      routerContext = TestStubs.routerContext([{organization}]);
-      render(<OrganizationMemberDetail params={{memberId: managerMember.id}} />, {
-        context: routerContext,
-      });
-
-      await userEvent.click(screen.getByText('Add Team'));
-      await userEvent.hover(screen.queryByText('#org-role-team'));
-      expect(
-        await screen.findByText(
-          'Membership to a team with an organization role is managed by org owners.'
         )
       ).toBeInTheDocument();
     });
