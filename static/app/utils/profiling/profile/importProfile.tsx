@@ -27,6 +27,7 @@ import {
 export interface ImportOptions {
   transaction: Transaction | undefined;
   type: 'flamegraph' | 'flamechart';
+  profileIds?: Readonly<string[]>;
 }
 
 export interface ProfileGroup {
@@ -234,7 +235,10 @@ export function importSchema(
     metadata: input.metadata ?? {},
     measurements: input.measurements ?? {},
     profiles: input.profiles.map(profile =>
-      importSingleProfile(profile, frameIndex, options)
+      importSingleProfile(profile, frameIndex, {
+        ...options,
+        profileIds: input.shared.profile_ids,
+      })
     ),
   };
 }
@@ -246,7 +250,7 @@ function importSingleProfile(
     | JSSelfProfiling.Trace
     | ChromeTrace.ProfileType,
   frameIndex: ReturnType<typeof createFrameIndex>,
-  {transaction, type}: ImportOptions
+  {transaction, type, profileIds}: ImportOptions
 ): Profile {
   if (isEventedProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
@@ -266,12 +270,12 @@ function importSingleProfile(
   if (isSampledProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return SampledProfile.FromProfile(profile, frameIndex, {type});
+      return SampledProfile.FromProfile(profile, frameIndex, {type, profileIds});
     }
 
     return wrapWithSpan(
       transaction,
-      () => SampledProfile.FromProfile(profile, frameIndex, {type}),
+      () => SampledProfile.FromProfile(profile, frameIndex, {type, profileIds}),
       {
         op: 'profile.import',
         description: 'sampled',

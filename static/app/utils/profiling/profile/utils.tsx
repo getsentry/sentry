@@ -229,3 +229,12 @@ export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFr
   const reversed = reverseTrail(leafNodes, nodeToParentIndex);
   return reversed;
 };
+
+export function resolveFlamegraphSamplesProfileIds(
+  samplesProfiles: Readonly<number[][]>,
+  profileIds: Readonly<string[]>
+): string[][] {
+  return samplesProfiles.map(profileIdIndices => {
+    return profileIdIndices.map(i => profileIds[i]);
+  });
+}

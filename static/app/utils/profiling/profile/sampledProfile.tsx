@@ -2,7 +2,7 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
 
 function sortStacks(
   a: {stack: number[]; weight: number},
@@ -25,19 +25,24 @@ function sortStacks(
   return 0;
 }
 
-function stacksWithWeights(profile: Readonly<Profiling.SampledProfile>) {
+function stacksWithWeights(
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
+) {
   return profile.samples.map((stack, index) => {
     return {
       stack,
       weight: profile.weights[index],
+      profileIds: profileIds[index],
     };
   });
 }
 
 function sortSamples(
-  profile: Readonly<Profiling.SampledProfile>
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
 ): {stack: number[]; weight: number}[] {
-  return stacksWithWeights(profile).sort(sortStacks);
+  return stacksWithWeights(profile, profileIds).sort(sortStacks);
 }
 
 function throwIfMissingFrame(index: number) {
@@ -52,7 +57,7 @@ export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {type: 'flamechart' | 'flamegraph'; profileIds?: Readonly<string[]>}
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -70,9 +75,21 @@ export class SampledProfile extends Profile {
       );
     }
 
+    let resolvedProfileIds: string[][] = [];
+    if (
+      options.type === 'flamegraph' &&
+      sampledProfile.samples_profiles &&
+      options.profileIds
+    ) {
+      resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
+        sampledProfile.samples_profiles,
+        options.profileIds
+      );
+    }
+
     const samples =
       options.type === 'flamegraph'
-        ? sortSamples(sampledProfile)
+        ? sortSamples(sampledProfile, resolvedProfileIds)
         : stacksWithWeights(sampledProfile);
 
     // We process each sample in the profile while maintaining a resolved stack of frames.
@@ -138,7 +155,7 @@ export class SampledProfile extends Profile {
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight, size);
+      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
     }
 
     return profile.build();
@@ -172,7 +189,12 @@ export class SampledProfile extends Profile {
     {type: 'flamechart'}
   );
 
-  appendSampleWithWeight(stack: Frame[], weight: number, end: number): void {
+  appendSampleWithWeight(
+    stack: Frame[],
+    weight: number,
+    end: number,
+    resolvedProfileIds?: string[]
+  ): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
 
@@ -194,6 +216,9 @@ export class SampledProfile extends Profile {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
+        if (resolvedProfileIds) {
+          this.callTreeNodeProfileIdMap.set(node, resolvedProfileIds);
+        }
       }
 
       node.addToTotalWeight(weight);
