@@ -1317,6 +1317,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable anr improvements ui
+    "organizations:anr-improvements": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
