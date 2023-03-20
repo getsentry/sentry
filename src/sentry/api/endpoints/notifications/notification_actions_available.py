@@ -15,8 +15,8 @@ class NotificationActionsAvailableEndpoint(FlaggedOrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        Responds with a payload serialized directly from running the 'descriptor' functions
-        in the NotificationAction registry.
+        Responds with a payload serialized directly from running the 'serialize_available' methods
+        on the ActionRegistration objects within the NotificationAction registry.
         """
         payload = []
         integrations = integration_service.get_integrations(

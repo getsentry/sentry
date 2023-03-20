@@ -160,9 +160,11 @@ class ActionRegistration(metaclass=ABCMeta):
         """
         pass
 
-    def validator(self, data: NotificationActionInputData) -> None:
+    def validate_action(self, data: NotificationActionInputData) -> None:
         """
         Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
+
+        :param data: The input data sent to the API before updating/creating NotificationActions
         :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but does is not valid.
         """
         pass
@@ -172,7 +174,10 @@ class ActionRegistration(metaclass=ABCMeta):
         cls, organization: Organization, integrations: List[RpcIntegration] = None
     ) -> List[JSONData]:
         """
-        Optional class method to provide serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
+        Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
+
+        :param organization: The relevant organization which will receive the serialized available action in their response.
+        :param integrations: A list of integrations which are set up for the organization.
         """
         return []
 
