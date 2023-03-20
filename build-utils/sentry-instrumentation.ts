@@ -6,6 +6,7 @@ import https from 'https';
 import os from 'os';
 
 import type Sentry from '@sentry/node';
+import type {Transaction} from '@sentry/types';
 import webpack from 'webpack';
 
 const {
@@ -14,6 +15,7 @@ const {
   SENTRY_WEBPACK_WEBHOOK_SECRET,
   GITHUB_SHA,
   GITHUB_REF,
+  SENTRY_DEV_UI_PROFILING,
 } = process.env;
 
 const IS_CI = !!GITHUB_SHA;
@@ -31,20 +33,26 @@ class SentryInstrumentation {
 
   Sentry?: typeof Sentry;
 
+  transaction?: Transaction;
+
   constructor() {
     // Only run if SENTRY_INSTRUMENTATION` is set or when in ci,
     // only in the javascript suite that runs webpack
-    if (!SENTRY_INSTRUMENTATION) {
+    if (!SENTRY_INSTRUMENTATION && !SENTRY_DEV_UI_PROFILING) {
       return;
     }
 
     const sentry = require('@sentry/node');
     require('@sentry/tracing'); // This is required to patch Sentry
+    const {ProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
       dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
+      integrations: [new ProfilingIntegration()],
+
+      profilesSampleRate: 1.0,
     });
 
     if (IS_CI) {
@@ -60,6 +68,13 @@ class SentryInstrumentation {
     );
 
     this.Sentry = sentry;
+
+    this.transaction = sentry.startTransaction({
+      op: 'webpack-build',
+      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
+      description: 'webpack build times',
+      trimEnd: true,
+    });
   }
 
   /**
@@ -111,30 +126,23 @@ class SentryInstrumentation {
       return;
     }
 
-    const transaction = this.Sentry.startTransaction({
-      op: 'webpack-build',
-      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
-      description: 'webpack build times',
-      startTimestamp: startTime,
-      trimEnd: true,
-    });
-
-    const span = transaction.startChild({
-      op: 'build',
-      description: 'webpack build',
-      data: {
-        os: `${os.platform()} ${os.arch()} v${os.release()}`,
-        memory: os.freemem()
-          ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
-              (os.freemem() / os.totalmem()) * 100
-            }% free)`
-          : 'N/A',
-        loadavg: os.loadavg(),
-      },
-      startTimestamp: startTime,
-    });
-    span.finish(endTime);
-    transaction.finish();
+    this.transaction
+      ?.startChild({
+        op: 'build',
+        description: 'webpack build',
+        data: {
+          os: `${os.platform()} ${os.arch()} v${os.release()}`,
+          memory: os.freemem()
+            ? `${os.freemem() / GB_BYTE} / ${os.totalmem() / GB_BYTE} GB (${
+                (os.freemem() / os.totalmem()) * 100
+              }% free)`
+            : 'N/A',
+          loadavg: os.loadavg(),
+        },
+        startTimestamp: startTime,
+      })
+      .finish(endTime);
+    this.transaction?.finish();
   }
 
   apply(compiler: webpack.Compiler) {
@@ -149,7 +157,12 @@ class SentryInstrumentation {
 
         if (this.Sentry) {
           this.measureBuildTime(startTime / 1000, endTime / 1000);
+          const span = this.transaction?.startChild({
+            op: 'sentry',
+            description: 'Sentry flush',
+          });
           await this.Sentry.flush();
+          span?.finish();
         }
 
         this.initialBuild = true;
