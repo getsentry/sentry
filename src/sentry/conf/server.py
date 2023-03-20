@@ -1095,6 +1095,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
+    # Enable the sentry sample format response
+    "organizations:profiling-sampled-format": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Whether to enable post process group for profile blocked main thread issues
