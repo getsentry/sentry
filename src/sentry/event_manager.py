@@ -867,6 +867,11 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         if not job["release"]:
             continue
 
+        if options.get("performance.issues.create_issues_through_platform", False) and projects[
+            job["project_id"]
+        ].get_option("sentry:performance_issue_create_issue_through_platform", False):
+            continue
+
         release_key = (job["project_id"], job["release"])
         jobs_with_releases.setdefault(release_key, []).append(job)
         new_datetime = job["event"].datetime
@@ -1052,9 +1057,13 @@ def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        job["environment"] = Environment.get_or_create(
-            project=projects[job["project_id"]], name=job["environment"]
-        )
+        project = projects[job["project_id"]]
+        if options.get(
+            "performance.issues.create_issues_through_platform", False
+        ) and project.get_option("sentry:performance_issue_create_issue_through_platform", False):
+            return
+
+        job["environment"] = Environment.get_or_create(project=project, name=job["environment"])
 
 
 @metrics.wraps("save_event.get_or_create_group_environment_many")
@@ -2308,7 +2317,6 @@ def _message_from_metadata(meta: Mapping[str, str]) -> str:
 
 @metrics.wraps("save_event.save_aggregate_performance")
 def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: ProjectsMapping) -> None:
-
     MAX_GROUPS = (
         10  # safety check in case we are passed too many. constant will live somewhere else tbd
     )
@@ -2330,7 +2338,14 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             )
             kwargs["data"]["last_received"] = job["received_timestamp"]
 
-            performance_problems = job["performance_problems"]
+            all_performance_problems = job["performance_problems"]
+
+            # Filter out performance problems that will be later sent to the issues platform
+            performance_problems = [
+                problem
+                for problem in all_performance_problems
+                if not write_occurrence_to_platform(problem, project)
+            ]
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
 
