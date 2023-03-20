@@ -25,6 +25,7 @@ const defaultOrgFeatures = [
   'dashboards-edit',
   'global-views',
   'dashboards-mep',
+  'dashboards-rh-widget',
 ];
 
 // Mocking worldMapChart to avoid act warnings
