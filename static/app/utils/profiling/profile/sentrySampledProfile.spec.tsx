@@ -59,6 +59,12 @@ export const makeSentrySampledProfile = (
         ],
         stacks: [[1, 0], [0]],
       },
+      transaction: {
+        id: '',
+        name: 'foo',
+        active_thread_id: 0,
+        trace_id: '1',
+      },
     },
     profile
   ) as Profiling.SentrySampledProfile;
