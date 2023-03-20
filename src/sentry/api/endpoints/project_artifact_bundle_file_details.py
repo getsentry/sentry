@@ -10,7 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.endpoints.project_release_file_details import ClosesDependentFiles
-from sentry.models import ArtifactBundle, ArtifactBundleArchive, ProjectArtifactBundle
+from sentry.models import ArtifactBundleArchive, ProjectArtifactBundle
 
 
 class ProjectArtifactBundleFileDetailsMixin:
@@ -71,31 +71,26 @@ class ProjectArtifactBundleFileDetailsEndpoint(
             )
 
         try:
-            artifact_bundle = ArtifactBundle.objects.get(
-                organization_id=project.organization.id, bundle_id=bundle_id
-            )
-        except ArtifactBundle.DoesNotExist:
-            return Response(
-                {"error": f"The artifact bundle with {bundle_id} does not exist"}, status=404
-            )
-
-        try:
-            ProjectArtifactBundle.objects.get(
-                project_id=project.id, artifact_bundle=artifact_bundle
-            )
-        except ProjectArtifactBundle.DoesNotExist:
-            return Response(
-                {"error": f"The artifact bundle with {bundle_id} is not bound to this project"},
-                status=400,
-            )
-
-        try:
             file_path = base64.urlsafe_b64decode(file_id).decode()
         except Exception:
             return Response(
                 {"error": f"The file_id {file_id} is invalid"},
                 status=400,
             )
+
+        try:
+            project_artifact_bundle = ProjectArtifactBundle.objects.filter(
+                project_id=project.id, artifact_bundle__bundle_id=bundle_id
+            ).select_related("artifact_bundle__file")[0]
+        except KeyError:
+            return Response(
+                {
+                    "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"
+                },
+                status=400,
+            )
+
+        artifact_bundle = project_artifact_bundle.artifact_bundle
 
         try:
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
