@@ -1,6 +1,6 @@
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
 // Replay SDK can send `data` that does not conform to our issue/event breadcrumbs
@@ -39,9 +39,9 @@ export function getDescription(crumb: Crumb) {
   }
 
   if (crumb.category === 'replay.mutations') {
-    return tct(
-      'A large number of mutations was detected ([count]). This can slow down the Replay SDK and impact your customers.',
-      {count: crumbData?.count}
+    return t(
+      'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
+      crumbData?.count
     );
   }
 
