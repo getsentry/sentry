@@ -5,6 +5,7 @@ import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import {space} from 'sentry/styles/space';
+import IssueCategoryFilter from 'sentry/views/issueList/issueCategoryFilter';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 
 interface Props {
@@ -18,7 +19,8 @@ function IssueListFilters({query, onSearch}: Props) {
       <StyledPageFilterBar>
         <ProjectPageFilter />
         <EnvironmentPageFilter />
-        <DatePageFilter alignDropdown="left" />
+        <DatePageFilter />
+        <IssueCategoryFilter />
       </StyledPageFilterBar>
       <IssueSearchWithSavedSearches {...{query, onSearch}} />
     </SearchContainer>
@@ -41,7 +43,11 @@ const SearchContainer = styled('div')`
 const StyledPageFilterBar = styled(PageFilterBar)`
   flex: 0 1 0;
   width: 100%;
-  max-width: 30rem;
+  max-width: 35rem;
+
+  > div > button {
+    width: 100%;
+  }
 `;
 
 export default IssueListFilters;
