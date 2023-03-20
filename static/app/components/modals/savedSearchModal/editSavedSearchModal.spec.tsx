@@ -64,10 +64,10 @@ describe('EditSavedSearchModal', function () {
     render(<EditSavedSearchModal {...defaultProps} />);
 
     await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.paste('new search name');
 
     await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    await userEvent.type(screen.getByRole('textbox', {name: /filter issues/i}), 'test');
+    await userEvent.paste('test');
 
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
 
@@ -112,10 +112,10 @@ describe('EditSavedSearchModal', function () {
     );
 
     await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.paste('new search name');
 
     await userEvent.clear(screen.getByTestId('smart-search-input'));
-    await userEvent.type(screen.getByTestId('smart-search-input'), 'test');
+    await userEvent.paste('test');
 
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
 
