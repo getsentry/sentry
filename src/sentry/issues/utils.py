@@ -1,14 +1,11 @@
-from typing import Any, Mapping
-
+from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import Project
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def can_create_group(
-    ocurrence: IssueOccurrence, options: Mapping[str, Any], project: Project
-) -> bool:
+def can_create_group(ocurrence: IssueOccurrence, project: Project) -> bool:
     return (
         # create N+1 db query issues first
         ocurrence.type.type_id == PerformanceNPlusOneGroupType.type_id
@@ -19,9 +16,7 @@ def can_create_group(
     )
 
 
-def write_occurrence_to_platform(
-    performance_problem: PerformanceProblem, options: Mapping[str, Any], project: Project
-) -> bool:
+def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
     return (
         # handle only N+1 db query detector first
         performance_problem.type.type_id == PerformanceNPlusOneGroupType.type_id

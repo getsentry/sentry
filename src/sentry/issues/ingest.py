@@ -9,7 +9,7 @@ import sentry_sdk
 from django.conf import settings
 from django.db import transaction
 
-from sentry import eventstream, options
+from sentry import eventstream
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.event_manager import (
     GroupInfo,
@@ -43,7 +43,7 @@ def save_issue_occurrence(
     # Do not hash fingerprints for performance issues because they're already
     # hashed in save_aggregate_performance
     # This check should be removed once perf issues are created through the platform
-    if can_create_group(occurrence_data, options, event.project):
+    if can_create_group(occurrence_data, event.project):
         process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
@@ -63,7 +63,7 @@ def save_issue_occurrence(
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
 
-        if not can_create_group(occurrence_data, options, event.project):
+        if not can_create_group(occurrence_data, event.project):
             return occurrence, group_info
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
@@ -165,7 +165,7 @@ def save_issue_from_occurrence(
 
     # This forces an early return to skip extra processing steps
     # for performance issues because they are already created/updated in save_transaction
-    return_group_info_early = not can_create_group(occurrence, options, project)
+    return_group_info_early = not can_create_group(occurrence, project)
 
     if not existing_grouphash:
         if return_group_info_early:
@@ -231,7 +231,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    skip_consume = not can_create_group(occurrence, options, event.project)
+    skip_consume = not can_create_group(occurrence, event.project)
 
     eventstream.insert(
         event=group_event,

@@ -2467,7 +2467,7 @@ def _send_occurrence_to_platform(jobs: Sequence[Job], projects: ProjectsMapping)
 
         performance_problems = job["performance_problems"]
         for problem in performance_problems:
-            if write_occurrence_to_platform(problem, options, project):
+            if write_occurrence_to_platform(problem, project):
                 occurrence = IssueOccurrence(
                     id=uuid.uuid4().hex,
                     resource_id=None,
