@@ -119,26 +119,24 @@ function Sidebar(props: Props) {
 
   // Trigger panels depending on the location hash
   useEffect(() => {
-    if (
-      location?.hash === '#welcome' &&
-      hasOrganization &&
-      !ConfigStore.get('demoMode')
-    ) {
-      const projects = props.projects;
+    if (location?.hash === '#welcome') {
+      if (hasOrganization && !ConfigStore.get('demoMode')) {
+        const projects = props.projects;
 
-      const tasks = getMergedTasks({
-        organization,
-        projects,
-        onboardingState: onboardingState || undefined,
-      });
+        const tasks = getMergedTasks({
+          organization,
+          projects,
+          onboardingState: onboardingState || undefined,
+        });
 
-      const allDisplayedTasks = tasks
-        .filter(task => task.display)
-        .filter(task => !task.renderCard);
-      const doneTasks = allDisplayedTasks.filter(isDone);
+        const allDisplayedTasks = tasks
+          .filter(task => task.display)
+          .filter(task => !task.renderCard);
+        const doneTasks = allDisplayedTasks.filter(isDone);
 
-      if (doneTasks.length >= allDisplayedTasks.length) {
-        return;
+        if (doneTasks.length >= allDisplayedTasks.length) {
+          return;
+        }
       }
       activatePanel(SidebarPanelKey.OnboardingWizard);
     }
