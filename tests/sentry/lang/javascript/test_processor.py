@@ -1703,6 +1703,46 @@ class FetchByDebugIdTest(FetchTest):
 
         fetcher.close()
 
+    def test_fetch_by_debug_id_with_forbidden_debug_id_source_file_type_pair(self):
+        debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                        "debug-id": debug_id,
+                    },
+                },
+                # We omitted the minified file for simplicity but in reality a bundle must have the original
+                # files in order to the symbolication to properly happen.
+            },
+        )
+
+        bundle_id = uuid4()
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=bundle_id, file=file, artifact_count=2
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id=debug_id,
+            artifact_bundle=artifact_bundle,
+            source_file_type=SourceFileType.SOURCE_MAP.value,
+        )
+
+        fetcher = Fetcher(self.organization, self.project)
+
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result is None
+        assert (debug_id, SourceFileType.SOURCE_MAP) in fetcher.empty_result_for_debug_ids
+
+        fetcher.close()
+
 
 class BuildAbsPathDebugIdCacheTest(TestCase):
     def test_build_with(self):
