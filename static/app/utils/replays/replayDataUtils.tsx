@@ -246,6 +246,19 @@ export function spansFactory(spans: ReplaySpan[]) {
     }));
 }
 
+function getMinMax(arr) {
+  let len = arr.length;
+  let min = Infinity;
+  let max = -Infinity;
+
+  while (len--) {
+    min = arr[len] < min ? arr[len] : min;
+    max = arr[len] > max ? arr[len] : max;
+  }
+
+  return {min, max};
+}
+
 /**
  * We need to figure out the real start and end timestamps based on when
  * first and last bits of data were collected. In milliseconds.
@@ -270,14 +283,27 @@ export function replayTimestamps(
   const spanStartTimestamps = rawSpanDataFiltered.map(span => span.startTimestamp * 1000);
   const spanEndTimestamps = rawSpanDataFiltered.map(span => span.endTimestamp * 1000);
 
+  // Calculate min/max of each array individually. This prevents two things:
+  // - Avoid extra array allocations
+  // - Avoid `Maximum call stack size exceeded` when the array is too large for Math.min\Math.max
+  //   See: https://stackoverflow.com/a/52613386
+  const {min: minRRWeb, max: maxRRWeb} = getMinMax(rrwebTimestamps);
+  const {min: minCrumbs, max: maxCrumbs} = getMinMax(breadcrumbTimestamps);
+  const {min: minSpanStarts} = getMinMax(spanStartTimestamps);
+  const {max: maxSpanEnds} = getMinMax(spanEndTimestamps);
+
   return {
     startTimestampMs: Math.min(
       replayRecord.started_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanStartTimestamps]
+      minRRWeb,
+      minCrumbs,
+      minSpanStarts
     ),
     endTimestampMs: Math.max(
       replayRecord.finished_at.getTime(),
-      ...[...rrwebTimestamps, ...breadcrumbTimestamps, ...spanEndTimestamps]
+      maxRRWeb,
+      maxCrumbs,
+      maxSpanEnds
     ),
   };
 }
