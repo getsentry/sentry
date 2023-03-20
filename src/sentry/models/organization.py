@@ -674,7 +674,7 @@ class Organization(Model, SnowflakeIdMixin):
         return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.priority > 0:
+        if role.id != "member":
             return role.scopes
 
         scopes = set(role.scopes)
