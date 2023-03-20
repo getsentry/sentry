@@ -231,7 +231,7 @@ def send_issue_occurrence_to_eventstream(
     group_event = event.for_group(group_info.group)
     group_event.occurrence = occurrence
 
-    skip_consume = can_create_group(occurrence, options, event.project)
+    skip_consume = not can_create_group(occurrence, options, event.project)
 
     eventstream.insert(
         event=group_event,
