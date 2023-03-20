@@ -82,7 +82,9 @@ class ProjectArtifactBundleFileDetailsEndpoint(
 
         try:
             project_artifact_bundle = ProjectArtifactBundle.objects.filter(
-                project_id=project.id, artifact_bundle__bundle_id=bundle_id
+                organization_id=project.organization.id,
+                project_id=project.id,
+                artifact_bundle__bundle_id=bundle_id,
             ).select_related("artifact_bundle__file")[0]
         except IndexError:
             return Response(
