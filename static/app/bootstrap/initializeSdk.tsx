@@ -2,7 +2,7 @@
 import {browserHistory, createRoutes, match} from 'react-router';
 import {ExtraErrorData} from '@sentry/integrations';
 import * as Sentry from '@sentry/react';
-import {Integrations} from '@sentry/tracing';
+import {BrowserTracing} from '@sentry/react';
 import {_browserPerformanceTimeOriginMode} from '@sentry/utils';
 
 import {SENTRY_RELEASE_VERSION, SPA_DSN} from 'sentry/constants';
@@ -31,7 +31,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
   const extraTracingOrigins = SPA_DSN
     ? SPA_MODE_ALLOW_URLS
     : [...sentryConfig?.whitelistUrls];
-  const partialTracingOptions: Partial<Integrations.BrowserTracing['options']> = {
+  const partialTracingOptions: Partial<BrowserTracing['options']> = {
     tracingOrigins: ['localhost', /^\//, ...extraTracingOrigins],
   };
 
@@ -40,7 +40,7 @@ function getSentryIntegrations(sentryConfig: Config['sentryConfig'], routes?: Fu
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    new Integrations.BrowserTracing({
+    new BrowserTracing({
       ...(typeof routes === 'function'
         ? {
             routingInstrumentation: Sentry.reactRouterV3Instrumentation(
