@@ -229,15 +229,15 @@ class QueryDefinition:
         cls,
         *,
         fields: List[str],
-        start: str,
-        end: str,
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        stats_period: Optional[str] = None,
         organization_id: Optional[int] = None,
         project_ids: Optional[List[int]] = None,
         key_id: Optional[int] = None,
         interval: Optional[str] = None,
         outcome: Optional[List[str]] = None,
         group_by: Optional[List[str]] = None,
-        query: Optional[Mapping[str, Any]] = None,
         category: Optional[List[str]] = None,
         reason: Optional[str] = None,
         allow_minute_resolution: bool = True,
@@ -248,33 +248,22 @@ class QueryDefinition:
         Ideally this would be the constructor, but we have cross repository dependencies
         that need to be addressed first.
         """
-        # TODO(mark) this is a workaround because __init__() uses QueryDict
-        # and I wanted to make smaller changes.
-        query_dict = QueryDict("", mutable=True)
-        query_dict.setlist("field", fields)
-        query_dict["start"] = start
-        query_dict["end"] = end
-        if group_by is not None:
-            query_dict.setlist("groupBy", group_by)
-        if outcome is not None:
-            query_dict.setlist("outcome", outcome)
-        if category is not None:
-            query_dict.setlist("category", category)
-
-        if interval is not None:
-            query_dict["interval"] = interval
-        if reason is not None:
-            query_dict["reason"] = reason
-        if query is not None:
-            query_dict["query"] = query
-        if key_id is not None:
-            query_dict["key_id"] = key_id
-
-        params: MutableMapping[str, Any] = {"organization_id": organization_id}
-        if project_ids is not None:
-            params["project_id"] = project_ids
-
-        return cls(query_dict, params=params, allow_minute_resolution=allow_minute_resolution)
+        # TODO(mark) remove this once callers are using __init__()
+        return cls(
+            fields=fields,
+            start=start,
+            end=end,
+            stats_period=stats_period,
+            group_by=group_by,
+            outcome=outcome,
+            interval=interval,
+            reason=reason,
+            category=category,
+            key_id=key_id,
+            project_ids=project_ids,
+            organization_id=organization_id,
+            allow_minute_resolution=allow_minute_resolution,
+        )
 
     @classmethod
     def from_query_dict(
@@ -288,51 +277,80 @@ class QueryDefinition:
 
         Useful when you want to convert request data into an outcomes.QueryDefinition.
         """
-        # TODO(mark) Move __init__ logic here so that __init__ can work with python primitives.
         return QueryDefinition(
-            query=query, params=params, allow_minute_resolution=allow_minute_resolution
+            fields=query.getlist("field", []) or [],
+            start=query.get("start", None),
+            end=query.get("end", None),
+            stats_period=query.get("statsPeriod", None),
+            organization_id=params.get("organization_id", None),
+            project_ids=params.get("project_id", None),
+            key_id=query.get("key_id", None),
+            interval=query.get("interval"),
+            outcome=query.getlist("outcome", []),
+            group_by=query.getlist("groupBy", []),
+            category=query.getlist("category"),
+            reason=query.get("reason"),
+            allow_minute_resolution=allow_minute_resolution,
         )
 
     def __init__(
         self,
-        query: QueryDict,
-        params: Mapping[Any, Any],
+        fields: List[str],
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        stats_period: Optional[str] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        key_id: Optional[int] = None,
+        interval: Optional[str] = None,
+        outcome: Optional[List[str]] = None,
+        group_by: Optional[List[str]] = None,
+        category: Optional[List[str]] = None,
+        reason: Optional[str] = None,
         allow_minute_resolution: Optional[bool] = True,
     ):
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
-        if len(raw_fields) == 0:
+        params: MutableMapping[str, Any] = {"organization_id": organization_id}
+        if project_ids is not None:
+            params["project_id"] = project_ids
+
+        if len(fields) == 0:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         allowed_resolution = (
             AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
         )
-        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
-        self.dataset, self.match = _outcomes_dataset(rollup)
-        self.rollup = rollup
-        self.start = start
-        self.end = end
+        date_params = {
+            "start": start,
+            "end": end,
+            "interval": interval,
+            "statsPeriod": stats_period,
+        }
+        self.start, self.end, self.rollup = get_constrained_date_range(
+            date_params, allowed_resolution
+        )
+        self.dataset, self.match = _outcomes_dataset(self.rollup)
         self.select_params = []
-        for key in raw_fields:
+        for key in fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
             self.select_params.append(field.select_params(self.dataset))
             self.fields[key] = field
 
+        group_by = group_by or []
         self.groupby = []
-        for key in raw_groupby:
+        for key in group_by:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
+        if (category is None or len(category) == 0) and "category" not in group_by:
             raise InvalidQuery("Query must have category as groupby or filter")
 
         query_columns = set()
         for field in self.fields.values():
-            query_columns.update(field.get_snuba_columns(raw_groupby))
+            query_columns.update(field.get_snuba_columns(group_by))
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -346,15 +364,23 @@ class QueryDefinition:
         for key in self.query_groupby:
             self.group_by.append(Column(key))
 
-        self.conditions = self.get_conditions(query, params)
+        condition_data = {
+            "outcome": outcome,
+            "key_id": key_id,
+            "category": category,
+            "reason": reason,
+        }
+        self.conditions = self.get_conditions(condition_data, params)
 
-    def get_conditions(self, query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
+    def get_conditions(self, query: Mapping[str, Any], params: Mapping[Any, Any]) -> List[Any]:
         query_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
         ]
         for filter_name in DIMENSION_MAP:
-            raw_filter = query.getlist(filter_name, [])
+            raw_filter = query.get(filter_name, []) or []
+            if not isinstance(raw_filter, list):
+                raw_filter = [raw_filter]
             resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
             if len(resolved_filter) > 0:
                 query_conditions.append(Condition(Column(filter_name), Op.IN, resolved_filter))
@@ -445,7 +471,7 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int) -> Dataset:
+def _outcomes_dataset(rollup: int) -> Tuple[Dataset, str]:
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
         dataset = Dataset.Outcomes

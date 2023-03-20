@@ -519,6 +519,11 @@ export type ServiceHook = {
  */
 export type CodeOwner = {
   codeMappingId: string;
+  /**
+   * Link to the CODEOWNERS file in source control
+   * 'unknown' if the api fails to fetch the file
+   */
+  codeOwnersUrl: string | 'unknown';
   dateCreated: string;
   dateUpdated: string;
   errors: {

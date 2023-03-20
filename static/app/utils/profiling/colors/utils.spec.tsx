@@ -6,7 +6,10 @@ import {
   makeColorMapBySymbolName,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
-import {LCH_LIGHT} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {
+  LCH_LIGHT,
+  LightFlamegraphTheme,
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 
@@ -49,7 +52,8 @@ describe('makeStackToColor', () => {
     const {colorBuffer} = makeFn(
       frames,
       () => new Map(),
-      makeColorBucketTheme(LCH_LIGHT)
+      makeColorBucketTheme(LCH_LIGHT),
+      LightFlamegraphTheme
     );
     expect(colorBuffer.slice(0, 4)).toEqual(fallback);
     expect(colorBuffer).toHaveLength(24);
@@ -66,7 +70,8 @@ describe('makeStackToColor', () => {
     const {colorBuffer} = makeFn(
       frames,
       makeColorMapBySymbolName,
-      makeColorBucketTheme(LCH_LIGHT)
+      makeColorBucketTheme(LCH_LIGHT),
+      LightFlamegraphTheme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([0.9625, 0.7125, 0.7125, 1]);
     expect(
@@ -90,7 +95,8 @@ describe('makeStackToColor', () => {
         m.set('a', [1, 0, 0]);
         return m;
       },
-      makeColorBucketTheme(LCH_LIGHT)
+      makeColorBucketTheme(LCH_LIGHT),
+      LightFlamegraphTheme
     );
     expect(colorBuffer.slice(0, 4)).toEqual([1, 0, 0, 1]);
     expect(colorBuffer).toHaveLength(24);

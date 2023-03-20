@@ -188,8 +188,8 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       </SpanDetails>
       <StackTrace
         event={event}
-        hasHierarchicalGrouping
-        newestFirst={false}
+        hasHierarchicalGrouping={false}
+        newestFirst
         platform={event.platform || 'other'}
         stacktrace={{
           framesOmitted: null,
@@ -312,7 +312,10 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
     node = node.parent;
   }
 
-  return frames;
+  // Profile stacks start from the inner most frame, while error stacks
+  // start from the outer most frame. Reverse the order here to match
+  // the convention on errors.
+  return frames.reverse();
 }
 
 const SpanDetails = styled('div')`

@@ -28,18 +28,19 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
-  'by symbol name',
+  'by system vs application frame',
   'by system frame',
   'by application frame',
+  'by symbol name',
   'by library',
   'by recursion',
   'by frequency',
 ];
 const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
 const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
+  'call order',
   'alphabetical',
   'left heavy',
-  'call order',
 ];
 
 interface FlamegraphContextMenuProps {
