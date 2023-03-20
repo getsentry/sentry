@@ -141,7 +141,8 @@ class CreateSampleEventButton extends Component<CreateSampleEventButtonProps, St
     const t0 = performance.now();
     const {eventCreated, retries} = await latestEventAvailable(api, eventData.groupID);
 
-    // Navigated away before event was created
+    // Navigated away before event was created - skip analytics and error messages
+    // latestEventAvailable will succeed even if the request was cancelled
     if (!this._isMounted) {
       return;
     }
