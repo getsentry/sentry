@@ -47,6 +47,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
         headers={tableHeaders}
         isLoading={false}
         visibleColumns={visibleColumns}
+        data-test-id="replay-table"
       >
         <StyledAlert type="error" showIcon>
           {typeof fetchError === 'string'
@@ -68,6 +69,7 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
       isEmpty={replays?.length === 0}
       isLoading={isFetching}
       visibleColumns={visibleColumns}
+      data-test-id="replay-table"
     >
       {replays?.map(replay => {
         return (

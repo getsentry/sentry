@@ -92,7 +92,7 @@ describe('StacktraceLink', function () {
       )
     ).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -227,7 +227,7 @@ describe('StacktraceLink', function () {
       'https://app.codecov.io/gh/path/to/file.py#L233'
     );
 
-    userEvent.click(await screen.findByText('Open in Codecov'));
+    await userEvent.click(await screen.findByText('Open in Codecov'));
     expect(analyticsSpy).toHaveBeenCalledWith(
       'integrations.stacktrace_codecov_link_clicked',
       expect.anything()

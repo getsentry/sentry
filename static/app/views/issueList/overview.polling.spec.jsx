@@ -18,11 +18,17 @@ const DEFAULT_LINKS_HEADER =
   `<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1>; rel="previous"; results="false"; cursor="${PREVIOUS_PAGE_CURSOR}:0:1", ` +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
 
-jest.useFakeTimers();
-
 describe('IssueList -> Polling', function () {
   let issuesRequest;
   let pollRequest;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
 
   const {organization, project, router, routerContext} = initializeOrg({
     organization: {
@@ -158,7 +164,10 @@ describe('IssueList -> Polling', function () {
     );
 
     // Enable realtime updates
-    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -167,7 +176,9 @@ describe('IssueList -> Polling', function () {
     expect(pollRequest).toHaveBeenCalledTimes(2);
 
     // Pauses
-    userEvent.click(screen.getByRole('button', {name: 'Pause real-time updates'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Pause real-time updates'}), {
+      delay: null,
+    });
 
     jest.advanceTimersByTime(12001);
     expect(pollRequest).toHaveBeenCalledTimes(2);
@@ -183,7 +194,10 @@ describe('IssueList -> Polling', function () {
     await renderComponent();
 
     // Enable real time control
-    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -202,7 +216,10 @@ describe('IssueList -> Polling', function () {
     await renderComponent();
 
     // Enable real time control
-    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);
@@ -221,7 +238,10 @@ describe('IssueList -> Polling', function () {
     await renderComponent();
 
     // Enable real time control
-    userEvent.click(screen.getByRole('button', {name: 'Enable real-time updates'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Enable real-time updates'}),
+      {delay: null}
+    );
 
     // Each poll request gets delayed by additional 3s, up to max of 60s
     jest.advanceTimersByTime(3001);

@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, List, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional
 
 from sentry.models.organization import OrganizationStatus
 from sentry.roles.manager import TeamRole
@@ -254,6 +254,10 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
     @abstractmethod

@@ -54,17 +54,17 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
         expand = request.GET.getlist("expand", [])
         expand.append("errors")
 
-        should_return_schema = features.has(
+        has_targeting_context = features.has(
             "organizations:streamline-targeting-context", project.organization
         )
 
         codeowners = list(ProjectCodeOwners.objects.filter(project=project).order_by("-date_added"))
 
-        if should_return_schema and codeowners:
+        if has_targeting_context and codeowners:
             for codeowner in codeowners:
                 self.add_owner_id_to_schema(codeowner, project)
             expand.append("renameIdentifier")
-            expand.append("addSchema")
+            expand.append("hasTargetingContext")
 
         return Response(
             serialize(
@@ -105,11 +105,11 @@ class ProjectCodeOwnersEndpoint(ProjectEndpoint, ProjectCodeOwnersMixin):  # typ
             )
 
             expand = ["ownershipSyntax", "errors"]
-            should_return_schema = features.has(
+            has_targeting_context = features.has(
                 "organizations:streamline-targeting-context", project.organization
             )
-            if should_return_schema:
-                expand.append("addSchema")
+            if has_targeting_context:
+                expand.append("hasTargetingContext")
 
             return Response(
                 serialize(
