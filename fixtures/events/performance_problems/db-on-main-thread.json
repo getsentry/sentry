@@ -265,7 +265,7 @@
   "type": "transaction",
   "user": {
     "id": "0f38dda2-6ef7-4d9a-b7f4-6bcc80b85b2e",
-    "ip_address": "86.56.213.87",
+    "ip_address": "127.0.0.1",
     "geo": {
       "country_code": "AT",
       "city": "Enns",
