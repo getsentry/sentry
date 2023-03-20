@@ -249,6 +249,8 @@ METRIC_TOLERATED_TAG_VALUE = "tolerated"
 METRIC_SATISFIED_TAG_VALUE = "satisfied"
 METRIC_FRUSTRATED_TAG_VALUE = "frustrated"
 METRIC_SATISFACTION_TAG_KEY = "satisfaction"
+# These strings will be resolved by the indexer, but aren't available in the dataset
+METRIC_UNAVAILBLE_COLUMNS = {"os.name"}
 
 # Only the metrics that are on the distributions & are in milliseconds
 METRIC_DURATION_COLUMNS = {

@@ -258,6 +258,7 @@ export class Flamegraph {
         depth: 0,
         start: value,
         end: value,
+        profileIds: profile.callTreeNodeProfileIdMap.get(node),
       };
 
       if (parent) {
