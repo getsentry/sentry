@@ -43,7 +43,10 @@ def backfill_monitor_checkins(apps, schema_editor):
         if monitor_environment_id:
             continue
 
-        monitor_environment_id = monitor_mappings[monitor_id]
+        try:
+            monitor_environment_id = monitor_mappings[monitor_id]
+        except KeyError:
+            continue
 
         batch.append((monitor_checkin_id, monitor_environment_id))
         if len(batch) >= BATCH_SIZE:

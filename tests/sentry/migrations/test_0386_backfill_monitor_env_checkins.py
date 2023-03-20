@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry.models import ScheduledDeletion
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -10,6 +11,7 @@ from sentry.monitors.models import (
     MonitorType,
     ScheduleType,
 )
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils.cases import TestMigrations
 
 DEFAULT_ENVIRONMENT_NAME = "production"
@@ -111,13 +113,40 @@ class MigrateMonitorEnvironmentBackfillInitialTest(TestMigrations):
             status=CheckInStatus.OK,
         )
 
+        # test behavior for checkins with deleted monitors/projects
+        project_deleted = self.create_project(organization=self.organization, name="deleted")
+
+        monitor_deleted = Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=project_deleted.id,
+            next_checkin=timezone.now() - timedelta(minutes=1),
+            type=MonitorType.CRON_JOB,
+            config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+        )
+
+        self.checkin_deleted = MonitorCheckIn.objects.create(
+            monitor=monitor_deleted,
+            project_id=project_deleted.id,
+            date_added=monitor_deleted.date_added,
+            status=CheckInStatus.OK,
+        )
+
+        deletion = ScheduledDeletion.schedule(project_deleted, days=0)
+        deletion.update(in_progress=True)
+
+        with self.tasks():
+            run_deletion(deletion.id)
+
     def test(self):
         self.checkin_default.refresh_from_db()
         self.checkin_multiple_env.refresh_from_db()
         self.checkin_old.refresh_from_db()
         self.checkin_new.refresh_from_db()
+        self.checkin_deleted.refresh_from_db()
 
         assert self.checkin_default.monitor_environment == self.monitor_env_default
         assert self.checkin_multiple_env.monitor_environment == self.monitor_env_multiple
         assert self.checkin_old.monitor_environment == self.monitor_env_new
         assert self.checkin_new.monitor_environment == self.monitor_env_new
+        # TODO this will need to be fixed when project deletion task is fixed for monitors
+        assert self.checkin_deleted.monitor_environment is None
