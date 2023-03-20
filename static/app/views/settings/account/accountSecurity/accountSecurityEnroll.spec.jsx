@@ -51,7 +51,7 @@ describe('AccountSecurityEnroll', function () {
       expect(screen.getByLabelText('Enrollment QR Code')).toBeInTheDocument();
     });
 
-    it('can enroll', function () {
+    it('can enroll', async function () {
       const enrollMock = Client.addMockResponse({
         url: `${ENDPOINT}${authenticator.authId}/enroll/`,
         method: 'POST',
@@ -59,7 +59,7 @@ describe('AccountSecurityEnroll', function () {
 
       render(<AccountSecurityEnroll />, {context: routerContext});
 
-      userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
+      await userEvent.type(screen.getByRole('textbox', {name: 'OTP Code'}), 'otp{enter}');
 
       expect(enrollMock).toHaveBeenCalledWith(
         `${ENDPOINT}15/enroll/`,

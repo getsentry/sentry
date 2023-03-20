@@ -24,7 +24,7 @@ test_resample_cases = [
 ]
 
 
-@pytest.mark.parametrize("sample_rate", [0.1, 0.5, 0.9])
+@pytest.mark.parametrize("sample_rate", [0.1, 0.5, 0.9, 1.0])
 @pytest.mark.parametrize("transactions", test_resample_cases)
 def test_maintains_overall_sample_rate(sample_rate, transactions):
 
@@ -149,7 +149,7 @@ full_resample_transactions = [
 ]
 
 
-@pytest.mark.parametrize("sample_rate", [0.1, 0.5, 0.9])
+@pytest.mark.parametrize("sample_rate", [0.1, 0.5, 0.9, 1.0])
 @pytest.mark.parametrize("transactions", full_resample_transactions)
 def test_full_resample(sample_rate, transactions):
     """
@@ -182,14 +182,18 @@ def test_full_resample(sample_rate, transactions):
             num_transaction_types_fully_sampled += 1
             full_budget -= count
 
-    budget_per_transaction_type = full_budget / (
-        num_explicit_transaction_types - num_transaction_types_fully_sampled
-    )
-
-    # everything that is not fully sampled should be at budget_per_transaction_type
-    for name, count in transactions:
-        # everything should be explicitly specified
-        assert name in explicit_transactions
-        rate = explicit_transactions[name]
-        if rate != 1.0:
-            assert rate * count == pytest.approx(budget_per_transaction_type)
+    if num_transaction_types_fully_sampled == num_explicit_transaction_types:
+        # all transactions sampled at 1.0 this means we must have specified the
+        # overall sample rate to be 1.0
+        assert sample_rate == 1.0
+    else:
+        budget_per_transaction_type = full_budget / (
+            num_explicit_transaction_types - num_transaction_types_fully_sampled
+        )
+        # everything that is not fully sampled should be at budget_per_transaction_type
+        for name, count in transactions:
+            # everything should be explicitly specified
+            assert name in explicit_transactions
+            rate = explicit_transactions[name]
+            if rate != 1.0:
+                assert rate * count == pytest.approx(budget_per_transaction_type)

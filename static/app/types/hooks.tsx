@@ -6,6 +6,7 @@ import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
+import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
@@ -91,12 +92,19 @@ type FirstPartyIntegrationAdditionalCTAProps = {
   integrations: Integration[];
 };
 
+type AttemptCloseAttemptProps = {
+  handleRemoveAccount: () => void;
+  organizationSlugs: string[];
+};
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 /**
  * Component wrapping hooks
  */
 export type ComponentHooks = {
+  'component:codecov-integration-cta': () => React.ReactNode;
+  'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
@@ -110,6 +118,7 @@ export type ComponentHooks = {
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
   'component:replay-beta-grace-period-alert': () => React.ComponentType<ReplayGracePeriodAlertProps>;
+  'component:replay-feedback-button': () => React.ComponentType<{}>;
   'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardinCTAProps>;
   'component:superuser-access-category': React.FC<any>;
 };
@@ -147,6 +156,7 @@ export type AnalyticsHooks = {
 export type FeatureDisabledHooks = {
   'feature-disabled:alert-wizard-performance': FeatureDisabledHook;
   'feature-disabled:alerts-page': FeatureDisabledHook;
+  'feature-disabled:codecov-integration-setting': FeatureDisabledHook;
   'feature-disabled:custom-inbound-filters': FeatureDisabledHook;
   'feature-disabled:dashboards-edit': FeatureDisabledHook;
   'feature-disabled:dashboards-page': FeatureDisabledHook;
@@ -175,6 +185,7 @@ export type FeatureDisabledHooks = {
   'feature-disabled:project-selector-checkbox': FeatureDisabledHook;
   'feature-disabled:rate-limits': FeatureDisabledHook;
   'feature-disabled:relay': FeatureDisabledHook;
+  'feature-disabled:replay-sidebar-item': FeatureDisabledHook;
   'feature-disabled:sso-basic': FeatureDisabledHook;
   'feature-disabled:sso-saml2': FeatureDisabledHook;
   'feature-disabled:trace-view-link': FeatureDisabledHook;
@@ -234,6 +245,7 @@ export type ReactHooks = {
     props: RouteContextInterface
   ) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-button-tracking': (props: ButtonProps) => () => void;
+  'react-hook:use-experiment': UseExperiment;
 };
 
 /**

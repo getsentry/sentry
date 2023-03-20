@@ -7,6 +7,7 @@ import {space} from 'sentry/styles/space';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
 import NativeFrame from '../../nativeFrame';
 import {getImageRange, parseAddress} from '../../utils';
@@ -17,8 +18,10 @@ type Props = {
   platform: PlatformType;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  hideIcon?: boolean;
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
 };
@@ -32,6 +35,7 @@ function Content({
   groupingCurrentLevel,
   includeSystemFrames = true,
   expandFirstFrame = true,
+  maxDepth,
   meta,
 }: Props) {
   const [showingAbsoluteAddresses, setShowingAbsoluteAddresses] = useState(false);
@@ -219,14 +223,10 @@ function Content({
     convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
       registers,
     });
+  }
 
-    return (
-      <Wrapper className={className}>
-        <Frames isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-        </Frames>
-      </Wrapper>
-    );
+  if (defined(maxDepth)) {
+    convertedFrames.splice(maxDepth);
   }
 
   return (

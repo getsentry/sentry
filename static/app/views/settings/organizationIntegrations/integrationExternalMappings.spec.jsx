@@ -159,11 +159,13 @@ describe('IntegrationExternalMappings', function () {
     renderGlobalModal();
 
     expect(await screen.findByTestId('mapping-table')).toBeInTheDocument();
-    userEvent.click(screen.getByTestId('add-mapping-button'));
+    await userEvent.click(screen.getByTestId('add-mapping-button'));
     expect(onCreateMock).toHaveBeenCalled();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'Remove user mapping'})[0]);
-    userEvent.click(screen.getByTestId('confirm-button'));
+    await userEvent.click(
+      screen.getAllByRole('button', {name: 'Remove user mapping'})[0]
+    );
+    await userEvent.click(screen.getByTestId('confirm-button'));
     expect(onDeleteMock).toHaveBeenCalled();
   });
 });

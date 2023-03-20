@@ -107,9 +107,7 @@ describe('Discover > Landing', function () {
   });
 
   it('links back to the homepage', () => {
-    const org = TestStubs.Organization({
-      features: [...features, 'discover-query-builder-as-landing-page'],
-    });
+    const org = TestStubs.Organization({features});
 
     render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />, {
       context: TestStubs.routerContext(),

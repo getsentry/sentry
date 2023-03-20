@@ -502,14 +502,67 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route
-        path="source-maps/"
-        name={t('Source Maps')}
-        component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-      >
+      <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSourceMaps/list'))}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
         />
+        <Route
+          path="debug-id-bundles/"
+          name={t('Debug ID Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
+          <Route
+            name={t('Artifact Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
+        <Route
+          path="release-bundles/"
+          name={t('Release Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
+          <Route
+            name={t('Artifact Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
         <Route
           path=":name/"
           name={t('Archive')}

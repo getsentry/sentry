@@ -9,6 +9,7 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -532,6 +533,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {

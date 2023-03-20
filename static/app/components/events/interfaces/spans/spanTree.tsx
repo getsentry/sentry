@@ -20,6 +20,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
@@ -38,13 +39,7 @@ import {
   SpanTreeNodeType,
   SpanType,
 } from './types';
-import {
-  getSpanID,
-  getSpanOperation,
-  isGapSpan,
-  setSpansOnTransaction,
-  spanTargetHash,
-} from './utils';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -76,7 +71,7 @@ class SpanTree extends Component<PropType> {
   };
 
   componentDidMount() {
-    setSpansOnTransaction(this.props.spans.length);
+    setGroupedEntityTag('spans.total', 1000, this.props.spans.length);
 
     if (location.hash) {
       const {spans} = this.props;

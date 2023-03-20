@@ -9,8 +9,6 @@ from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.monitor import MonitorSerializerResponse
-from sentry.api.validators import MonitorValidator
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
     RESPONSE_BAD_REQUEST,
@@ -22,6 +20,8 @@ from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ScheduledDeletion
 from sentry.monitors.models import Monitor, MonitorStatus
+from sentry.monitors.serializers import MonitorSerializerResponse
+from sentry.monitors.validators import MonitorValidator
 
 from .base import MonitorEndpoint
 
@@ -44,9 +44,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def get(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def get(self, request: Request, organization, project, monitor) -> Response:
         """
         Retrieves details for a monitor.
         """
@@ -67,9 +65,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def put(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def put(self, request: Request, organization, project, monitor) -> Response:
         """
         Update a monitor.
         """
@@ -83,7 +79,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
                 "config": monitor.config,
                 "project": project,
             },
-            context={"organization": project.organization, "access": request.access},
+            context={"organization": organization, "access": request.access},
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
@@ -110,7 +106,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             monitor.update(**params)
             self.create_audit_entry(
                 request=request,
-                organization=project.organization,
+                organization=organization,
                 target_object=monitor.id,
                 event=audit_log.get_event_id("MONITOR_EDIT"),
                 data=monitor.get_audit_log_data(),
@@ -132,9 +128,7 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def delete(
-        self, request: Request, project, monitor, organization_slug: str | None = None
-    ) -> Response:
+    def delete(self, request: Request, organization, project, monitor) -> Response:
         """
         Delete a monitor.
         """

@@ -53,8 +53,8 @@ export const knowDynamicSamplingBiases = {
     help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
   },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
-    label: t('Ignore health checks'),
-    help: t('Discards your health checks transactions'),
+    label: t('Deprioritize health checks'),
+    help: t('Captures fewer of your health checks transactions'),
   },
 };
 

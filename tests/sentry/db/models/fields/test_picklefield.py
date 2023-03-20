@@ -1,18 +1,23 @@
+from unittest import mock
+
+import pytest
+import sentry_sdk
+from django.conf import settings
 from django.db import connection, models
 
-from sentry.db.models.fields.picklefield import PickledObjectField
+from sentry.db.models.fields import picklefield
 from sentry.testutils import TestCase
 
 
 class JsonReadingPickleModel(models.Model):
-    data = PickledObjectField(write_json=False)
+    data = picklefield.PickledObjectField(write_json=False)
 
     class Meta:
         app_label = "fixtures"
 
 
 class JsonWritingPickleModel(models.Model):
-    data = PickledObjectField(write_json=True)
+    data = picklefield.PickledObjectField(write_json=True)
 
     class Meta:
         app_label = "fixtures"
@@ -68,9 +73,90 @@ class PickledObjectFieldTest(TestCase):
         self.assertEqual(obj.data, {"foo": "bar"})
 
     def test_to_python_int(self):
-        obj = PickledObjectField(write_json=False)
+        obj = picklefield.PickledObjectField(write_json=False)
         assert obj.to_python(9) == 9
 
     def test_to_python_bool(self):
-        obj = PickledObjectField(write_json=False)
+        obj = picklefield.PickledObjectField(write_json=False)
         assert obj.to_python(True) is True
+
+
+@pytest.fixture
+def complain_enabled():
+    with mock.patch.object(settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", True):
+        yield
+
+
+@pytest.fixture
+def complain_disabled_sample_100_percent():
+    with mock.patch.object(
+        settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", False
+    ):
+        with mock.patch.object(picklefield, "VALIDATE_JSON_SAMPLE_RATE", 1):
+            yield
+
+
+@pytest.fixture
+def complain_disabled_sample_disabled():
+    with mock.patch.object(
+        settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", False
+    ):
+        with mock.patch.object(picklefield, "VALIDATE_JSON_SAMPLE_RATE", 0):
+            yield
+
+
+@pytest.fixture
+def fake_capture_exception():
+    with mock.patch.object(sentry_sdk, "capture_exception") as mck:
+        yield mck
+
+
+@pytest.mark.usefixtures("complain_enabled")
+def test_non_serializable_error_when_setting_enabled():
+    with pytest.raises(TypeError) as excinfo:
+        picklefield.PickledObjectField().get_db_prep_value({"hello": b"\xef"})
+
+    (msg,) = excinfo.value.args
+    assert msg == "Tried to serialize a pickle field with a value that cannot be serialized as JSON"
+
+
+@pytest.mark.usefixtures("complain_enabled")
+def test_non_roundtrip_when_setting_enabled():
+    with pytest.raises(TypeError) as excinfo:
+        picklefield.PickledObjectField().get_db_prep_value(())
+
+    (msg,) = excinfo.value.args
+    assert msg == (
+        "json serialized database value was not the same after deserializing:\n"
+        "- type(o)=<class 'tuple'>\n"
+        "- type(rt)=<class 'list'>"
+    )
+
+
+@pytest.mark.usefixtures("complain_disabled_sample_100_percent")
+def test_sampling_is_nonfatal(fake_capture_exception):
+    v = picklefield.PickledObjectField().get_db_prep_value({"hello": b"\xef"})
+
+    # it got pickled
+    assert (
+        v
+        == "gAJ9cQBYBQAAAGhlbGxvcQFjX2NvZGVjcwplbmNvZGUKcQJYAgAAAMOvcQNYBgAAAGxhdGluMXEEhnEFUnEGcy4="
+    )
+
+    assert fake_capture_exception.call_count == 1
+    (e,), _ = fake_capture_exception.call_args
+    (msg,) = e.args
+    assert msg == "Tried to serialize a pickle field with a value that cannot be serialized as JSON"
+
+
+@pytest.mark.usefixtures("complain_disabled_sample_disabled")
+def test_no_error_or_logging_when_disabled(fake_capture_exception):
+    v = picklefield.PickledObjectField().get_db_prep_value({"hello": b"\xef"})
+
+    # it got pickled
+    assert (
+        v
+        == "gAJ9cQBYBQAAAGhlbGxvcQFjX2NvZGVjcwplbmNvZGUKcQJYAgAAAMOvcQNYBgAAAGxhdGluMXEEhnEFUnEGcy4="
+    )
+
+    assert fake_capture_exception.call_count == 0

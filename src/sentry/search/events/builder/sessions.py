@@ -72,4 +72,5 @@ class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
                 limitby=self.limitby,
             ),
             flags=Flags(turbo=self.turbo),
+            tenant_ids=self.tenant_ids,
         )

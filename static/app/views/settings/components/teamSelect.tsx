@@ -19,6 +19,7 @@ import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import useTeams from 'sentry/utils/useTeams';
 import {
   hasOrgRoleOverwrite,
@@ -92,6 +93,23 @@ function TeamSelect({
   const {teams, onSearch, fetching} = useTeams();
   const {orgRoleList, teamRoleList} = organization;
 
+  const slugsToFilter: string[] =
+    selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
+
+  // Determine if adding a team changes the minimum team-role
+  // Get org roles from team membership, if any
+  const orgRolesFromTeams = teams
+    .filter(team => slugsToFilter.includes(team.slug) && team.orgRole)
+    .map(team => team.orgRole as string);
+
+  if (selectedOrgRole) {
+    orgRolesFromTeams.push(selectedOrgRole);
+  }
+
+  // Sort them and to get the highest priority role
+  // Highest prio role may change minimum team role
+  const effectiveOrgRole = getEffectiveOrgRole(orgRolesFromTeams, orgRoleList)?.id;
+
   const renderBody = () => {
     const numTeams = selectedTeams?.length || selectedTeamRoles?.length;
     if (numTeams === 0) {
@@ -105,9 +123,9 @@ function TeamSelect({
 
     return (
       <React.Fragment>
-        {organization.features.includes('team-roles') && selectedOrgRole && (
+        {organization.features.includes('team-roles') && effectiveOrgRole && (
           <RoleOverwritePanelAlert
-            orgRole={selectedOrgRole}
+            orgRole={effectiveOrgRole}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
@@ -125,7 +143,7 @@ function TeamSelect({
             />
           ))}
 
-        {selectedOrgRole &&
+        {effectiveOrgRole &&
           selectedTeamRoles &&
           /**
            * "Map + Find" operation is O(n * n), leaving it as it us because it is unlikely to cause performance issues because a Member is unlikely to be in 1000+ teams
@@ -148,7 +166,7 @@ function TeamSelect({
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
-                selectedOrgRole={selectedOrgRole}
+                selectedOrgRole={effectiveOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
                 onRemoveTeam={slug => onRemoveTeam(slug)}
@@ -158,9 +176,6 @@ function TeamSelect({
       </React.Fragment>
     );
   };
-
-  const slugsToFilter =
-    selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
 
   // Only show options that aren't selected in the dropdown
   const options = teams

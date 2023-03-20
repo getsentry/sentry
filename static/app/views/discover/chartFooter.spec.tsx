@@ -102,7 +102,7 @@ describe('Discover > ChartFooter', function () {
     expect(screen.getByRole('button', {name: `Limit ${limit}`})).toBeInTheDocument();
   });
 
-  it('renders multi value y-axis dropdown selector on a non-Top display', function () {
+  it('renders multi value y-axis dropdown selector on a non-Top display', async function () {
     let yAxis = ['count()'];
 
     const chartFooter = (
@@ -123,8 +123,8 @@ describe('Discover > ChartFooter', function () {
 
     render(chartFooter);
 
-    userEvent.click(screen.getByText('count()'));
-    userEvent.click(screen.getByText('failure_count()'));
+    await userEvent.click(screen.getByText('count()'));
+    await userEvent.click(screen.getByText('failure_count()'));
     expect(yAxis).toEqual(['count()', 'failure_count()']);
   });
 });

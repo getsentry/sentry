@@ -1,5 +1,4 @@
 from django.db.models import F
-from django.http import QueryDict
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -38,37 +37,33 @@ class ProjectKeyStatsEndpoint(ProjectEndpoint, StatsMixin):
         except ProjectKey.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Outcomes queries are coupled to Django's QueryDict :(
-        query_data = QueryDict(mutable=True)
-        query_data.setlist("field", ["sum(quantity)"])
-        query_data.setlist(
-            "outcome",
-            [
-                Outcome.ACCEPTED.api_name(),
-                Outcome.FILTERED.api_name(),
-                Outcome.RATE_LIMITED.api_name(),
-            ],
-        )
-        query_data["groupBy"] = "outcome"
-        query_data["category"] = "error"
-        query_data["key_id"] = key.id
-
         try:
             stats_params = self._parse_args(request)
         except Exception:
             raise ParseError(detail="Invalid request data")
 
-        query_data["end"] = stats_params["end"].isoformat()
-        query_data["start"] = stats_params["start"].isoformat()
-        query_data["interval"] = request.GET.get("resolution", "1d")
-
         try:
-            query_definition = QueryDefinition(
-                query_data,
-                {"organization_id": project.organization_id},
+            outcomes_query = QueryDefinition.build(
+                fields=["sum(quantity)"],
+                start=stats_params["start"].isoformat(),
+                end=stats_params["end"].isoformat(),
+                organization_id=project.organization_id,
+                outcome=[
+                    Outcome.ACCEPTED.api_name(),
+                    Outcome.FILTERED.api_name(),
+                    Outcome.RATE_LIMITED.api_name(),
+                ],
+                group_by=["outcome"],
+                category=["error"],
+                key_id=key.id,
+                interval=request.GET.get("resolution", "1d"),
             )
             results = massage_outcomes_result(
-                query_definition, [], run_outcomes_query_timeseries(query_definition)
+                outcomes_query,
+                [],
+                run_outcomes_query_timeseries(
+                    outcomes_query, tenant_ids={"organization_id": project.organization_id}
+                ),
             )
         except Exception:
             raise ParseError(detail="Invalid request data")

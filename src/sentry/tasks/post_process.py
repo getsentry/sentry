@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 locks = LockManager(build_instance_from_options(settings.SENTRY_POST_PROCESS_LOCKS_BACKEND_OPTIONS))
 
-ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 30
+ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -151,6 +151,9 @@ def handle_owner_assignment(job):
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
             from sentry.models import (
+                ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                ASSIGNEE_EXISTS_DURATION,
+                ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
                 ProjectOwnership,
@@ -179,19 +182,24 @@ def handle_owner_assignment(job):
                                 "reason": "ratelimited",
                             },
                         )
+                        metrics.incr("sentry.task.post_process.handle_owner_assignment.ratelimited")
                         return
 
                 with sentry_sdk.start_span(
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = f"assignee_exists:1:{group.id}"
+                    assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
                         # Cache for 1 day if it's assigned. We don't need to move that fast.
                         cache.set(
-                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                            assignee_key,
+                            assignees_exists,
+                            ASSIGNEE_EXISTS_DURATION
+                            if assignees_exists
+                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
                         )
 
                     if assignees_exists:
@@ -201,6 +209,9 @@ def handle_owner_assignment(job):
                                 **basic_logging_details,
                                 "reason": "assignee_exists",
                             },
+                        )
+                        metrics.incr(
+                            "sentry.task.post_process.handle_owner_assignment.assignee_exists"
                         )
                         return
 
@@ -403,12 +414,15 @@ def post_process_group(
         from sentry import eventstore
         from sentry.eventstore.processing import event_processing_store
         from sentry.ingest.transaction_clusterer.datasource.redis import (
-            record_transaction_name as record_transaction_name_for_clustering,  # We use the data being present/missing in the processing store; to ensure that we don't duplicate work should the forwarding consumers; need to rewind history.
+            record_transaction_name as record_transaction_name_for_clustering,
         )
         from sentry.models import Organization, Project
         from sentry.reprocessing2 import is_reprocessed_event
 
         if occurrence_id is None:
+            # We use the data being present/missing in the processing store
+            # to ensure that we don't duplicate work should the forwarding consumers
+            # need to rewind history.
             data = event_processing_store.get(cache_key)
             if not data:
                 logger.info(
@@ -756,22 +770,13 @@ def process_code_mappings(job: PostProcessJob) -> None:
             org = event.project.organization
             org_slug = org.slug
             next_time = timezone.now() + timedelta(hours=1)
-            has_normal_run_flag = features.has("organizations:derive-code-mappings", org)
-            has_dry_run_flag = features.has("organizations:derive-code-mappings-dry-run", org)
 
-            if has_normal_run_flag:
+            if features.has("organizations:derive-code-mappings", org):
                 logger.info(
                     f"derive_code_mappings: Queuing code mapping derivation for {project.slug=} {event.group_id=}."
                     + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
                 )
-                derive_code_mappings.delay(project.id, event.data, dry_run=False)
-            # Derive code mappings with dry_run=True to validate the generated mappings.
-            elif has_dry_run_flag:
-                logger.info(
-                    f"derive_code_mappings: Queuing dry run code mapping derivation for {project.slug=} {event.group_id=}."
-                    + f" Future events in {org_slug=} will not have not have code mapping derivation until {next_time}"
-                )
-                derive_code_mappings.delay(project.id, event.data, dry_run=True)
+                derive_code_mappings.delay(project.id, event.data)
 
     except Exception:
         logger.exception("derive_code_mappings: Failed to process code mappings")
@@ -809,19 +814,22 @@ def process_commits(job: PostProcessJob) -> None:
                 event_frames = get_frame_paths(event)
                 sdk_name = get_sdk_name(event.data)
 
-                integrations = Integration.objects.filter(
-                    organizations=event.project.organization,
-                    provider__in=["github", "gitlab"],
+                integration_cache_key = (
+                    f"commit-context-scm-integration:{event.project.organization_id}"
                 )
-                use_fallback = (
-                    features.has(
-                        "organizations:commit-context-fallback", event.project.organization
+                has_integrations = cache.get(integration_cache_key)
+                if has_integrations is None:
+                    integrations = Integration.objects.filter(
+                        organizations=event.project.organization,
+                        provider__in=["github", "gitlab"],
                     )
-                    and not integrations.exists()
-                )
+                    has_integrations = integrations.exists()
+                    # Cache the integrations check for 4 hours
+                    cache.set(integration_cache_key, has_integrations, 14400)
+
                 if (
                     features.has("organizations:commit-context", event.project.organization)
-                    and not use_fallback
+                    and has_integrations
                 ):
                     cache_key = DEBOUNCE_CACHE_KEY(event.group_id)
                     if cache.get(cache_key):
