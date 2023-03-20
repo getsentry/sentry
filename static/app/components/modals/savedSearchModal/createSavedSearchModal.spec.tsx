@@ -51,7 +51,8 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is not changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
 
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -74,12 +75,13 @@ describe('CreateSavedSearchModal', function () {
   it('saves a search when query is changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
+
     await userEvent.clear(screen.getByRole('textbox', {name: /filter issues/i}));
-    await userEvent.type(
-      screen.getByRole('textbox', {name: /filter issues/i}),
-      'is:resolved{enter}'
-    );
+    await userEvent.click(screen.getByRole('textbox', {name: /filter issues/i}));
+    await userEvent.paste('is:resolved');
+
     await selectEvent.select(screen.getByText('Last Seen'), 'Priority');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -107,10 +109,8 @@ describe('CreateSavedSearchModal', function () {
 
       render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
 
-      await userEvent.type(
-        screen.getByRole('textbox', {name: /name/i}),
-        'new search name'
-      );
+      await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+      await userEvent.paste('new search name');
 
       // Hovering over the visibility dropdown shows disabled reason
       await userEvent.hover(screen.getByText(/only me/i));
@@ -139,7 +139,8 @@ describe('CreateSavedSearchModal', function () {
       access: ['org:write'],
     });
     render(<CreateSavedSearchModal {...defaultProps} organization={org} />);
-    await userEvent.type(screen.getByRole('textbox', {name: /name/i}), 'new search name');
+    await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
+    await userEvent.paste('new search name');
     await selectEvent.select(screen.getByText('Only me'), 'Users in my organization');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await waitFor(() => {

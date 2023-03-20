@@ -90,6 +90,7 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
+    samples_profiles?: number[][];
     type: 'sampled';
   }
 
@@ -152,6 +153,7 @@ declare namespace Profiling {
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>;
     };
     measurements?: {
       screen_frame_rates?: {

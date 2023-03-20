@@ -751,6 +751,7 @@ class SnubaTSDB(BaseTSDB):
             use_cache=use_cache,
             jitter_value=jitter_value,
             tenant_ids=tenant_ids,
+            referrer_suffix=referrer_suffix,
         )
         # convert
         #    {group:{timestamp:count, ...}}
