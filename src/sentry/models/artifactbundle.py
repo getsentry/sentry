@@ -59,6 +59,19 @@ class ArtifactBundle(Model):
 
         unique_together = (("organization_id", "bundle_id"),)
 
+    @classmethod
+    def get_release_dist_pair(
+        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
+    ) -> Tuple[Optional[str], Optional[str]]:
+        try:
+            release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
+                organization_id=organization_id, artifact_bundle=artifact_bundle
+            )[0]
+
+            return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
+        except IndexError:
+            return None, None
+
 
 @region_silo_only_model
 class ReleaseArtifactBundle(Model):
