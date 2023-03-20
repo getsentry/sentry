@@ -21,7 +21,6 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
@@ -41,7 +40,12 @@ logger = logging.getLogger(__name__)
 def save_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event: Event
 ) -> Tuple[IssueOccurrence, Optional[GroupInfo]]:
-    process_occurrence_data(occurrence_data)
+    should_skip_group_processing = skip_group_processing(occurrence_data, options, event.project)
+    # Do not hash fingerprints for performance issues because they're already
+    # hashed in save_aggregate_performance
+    # This check should be removed once perf issues are created through the platform
+    if not should_skip_group_processing:
+        process_occurrence_data(occurrence_data)
     # Convert occurrence data to `IssueOccurrence`
     occurrence = IssueOccurrence.from_dict(occurrence_data)
     if occurrence.event_id != event.event_id:
@@ -60,7 +64,7 @@ def save_issue_occurrence(
     if group_info:
         send_issue_occurrence_to_eventstream(event, occurrence, group_info)
 
-        if skip_group_processing(occurrence, options, event.project):
+        if should_skip_group_processing:
             return occurrence, group_info
         environment = event.get_environment()
         _get_or_create_group_environment(environment, release, [group_info])
@@ -73,11 +77,6 @@ def save_issue_occurrence(
 
 
 def process_occurrence_data(occurrence_data: IssueOccurrenceData) -> None:
-    # Do not hash fingerprints for performance issues because they're already
-    # hashed in save_aggregate_performance
-    # This check should be removed once perf issues are created through the platform
-    if occurrence_data["type"] in get_group_types_by_category(GroupCategory.PERFORMANCE.value):
-        return
     # Hash fingerprints to make sure they're a consistent length
     occurrence_data["fingerprint"] = [
         md5(part.encode("utf-8")).hexdigest() for part in occurrence_data["fingerprint"]
