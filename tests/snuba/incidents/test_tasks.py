@@ -1,5 +1,6 @@
 from copy import deepcopy
 from functools import cached_property
+from unittest import mock
 from uuid import uuid4
 
 from arroyo.utils import metrics
@@ -27,10 +28,12 @@ from sentry.incidents.models import (
     TriggerStatus,
 )
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     get_query_subscription_consumer,
     subscriber_registry,
+    topic_to_dataset,
 )
 from sentry.testutils import TestCase
 from sentry.utils import json, kafka_config
@@ -41,7 +44,6 @@ from sentry.utils.batching_kafka_consumer import create_topics
 class HandleSnubaQueryUpdateTest(TestCase):
     def setUp(self):
         super().setUp()
-        self.topic = settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS
         self.override_settings_cm = override_settings(
             KAFKA_TOPICS={self.topic: {"cluster": "default"}}
         )
@@ -177,9 +179,11 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert out.body == built_message.body
 
     def test(self):
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-        self.run_test(consumer)
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
+            consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
+            self.run_test(consumer)
 
     def test_arroyo(self):
-        consumer = get_query_subscription_consumer(self.topic, "hi", True, "earliest")
-        self.run_test(consumer)
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
+            consumer = get_query_subscription_consumer(self.topic, "hi", True, "earliest")
+            self.run_test(consumer)
