@@ -10,8 +10,8 @@ from django.db import models
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -169,7 +169,7 @@ class ActionRegistration(metaclass=ABCMeta):
 
     @classmethod
     def serialize_available(
-        cls, organization: Organization, integrations: List[Integration] = None
+        cls, organization: Organization, integrations: List[RpcIntegration] = None
     ) -> List[JSONData]:
         """
         Optional class method to provide serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
