@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import startCase from 'lodash/startCase';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -25,6 +26,7 @@ import {
   hasOrgRoleOverwrite,
   RoleOverwritePanelAlert,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 type Props = {
   /**
@@ -52,7 +54,7 @@ type Props = {
   confirmLastTeamRemoveMessage?: string;
   /**
    * Allow adding to teams with org role
-   * if the user is an org admin
+   * if the user is an org owner
    */
   isOrgOwner?: boolean;
   /**
@@ -195,26 +197,13 @@ function TeamSelect({
         value: team.slug,
         searchKey: team.slug,
         label: () => {
-          if (isIdpProvisioned) {
-            return (
-              <Tooltip
-                title={t(
-                  "Membership to this team is managed through your organization's identity provider."
-                )}
-              >
-                <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-              </Tooltip>
-            );
-          }
-
           // TODO(team-roles): team admins can also manage membership
-          if (team.orgRole !== null && !isOrgOwner) {
+          const isPermissionGroup = team.orgRole !== null && !isOrgOwner;
+          const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+
+          if (isIdpProvisioned || isPermissionGroup) {
             return (
-              <Tooltip
-                title={t(
-                  'Membership to a team with an organization role is managed by org owners.'
-                )}
-              >
+              <Tooltip title={buttonHelpText}>
                 <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
               </Tooltip>
             );
@@ -327,27 +316,13 @@ const MemberTeamRow = ({
     ? teamRoleList[1] // set as team admin
     : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
 
-  const orgRoleFromTeam = team.orgRole
-    ? team.orgRole.charAt(0).toUpperCase() + team.orgRole.slice(1) + ' Team'
-    : '';
+  const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
 
   const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
-  const isRemoveDisabled =
-    disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgOwner);
+  const isPermissionGroup = team.orgRole !== null && !isOrgOwner;
+  const isRemoveDisabled = disabled || isIdpProvisioned || isPermissionGroup;
 
-  const buttonHelpText = () => {
-    if (isIdpProvisioned) {
-      return t(
-        "Membership to this team is managed through your organization's identity provider."
-      );
-    }
-    if (team.orgRole !== null && !isOrgOwner) {
-      return t(
-        'Membership to a team with an organization role is managed by org owners.'
-      );
-    }
-    return undefined;
-  };
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
 
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
@@ -380,7 +355,7 @@ const MemberTeamRow = ({
           size="xs"
           icon={<IconSubtract isCircled size="xs" />}
           disabled={isRemoveDisabled}
-          title={buttonHelpText()}
+          title={buttonHelpText}
         >
           {t('Remove')}
         </Button>

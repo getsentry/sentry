@@ -15,6 +15,7 @@ import TeamStore from 'sentry/stores/teamStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 type Props = {
   api: Client;
@@ -182,25 +183,15 @@ class AllTeamsRow extends Component<Props, State> {
     const {team, openMembership, organization} = this.props;
     const {access} = organization;
     const urlPrefix = `/settings/${organization.slug}/teams/`;
-    const hasAccess = access.includes('org:write') || access.includes('team:admin');
+    const canEditTeam = access.includes('org:write') || access.includes('team:admin');
 
     // TODO(team-roles): team admins can also manage membership
     // org:admin is a unique scope that only org owners have
     const isOrgOwner = access.includes('org:admin');
+    const isPermissionGroup = (team.orgRole && (!canEditTeam || !isOrgOwner)) as boolean;
+    const isIdpProvisioned = team.flags['idp:provisioned'];
 
-    const buttonHelpText = () => {
-      if (team.flags['idp:provisioned']) {
-        return t(
-          "Membership to this team is managed through your organization's identity provider."
-        );
-      }
-      if (team.orgRole && (!hasAccess || !isOrgOwner)) {
-        return t(
-          'Membership to a team with an organization role is managed by org owners.'
-        );
-      }
-      return undefined;
-    };
+    const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
 
     const display = (
       <IdBadge
@@ -214,16 +205,10 @@ class AllTeamsRow extends Component<Props, State> {
     // for your role + org open membership
     const canViewTeam = team.hasAccess;
 
-    const idpProvisioned = team.flags['idp:provisioned'];
     const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
-    const roleDisplay = () => {
-      if (orgRoleFromTeam === null && this.getTeamRoleName() === null) {
-        return 'none';
-      }
-      return 'block';
-    };
+    const displayNone = orgRoleFromTeam === null && this.getTeamRoleName() === null;
     // TODO(team-roles): team admins can also manage membership
-    const isDisabled = idpProvisioned || (team.orgRole !== null && !isOrgOwner);
+    const isDisabled = isIdpProvisioned || isPermissionGroup;
 
     return (
       <TeamPanelItem>
@@ -236,8 +221,8 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <DisplayRole display={roleDisplay()}>{orgRoleFromTeam}</DisplayRole>
-        <DisplayRole display={roleDisplay()}>{this.getTeamRoleName()}</DisplayRole>
+        <DisplayRole displayNone={displayNone}>{orgRoleFromTeam}</DisplayRole>
+        <DisplayRole displayNone={displayNone}>{this.getTeamRoleName()}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -248,7 +233,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleLeaveTeam}
               disabled={isDisabled}
-              title={buttonHelpText()}
+              title={buttonHelpText}
             >
               {t('Leave Team')}
             </Button>
@@ -267,7 +252,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleJoinTeam}
               disabled={isDisabled}
-              title={buttonHelpText()}
+              title={buttonHelpText}
             >
               {t('Join Team')}
             </Button>
@@ -276,7 +261,7 @@ class AllTeamsRow extends Component<Props, State> {
               size="sm"
               onClick={this.handleRequestAccess}
               disabled={isDisabled}
-              title={buttonHelpText()}
+              title={buttonHelpText}
             >
               {t('Request Access')}
             </Button>
@@ -322,6 +307,6 @@ const TeamPanelItem = styled(PanelItem)`
   }
 `;
 
-const DisplayRole = styled('div')<{display: string}>`
-  display: ${props => props.display};
+const DisplayRole = styled('div')<{displayNone: boolean}>`
+  display: ${props => (props.displayNone ? 'none' : 'block')};
 `;

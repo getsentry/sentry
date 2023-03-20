@@ -13,6 +13,7 @@ import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 const TeamMembersRow = (props: {
   hasWriteAccess: boolean;
@@ -136,22 +137,11 @@ const RemoveButton = (props: {
     return null;
   }
   const isIdpProvisioned = member.flags['idp:provisioned'];
+  const isPermissionGroup = hasOrgRoleFromTeam && !isOrgOwner;
 
-  const buttonHelpText = () => {
-    if (isIdpProvisioned) {
-      return t(
-        "Membership to this team is managed through your organization's identity provider."
-      );
-    }
-    if (hasOrgRoleFromTeam && !isOrgOwner) {
-      return t(
-        'Membership to a team with an organization role is managed by org owners and team admins.'
-      );
-    }
-    return undefined;
-  };
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
 
-  if (isIdpProvisioned || (hasOrgRoleFromTeam && !isOrgOwner)) {
+  if (isIdpProvisioned || isPermissionGroup) {
     return (
       <Button
         size="xs"
@@ -159,7 +149,7 @@ const RemoveButton = (props: {
         icon={<IconSubtract size="xs" isCircled />}
         onClick={onClick}
         aria-label={t('Remove')}
-        title={buttonHelpText()}
+        title={buttonHelpText}
       >
         {t('Remove')}
       </Button>
