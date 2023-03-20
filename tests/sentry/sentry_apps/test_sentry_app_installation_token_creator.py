@@ -1,10 +1,10 @@
 from datetime import date
 from unittest.mock import patch
 
-from sentry.mediators.sentry_app_installation_tokens import Creator
-from sentry.mediators.sentry_app_installations import Creator as SentryAppInstallationCreator
 from sentry.models import SentryAppInstallation, SentryAppInstallationToken
+from sentry.sentry_apps import SentryAppInstallationCreator, SentryAppInstallationTokenCreator
 from sentry.testutils import TestCase
+from sentry.testutils.silo import control_silo_test
 
 
 class TestCreatorBase(TestCase):
@@ -14,6 +14,7 @@ class TestCreatorBase(TestCase):
         self.create_project(organization=self.org)
 
 
+@control_silo_test(stable=True)
 class TestCreatorInternal(TestCreatorBase):
     def setUp(self):
         super().setUp()
@@ -29,9 +30,9 @@ class TestCreatorInternal(TestCreatorBase):
     @patch("sentry.analytics.record")
     def test_create_token_without_audit_or_date(self, record, create_audit_entry):
         request = self.make_request(user=self.user, method="GET")
-        api_token = Creator.run(
-            sentry_app_installation=self.sentry_app_installation, user=self.user, request=request
-        )
+        api_token = SentryAppInstallationTokenCreator(
+            sentry_app_installation=self.sentry_app_installation
+        ).run(user=self.user, request=request)
 
         # verify token was created properly
         assert api_token.expires_at is None
@@ -54,6 +55,7 @@ class TestCreatorInternal(TestCreatorBase):
         )
 
 
+@control_silo_test(stable=True)
 class TestCreatorExternal(TestCreatorBase):
     def setUp(self):
         super().setUp()
@@ -62,15 +64,15 @@ class TestCreatorExternal(TestCreatorBase):
             name="external_app", organization=self.org, scopes=("org:write", "team:admin")
         )
 
-        self.sentry_app_installation = SentryAppInstallationCreator.run(
-            slug=(self.sentry_app.slug), organization=self.org, user=(self.user)
-        )
+        self.sentry_app_installation = SentryAppInstallationCreator(
+            slug=self.sentry_app.slug, organization_id=self.org.id
+        ).run(user=self.user, request=None)
 
     def test_create_token(self):
         today = date.today()
-        api_token = Creator.run(
-            sentry_app_installation=self.sentry_app_installation, expires_at=today, user=self.user
-        )
+        api_token = SentryAppInstallationTokenCreator(
+            sentry_app_installation=self.sentry_app_installation, expires_at=today
+        ).run(user=self.user, request=None)
 
         # verify token was created properly
         assert api_token.expires_at == today
