@@ -28,6 +28,13 @@ type State = {
  * as small as possible, this call is quite fast.
  */
 class UsageStatsPerMin extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {projectIds} = this.props;
+    if (prevProps.projectIds !== projectIds) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
