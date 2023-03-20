@@ -41,7 +41,7 @@ class ObjectField(serializers.Field):
         return data
 
 
-class CronJobValidator(serializers.Serializer):
+class CronJobConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
     )
@@ -112,7 +112,7 @@ class MonitorValidator(serializers.Serializer):
         if monitor_type in MONITOR_TYPES:
             monitor_type = MONITOR_TYPES[monitor_type]
         if monitor_type == MonitorType.CRON_JOB:
-            validator = CronJobValidator(
+            validator = CronJobConfigValidator(
                 instance=self.instance.get("config", {}) if self.instance else {},
                 data=attrs.get("config", {}),
                 partial=self.partial,
