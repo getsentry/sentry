@@ -1,38 +1,39 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
+
+  type Image = import('sentry/types/debugImage').Image;
+
+  type SymbolicatorStatus = import('sentry/components/events/interfaces/types').SymbolicatorStatus;
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
-    elapsed_since_start_ns: string;
+    elapsed_since_start_ns: number;
     queue_address?: string;
   };
 
   type SentrySampledProfileStack = number[];
 
   type SentrySampledProfileFrame = {
+    in_app: boolean;
+    colno?: number;
+    filename?: string;
     function?: string;
     instruction_addr?: string;
     lineno?: number;
-    colno?: number;
-    filename?: string;
-  };
-
-  type SentrySampledProfileDebugMetaImage = {
-    debug_id: string;
-    image_addr: string;
-    code_file: string;
-    type: string;
-    image_size: number;
-    image_vmaddr: string;
+    module?: string;
+    package?: string;
+    abs_path?: string;
+    status?: SymbolicatorStatus;
+    sym_addr?: string;
+    symbol?: string;
   };
 
   type SentrySampledProfileTransaction = {
     name: string;
     trace_id: string;
     id: string;
-    active_thread_id: string;
-    relative_start_ns: string;
-    relative_end_ns: string;
+    active_thread_id: number;
   };
 
   type SentrySampledProfile = {
@@ -59,7 +60,7 @@ declare namespace Profiling {
     platform: string;
     environment?: string;
     debug_meta?: {
-      images: SentryProfileDebugMetaImage[];
+      images: Image[];
     };
     profile: {
       samples: SentrySampledProfileSample[];
@@ -68,7 +69,7 @@ declare namespace Profiling {
       thread_metadata?: Record<string, {name?: string; priority?: number}>;
       queue_metadata?: Record<string, {label: string}>;
     };
-    transactions?: SentrySampledProfileTransaction[];
+    transaction: SentrySampledProfileTransaction;
   };
 
   ////////////////
@@ -92,6 +93,7 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
+    samples_profiles?: number[][];
     type: 'sampled';
   }
 
@@ -114,10 +116,20 @@ declare namespace Profiling {
     line?: number;
     column?: number;
     is_application?: boolean;
-    image?: string;
     resource?: string;
     threadId?: number;
     inline?: boolean;
+    instructionAddr?: string;
+    symbol?: string;
+    symbolAddr?: string;
+    symbolicatorStatus?: SymbolicatorStatus;
+
+    // This exists as an artifact of the legacy formats, the speedscope format still uses this
+    image?: string;
+    // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
+    package?: string;
+    // This is the import path for the module
+    module?: string;
 
     // nodejs only
     columnNumber?: number;
@@ -154,6 +166,7 @@ declare namespace Profiling {
     projectID: number;
     shared: {
       frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
+      profile_ids?: ReadonlyArray<string>;
     };
     measurements?: {
       screen_frame_rates?: {

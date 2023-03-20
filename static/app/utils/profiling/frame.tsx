@@ -1,3 +1,4 @@
+import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
 import {WeightedNode} from './weightedNode';
@@ -10,10 +11,15 @@ export class Frame extends WeightedNode {
   readonly column?: number;
   readonly is_application: boolean;
   readonly path?: string;
-  readonly image?: string;
+  readonly package?: string;
+  readonly module?: string;
   readonly resource?: string;
   readonly threadId?: number;
   readonly inline?: boolean;
+  readonly instructionAddr?: string;
+  readonly symbol?: string;
+  readonly symbolAddr?: string;
+  readonly symbolicatorStatus?: SymbolicatorStatus;
 
   static Root = new Frame(
     {
@@ -34,9 +40,14 @@ export class Frame extends WeightedNode {
     this.line = frameInfo.line;
     this.column = frameInfo.column;
     this.is_application = !!frameInfo.is_application;
-    this.image = frameInfo.image;
+    this.package = frameInfo.package;
+    this.module = frameInfo.module ?? frameInfo.image;
     this.threadId = frameInfo.threadId;
     this.path = frameInfo.path;
+    this.instructionAddr = frameInfo.instructionAddr;
+    this.symbol = frameInfo.symbol;
+    this.symbolAddr = frameInfo.symbolAddr;
+    this.symbolicatorStatus = frameInfo.symbolicatorStatus;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
@@ -75,7 +86,7 @@ export class Frame extends WeightedNode {
           this.is_application = false;
         }
 
-        if (this.image === undefined && pathOrFile) {
+        if (this.module === undefined && pathOrFile) {
           const match =
             /node_modules(\/|\\)(?<maybeScopeOrPackage>.*?)(\/|\\)((?<maybePackage>.*)((\/|\\)))?/.exec(
               pathOrFile
@@ -84,9 +95,9 @@ export class Frame extends WeightedNode {
             const {maybeScopeOrPackage, maybePackage} = match.groups;
 
             if (maybeScopeOrPackage.startsWith('@')) {
-              this.image = `${maybeScopeOrPackage}/${maybePackage}`;
+              this.module = `${maybeScopeOrPackage}/${maybePackage}`;
             } else {
-              this.image = match.groups.maybeScopeOrPackage;
+              this.module = match.groups.maybeScopeOrPackage;
             }
             this.is_application = false;
           }
@@ -111,7 +122,9 @@ export class Frame extends WeightedNode {
             image += pathOrFile.charAt(i);
           }
 
-          this.image = image;
+          if (image) {
+            this.module = image;
+          }
         }
       }
     }

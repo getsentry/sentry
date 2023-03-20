@@ -258,6 +258,7 @@ export class Flamegraph {
         depth: 0,
         start: value,
         end: value,
+        profileIds: profile.callTreeNodeProfileIdMap.get(node),
       };
 
       if (parent) {
@@ -308,31 +309,47 @@ export class Flamegraph {
     return frames;
   }
 
-  findAllMatchingFrames(
-    frameOrName: FlamegraphFrame | string,
-    packageName?: string
+  findAllMatchingFramesBy(
+    query: string,
+    fields: (keyof FlamegraphFrame['frame'])[]
   ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
+    if (!fields.length) {
+      throw new Error('No fields provided');
+    }
 
-    if (typeof frameOrName === 'string') {
+    if (fields.length === 1) {
       for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName &&
-          // the image name on a frame is optional,
-          // treat it the same as the empty string
-          (this.frames[i].frame.image || '') === packageName
-        ) {
+        if (this.frames[i].frame[fields[0]] === query) {
           matches.push(this.frames[i]);
         }
       }
-    } else {
-      for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName.node.frame.name &&
-          this.frames[i].frame.image === frameOrName.node.frame.image
-        ) {
+      return matches;
+    }
+
+    for (let i = 0; i < this.frames.length; i++) {
+      for (let j = fields.length; j--; ) {
+        if (this.frames[i].frame[fields[j]] === query) {
           matches.push(this.frames[i]);
         }
+      }
+    }
+
+    return matches;
+  }
+
+  findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
+    const matches: FlamegraphFrame[] = [];
+
+    for (let i = 0; i < this.frames.length; i++) {
+      if (
+        this.frames[i].frame.name === frameName &&
+        // the framePackage can match either the package or the module
+        // this is an artifact of how we previously used image
+        (this.frames[i].frame.package === framePackage ||
+          this.frames[i].frame.module === framePackage)
+      ) {
+        matches.push(this.frames[i]);
       }
     }
 
