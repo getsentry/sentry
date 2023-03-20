@@ -7,9 +7,14 @@ export type DebugIdBundle = {
 };
 
 export type DebugIdBundleArtifact = {
-  debugId: string;
-  filePath: string;
-  fileSize: number;
-  fileType: number;
-  id: string;
+  bundleId: string;
+  dist: string | null;
+  files: {
+    debugId: string;
+    filePath: string;
+    fileSize: number;
+    fileType: number;
+    id: string;
+  }[];
+  release: string | null;
 };
