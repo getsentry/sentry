@@ -11,7 +11,6 @@ __all__ = [
     "FeatureHandlerStrategy",
 ]
 
-import abc
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -29,7 +28,6 @@ class Feature:
         """
         self.name = name
 
-    @abc.abstractmethod
     def get_subject(self) -> User | Organization:
         raise NotImplementedError
 

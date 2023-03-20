@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Type
 from django.conf import settings
 
 from sentry import features
-from sentry.features.base import OrganizationFeature
+from sentry.features.base import FeatureHandlerStrategy, OrganizationFeature
 from sentry.utils import metrics, redis
 
 if TYPE_CHECKING:
@@ -95,9 +95,19 @@ class GroupType:
         registry.add(cls)
 
         if not cls.released:
-            features.add(cls.build_visible_feature_name(), OrganizationFeature, True)
-            features.add(cls.build_ingest_feature_name(), OrganizationFeature)
-            features.add(cls.build_post_process_group_feature_name(), OrganizationFeature)
+            features.add(
+                cls.build_visible_feature_name(), OrganizationFeature, FeatureHandlerStrategy.REMOTE
+            )
+            features.add(
+                cls.build_ingest_feature_name(),
+                OrganizationFeature,
+                FeatureHandlerStrategy.INTERNAL,
+            )
+            features.add(
+                cls.build_post_process_group_feature_name(),
+                OrganizationFeature,
+                FeatureHandlerStrategy.INTERNAL,
+            )
 
     def __post_init__(self) -> None:
         valid_categories = [category.value for category in GroupCategory]

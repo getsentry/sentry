@@ -148,7 +148,7 @@ class FeatureManager(RegisteredFeatureManager):
         self,
         name: str,
         cls: Type[Feature] = Feature,
-        entity_feature_strategy: bool | FeatureHandlerStrategy = False,
+        entity_feature_strategy: FeatureHandlerStrategy = FeatureHandlerStrategy.INTERNAL,
     ) -> None:
         """
         Register a feature.
@@ -158,7 +158,6 @@ class FeatureManager(RegisteredFeatureManager):
 
         >>> FeatureManager.has('my:feature', actor=request.user)
         """
-        entity_feature_strategy = self._shim_feature_strategy(entity_feature_strategy)
 
         if entity_feature_strategy == FeatureHandlerStrategy.REMOTE:
             if name.startswith("users:"):
@@ -264,19 +263,6 @@ class FeatureManager(RegisteredFeatureManager):
             )
         else:
             return None
-
-    @staticmethod
-    def _shim_feature_strategy(
-        entity_feature_strategy: bool | FeatureHandlerStrategy,
-    ) -> FeatureHandlerStrategy:
-        """
-        Shim layer for old API to register a feature until all the features have been converted
-        """
-        if entity_feature_strategy is True:
-            return FeatureHandlerStrategy.REMOTE
-        elif entity_feature_strategy is False:
-            return FeatureHandlerStrategy.INTERNAL
-        return entity_feature_strategy
 
 
 class FeatureCheckBatch:

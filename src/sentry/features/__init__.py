@@ -57,8 +57,8 @@ default_manager = FeatureManager()  # NOQA
 # fmt: off
 
 # Unscoped features
-default_manager.add("auth:register")
-default_manager.add("organizations:create")
+default_manager.add("auth:register", Feature, FeatureHandlerStrategy.INTERNAL)
+default_manager.add("organizations:create", Feature, FeatureHandlerStrategy.INTERNAL)
 
 # Organization scoped features that are in development or in customer trials.
 default_manager.add("organizations:javascript-console-error-tag", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
