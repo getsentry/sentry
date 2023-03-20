@@ -49,7 +49,7 @@ function isSorting(
   if (typeof value !== 'string') {
     return false;
   }
-  return value === 'left heavy' || value === 'call order';
+  return value === 'left heavy' || value === 'call order' || value === 'alphabetical';
 }
 
 function isView(
@@ -197,6 +197,8 @@ export function FlamegraphStateLocalStorageSync() {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         timelines: DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       },
     }
   );
@@ -207,11 +209,18 @@ export function FlamegraphStateLocalStorageSync() {
         layout: state.preferences.layout,
         timelines: state.preferences.timelines,
         view: state.preferences.view,
+        colorCoding: state.preferences.colorCoding,
+        sorting: state.preferences.sorting,
       },
     });
-    // We only want to sync the local storage when the state changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.preferences.layout, state.preferences.timelines, state.preferences.view]);
+  }, [
+    state.preferences.sorting,
+    state.preferences.layout,
+    state.preferences.timelines,
+    state.preferences.view,
+    state.preferences.colorCoding,
+    setState,
+  ]);
 
   return null;
 }

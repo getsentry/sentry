@@ -191,8 +191,6 @@ const SmallMarginSideTabs = styled(SideTabs)`
 `;
 
 const VideoSection = styled(FluidHeight)`
-  height: 100%;
-
   background: ${p => p.theme.background};
   gap: ${space(1)};
 
