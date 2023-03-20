@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {hideSidebar, showSidebar} from 'sentry/actionCreators/preferences';
 import Feature from 'sentry/components/acl/feature';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {getMergedTasks} from 'sentry/components/onboardingWizard/taskConfig';
 import PerformanceOnboardingSidebar from 'sentry/components/performanceOnboarding/sidebar';
 import ReplaysOnboardingSidebar from 'sentry/components/replaysOnboarding/sidebar';
 import {
@@ -32,23 +33,26 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
+import withProjects from 'sentry/utils/withProjects';
+import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
 import Broadcasts from './broadcasts';
 import SidebarHelp from './help';
-import OnboardingStatus from './onboardingStatus';
+import OnboardingStatus, {isDone} from './onboardingStatus';
 import ServiceIncidents from './serviceIncidents';
 import SidebarDropdown from './sidebarDropdown';
 import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
+  projects: Project[];
   location?: Location;
   organization?: Organization;
 };
@@ -65,13 +69,18 @@ function hidePanel() {
   SidebarPanelStore.hidePanel();
 }
 
-function Sidebar({location, organization}: Props) {
+function Sidebar(props: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
 
+  const {location, organization} = props;
+
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
+
+  const hasOrganization = !!organization;
+  const [onboardingState] = usePersistedOnboardingState();
 
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
@@ -110,13 +119,32 @@ function Sidebar({location, organization}: Props) {
 
   // Trigger panels depending on the location hash
   useEffect(() => {
-    if (location?.hash === '#welcome') {
+    if (
+      location?.hash === '#welcome' &&
+      hasOrganization &&
+      !ConfigStore.get('demoMode')
+    ) {
+      const projects = props.projects;
+
+      const tasks = getMergedTasks({
+        organization,
+        projects,
+        onboardingState: onboardingState || undefined,
+      });
+
+      const allDisplayedTasks = tasks
+        .filter(task => task.display)
+        .filter(task => !task.renderCard);
+      const doneTasks = allDisplayedTasks.filter(isDone);
+
+      if (doneTasks.length >= allDisplayedTasks.length) {
+        return;
+      }
       activatePanel(SidebarPanelKey.OnboardingWizard);
     }
-  }, [location?.hash]);
+  }, [location?.hash, props.projects, organization, onboardingState, hasOrganization]);
 
   const hasPanel = !!activePanel;
-  const hasOrganization = !!organization;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
 
   const sidebarItemProps = {
@@ -429,7 +457,7 @@ function Sidebar({location, organization}: Props) {
   );
 }
 
-export default Sidebar;
+export default withProjects(Sidebar);
 
 const responsiveFlex = css`
   display: flex;

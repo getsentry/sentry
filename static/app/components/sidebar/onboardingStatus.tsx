@@ -31,7 +31,7 @@ export const getSidebarTasks = isDemoWalkthrough()
   ? useSandboxSidebarTasks
   : getMergedTasks;
 
-const isDone = (task: OnboardingTaskStatus) =>
+export const isDone = (task: OnboardingTaskStatus) =>
   task.status === 'complete' || task.status === 'skipped';
 
 const progressTextCss = () => css`
