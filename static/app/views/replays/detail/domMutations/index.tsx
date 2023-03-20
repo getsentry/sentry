@@ -31,7 +31,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
+  const {cache, updateList} = useVirtualizedList({
     cellMeasurer: {
       fixedWidth: true,
       minHeight: 82,
@@ -68,7 +68,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
