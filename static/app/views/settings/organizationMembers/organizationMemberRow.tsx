@@ -1,5 +1,7 @@
 import {Fragment, PureComponent} from 'react';
 import styled from '@emotion/styled';
+import capitalize from 'lodash/capitalize';
+import uniq from 'lodash/uniq';
 
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
@@ -13,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarUser, Member, Organization} from 'sentry/types';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
+import {sortOrgRoles} from 'sentry/utils/orgRole';
 
 type Props = {
   canAddMembers: boolean;
@@ -75,8 +78,19 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
   };
 
   renderMemberRole() {
-    const {member} = this.props;
-    const {roleName, pending, expired} = member;
+    const {member, organization} = this.props;
+    const {orgRole, pending, expired, orgRolesFromTeams} = member;
+    const {orgRoleList} = organization;
+
+    const allOrgRoleNames =
+      orgRolesFromTeams?.filter(obj => obj.role !== null).map(obj => obj.role.id) ?? [];
+    allOrgRoleNames?.push(orgRole);
+    const orgRoleNames = uniq(allOrgRoleNames);
+
+    const orgRoleNamesString = sortOrgRoles(orgRoleNames, orgRoleList ?? [])
+      .map(roleName => capitalize(roleName))
+      .join(', ');
+
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
     }
@@ -84,11 +98,13 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
       return (
         <InvitedRole>
           <IconMail size="md" />
-          {expired ? t('Expired Invite') : tct('Invited [roleName]', {roleName})}
+          {expired
+            ? t('Expired Invite')
+            : tct('Invited [roleName]', {orgRoleNamesString})}
         </InvitedRole>
       );
     }
-    return roleName;
+    return orgRoleNamesString;
   }
 
   render() {

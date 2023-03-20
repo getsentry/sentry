@@ -11,3 +11,14 @@ export function getEffectiveOrgRole(memberOrgRoles: string[], orgRoleList: OrgRo
 
   return orgRoleMap[memberOrgRoles[0]]?.role;
 }
+
+export function sortOrgRoles(memberOrgRoles: string[], orgRoleList: OrgRole[]) {
+  const orgRoleMap = orgRoleList.reduce((acc, role, index) => {
+    acc[role.id] = {index, role};
+    return acc;
+  }, {});
+
+  // sort by ascending index (high to low priority)
+  memberOrgRoles.sort((a, b) => orgRoleMap[b].index - orgRoleMap[a].index);
+  return memberOrgRoles;
+}
