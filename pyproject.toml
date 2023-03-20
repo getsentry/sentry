@@ -25,6 +25,7 @@ markers = [
     "snuba: test requires access to snuba",
     "sentry_metrics: test requires access to sentry metrics",
     "symbolicator: test requires access to symbolicator",
+    "only: if this appears on any test in a file, only run tests with this marker",
 ]
 selenium_driver = "chrome"
 filterwarnings = [

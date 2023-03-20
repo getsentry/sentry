@@ -1,5 +1,5 @@
 import os
-from typing import MutableSet
+from typing import Any, List, MutableSet
 
 import pytest
 from django.db.transaction import get_connection
@@ -199,3 +199,29 @@ def protect_hybrid_cloud_deletions(request):
     finally:
         with get_connection().cursor() as conn:
             conn.execute("SET ROLE 'postgres'")
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session, config: Any, items: List[pytest.Item]
+) -> None:
+    """
+    Enable the use of `@pytest.mark.only` for running just the tests with this decorator. Works
+    best when running tests in a single file.
+
+    Note: Should only be used in development!
+
+    Inspired by https://stackoverflow.com/a/70607961
+    """
+
+    # There's a lint rule in place to keep people from committing a `@pytest.mark.only`
+    # decorator (and to keep CI from passing if it finds one), but just in case...
+    if os.environ.get("GITHUB_ACTIONS"):
+        return
+
+    tests_with_only_marker = [i for i in items if i.get_closest_marker("only")]
+
+    if tests_with_only_marker:
+        print(  # noqa: S002
+            f"\nFound `pytest.mark.only`. Running {len(tests_with_only_marker)} of {len(items)} tests."
+        )
+        items[:] = tests_with_only_marker
