@@ -19,6 +19,7 @@ import {
   EntryType,
   Event,
   Frame,
+  Organization,
   PlatformType,
   Project,
   STACK_TYPE,
@@ -44,6 +45,7 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
+  organization: Organization;
   projectSlug: Project['slug'];
 };
 
@@ -90,6 +92,7 @@ export function ThreadsV2({
   projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
+  organization,
 }: Props) {
   const threads = data.values ?? [];
 
@@ -241,7 +244,7 @@ export function ThreadsV2({
 
   return (
     <Fragment>
-      {hasMoreThanOneThread && (
+      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
         <Fragment>
           <Grid>
             <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
@@ -263,7 +266,7 @@ export function ThreadsV2({
               )}
             </EventDataSection>
             {activeThread && activeThread.state && (
-              <EventDataSection type={EntryType.THREADS} title={t('Thread State')}>
+              <EventDataSection type="thread-state" title={t('Thread State')}>
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -280,7 +283,7 @@ export function ThreadsV2({
               </EventDataSection>
             )}
           </Grid>
-          <EventDataSection type={EntryType.THREADS} title={t('Thread Tags')}>
+          <EventDataSection type="thread-tags" title={t('Thread Tags')}>
             {renderPills()}
           </EventDataSection>
         </Fragment>
@@ -293,9 +296,27 @@ export function ThreadsV2({
         recentFirst={isStacktraceNewestFirst()}
         fullStackTrace={stackView === STACK_VIEW.FULL}
         title={
-          <PermalinkTitle>
-            {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-          </PermalinkTitle>
+          hasMoreThanOneThread &&
+          activeThread &&
+          !organization.features.includes('anr-improvements') ? (
+            <ThreadSelector
+              threads={threads}
+              activeThread={activeThread}
+              event={event}
+              onChange={thread => {
+                setState({
+                  ...state,
+                  activeThread: thread,
+                });
+              }}
+              exception={exception}
+              fullWidth
+            />
+          ) : (
+            <PermalinkTitle>
+              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+            </PermalinkTitle>
+          )
         }
         platform={platform}
         hasMinified={
@@ -342,7 +363,12 @@ export function ThreadsV2({
         stackTraceNotFound={stackTraceNotFound}
         wrapTitle={false}
       >
-        {childrenProps => <Fragment>{renderContent(childrenProps)}</Fragment>}
+        {childrenProps => (
+          <Fragment>
+            {!organization.features.includes('anr-improvements') && renderPills()}
+            {renderContent(childrenProps)}
+          </Fragment>
+        )}
       </TraceEventDataSection>
     </Fragment>
   );
