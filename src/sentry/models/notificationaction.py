@@ -10,6 +10,7 @@ from django.db import models
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.utils.json import JSONData
 
@@ -166,11 +167,14 @@ class ActionRegistration(metaclass=ABCMeta):
         """
         pass
 
-    def serialize_available(self, organization: Organization) -> JSONData:
+    @classmethod
+    def serialize_available(
+        cls, organization: Organization, integrations: List[Integration] = None
+    ) -> List[JSONData]:
         """
-        Optional function to provide serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
+        Optional class method to provide serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
         """
-        pass
+        return []
 
 
 @region_silo_only_model

@@ -3,6 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_flag import FlaggedOrganizationEndpoint
+from sentry.incidents.logic import get_available_action_integrations_for_org
 from sentry.models.notificationaction import NotificationAction
 from sentry.models.organization import Organization
 
@@ -17,6 +18,13 @@ class NotificationActionsAvailableEndpoint(FlaggedOrganizationEndpoint):
         in the NotificationAction registry.
         """
         payload = []
+
         for registration in NotificationAction.get_registry().values():
-            payload.append(registration.serialize_available(organization=organization))
+            serialized_available_actions = registration.serialize_available(
+                organization=organization,
+                integrations=get_available_action_integrations_for_org(organization),
+            )
+            for action in serialized_available_actions:
+                payload.append(action)
+
         return Response(payload)
