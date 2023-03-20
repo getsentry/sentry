@@ -10,12 +10,14 @@ import {
   IconGithub,
   IconGitlab,
   IconJira,
+  IconSentry,
   IconVsts,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import HookStore from 'sentry/stores/hookStore';
-import {
+import type {
   AppOrProviderOrPlugin,
+  CodeOwner,
   DocIntegration,
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
@@ -224,6 +226,20 @@ export const getIntegrationIcon = (
       return <IconGeneric size={iconSize} />;
   }
 };
+
+export function getCodeOwnerIcon(
+  provider: CodeOwner['provider'],
+  iconSize: IconSize = 'md'
+) {
+  switch (provider ?? '') {
+    case 'github':
+      return <IconGithub size={iconSize} />;
+    case 'gitlab':
+      return <IconGitlab size={iconSize} />;
+    default:
+      return <IconSentry size={iconSize} />;
+  }
+}
 
 // used for project creation and onboarding
 // determines what integration maps to what project platform

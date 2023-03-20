@@ -17,6 +17,7 @@ export function CodeOwner({
     codeMappingId: '11',
     provider: 'github',
     codeMapping: RepositoryProjectPathConfig({project, repo, integration}),
+    codeOwnersUrl: 'https://github.com/getsentry/sentry/blob/master/.github/CODEOWNERS',
     ownershipSyntax: '',
     errors: {
       missing_user_emails: [],
