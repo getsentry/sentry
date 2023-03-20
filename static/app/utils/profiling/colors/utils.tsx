@@ -1,11 +1,11 @@
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-
 import {
   ColorChannels,
   ColorMapFn,
   FlamegraphTheme,
   LCH,
-} from '../flamegraph/flamegraphTheme';
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
@@ -86,9 +86,10 @@ export const makeStackToColor = (
   return (
     frames: ReadonlyArray<FlamegraphFrame>,
     generateColorMap: ColorMapFn,
-    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+    theme: FlamegraphTheme
   ) => {
-    const colorMap = generateColorMap(frames, colorBucket);
+    const colorMap = generateColorMap(frames, colorBucket, theme);
     const length = frames.length;
 
     // Length * number of frames * color components
@@ -288,6 +289,33 @@ export function makeColorMapBySystemFrame(
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
       colorCache.set(key, color);
+    }
+
+    colors.set(sortedFrames[i].key, colorCache.get(key)!);
+  }
+
+  return colors;
+}
+
+export function makeColorMapBySystemVsApplicationFrame(
+  frames: ReadonlyArray<FlamegraphFrame>,
+  _colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+  theme: FlamegraphTheme
+): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
+
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+    return (a.frame.name + a.frame.image).localeCompare(b.frame.name + b.frame.image);
+  });
+
+  for (let i = 0; i < sortedFrames.length; i++) {
+    const key = sortedFrames[i].frame.name + sortedFrames[i].frame.image;
+
+    if (sortedFrames[i].frame.is_application) {
+      colorCache.set(key, theme.COLORS.FRAME_APPLICATION_COLOR);
+    } else {
+      colorCache.set(key, theme.COLORS.FRAME_SYSTEM_COLOR);
     }
 
     colors.set(sortedFrames[i].key, colorCache.get(key)!);

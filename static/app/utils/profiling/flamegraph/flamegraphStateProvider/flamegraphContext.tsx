@@ -24,7 +24,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
       minimap: true,
       transaction_spans: true,
     },
-    colorCoding: 'by symbol name',
+    colorCoding: 'by system vs application frame',
     sorting: 'call order',
     view: 'top down',
     layout: 'table bottom',

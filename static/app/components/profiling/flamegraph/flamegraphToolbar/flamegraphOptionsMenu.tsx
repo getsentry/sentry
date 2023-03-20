@@ -1,8 +1,7 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback} from 'react';
 
 import {Button} from 'sentry/components/button';
-import {SelectOption} from 'sentry/components/compactSelect';
-import {CompositeSelect} from 'sentry/components/compactSelect/composite';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -20,37 +19,36 @@ function FlamegraphOptionsMenu({
   const {colorCoding} = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
+  const onColorChange = useCallback(
+    (opt: SelectOption<any>) => {
+      dispatch({
+        type: 'set color coding',
+        payload: opt.value,
+      });
+    },
+    [dispatch]
+  );
+
   return (
     <Fragment>
       <Button size="xs" onClick={() => canvasPoolManager.dispatch('reset zoom', [])}>
         {t('Reset Zoom')}
       </Button>
-      <CompositeSelect
-        triggerLabel={t('Options')}
-        triggerProps={{
-          icon: <IconSliders size="xs" />,
-          size: 'xs',
-        }}
+      <CompactSelect
+        triggerLabel={t('Color Coding')}
+        triggerProps={{icon: <IconSliders size="xs" />, size: 'xs'}}
+        options={colorCodingOptions}
         position="bottom-end"
+        value={colorCoding}
         closeOnSelect={false}
-      >
-        <CompositeSelect.Region
-          label={t('Color Coding')}
-          value={colorCoding}
-          options={colorCodingOptions}
-          onChange={opt =>
-            dispatch({
-              type: 'set color coding',
-              payload: opt.value,
-            })
-          }
-        />
-      </CompositeSelect>
+        onChange={onColorChange}
+      />
     </Fragment>
   );
 }
 
 const colorCodingOptions: SelectOption<FlamegraphPreferences['colorCoding']>[] = [
+  {value: 'by system vs application frame', label: t('By System vs Application Frame')},
   {value: 'by symbol name', label: t('By Symbol Name')},
   {value: 'by library', label: t('By Package')},
   {value: 'by system frame', label: t('By System Frame')},

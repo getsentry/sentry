@@ -30,7 +30,8 @@ function isColorCoding(
     value === 'by application frame' ||
     value === 'by library' ||
     value === 'by recursion' ||
-    value === 'by frequency'
+    value === 'by frequency' ||
+    value === 'by system vs application frame'
   );
 }
 
