@@ -44,7 +44,7 @@ export function ReplayCell({
 
   return (
     <Item>
-      <UserBadge
+      <UserBadgeFullWidth
         avatarSize={24}
         displayName={
           <MainLink to={replayDetails}>{replay.user.display_name || ''}</MainLink>
@@ -77,10 +77,16 @@ export function ReplayCell({
   );
 }
 
+// Need to be full width for StringWalker to take up full width and truncate properly
+const UserBadgeFullWidth = styled(UserBadge)`
+  width: 100%;
+`;
+
 const Cols = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(0.25)};
+  width: 100%;
 `;
 
 const Row = styled('div')<{gap: ValidSize}>`
