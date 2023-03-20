@@ -71,7 +71,7 @@ function ReplayDetails({
             heading={t('There was an error while fetching this Replay')}
             message={
               <Fragment>
-                <p>{t('This could be due to a few of reasons:')}</p>
+                <p>{t('This could be due to these reasons:')}</p>
                 <List symbol="bullet">
                   {reasons.map((reason, i) => (
                     <ListItem key={i}>{reason}</ListItem>

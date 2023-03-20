@@ -52,14 +52,14 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
     const reasons = [
       t('The replay is still processing'),
       t('The replay has been deleted by a member in your organization'),
-      t('There is an internal systems error'),
+      t('There is an internal system error'),
     ];
 
     return (
       <Alert type="info" showIcon data-test-id="replay-error">
         <p>
           {tct(
-            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to a few of reasons:',
+            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to these reasons:',
             {
               link: (
                 <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
