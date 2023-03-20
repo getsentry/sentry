@@ -10,7 +10,7 @@ type Props = {
 
 function ChevronDividedList({items}: Props) {
   return (
-    <List cols={items.length}>
+    <List>
       {items.flatMap((item, i) => {
         const li = <Item key={`${i}-item`}>{item}</Item>;
 
@@ -29,16 +29,12 @@ function ChevronDividedList({items}: Props) {
   );
 }
 
-const List = styled('ul')<{cols: number}>`
+const List = styled('ul')`
   padding: 0;
   margin: 0;
   list-style: none;
-  display: grid;
+  display: flex;
   gap: ${space(0.75)};
-  grid-template-columns: ${p =>
-    p.cols <= 3
-      ? `minmax(auto, max-content) max-content minmax(auto, max-content) max-content minmax(auto, max-content)`
-      : `minmax(auto, max-content) repeat(3, max-content) minmax(auto, max-content)`};
   flex-wrap: nowrap;
   align-items: center;
   overflow: hidden;
@@ -48,6 +44,12 @@ const Item = styled('li')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
+
+  &:first-child,
+  &:last-child {
+    flex-shrink: 1;
+  }
 `;
 
 const Chevron = styled('span')`
