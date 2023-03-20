@@ -34,10 +34,39 @@ const roles = [
     desc: 'This is the member role',
     allowed: true,
   },
+  {
+    id: 'owner',
+    name: 'Owner',
+    desc: 'This is the owner role',
+    allowed: true,
+  },
 ];
 
 describe('OrganizationMembersList', function () {
   const members = TestStubs.Members();
+
+  const ownerTeam = TestStubs.Team({slug: 'owner-team', orgRole: 'owner'});
+  const member = TestStubs.Member({
+    id: '5',
+    email: 'member@sentry.io',
+    teams: [ownerTeam.slug],
+    teamRoles: [
+      {
+        teamSlug: ownerTeam.slug,
+        role: null,
+      },
+    ],
+    flags: {
+      'sso:linked': true,
+    },
+    orgRolesFromTeams: [
+      {
+        teamSlug: ownerTeam.slug,
+        role: {id: 'owner'},
+      },
+    ],
+  });
+
   const currentUser = members[1];
   const organization = TestStubs.Organization({
     access: ['member:admin', 'org:admin', 'member:write'],
@@ -67,7 +96,11 @@ describe('OrganizationMembersList', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/members/',
       method: 'GET',
-      body: TestStubs.Members(),
+      body: [...TestStubs.Members(), member],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/members/${member.id}/`,
+      body: member,
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/access-requests/',
@@ -101,7 +134,7 @@ describe('OrganizationMembersList', function () {
     Client.addMockResponse({
       url: '/organizations/org-slug/teams/',
       method: 'GET',
-      body: TestStubs.Team(),
+      body: [TestStubs.Team(), ownerTeam],
     });
     Client.addMockResponse({
       url: '/organizations/org-slug/invite-requests/',
@@ -355,6 +388,21 @@ describe('OrganizationMembersList', function () {
         screen.getByRole('checkbox', {name: `Enable ${label} filter`})
       );
     }
+  });
+
+  it('can filter members with org roles from team membership', async function () {
+    const routerContext = TestStubs.routerContext();
+    render(<OrganizationMembersList {...defaultProps} />, {
+      context: routerContext,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Owner'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+
+    const owners = screen.queryAllByText('Owner');
+    expect(owners).toHaveLength(2);
+    expect(screen.queryByText('Owner, Member')).toBeInTheDocument();
   });
 
   describe('OrganizationInviteRequests', function () {
