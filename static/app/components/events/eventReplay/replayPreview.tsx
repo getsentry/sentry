@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
+import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Placeholder from 'sentry/components/placeholder';
@@ -11,7 +12,7 @@ import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import ReplaysFeatureBadge from 'sentry/components/replays/replaysFeatureBadge';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconPlay} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Event} from 'sentry/types/event';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
@@ -48,18 +49,23 @@ function ReplayPreview({orgSlug, replaySlug, event}: Props) {
   }, [eventTimestamp, startTimestampMs]);
 
   if (fetchError) {
-    // TODO(replay): this is kind of a lot of writing. When the product docs launch in GA we will link to them instead.
     const reasons = [
-      t('The Replay is still processing and is on its way'),
-      t('The Replay has been deleted'),
-      t('There is an internal systems error or active issue'),
+      t('The replay is still processing'),
+      t('The replay has been deleted by a member in your organization'),
+      t('There is an internal systems error'),
     ];
 
     return (
       <Alert type="info" showIcon data-test-id="replay-error">
         <p>
-          {t('The replay associated with this event could not be found.')}{' '}
-          {t('This could be due to a couple of reasons:')}
+          {tct(
+            'The replay for this event cannot be found. [link:Read the docs to understand why]. This could be due to a few of reasons:',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+              ),
+            }
+          )}
         </p>
         <List symbol="bullet">
           {reasons.map((reason, i) => (

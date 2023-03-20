@@ -58,9 +58,9 @@ function ReplayDetails({
     }
 
     const reasons = [
-      t('The Replay is still processing and is on its way'),
-      t('The Replay has been deleted'),
-      t('There is an internal systems error or active issue'),
+      t('The replay is still processing'),
+      t('The replay has been deleted by a member in your organization'),
+      t('There is an internal systems error'),
     ];
     return (
       <Page orgSlug={orgSlug} replayRecord={replayRecord}>
@@ -71,7 +71,7 @@ function ReplayDetails({
             heading={t('There was an error while fetching this Replay')}
             message={
               <Fragment>
-                <p>{t('This could be due to a couple of reasons:')}</p>
+                <p>{t('This could be due to a few of reasons:')}</p>
                 <List symbol="bullet">
                   {reasons.map((reason, i) => (
                     <ListItem key={i}>{reason}</ListItem>
