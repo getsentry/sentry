@@ -992,16 +992,22 @@ class FetchByUrlNewTest(FetchTest):
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
         )
-
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=self.release.version,
             dist_name=dist.name,
             artifact_bundle=artifact_bundle,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
         # Fetching the minified source with present url.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
@@ -1012,7 +1018,9 @@ class FetchByUrlNewTest(FetchTest):
         fetcher.close()
 
         # Fetching the source map with present url.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js.map")
         assert result.url == "http://example.com/index.js.map"
         assert result.body == b"foo"
@@ -1023,25 +1031,29 @@ class FetchByUrlNewTest(FetchTest):
         fetcher.close()
 
         # Fetching source with absent url.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         assert fetcher.fetch_by_url_new("http://example.com/hello/main.js") is None
         assert list(fetcher.open_archives.keys()) == [artifact_bundle.id]
         fetcher.close()
 
         # Fetching with no release.
-        fetcher = Fetcher(organization=self.organization, dist=dist)
+        fetcher = Fetcher(organization=self.organization, project=self.project, dist=dist)
         assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
         # Fetching with no dist.
-        fetcher = Fetcher(organization=self.organization, release=self.release)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release
+        )
         assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
 
         # Fetching with no release and no dist.
-        fetcher = Fetcher(organization=self.organization)
+        fetcher = Fetcher(organization=self.organization, project=self.project)
         assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
@@ -1075,15 +1087,21 @@ class FetchByUrlNewTest(FetchTest):
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
         )
-
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=self.release.version,
             artifact_bundle=artifact_bundle,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
         # Fetching the source map with present url.
-        fetcher = Fetcher(organization=self.organization, release=self.release)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
@@ -1094,7 +1112,9 @@ class FetchByUrlNewTest(FetchTest):
         fetcher.close()
 
         # Fetching with release and dist.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         assert list(fetcher.open_archives.keys()) == []
         fetcher.close()
@@ -1153,7 +1173,6 @@ class FetchByUrlNewTest(FetchTest):
         artifact_bundle_2 = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file_2, artifact_count=2
         )
-
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=self.release.version,
@@ -1166,9 +1185,21 @@ class FetchByUrlNewTest(FetchTest):
             dist_name=dist.name,
             artifact_bundle=artifact_bundle_2,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_2,
+        )
 
         # Fetching the minified source with present url in the first artifact.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
@@ -1182,7 +1213,9 @@ class FetchByUrlNewTest(FetchTest):
         fetcher.close()
 
         # Fetching the minified source with present url in the second artifact.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/main.js")
         assert result.url == "http://example.com/main.js"
         assert result.body == b"BAR"
@@ -1241,9 +1274,21 @@ class FetchByUrlNewTest(FetchTest):
             dist_name=dist.name,
             artifact_bundle=artifact_bundle_2,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_2,
+        )
 
         # Fetching source with present url.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result.url == "http://example.com/index.js"
         assert result.body == b"bar"
@@ -1258,7 +1303,9 @@ class FetchByUrlNewTest(FetchTest):
         fetcher.close()
 
         # Fetching source with absent url.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
         assert sorted(list(fetcher.open_archives.keys())) == [
             artifact_bundle_1.id,
@@ -1292,8 +1339,20 @@ class FetchByUrlNewTest(FetchTest):
             dist_name=dist.name,
             artifact_bundle=artifact_bundle_2,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_1,
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle_2,
+        )
 
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         assert fetcher.fetch_by_url_new("http://example.com/main.js") is None
         # We check if all archives are broken.
         for key in sorted(list(fetcher.open_archives.keys())):
@@ -1348,9 +1407,16 @@ class FetchByUrlNewTest(FetchTest):
                 dist_name=dist.name,
                 artifact_bundle=artifact_bundle,
             )
+            ProjectArtifactBundle.objects.create(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                artifact_bundle=artifact_bundle,
+            )
 
         # We expect that the last 2 bundles will be invalid, thus the fetch will fail.
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         assert fetcher.fetch_by_url_new("http://example.com/index.js") is None
         # We check if all archives are broken.
         for key in sorted(list(fetcher.open_archives.keys())):
@@ -1360,10 +1426,69 @@ class FetchByUrlNewTest(FetchTest):
     def test_no_release_artifact_bundles_entries(self):
         dist = self.release.add_dist("android")
 
-        fetcher = Fetcher(organization=self.organization, release=self.release, dist=dist)
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
         result = fetcher.fetch_by_url_new("http://example.com/index.js")
         assert result is None
         assert len(fetcher.open_archives) == 0
+
+    @patch(
+        "sentry.lang.javascript.processor.ArtifactBundle.objects.filter",
+        side_effect=ArtifactBundle.objects.filter,
+    )
+    def test_with_empty_result_set(self, filter):
+        dist = self.release.add_dist("android")
+
+        file = self.get_compressed_zip_file(
+            "bundle_1.zip",
+            {
+                "index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name=self.release.version,
+            dist_name=dist.name,
+            artifact_bundle=artifact_bundle,
+        )
+
+        fetcher = Fetcher(
+            organization=self.organization, project=self.project, release=self.release, dist=dist
+        )
+
+        result = fetcher.fetch_by_url_new(url="http://example.com/index.js")
+        assert result is None
+        assert (self.release, dist) in fetcher.empty_result_for_releases
+
+        result = fetcher.fetch_by_url_new(url="http://example.com/index.js")
+        assert result is None
+        assert (self.release, dist) in fetcher.empty_result_for_releases
+
+        # We want to make sure that the filter method is not called multiple times, if the same request is made again.
+        filter.assert_called_once()
+
+        fetcher.close()
 
 
 class FetchByDebugIdTest(FetchTest):
@@ -1468,18 +1593,6 @@ class FetchByDebugIdTest(FetchTest):
         assert result is None
         fetcher.close()
 
-        # Check with present debug id, source file type and no project.
-        fetcher = Fetcher(self.organization)
-        result = fetcher.fetch_by_debug_id(
-            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
-        )
-        assert result.url == f"debug-id://{debug_id}/~/index.js.map"
-        assert result.body == b"foo"
-        assert isinstance(result.body, bytes)
-        assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
-        assert result.encoding == "utf-8"
-        fetcher.close()
-
     def test_fetch_by_debug_id_with_invalid_params(self):
         file = self.get_compressed_zip_file(
             "bundle.zip",
@@ -1533,8 +1646,13 @@ class FetchByDebugIdTest(FetchTest):
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.SOURCE_MAP.value,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
 
         # First call without cached result.
         result = fetcher.fetch_by_debug_id(
@@ -1597,8 +1715,13 @@ class FetchByDebugIdTest(FetchTest):
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.SOURCE_MAP.value,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
 
         with patch("sentry.lang.javascript.processor.CACHE_MAX_VALUE_SIZE", 1):
             # First call without cached result.
@@ -1660,11 +1783,16 @@ class FetchByDebugIdTest(FetchTest):
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.SOURCE_MAP.value,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
 
         with patch(
-            "sentry.lang.javascript.processor.Fetcher._get_debug_id_artifact_bundle_entry",
+            "sentry.lang.javascript.processor.Fetcher._get_artifact_bundle_entry_by_debug_id",
             side_effect=Exception(),
         ):
             result = fetcher.fetch_by_debug_id(
@@ -1703,7 +1831,11 @@ class FetchByDebugIdTest(FetchTest):
 
         fetcher.close()
 
-    def test_fetch_by_debug_id_with_forbidden_debug_id_source_file_type_pair(self):
+    @patch(
+        "sentry.lang.javascript.processor.ArtifactBundle.objects.filter",
+        side_effect=ArtifactBundle.objects.filter,
+    )
+    def test_fetch_by_debug_id_with_empty_result_set(self, filter):
         debug_id = "c941d872-af1f-4f0c-a7ff-ad3d295fe153"
         file = self.get_compressed_zip_file(
             "bundle.zip",
@@ -1740,6 +1872,15 @@ class FetchByDebugIdTest(FetchTest):
         )
         assert result is None
         assert (debug_id, SourceFileType.SOURCE_MAP) in fetcher.empty_result_for_debug_ids
+
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result is None
+        assert (debug_id, SourceFileType.SOURCE_MAP) in fetcher.empty_result_for_debug_ids
+
+        # We want to make sure that the filter method is not called multiple times, if the same request is made again.
+        filter.assert_called_once()
 
         fetcher.close()
 

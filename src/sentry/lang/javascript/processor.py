@@ -661,12 +661,12 @@ class Fetcher:
         # Map that contains the mapping between bundle_id -> ArtifactBundleArchive to keep in memory all the open
         # archives.
         self.open_archives = {}
-        # Set that contains all the tuples (debug_id, source_file_type) inside a bundle that is not bound to
-        # self.project. Here we don't put the project in the set, under the assumption that the project will remain
-        # the same for the whole lifecycle of the Fetcher.
+        # Set that contains all the tuples (debug_id, source_file_type) for which the query returned an empty result.
+        # Here we don't put the project in the set, under the assumption that the project will remain the same for the
+        # whole lifecycle of the Fetcher.
         self.empty_result_for_debug_ids = set()
-        # Set that contains all the tuples (release, dist) of a bundle that is not bound to self.project. Here we don't
-        # also put the project for the same reasoning as above.
+        # Set that contains all the tuples (release, dist) of a bundle for which the query returned an empty result.
+        # Here we also don't put the project for the same reasoning as above.
         self.empty_result_for_releases = set()
 
     def bind_release(self, release=None, dist=None):
@@ -734,12 +734,9 @@ class Fetcher:
             .select_related("file")[:1]
         )
 
-        # In case a project is supplied we want to check if the debug id and the project correlation is present.
-        # In case no project is supplied we want to take the bundle and perform the processing irrespectively of the
-        # correlation.
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
         if len(entry) == 0:
-            # We mark this (debug_id, source_file_type) tuple as forbidden, in order to avoid making the query
-            # for each subsequent frame with the same tuple.
             self.empty_result_for_debug_ids.add((debug_id, source_file_type))
             raise Exception(
                 f"There are no artifact bundles bound to project {self.project.id}"
@@ -927,12 +924,9 @@ class Fetcher:
             .select_related("file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
         if len(entries) == 0:
-            # We mark this (release, dist) tuple as forbidden, in order to avoid making the query
-            # for each subsequent frame. For the sake of simplicity we decided to mark a tuple as forbidden only
-            # if there exist no bundles that are allowed because if there is at least one, we might be able to find
-            # the file inside. If we don't find the file inside, we are going to run the above queries again and
-            # again.
             self.empty_result_for_releases.add((self.release, self.dist))
             raise Exception(
                 f"There are no artifact bundles bound to project {project_id}"
