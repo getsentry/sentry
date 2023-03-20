@@ -1,5 +1,6 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -722,8 +723,9 @@ describe('Discover -> ColumnEditModal', function () {
         initialData
       );
       expect(await screen.findByTestId('queryField')).toBeInTheDocument();
+      const addColumnButton = screen.getByRole('button', {name: 'Add a Column'});
       for (let i = 2; i <= 20; i++) {
-        await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+        fireEvent.click(addColumnButton);
         expect(await screen.findAllByTestId('queryField')).toHaveLength(i);
       }
 
