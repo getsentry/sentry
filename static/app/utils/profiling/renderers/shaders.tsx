@@ -73,34 +73,64 @@ void main() {
 `;
 
 export const uiFramesVertext = () => `
-  attribute vec2 a_position;
-  attribute float a_frame_type;
+attribute vec2 a_position;
+attribute float a_frame_type;
+attribute vec4 a_bounds;
 
-  uniform mat3 u_model;
-  uniform mat3 u_projection;
+uniform mat3 u_model;
+uniform mat3 u_projection;
 
-  varying float v_frame_type;
+varying float v_frame_type;
+varying vec2 v_pos;
+varying vec4 v_bounds;
 
-  void main() {
-    vec2 scaled = (u_model * vec3(a_position.xy, 1)).xy;
-    vec2 pos = (u_projection * vec3(scaled.xy, 1)).xy;
+void main() {
+  vec2 scaled = (u_model * vec3(a_position.xy, 1)).xy;
+  vec2 pos = (u_projection * vec3(scaled.xy, 1)).xy;
 
-    gl_Position = vec4(pos, 0.0, 1.0);
+  gl_Position = vec4(pos, 0.0, 1.0);
 
-    v_frame_type = a_frame_type;
-  }
+  v_frame_type = a_frame_type;
+  v_pos = a_position.xy;
+  v_bounds = a_bounds;
+}
 `;
 
 export const uiFramesFragment = (theme: FlamegraphTheme) => `
 precision mediump float;
 
+uniform vec2 u_border_width;
+
 varying float v_frame_type;
+varying vec4 v_bounds;
+varying vec2 v_pos;
 
 void main() {
+  float minX = v_bounds.x + u_border_width.x;
+  float maxX = v_bounds.z - u_border_width.x;
+
+  float minY = v_bounds.y + u_border_width.y;
+  float maxY = v_bounds.y + 1.0 - u_border_width.y;
+
+  float width = maxX - minX;
+  vec4 color = vec4(0.0, 0.0, 0.0, 0.0);
+
   if(v_frame_type == 1.0) {
-    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_FROZEN.join(',')});
+    color = vec4(${theme.COLORS.UI_FRAME_COLOR_FROZEN.join(',')});
   } else {
-    gl_FragColor = vec4(${theme.COLORS.UI_FRAME_COLOR_SLOW.join(',')});
+    color = vec4(${theme.COLORS.UI_FRAME_COLOR_SLOW.join(',')});
+  }
+
+  if(width <= u_border_width.x) {
+    if(v_pos.y > minY && v_pos.y < maxY){
+      gl_FragColor = color;
+    } else {
+      gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+    }
+  } else if (v_pos.x > minX && v_pos.x < maxX && v_pos.y > minY && v_pos.y < maxY) {
+    gl_FragColor = color;
+  } else {
+    gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
   }
 }
 `;
