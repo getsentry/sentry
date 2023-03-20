@@ -1,3 +1,4 @@
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Avatar from 'sentry/components/avatar';
@@ -17,6 +18,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
+import useMedia from 'sentry/utils/useMedia';
 import useProjects from 'sentry/utils/useProjects';
 import type {ReplayListRecordWithTx} from 'sentry/views/performance/transactionSummary/transactionReplays/useReplaysWithTxData';
 import type {ReplayListRecord} from 'sentry/views/replays/types';
@@ -121,19 +123,30 @@ export function TransactionCell({
 
 export function OSCell({replay}: Props) {
   const {name, version} = replay.os;
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
   return (
     <Item>
-      <ContextIcon name={name ?? ''} version={version ?? undefined} />
+      <ContextIcon
+        name={name ?? ''}
+        version={version && hasRoomForColumns ? version : undefined}
+      />
     </Item>
   );
 }
 
 export function BrowserCell({replay}: Props) {
   const {name, version} = replay.browser;
+  const theme = useTheme();
+  const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
+
   return (
     <Item>
-      <ContextIcon name={name ?? ''} version={version ?? undefined} />
+      <ContextIcon
+        name={name ?? ''}
+        version={version && hasRoomForColumns ? version : undefined}
+      />
     </Item>
   );
 }
