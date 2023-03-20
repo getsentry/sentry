@@ -605,18 +605,22 @@ function FlamegraphZoomView({
     }
 
     setHighlightingAllOccurences(true);
+
+    const frameName = hoveredNodeOnContextMenuOpen.current.frame.name;
+    const packageName =
+      hoveredNodeOnContextMenuOpen.current.frame.package ??
+      hoveredNodeOnContextMenuOpen.current.frame.module ??
+      '';
+
     dispatch({
       type: 'set highlight all frames',
       payload: {
-        name: hoveredNodeOnContextMenuOpen.current.frame.name,
-        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+        name: frameName,
+        package: packageName,
       },
     });
 
-    const frames = flamegraph.findAllMatchingFrames(
-      hoveredNodeOnContextMenuOpen.current.frame.name,
-      hoveredNodeOnContextMenuOpen.current.frame.image
-    );
+    const frames = flamegraph.findAllMatchingFrames(frameName, packageName);
     const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
     const newConfigView = computeMinZoomConfigViewForFrames(
       flamegraphView.configView,

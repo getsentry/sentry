@@ -344,7 +344,10 @@ export class Flamegraph {
     for (let i = 0; i < this.frames.length; i++) {
       if (
         this.frames[i].frame.name === frameName &&
-        this.frames[i].frame.image === framePackage
+        // the framePackage can match either the package or the module
+        // this is an artifact of how we previously used image
+        (this.frames[i].frame.package === framePackage ||
+          this.frames[i].frame.module === framePackage)
       ) {
         matches.push(this.frames[i]);
       }
