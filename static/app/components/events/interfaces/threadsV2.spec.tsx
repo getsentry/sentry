@@ -201,6 +201,7 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
@@ -854,6 +855,7 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
