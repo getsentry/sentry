@@ -282,9 +282,10 @@ class QueryDefinition:
         date_params = {
             "start": start,
             "end": end,
-            "interval": interval,
+            "interval": interval or "",
             "statsPeriod": stats_period,
         }
+
         self.start, self.end, self.rollup = get_constrained_date_range(
             date_params, allowed_resolution
         )
