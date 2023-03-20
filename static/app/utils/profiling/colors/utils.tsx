@@ -1,11 +1,11 @@
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-
 import {
   ColorChannels,
   ColorMapFn,
   FlamegraphTheme,
   LCH,
-} from '../flamegraph/flamegraphTheme';
+} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+
 import {FlamegraphFrame} from '../flamegraphFrame';
 
 function uniqueCountBy<T>(
@@ -86,9 +86,10 @@ export const makeStackToColor = (
   return (
     frames: ReadonlyArray<FlamegraphFrame>,
     generateColorMap: ColorMapFn,
-    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+    colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+    theme: FlamegraphTheme
   ) => {
-    const colorMap = generateColorMap(frames, colorBucket);
+    const colorMap = generateColorMap(frames, colorBucket, theme);
     const length = frames.length;
 
     // Length * number of frames * color components
@@ -157,12 +158,16 @@ export function toRGBAString(r: number, g: number, b: number, alpha: number): st
   )}, ${alpha})`;
 }
 
-export function defaultFrameSortKey(frame: FlamegraphFrame): string {
-  return frame.frame.name + (frame.frame.image || '');
+function frameLibraryKey(frame: FlamegraphFrame): string {
+  return frame.frame.package ?? frame.frame.module ?? '';
+}
+
+export function defaultFrameKey(frame: FlamegraphFrame): string {
+  return `${frame.frame.name}:${frame.frame.package}:${frame.frame.module}`;
 }
 
 function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
-  return defaultFrameSortKey(a) > defaultFrameSortKey(b) ? 1 : -1;
+  return defaultFrameKey(a) > defaultFrameKey(b) ? 1 : -1;
 }
 
 export function makeColorBucketTheme(
@@ -188,12 +193,12 @@ export function makeColorMapBySymbolName(
   const colorCache: Map<string, ColorChannels> = new Map();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort(defaultFrameSort);
-  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
+  const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {
     const frame = sortedFrames[i];
 
-    const key = frame.frame.name + frame.frame.image;
+    const key = defaultFrameKey(frame);
 
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
@@ -221,7 +226,7 @@ export function makeColorMapByRecursion(
       continue;
     }
     const frame = sortedFrames[i]!;
-    const key = frame.frame.name + frame.frame.image;
+    const key = defaultFrameKey(frame);
 
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
@@ -242,25 +247,24 @@ export function makeColorMapByLibrary(
   const colorCache: Map<string, ColorChannels> = new Map();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
-    return (a.frame.image ?? '').localeCompare(b.frame.image ?? '');
+    return frameLibraryKey(a).localeCompare(frameLibraryKey(b));
   });
 
-  const uniqueCount = uniqueCountBy(sortedFrames, t =>
-    t.frame.image ? t.frame.image : false
-  );
+  const uniqueCount = uniqueCountBy(sortedFrames, t => frameLibraryKey(t));
 
   for (let i = 0; i < sortedFrames.length; i++) {
     const frame = sortedFrames[i];
 
-    if (!frame.frame.image) {
+    const key = frameLibraryKey(frame);
+
+    if (!key) {
       continue;
     }
 
     const color =
-      colorCache.get(frame.frame.image) ||
-      colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
+      colorCache.get(key) || colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
 
-    colorCache.set(frame.frame.image, color);
+    colorCache.set(key, color);
     colors.set(frame.key, color);
   }
 
@@ -275,19 +279,46 @@ export function makeColorMapBySystemFrame(
   const colorCache: Map<string, ColorChannels> = new Map();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
-    return (a.frame.name + a.frame.image).localeCompare(b.frame.name + b.frame.image);
+    return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
   });
 
-  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
+  const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
   for (let i = 0; i < sortedFrames.length; i++) {
     if (sortedFrames[i].frame.is_application) {
       continue;
     }
 
-    const key = sortedFrames[i].frame.name + sortedFrames[i].frame.image;
+    const key = defaultFrameKey(sortedFrames[i]);
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
       colorCache.set(key, color);
+    }
+
+    colors.set(sortedFrames[i].key, colorCache.get(key)!);
+  }
+
+  return colors;
+}
+
+export function makeColorMapBySystemVsApplicationFrame(
+  frames: ReadonlyArray<FlamegraphFrame>,
+  _colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+  theme: FlamegraphTheme
+): Map<FlamegraphFrame['frame']['key'], ColorChannels> {
+  const colors = new Map<FlamegraphFrame['key'], ColorChannels>();
+  const colorCache: Map<string, ColorChannels> = new Map();
+
+  const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
+    return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
+  });
+
+  for (let i = 0; i < sortedFrames.length; i++) {
+    const key = defaultFrameKey(sortedFrames[i]);
+
+    if (sortedFrames[i].frame.is_application) {
+      colorCache.set(key, theme.COLORS.FRAME_APPLICATION_COLOR);
+    } else {
+      colorCache.set(key, theme.COLORS.FRAME_SYSTEM_COLOR);
     }
 
     colors.set(sortedFrames[i].key, colorCache.get(key)!);
@@ -304,16 +335,16 @@ export function makeColorMapByApplicationFrame(
   const colorCache: Map<string, ColorChannels> = new Map();
 
   const sortedFrames: FlamegraphFrame[] = [...frames].sort((a, b) => {
-    return (a.frame.name + a.frame.image).localeCompare(b.frame.name + b.frame.image);
+    return defaultFrameKey(a).localeCompare(defaultFrameKey(b));
   });
 
-  const uniqueCount = uniqueCountBy(sortedFrames, t => t.frame.name + t.frame.image);
+  const uniqueCount = uniqueCountBy(sortedFrames, t => defaultFrameKey(t));
   for (let i = 0; i < sortedFrames.length; i++) {
     if (!sortedFrames[i].frame.is_application) {
       continue;
     }
 
-    const key = sortedFrames[i].frame.name + sortedFrames[i].frame.image;
+    const key = defaultFrameKey(sortedFrames[i]);
     if (!colorCache.has(key)) {
       const color = colorBucket(Math.floor((255 * i) / uniqueCount) / 256);
       colorCache.set(key, color);
@@ -336,7 +367,7 @@ export function makeColorMapByFrequency(
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i]!; // iterating over non empty array
-    const key = frame.frame.name + frame.frame.image;
+    const key = defaultFrameKey(frame);
 
     if (!countMap.has(key)) {
       countMap.set(key, 0);
@@ -350,7 +381,7 @@ export function makeColorMapByFrequency(
 
   for (let i = 0; i < frames.length; i++) {
     const frame = frames[i]!; // iterating over non empty array
-    const key = frame.frame.name + frame.frame.image;
+    const key = defaultFrameKey(frame);
     const count = countMap.get(key)!;
     const [r, g, b] = colorBucket(0.7);
     const color: ColorChannels = [r, g, b, Math.max(count / max, 0.1)];

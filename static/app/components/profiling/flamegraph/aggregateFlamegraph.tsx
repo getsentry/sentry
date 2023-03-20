@@ -64,7 +64,9 @@ function findLongestMatchingFrame(
     const frame = frames.pop()!;
     if (
       focusFrame.name === frame.frame.name &&
-      focusFrame.package === frame.frame.image &&
+      // the image name on a frame is optional treat it the same as the empty string
+      (focusFrame.package === (frame.frame.package || '') ||
+        focusFrame.package === (frame.frame.module || '')) &&
       (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
       longestFrame = frame;
