@@ -83,7 +83,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           </Fragment>
         )}
         <FlamegraphTooltipTimelineInfo>
-          {props.frame.frame.is_application ? 'application' : 'system'} frame
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
         </FlamegraphTooltipTimelineInfo>
       </FlamegraphTooltipTimelineInfo>
       {!isCount && (
