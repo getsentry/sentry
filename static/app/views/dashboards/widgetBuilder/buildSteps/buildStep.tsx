@@ -7,12 +7,19 @@ interface Props {
   children: React.ReactNode;
   description: React.ReactNode;
   title: string;
+  'data-test-id'?: string;
   required?: boolean;
 }
 
-export function BuildStep({title, description, required = false, children}: Props) {
+export function BuildStep({
+  title,
+  description,
+  required = false,
+  children,
+  ...props
+}: Props) {
   return (
-    <Wrapper>
+    <Wrapper {...props}>
       <Heading>
         {title}
         {required && <RequiredBadge />}

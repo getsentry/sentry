@@ -50,6 +50,7 @@ interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
   profileGroup: ProfileGroup | null;
+  disableCallOrderSort?: boolean;
 }
 
 function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
@@ -226,18 +227,23 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
         </ProfilingContextMenuGroup>
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
-              })}
-              onClick={() => dispatch({type: 'set sorting', payload: sorting})}
-              checked={preferences.sorting === sorting}
-            >
-              {sorting}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
+          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+            if (props.disableCallOrderSort && sorting === 'call order') {
+              return null;
+            }
+            return (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+                })}
+                onClick={() => dispatch({type: 'set sorting', payload: sorting})}
+                checked={preferences.sorting === sorting}
+              >
+                {sorting}
+              </ProfilingContextMenuItemCheckbox>
+            );
+          })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
     </Fragment>

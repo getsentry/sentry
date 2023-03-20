@@ -19,14 +19,11 @@ import NavTabs from 'sentry/components/navTabs';
 import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import SearchBar from 'sentry/components/searchBar';
-import Tag from 'sentry/components/tag';
-import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
-import Version from 'sentry/components/version';
 import {IconArrow, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project, SourceMapsArchive} from 'sentry/types';
+import {DebugIdBundle, Project, SourceMapsArchive} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -34,14 +31,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
-
-type DebugIdBundle = {
-  bundleId: string;
-  date: string;
-  dist: string;
-  fileCount: number;
-  release: string;
-};
+import {DebugIdBundlesTags} from 'sentry/views/settings/projectSourceMaps/debugIdBundlesTags';
 
 enum SORT_BY {
   ASC = 'date_added',
@@ -66,11 +56,7 @@ function SourceMapsTableRow({
   return (
     <Fragment>
       <IDColumn>
-        <TextOverflow>
-          <Link to={link}>
-            <Version version={name} anchor={false} tooltipRawVersion truncate={false} />
-          </Link>
-        </TextOverflow>
+        <Link to={link}>{name}</Link>
         {idColumnDetails}
       </IDColumn>
       <ArtifactsTotalColumn>
@@ -144,12 +130,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       sourceMapsEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(sourceMapsEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -168,12 +154,12 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     [
       debugIdBundlesEndpoint,
       {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
       },
     ],
     () => {
       return api.requestPromise(debugIdBundlesEndpoint, {
-        query: {query, cursor, orderby: sortBy},
+        query: {query, cursor, sortBy},
         includeAllArgs: true,
       });
     },
@@ -272,7 +258,10 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   : t('Switch to descending order')
               }
             >
-              <IconArrow direction={sortBy === SORT_BY.DESC ? 'down' : 'up'} />
+              <IconArrow
+                direction={sortBy === SORT_BY.DESC ? 'down' : 'up'}
+                data-test-id="icon-arrow"
+              />
             </Tooltip>
           </DateUploadedColumn>,
           '',
@@ -310,13 +299,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
                   project.slug
                 }/source-maps/debug-id-bundles/${encodeURIComponent(data.bundleId)}`}
                 idColumnDetails={
-                  <Tags>
-                    {data.dist && <Tag>{data.dist}</Tag>}
-                    {data.release && <Tag>{data.release}</Tag>}
-                    {!data.dist && !data.release && (
-                      <Tag tooltipText={t('No release and dist set')}>{t('none')}</Tag>
-                    )}
-                  </Tags>
+                  <DebugIdBundlesTags dist={data.dist} release={data.release} />
                 }
               />
             ))
@@ -382,17 +365,12 @@ const IDColumn = styled(Column)`
   flex-direction: column;
   justify-content: center;
   align-items: flex-start;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
+  word-break: break-word;
 `;
 
 const ActionsColumn = styled(Column)`
   justify-content: flex-end;
-`;
-
-const Tags = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(0.5)};
 `;
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
