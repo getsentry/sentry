@@ -1,5 +1,6 @@
 from django.core import mail
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
@@ -253,7 +254,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks():
+        with self.tasks(), self.feature(
+            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        ):
             post_process_group(
                 is_new=True,
                 is_regression=False,
