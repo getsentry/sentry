@@ -716,6 +716,9 @@ class Fetcher:
             .select_related("artifact_bundle__file")[:1][0]
         )
 
+        # In case a project is supplied we want to check if the debug id and the project correlation is present.
+        # In case no project is supplied we want to take the bundle and perform the processing irrespectively of the
+        # correlation.
         if self.project:
             lookup_allowed = ProjectArtifactBundle.objects.filter(
                 organization_id=self.organization.id,

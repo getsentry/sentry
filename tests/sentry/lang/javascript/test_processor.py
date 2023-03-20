@@ -42,6 +42,7 @@ from sentry.models import (
     DebugIdArtifactBundle,
     EventError,
     File,
+    ProjectArtifactBundle,
     Release,
     ReleaseArtifactBundle,
     ReleaseFile,
@@ -1396,7 +1397,6 @@ class FetchByDebugIdTest(FetchTest):
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
         )
-
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -1409,9 +1409,14 @@ class FetchByDebugIdTest(FetchTest):
             artifact_bundle=artifact_bundle,
             source_file_type=SourceFileType.MINIFIED_SOURCE.value,
         )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
 
         # Check with present debug id and source file type.
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
         )
@@ -1423,7 +1428,7 @@ class FetchByDebugIdTest(FetchTest):
         fetcher.close()
 
         # Check with present debug id and source file type.
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.MINIFIED_SOURCE
         )
@@ -1439,7 +1444,7 @@ class FetchByDebugIdTest(FetchTest):
         fetcher.close()
 
         # Check with present debug id and absent source file type.
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
         result = fetcher.fetch_by_debug_id(
             debug_id=debug_id, source_file_type=SourceFileType.SOURCE
         )
@@ -1447,7 +1452,7 @@ class FetchByDebugIdTest(FetchTest):
         fetcher.close()
 
         # Check with absent debug id and present source file type.
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
         result = fetcher.fetch_by_debug_id(
             debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153",
             source_file_type=SourceFileType.SOURCE_MAP,
@@ -1456,11 +1461,23 @@ class FetchByDebugIdTest(FetchTest):
         fetcher.close()
 
         # Check with absent debug id and absent source file type.
-        fetcher = Fetcher(self.organization)
+        fetcher = Fetcher(self.organization, self.project)
         result = fetcher.fetch_by_debug_id(
             debug_id="abcdd872-af1f-4f0c-a7ff-ad3d295fe153", source_file_type=SourceFileType.SOURCE
         )
         assert result is None
+        fetcher.close()
+
+        # Check with present debug id, source file type and no project.
+        fetcher = Fetcher(self.organization)
+        result = fetcher.fetch_by_debug_id(
+            debug_id=debug_id, source_file_type=SourceFileType.SOURCE_MAP
+        )
+        assert result.url == f"debug-id://{debug_id}/~/index.js.map"
+        assert result.body == b"foo"
+        assert isinstance(result.body, bytes)
+        assert result.headers == {"content-type": "application/json", "debug-id": debug_id}
+        assert result.encoding == "utf-8"
         fetcher.close()
 
     def test_fetch_by_debug_id_with_invalid_params(self):
@@ -1475,6 +1492,7 @@ class FetchByDebugIdTest(FetchTest):
                 }
             },
         )
+
         ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=1
         )
@@ -1506,11 +1524,9 @@ class FetchByDebugIdTest(FetchTest):
             },
         )
 
-        bundle_id = uuid4()
         artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=bundle_id, file=file, artifact_count=2
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
         )
-
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -1575,7 +1591,6 @@ class FetchByDebugIdTest(FetchTest):
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=bundle_id, file=file, artifact_count=2
         )
-
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -1639,7 +1654,6 @@ class FetchByDebugIdTest(FetchTest):
             file=file,
             artifact_count=2,
         )
-
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
