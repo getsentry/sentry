@@ -18,7 +18,7 @@ type ThreadInfo = {
 
 function getThreadLabel(details: ThreadInfo) {
   const threadLabel = details?.label || `<${t('unknown')}>`;
-  return details.state ? `${threadLabel} (${details.state})` : threadLabel;
+  return details.state ? `${threadLabel}` : threadLabel;
 }
 
 const SelectedOption = ({id, details}: Props) => (
