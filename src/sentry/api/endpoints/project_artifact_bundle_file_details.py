@@ -82,7 +82,7 @@ class ProjectArtifactBundleFileDetailsEndpoint(
             project_artifact_bundle = ProjectArtifactBundle.objects.filter(
                 project_id=project.id, artifact_bundle__bundle_id=bundle_id
             ).select_related("artifact_bundle__file")[0]
-        except KeyError:
+        except IndexError:
             return Response(
                 {
                     "error": f"The artifact bundle with {bundle_id} is not bound to this project or doesn't exist"

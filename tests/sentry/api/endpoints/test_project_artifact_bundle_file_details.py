@@ -161,3 +161,48 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         self.login_as(user=user_no_permission)
         response = self.client.get(url)
         assert response.status_code == 403, response.content
+
+    def test_archive_download_with_invalid_project(self):
+        project = self.create_project(name="foo")
+
+        file = self.get_compressed_zip_file(
+            "bundle.zip",
+            {
+                "files/_/_/index.js.map": {
+                    "url": "~/index.js.map",
+                    "type": "source_map",
+                    "content": b"foo",
+                    "headers": {
+                        "content-type": "application/json",
+                    },
+                },
+                "files/_/_/index.js": {
+                    "url": "~/index.js",
+                    "type": "minified_source",
+                    "content": b"bar",
+                    "headers": {
+                        "content-type": "application/json",
+                        "sourcemap": "index.js.map",
+                    },
+                },
+            },
+        )
+
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
+        )
+
+        # Download as a superuser
+        url = reverse(
+            "sentry-api-0-project-artifact-bundle-file-details",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+                "bundle_id": artifact_bundle.bundle_id,
+                "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
+            },
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(url)
+        assert response.status_code == 400, response.content
