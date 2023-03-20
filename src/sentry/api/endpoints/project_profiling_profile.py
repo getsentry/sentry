@@ -82,18 +82,26 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         if not features.has("organizations:profiling", project.organization, actor=request.user):
             return Response(status=404)
 
+        preferred_format = (
+            "sampled" if features.has("organizations:profiling-sampled-format") else "speedscope"
+        )
+
         response = get_from_profiling_service(
             "GET",
             f"/organizations/{project.organization_id}/projects/{project.id}/profiles/{profile_id}",
+            params={"format": preferred_format},
         )
 
         if response.status == 200:
             profile = json.loads(response.data)
 
-            # make sure to remove the version from the metadata
-            # we're going to replace it with the release here
-            version = profile.get("metadata", {}).pop("version")
-            profile["metadata"]["release"] = get_release(project, version)
+            if "release" in profile:
+                profile["release"] = get_release(project, profile["release"])
+            else:
+                # make sure to remove the version from the metadata
+                # we're going to replace it with the release here
+                version = profile.get("metadata", {}).pop("version")
+                profile["metadata"]["release"] = get_release(project, version)
 
             return Response(profile)
 
