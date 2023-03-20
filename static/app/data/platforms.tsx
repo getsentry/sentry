@@ -19,24 +19,60 @@ const otherPlatform = {
   name: t('Other'),
 };
 
+export enum ReactDocVariant {
+  ErrorMonitoring = 'javascript-react-with-error-monitoring',
+  ErrorMonitoringAndPerformance = 'javascript-react-with-error-monitoring-and-performance',
+  ErrorMonitoringAndSessionReplay = 'javascript-react-with-error-monitoring-and-replay',
+  ErrorMonitoringPerformanceAndReplay = 'javascript-react-with-error-monitoring-performance-and-replay',
+}
+
 const platformIntegrations: PlatformIntegration[] = [
   ...integrationDocsPlatforms.platforms,
   otherPlatform,
 ]
   .map(platform => {
-    const integrations = platform.integrations
-      .map(i => ({...i, language: platform.id} as PlatformIntegration))
+    const integrations = platform.integrations.reduce((acc, value) => {
+      if (Object.values(ReactDocVariant).includes(value.id as ReactDocVariant)) {
+        if (!acc['javascript-react']) {
+          acc['javascript-react'] = {
+            ...value,
+            id: 'javascript-react',
+            language: platform.id,
+          };
+        }
+        return acc;
+      }
+
       // filter out any tracing platforms; as they're not meant to be used as a platform for
       // the project creation flow
-      .filter(integration => !(tracing as readonly string[]).includes(integration.id))
-      // filter out any performance onboarding documentation
-      .filter(integration => !integration.id.includes('performance-onboarding'))
-      // filter out any replay onboarding documentation
-      .filter(integration => !integration.id.includes('replay-onboarding'))
-      // filter out any profiling onboarding documentation
-      .filter(integration => !integration.id.includes('profiling-onboarding'));
+      if ((tracing as readonly string[]).includes(value.id)) {
+        return acc;
+      }
 
-    return integrations;
+      // filter out any performance onboarding documentation
+      if (value.id.includes('performance-onboarding')) {
+        return acc;
+      }
+
+      // filter out any replay onboarding documentation
+      if (value.id.includes('replay-onboarding')) {
+        return acc;
+      }
+
+      // filter out any profiling onboarding documentation
+      if (value.id.includes('profiling-onboarding')) {
+        return acc;
+      }
+
+      if (!acc[value.id]) {
+        acc[value.id] = {...value, language: platform.id};
+        return acc;
+      }
+
+      return acc;
+    }, {});
+
+    return Object.values(integrations) as PlatformIntegration[];
   })
   .flat();
 

@@ -11,8 +11,9 @@ import LoadingError from 'sentry/components/loadingError';
 import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
 import {Footer} from 'sentry/components/onboarding/footer';
 import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
+import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {ReactDocVariant} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
@@ -23,9 +24,9 @@ import useApi from 'sentry/utils/useApi';
 import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
-import FullIntroduction from './components/fullIntroduction';
 import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
@@ -98,7 +99,14 @@ function ProjectDocs(props: {
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
   return (
     <Fragment>
-      <FullIntroduction currentPlatform={currentPlatform} />
+      <SetupIntroduction
+        stepHeaderText={t(
+          'Configure %s SDK',
+          platforms.find(p => p.id === currentPlatform)?.name ?? ''
+        )}
+        platform={currentPlatform}
+      />
+      {currentPlatform === 'javascript-react' && <ProductSelection />}
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -112,6 +120,7 @@ function SetupDocs({search, route, router, location}: Props) {
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
+
   const {logExperiment, experimentAssignment} = useExperiment(
     'OnboardingNewFooterExperiment',
     {
@@ -178,19 +187,42 @@ function SetupDocs({search, route, router, location}: Props) {
     if (!project?.platform) {
       return;
     }
+
     if (integrationSlug && !integrationUseManualSetup) {
       setLoadedPlatform(project.platform);
       setPlatformDocs(null);
       setHasError(false);
       return;
     }
+
+    let platform = String(project.platform);
+
+    // This is an experiment we are doing with react.
+    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+    // and the docs will reflect that.
+    if (project.platform === 'javascript-react') {
+      const products = location.query.product ?? [];
+      if (
+        products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+        products.includes(PRODUCT.SESSION_REPLAY)
+      ) {
+        platform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
+      } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
+        platform = ReactDocVariant.ErrorMonitoringAndPerformance;
+      } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
+        platform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
+      } else {
+        platform = ReactDocVariant.ErrorMonitoring;
+      }
+    }
+
     try {
-      const loadedDocs = await loadDocs(
+      const loadedDocs = await loadDocs({
         api,
-        organization.slug,
-        project.slug,
-        project.platform
-      );
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        platform: platform as PlatformKey,
+      });
       setPlatformDocs(loadedDocs);
       setLoadedPlatform(project.platform);
       setHasError(false);
@@ -198,11 +230,18 @@ function SetupDocs({search, route, router, location}: Props) {
       setHasError(error);
       throw error;
     }
-  }, [project, api, organization, integrationSlug, integrationUseManualSetup]);
+  }, [
+    project,
+    api,
+    organization,
+    integrationSlug,
+    integrationUseManualSetup,
+    location.query.product,
+  ]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, location.query.product]);
 
   // log experiment on mount if feature enabled
   useEffect(() => {

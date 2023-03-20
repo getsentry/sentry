@@ -17,7 +17,7 @@ import {
   performance as performancePlatforms,
   PlatformKey,
 } from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {ReactDocVariant} from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -47,13 +47,21 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const fetchData = useCallback(async () => {
     setLoading(true);
 
+    // This is an experiment we are doing with react.
+    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+    // and the docs will reflect that.
+    const platform =
+      params.platform === 'javascript-react'
+        ? ReactDocVariant.ErrorMonitoringAndPerformance
+        : String(params.platform);
+
     try {
-      const {html: reponse} = await loadDocs(
+      const {html: reponse} = await loadDocs({
         api,
-        organization.slug,
-        params.projectId,
-        params.platform as PlatformKey
-      );
+        orgSlug: organization.slug,
+        projectSlug: params.projectId,
+        platform: platform as PlatformKey,
+      });
       setHtml(reponse);
     } catch (err) {
       setError(err);
@@ -76,7 +84,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     if (!params.platform || params.platform === 'other') {
       redirectToNeutralDocs();
     }
-  }, [fetchData, redirectToNeutralDocs, params.platform]);
+  }, [fetchData, redirectToNeutralDocs, params.platform, location.query.product]);
 
   const platform = platforms.find(p => p.id === params.platform);
 
@@ -99,7 +107,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   return (
     <Fragment>
       <StyledPageHeader>
-        <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
+        <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
           <Button
             icon={<IconChevron direction="left" size="sm" />}
@@ -115,18 +123,22 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       </StyledPageHeader>
 
       <div>
-        <Alert type="info" showIcon>
-          {tct(
-            `
+        {platform.id !== 'javascript-react' ? (
+          <Alert type="info" showIcon>
+            {tct(
+              `
            This is a quick getting started guide. For in-depth instructions
            on integrating Sentry with [platform], view
            [docLink:our complete documentation].`,
-            {
-              platform: platform.name,
-              docLink: <a href={platformLink} />,
-            }
-          )}
-        </Alert>
+              {
+                platform: platform.name,
+                docLink: <a href={platformLink} />,
+              }
+            )}
+          </Alert>
+        ) : (
+          <div>oi</div>
+        )}
 
         {loading ? (
           <LoadingIndicator />

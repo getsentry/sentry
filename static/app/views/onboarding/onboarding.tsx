@@ -10,6 +10,7 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
@@ -143,14 +144,37 @@ function Onboarding(props: Props) {
     props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
-  const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-    const nextStep = onboardingSteps[currentStepIndex + 1];
-    if (step.cornerVariant !== nextStep.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
-    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
-  };
+  const goNextStep = useCallback(
+    (step: StepDescriptor) => {
+      if (!selectedProjectSlug) {
+        return;
+      }
+
+      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+      const nextStep = onboardingSteps[currentStepIndex + 1];
+
+      if (step.cornerVariant !== nextStep.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+
+      if (nextStep.id === 'setup-docs' && selectedProjectSlug === 'javascript-react') {
+        props.router.push(
+          normalizeUrl(
+            `/onboarding/${organization.slug}/${nextStep.id}/?product=${PRODUCT.PERFORMANCE_MONITORING}&product=${PRODUCT.SESSION_REPLAY}`
+          )
+        );
+        return;
+      }
+      props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+    },
+    [
+      selectedProjectSlug,
+      organization.slug,
+      onboardingSteps,
+      cornerVariantControl,
+      props.router,
+    ]
+  );
 
   const deleteProject = useCallback(
     async (projectSlug: string) => {
