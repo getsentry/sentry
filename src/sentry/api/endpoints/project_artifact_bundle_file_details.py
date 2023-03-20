@@ -1,7 +1,9 @@
 import base64
+import binascii
 import posixpath
 from typing import Union
 
+import sentry_sdk
 from django.http.response import FileResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -72,7 +74,7 @@ class ProjectArtifactBundleFileDetailsEndpoint(
 
         try:
             file_path = base64.urlsafe_b64decode(file_id).decode()
-        except Exception:
+        except (binascii.Error, UnicodeDecodeError):
             return Response(
                 {"error": f"The file_id {file_id} is invalid"},
                 status=400,
@@ -94,7 +96,8 @@ class ProjectArtifactBundleFileDetailsEndpoint(
 
         try:
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
-        except Exception:
+        except Exception as exc:
+            sentry_sdk.capture_exception(exc)
             return Response(
                 {"error": f"The artifact bundle {artifact_bundle.bundle_id} can't be opened"},
                 status=400,
