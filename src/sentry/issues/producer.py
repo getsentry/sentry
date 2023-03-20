@@ -4,6 +4,7 @@ from atexit import register
 from collections import deque
 from concurrent import futures
 from concurrent.futures import Future
+from typing import Deque
 
 from arroyo import Topic
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer, build_kafka_configuration
@@ -38,7 +39,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
     track_occurrence_producer_futures(future)
 
 
-occurrence_producer_futures = deque()
+occurrence_producer_futures: Deque[Future[BrokerValue[KafkaPayload]]] = deque()
 
 
 def track_occurrence_producer_futures(future: Future[BrokerValue[KafkaPayload]]) -> None:
