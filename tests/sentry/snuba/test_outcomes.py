@@ -14,7 +14,7 @@ from sentry.utils.outcomes import Outcome
 def _make_query(qs, params=None, allow_minute_resolution=True):
     if params is None:
         params = {}
-    return QueryDefinition(QueryDict(qs), params, allow_minute_resolution)
+    return QueryDefinition.from_query_dict(QueryDict(qs), params, allow_minute_resolution)
 
 
 class OutcomesQueryDefinitionTests(TestCase):

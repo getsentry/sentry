@@ -65,39 +65,39 @@ describe('BulkController', function () {
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles single item', function () {
+  it('toggles single item', async function () {
     renderComponent();
-    userEvent.click(toggleRow);
+    await userEvent.click(toggleRow);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, ['2']);
-    userEvent.click(toggleRow);
+    await userEvent.click(toggleRow);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles the page', function () {
+  it('toggles the page', async function () {
     renderComponent();
-    userEvent.click(toggleRow);
+    await userEvent.click(toggleRow);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, ['2']);
-    userEvent.click(selectPage);
+    await userEvent.click(selectPage);
     expect(renderProp).toHaveBeenLastCalledWith(false, true, ['2', '1', '3']);
-    userEvent.click(deselectPage);
+    await userEvent.click(deselectPage);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('toggles everything', function () {
+  it('toggles everything', async function () {
     renderComponent();
-    userEvent.click(toggleRow);
+    await userEvent.click(toggleRow);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, ['2']);
-    userEvent.click(selectAll);
+    await userEvent.click(selectAll);
     expect(renderProp).toHaveBeenLastCalledWith(true, true, ['1', '2', '3']);
-    userEvent.click(unselectAll);
+    await userEvent.click(unselectAll);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, []);
   });
 
-  it('deselects one after having everything selected', function () {
+  it('deselects one after having everything selected', async function () {
     renderComponent();
-    userEvent.click(selectAll);
+    await userEvent.click(selectAll);
     expect(renderProp).toHaveBeenLastCalledWith(true, true, ['1', '2', '3']);
-    userEvent.click(toggleRow);
+    await userEvent.click(toggleRow);
     expect(renderProp).toHaveBeenLastCalledWith(false, false, ['1', '3']);
   });
 
@@ -112,11 +112,11 @@ describe('BulkController', function () {
       expect(renderProp).toHaveBeenLastCalledWith(false, true, pageIds);
     });
 
-    it('toggle the last unchecked option, should change button selectAll to true', function () {
+    it('toggle the last unchecked option, async should change button selectAll to true', async function () {
       const defaultSelectedIds = ['1', '3'];
       renderComponent(pageIds, defaultSelectedIds);
       expect(renderProp).toHaveBeenLastCalledWith(false, false, defaultSelectedIds);
-      userEvent.click(toggleRow);
+      await userEvent.click(toggleRow);
       expect(renderProp).toHaveBeenLastCalledWith(false, true, [
         ...defaultSelectedIds,
         '2',

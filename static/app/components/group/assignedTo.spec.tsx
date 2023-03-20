@@ -70,7 +70,7 @@ describe('Group > AssignedTo', () => {
   });
 
   const openMenu = async () => {
-    userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+    await userEvent.click(await screen.findByTestId('assignee-selector'), {
       // Skip hover to prevent tooltip from rendering
       skipHover: true,
     });
@@ -112,7 +112,7 @@ describe('Group > AssignedTo', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
     const team1slug = `#${TEAM_1.slug}`;
-    userEvent.click(screen.getByText(team1slug));
+    await userEvent.click(screen.getByText(team1slug));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -151,7 +151,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     // Assign first item in list, which is TEAM_1
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -165,7 +165,7 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -220,7 +220,7 @@ describe('Group > AssignedTo', () => {
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
     expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('Suspect commit author'));
+    await userEvent.click(screen.getByText('Suspect commit author'));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(

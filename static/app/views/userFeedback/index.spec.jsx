@@ -108,7 +108,7 @@ describe('UserFeedback', function () {
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
   });
 
-  it('renders issue status filter', function () {
+  it('renders issue status filter', async function () {
     const params = {
       organization: TestStubs.Organization({
         projects: [TestStubs.Project({isMember: true})],
@@ -130,7 +130,7 @@ describe('UserFeedback', function () {
     const all = screen.getByRole('radio', {name: 'All Issues'});
     expect(all).toBeInTheDocument();
     expect(all).not.toBeChecked();
-    userEvent.click(all);
+    await userEvent.click(all);
 
     expect(router.replace).toHaveBeenCalledWith(
       expect.objectContaining({query: {status: ''}})

@@ -97,9 +97,9 @@ describe('Issues Similar View', function () {
     );
     renderGlobalModal();
 
-    userEvent.click(await screen.findByTestId('similar-item-row'));
-    userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
-    userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+    await userEvent.click(await screen.findByTestId('similar-item-row'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Merge (1)'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
     await waitFor(() => {
       expect(merge).toHaveBeenCalledWith(

@@ -45,6 +45,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
+            tenant_ids={"organization_id": project.organization_id},
         )
 
         response = process_raw_response(

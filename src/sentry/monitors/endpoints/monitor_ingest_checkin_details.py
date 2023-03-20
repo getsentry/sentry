@@ -17,8 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import Environment
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, MonitorStatus
+from sentry.monitors.models import CheckInStatus, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
 
@@ -83,22 +82,9 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             duration = int((current_datetime - checkin.date_added).total_seconds() * 1000)
             params["duration"] = duration
 
-        # TODO: assume these objects exist once backfill is completed
-        environment_name = params.get("environment")
-        if not environment_name:
-            environment_name = "production"
-
-        environment = Environment.get_or_create(project=project, name=environment_name)
-
-        monitorenvironment_defaults = {
-            "status": monitor.status,
-            "next_checkin": monitor.next_checkin,
-            "last_checkin": monitor.last_checkin,
-        }
-
-        monitor_environment = MonitorEnvironment.objects.get_or_create(
-            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
-        )[0]
+        monitor_environment = MonitorEnvironment.objects.ensure_environment(
+            project, monitor, params.get("environment")
+        )
 
         if not checkin.monitor_environment:
             checkin.monitor_environment = monitor_environment
@@ -106,23 +92,14 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
         with transaction.atomic():
             checkin.update(**params)
+
             if checkin.status == CheckInStatus.ERROR:
                 monitor_failed = monitor.mark_failed(current_datetime)
                 monitor_environment.mark_failed(current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:
-                monitor_params = {
-                    "last_checkin": current_datetime,
-                    "next_checkin": monitor.get_next_scheduled_checkin(current_datetime),
-                }
-                if checkin.status == CheckInStatus.OK:
-                    monitor_params["status"] = MonitorStatus.OK
-                Monitor.objects.filter(id=monitor.id).exclude(
-                    last_checkin__gt=current_datetime
-                ).update(**monitor_params)
-                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
-                    last_checkin__gt=checkin.date_added
-                ).update(**monitor_params)
+                monitor.mark_ok(checkin, current_datetime)
+                monitor_environment.mark_ok(checkin, current_datetime)
 
         return self.respond(serialize(checkin, request.user))
