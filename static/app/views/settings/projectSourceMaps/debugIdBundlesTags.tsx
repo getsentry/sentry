@@ -24,7 +24,7 @@ export function DebugIdBundlesTags({dist, release, loading}: Props) {
         <Fragment>
           {dist && (
             <Tag
-              tooltipText={tct('Associated with release "[distribution]"', {
+              tooltipText={tct('Associated with distribution "[distribution]"', {
                 distribution: dist,
               })}
               type="info"
