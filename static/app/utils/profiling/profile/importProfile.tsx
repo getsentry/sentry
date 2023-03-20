@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 
+import {Image} from 'sentry/types/debugImage';
+
 import {
   isChromeTraceFormat,
   isChromeTraceObjectFormat,
@@ -38,6 +40,7 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
+  images?: Image[];
 }
 
 export function importProfile(
@@ -214,6 +217,7 @@ function importSentrySampledProfile(
       traceID: input.transaction.trace_id,
     },
     profiles,
+    images: input.debug_meta?.images,
   };
 }
 
