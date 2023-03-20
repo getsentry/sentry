@@ -46,17 +46,17 @@ describe('TeamAccessRequestModal', function () {
     );
   });
 
-  it('creates access request on continue', function () {
+  it('creates access request on continue', async function () {
     renderComponent();
 
-    userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
   });
 
-  it('closes modal on cancel', function () {
+  it('closes modal on cancel', async function () {
     renderComponent();
 
-    userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(createMock).not.toHaveBeenCalled();
     expect(closeModal).toHaveBeenCalled();
   });
