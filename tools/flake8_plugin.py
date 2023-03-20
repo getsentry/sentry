@@ -20,6 +20,10 @@ S004_methods = frozenset(("assertRaises", "assertRaisesRegex"))
 
 S005_msg = "S005 Do not import models from sentry.models but the actual module"
 
+S006_msg = (
+    "S006 Remember to remove all instances of `pytest.mark.only` before pushing to production."
+)
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
@@ -58,6 +62,20 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+        for decorator in node.decorator_list:
+            if (
+                isinstance(decorator, ast.Attribute)
+                and decorator.attr == "only"
+                and isinstance(decorator.value, ast.Attribute)
+                and decorator.value.attr == "mark"
+                and isinstance(decorator.value.value, ast.Name)
+                and decorator.value.value.id == "pytest"
+            ):
+                self.errors.append((node.lineno, node.col_offset, S006_msg))
 
         self.generic_visit(node)
 
