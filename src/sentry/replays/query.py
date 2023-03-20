@@ -53,6 +53,7 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     conditions = []
@@ -76,6 +77,7 @@ def query_replays_collection(
         sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -85,6 +87,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
+    tenant_ids: dict[str, Any],
 ):
     """Query aggregated replay instance."""
     response = query_replays_dataset(
@@ -99,6 +102,7 @@ def query_replay_instance(
         sorting=[],
         pagination=None,
         search_filters=[],
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -113,6 +117,7 @@ def query_replays_dataset(
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
 
@@ -159,6 +164,7 @@ def query_replays_dataset(
             granularity=Granularity(3600),
             **query_options,
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
 
@@ -168,6 +174,7 @@ def query_replays_count(
     start: datetime,
     end: datetime,
     replay_ids: List[str],
+    tenant_ids: dict[str, Any],
 ):
 
     snuba_request = Request(
@@ -199,6 +206,7 @@ def query_replays_count(
             groupby=[Column("replay_id")],
             granularity=Granularity(3600),
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_count", use_cache=True
@@ -211,6 +219,7 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
+    tenant_ids: dict[str, Any] | None,
 ):
     """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
 
@@ -258,6 +267,7 @@ def query_replays_dataset_tagkey_values(
             granularity=Granularity(3600),
             limit=Limit(1000),
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True

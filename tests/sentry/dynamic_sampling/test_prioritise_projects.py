@@ -25,7 +25,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction"},
-            hours_before_now=1,
+            minutes_before_now=30,
             value=1,
             project_id=p1.id,
             org_id=org1.id,
@@ -41,7 +41,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction"},
-            hours_before_now=1,
+            minutes_before_now=30,
             value=1,
             project_id=p1.id,
             org_id=org1.id,
@@ -58,7 +58,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         self.store_performance_metric(
             name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
             tags={"transaction": "foo_transaction2"},
-            hours_before_now=1,
+            minutes_before_now=30,
             value=1,
             project_id=p1.id,
             org_id=org1.id,

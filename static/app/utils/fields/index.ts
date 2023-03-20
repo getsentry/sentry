@@ -148,6 +148,8 @@ export enum MobileVital {
   StallTotalTime = 'measurements.stall_total_time',
   StallLongestTime = 'measurements.stall_longest_time',
   StallPercentage = 'measurements.stall_percentage',
+  TimeToFullDisplay = 'measurements.time_to_full_display',
+  TimeToInitialDisplay = 'measurements.time_to_initial_display',
 }
 
 export enum SpanOpBreakdown {
@@ -415,6 +417,18 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     desc: t('Total stall duration out of the total transaction duration (React Native)'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
+  },
+  [MobileVital.TimeToFullDisplay]: {
+    desc: t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.TimeToInitialDisplay]: {
+    desc: t('The time it takes for an application to produce its first frame'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
   },
 };
 
@@ -1261,3 +1275,9 @@ export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
     ])
   );
 }
+
+export function isDeviceClass(key): boolean {
+  return key === FieldKey.DEVICE_CLASS;
+}
+
+export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];

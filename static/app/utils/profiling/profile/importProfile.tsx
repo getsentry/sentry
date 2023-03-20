@@ -153,10 +153,11 @@ function importSentrySampledProfile(
 
   for (const key in samplesByThread) {
     samplesByThread[key].sort(
-      (a, b) =>
-        parseInt(a.elapsed_since_start_ns, 10) - parseInt(b.elapsed_since_start_ns, 10)
+      (a, b) => a.elapsed_since_start_ns - b.elapsed_since_start_ns
     );
   }
+
+  let activeProfileIndex = 0;
 
   const profiles: Profile[] = [];
 
@@ -168,6 +169,10 @@ function importSentrySampledProfile(
         samples: samplesByThread[key],
       },
     };
+
+    if (key === String(input.transaction.active_thread_id)) {
+      activeProfileIndex = profiles.length;
+    }
 
     profiles.push(
       wrapWithSpan(
@@ -181,12 +186,15 @@ function importSentrySampledProfile(
     );
   }
 
-  const firstTransaction = input.transactions?.[0];
+  const firstSample = input.profile.samples[0];
+  const lastSample = input.profile.samples[input.profile.samples.length - 1];
+  const duration = lastSample.elapsed_since_start_ns - firstSample.elapsed_since_start_ns;
+
   return {
-    transactionID: firstTransaction?.id ?? null,
-    traceID: firstTransaction?.trace_id ?? '',
-    name: firstTransaction?.name ?? '',
-    activeProfileIndex: 0,
+    transactionID: input.transaction.id,
+    traceID: input.transaction.trace_id,
+    name: input.transaction.name,
+    activeProfileIndex,
     measurements: {},
     metadata: {
       deviceLocale: input.device.locale,
@@ -194,18 +202,15 @@ function importSentrySampledProfile(
       deviceModel: input.device.model,
       deviceOSName: input.os.name,
       deviceOSVersion: input.os.version,
-      durationNS: parseInt(
-        input.profile.samples[input.profile.samples.length - 1].elapsed_since_start_ns,
-        10
-      ),
+      durationNS: duration,
       environment: input.environment,
       platform: input.platform,
       profileID: input.event_id,
 
       // these don't really work for multiple transactions
-      transactionID: firstTransaction?.id,
-      transactionName: firstTransaction?.name,
-      traceID: firstTransaction?.trace_id,
+      transactionID: input.transaction.id,
+      transactionName: input.transaction.name,
+      traceID: input.transaction.trace_id,
     },
     profiles,
   };

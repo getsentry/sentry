@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Tuple
 
@@ -17,6 +18,8 @@ CODECOV_REPORT_URL = (
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
 CODECOV_TIMEOUT = 2
+
+logger = logging.getLogger(__name__)
 
 
 class CodecovIntegrationError(Enum):
@@ -54,22 +57,23 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
         if not integration_installation:
             continue
 
-        repositories = integration_installation.get_client().get_repositories()
-        if not repositories:
-            continue
-
-        repos = repositories.get("repositories", None)
+        repos = integration_installation.get_client().get_repositories()  # List[Dict[str, Any]]
         if not repos:
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
         url = CODECOV_REPOS_URL.format(service="gh", owner_username=owner_username)
         response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
-        if response.status_code == 404:
-            continue
-        response.raise_for_status()
+        if response.status_code == 200:
+            return True, None  # We found a codecov integration, so we can stop looking
 
-        return True, None  # We found a codecov integration, so we can stop looking
+        logger.warning(
+            "codecov.get_repositories",
+            extra={
+                "url": url,
+                "status_code": response.status_code,
+            },
+        )
 
     # None of the Github Integrations had a Codecov integration
     return (
