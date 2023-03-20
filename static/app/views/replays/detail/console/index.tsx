@@ -59,7 +59,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   };
 
   return (
-    <ConsoleContainer>
+    <FluidHeight>
       <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
       <ConsoleLogContainer>
         {breadcrumbs ? (
@@ -89,13 +89,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </ConsoleLogContainer>
-    </ConsoleContainer>
+    </FluidHeight>
   );
 }
-
-const ConsoleContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const ConsoleLogContainer = styled('div')`
   position: relative;

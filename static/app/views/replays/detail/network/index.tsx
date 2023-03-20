@@ -115,7 +115,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   };
 
   return (
-    <NetworkContainer>
+    <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
         {networkSpans ? (
@@ -151,13 +151,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </NetworkTable>
-    </NetworkContainer>
+    </FluidHeight>
   );
 }
-
-const NetworkContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const NetworkTable = styled('div')`
   position: relative;

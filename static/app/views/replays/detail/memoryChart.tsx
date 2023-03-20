@@ -44,9 +44,9 @@ function MemoryChart({
 
   if (!memorySpans) {
     return (
-      <MemoryLoadingWrapper>
+      <MemoryChartWrapper>
         <Placeholder height="100%" />
-      </MemoryLoadingWrapper>
+      </MemoryChartWrapper>
     );
   }
 
@@ -227,10 +227,6 @@ const MemoryChartWrapper = styled(FluidHeight)`
   margin-bottom: ${space(3)};
   border-radius: ${space(0.5)};
   border: 1px solid ${p => p.theme.border};
-`;
-
-const MemoryLoadingWrapper = styled(MemoryChartWrapper)`
-  height: 100%;
 `;
 
 const MemoizedMemoryChart = memo(
