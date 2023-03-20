@@ -353,11 +353,26 @@ function Flamegraph(): ReactElement {
             previousView.configView.withHeight(newView.configView.height)
           );
         }
-      } else if (defined(highlightFrames)) {
-        const frames = flamegraph.findAllMatchingFrames(
+      }
+
+      if (defined(highlightFrames)) {
+        let frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
         );
+
+        if (
+          !frames.length &&
+          !highlightFrames.package &&
+          highlightFrames.name &&
+          profileGroup.metadata.platform === 'node'
+        ) {
+          // there is a chance that the reason we did not find any frames is because
+          // for node, we try to infer some package from the frontend code.
+          // If that happens, we'll try and just do a search by name. This logic
+          // is duplicated in flamegraphZoomView.tsx and should be kept in sync
+          frames = flamegraph.findAllMatchingFramesBy(highlightFrames.name, ['name']);
+        }
 
         if (frames.length > 0) {
           const rectFrames = frames.map(

@@ -1061,8 +1061,6 @@ SENTRY_FEATURES = {
     "organizations:customer-domains": False,
     # Enable the 'discover' interface.
     "organizations:discover": False,
-    # Enable using All Events as the landing page for Discover
-    "organizations:discover-query-builder-as-landing-page": True,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
     # Enable attaching arbitrary files to events.
@@ -1095,6 +1093,8 @@ SENTRY_FEATURES = {
     "organizations:profiling-span-previews": False,
     # Enable the transactions backed profiling views
     "organizations:profiling-using-transactions": False,
+    # Enable the sentry sample format response
+    "organizations:profiling-sampled-format": False,
     # Whether to enable ingest for profile blocked main thread issues
     "organizations:profile-blocked-main-thread-ingest": False,
     # Whether to enable post process group for profile blocked main thread issues
@@ -1317,6 +1317,8 @@ SENTRY_FEATURES = {
     "organizations:ds-prioritise-by-transaction-bias": False,
     # Enable view hierarchies options
     "organizations:view-hierarchies-options-dev": False,
+    # Enable anr improvements ui
+    "organizations:anr-improvements": False,
     # Enable device.class as a selectable column
     "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
