@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import re
 import warnings
 from collections import defaultdict
 from datetime import datetime
@@ -33,7 +34,6 @@ from sentry.models import (
     OrganizationMember,
     OrganizationStatus,
     User,
-    UserAvatar,
     UserEmail,
     UserOption,
     UserPermission,
@@ -117,6 +117,9 @@ class UserSerializerResponseSelf(UserSerializerResponse):
     flags: Any  # TODO
 
 
+AVATAR_URL_REGEX = re.compile("/avatar/([\\d\\w]+)/$")
+
+
 @register(User)
 class UserSerializer(Serializer):  # type: ignore
     def _user_is_requester(self, obj: User, requester: User | AnonymousUser | RpcUser) -> bool:
@@ -145,7 +148,6 @@ class UserSerializer(Serializer):  # type: ignore
 
     def get_attrs(self, item_list: Sequence[User], user: User) -> MutableMapping[User, Any]:
         user_ids = [i.id for i in item_list]
-        avatars = {a.user_id: a for a in UserAvatar.objects.filter(user_id__in=user_ids)}
         identities = self._get_identities(item_list, user)
 
         emails = manytoone_to_dict(UserEmail.objects.filter(user_id__in=user_ids), "user_id")
@@ -154,7 +156,6 @@ class UserSerializer(Serializer):  # type: ignore
         data = {}
         for item in item_list:
             data[item] = {
-                "avatar": avatars.get(item.id),
                 "identities": identities.get(item.id),
                 "has2fa": authenticators[item.id],
                 "emails": emails[item.id],
@@ -206,13 +207,14 @@ class UserSerializer(Serializer):  # type: ignore
 
             d["flags"] = {"newsletter_consent_prompt": bool(obj.flags.newsletter_consent_prompt)}
 
-        if attrs.get("avatar"):
-            avatar: SerializedAvatarFields = {
-                "avatarType": attrs["avatar"].get_avatar_type_display(),
-                "avatarUuid": attrs["avatar"].ident if attrs["avatar"].file_id else None,
-            }
-        else:
-            avatar = {"avatarType": "letter_avatar", "avatarUuid": None}
+        ident = None
+        if obj.avatar_url is not None:
+            match = AVATAR_URL_REGEX.search(obj.avatar_url)
+            ident = match[1] if match else None
+        avatar: SerializedAvatarFields = {
+            "avatarType": obj.get_avatar_type_display(),
+            "avatarUuid": ident,
+        }
         d["avatar"] = avatar
 
         # TODO(dcramer): move this to DetailedUserSerializer
