@@ -6,7 +6,7 @@ from sentry.digests.backends.base import InvalidState
 from sentry.digests.notifications import build_digest, split_key
 from sentry.models import Project, ProjectOption
 from sentry.tasks.base import instrumented_task
-from sentry.utils import snuba
+from sentry.utils import metrics, snuba
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +40,7 @@ def deliver_digest(key, schedule_timestamp=None):
     try:
         project, target_type, target_identifier, fallthrough_choice = split_key(key)
     except Project.DoesNotExist as error:
+        metrics.incr("tasks.digest.deliver_digest", tags={"success": False})
         logger.info(f"Cannot deliver digest {key} due to error: {error}")
         digests.delete(key)
         return
@@ -53,6 +54,7 @@ def deliver_digest(key, schedule_timestamp=None):
             with digests.digest(key, minimum_delay=minimum_delay) as records:
                 digest, logs = build_digest(project, records)
         except InvalidState as error:
+            metrics.incr("tasks.digest.deliver_digest", tags={"success": False})
             logger.info(f"Skipped digest delivery: {error}", exc_info=True)
             return
 
@@ -64,7 +66,9 @@ def deliver_digest(key, schedule_timestamp=None):
                 target_identifier,
                 fallthrough_choice=fallthrough_choice,
             )
+            metrics.incr("tasks.digest.deliver_digest", tags={"success": True})
         else:
+            metrics.incr("tasks.digest.deliver_digest", tags={"success": False})
             logger.info(
                 "Skipped digest delivery due to empty digest",
                 extra={
