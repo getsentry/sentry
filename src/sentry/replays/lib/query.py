@@ -110,11 +110,11 @@ class UUIDField(Field):
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
             value = uuids
         else:
-            uuid = _transform_uuids([value])
-            if uuid is None:
+            uuids = _transform_uuids([value])
+            if uuids is None:
                 return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
 
-            value = uuid[0]
+            value = uuids[0]
 
         return super().as_condition(field_alias, operator, value)
 
