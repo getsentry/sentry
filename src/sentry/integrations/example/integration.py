@@ -15,7 +15,7 @@ from sentry.integrations import (
 )
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
-from sentry.models import ExternalIssue, Repository, User
+from sentry.models import ExternalIssue, Repository
 from sentry.pipeline import PipelineView
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.shared_integrations.exceptions import IntegrationError
