@@ -1,5 +1,12 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
+  type SpeedscopeSchema = import('sentry/utils/profiling/speedscope').SpeedscopeSchema;
+
+  type Image = import('sentry/types/debugImage').Image;
+
+  type SymbolicatorStatus =
+    import('sentry/components/events/interfaces/types').SymbolicatorStatus;
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -10,20 +17,18 @@ declare namespace Profiling {
   type SentrySampledProfileStack = number[];
 
   type SentrySampledProfileFrame = {
+    in_app: boolean;
+    colno?: number;
+    filename?: string;
     function?: string;
     instruction_addr?: string;
     lineno?: number;
-    colno?: number;
-    filename?: string;
-  };
-
-  type SentrySampledProfileDebugMetaImage = {
-    debug_id: string;
-    image_addr: string;
-    code_file: string;
-    type: string;
-    image_size: number;
-    image_vmaddr: string;
+    module?: string;
+    package?: string;
+    abs_path?: string;
+    status?: SymbolicatorStatus;
+    sym_addr?: string;
+    symbol?: string;
   };
 
   type SentrySampledProfileTransaction = {
@@ -57,7 +62,7 @@ declare namespace Profiling {
     platform: string;
     environment?: string;
     debug_meta?: {
-      images: SentryProfileDebugMetaImage[];
+      images: Image[];
     };
     profile: {
       samples: SentrySampledProfileSample[];
@@ -90,6 +95,7 @@ declare namespace Profiling {
   interface SampledProfile extends RawProfileBase {
     weights: number[];
     samples: number[][];
+    samples_profiles?: number[][];
     type: 'sampled';
   }
 
@@ -112,10 +118,19 @@ declare namespace Profiling {
     line?: number;
     column?: number;
     is_application?: boolean;
-    image?: string;
     resource?: string;
     threadId?: number;
     inline?: boolean;
+    instructionAddr?: string;
+    symbol?: string;
+    symbolAddr?: string;
+    symbolicatorStatus?: SymbolicatorStatus;
+
+    image?: string;
+    // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
+    package?: string;
+    // This is the import path for the module
+    module?: string;
 
     // nodejs only
     columnNumber?: number;
@@ -127,7 +142,6 @@ declare namespace Profiling {
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | ChromeTrace.ProfileType
     | Profiling.SentrySampledProfile;
 
   type ImportedProfiles = {
@@ -142,32 +156,8 @@ declare namespace Profiling {
     value: number;
   };
 
-  // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
-  // sentry related features to the flamegraphs. This should happen after the MVP integration
-  type Schema = {
-    profileID: string;
-    profiles: ReadonlyArray<
-      Readonly<EventedProfile | SampledProfile | JSSelfProfiling.Trace>
-    >;
-    projectID: number;
-    shared: {
-      frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
-    };
-    measurements?: {
-      screen_frame_rates?: {
-        unit: string;
-        values: {elapsed_since_start_ns: number; value: number}[];
-      };
-      frozen_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-      slow_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-    };
-    activeProfileIndex?: number;
+  // We have extended the speedscope schema to include some additional metadata and measurements
+  interface Schema extends SpeedscopeSchema {
     metadata: {
       androidAPILevel: number;
       deviceClassification: string;
@@ -183,10 +173,26 @@ declare namespace Profiling {
       profileID: string;
       projectID: number;
       received: string;
+      release: Release | null;
       traceID: string;
       transactionID: string;
-      release: Release | null;
       transactionName: string;
     };
-  };
+    profileID: string;
+    projectID: number;
+    measurements?: {
+      frozen_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+      screen_frame_rates?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      slow_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+    };
+  }
 }

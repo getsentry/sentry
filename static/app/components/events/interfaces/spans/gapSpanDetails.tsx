@@ -13,9 +13,9 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
