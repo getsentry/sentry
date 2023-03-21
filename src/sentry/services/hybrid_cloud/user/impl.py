@@ -14,6 +14,7 @@ from sentry.db.models import BaseQuerySet
 from sentry.db.models.query import in_iexact
 from sentry.models.group import Group
 from sentry.models.user import User
+from sentry.services.hybrid_cloud import DEFAULT_DATE
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import (
     FilterQueryDatabaseImpl,
@@ -243,7 +244,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
                 id=a["id"],
                 user_id=a["user_id"],
                 created_at=a["created_at"],
-                last_used_at=a["last_used_at"],
+                last_used_at=a["last_used_at"] or DEFAULT_DATE,  # TODO: Or make field nullable?
                 type=a["type"],
                 config=a["config"],
             )

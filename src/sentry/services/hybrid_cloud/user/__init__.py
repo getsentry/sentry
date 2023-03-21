@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cas
 
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
@@ -36,8 +36,8 @@ class RpcUserEmail(RpcModel):
 class RpcAuthenticator(RpcModel):
     id: int = 0
     user_id: int = -1
-    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
-    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    created_at: datetime.datetime = DEFAULT_DATE
+    last_used_at: datetime.datetime = DEFAULT_DATE
     type: int = -1
     config: Any = None
 

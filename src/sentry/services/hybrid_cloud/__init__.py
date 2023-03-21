@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import dataclasses
+import datetime
 import inspect
 import logging
 import threading
@@ -45,6 +46,8 @@ ArgumentDict = Mapping[str, Any]
 
 IDEMPOTENCY_KEY_LENGTH = 48
 REGION_NAME_LENGTH = 48
+
+DEFAULT_DATE = datetime.datetime(2000, 1, 1)
 
 
 class InterfaceWithLifecycle(ABC):
