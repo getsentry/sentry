@@ -57,7 +57,20 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
         if not integration_installation:
             continue
 
-        repos = integration_installation.get_client().get_repositories()  # List[Dict[str, Any]]
+        repos = None
+        try:
+            repos = integration_installation.get_client().get_repositories()  # List[Dict[str, Any]]
+        except Exception as e:
+            logger.warning(
+                "codecov.get_repositories",
+                extra={
+                    "integration_id": integration.id,
+                    "organization_id": organization.id,
+                    "error": str(e),
+                },
+            )
+            continue
+
         if not repos:
             continue
 
