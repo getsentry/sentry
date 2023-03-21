@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import transaction
+from django.db.models import Prefetch
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
 from sentry.api.exceptions import ParameterValidationError
+from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.apidocs.constants import (
     RESPONSE_ACCEPTED,
@@ -19,7 +21,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ScheduledDeletion
-from sentry.monitors.models import Monitor, MonitorStatus
+from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializerResponse
 from sentry.monitors.validators import MonitorValidator
 
@@ -48,6 +50,19 @@ class OrganizationMonitorDetailsEndpoint(MonitorEndpoint):
         """
         Retrieves details for a monitor.
         """
+
+        environments = get_environments(request, organization)
+
+        if environments:
+            monitor_environment = MonitorEnvironment.objects.filter(
+                environment=environments[0], monitor=monitor
+            )
+            prefetch = Prefetch(
+                "monitorenvironment_set",
+                queryset=monitor_environment,
+                to_attr="selected_monitorenvironment",
+            )
+            monitor = Monitor.objects.prefetch_related(prefetch).get(id=monitor.id)
         return self.respond(serialize(monitor, request.user))
 
     @extend_schema(
