@@ -49,9 +49,6 @@ function throwIfMissingFrame(index: number) {
   throw new Error(`Could not resolve frame ${index} in frame index`);
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SampledProfile extends Profile {
   static FromProfile(
@@ -221,7 +218,7 @@ export class SampledProfile extends Profile {
         }
       }
 
-      node.addToTotalWeight(weight);
+      node.totalWeight += weight;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -240,7 +237,7 @@ export class SampledProfile extends Profile {
       framesInStack[i] = node;
     }
 
-    node.addToSelfWeight(weight);
+    node.selfWeight += weight;
     this.minFrameDuration = Math.min(weight, this.minFrameDuration);
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
@@ -250,10 +247,10 @@ export class SampledProfile extends Profile {
       child.lock();
     }
 
-    node.frame.addToSelfWeight(weight);
+    node.frame.selfWeight += weight;
 
     for (const stackNode of framesInStack) {
-      stackNode.frame.addToTotalWeight(weight);
+      stackNode.frame.totalWeight += weight;
       stackNode.incrementCount();
     }
 

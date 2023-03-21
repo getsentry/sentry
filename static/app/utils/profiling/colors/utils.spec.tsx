@@ -1,6 +1,5 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {
-  makeColorBucketTheme,
   makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeColorMapBySymbolName,
@@ -12,6 +11,8 @@ import {
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
+
+import {makeColorBucketTheme} from '../speedscope';
 
 const f = (key: number, name: string, file?: string, image?: string): FlamegraphFrame => {
   return {

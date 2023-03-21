@@ -2,7 +2,6 @@ import {
   ColorChannels,
   ColorMapFn,
   FlamegraphTheme,
-  LCH,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
@@ -53,31 +52,6 @@ function uniqueBy<T>(arr: ReadonlyArray<T>, predicate: (t: T) => unknown): Array
   }
 
   return set;
-}
-
-// These were taken from speedscope, originally described in
-// https://en.wikipedia.org/wiki/HSL_and_HSV#From_luma/chroma/hue
-export const fract = (x: number): number => x - Math.floor(x);
-export const triangle = (x: number): number => 2.0 * Math.abs(fract(x) - 0.5) - 1.0;
-export function fromLumaChromaHue(L: number, C: number, H: number): ColorChannels {
-  const hPrime = H / 60;
-  const X = C * (1 - Math.abs((hPrime % 2) - 1));
-  const [R1, G1, B1] =
-    hPrime < 1
-      ? [C, X, 0]
-      : hPrime < 2
-      ? [X, C, 0]
-      : hPrime < 3
-      ? [0, C, X]
-      : hPrime < 4
-      ? [0, X, C]
-      : hPrime < 5
-      ? [X, 0, C]
-      : [C, 0, X];
-
-  const m = L - (0.35 * R1 + 0.35 * G1 + 0.35 * B1);
-
-  return [clamp(R1 + m, 0, 1), clamp(G1 + m, 0, 1), clamp(B1 + m, 0, 1.0)];
 }
 
 export const makeStackToColor = (
@@ -168,21 +142,6 @@ export function defaultFrameKey(frame: FlamegraphFrame): string {
 
 function defaultFrameSort(a: FlamegraphFrame, b: FlamegraphFrame): number {
   return defaultFrameKey(a) > defaultFrameKey(b) ? 1 : -1;
-}
-
-export function makeColorBucketTheme(
-  lch: LCH,
-  spectrum = 360,
-  offset = 0
-): (t: number) => ColorChannels {
-  return t => {
-    const x = triangle(30.0 * t);
-    const tx = 0.9 * t;
-    const H = spectrum < 360 ? offset + spectrum * tx : spectrum * tx;
-    const C = lch.C_0 + lch.C_d * x;
-    const L = lch.L_0 - lch.L_d * x;
-    return fromLumaChromaHue(L, C, H);
-  };
 }
 
 export function makeColorMapBySymbolName(
