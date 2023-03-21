@@ -28,7 +28,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
+  const {cache, updateList} = useVirtualizedList({
     cellMeasurer: {
       fixedWidth: true,
       minHeight: 24,
@@ -59,11 +59,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   };
 
   return (
-    <ConsoleContainer>
+    <FluidHeight>
       <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
       <ConsoleLogContainer>
         {breadcrumbs ? (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
@@ -89,13 +89,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </ConsoleLogContainer>
-    </ConsoleContainer>
+    </FluidHeight>
   );
 }
-
-const ConsoleContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const ConsoleLogContainer = styled('div')`
   position: relative;

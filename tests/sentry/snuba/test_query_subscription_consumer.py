@@ -1,11 +1,13 @@
 import unittest
 from copy import deepcopy
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import cached_property
 from unittest import mock
 
 import pytest
 import pytz
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -15,6 +17,8 @@ from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
     QuerySubscriptionConsumer,
+    QuerySubscriptionStrategyFactory,
+    parse_message_value,
     register_subscriber,
     subscriber_registry,
 )
@@ -24,6 +28,10 @@ from sentry.utils import json
 
 
 class BaseQuerySubscriptionTest:
+    @cached_property
+    def topic(self):
+        return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
+
     @cached_property
     def consumer(self):
         return QuerySubscriptionConsumer("hello")
@@ -70,13 +78,56 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         with mock.patch("sentry.snuba.query_subscription_consumer.metrics") as self.metrics:
             yield
 
+    def test_arroyo_consumer(self):
+        registration_key = "registered_test_2"
+        mock_callback = mock.Mock()
+        register_subscriber(registration_key)(mock_callback)
+        with self.tasks():
+            snuba_query = create_snuba_query(
+                SnubaQuery.Type.ERROR,
+                Dataset.Events,
+                "hello",
+                "count()",
+                timedelta(minutes=10),
+                timedelta(minutes=1),
+                None,
+            )
+            sub = create_snuba_subscription(self.project, registration_key, snuba_query)
+        sub.refresh_from_db()
+
+        data = self.valid_wrapper
+        data["payload"]["subscription_id"] = sub.subscription_id
+        commit = mock.Mock()
+        partition = Partition(Topic("test"), 0)
+        strategy = QuerySubscriptionStrategyFactory(self.topic).create_with_partitions(
+            commit, {partition: 0}
+        )
+        message = self.build_mock_message(self.valid_wrapper, topic=self.topic)
+
+        strategy.submit(
+            Message(
+                BrokerValue(
+                    KafkaPayload(b"key", message.value(), [("should_drop", b"1")]),
+                    partition,
+                    1,
+                    datetime.now(),
+                )
+            )
+        )
+
+        data = deepcopy(data)
+        data["payload"]["values"] = data["payload"]["result"]
+        data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
+            tzinfo=pytz.utc
+        )
+        mock_callback.assert_called_once_with(data["payload"], sub)
+
     def test_no_subscription(self):
         with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
             pool.urlopen.return_value.status = 202
+
             self.consumer.handle_message(
-                self.build_mock_message(
-                    self.valid_wrapper, topic=settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
-                )
+                self.build_mock_message(self.valid_wrapper, topic=self.topic), self.topic
             )
             pool.urlopen.assert_called_once_with(
                 "DELETE",
@@ -96,7 +147,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         )
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
-        self.consumer.handle_message(self.build_mock_message(data))
+        self.consumer.handle_message(self.build_mock_message(data), self.topic)
         self.metrics.incr.assert_called_once_with(
             "snuba_query_subscriber.subscription_type_not_registered"
         )
@@ -120,7 +171,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
         data = self.valid_wrapper
         data["payload"]["subscription_id"] = sub.subscription_id
-        self.consumer.handle_message(self.build_mock_message(data))
+        self.consumer.handle_message(self.build_mock_message(data), self.topic)
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
@@ -131,7 +182,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
-        self.consumer.parse_message_value(json.dumps(message))
+        parse_message_value(json.dumps(message))
 
     def run_invalid_schema_test(self, message):
         with pytest.raises(InvalidSchemaError):

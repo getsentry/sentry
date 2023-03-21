@@ -1,6 +1,6 @@
 import zipfile
 from enum import Enum
-from typing import IO, List, Optional, Tuple
+from typing import IO, Callable, Dict, List, Optional, Tuple
 
 from django.db import models
 from django.utils import timezone
@@ -30,7 +30,10 @@ class SourceFileType(Enum):
         return [(key.value, key.name) for key in cls]
 
     @classmethod
-    def from_lowercase_key(cls, lowercase_key: str) -> Optional["SourceFileType"]:
+    def from_lowercase_key(cls, lowercase_key: Optional[str]) -> Optional["SourceFileType"]:
+        if lowercase_key is None:
+            return None
+
         for key in cls:
             if key.name.lower() == lowercase_key:
                 return SourceFileType(key.value)
@@ -55,6 +58,19 @@ class ArtifactBundle(Model):
         db_table = "sentry_artifactbundle"
 
         unique_together = (("organization_id", "bundle_id"),)
+
+    @classmethod
+    def get_release_dist_pair(
+        cls, organization_id: int, artifact_bundle: "ArtifactBundle"
+    ) -> Tuple[Optional[str], Optional[str]]:
+        try:
+            release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
+                organization_id=organization_id, artifact_bundle=artifact_bundle
+            )[0]
+
+            return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
+        except IndexError:
+            return None, None
 
 
 @region_silo_only_model
@@ -115,11 +131,12 @@ class ProjectArtifactBundle(Model):
 class ArtifactBundleArchive:
     """Read-only view of uploaded ZIP artifact bundle."""
 
-    def __init__(self, fileobj: IO):
+    def __init__(self, fileobj: IO, build_memory_map: bool = True):
         self._fileobj = fileobj
         self._zip_file = zipfile.ZipFile(self._fileobj)
         self.manifest = self._read_manifest()
-        self._build_memory_maps()
+        if build_memory_map:
+            self._build_memory_maps()
 
     def close(self):
         self._zip_file.close()
@@ -136,11 +153,14 @@ class ArtifactBundleArchive:
         return json.loads(manifest_bytes.decode("utf-8"))
 
     @staticmethod
-    def _normalize_headers(headers: dict) -> dict:
+    def normalize_headers(headers: dict) -> dict:
         return {k.lower(): v for k, v in headers.items()}
 
     @staticmethod
-    def _normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+    def normalize_debug_id(debug_id: Optional[str]) -> Optional[str]:
+        if debug_id is None:
+            return None
+
         try:
             return normalize_debug_id(debug_id)
         except SymbolicError:
@@ -154,9 +174,9 @@ class ArtifactBundleArchive:
         files = self.manifest.get("files", {})
         for file_path, info in files.items():
             # Building the map for debug_id lookup.
-            headers = self._normalize_headers(info.get("headers", {}))
+            headers = self.normalize_headers(info.get("headers", {}))
             if (debug_id := headers.get("debug-id")) is not None:
-                debug_id = self._normalize_debug_id(debug_id)
+                debug_id = self.normalize_debug_id(debug_id)
                 file_type = info.get("type")
                 if (
                     debug_id is not None
@@ -182,6 +202,46 @@ class ArtifactBundleArchive:
     ) -> Tuple[IO, dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
+
+    def get_file(self, file_path: str) -> Tuple[IO, dict]:
+        files = self.manifest.get("files", {})
+        file_info = files.get(file_path, {})
+        return self._zip_file.open(file_path), file_info.get("headers", {})
+
+    def get_files_by(self, block: Callable[[str, dict], bool]) -> Dict[str, dict]:
+        files = self.manifest.get("files", {})
+        results = {}
+
+        for file_path, info in files.items():
+            if block(file_path, info):
+                results[file_path] = info
+
+        return results
+
+    def get_files_by_file_path_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
+        def filter_function(file_path: str, info: dict) -> bool:
+            if query is None:
+                return True
+
+            normalized_query = query.lower()
+
+            if normalized_query in file_path.lower():
+                return True
+
+            headers = self.normalize_headers(info.get("headers", {}))
+            debug_id = self.normalize_debug_id(headers.get("debug-id", None))
+            if debug_id is not None and normalized_query in debug_id.lower():
+                return True
+
+            return False
+
+        return self.get_files_by(filter_function)
+
+    def get_file_info(self, file_path: Optional[str]) -> Optional[zipfile.ZipInfo]:
+        try:
+            return self._zip_file.getinfo(file_path)
+        except KeyError:
+            return None
 
     def get_file_url_by_debug_id(
         self, debug_id: str, source_file_type: SourceFileType

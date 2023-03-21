@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.exceptions import PluginError
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.killswitches import killswitch_matches_context
 from sentry.signals import event_processed, issue_unignored, transaction_processed
@@ -151,6 +151,9 @@ def handle_owner_assignment(job):
     with sentry_sdk.start_span(op="tasks.post_process_group.handle_owner_assignment"):
         try:
             from sentry.models import (
+                ASSIGNEE_DOES_NOT_EXIST_DURATION,
+                ASSIGNEE_EXISTS_DURATION,
+                ASSIGNEE_EXISTS_KEY,
                 ISSUE_OWNERS_DEBOUNCE_DURATION,
                 ISSUE_OWNERS_DEBOUNCE_KEY,
                 ProjectOwnership,
@@ -186,13 +189,17 @@ def handle_owner_assignment(job):
                     op="post_process.handle_owner_assignment.cache_set_assignee"
                 ):
                     # Is the issue already assigned to a team or user?
-                    assignee_key = f"assignee_exists:1:{group.id}"
+                    assignee_key = ASSIGNEE_EXISTS_KEY(group.id)
                     assignees_exists = cache.get(assignee_key)
                     if assignees_exists is None:
                         assignees_exists = group.assignee_set.exists()
                         # Cache for 1 day if it's assigned. We don't need to move that fast.
                         cache.set(
-                            assignee_key, assignees_exists, 60 * 60 * 24 if assignees_exists else 60
+                            assignee_key,
+                            assignees_exists,
+                            ASSIGNEE_EXISTS_DURATION
+                            if assignees_exists
+                            else ASSIGNEE_DOES_NOT_EXIST_DURATION,
                         )
 
                     if assignees_exists:
@@ -537,11 +544,7 @@ def post_process_group(
 def run_post_process_job(job: PostProcessJob):
     group_event = job["event"]
     issue_category = group_event.group.issue_category
-    if group_event.group.issue_type.type_id in get_group_types_by_category(
-        GroupCategory.PROFILE.value
-    ) and not features.has(
-        "organizations:profile-blocked-main-thread-ppg", group_event.group.organization
-    ):
+    if not group_event.group.issue_type.allow_post_process_group(group_event.group.organization):
         return
     if issue_category not in GROUP_CATEGORY_POST_PROCESS_PIPELINE:
         # pipeline for generic issues

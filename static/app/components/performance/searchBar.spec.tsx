@@ -1,38 +1,10 @@
 import {Fragment} from 'react';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import SearchBar, {SearchBarProps} from 'sentry/components/performance/searchBar';
 import EventView from 'sentry/utils/discover/eventView';
-
-// Jest's fake timers don't advance the debounce timer, so we need to mock it
-// with a different implementation. This could probably go in __mocks__ since
-// it's used in a few tests.
-jest.mock('lodash/debounce', () => {
-  const debounceMap = new Map();
-  const mockDebounce =
-    (fn, timeout) =>
-    (...args) => {
-      if (debounceMap.has(fn)) {
-        clearTimeout(debounceMap.get(fn));
-      }
-      debounceMap.set(
-        fn,
-        setTimeout(() => {
-          fn.apply(fn, args);
-          debounceMap.delete(fn);
-        }, timeout)
-      );
-    };
-  return mockDebounce;
-});
 
 describe('SearchBar', () => {
   let eventsMock;
@@ -51,10 +23,6 @@ describe('SearchBar', () => {
     query: '',
   };
 
-  beforeAll(() => {
-    jest.useFakeTimers();
-  });
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
@@ -63,10 +31,6 @@ describe('SearchBar', () => {
       url: `/organizations/${organization.slug}/events/`,
       body: {data: []},
     });
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
   });
 
   it('Sends user input as a transaction search and shows the results', async () => {
@@ -79,12 +43,9 @@ describe('SearchBar', () => {
 
     render(<SearchBar {...testProps} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('proje');
     expect(screen.getByRole('textbox')).toHaveValue('proje');
-
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenCalledWith(
@@ -113,26 +74,19 @@ describe('SearchBar', () => {
     });
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
 
-    userEvent.type(screen.getByRole('textbox'), 'client');
+    await userEvent.type(screen.getByRole('textbox'), 'client');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.keyboard('{ArrowDown}');
-    userEvent.keyboard('{ArrowDown}');
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{ArrowDown}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
@@ -152,21 +106,18 @@ describe('SearchBar', () => {
     });
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.paste(screen.getByRole('textbox'), 'client*');
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('client*');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.keyboard('{Enter}');
+    await userEvent.keyboard('{Enter}');
 
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('client*');
   });
 
-  it('closes the search dropdown when clicked outside of', () => {
+  it('closes the search dropdown when clicked outside of', async () => {
     const onSearch = jest.fn();
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -184,10 +135,11 @@ describe('SearchBar', () => {
       </Fragment>
     );
 
-    userEvent.type(screen.getByRole('textbox'), 'proje');
+    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.paste('proje');
     expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('some-div'));
+    await userEvent.click(screen.getByTestId('some-div'));
     expect(screen.queryByTestId('smart-search-dropdown')).not.toBeInTheDocument();
   });
 
@@ -202,15 +154,10 @@ describe('SearchBar', () => {
 
     render(<SearchBar {...testProps} onSearch={onSearch} />);
 
-    userEvent.type(screen.getByRole('textbox'), 'GET /my-endpoint');
-    expect(screen.getByRole('textbox')).toHaveValue('GET /my-endpoint');
-
-    act(jest.runAllTimers);
-
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    userEvent.keyboard('{Down}');
-    userEvent.keyboard('{Enter}');
+    await userEvent.type(
+      screen.getByRole('textbox'),
+      'GET /my-endpoint{ArrowDown}{Enter}'
+    );
 
     expect(onSearch).toHaveBeenCalledTimes(1);
     expect(onSearch).toHaveBeenCalledWith('transaction:"GET /my-endpoint"');

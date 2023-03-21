@@ -55,6 +55,8 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
     ).transformRect(props.flamegraphView.configSpaceTransform);
   }, [props.flamegraphView, props.frame]);
 
+  const isCount = props.flamegraphRenderer.flamegraph.profile.unit === 'count';
+
   return (
     <BoundTooltip
       bounds={props.canvasBounds}
@@ -67,6 +69,7 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
           backgroundColor={formatColorForFrame(props.frame, props.flamegraphRenderer)}
         />
         {props.flamegraphRenderer.flamegraph.formatter(props.frame.node.totalWeight)}{' '}
+        {isCount && t('samples') + ' '}
         {formatWeightToProfileDuration(
           props.frame.node,
           props.flamegraphRenderer.flamegraph
@@ -79,20 +82,27 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
             {t('source')}:{formatFileNameAndLineColumn(props.frame)}
           </Fragment>
         )}
+        <FlamegraphTooltipTimelineInfo>
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
+        </FlamegraphTooltipTimelineInfo>
       </FlamegraphTooltipTimelineInfo>
-      <FlamegraphTooltipTimelineInfo>
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
-        {' \u2014 '}
-        {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.right)}
-        {props.frame.frame.inline ? (
-          <FlamegraphInlineIndicator>
-            <IconLightning width={10} />
-            {t('inline frame')}
-          </FlamegraphInlineIndicator>
-        ) : (
-          ''
-        )}
-      </FlamegraphTooltipTimelineInfo>
+      {!isCount && (
+        <FlamegraphTooltipTimelineInfo>
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(frameInConfigSpace.left)}{' '}
+          {' \u2014 '}
+          {props.flamegraphRenderer.flamegraph.timelineFormatter(
+            frameInConfigSpace.right
+          )}
+          {props.frame.frame.inline ? (
+            <FlamegraphInlineIndicator>
+              <IconLightning width={10} />
+              {t('inline frame')}
+            </FlamegraphInlineIndicator>
+          ) : (
+            ''
+          )}
+        </FlamegraphTooltipTimelineInfo>
+      )}
     </BoundTooltip>
   );
 }

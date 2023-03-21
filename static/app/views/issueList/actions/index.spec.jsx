@@ -62,19 +62,19 @@ describe('IssueListActions', function () {
 
   describe('Bulk', function () {
     describe('Total results greater than bulk limit', function () {
-      it('after checking "Select all" checkbox, displays bulk select message', function () {
+      it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
         expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      it('can bulk select', function () {
+      it('can bulk select', async function () {
         render(<WrappedComponent queryCount={1500} />);
 
-        userEvent.click(screen.getByRole('checkbox'));
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
         expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
@@ -86,15 +86,15 @@ describe('IssueListActions', function () {
         });
 
         render(<WrappedComponent queryCount={1500} />);
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
         await screen.findByRole('dialog');
 
-        userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Bulk resolve issues'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -109,25 +109,25 @@ describe('IssueListActions', function () {
     });
 
     describe('Total results less than bulk limit', function () {
-      it('after checking "Select all" checkbox, displays bulk select message', function () {
+      it('after checking "Select all" checkbox, displays bulk select message', async function () {
         render(<WrappedComponent queryCount={15} />);
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
         expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      it('can bulk select', function () {
+      it('can bulk select', async function () {
         render(<WrappedComponent queryCount={15} />);
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
         expect(screen.getByTestId('issue-list-select-all-notice')).toSnapshot();
       });
 
-      it('bulk resolves', function () {
+      it('bulk resolves', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -135,17 +135,19 @@ describe('IssueListActions', function () {
 
         render(<WrappedComponent queryCount={15} />);
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
         const modal = screen.getByRole('dialog');
 
         expect(modal).toSnapshot();
 
-        userEvent.click(within(modal).getByRole('button', {name: 'Bulk resolve issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk resolve issues'})
+        );
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -160,7 +162,7 @@ describe('IssueListActions', function () {
     });
 
     describe('Selected on page', function () {
-      it('resolves selected items', function () {
+      it('resolves selected items', async function () {
         const apiMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'PUT',
@@ -172,7 +174,7 @@ describe('IssueListActions', function () {
 
         const resolveButton = screen.getByRole('button', {name: 'Resolve'});
         expect(resolveButton).toBeEnabled();
-        userEvent.click(resolveButton);
+        await userEvent.click(resolveButton);
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -195,23 +197,25 @@ describe('IssueListActions', function () {
 
         render(<WrappedComponent {...defaultProps} />);
 
-        userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Ignore options'}));
         fireEvent.click(screen.getByText(/Until this affects an additional/));
         await screen.findByTestId('until-affect-custom');
-        userEvent.click(screen.getByTestId('until-affect-custom'));
+        await userEvent.click(screen.getByTestId('until-affect-custom'));
 
         const modal = screen.getByRole('dialog');
 
-        userEvent.clear(within(modal).getByRole('spinbutton', {name: 'Number of users'}));
-        userEvent.type(
+        await userEvent.clear(
+          within(modal).getByRole('spinbutton', {name: 'Number of users'})
+        );
+        await userEvent.type(
           within(modal).getByRole('spinbutton', {name: 'Number of users'}),
           '300'
         );
 
-        userEvent.click(within(modal).getByRole('textbox'));
-        userEvent.click(within(modal).getByText('per week'));
+        await userEvent.click(within(modal).getByRole('textbox'));
+        await userEvent.click(within(modal).getByText('per week'));
 
-        userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
+        await userEvent.click(within(modal).getByRole('button', {name: 'Ignore'}));
 
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -254,7 +258,7 @@ describe('IssueListActions', function () {
   });
 
   describe('mark reviewed', function () {
-    it('acknowledges group', function () {
+    it('acknowledges group', async function () {
       const mockOnMarkReviewed = jest.fn();
 
       MockApiClient.addMockResponse({
@@ -279,7 +283,7 @@ describe('IssueListActions', function () {
 
       const reviewButton = screen.getByRole('button', {name: 'Mark Reviewed'});
       expect(reviewButton).toBeEnabled();
-      userEvent.click(reviewButton);
+      await userEvent.click(reviewButton);
 
       expect(mockOnMarkReviewed).toHaveBeenCalledWith(['1', '2', '3']);
     });
@@ -296,20 +300,20 @@ describe('IssueListActions', function () {
   });
 
   describe('sort', function () {
-    it('calls onSortChange with new sort value', function () {
+    it('calls onSortChange with new sort value', async function () {
       const mockOnSortChange = jest.fn();
       render(<WrappedComponent onSortChange={mockOnSortChange} />);
 
-      userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Last Seen'}));
 
-      userEvent.click(screen.getByText(/Number of events/));
+      await userEvent.click(screen.getByText(/Number of events/));
 
       expect(mockOnSortChange).toHaveBeenCalledWith('freq');
     });
   });
 
   describe('performance issues', function () {
-    it('disables options that are not supported for performance issues', () => {
+    it('disables options that are not supported for performance issues', async () => {
       jest
         .spyOn(SelectedGroupStore, 'getSelectedIds')
         .mockImplementation(() => new Set(['1', '2']));
@@ -336,7 +340,7 @@ describe('IssueListActions', function () {
       expect(screen.getByRole('button', {name: 'Merge Selected Issues'})).toBeDisabled();
 
       // Open overflow menu
-      userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
 
       // 'Add to Bookmarks' is supported
       expect(
@@ -355,7 +359,7 @@ describe('IssueListActions', function () {
         features: ['performance-issues'],
       });
 
-      it('silently filters out performance issues when bulk deleting', function () {
+      it('silently filters out performance issues when bulk deleting', async function () {
         const bulkDeleteMock = MockApiClient.addMockResponse({
           url: '/organizations/org-slug/issues/',
           method: 'DELETE',
@@ -369,12 +373,12 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-        userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
+        await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Delete'}));
 
         const modal = screen.getByRole('dialog');
 
@@ -382,7 +386,9 @@ describe('IssueListActions', function () {
           within(modal).getByText(/deleting performance issues is not yet supported/i)
         ).toBeInTheDocument();
 
-        userEvent.click(within(modal).getByRole('button', {name: 'Bulk delete issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk delete issues'})
+        );
 
         expect(bulkDeleteMock).toHaveBeenCalledWith(
           expect.anything(),
@@ -415,11 +421,13 @@ describe('IssueListActions', function () {
           {organization: orgWithPerformanceIssues}
         );
 
-        userEvent.click(screen.getByRole('checkbox'));
+        await userEvent.click(screen.getByRole('checkbox'));
 
-        userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
+        await userEvent.click(screen.getByTestId('issue-list-select-all-notice-link'));
 
-        userEvent.click(screen.getByRole('button', {name: 'Merge Selected Issues'}));
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Merge Selected Issues'})
+        );
 
         const modal = screen.getByRole('dialog');
 
@@ -430,7 +438,9 @@ describe('IssueListActions', function () {
         // Wait for ProjectStore to update before closing the modal
         await act(tick);
 
-        userEvent.click(within(modal).getByRole('button', {name: 'Bulk merge issues'}));
+        await userEvent.click(
+          within(modal).getByRole('button', {name: 'Bulk merge issues'})
+        );
 
         expect(bulkMergeMock).toHaveBeenCalledWith(
           expect.anything(),

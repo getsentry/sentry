@@ -2,6 +2,7 @@ import {mat3} from 'gl-matrix';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {getContext, measureText, Rect} from '../gl/utils';
+import {computeInterval} from '../speedscope';
 
 export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): number {
   const vector = logicalSpaceToConfigView[0] * x + logicalSpaceToConfigView[6];
@@ -11,38 +12,6 @@ export function getIntervalTimeAtX(logicalSpaceToConfigView: mat3, x: number): n
   }
 
   return Math.round(vector * 10) / 10;
-}
-
-export function computeInterval(
-  configView: Rect,
-  logicalSpaceToConfigView: mat3
-): number[] {
-  // We want to draw an interval every 200px, this is similar to how speedscope draws it and it works well
-  // (both visually pleasing and precise enough). It is pretty much identical to what speedscope does with
-  // the safeguards for the intervals being too small.
-  const target = 200;
-  // Compute x at 200 and subtract left, so we have the interval
-  const targetInterval =
-    getIntervalTimeAtX(logicalSpaceToConfigView, target) - configView.left;
-
-  const minInterval = Math.pow(10, Math.floor(Math.log10(targetInterval)));
-  let interval = minInterval;
-
-  if (targetInterval / interval > 5) {
-    interval *= 5;
-  } else if (targetInterval / interval > 2) {
-    interval *= 2;
-  }
-
-  let x = Math.ceil(configView.left / interval) * interval;
-  const intervals: number[] = [];
-
-  while (x <= configView.right) {
-    intervals.push(x);
-    x += interval;
-  }
-
-  return intervals;
 }
 
 class GridRenderer {
@@ -102,7 +71,11 @@ class GridRenderer {
     );
 
     if (drawGridTicks) {
-      const intervals = computeInterval(configViewSpace, logicalSpaceToConfigView);
+      const intervals = computeInterval(
+        configViewSpace,
+        logicalSpaceToConfigView,
+        getIntervalTimeAtX
+      );
 
       for (let i = 0; i < intervals.length; i++) {
         // Compute the x position of our interval from config space to physical

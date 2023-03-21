@@ -308,7 +308,7 @@ describe('GroupActivity', function () {
       ConfigStore.set('user', {id: '123', isSuperuser: true});
     });
 
-    it('should do nothing if not present in GroupStore', function () {
+    it('should do nothing if not present in GroupStore', async function () {
       createWrapper();
       renderGlobalModal();
       act(() => {
@@ -316,24 +316,24 @@ describe('GroupActivity', function () {
         GroupStore.removeActivity('1337', 'note-1');
       });
 
-      userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByText('Remove'));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).not.toHaveBeenCalled();
     });
 
-    it('should remove remove the item from the GroupStore make a DELETE API request', function () {
+    it('should remove remove the item from the GroupStore make a DELETE API request', async function () {
       createWrapper();
       renderGlobalModal();
 
-      userEvent.click(screen.getByText('Remove'));
+      await userEvent.click(screen.getByText('Remove'));
       expect(
         screen.getByText('Are you sure you wish to delete this comment?')
       ).toBeInTheDocument();
-      userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(deleteMock).toHaveBeenCalledTimes(1);
     });

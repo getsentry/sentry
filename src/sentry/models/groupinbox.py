@@ -31,6 +31,7 @@ class GroupInboxReason(Enum):
     REGRESSION = 2
     MANUAL = 3
     REPROCESSED = 4
+    ESCALATING = 5
 
 
 class GroupInboxRemoveAction(Enum):
