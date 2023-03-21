@@ -17,7 +17,7 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.mediators.plugins import Migrator
 from sentry.models import ExternalIssue, Repository, User
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.user import user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 
 
@@ -137,7 +137,7 @@ class ExampleIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: User | None,
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:

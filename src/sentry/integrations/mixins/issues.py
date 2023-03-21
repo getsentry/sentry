@@ -381,7 +381,7 @@ class IssueSyncMixin(IssueBasicMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: User | None,
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
