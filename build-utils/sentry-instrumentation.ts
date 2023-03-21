@@ -28,6 +28,9 @@ const createSignature = function (secret: string, payload: string) {
   return `sha1=${hmac.update(payload).digest('hex')}`;
 };
 
+const INCREMENTAL_BUILD_TXN = 'incremental-build';
+const INITIAL_BUILD_TXN = 'initial-build';
+
 class SentryInstrumentation {
   hasInitializedBuild: boolean = false;
 
@@ -43,16 +46,24 @@ class SentryInstrumentation {
     }
 
     const sentry = require('@sentry/node');
-    require('@sentry/tracing'); // This is required to patch Sentry
+    require('@sentry/tracing');
     const {ProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
-      dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
+      dsn: 'https://2eec505f93aa4a8da5222be7f01d0133@o1137848.ingest.sentry.io/4504872101150720',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
       integrations: [new ProfilingIntegration()],
-
-      profilesSampleRate: 1.0,
+      profilesSampler: ({transactionContext}) => {
+        if (transactionContext.name === INCREMENTAL_BUILD_TXN) {
+          return 0;
+        }
+        return 1;
+      },
+      experiments: {
+        // 5 minutes should be plenty
+        maxProfileDurationMs: 5 * 60 * 1000,
+      },
     });
 
     if (IS_CI) {
@@ -71,7 +82,7 @@ class SentryInstrumentation {
 
     this.transaction = sentry.startTransaction({
       op: 'webpack-build',
-      name: !this.hasInitializedBuild ? 'initial-build' : 'incremental-build',
+      name: !this.hasInitializedBuild ? INITIAL_BUILD_TXN : INCREMENTAL_BUILD_TXN,
       description: 'webpack build times',
       trimEnd: true,
     });
