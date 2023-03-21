@@ -78,6 +78,14 @@ export type ReplayRecord = {
   };
 };
 
+// The ReplayRecord fields, but with nested fields represented as `foo.bar`.
+export type ReplayRecordNestedFieldName =
+  | keyof ReplayRecord
+  | `browser.${keyof ReplayRecord['browser']}`
+  | `device.${keyof ReplayRecord['device']}`
+  | `os.${keyof ReplayRecord['os']}`
+  | `user.${keyof ReplayRecord['user']}`;
+
 export type ReplayListLocationQuery = {
   cursor?: string;
   end?: string;
@@ -97,10 +105,12 @@ export type ReplayListLocationQuery = {
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
+  | 'browser'
   | 'count_errors'
   | 'duration'
   | 'finished_at'
   | 'id'
+  | 'os'
   | 'project_id'
   | 'started_at'
   | 'urls'
@@ -108,12 +118,16 @@ export type ReplayListRecord = Pick<
 >;
 
 // Sync with ReplayListRecord above
-export const REPLAY_LIST_FIELDS: (keyof ReplayListRecord)[] = [
+export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'activity',
+  'browser.name',
+  'browser.version',
   'count_errors',
   'duration',
   'finished_at',
   'id',
+  'os.name',
+  'os.version',
   'project_id',
   'started_at',
   'urls',

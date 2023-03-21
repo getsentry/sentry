@@ -1,9 +1,9 @@
 export enum ReplayColumns {
   activity = 'activity',
+  browser = 'browser',
   countErrors = 'countErrors',
   duration = 'duration',
-  projectId = 'projectId',
-  session = 'session',
+  os = 'os',
+  replay = 'replay',
   slowestTransaction = 'slowestTransaction',
-  startedAt = 'startedAt',
 }

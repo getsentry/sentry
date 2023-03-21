@@ -11,7 +11,7 @@ const FeedbackButtonHook = HookOrDefault({
 function FeedbackButton() {
   return (
     <FeedbackButtonHook>
-      <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
+      <FeatureFeedback featureName="replay" buttonProps={{size: 'sm'}} />
     </FeedbackButtonHook>
   );
 }

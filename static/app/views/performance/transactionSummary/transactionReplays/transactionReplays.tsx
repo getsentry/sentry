@@ -159,10 +159,10 @@ function ReplaysContent({
         replays={replaysWithTx}
         sort={undefined}
         visibleColumns={[
-          ReplayColumns.session,
-          ...(hasRoomForColumns
-            ? [ReplayColumns.slowestTransaction, ReplayColumns.startedAt]
-            : []),
+          ReplayColumns.replay,
+          ...(hasRoomForColumns ? [ReplayColumns.slowestTransaction] : []),
+          ReplayColumns.os,
+          ReplayColumns.browser,
           ReplayColumns.duration,
           ReplayColumns.countErrors,
           ReplayColumns.activity,

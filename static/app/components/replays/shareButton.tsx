@@ -70,8 +70,8 @@ function ShareButton() {
 
   return (
     <Button
-      size="xs"
-      icon={<IconUpload size="xs" />}
+      size="sm"
+      icon={<IconUpload size="sm" />}
       onClick={() =>
         openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />)
       }

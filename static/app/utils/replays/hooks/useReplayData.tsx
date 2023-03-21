@@ -180,7 +180,7 @@ function useReplayData({
           }
         );
         promise.then(response => {
-          setErrors(prev => (prev ?? []).concat(response.data));
+          setErrors(prev => (prev ?? []).concat(response.data || []));
         });
         return promise;
       })

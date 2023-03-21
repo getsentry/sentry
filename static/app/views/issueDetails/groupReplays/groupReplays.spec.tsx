@@ -119,10 +119,12 @@ describe('GroupReplays', () => {
               environment: [],
               field: [
                 'activity',
+                'browser',
                 'count_errors',
                 'duration',
                 'finished_at',
                 'id',
+                'os',
                 'project_id',
                 'started_at',
                 'urls',
@@ -283,45 +285,35 @@ describe('GroupReplays', () => {
         body: {
           data: [
             {
+              ...TestStubs.ReplayList()[0],
               count_errors: 1,
               duration: 52346,
-              finished_at: '2022-09-15T06:54:00+00:00',
-              id: REPLAY_ID_1,
-              project_id: '2',
-              started_at: '2022-09-15T06:50:03+00:00',
+              finished_at: new Date('2022-09-15T06:54:00+00:00'),
+              id: '346789a703f6454384f1de473b8b9fcc',
+              started_at: new Date('2022-09-15T06:50:00+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
                 '/organizations/sentry-emerging-tech/replays/?project=2',
               ],
-              user: {
-                id: '147086',
-                name: '',
-                email: '',
-                ip: '127.0.0.1',
-                display_name: 'testDisplayName',
-              },
             },
             {
+              ...TestStubs.ReplayList()[0],
               count_errors: 4,
               duration: 400,
-              finished_at: '2022-09-21T21:40:38+00:00',
-              id: REPLAY_ID_2,
-              project_id: '2',
-              started_at: '2022-09-21T21:30:44+00:00',
+              finished_at: new Date('2022-09-21T21:40:38+00:00'),
+              id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
+              started_at: new Date('2022-09-21T21:30:44+00:00'),
               urls: [
                 'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
                 '/organizations/sentry-emerging-tech/issues/',
                 '/organizations/sentry-emerging-tech/issues/?project=2',
               ],
-              user: {
-                id: '147086',
-                name: '',
-                email: '',
-                ip: '127.0.0.1',
-                display_name: 'testDisplayName',
-              },
             },
-          ],
+          ].map(hydrated => ({
+            ...hydrated,
+            started_at: hydrated.started_at.toString(),
+            finished_at: hydrated.finished_at.toString(),
+          })),
         },
       });
 
@@ -358,10 +350,10 @@ describe('GroupReplays', () => {
       );
 
       // Expect the first row to have the correct duration
-      expect(screen.getByText('14hr 32min 26s')).toBeInTheDocument();
+      expect(screen.getByText('14:32:26')).toBeInTheDocument();
 
       // Expect the second row to have the correct duration
-      expect(screen.getByText('6min 40s')).toBeInTheDocument();
+      expect(screen.getByText('06:40')).toBeInTheDocument();
 
       // Expect the first row to have the correct errors
       expect(screen.getAllByTestId('replay-table-count-errors')[0]).toHaveTextContent(
