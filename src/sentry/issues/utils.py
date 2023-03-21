@@ -1,14 +1,20 @@
+from typing import Union
+
 from sentry import options
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models import Project
+from sentry.models.group import Group
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 
 
-def can_create_group(ocurrence: IssueOccurrence, project: Project) -> bool:
+def can_create_group(
+    entity: Union[IssueOccurrence, PerformanceProblem, Group], project: Project
+) -> bool:
+    type_id = entity.type if isinstance(entity, Group) else entity.type.type_id
     return (
         # create N+1 db query issues first
-        ocurrence.type.type_id == PerformanceNPlusOneGroupType.type_id
+        type_id == PerformanceNPlusOneGroupType.type_id
         # system-wide option
         and options.get("performance.issues.create_issues_through_platform", False)
         # more-granular per-project option

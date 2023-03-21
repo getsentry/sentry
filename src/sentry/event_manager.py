@@ -81,7 +81,7 @@ from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.issues.grouptype import GroupCategory, reduce_noise
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import produce_occurrence_to_kafka
-from sentry.issues.utils import write_occurrence_to_platform
+from sentry.issues.utils import can_create_group, write_occurrence_to_platform
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashreport_count
 from sentry.locks import locks
@@ -867,11 +867,6 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         if not job["release"]:
             continue
 
-        if options.get("performance.issues.create_issues_through_platform", False) and projects[
-            job["project_id"]
-        ].get_option("sentry:performance_issue_create_issue_through_platform", False):
-            continue
-
         release_key = (job["project_id"], job["release"])
         jobs_with_releases.setdefault(release_key, []).append(job)
         new_datetime = job["event"].datetime
@@ -1057,13 +1052,9 @@ def _create_kwargs(job: Union[Job, PerformanceJob]) -> dict[str, Any]:
 @metrics.wraps("save_event.get_or_create_environment_many")
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
-        project = projects[job["project_id"]]
-        if options.get(
-            "performance.issues.create_issues_through_platform", False
-        ) and project.get_option("sentry:performance_issue_create_issue_through_platform", False):
-            return
-
-        job["environment"] = Environment.get_or_create(project=project, name=job["environment"])
+        job["environment"] = Environment.get_or_create(
+            project=projects[job["project_id"]], name=job["environment"]
+        )
 
 
 @metrics.wraps("save_event.get_or_create_group_environment_many")
@@ -1076,11 +1067,12 @@ def _get_or_create_group_environment(
     environment: Environment, release: Optional[Release], groups: Sequence[GroupInfo]
 ) -> None:
     for group_info in groups:
-        group_info.is_new_group_environment = GroupEnvironment.get_or_create(
-            group_id=group_info.group.id,
-            environment_id=environment.id,
-            defaults={"first_release": release or None},
-        )[1]
+        if not can_create_group(group_info.group, group_info.project):
+            group_info.is_new_group_environment = GroupEnvironment.get_or_create(
+                group_id=group_info.group.id,
+                environment_id=environment.id,
+                defaults={"first_release": release or None},
+            )[1]
 
 
 @metrics.wraps("save_event.get_or_create_release_associated_models")
@@ -1167,12 +1159,13 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
-            group_info.group_release = GroupRelease.get_or_create(
-                group=group_info.group,
-                release=release,
-                environment=environment,
-                datetime=event.datetime,
-            )
+            if not can_create_group(group_info.group, group_info.project):
+                group_info.group_release = GroupRelease.get_or_create(
+                    group=group_info.group,
+                    release=release,
+                    environment=environment,
+                    datetime=event.datetime,
+                )
 
 
 @metrics.wraps("save_event.tsdb_record_all_metrics")
@@ -2344,7 +2337,7 @@ def _save_aggregate_performance(jobs: Sequence[PerformanceJob], projects: Projec
             performance_problems = [
                 problem
                 for problem in all_performance_problems
-                if not write_occurrence_to_platform(problem, project)
+                if not can_create_group(problem, project)
             ]
             for problem in performance_problems:
                 problem.fingerprint = md5(problem.fingerprint.encode("utf-8")).hexdigest()
