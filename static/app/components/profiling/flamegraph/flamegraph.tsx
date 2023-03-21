@@ -336,23 +336,15 @@ function Flamegraph(): ReactElement {
       });
 
       if (
-        // if the profile or the config space of the flamegraph has changed, we do not
-        // want to persist the config view. This is to avoid a case where the new config space
-        // is larger than the previous one, meaning the new view could now be zoomed in even
-        // though the user did not fire any zoom events.
-        previousView?.model.profile === newView.model.profile &&
-        previousView.configSpace.equals(newView.configSpace)
+        // As long as the previous view is not null and fits into the current view,
+        // reuse it. This ensures that zoom levels are persisted cross-thread.
+        previousView?.model.profile !== newView.model.profile &&
+        previousView &&
+        newView.configView.containsRect(previousView.configView)
       ) {
-        if (
-          // if we're still looking at the same profile but only a preference other than
-          // left heavy has changed, we do want to persist the config view
-          previousView.model.sort === 'left heavy' &&
-          newView.model.sort === 'left heavy'
-        ) {
-          newView.setConfigView(
-            previousView.configView.withHeight(newView.configView.height)
-          );
-        }
+        newView.setConfigView(
+          previousView.configView.withHeight(newView.configView.height)
+        );
       }
 
       if (defined(highlightFrames)) {
