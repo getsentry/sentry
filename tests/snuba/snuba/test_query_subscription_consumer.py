@@ -18,6 +18,7 @@ from sentry.snuba.query_subscription_consumer import (
     QuerySubscriptionConsumer,
     register_subscriber,
     subscriber_registry,
+    topic_to_dataset,
 )
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import SnubaTestCase, TestCase
@@ -67,9 +68,9 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
     @cached_property
     def producer(self):
-        cluster_name = settings.KAFKA_TOPICS[self.topic]["cluster"]
+        kafka_cluster = settings.KAFKA_TOPICS[self.topic]["cluster"]
         conf = {
-            "bootstrap.servers": settings.KAFKA_CLUSTERS[cluster_name]["common"][
+            "bootstrap.servers": settings.KAFKA_CLUSTERS[kafka_cluster]["common"][
                 "bootstrap.servers"
             ],
             "session.timeout.ms": 6000,
@@ -124,8 +125,8 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.old_valid_wrapper))
         producer.flush()
-
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
+            consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         mock_callback = Mock(side_effect=lambda *a, **k: consumer.signal_shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
@@ -149,8 +150,8 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
         producer = Producer(conf)
         producer.produce(self.topic, json.dumps(self.valid_wrapper))
         producer.flush()
-
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
+            consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=1)
         mock_callback = Mock(side_effect=lambda *a, **k: consumer.signal_shutdown())
         register_subscriber(self.registration_key)(mock_callback)
         sub = self.create_subscription()
@@ -163,10 +164,10 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
 
     def test_shutdown(self):
         valid_wrapper_2 = deepcopy(self.valid_wrapper)
-        valid_wrapper_2["payload"]["result"]["hello"] = 25
+        valid_wrapper_2["payload"]["result"]["data"][0]["hello"] = 25
 
         valid_wrapper_3 = deepcopy(self.valid_wrapper)
-        valid_wrapper_3["payload"]["result"]["hello"] = 5000
+        valid_wrapper_3["payload"]["result"]["data"][0]["hello"] = 5000
 
         self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
         self.producer.produce(self.topic, json.dumps(valid_wrapper_2))
@@ -180,49 +181,50 @@ class QuerySubscriptionConsumerTest(TestCase, SnubaTestCase):
                 "timestamp": parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc),
             }
 
-        consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Events}):
+            consumer = QuerySubscriptionConsumer("hi", topic=self.topic, commit_batch_size=100)
 
         def mock_callback(*args, **kwargs):
-            if mock.call_count >= len(expected_calls):
+            if mock1.call_count >= len(expected_calls):
                 consumer.signal_shutdown()
 
-        mock = Mock(side_effect=mock_callback)
+        mock1 = Mock(side_effect=mock_callback)
 
-        register_subscriber(self.registration_key)(mock)
+        register_subscriber(self.registration_key)(mock1)
         sub = self.create_subscription()
 
         expected_calls = [
             call(normalize_payload(self.valid_payload), sub),
             call(normalize_payload(valid_wrapper_2["payload"]), sub),
         ]
-
         consumer.run()
 
-        mock.assert_has_calls(expected_calls)
+        mock1.assert_has_calls(expected_calls)
 
         expected_calls = [call(normalize_payload(valid_wrapper_3["payload"]), sub)]
-        mock.reset_mock()
+        mock1.reset_mock()
 
         consumer.run()
 
-        mock.assert_has_calls(expected_calls)
+        mock1.assert_has_calls(expected_calls)
 
     @mock.patch("sentry.snuba.query_subscription_consumer.QuerySubscriptionConsumer.commit_offsets")
     def test_batch_timeout(self, commit_offset_mock):
         self.producer.produce(self.topic, json.dumps(self.valid_wrapper))
         self.producer.flush()
 
-        consumer = QuerySubscriptionConsumer(
-            "hi", topic=self.topic, commit_batch_size=100, commit_batch_timeout_ms=1
-        )
+        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
+            consumer = QuerySubscriptionConsumer(
+                "hi", topic=self.topic, commit_batch_size=100, commit_batch_timeout_ms=1
+            )
 
         def mock_callback(*args, **kwargs):
             time.sleep(0.1)
             consumer.signal_shutdown()
 
-        mock = Mock(side_effect=mock_callback)
+        mock1 = Mock(side_effect=mock_callback)
 
-        register_subscriber(self.registration_key)(mock)
+        register_subscriber(self.registration_key)(mock1)
         self.create_subscription()
 
         consumer.run()
