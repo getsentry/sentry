@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Frame, PlatformType} from 'sentry/types/event';
+import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -40,6 +40,17 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const project = projects.find(p => p.id === event.projectID);
 
   const profileGroup = useProfileGroup();
+
+  const processedEvent = useMemo(() => {
+    const entries: EventTransaction['entries'] = [...(event.entries || [])];
+    if (profileGroup.images) {
+      entries.push({
+        data: {images: profileGroup.images},
+        type: EntryType.DEBUGMETA,
+      });
+    }
+    return {...event, entries};
+  }, [event, profileGroup]);
 
   // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(
@@ -187,7 +198,7 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
         </SpanDetailsItem>
       </SpanDetails>
       <StackTrace
-        event={event}
+        event={processedEvent}
         hasHierarchicalGrouping={false}
         newestFirst
         platform={event.platform || 'other'}
