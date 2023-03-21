@@ -200,6 +200,12 @@ def get_detection_settings(project_id: Optional[int] = None) -> Dict[DetectorTyp
                 "duration_threshold": 16,
             }
         ],
+        DetectorType.DB_MAIN_THREAD: [
+            {
+                # Basically the same as file io, but db instead, so continue using 16ms
+                "duration_threshold": 16,
+            }
+        ],
         DetectorType.N_PLUS_ONE_API_CALLS: {
             "detection_rate": settings["n_plus_one_api_calls_detection_rate"],
             "duration_threshold": 50,  # ms

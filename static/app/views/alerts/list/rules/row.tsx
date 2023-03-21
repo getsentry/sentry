@@ -282,13 +282,8 @@ function RuleListRow({
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
-      tooltip={
-        <TooltipWrapper>
-          {tct('Assigned to [name]', {
-            name: teamName && `#${teamName.name}`,
-          })}
-        </TooltipWrapper>
-      }
+      tooltipOptions={{overlayStyle: {textAlign: 'left'}}}
+      tooltip={tct('Assigned to [name]', {name: teamName && `#${teamName.name}`})}
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
@@ -409,7 +404,9 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+  display: flex;
+  align-items: center;
   gap: ${space(2)};
   position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
@@ -453,7 +450,9 @@ const TriggerText = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ActionsColumn = styled(FlexCenter)`
+const ActionsColumn = styled('div')`
+  display: flex;
+  align-items: center;
   justify-content: center;
   padding: ${space(1)};
 `;
@@ -476,10 +475,6 @@ const DropdownButton = styled('div')`
 
 const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
-`;
-
-const TooltipWrapper = styled('div')`
-  text-align: left;
 `;
 
 const StyledIconUser = styled(IconUser)`

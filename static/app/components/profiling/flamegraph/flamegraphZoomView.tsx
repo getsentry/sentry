@@ -26,7 +26,6 @@ import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
@@ -35,6 +34,7 @@ import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegrap
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -605,18 +605,22 @@ function FlamegraphZoomView({
     }
 
     setHighlightingAllOccurences(true);
+
+    const frameName = hoveredNodeOnContextMenuOpen.current.frame.name;
+    const packageName =
+      hoveredNodeOnContextMenuOpen.current.frame.package ??
+      hoveredNodeOnContextMenuOpen.current.frame.module ??
+      '';
+
     dispatch({
       type: 'set highlight all frames',
       payload: {
-        name: hoveredNodeOnContextMenuOpen.current.frame.name,
-        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+        name: frameName,
+        package: packageName,
       },
     });
 
-    const frames = flamegraph.findAllMatchingFrames(
-      hoveredNodeOnContextMenuOpen.current.frame.name,
-      hoveredNodeOnContextMenuOpen.current.frame.image
-    );
+    const frames = flamegraph.findAllMatchingFrames(frameName, packageName);
     const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
     const newConfigView = computeMinZoomConfigViewForFrames(
       flamegraphView.configView,

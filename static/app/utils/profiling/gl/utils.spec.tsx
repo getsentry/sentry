@@ -7,15 +7,14 @@ import {
   createProgram,
   createShader,
   ELLIPSIS,
-  findRangeBinarySearch,
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
-  Rect,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
+
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
