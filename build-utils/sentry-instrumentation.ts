@@ -29,7 +29,7 @@ const createSignature = function (secret: string, payload: string) {
 };
 
 class SentryInstrumentation {
-  initialBuild: boolean = false;
+  hasInitializedBuild: boolean = false;
 
   Sentry?: typeof Sentry;
 
@@ -71,7 +71,7 @@ class SentryInstrumentation {
 
     this.transaction = sentry.startTransaction({
       op: 'webpack-build',
-      name: !this.initialBuild ? 'initial-build' : 'incremental-build',
+      name: !this.hasInitializedBuild ? 'initial-build' : 'incremental-build',
       description: 'webpack build times',
       trimEnd: true,
     });
@@ -125,6 +125,15 @@ class SentryInstrumentation {
     if (!this.Sentry) {
       return;
     }
+    if (this.hasInitializedBuild) {
+      this.transaction = this.Sentry.startTransaction({
+        op: 'webpack-build',
+        name: !this.hasInitializedBuild ? 'initial-build' : 'incremental-build',
+        description: 'webpack build times',
+        startTimestamp: startTime,
+        trimEnd: true,
+      });
+    }
 
     this.transaction
       ?.startChild({
@@ -151,21 +160,16 @@ class SentryInstrumentation {
       async ({compilation, startTime, endTime}, done) => {
         // Only record this once and only on Travis
         // Don't really care about asset sizes during local dev
-        if (IS_CI && !this.initialBuild) {
+        if (IS_CI && !this.hasInitializedBuild) {
           this.measureAssetSizes(compilation);
         }
 
         if (this.Sentry) {
           this.measureBuildTime(startTime / 1000, endTime / 1000);
-          const span = this.transaction?.startChild({
-            op: 'sentry',
-            description: 'Sentry flush',
-          });
           await this.Sentry.flush();
-          span?.finish();
         }
 
-        this.initialBuild = true;
+        this.hasInitializedBuild = true;
 
         done();
       }
