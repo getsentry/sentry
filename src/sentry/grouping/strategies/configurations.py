@@ -191,7 +191,7 @@ register_strategy_config(
     base="newstyle:2019-10-29",
     risk=RISK_LEVEL_MEDIUM,
     changelog="""
-        * We added new language/platform specific stack trace grouping enhancements rules
+        * Added new language/platform specific stack trace grouping enhancements rules
           that should make the default grouping experience better.
           This includes JavaScript, Python, PHP, Go, Java and Kotlin.
     """,
