@@ -16,7 +16,7 @@ class MonitorIngestCheckinAttachmentEndpointTest(MonitorIngestTestCase):
     endpoint = "sentry-api-0-organization-monitor-check-in-attachment"
 
     def get_path(self, monitor, checkin):
-        return reverse(self.endpoint, args=[self.organization.slug, monitor.guid, checkin.guid])
+        return reverse(self.endpoint, args=[self.organization.slug, monitor.slug, checkin.guid])
 
     def _create_monitor(self):
         return Monitor.objects.create(
