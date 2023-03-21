@@ -40,7 +40,7 @@ class MonitorSerializer(Serializer):
             obj.last_checkin,
             obj.next_checkin,
         )
-        if hasattr(obj, "selected_monitorenvironment"):
+        if hasattr(obj, "selected_monitorenvironment") and obj.selected_monitorenvironment:
             monitor_environment = obj.selected_monitorenvironment[0]
             status, lastCheckIn, nextCheckIn = (
                 monitor_environment.get_status_display(),

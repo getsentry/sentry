@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
+from sentry.api.helpers.environments import get_environments
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
@@ -15,7 +16,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESP
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
-from sentry.monitors.models import MonitorCheckIn
+from sentry.monitors.models import MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
@@ -58,21 +59,16 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
             monitor_id=monitor.id, date_added__gte=start, date_added__lte=end
         )
 
-        # environment_param = request.GET.get("environment")
-        # if environment_param:
-        #     try:
-        #         environment = Environment.objects.get(
-        #             organization_id=organization.id, project__in=project, name=environment_param
-        #         )
-        #         monitor_env = MonitorEnvironment.objects.get(
-        #             monitor=monitor, environment=environment
-        #         )
-        #     except Environment.DoesNotExist:
-        #         raise ParseError(detail="Environment does not exist")
-        #     except MonitorEnvironment.DoesNotExist:
-        #         raise ParseError(detail="Monitor has not received checkins for that Environment")
+        environments = get_environments(request, organization)
 
-        # queryset.annotate(environment_status=)
+        if environments:
+            try:
+                monitor_environment = MonitorEnvironment.objects.get(
+                    environment=environments[0], monitor=monitor
+                )
+                queryset = queryset.filter(monitor_environment=monitor_environment)
+            except MonitorEnvironment.DoesNotExist:
+                queryset = queryset.none()
 
         return self.paginate(
             request=request,
