@@ -9,7 +9,7 @@ from sentry.types.region import Region, RegionCategory, RegionResolutionError
 
 
 class SiloClientTest(TestCase):
-    dummy_address = "https://region.sentry.io"
+    dummy_address = "http://eu.testserver"
     region = Region("eu", 1, dummy_address, RegionCategory.MULTI_TENANT)
     region_config = (region,)
 
@@ -34,7 +34,7 @@ class SiloClientTest(TestCase):
             RegionSiloClient("atlantis")
 
         with raises(RegionResolutionError):
-            region = Region("atlantis", 2, self.dummy_address, RegionCategory.MULTI_TENANT)
+            region = Region("eu", 2, self.dummy_address, RegionCategory.MULTI_TENANT)
             RegionSiloClient(region)
 
         client = RegionSiloClient(self.region)

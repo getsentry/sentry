@@ -19,8 +19,8 @@ def error_regions(region: Region, invalid_region_names: Iterable[str]):
 class BaseRequestParserTest(TestCase):
     response_handler = MagicMock()
     region_config = (
-        Region("na", 1, "https://na.sentry.io", RegionCategory.MULTI_TENANT),
-        Region("eu", 2, "https://eu.sentry.io", RegionCategory.MULTI_TENANT),
+        Region("na", 1, "https://na.testserver", RegionCategory.MULTI_TENANT),
+        Region("eu", 2, "https://eu.testserver", RegionCategory.MULTI_TENANT),
     )
     factory = RequestFactory()
 

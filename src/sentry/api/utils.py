@@ -236,12 +236,13 @@ def generate_organization_url(org_slug: str) -> str:
     return org_url_template.replace("{hostname}", generate_organization_hostname(org_slug))
 
 
-def generate_region_url() -> str:
-    region_url_template: str = options.get("system.region-api-url-template")
-    region = options.get("system.region") or None
-    if not region_url_template or not region:
+def generate_region_url(region_name: str | None = None) -> str:
+    region_url_template: str | None = options.get("system.region-api-url-template")
+    if region_name is None:
+        region_name = options.get("system.region") or None
+    if not region_url_template or not region_name:
         return options.get("system.url-prefix")  # type: ignore[no-any-return]
-    return region_url_template.replace("{region}", region)
+    return region_url_template.replace("{region}", region_name)
 
 
 _path_patterns: List[Tuple[re.Pattern[str], str]] = [
