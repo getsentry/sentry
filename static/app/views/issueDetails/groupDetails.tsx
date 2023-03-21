@@ -637,7 +637,7 @@ class GroupDetails extends Component<Props, State> {
 
   renderPageContent() {
     const {error: isError, group, project, loading} = this.state;
-    const isLoading = loading || (!group && !isError);
+    const isLoading = loading || (!group && !isError) || !project;
 
     if (isLoading) {
       return <LoadingIndicator />;
