@@ -422,6 +422,9 @@ register("store.reprocessing-force-disable", default=False)
 
 register("store.race-free-group-creation-force-disable", default=False)
 
+# Option to enable dart deobfuscation on ingest
+register("processing.view-hierarchies-dart-deobfuscation", default=0.0)
+
 
 # ## sentry.killswitches
 #
