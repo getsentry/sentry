@@ -196,9 +196,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                         missing_urls.append(url)
 
                 if len(missing_urls) > 0 and release is not None:
-                    individual_files = set(
-                        self.get_releasefiles(missing_urls, project.organization_id, release, dist)
-                    )
+                    individual_files = get_releasefiles(missing_urls, release)
 
                 # Possibly use the algorithm sketched up here:
                 # https://github.com/getsentry/sentry/pull/45697#issuecomment-1466389132
@@ -218,16 +216,16 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 }
             )
 
-        for release_file in individual_files:
+        for file in individual_files:
             found_artifacts.append(
                 {
                     "type": "file",
-                    "url": url_constructor.url_for_file_id(release_file.file.id),
+                    "url": url_constructor.url_for_file_id(file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
-                    "abs_path": release_file.file.name,
+                    "abs_path": file.name,
                     # These headers should ideally include the `Sourcemap` reference
-                    "headers": release_file.file.headers,
+                    "headers": file.headers,
                 }
             )
 
@@ -235,21 +233,22 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # on all the individual queries.
         return Response(serialize(found_artifacts, request.user))
 
-    def get_releasefiles(self, urls: List[str], org_id: int, release: Release, dist: Optional[str]):
-        # Exclude files which are also present in archive:
-        file_list = (
-            ReleaseFile.public_objects.filter(release_id=release.id)
-            .exclude(artifact_count=0)
-            .select_related("file")
-            .order_by("name")
-        )
 
-        condition = Q(name__icontains=urls[0])
-        for url in urls[1:]:
-            condition |= Q(name__icontains=url)
-        file_list = file_list.filter(condition)
+def get_releasefiles(urls: List[str], release: Release):
+    # Exclude files which are also present in archive:
+    file_list = (
+        ReleaseFile.public_objects.filter(release_id=release.id)
+        .exclude(artifact_count=0)
+        .select_related("file")
+    )
 
-        return file_list[:MAX_RELEASEFILES_QUERY]
+    condition = Q(name__icontains=urls[0])
+    for url in urls[1:]:
+        condition |= Q(name__icontains=url)
+    file_list = file_list.filter(condition)
+    file_list = file_list[:MAX_RELEASEFILES_QUERY]
+
+    return set(map(lambda release_file: release_file.file, file_list))
 
 
 def url_exists_in_manifest(manifest: dict, url: str) -> bool:
