@@ -658,8 +658,7 @@ class Fetcher:
         self.release = release
         self.dist = dist
         self.allow_scraping = allow_scraping
-        # Map that contains the mapping between bundle_id -> ArtifactBundleArchive to keep in memory all the open
-        # archives.
+        # Mappings between bundle_id -> ArtifactBundleArchive to keep all the open archives in memory.
         self.open_archives = {}
         # Set that contains all the tuples (debug_id, source_file_type) for which the query returned an empty result.
         # Here we don't put the project in the set, under the assumption that the project will remain the same for the
@@ -721,7 +720,7 @@ class Fetcher:
                 f"that contain debug_id {debug_id} for source_file_type {source_file_type}"
             )
 
-        entry = (
+        entry = list(
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 debugidartifactbundle__debug_id=debug_id,
@@ -913,7 +912,7 @@ class Fetcher:
                 f"for release {self.release} and dist {self.dist}"
             )
 
-        entries = (
+        entries = list(
             ArtifactBundle.objects.filter(
                 organization_id=self.organization.id,
                 releaseartifactbundle__release_name=self.release.version,
