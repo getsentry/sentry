@@ -1,15 +1,8 @@
 import type {ComponentProps} from 'react';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import DeprecatedDropdownMenu from 'sentry/components/deprecatedDropdownMenu';
-
-jest.useFakeTimers();
 
 describe('dropdownMenuDeprecated', function () {
   const DeprecatedDropdownImplementation = (
@@ -36,19 +29,19 @@ describe('dropdownMenuDeprecated', function () {
     expect(container).toSnapshot();
   });
 
-  it('can toggle dropdown menu with actor', function () {
+  it('can toggle dropdown menu with actor', async function () {
     render(<DeprecatedDropdownImplementation />);
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.getByRole('listbox')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('closes dropdown when clicking on anything in menu', function () {
+  it('closes dropdown when clicking on anything in menu', async function () {
     render(<DeprecatedDropdownImplementation />);
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(screen.getByRole('listitem'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('listitem'));
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
@@ -58,37 +51,37 @@ describe('dropdownMenuDeprecated', function () {
         <DeprecatedDropdownImplementation />
       </div>
     );
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(screen.getByTestId('outside-element'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByTestId('outside-element'));
 
-    await waitForElementToBeRemoved(() => screen.queryByRole('listbox'));
-  });
-
-  it('closes dropdown when pressing escape', function () {
-    render(<DeprecatedDropdownImplementation />);
-    userEvent.click(screen.getByRole('button'));
-
-    userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
-  it('ignores "Escape" key if `closeOnEscape` is false', function () {
+  it('closes dropdown when pressing escape', async function () {
+    render(<DeprecatedDropdownImplementation />);
+    await userEvent.click(screen.getByRole('button'));
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('ignores "Escape" key if `closeOnEscape` is false', async function () {
     render(<DeprecatedDropdownImplementation closeOnEscape={false} />);
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
 
-    userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', function () {
+  it('keeps dropdown open when clicking on anything in menu with `keepMenuOpen` prop', async function () {
     render(<DeprecatedDropdownImplementation keepMenuOpen />);
-    userEvent.click(screen.getByRole('button'));
-    userEvent.click(screen.getByRole('listitem'));
+    await userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('listitem'));
 
     expect(screen.getByRole('listbox')).toBeInTheDocument();
   });
 
-  it('render prop getters all extend props and call original onClick handlers', function () {
+  it('render prop getters all extend props and call original onClick handlers', async function () {
     const rootClick = jest.fn();
     const actorClick = jest.fn();
     const menuClick = jest.fn();
@@ -112,19 +105,19 @@ describe('dropdownMenuDeprecated', function () {
 
     expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByTestId('root'));
+    await userEvent.click(screen.getByTestId('root'));
     expect(rootClick).toHaveBeenCalled();
 
-    userEvent.click(screen.getByTestId('actor'));
+    await userEvent.click(screen.getByTestId('actor'));
     expect(actorClick).toHaveBeenCalled();
 
-    userEvent.click(screen.getByTestId('menu'));
+    await userEvent.click(screen.getByTestId('menu'));
     expect(menuClick).toHaveBeenCalled();
 
     expect(screen.queryByRole('listbox')).toBeInTheDocument();
   });
 
-  it('always rendered menus should attach document event listeners only when opened', function () {
+  it('always rendered menus should attach document event listeners only when opened', async function () {
     const addSpy = jest.spyOn(document, 'addEventListener');
     const removeSpy = jest.spyOn(document, 'removeEventListener');
 
@@ -144,18 +137,18 @@ describe('dropdownMenuDeprecated', function () {
     // Make sure this is only called when menu is open
     expect(addSpy).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(addSpy).toHaveBeenCalled();
     expect(removeSpy).not.toHaveBeenCalled();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     expect(removeSpy).toHaveBeenCalled();
 
     addSpy.mockRestore();
     removeSpy.mockRestore();
   });
 
-  it('does not close nested dropdown on actor clicks', function () {
+  it('does not close nested dropdown on actor clicks', async function () {
     render(
       <DeprecatedDropdownMenu isNestedDropdown>
         {({getRootProps, getActorProps, getMenuProps}) => (
@@ -169,10 +162,10 @@ describe('dropdownMenuDeprecated', function () {
       </DeprecatedDropdownMenu>
     );
 
-    userEvent.hover(screen.getByRole('button'));
+    await userEvent.hover(screen.getByRole('button'));
     expect(screen.getByTestId('menu-item')).toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button'));
+    await userEvent.click(screen.getByRole('button'));
     // Should still be visible.
     expect(screen.getByTestId('menu-item')).toBeInTheDocument();
   });

@@ -57,7 +57,7 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
   });
 
-  it('collapses more than 5 teams', function () {
+  it('collapses more than 5 teams', async function () {
     render(
       <ProjectTeamAccess
         organization={organization}
@@ -78,10 +78,10 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
 
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
 
-    userEvent.click(screen.getByRole('button', {name: 'Show 2 collapsed teams'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 collapsed teams'}));
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(7);
 
-    userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
   });
 

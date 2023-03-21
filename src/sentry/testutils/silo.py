@@ -22,8 +22,8 @@ from sentry.types.region import Region, RegionCategory
 TestMethod = Callable[..., None]
 
 region_map = [
-    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 ]
 
@@ -70,7 +70,7 @@ class SiloModeTest:
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:
-                            with override_settings(SENTRY_REGION="north_america"):
+                            with override_settings(SENTRY_REGION="na"):
                                 test_method(*args, **kwargs)
                         else:
                             test_method(*args, **kwargs)
@@ -112,7 +112,7 @@ class SiloModeTest:
             with override_settings(SILO_MODE=silo_mode):
                 with override_regions(region_map):
                     if silo_mode == SiloMode.REGION:
-                        with override_settings(SENTRY_REGION="north_america"):
+                        with override_settings(SENTRY_REGION="na"):
                             test_method(*args, **kwargs)
                     else:
                         test_method(*args, **kwargs)
@@ -134,7 +134,8 @@ class SiloModeTest:
 
     def _call(self, decorated_obj: Any, stable: bool) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
-        is_function = callable(decorated_obj)
+        is_function = inspect.isfunction(decorated_obj)
+
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 

@@ -34,17 +34,8 @@ class ProjectMonitorPermission(ProjectPermission):
 
 class MonitorEndpoint(Endpoint):
     """
-    Base endpoint class for monitors which will lookup the monitor ID and
+    Base endpoint class for monitors which will lookup the monitor and
     convert it to a Monitor object.
-
-    Currently this has two strategies for monitor lookup
-
-    1. Via the monitor slug. In this scenario the organization_slug MUST be
-       present, since monitor slugs are unique with the organization_slug
-
-    2. Via the monitor GUID. In this scenario the organization_slug is not
-       required as GUIDs are global to sentry. We will check that the
-       organization resulting from the monitor project
 
     [!!]: This base endpoint is NOT used for legacy ingestion endpoints, see
           MonitorIngestEndpoint for that.
@@ -67,22 +58,9 @@ class MonitorEndpoint(Endpoint):
             raise ResourceDoesNotExist
 
         try:
-            # Try lookup by slug first
             monitor = Monitor.objects.get(organization_id=organization.id, slug=monitor_id)
         except Monitor.DoesNotExist:
-            # Try lookup by GUID. We cannot consolidate this into one query as
-            # we need to validate the slug is a GUID before trying to query on
-            # the GUID column, otherwise we'll produce a postgres error
-            try:
-                UUID(monitor_id)
-            except ValueError:
-                # This error is a bit confusing, because this may also mean
-                # that we've failed to lookup their monitor by slug.
-                raise ParameterValidationError("Invalid monitor UUID")
-            try:
-                monitor = Monitor.objects.get(organization_id=organization.id, guid=monitor_id)
-            except Monitor.DoesNotExist:
-                raise ResourceDoesNotExist
+            raise ResourceDoesNotExist
 
         project = Project.objects.get_from_cache(id=monitor.project_id)
         if project.status != ProjectStatus.VISIBLE:
@@ -112,12 +90,16 @@ class MonitorIngestEndpoint(Endpoint):
     """
     This type of endpont explicitly only allows for DSN and Token / Key based authentication.
 
+    [!!]: These endpoints are legacy and will be replaced by relay based
+          checkin ingestion in the very near future.
+
     [!!]: These endpoints support routes which **do not specify the
           organization slug**! This endpoint is extra careful in those cases to
           validate
 
-    [!!]: These endpoints are legacy and will be replaced by relay based
-          checkin ingestion in the very near future.
+    [!!]: This type of endpoint supports lookup of monitors by slug AND by
+          GUID. However slug lookup is **ONLY** supported when the organization
+          slug is part of the URL parameters.
     """
 
     authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)

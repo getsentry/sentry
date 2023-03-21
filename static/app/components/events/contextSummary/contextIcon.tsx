@@ -1,4 +1,4 @@
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import logoAmazon from 'sentry-logos/logo-amazon.svg';
 import logoAmd from 'sentry-logos/logo-amd.svg';
 import logoAndroid from 'sentry-logos/logo-android.svg';
@@ -41,6 +41,7 @@ import logoWindows from 'sentry-logos/logo-windows.svg';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {IconSize} from 'sentry/utils/theme';
 
 const LOGO_MAPPING = {
   'android-phone': logoAndroidPhone,
@@ -126,14 +127,18 @@ function getLogoImage(name: string) {
 
 type Props = {
   name: string;
+  size?: IconSize;
 };
 
-function ContextIcon({name}: Props) {
+function ContextIcon({name, size: providedSize = 'xl'}: Props) {
+  const theme = useTheme();
+  const size = theme.iconSizes[providedSize];
+
   // Apply darkmode CSS to icon when in darkmode
   const isDarkmode = useLegacyStore(ConfigStore).theme === 'dark';
   const extraCass = isDarkmode && INVERT_IN_DARKMODE.includes(name) ? darkCss : null;
 
-  return <img height="32px" width="32px" css={extraCass} src={getLogoImage(name)} />;
+  return <img height={size} width={size} css={extraCass} src={getLogoImage(name)} />;
 }
 
 export default ContextIcon;

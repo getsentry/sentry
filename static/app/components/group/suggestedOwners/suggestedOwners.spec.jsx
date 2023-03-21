@@ -61,7 +61,7 @@ describe('SuggestedOwners', function () {
     await waitFor(() =>
       expect(screen.getAllByTestId('suggested-assignee')).toHaveLength(2)
     );
-    userEvent.hover(screen.getAllByTestId('suggested-assignee')[0]);
+    await userEvent.hover(screen.getAllByTestId('suggested-assignee')[0]);
   });
 
   it('Merges owner matching rules and having suspect commits', async function () {
@@ -86,7 +86,7 @@ describe('SuggestedOwners', function () {
       organization,
     });
 
-    userEvent.hover(await screen.findByTestId('suggested-assignee'));
+    await userEvent.hover(await screen.findByTestId('suggested-assignee'));
 
     expect(await screen.findByText('sentry/tagstore/*')).toBeInTheDocument();
     expect(screen.getByText('Matching Ownership Rules')).toBeInTheDocument();
