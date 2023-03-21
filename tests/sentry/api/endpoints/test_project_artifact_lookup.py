@@ -1,19 +1,20 @@
 import zipfile
+from datetime import datetime, timezone
 from io import BytesIO
 from uuid import uuid4
 
 from django.urls import reverse
 
-from sentry.models import ArtifactBundle, DebugIdArtifactBundle, File, SourceFileType
+from sentry.models import ArtifactBundle, DebugIdArtifactBundle, File, ReleaseFile, SourceFileType
 from sentry.models.artifactbundle import ReleaseArtifactBundle
+from sentry.models.releasefile import read_artifact_index, update_artifact_index
 from sentry.testutils import APITestCase
 from sentry.utils import json
 
 
-def make_file(artifact_name, content):
-    file = File.objects.create(name=artifact_name, type="artifact.bundle")
+def make_file(artifact_name, content, type="artifact.bundle", headers=None):
+    file = File.objects.create(name=artifact_name, type=type, headers=(headers or {}))
     file.putfile(BytesIO(content))
-
     return file
 
 
@@ -53,6 +54,23 @@ class ArtifactLookupTest(APITestCase):
         with file.getfile() as file:
             for chunk in response:
                 assert file.read(len(chunk)) == chunk
+
+    def create_archive(self, fields, files, dist=None):
+        manifest = dict(
+            fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
+        )
+        buffer = BytesIO()
+        with zipfile.ZipFile(buffer, mode="w") as zf:
+            zf.writestr("manifest.json", json.dumps(manifest))
+            for filename, content in files.items():
+                zf.writestr(filename, content)
+
+        buffer.seek(0)
+        file_ = File.objects.create(name=str(hash(tuple(files.items()))))
+        file_.putfile(buffer)
+        file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
+
+        return update_artifact_index(self.release, dist, file_)
 
     def test_query_by_debug_ids(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
@@ -241,3 +259,252 @@ class ArtifactLookupTest(APITestCase):
         self.assert_download_matches_file(response[0]["url"], file_a)
         assert response[1]["type"] == "bundle"
         self.assert_download_matches_file(response[1]["url"], file_b)
+
+    def test_query_by_url_from_releasefiles(self):
+        file_headers = {"Sourcemap": "application.js.map"}
+        file = make_file("application.js", b"wat", "release.file", file_headers)
+        ReleaseFile.objects.create(
+            organization_id=self.project.organization_id,
+            release_id=self.release.id,
+            file=file,
+            name="http://example.com/application.js",
+        )
+
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        response = self.client.get(
+            f"{url}?release={self.release.version}&url=application.js"
+        ).json()
+
+        assert len(response) == 1
+        assert response[0]["type"] == "file"
+        assert response[0]["abs_path"] == "application.js"
+        assert response[0]["headers"] == file_headers
+        self.assert_download_matches_file(response[0]["url"], file)
+
+    def test_query_by_url_from_artifact_index(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        assert read_artifact_index(self.release, None) is None
+
+        archive1 = self.create_archive(
+            fields={},
+            files={
+                "foo": "foo",
+                "bar": "bar",
+            },
+        )
+
+        assert read_artifact_index(self.release, None) == {
+            "files": {
+                "fake://foo": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://bar": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+                    "size": 3,
+                },
+            },
+        }
+
+        # Should download 1 archives as both files are within a single archive
+        response = self.client.get(f"{url}?release={self.release.version}&url=foo&url=bar").json()
+
+        assert len(response) == 1
+        assert response[0]["type"] == "bundle"
+
+        # Override `bar` file inside the index. It will now have different `sha1`` and different `archive_ident` as it comes from other archive.
+        archive2 = self.create_archive(
+            fields={},
+            files={
+                "bar": "BAR",
+            },
+        )
+
+        assert read_artifact_index(self.release, None) == {
+            "files": {
+                "fake://foo": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://bar": {
+                    "archive_ident": archive2.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
+                    "size": 3,
+                },
+            },
+        }
+
+        response = self.client.get(f"{url}?release={self.release.version}&url=foo").json()
+
+        assert len(response) == 1
+        assert response[0]["type"] == "bundle"
+
+        # Should download 2 archives as they have different `archive_ident`
+        response = self.client.get(f"{url}?release={self.release.version}&url=foo&url=bar").json()
+
+        assert len(response) == 2
+        assert response[0]["type"] == "bundle"
+
+        # TODO: Write assertions about downloaded zip file
+
+        # archive_zip = make_compressed_zip_file(
+        #     "bundle_b.zip",
+        #     {
+        #         "path/in/zip_a": {
+        #             "url": "~/path/to/app.js",
+        #             "type": "source_map",
+        #             "content": b"foo",
+        #         },
+        #         "path/in/zip_b": {
+        #             "url": "~/path/to/other/app.js",
+        #             "type": "source_map",
+        #             "content": b"bar",
+        #         },
+        #     },
+        # )
+
+        # self.assert_download_matches_file(response[0]["url"], archive_zip)
+
+    def test_query_by_url_and_dist_from_artifact_index(self):
+        self.login_as(user=self.user)
+
+        url = reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_slug": self.project.slug,
+            },
+        )
+
+        dist = self.release.add_dist("foo")
+
+        archive1 = self.create_archive(
+            fields={},
+            files={
+                "foo": "foo",
+                "bar": "bar",
+            },
+            dist=dist,
+        )
+
+        # No index for dist-less requests.
+        assert read_artifact_index(self.release, None) is None
+
+        assert read_artifact_index(self.release, dist) == {
+            "files": {
+                "fake://foo": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://bar": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+                    "size": 3,
+                },
+            },
+        }
+
+        # Should download 1 archives as both files are within a single archive
+        response = self.client.get(
+            f"{url}?release={self.release.version}&url=foo&url=bar&dist=foo"
+        ).json()
+
+        assert len(response) == 1
+        assert response[0]["type"] == "bundle"
+
+        # Override `bar` file inside the index. It will now have different `sha1`` and different `archive_ident` as it comes from other archive.
+        archive2 = self.create_archive(
+            fields={},
+            files={
+                "bar": "BAR",
+            },
+            dist=dist,
+        )
+
+        assert read_artifact_index(self.release, dist) == {
+            "files": {
+                "fake://foo": {
+                    "archive_ident": archive1.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "foo",
+                    "sha1": "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+                    "size": 3,
+                },
+                "fake://bar": {
+                    "archive_ident": archive2.ident,
+                    "date_created": "2021-06-11T09:13:01.317902Z",
+                    "filename": "bar",
+                    "sha1": "a5d5c1bba91fdb6c669e1ae0413820885bbfc455",
+                    "size": 3,
+                },
+            },
+        }
+
+        response = self.client.get(
+            f"{url}?release={self.release.version}&url=foo&dist={dist.name}"
+        ).json()
+
+        assert len(response) == 1
+        assert response[0]["type"] == "bundle"
+
+        # Should download 2 archives as they have different `archive_ident`
+        response = self.client.get(
+            f"{url}?release={self.release.version}&url=foo&url=bar&dist={dist.name}"
+        ).json()
+
+        assert len(response) == 2
+        assert response[0]["type"] == "bundle"
+
+        # TODO: Write assertions about downloaded zip file
+
+        # archive_zip = make_compressed_zip_file(
+        #     "bundle_b.zip",
+        #     {
+        #         "path/in/zip_a": {
+        #             "url": "~/path/to/app.js",
+        #             "type": "source_map",
+        #             "content": b"foo",
+        #         },
+        #         "path/in/zip_b": {
+        #             "url": "~/path/to/other/app.js",
+        #             "type": "source_map",
+        #             "content": b"bar",
+        #         },
+        #     },
+        # )
+
+        # self.assert_download_matches_file(response[0]["url"], archive_zip)

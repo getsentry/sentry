@@ -1,5 +1,7 @@
 import logging
+from typing import List, Optional
 
+from django.db.models import Q
 from django.http import Http404, HttpResponse, StreamingHttpResponse
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,8 +12,9 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.endpoints.debug_files import has_download_permission
 from sentry.api.serializers import serialize
-from sentry.models import DebugIdArtifactBundle, File
+from sentry.models import DebugIdArtifactBundle, Distribution, File, Release, ReleaseFile
 from sentry.models.artifactbundle import ArtifactBundleArchive, ReleaseArtifactBundle
+from sentry.models.releasefile import read_artifact_index
 
 logger = logging.getLogger("sentry.api")
 
@@ -22,6 +25,10 @@ MAX_BUNDLES_BY_DEBUG_ID = 4
 
 # The number of ArtifactBundles we open up and parse to look for files inside.
 MAX_SCANNED_BUNDLES = 2
+
+
+# The number of files returned by the `get_releasefiles` query
+MAX_RELEASEFILES_QUERY = 10
 
 
 @region_silo_endpoint
@@ -90,8 +97,24 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 pass
 
         urls = request.GET.getlist("url")
-        release = request.GET.get("release")
-        dist = request.GET.get("dist")
+        release_name = request.GET.get("release")
+        dist_name = request.GET.get("dist")
+        release = None
+        dist = None
+
+        # TODO: Is there a way to safely query this and return `None` if not existing?
+        try:
+            release = Release.objects.get(
+                organization_id=project.organization_id,
+                projects=project,
+                version=release_name,
+            )
+
+            # We cannot query for dist without a release anywy
+            if dist_name:
+                dist = Distribution.objects.get(release=release, name=dist_name)
+        except Exception as exc:
+            logger.error("Failed to read", exc_info=exc)
 
         # For debug_ids, we will query for the artifact_bundle/file_id directly
         bundle_file_ids = set(
@@ -103,6 +126,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             .values_list("artifact_bundle__file_id", flat=True)
             .distinct("artifact_bundle__file_id")[: MAX_BUNDLES_BY_DEBUG_ID + 1]
         )
+        individual_files = set()
+
         if len(bundle_file_ids) > MAX_BUNDLES_BY_DEBUG_ID:
             logger.error(
                 "querying for artifact bundles by `debug_id` yielded more than %s results",
@@ -110,7 +135,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
 
         if len(urls) > 0:
-            if release is None:
+            if release_name is None:
                 logger.error("trying to look up artifacts by `url` without a `release`")
             else:
                 # If we have `urls`, we want to:
@@ -118,8 +143,8 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 # to figure out if the file is included in any of them
                 releases_with_bundles = ReleaseArtifactBundle.objects.filter(
                     organization_id=project.organization.id,
-                    release_name=release,
-                    dist_name=dist or "",
+                    release_name=release_name,
+                    dist_name=dist_name,
                 ).select_related("artifact_bundle__file")[:MAX_SCANNED_BUNDLES]
 
                 manifests = []
@@ -130,6 +155,14 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                         manifest = archive._read_manifest()
                         manifests.append((file_id, manifest))
 
+                artifact_index = None
+                try:
+                    artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
+                except Exception as exc:
+                    logger.error("Failed to read artifact index", exc_info=exc)
+
+                artifact_archives = dict()
+
                 def url_in_any_manifest(url):
                     for (file_id, manifest) in manifests:
                         if url_exists_in_manifest(manifest, url):
@@ -137,22 +170,41 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                             return True
                     return False
 
+                def url_in_any_artifact_index(url):
+                    if artifact_index is None:
+                        return False
+
+                    file = find_file_in_archive_index(artifact_index, url)
+                    if file is not None:
+                        ident = file["archive_ident"]
+                        archive = artifact_archives.get(ident)
+
+                        if archive is not None:
+                            bundle_file_ids.add(archive)
+                        else:
+                            artifact_index_qs = ReleaseFile.objects.filter(
+                                release_id=release.id, ident=ident
+                            ).select_related("file")
+                            artifact_archives[ident] = artifact_index_qs[0].file.id
+                            bundle_file_ids.add(artifact_index_qs[0].file.id)
+                        return True
+                    return False
+
                 missing_urls = []
                 for url in urls:
-                    if not url_in_any_manifest(url):
+                    if not url_in_any_manifest(url) and not url_in_any_artifact_index(url):
                         missing_urls.append(url)
+
+                if len(missing_urls) > 0 and release is not None:
+                    individual_files = set(
+                        self.get_releasefiles(missing_urls, project.organization_id, release, dist)
+                    )
 
                 # Possibly use the algorithm sketched up here:
                 # https://github.com/getsentry/sentry/pull/45697#issuecomment-1466389132
                 # That would narrow down our set of bundles to the minimum set that covers
                 # the file names we are querying for, and also leave us with the remaining
                 # set of file names that are not covered by any bundle, to look up below
-
-        # Second, look for a legacy `ReleaseFile` (or whatever) if an individual
-        # file exists matching the release/dist/url we are looking for.
-
-        # TODO: also query for and return individual artifacts
-        individual_files = set()
 
         # Then: Construct our response
         url_constructor = UrlConstructor(request)
@@ -166,22 +218,38 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 }
             )
 
-        for file in individual_files:
+        for release_file in individual_files:
             found_artifacts.append(
                 {
                     "type": "file",
-                    "url": url_constructor.url_for_file_id(file.id),
+                    "url": url_constructor.url_for_file_id(release_file.file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
-                    "abs_path": file.name,
+                    "abs_path": release_file.file.name,
                     # These headers should ideally include the `Sourcemap` reference
-                    "headers": file.headers,
+                    "headers": release_file.file.headers,
                 }
             )
 
         # NOTE: We do not paginate this response, as we have very tight limits
         # on all the individual queries.
         return Response(serialize(found_artifacts, request.user))
+
+    def get_releasefiles(self, urls: List[str], org_id: int, release: Release, dist: Optional[str]):
+        # Exclude files which are also present in archive:
+        file_list = (
+            ReleaseFile.public_objects.filter(release_id=release.id)
+            .exclude(artifact_count=0)
+            .select_related("file")
+            .order_by("name")
+        )
+
+        condition = Q(name__icontains=urls[0])
+        for url in urls[1:]:
+            condition |= Q(name__icontains=url)
+        file_list = file_list.filter(condition)
+
+        return file_list[:MAX_RELEASEFILES_QUERY]
 
 
 def url_exists_in_manifest(manifest: dict, url: str) -> bool:
@@ -190,12 +258,29 @@ def url_exists_in_manifest(manifest: dict, url: str) -> bool:
     `url` matches any of the files.
     """
     try:
+        # TODO: Should this be a partial match?
         files = manifest.get("files", dict())
         for file in files.values():
             if url in file.get("url", ""):
                 return True
+        return False
     except Exception:
         return False
+
+
+def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
+    """
+    Looks through all the files in the `ArtifactIndex` and see if the
+    `url` matches any of the files.
+    """
+    try:
+        files = archive_index.get("files", dict())
+        for key in files.keys():
+            if url in key:
+                return files[key]
+        return None
+    except Exception:
+        return None
 
 
 class UrlConstructor:
