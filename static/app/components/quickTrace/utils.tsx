@@ -14,6 +14,7 @@ import {
   EventLite,
   QuickTraceEvent,
   TraceError,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {getTraceTimeRangeFromEvent} from 'sentry/utils/performance/quickTrace/utils';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
@@ -21,7 +22,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 export function isQuickTraceEvent(
-  event: QuickTraceEvent | TraceError
+  event: QuickTraceEvent | TraceError | TracePerformanceIssue
 ): event is QuickTraceEvent {
   return defined((event as QuickTraceEvent)['transaction.duration']);
 }
@@ -31,7 +32,7 @@ export type ErrorDestination = 'discover' | 'issue';
 export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
-  event: TraceError,
+  event: TraceError | TracePerformanceIssue,
   organization: OrganizationSummary
 ): LocationDescriptor {
   return `/organizations/${organization.slug}/issues/${event.issue_id}/events/${event.event_id}`;
@@ -54,7 +55,7 @@ function generatePerformanceEventTarget(
 }
 
 function generateDiscoverEventTarget(
-  event: EventLite | TraceError,
+  event: EventLite | TraceError | TracePerformanceIssue,
   organization: OrganizationSummary,
   location: Location
 ): LocationDescriptor {
@@ -78,7 +79,7 @@ function generateDiscoverEventTarget(
 }
 
 export function generateSingleErrorTarget(
-  event: TraceError,
+  event: TraceError | TracePerformanceIssue,
   organization: OrganizationSummary,
   location: Location,
   destination: ErrorDestination
