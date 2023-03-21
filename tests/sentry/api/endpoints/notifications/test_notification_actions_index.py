@@ -21,10 +21,12 @@ NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
+    @patch.dict(NotificationAction._registry, {})
     def setUp(self):
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
+        # self.integration = install_slack(organization=self.organization)
         self.team = self.create_team(
             name="pale beings", organization=self.organization, members=[self.user]
         )
@@ -33,12 +35,17 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             self.create_project(name="dirtmouth", organization=self.organization),
         ]
         self.base_data = {
-            "serviceType": "slack",
+            "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@hollowknight",
             "targetIdentifier": "THK",
         }
+        self.mock_register = NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )
         self.login_as(user=self.user)
 
     def test_requires_feature(self):
@@ -239,11 +246,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             validate_action = MagicMock(side_effect=serializers.ValidationError(error_message))
 
         registration = MockActionRegistration
-        NotificationAction.register_action(
-            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
-            service_type=ActionService.get_value(self.base_data["serviceType"]),
-            target_type=ActionTarget.get_value(self.base_data["targetType"]),
-        )(registration)
+        self.mock_register(registration)
 
         with self.feature(NOTIFICATION_ACTION_FEATURE):
             response = self.get_error_response(

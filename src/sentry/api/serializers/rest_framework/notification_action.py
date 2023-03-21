@@ -100,15 +100,18 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         return trigger_type_value
 
     def validate_integration_and_service(self, data: NotificationActionInputData):
+        if data["service_type"] not in INTEGRATION_SERVICES:
+            return
+
         service_provider = ActionService.get_name(data["service_type"])
-        if data["service_type"] in INTEGRATION_SERVICES and data.get("integration_id") is None:
+        if data.get("integration_id") is None:
             raise serializers.ValidationError(
                 {
                     "integration_id": f"Service type of '{service_provider}' requires providing an active integration id"
                 }
             )
-        integration = integration_service.get_integration(integration_id=data["integration_id"])
-        if service_provider != integration.provider:
+        integration = integration_service.get_integration(integration_id=data.get("integration_id"))
+        if integration and service_provider != integration.provider:
             raise serializers.ValidationError(
                 {
                     "integration_id": f"Integration of provider '{integration.provider}' does not match service type of '{service_provider}'"

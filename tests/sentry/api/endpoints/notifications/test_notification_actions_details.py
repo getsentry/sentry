@@ -34,7 +34,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             organization=self.organization, projects=self.projects
         )
         self.base_data = {
-            "serviceType": "slack",
+            "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@pyke",
