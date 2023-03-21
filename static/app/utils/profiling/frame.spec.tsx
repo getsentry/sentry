@@ -29,7 +29,7 @@ describe('Frame', () => {
             column: undefined,
           },
           'node'
-        ).image
+        ).module
       ).toBe(undefined);
     });
     it.each([
@@ -58,7 +58,7 @@ describe('Frame', () => {
             column: undefined,
           },
           'node'
-        ).image
+        ).module
       ).toBe(expected);
     });
   });

@@ -661,7 +661,15 @@ class GroupDetails extends Component<Props, State> {
               <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
-              this.renderContent(projects[0], group!)
+              // Search for the slug in the projects list if possible. This is because projects
+              // is just a complete list of stored projects and the first element may not be
+              // the expected project.
+              this.renderContent(
+                (project?.slug
+                  ? projects.find(({slug}) => slug === project?.slug)
+                  : undefined) ?? projects[0],
+                group!
+              )
             )
           ) : (
             <LoadingIndicator />

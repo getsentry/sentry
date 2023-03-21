@@ -22,6 +22,7 @@ from sentry.models import (
     IntegrationExternalProject,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -185,7 +186,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             content_type="application/json",
         )
 
-        user = self.create_user("ftotten@vscsi.us")
+        user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,
@@ -243,7 +244,7 @@ class VstsIssueSyncTest(VstsIssueBase):
             content_type="application/json",
         )
 
-        user = self.create_user("ftotten@vscsi.us")
+        user = user_service.get_user(user_id=self.create_user("ftotten@vscsi.us").id)
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.model.id,

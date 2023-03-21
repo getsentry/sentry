@@ -26,6 +26,7 @@ import {
   QuickTrace as QuickTraceType,
   QuickTraceEvent,
   TraceError,
+  TracePerformanceIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {parseQuickTrace} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
@@ -288,10 +289,13 @@ function EventNodeSelector({
   numEvents = 5,
 }: EventNodeSelectorProps) {
   let errors: TraceError[] = events.flatMap(event => event.errors ?? []);
+  let perfIssues: TracePerformanceIssue[] = events.flatMap(
+    event => event.performance_issues ?? []
+  );
 
   let type: keyof Theme['tag'] = nodeKey === 'current' ? 'black' : 'white';
 
-  const hasErrors = errors.length > 0;
+  const hasErrors = errors.length > 0 || perfIssues.length > 0;
 
   if (hasErrors) {
     type = nodeKey === 'current' ? 'error' : 'warning';
@@ -303,29 +307,45 @@ function EventNodeSelector({
     );
   }
 
+  const isError = currentEvent.hasOwnProperty('groupID') && currentEvent.groupID !== null;
   // make sure to exclude the current event from the dropdown
-  events = events.filter(event => event.event_id !== currentEvent.id);
+  events = events.filter(
+    event =>
+      event.event_id !== currentEvent.id ||
+      // if the current event is a perf issue, we don't want to filter out the matching txn
+      (event.event_id === currentEvent.id && isError)
+  );
   errors = errors.filter(error => error.event_id !== currentEvent.id);
+  perfIssues = perfIssues.filter(
+    issue =>
+      issue.event_id !== currentEvent.id ||
+      // if the current event is a txn, we don't want to filter out the matching perf issue
+      (issue.event_id === currentEvent.id && !isError)
+  );
 
-  if (events.length + errors.length === 0) {
+  const totalErrors = errors.length + perfIssues.length;
+
+  if (events.length + totalErrors === 0) {
     return (
       <EventNode type={type} data-test-id="event-node">
         {text}
       </EventNode>
     );
   }
-  if (events.length + errors.length === 1) {
+  if (events.length + totalErrors === 1) {
     /**
      * When there is only 1 event, clicking the node should take the user directly to
      * the event without additional steps.
      */
-    const hoverText = errors.length ? (
+    const hoverText = totalErrors ? (
       t('View the error for this Transaction')
     ) : (
       <SingleEventHoverText event={events[0]} />
     );
     const target = errors.length
       ? generateSingleErrorTarget(errors[0], organization, location, errorDest)
+      : perfIssues.length
+      ? generateSingleErrorTarget(perfIssues[0], organization, location, errorDest)
       : generateSingleTransactionTarget(
           events[0],
           organization,
@@ -362,12 +382,12 @@ function EventNodeSelector({
         title={<StyledEventNode text={text} hoverText={hoverText} type={type} />}
         anchorRight={anchor === 'right'}
       >
-        {errors.length > 0 && (
+        {totalErrors > 0 && (
           <DropdownMenuHeader first>
-            {tn('Related Error', 'Related Errors', errors.length)}
+            {tn('Related Issue', 'Related Issues', totalErrors)}
           </DropdownMenuHeader>
         )}
-        {errors.slice(0, numEvents).map(error => {
+        {[...errors, ...perfIssues].slice(0, numEvents).map(error => {
           const target = generateSingleErrorTarget(
             error,
             organization,
@@ -431,7 +451,7 @@ function EventNodeSelector({
 
 type DropdownNodeProps = {
   anchor: 'left' | 'right';
-  event: TraceError | QuickTraceEvent;
+  event: TraceError | QuickTraceEvent | TracePerformanceIssue;
   organization: OrganizationSummary;
   allowDefaultEvent?: boolean;
   onSelect?: (eventKey: any) => void;

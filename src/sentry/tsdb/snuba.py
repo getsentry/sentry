@@ -868,7 +868,9 @@ class SnubaTSDB(BaseTSDB):
             for k in result.keys()
         }
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         result = self.get_data(
             model,
             items,
@@ -878,6 +880,7 @@ class SnubaTSDB(BaseTSDB):
             [environment_id] if environment_id is not None else None,
             aggregation="count()",
             group_on_time=True,
+            tenant_ids=tenant_ids,
         )
         # convert
         #    {group:{timestamp:{agg:count}}}

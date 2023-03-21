@@ -31,7 +31,6 @@ from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
-from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
@@ -93,7 +92,7 @@ class OrganizationMemberManager(BaseManager):
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
     def get_for_integration(
-        self, integration_or_id: RpcIntegration | int, actor: RpcUser | User
+        self, integration_or_id: RpcIntegration | int, actor: RpcUser
     ) -> QuerySet:
         from sentry.services.hybrid_cloud.integration import integration_service
 

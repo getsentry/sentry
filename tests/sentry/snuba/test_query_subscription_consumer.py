@@ -138,7 +138,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
                 ),
             )
         self.metrics.incr.assert_called_once_with(
-            "snuba_query_subscriber.subscription_doesnt_exist"
+            "snuba_query_subscriber.subscription_doesnt_exist",
+            tags={"dataset": Dataset.Events.value},
         )
 
     def test_subscription_not_registered(self):
@@ -149,7 +150,8 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
         data["payload"]["subscription_id"] = sub.subscription_id
         self.consumer.handle_message(self.build_mock_message(data), self.topic)
         self.metrics.incr.assert_called_once_with(
-            "snuba_query_subscriber.subscription_type_not_registered"
+            "snuba_query_subscriber.subscription_type_not_registered",
+            tags={"dataset": Dataset.Events.value},
         )
 
     def test_subscription_registered(self):
