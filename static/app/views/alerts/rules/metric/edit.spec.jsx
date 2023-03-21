@@ -96,7 +96,7 @@ describe('MetricRulesEdit', function () {
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
     await userEvent.clear(screen.getByTestId('resolve-threshold'));
-    await userEvent.type(screen.getByTestId('resolve-threshold'), '12');
+    await userEvent.type(screen.getByTestId('resolve-threshold'), '7');
 
     // Create a new action
     await userEvent.click(screen.getByLabelText('Add Action'));
@@ -119,7 +119,7 @@ describe('MetricRulesEdit', function () {
           status: 0,
           timeWindow: 60,
           thresholdType: 0,
-          resolveThreshold: 12,
+          resolveThreshold: 7,
           triggers: [
             expect.objectContaining({
               actions: [
@@ -144,7 +144,7 @@ describe('MetricRulesEdit', function () {
     // New Trigger should be in list
     // Has correct values
     expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('7');
   });
 
   it('removes warning trigger', async function () {
