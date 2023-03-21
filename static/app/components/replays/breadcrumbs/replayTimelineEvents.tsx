@@ -1,6 +1,7 @@
 import {css, Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getCrumbsByColumn} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -8,7 +9,6 @@ import {space} from 'sentry/styles/space';
 import {Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Color} from 'sentry/utils/theme';
-import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbItem';
 
 const NODE_SIZES = [8, 12, 16];
 
@@ -79,14 +79,14 @@ function Event({
 
   const buttons = crumbs.map(crumb => (
     <BreadcrumbItem
-      key={crumb.id}
       crumb={crumb}
-      startTimestampMs={startTimestampMs}
+      isCurrent={false}
       isHovered={false}
-      isSelected={false}
+      key={crumb.id}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
+      startTimestampMs={startTimestampMs}
     />
   ));
   const title = <TooltipWrapper>{buttons}</TooltipWrapper>;
