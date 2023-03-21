@@ -7,8 +7,10 @@ import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 const ISSUE_CATEGORY_FILTER = 'issue.category';
 
@@ -23,6 +25,7 @@ function IssueCategoryFilter({
     'issue-category-dropdown-seen:performance',
     false
   );
+  const organization = useOrganization();
 
   const renderLabel = useCallback(
     (issueCategory?: IssueCategory, isTriggerLabel?: boolean) => {
@@ -85,6 +88,11 @@ function IssueCategoryFilter({
     if (option.value === 'performance') {
       setIsPerformanceSeen(true);
     }
+
+    trackAdvancedAnalyticsEvent('issues_stream.issue_category_dropdown_changed', {
+      organization,
+      category: option.value,
+    });
 
     setSelectedOption(option);
     onSearch(search.formatString());
