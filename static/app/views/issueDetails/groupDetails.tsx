@@ -661,7 +661,12 @@ class GroupDetails extends Component<Props, State> {
               <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
-              this.renderContent(projects[0], group!)
+              this.renderContent(
+                (project?.slug
+                  ? projects.find(({slug}) => slug === project?.slug)
+                  : undefined) ?? projects[0],
+                group!
+              )
             )
           ) : (
             <LoadingIndicator />
