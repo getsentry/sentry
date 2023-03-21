@@ -4,7 +4,8 @@ import {mat3, vec2} from 'gl-matrix';
 import {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
 import {ViewNode} from 'sentry/components/events/viewHierarchy/wireframe';
 import {defined} from 'sentry/utils';
-import {Rect, watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {watchForResize} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useResizeCanvasObserver(canvases: (HTMLCanvasElement | null)[]): Rect {
   const [bounds, setCanvasBounds] = useState<Rect>(Rect.Empty());

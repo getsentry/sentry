@@ -16,7 +16,6 @@ import {
   getUniform,
   makeProjectionMatrix,
   pointToAndEnableVertexAttribute,
-  Rect,
   resizeCanvasToDisplaySize,
 } from 'sentry/utils/profiling/gl/utils';
 import {
@@ -24,6 +23,7 @@ import {
   FlamegraphRenderer,
   FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {fragment, vertex} from './shaders';
 

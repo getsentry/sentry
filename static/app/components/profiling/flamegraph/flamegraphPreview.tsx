@@ -13,9 +13,10 @@ import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect, useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
+import {useResizeCanvasObserver} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 
 interface FlamegraphPreviewProps {

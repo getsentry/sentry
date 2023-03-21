@@ -1,8 +1,9 @@
 import {vec2} from 'gl-matrix';
 
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {CursorRenderer} from 'sentry/utils/profiling/renderers/cursorRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('CursorRenderer', () => {
   it('renders cursor in center screen', () => {

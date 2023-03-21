@@ -3,9 +3,9 @@ import {mat3, vec2} from 'gl-matrix';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
-  Rect,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.Empty();

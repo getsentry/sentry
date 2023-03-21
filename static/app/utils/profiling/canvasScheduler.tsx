@@ -3,9 +3,9 @@ import {mat3} from 'gl-matrix';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 
-import {Rect} from './gl/utils';
 import {FlamegraphFrame} from './flamegraphFrame';
 import {SpanChartNode} from './spanChart';
+import {Rect} from './speedscope';
 import {UIFrameNode} from './uiFrames';
 
 type DrawFn = () => void;

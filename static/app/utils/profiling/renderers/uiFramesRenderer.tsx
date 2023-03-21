@@ -1,6 +1,7 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {
   createAndBindBuffer,
@@ -11,7 +12,6 @@ import {
   getUniform,
   makeProjectionMatrix,
   pointToAndEnableVertexAttribute,
-  Rect,
   resizeCanvasToDisplaySize,
   upperBound,
 } from '../gl/utils';

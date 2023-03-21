@@ -13,8 +13,6 @@ import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
 import {Rect} from '../speedscope';
 
-export {Rect};
-
 export function createShader(
   gl: WebGLRenderingContext,
   type: WebGLRenderingContext['VERTEX_SHADER'] | WebGLRenderingContext['FRAGMENT_SHADER'],
