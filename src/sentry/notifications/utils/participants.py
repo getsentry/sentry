@@ -396,6 +396,10 @@ def should_use_smaller_issue_alert_fallback(org: Organization) -> Tuple[bool, st
         # Not early access, not in experiment
         return (False, "ga")
 
+    # Disabled
+    if not features.has("organizations:issue-alert-fallback-experiment", org, actor=None):
+        return (False, "")
+
     org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
     if org_exposed:
         return (True, "expt")
