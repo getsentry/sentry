@@ -12,6 +12,7 @@ from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organization import Organization
 from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.types.integrations import ExternalProviders
 from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
@@ -52,10 +53,10 @@ class ActionService(FlexibleIntEnum):
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
-            (cls.EMAIL.value, "email"),
-            (cls.PAGERDUTY.value, "pagerduty"),
-            (cls.SLACK.value, "slack"),
-            (cls.MSTEAMS.value, "msteams"),
+            (cls.EMAIL.value, ExternalProviders.EMAIL.name),
+            (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
+            (cls.SLACK.value, ExternalProviders.SLACK.name),
+            (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
         )
