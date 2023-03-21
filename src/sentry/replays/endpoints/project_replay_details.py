@@ -36,7 +36,7 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
         filter_params = self.get_filter_params(request, project)
 
         try:
-            uuid.UUID(replay_id)
+            replay_id = str(uuid.UUID(replay_id))
         except ValueError:
             return Response(status=404)
 
