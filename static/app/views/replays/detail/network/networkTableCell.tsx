@@ -61,6 +61,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       style,
       ref,
     };
+    const size = span.data.size ?? span.data.responseBodySize;
 
     const renderFns = [
       () => (
@@ -94,11 +95,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps} numeric>
           <Text>
-            {span.data.size === undefined ? (
-              EMPTY_CELL
-            ) : (
-              <FileSize bytes={span.data.size} />
-            )}
+            {size === undefined ? EMPTY_CELL : <FileSize base={10} bytes={size} />}
           </Text>
         </Cell>
       ),
