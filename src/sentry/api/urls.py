@@ -1898,7 +1898,7 @@ PROJECT_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-filters",
+        name="sentry-api-0-project-filters-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",

@@ -4,7 +4,7 @@ from sentry.testutils.silo import region_silo_test
 
 @region_silo_test
 class ProjectFilterDetailsTest(APITestCase):
-    endpoint = "sentry-api-0-project-filters"
+    endpoint = "sentry-api-0-project-filters-details"
     method = "put"
 
     def setUp(self):
