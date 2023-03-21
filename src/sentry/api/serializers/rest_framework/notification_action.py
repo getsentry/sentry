@@ -16,8 +16,16 @@ def format_choices_text(choices: List[Tuple[int, str]]):
     return oxfordize_list(choices_as_display_text)
 
 
+INTEGRATION_SERVICES = {
+    ActionService.PAGERDUTY.value,
+    ActionService.SLACK.value,
+    ActionService.MSTEAMS.value,
+}
+
+
 class NotificationActionInputData(TypedDict):
     integration_id: int
+    sentry_app_id: int
     projects: List[Project]
     service_type: int
     trigger_type: int
@@ -32,6 +40,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     """
 
     integration_id = serializers.IntegerField(required=False)
+    sentry_app_id = serializers.IntegerField(required=False)
     projects = serializers.ListField(child=ProjectField(scope="project:read"), required=False)
 
     service_type = serializers.CharField()
@@ -78,6 +87,25 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         return trigger_type_value
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:
+        if data["service_type"] in INTEGRATION_SERVICES and data.get("integration_id") is None:
+            service_type = ActionService.get_name(data["service_type"])
+            raise serializers.ValidationError(
+                {
+                    "integration_id": f"Service type of '{service_type}' requires providing an active integration id"
+                }
+            )
+
+        if (
+            data["service_type"] == ActionService.SENTRY_APP.value
+            and data.get("sentry_app_id") is None
+        ):
+            service_type = ActionService.get_name(data["service_type"])
+            raise serializers.ValidationError(
+                {
+                    "sentry_app_id": f"Service type of '{service_type}' requires providing a sentry app id"
+                }
+            )
+
         registration = NotificationAction.get_registration(
             trigger_type=data["trigger_type"],
             service_type=data["service_type"],
