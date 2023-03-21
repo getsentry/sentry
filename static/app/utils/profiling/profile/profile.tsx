@@ -107,7 +107,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot() && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
         top = top.parent;
       }
 
@@ -120,7 +120,7 @@ export class Profile {
 
       let node: CallTreeNode | null = stackTop;
 
-      while (node && !node.isRoot() && node !== top) {
+      while (node && !node.isRoot && node !== top) {
         toOpen.push(node);
         node = node.parent;
       }

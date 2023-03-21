@@ -178,10 +178,10 @@ export function makeColorMapByRecursion(
   const colorCache = new Map<FlamegraphFrame['frame']['key'], ColorChannels>();
 
   const sortedFrames = [...frames].sort(defaultFrameSort);
-  const uniqueCount = uniqueCountBy(sortedFrames, t => t.node.isRecursive());
+  const uniqueCount = uniqueCountBy(sortedFrames, t => !!t.node.recursive);
 
   for (let i = 0; i < sortedFrames.length; i++) {
-    if (!sortedFrames[i].node.isRecursive()) {
+    if (!sortedFrames[i].node.recursive) {
       continue;
     }
     const frame = sortedFrames[i]!;

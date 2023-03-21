@@ -172,8 +172,8 @@ export class EventedProfile extends Profile {
       while (start >= 0) {
         if (this.calltree[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.calltree[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(this.calltree[start]);
+          this.calltree[start].recursive = node;
+          node.recursive = this.calltree[start];
           break;
         }
         start--;

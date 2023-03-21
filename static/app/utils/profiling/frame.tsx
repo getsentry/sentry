@@ -1,6 +1,7 @@
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
+const ROOT_KEY = 'sentry root';
 export class Frame {
   readonly key: string | number;
   readonly name: string;
@@ -19,13 +20,15 @@ export class Frame {
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
 
+  readonly isRoot: boolean;
+
   totalWeight: number = 0;
   selfWeight: number = 0;
 
   static Root = new Frame(
     {
-      key: 'sentry root',
-      name: 'sentry root',
+      key: ROOT_KEY,
+      name: ROOT_KEY,
       is_application: false,
     },
     'mobile'
@@ -47,6 +50,7 @@ export class Frame {
     this.symbol = frameInfo.symbol;
     this.symbolAddr = frameInfo.symbolAddr;
     this.symbolicatorStatus = frameInfo.symbolicatorStatus;
+    this.isRoot = this.key === ROOT_KEY;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
@@ -131,9 +135,5 @@ export class Frame {
     if (!this.name) {
       this.name = t('<unknown>');
     }
-  }
-
-  isRoot(): boolean {
-    return this.name === Frame.Root.name;
   }
 }

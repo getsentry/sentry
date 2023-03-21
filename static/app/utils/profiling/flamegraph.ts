@@ -286,7 +286,7 @@ export class Flamegraph {
     };
 
     function visit(node: CallTreeNode, start: number) {
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         openFrame(node, start);
       }
 
@@ -297,7 +297,7 @@ export class Flamegraph {
         childTime += child.totalWeight;
       });
 
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         closeFrame(node, start + node.totalWeight);
       }
     }

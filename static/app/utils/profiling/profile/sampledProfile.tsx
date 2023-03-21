@@ -227,8 +227,8 @@ export class SampledProfile extends Profile {
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(framesInStack[start]);
+          framesInStack[start].recursive = node;
+          node.recursive = framesInStack[start];
           break;
         }
         start--;
@@ -251,7 +251,7 @@ export class SampledProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
-      stackNode.incrementCount();
+      stackNode.count++;
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample

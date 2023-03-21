@@ -5,34 +5,21 @@ export class CallTreeNode {
 
   private locked = false;
   count: number = 0;
+  isRoot: boolean;
 
-  parent: CallTreeNode | null;
-  recursive: CallTreeNode | null;
+  parent: CallTreeNode | null = null;
+  recursive: CallTreeNode | null = null;
   children: CallTreeNode[] = [];
 
   totalWeight: number = 0;
   selfWeight: number = 0;
 
+  static readonly Root = new CallTreeNode(Frame.Root, null);
+
   constructor(frame: Frame, parent: CallTreeNode | null) {
-    this.recursive = null;
     this.parent = parent;
     this.frame = frame;
-  }
-
-  setParent(parent: CallTreeNode): void {
-    this.parent = parent;
-  }
-
-  setRecursiveThroughNode(node: CallTreeNode): void {
-    this.recursive = node;
-  }
-
-  incrementCount(): void {
-    this.count++;
-  }
-
-  isRecursive(): boolean {
-    return !!this.recursive;
+    this.isRoot = Frame.Root.name === this.frame.name;
   }
 
   isDirectRecursive(): boolean {
@@ -49,10 +36,4 @@ export class CallTreeNode {
   lock(): void {
     this.locked = true;
   }
-
-  isRoot(): boolean {
-    return Frame.Root.name === this.frame.name;
-  }
-
-  static readonly Root = new CallTreeNode(Frame.Root, null);
 }
