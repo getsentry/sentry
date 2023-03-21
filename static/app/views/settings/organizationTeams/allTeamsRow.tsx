@@ -206,7 +206,7 @@ class AllTeamsRow extends Component<Props, State> {
     const canViewTeam = team.hasAccess;
 
     const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
-    const displayNone = orgRoleFromTeam === null && this.getTeamRoleName() === null;
+    const isHidden = orgRoleFromTeam === null && this.getTeamRoleName() === null;
     // TODO(team-roles): team admins can also manage membership
     const isDisabled = isIdpProvisioned || isPermissionGroup;
 
@@ -221,8 +221,8 @@ class AllTeamsRow extends Component<Props, State> {
             display
           )}
         </div>
-        <DisplayRole displayNone={displayNone}>{orgRoleFromTeam}</DisplayRole>
-        <DisplayRole displayNone={displayNone}>{this.getTeamRoleName()}</DisplayRole>
+        <DisplayRole isHidden={isHidden}>{orgRoleFromTeam}</DisplayRole>
+        <DisplayRole isHidden={isHidden}>{this.getTeamRoleName()}</DisplayRole>
         <div>
           {this.state.loading ? (
             <Button size="sm" disabled>
@@ -307,6 +307,6 @@ const TeamPanelItem = styled(PanelItem)`
   }
 `;
 
-const DisplayRole = styled('div')<{displayNone: boolean}>`
-  display: ${props => (props.displayNone ? 'none' : 'block')};
+const DisplayRole = styled('div')<{isHidden: boolean}>`
+  display: ${props => (props.isHidden ? 'none' : 'block')};
 `;
