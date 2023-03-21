@@ -113,7 +113,7 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
 
 class AppService(RpcService):
     name = "app"
-    local_mode = SiloMode.REGION
+    local_mode = SiloMode.CONTROL
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
