@@ -282,13 +282,8 @@ function RuleListRow({
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
-      tooltip={
-        <TooltipWrapper>
-          {tct('Assigned to [name]', {
-            name: teamName && `#${teamName.name}`,
-          })}
-        </TooltipWrapper>
-      }
+      tooltipOptions={{overlayStyle: {textAlign: 'left'}}}
+      tooltip={tct('Assigned to [name]', {name: teamName && `#${teamName.name}`})}
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
@@ -480,10 +475,6 @@ const DropdownButton = styled('div')`
 
 const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
-`;
-
-const TooltipWrapper = styled('div')`
-  text-align: left;
 `;
 
 const StyledIconUser = styled(IconUser)`
