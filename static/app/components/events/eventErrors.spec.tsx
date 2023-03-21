@@ -56,38 +56,20 @@ describe('EventErrors', () => {
     ).toBeInTheDocument();
   });
 
-  describe('release artifacts', () => {
-    it('displays extra error info when event dist does not match file dist', async () => {
-      const mock = MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/releases/release-version/files/',
-        body: [{name: 'dist-1'}],
-      });
-
-      const eventWithDifferentDist = TestStubs.Event({
-        release: {
-          version: 'release-version',
-        },
-        errors: [
-          {
-            type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
-            data: {
-              url: 'https://place.com/dist-2',
-            },
+  it('hides source map not found error', () => {
+    const eventWithDifferentDist = TestStubs.Event({
+      errors: [
+        {
+          type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
+          data: {
+            url: 'https://place.com/dist-2',
           },
-        ],
-      });
-
-      render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
-
-      await userEvent.click(
-        screen.getByText(/there was 1 problem processing this event/i)
-      );
-
-      expect(mock).toHaveBeenCalled();
-      await screen.findByText(
-        /Source code was not found because the distribution did not match/i
-      );
+        },
+      ],
     });
+
+    render(<EventErrors {...defaultProps} event={eventWithDifferentDist} />);
+    expect(screen.queryByText(/problem processing this event/i)).not.toBeInTheDocument();
   });
 
   describe('proguard errors', () => {
