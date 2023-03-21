@@ -13,6 +13,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project, Scope} from 'sentry/types';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
@@ -74,6 +75,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
     }
 
     return endpoints;
+  }
+
+  getRetentionPrioritiesData(...data) {
+    return {
+      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
+        id: key,
+        active: value,
+      })),
+    };
   }
 
   handleDelete = () => {
@@ -225,6 +235,58 @@ class ProjectPerformance extends AsyncView<Props, State> {
     ];
   }
 
+  get retentionPrioritiesFormFields(): Field[] {
+    return [
+      {
+        name: 'boostLatestRelease',
+        type: 'boolean',
+        label: t('Prioritize new releases'),
+        defaultValue: true,
+        help: t(
+          'Captures more transactions for your new releases as they are being adopted'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostEnvironments',
+        type: 'boolean',
+        label: t('Prioritize dev environments'),
+        defaultValue: true,
+        help: t(
+          'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostKeyTransactions',
+        type: 'boolean',
+        label: t('Prioritize key transactions'),
+        defaultValue: true,
+        help: t('Captures more of your most important (starred) transactions'),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean',
+        label: t('Prioritize low-volume transactions'),
+        defaultValue: true,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        visible: this.props.organization.features.includes(
+          'dynamic-sampling-transaction-name-priority'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'ignoreHealthChecks',
+        type: 'boolean',
+        label: t('Deprioritize health checks'),
+        defaultValue: true,
+        help: t('Captures fewer of your health checks transactions'),
+        getData: this.getRetentionPrioritiesData,
+      },
+    ];
+  }
+
   get initialData() {
     const {threshold} = this.state;
 
@@ -323,6 +385,42 @@ class ProjectPerformance extends AsyncView<Props, State> {
               </Access>
             </Form>
           </Fragment>
+        </Feature>
+        <Feature features={['organizations:dynamic-sampling']}>
+          <Form
+            saveOnBlur
+            allowUndo
+            initialData={
+              project.dynamicSamplingBiases?.reduce((acc, bias) => {
+                acc[bias.id] = bias.active;
+                return acc;
+              }, {}) ?? {}
+            }
+            onSubmitSuccess={(_response, _instance, id, change) => {
+              trackAdvancedAnalyticsEvent(
+                change?.new === true
+                  ? 'dynamic_sampling_settings.priority_enabled'
+                  : 'dynamic_sampling_settings.priority_disabled',
+                {
+                  organization,
+                  project_id: project.id,
+                  id: id as DynamicSamplingBiasType,
+                }
+              );
+            }}
+            apiMethod="PUT"
+            apiEndpoint={projectEndpoint}
+          >
+            <Access access={requiredScopes}>
+              {({hasAccess}) => (
+                <JsonForm
+                  title={t('Retention Priorities')}
+                  fields={this.retentionPrioritiesFormFields}
+                  disabled={!hasAccess}
+                />
+              )}
+            </Access>
+          </Form>
         </Feature>
       </Fragment>
     );
