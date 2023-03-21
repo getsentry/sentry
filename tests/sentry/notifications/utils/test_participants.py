@@ -930,6 +930,7 @@ class GetSendToFallthroughTest(_ParticipantsTest):
 
     @mock.patch("sentry.experiments.manager.get", return_value=1)
     @with_feature("organizations:issue-alert-fallback-targeting")
+    @with_feature("organizations:issue-alert-fallback-experiment")
     def test_fallthrough_ea_experiment_limit(self, mock_func):
         self.organization.flags.early_adopter = True
 
