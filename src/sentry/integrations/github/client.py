@@ -361,7 +361,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
             name=f"{self.integration_type}.http_response.pagination.{self.name}",
             parent_span_id=parent_span_id,
