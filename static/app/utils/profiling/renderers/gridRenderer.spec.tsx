@@ -1,11 +1,10 @@
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
+import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
 import {
   getIntervalTimeAtX,
   GridRenderer,
 } from 'sentry/utils/profiling/renderers/gridRenderer';
-
-import {computeInterval} from '../speedscope';
+import {computeInterval, Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('getIntervalTimeAtX', () => {
   beforeEach(() => {
