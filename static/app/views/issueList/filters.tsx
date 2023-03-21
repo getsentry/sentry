@@ -20,8 +20,9 @@ function IssueListFilters({query, onSearch}: Props) {
         <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter />
-        <IssueCategoryFilter />
+        <IssueCategoryFilter query={query} onSearch={onSearch} />
       </StyledPageFilterBar>
+
       <IssueSearchWithSavedSearches {...{query, onSearch}} />
     </SearchContainer>
   );
