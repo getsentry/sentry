@@ -61,9 +61,6 @@ describe('EventErrors', () => {
       errors: [
         {
           type: JavascriptProcessingErrors.JS_MISSING_SOURCE,
-          data: {
-            url: 'https://place.com/dist-2',
-          },
         },
       ],
     });
