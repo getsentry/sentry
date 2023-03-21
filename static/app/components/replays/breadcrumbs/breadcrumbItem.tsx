@@ -1,37 +1,37 @@
-import {memo, useCallback} from 'react';
+import {CSSProperties, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
 import {PanelItem} from 'sentry/components/panels';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {Tooltip} from 'sentry/components/tooltip';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
+import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (crumb: Crumb, e: React.MouseEvent<HTMLElement>) => void;
 
 interface Props {
   crumb: Crumb;
+  isCurrent: boolean;
   isHovered: boolean;
-  isSelected: boolean;
   onClick: null | MouseCallback;
   startTimestampMs: number;
-  allowHover?: boolean;
   onMouseEnter?: MouseCallback;
   onMouseLeave?: MouseCallback;
+  style?: CSSProperties;
 }
 
 function BreadcrumbItem({
   crumb,
+  isCurrent,
   isHovered,
-  isSelected,
-  startTimestampMs,
-  allowHover = true,
+  onClick,
   onMouseEnter,
   onMouseLeave,
-  onClick,
+  startTimestampMs,
+  style,
 }: Props) {
   const {title, description} = getDetails(crumb);
 
@@ -52,16 +52,16 @@ function BreadcrumbItem({
 
   return (
     <CrumbItem
+      aria-current={isCurrent}
       as={onClick ? 'button' : 'span'}
+      isCurrent={isCurrent}
+      isHovered={isHovered}
+      onClick={handleClick}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      onClick={handleClick}
-      isHovered={isHovered}
-      isSelected={isSelected}
-      aria-current={isSelected}
-      allowHover={allowHover}
+      style={style}
     >
-      <IconWrapper color={crumb.color}>
+      <IconWrapper color={crumb.color} hasOccurred>
         <BreadcrumbIcon type={crumb.type} />
       </IconWrapper>
       <CrumbDetails>
@@ -75,9 +75,9 @@ function BreadcrumbItem({
           ) : null}
         </TitleContainer>
 
-        <Tooltip title={description} showOnlyOnOverflow>
-          <Description>{description}</Description>
-        </Tooltip>
+        <Description title={description} showOnlyOnOverflow>
+          {description}
+        </Description>
       </CrumbDetails>
     </CrumbItem>
   );
@@ -103,7 +103,7 @@ const Title = styled('span')`
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
 
-const Description = styled('span')`
+const Description = styled(Tooltip)`
   ${p => p.theme.overflowEllipsis};
   font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
@@ -112,9 +112,8 @@ const Description = styled('span')`
 `;
 
 type CrumbItemProps = {
+  isCurrent: boolean;
   isHovered: boolean;
-  isSelected: boolean;
-  allowHover?: boolean;
 };
 
 const CrumbItem = styled(PanelItem)<CrumbItemProps>`
@@ -130,15 +129,13 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   text-align: left;
   border: none;
   position: relative;
-  ${p => p.isSelected && `background-color: ${p.theme.purple100};`}
+  ${p => p.isCurrent && `background-color: ${p.theme.purple100};`}
   ${p => p.isHovered && `background-color: ${p.theme.surface200};`}
   border-radius: ${p => p.theme.borderRadius};
 
-  ${p =>
-    p.allowHover &&
-    ` &:hover {
-    background-color: ${p.theme.surface200};
-  }`}
+  &:hover {
+    background-color: ${p => p.theme.surface200};
+  }
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
   &::after {
@@ -165,23 +162,4 @@ const CrumbItem = styled(PanelItem)<CrumbItemProps>`
   }
 `;
 
-/**
- * Taken `from events/interfaces/.../breadcrumbs/types`
- */
-const IconWrapper = styled('div')<Required<Pick<SVGIconProps, 'color'>>>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => p.theme.white};
-  background: ${p => p.theme[p.color] ?? p.color};
-  box-shadow: ${p => p.theme.dropShadowLight};
-  position: relative;
-  z-index: ${p => p.theme.zIndex.initial};
-`;
-
-const MemoizedBreadcrumbItem = memo(BreadcrumbItem);
-
-export default MemoizedBreadcrumbItem;
+export default memo(BreadcrumbItem);

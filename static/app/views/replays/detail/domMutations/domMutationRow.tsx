@@ -7,11 +7,11 @@ import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/brea
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
 import {space} from 'sentry/styles/space';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
@@ -154,26 +154,6 @@ const List = styled('div')`
 const Row = styled('div')`
   display: flex;
   flex-direction: row;
-`;
-
-/**
- * Taken `from events/interfaces/.../breadcrumbs/types`
- */
-const IconWrapper = styled('div')<
-  {hasOccurred: boolean} & Required<Pick<SVGIconProps, 'color'>>
->`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => p.theme.white};
-  background: ${p => (p.hasOccurred ? p.theme[p.color] ?? p.color : p.theme.purple200)};
-
-  /* Make sure the icon is above the line through the back */
-  z-index: ${p => p.theme.zIndex.initial};
 `;
 
 const Title = styled('span')<{hasOccurred?: boolean}>`
