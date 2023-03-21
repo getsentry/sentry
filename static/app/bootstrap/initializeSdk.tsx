@@ -20,7 +20,7 @@ const SPA_MODE_ALLOW_URLS = [
 // We check for `window.__initialData.user` property and only enable profiling
 // for Sentry employees. This is to prevent a Violation error being visible in
 // the browser console for our users.
-const shouldEnableBrowserProfiling = false; // window?.__initialData?.user?.isSuperuser;
+const shouldEnableBrowserProfiling = window?.__initialData?.user?.isSuperuser;
 /**
  * We accept a routes argument here because importing `static/routes`
  * is expensive in regards to bundle size. Some entrypoints may opt to forgo
