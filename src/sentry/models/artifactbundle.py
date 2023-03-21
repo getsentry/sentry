@@ -101,7 +101,7 @@ class DebugIdArtifactBundle(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
-    date_last_accessed = models.DateTimeField(default=timezone.now)
+    date_last_accessed = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
