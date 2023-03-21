@@ -31,6 +31,7 @@ from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
+from sentry.models.user import User
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
@@ -91,10 +92,24 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: RpcIntegration, actor: RpcUser) -> QuerySet:
-        return self.filter(
-            user_id=actor.id,
-            organization__organizationintegration__integration_id=integration.id,
+    def get_for_integration(
+        self, integration_or_id: RpcIntegration | int, actor: RpcUser | User
+    ) -> QuerySet:
+        from sentry.services.hybrid_cloud.integration import integration_service
+
+        integration_id = (
+            integration_or_id
+            if integration_or_id is None or isinstance(integration_or_id, int)
+            else integration_or_id.id
+        )
+        orgs_with_integration = [
+            i.organization_id
+            for i in integration_service.get_organization_integrations(
+                integration_id=integration_id
+            )
+        ]
+        return OrganizationMember.objects.filter(
+            user_id=actor.id, organization_id__in=orgs_with_integration
         ).select_related("organization")
 
     def get_member_invite_query(self, id: int) -> QuerySet:

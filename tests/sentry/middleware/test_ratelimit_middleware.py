@@ -55,7 +55,7 @@ class RatelimitMiddlewareTest(TestCase):
         )
         # there should only be one record created so just grab the first one
         install = SentryAppInstallation.objects.get(
-            sentry_app=internal_integration.id, organization=self.organization
+            sentry_app=internal_integration.id, organization_id=self.organization.id
         )
         token = install.api_token
 

@@ -177,7 +177,7 @@ class OrganizationTest(TestCase):
 
         assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=to_org
+            integration=integration, organization_id=to_org.id
         ).exists()
 
     def test_get_default_owner(self):

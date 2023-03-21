@@ -24,8 +24,9 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import LostPasswordHash, UserAvatar
 from sentry.models.authenticator import Authenticator
+from sentry.models.avatars import UserAvatar
+from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders

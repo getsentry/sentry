@@ -17,6 +17,7 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import RpcNotificationSetting
 from sentry.types.integrations import (
@@ -267,39 +268,28 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 
 
 def get_scope(
-    user: User | None = None,
-    team: Team | None = None,
-    project: Project | None = None,
-    organization: Organization | None = None,
+    actor: RpcActor | None = None,
+    project_or_id: Project | int | None = None,
+    organization_or_id: Organization | int | None = None,
 ) -> tuple[NotificationScopeType, int]:
     """
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
+    if ident := coerce_id_from(project_or_id):
+        return NotificationScopeType.PROJECT, ident
 
-    if project:
-        return NotificationScopeType.PROJECT, project.id
+    if ident := coerce_id_from(organization_or_id):
+        return NotificationScopeType.ORGANIZATION, ident
 
-    if organization:
-        return NotificationScopeType.ORGANIZATION, organization.id
+    if actor:
+        if actor.actor_type == ActorType.TEAM:
+            return NotificationScopeType.TEAM, actor.id
+        if actor.actor_type == ActorType.USER:
+            return NotificationScopeType.USER, actor.id
+        raise Exception("actor_type was not a valid ActorType!")
 
-    if team:
-        return NotificationScopeType.TEAM, team.id
-
-    if user:
-        return NotificationScopeType.USER, user.id
-
-    raise Exception("scope must be either user, team, organization, or project")
-
-
-def get_target_id(user: User | None = None, team: Team | None = None) -> int:
-    """:returns the actor ID from a User or Team."""
-    if user:
-        return int(user.actor_id)
-    if team:
-        return int(team.actor_id)
-
-    raise Exception("target must be either a user or a team")
+    raise Exception("scope must be either valid actor, organization, or project")
 
 
 def get_subscription_from_attributes(

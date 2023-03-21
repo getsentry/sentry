@@ -24,7 +24,9 @@ def test_get_org_auth_config():
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ApiKey.objects.create(organization_id=org_with_many_api_keys.id)
         ap = AuthProvider.objects.create(
-            organization=org_without_api_keys, provider="dummy", config={"domain": "olddomain.com"}
+            organization_id=org_without_api_keys.id,
+            provider="dummy",
+            config={"domain": "olddomain.com"},
         )
         ap.flags.allow_unlinked = True
         ap.save()

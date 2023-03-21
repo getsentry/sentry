@@ -55,6 +55,7 @@ from sentry.models import (
     User,
 )
 from sentry.notifications.notify import notify
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.committers import get_serialized_event_file_committers
 from sentry.utils.performance_issues.base import get_url_from_span
 from sentry.utils.performance_issues.performance_detection import (
@@ -263,7 +264,9 @@ def has_integrations(organization: Organization, project: Project) -> bool:
     from sentry.plugins.base import plugins
 
     project_plugins = plugins.for_project(project, version=1)
-    organization_integrations = Integration.objects.filter(organizations=organization).first()
+    organization_integrations = bool(
+        integration_service.get_integrations(organization_id=organization.id)
+    )
     # TODO: fix because project_plugins is an iterator and thus always truthy
     return bool(project_plugins or organization_integrations)
 
@@ -278,7 +281,9 @@ def has_alert_integration(project: Project) -> bool:
     # check integrations
     providers = filter(is_alert_rule_integration, list(integrations.all()))
     provider_keys = map(lambda x: cast(str, x.key), providers)
-    if Integration.objects.filter(organizations=org, provider__in=provider_keys).exists():
+    if Integration.objects.filter(
+        organizationintegrations__organization_id=org.id, provider__in=provider_keys
+    ).exists():
         return True
 
     # check plugins

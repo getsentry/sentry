@@ -5,7 +5,7 @@
 
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Sequence
+from typing import TYPE_CHECKING, List, Optional, Sequence
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -71,6 +71,18 @@ class NotificationsService(InterfaceWithLifecycle):
             type=setting.type,
             value=setting.value,
         )
+
+    @abstractmethod
+    def update_settings(
+        self,
+        external_provider: int,
+        notification_type: int,
+        setting_option: int,
+        actor: RpcActor,
+        project_id: Optional[int],
+        organization_id: Optional[int],
+    ) -> bool:
+        pass
 
 
 def impl_with_db() -> NotificationsService:

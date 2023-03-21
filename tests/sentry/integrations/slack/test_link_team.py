@@ -91,7 +91,7 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.login_as(user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -161,7 +161,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         OrganizationIntegration.objects.create(
-            organization=organization2, integration=self.integration
+            organization_id=organization2.id, integration=self.integration
         )
 
         # Team order should not matter.
@@ -175,7 +175,7 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             assert len(external_actors) == 1
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
     def setUp(self):
         super().setUp()
@@ -262,7 +262,7 @@ class SlackIntegrationUnlinkTeamTest(SlackIntegrationLinkTeamTestBase):
         organization2 = self.create_organization(owner=self.user)
         team2 = self.create_team(organization=organization2, members=[self.user])
         OrganizationIntegration.objects.create(
-            organization=organization2, integration=self.integration
+            organization_id=organization2.id, integration=self.integration
         )
         self.link_team(team2)
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence
+from typing import List, Optional, Sequence
 
 from django.db.models import Q
 
@@ -14,9 +14,44 @@ from sentry.notifications.types import (
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
 from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.types.integrations import ExternalProviders
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
+    def update_settings(
+        self,
+        external_provider: int,
+        notification_type: int,
+        setting_option: int,
+        actor: RpcActor,
+        project_id: Optional[int],
+        organization_id: Optional[int],
+    ) -> bool:
+        try:
+            xp = ExternalProviders(external_provider)
+        except ValueError:
+            return False
+
+        try:
+            nt = NotificationSettingTypes(notification_type)
+        except ValueError:
+            return False
+
+        try:
+            value = NotificationSettingOptionValues(setting_option)
+        except ValueError:
+            return False
+
+        NotificationSetting.objects.update_settings(
+            external_provider=xp,
+            type=nt,
+            value=value,
+            actor=actor,
+            project_or_id=project_id,
+            organization_or_id=organization_id,
+        )
+        return True
+
     def get_settings_for_users(
         self,
         *,

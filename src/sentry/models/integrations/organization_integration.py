@@ -16,7 +16,7 @@ class OrganizationIntegration(DefaultFieldsModel):
     __include_in_export__ = False
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade")
-    integration = FlexibleForeignKey("sentry.Integration")
+    integration = FlexibleForeignKey("sentry.Integration", related_name="organizationintegrations")
     config = JSONField(default=dict)
 
     default_auth_id = BoundedPositiveIntegerField(db_index=True, null=True)
