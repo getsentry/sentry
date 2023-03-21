@@ -4,14 +4,10 @@ import functools
 from copy import deepcopy
 from typing import Any, Callable, Mapping, Optional, Protocol, Sequence, Set, TypedDict
 
-from sentry import features
+from sentry import features, options
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.issues.grouptype import (
-    GroupCategory,
-    get_all_group_type_ids,
-    get_group_type_by_type_id,
-    get_group_types_by_category,
-)
+from sentry.issues import grouptype
+from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
 from sentry.models import Environment, Organization
 from sentry.search.events.filter import convert_search_filter_to_snuba_query
 from sentry.utils import snuba
@@ -216,14 +212,17 @@ def _query_params_for_generic(
     if organization and features.has(
         "organizations:issue-platform", organization=organization, actor=actor
     ):
+        group_types = {gt.type_id for gt in grouptype.registry.get_visible(organization, actor)}
+        # Extra check here just for while we're migrating performance issues to the issue platform
+        if not options.get("performance.issues.create_issues_through_platform", False):
+            # TODO: Possibly check project options here, but there could be multiple projects, so
+            #  will only
+            # add if it seems necessary
+            group_types -= grouptype.registry.get_by_category(GroupCategory.PERFORMANCE.value)
+
+        filters = {"occurrence_type_id": list(group_types), **filters}
         if group_ids:
-            filters = {
-                "group_id": sorted(group_ids),
-                "occurrence_type_id": list(
-                    get_group_types_by_category(GroupCategory.PROFILE.value)
-                ),
-                **filters,
-            }
+            filters["group_id"] = sorted(group_ids)
 
         params = query_partial(
             dataset=snuba.Dataset.IssuePlatform,
@@ -240,12 +239,20 @@ def _query_params_for_generic(
     return None
 
 
-# TODO: We need to add a way to make this dynamic for additional generic types
-SEARCH_STRATEGIES: Mapping[int, GroupSearchStrategy] = {
-    GroupCategory.ERROR.value: _query_params_for_error,
-    GroupCategory.PERFORMANCE.value: _query_params_for_perf,
-    GroupCategory.PROFILE.value: _query_params_for_generic,
-}
+def get_search_strategies() -> Mapping[int, GroupSearchStrategy]:
+    strategies = {}
+    for group_category in GroupCategory:
+        if group_category == GroupCategory.ERROR:
+            strategy = _query_params_for_error
+        elif group_category == GroupCategory.PERFORMANCE:
+            if not options.get("performance.issues.create_issues_through_platform", False):
+                strategy = _query_params_for_perf
+            else:
+                strategy = _query_params_for_generic
+        else:
+            strategy = _query_params_for_generic
+        strategies[group_category.value] = strategy
+    return strategies
 
 
 def _update_profiling_search_filters(
