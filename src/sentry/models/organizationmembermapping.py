@@ -7,6 +7,7 @@ from django.utils.translation import ugettext_lazy as _
 
 from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmember import InviteStatus
 from sentry.roles import organization_roles
 
@@ -20,7 +21,7 @@ class OrganizationMemberMapping(Model):
 
     __include_in_export__ = True
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
     date_created = models.DateTimeField(default=timezone.now)
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
