@@ -15,6 +15,7 @@ from sentry.models.outbox import OutboxCategory, RegionOutbox
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -104,7 +105,7 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
                 == 0
             )
 
-        with self.tasks():
+        with self.tasks(), outbox_runner():
             response = self.client.post(
                 self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
             )
@@ -132,7 +133,7 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
                 RegionOutbox.objects.filter(
                     category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE
                 ).count()
-                == 1
+                == 0
             )
 
             org_member_mapping = OrganizationMemberMapping.objects.get(
