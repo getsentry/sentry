@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, Q, Value, When
+from django.db.models import Case, IntegerField, Prefetch, Q, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -60,17 +60,29 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             return self.respond([])
 
         queryset = (
-            MonitorEnvironment.objects.filter(
-                monitor__organization_id=organization.id,
-                monitor__project_id__in=filter_params["project_id"],
+            Monitor.objects.filter(
+                organization_id=organization.id, project_id__in=filter_params["project_id"]
             )
             .annotate(status_order=DEFAULT_ORDERING_CASE)
             .exclude(
                 status__in=[MonitorStatus.PENDING_DELETION, MonitorStatus.DELETION_IN_PROGRESS]
             )
-            .filter(environment__name=filter_params.get("environment", "production"))
         )
         query = request.GET.get("query")
+
+        if "environment" in filter_params:
+            monitor_environments = MonitorEnvironment.objects.filter(
+                environment=filter_params["environment_objects"][0]
+            )
+            prefetch = Prefetch(
+                "monitorenvironment_set",
+                queryset=monitor_environments,
+                to_attr="selected_monitorenvironment",
+            )
+            queryset = queryset.prefetch_related(prefetch).filter(
+                monitorenvironment__in=monitor_environments
+            )
+
         if query:
             tokens = tokenize_query(query)
             for key, value in tokens.items():

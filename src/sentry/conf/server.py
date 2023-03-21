@@ -1371,6 +1371,7 @@ SENTRY_FEATURES = {
     "projects:auto-associate-commits-to-release": False,
     # Don't add feature defaults down here! Please add them in their associated
     # group sorted alphabetically.
+    "organizations:monitors": True,
 }
 
 # Default time zone for localization in the UI.
