@@ -5,6 +5,7 @@ from collections import defaultdict
 from typing import TYPE_CHECKING, Any, Iterable, List, Mapping, MutableMapping, Sequence, Tuple
 
 from sentry import features
+from sentry.experiments import manager as expt_manager
 from sentry.models import (
     ActorTuple,
     Group,
@@ -51,7 +52,8 @@ AVAILABLE_PROVIDERS = {
     ExternalProviders.SLACK,
 }
 
-FALLTHROUGH_NOTIFICATION_LIMIT_EA = 20
+FALLTHROUGH_NOTIFICATION_LIMIT_EA = 10
+FALLTHROUGH_NOTIFICATION_LIMIT = 20
 
 
 class ParticipantMap:
@@ -385,6 +387,21 @@ def get_send_to(
     return get_recipients_by_provider(project, recipients, notification_type)
 
 
+def should_use_smaller_issue_alert_fallback(org: Organization) -> Tuple[bool, str]:
+    """
+    Remove after IssueAlertFallbackExperiment experiment
+    Returns a tuple of (enabled, analytics_label)
+    """
+    if not org.flags.early_adopter.is_set:
+        # Not early access, not in experiment
+        return (False, "ga")
+
+    org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
+    if org_exposed:
+        return (True, "expt")
+    return (True, "ctrl")
+
+
 def get_fallthrough_recipients(
     project: Project, fallthrough_choice: FallthroughChoiceType | None
 ) -> Iterable[RpcUser]:
@@ -408,13 +425,19 @@ def get_fallthrough_recipients(
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
+        use_smaller_limit, _ = should_use_smaller_issue_alert_fallback(org=project.organization)
+        limit = (
+            FALLTHROUGH_NOTIFICATION_LIMIT_EA
+            if use_smaller_limit
+            else FALLTHROUGH_NOTIFICATION_LIMIT
+        )
         return user_service.get_many(
             filter={
                 "user_ids": project.member_set.order_by("-user__last_active").values_list(
                     "user_id", flat=True
                 )
             }
-        )[:FALLTHROUGH_NOTIFICATION_LIMIT_EA]
+        )[:limit]
 
     raise NotImplementedError(f"Unknown fallthrough choice: {fallthrough_choice}")
 
