@@ -301,6 +301,12 @@ const appConfig: Configuration = {
     ],
   },
   plugins: [
+    /**
+     * Adds build time measurement instrumentation, which will be reported back
+     * to sentry
+     */
+    new SentryInstrumentation(),
+
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
     new webpack.IgnorePlugin({
@@ -343,12 +349,6 @@ const appConfig: Configuration = {
      * This removes empty js files for style only entries (e.g. sentry.less)
      */
     new FixStyleOnlyEntriesPlugin({verbose: false}),
-
-    /**
-     * Adds build time measurement instrumentation, which will be reported back
-     * to sentry
-     */
-    new SentryInstrumentation(),
 
     ...(SHOULD_FORK_TS
       ? [
