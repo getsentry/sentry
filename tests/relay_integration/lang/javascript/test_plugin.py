@@ -12,6 +12,7 @@ from sentry.models import (
     ArtifactBundle,
     DebugIdArtifactBundle,
     File,
+    ProjectArtifactBundle,
     Release,
     ReleaseArtifactBundle,
     ReleaseFile,
@@ -1643,6 +1644,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
         )
 
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -1797,6 +1804,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
         )
 
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id,
@@ -1925,6 +1938,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
         )
 
         DebugIdArtifactBundle.objects.create(
@@ -2187,6 +2206,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
         )
 
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=release.version,
@@ -2328,6 +2353,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
         )
 
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
+        )
+
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
             release_name=release.version,
@@ -2442,6 +2473,12 @@ class JavascriptIntegrationTest(RelayStoreHelper, SnubaTestCase, TransactionTest
 
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=5
+        )
+
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=artifact_bundle,
         )
 
         ReleaseArtifactBundle.objects.create(
