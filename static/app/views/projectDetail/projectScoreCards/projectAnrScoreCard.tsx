@@ -120,10 +120,10 @@ export function ProjectAnrScoreCard({
     };
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
-  const value = sessionsData ? sessionsData.groups[0].totals['anr_rate()'] : null;
+  const value = sessionsData ? sessionsData.groups?.[0]?.totals['anr_rate()'] : null;
 
   const previousValue = previousSessionData
-    ? previousSessionData.groups[0].totals['anr_rate()']
+    ? previousSessionData.groups?.[0]?.totals['anr_rate()']
     : null;
 
   const hasCurrentAndPrevious = previousValue && value;
