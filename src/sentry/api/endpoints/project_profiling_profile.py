@@ -83,7 +83,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
             return Response(status=404)
 
         preferred_format = (
-            "sampled"
+            "sample"
             if features.has(
                 "organizations:profiling-sampled-format", project.organization, actor=request.user
             )
