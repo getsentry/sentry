@@ -15,7 +15,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Artifact, DebugIdBundle, DebugIdBundleArtifact, Project} from 'sentry/types';
+import {Artifact, DebugIdBundleArtifact, Project} from 'sentry/types';
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
@@ -119,7 +119,6 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   const debugIdBundlesArtifactsEndpoint = `/projects/${organization.slug}/${
     project.slug
   }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/`;
-  const debugIdBundlesEndpoint = `/projects/${organization.slug}/${project.slug}/files/artifact-bundles/`;
 
   // debug id bundles tab url
   const debugIdsUrl = normalizeUrl(
@@ -139,7 +138,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
     ],
     () => {
       return api.requestPromise(artifactsEndpoint, {
-        query: {query, cursor},
+        query: cursor ? {query, cursor} : {query},
         includeAllArgs: true,
       });
     },
@@ -151,7 +150,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
   );
 
   const {data: debugIdBundlesArtifactsData, isLoading: debugIdBundlesArtifactsLoading} =
-    useQuery<[DebugIdBundleArtifact[], any, any]>(
+    useQuery<[DebugIdBundleArtifact, any, any]>(
       [
         debugIdBundlesArtifactsEndpoint,
         {
@@ -160,7 +159,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
       ],
       () => {
         return api.requestPromise(debugIdBundlesArtifactsEndpoint, {
-          query: {query, cursor},
+          query: cursor ? {query, cursor} : {query},
           includeAllArgs: true,
         });
       },
@@ -170,21 +169,6 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         enabled: tabDebugIdBundlesActive,
       }
     );
-
-  const {data: debugIdBundlesData, isLoading: debugIdBundlesLoading} = useQuery<
-    DebugIdBundle[]
-  >(
-    [
-      debugIdBundlesEndpoint,
-      {
-        query: {query: params.bundleId},
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: tabDebugIdBundlesActive,
-    }
-  );
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -205,9 +189,9 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
             {params.bundleId}
             {tabDebugIdBundlesActive && (
               <DebugIdBundlesTags
-                dist={debugIdBundlesData?.[0]?.dist}
-                release={debugIdBundlesData?.[0]?.release}
-                loading={debugIdBundlesLoading}
+                dist={debugIdBundlesArtifactsData?.[0]?.dist}
+                release={debugIdBundlesArtifactsData?.[0]?.release}
+                loading={debugIdBundlesArtifactsLoading}
               />
             )}
           </VersionAndDetails>
@@ -235,7 +219,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
         isEmpty={
           (tabDebugIdBundlesActive
-            ? debugIdBundlesArtifactsData?.[0] ?? []
+            ? debugIdBundlesArtifactsData?.[0].files ?? []
             : artifactsData?.[0] ?? []
           ).length === 0
         }
@@ -244,7 +228,7 @@ export function ProjectSourceMapsArtifacts({params, location, router, project}: 
         }
       >
         {tabDebugIdBundlesActive
-          ? debugIdBundlesArtifactsData?.[0].map(data => {
+          ? (debugIdBundlesArtifactsData?.[0].files ?? []).map(data => {
               const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
                 project.slug
               }/artifact-bundles/${encodeURIComponent(params.bundleId)}/files/${

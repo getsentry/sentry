@@ -195,10 +195,13 @@ export function ProjectSourceMaps({location, router, project}: Props) {
     async (name: string) => {
       addLoadingMessage(t('Removing artifacts\u2026'));
       try {
-        await api.requestPromise(sourceMapsEndpoint, {
-          method: 'DELETE',
-          query: {name},
-        });
+        await api.requestPromise(
+          tabDebugIdBundlesActive ? debugIdBundlesEndpoint : sourceMapsEndpoint,
+          {
+            method: 'DELETE',
+            query: tabDebugIdBundlesActive ? {bundleId: name} : {name},
+          }
+        );
         tabDebugIdBundlesActive ? debugIdBundlesRefetch() : archivesRefetch();
         addSuccessMessage(t('Artifacts removed.'));
       } catch {
@@ -211,6 +214,7 @@ export function ProjectSourceMaps({location, router, project}: Props) {
       tabDebugIdBundlesActive,
       debugIdBundlesRefetch,
       archivesRefetch,
+      debugIdBundlesEndpoint,
     ]
   );
 

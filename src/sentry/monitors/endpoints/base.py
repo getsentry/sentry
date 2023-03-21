@@ -4,7 +4,7 @@ from uuid import UUID
 
 from rest_framework.request import Request
 
-from sentry.api.authentication import ApiKeyAuthentication, DSNAuthentication, TokenAuthentication
+from sentry.api.authentication import DSNAuthentication, TokenAuthentication
 from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectPermission
@@ -120,7 +120,7 @@ class MonitorIngestEndpoint(Endpoint):
           checkin ingestion in the very near future.
     """
 
-    authentication_classes = (DSNAuthentication, TokenAuthentication, ApiKeyAuthentication)
+    authentication_classes = (DSNAuthentication, TokenAuthentication)
     permission_classes = (ProjectMonitorPermission,)
 
     allow_auto_create_monitors = False

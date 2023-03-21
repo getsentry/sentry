@@ -6,7 +6,7 @@ import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
 import type {EventTransaction, Organization, Project} from 'sentry/types';
 import {RequestState} from 'sentry/types/core';
-import {isSchema} from 'sentry/utils/profiling/guards/profile';
+import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -32,6 +32,9 @@ function fetchFlamegraphs(
 function getTransactionId(input: Profiling.ProfileInput): string | null {
   if (isSchema(input)) {
     return input.metadata.transactionID;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.id;
   }
   return null;
 }

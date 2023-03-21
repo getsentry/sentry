@@ -537,7 +537,9 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def get_frequency_series(self, model, items, start, end=None, rollup=None, environment_id=None):
+    def get_frequency_series(
+        self, model, items, start, end=None, rollup=None, environment_id=None, tenant_ids=None
+    ):
         """
         Retrieve the frequency of known items in a table over time.
 

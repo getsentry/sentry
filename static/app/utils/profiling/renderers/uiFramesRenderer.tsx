@@ -19,6 +19,9 @@ import {UIFrameNode, UIFrames} from '../uiFrames';
 
 import {uiFramesFragment, uiFramesVertext} from './shaders';
 
+// These are both mutable and are used to avoid unnecessary allocations during rendering.
+const PHYSICAL_SPACE_PX = new Rect(0, 0, 1, 1);
+const CONFIG_TO_PHYSICAL_SPACE = mat3.create();
 const VERTICES_PER_FRAME = 6;
 
 class UIFramesRenderer {
@@ -33,21 +36,26 @@ class UIFramesRenderer {
   // Vertex and color buffer
   positions: Float32Array = new Float32Array();
   frame_types: Float32Array = new Float32Array();
+  bounds: Float32Array = new Float32Array();
 
   colorMap: Map<string | number, number[]> = new Map();
 
   attributes: {
+    a_bounds: number | null;
     a_frame_type: number | null;
     a_position: number | null;
   } = {
+    a_bounds: null,
     a_frame_type: null,
     a_position: null,
   };
 
   uniforms: {
+    u_border_width: WebGLUniformLocation | null;
     u_model: WebGLUniformLocation | null;
     u_projection: WebGLUniformLocation | null;
   } = {
+    u_border_width: null,
     u_model: null,
     u_projection: null,
   };
@@ -78,12 +86,13 @@ class UIFramesRenderer {
 
   initVertices(): void {
     const POSITIONS = 2;
-    const VERTICES = 6;
+    const BOUNDS = 4;
 
     const FRAME_COUNT = this.uiFrames.frames.length;
 
-    this.positions = new Float32Array(VERTICES * POSITIONS * FRAME_COUNT);
+    this.positions = new Float32Array(VERTICES_PER_FRAME * POSITIONS * FRAME_COUNT);
     this.frame_types = new Float32Array(FRAME_COUNT * VERTICES_PER_FRAME);
+    this.bounds = new Float32Array(VERTICES_PER_FRAME * BOUNDS * FRAME_COUNT);
 
     for (let index = 0; index < FRAME_COUNT; index++) {
       const frame = this.uiFrames.frames[index];
@@ -112,13 +121,28 @@ class UIFramesRenderer {
       this.positions[positionOffset + 11] = y2;
 
       const type = frame.type === 'frozen' ? 1 : 0;
+
       const typeOffset = index * VERTICES_PER_FRAME;
       this.frame_types[typeOffset] = type;
+
       this.frame_types[typeOffset + 1] = type;
       this.frame_types[typeOffset + 2] = type;
       this.frame_types[typeOffset + 3] = type;
       this.frame_types[typeOffset + 4] = type;
       this.frame_types[typeOffset + 5] = type;
+
+      // @TODO check if we can pack bounds across vertex calls,
+      // we are allocating 6x the amount of memory here
+      const boundsOffset = index * VERTICES_PER_FRAME * BOUNDS;
+
+      for (let i = 0; i < VERTICES_PER_FRAME; i++) {
+        const offset = boundsOffset + i * BOUNDS;
+
+        this.bounds[offset] = x1;
+        this.bounds[offset + 1] = y1;
+        this.bounds[offset + 2] = x2;
+        this.bounds[offset + 3] = y2;
+      }
     }
   }
 
@@ -149,11 +173,13 @@ class UIFramesRenderer {
     }
 
     this.uniforms = {
+      u_border_width: null,
       u_model: null,
       u_projection: null,
     };
     this.attributes = {
       a_position: null,
+      a_bounds: null,
       a_frame_type: null,
     };
 
@@ -172,7 +198,7 @@ class UIFramesRenderer {
       this.uniforms[uniform] = getUniform(this.gl, this.program, uniform);
     }
 
-    // initialize and upload frame type
+    // initialize and upload frame type information
     this.attributes.a_frame_type = getAttribute(this.gl, this.program, 'a_frame_type');
     createAndBindBuffer(this.gl, this.frame_types, this.gl.STATIC_DRAW);
     pointToAndEnableVertexAttribute(this.gl, this.attributes.a_frame_type, {
@@ -188,6 +214,17 @@ class UIFramesRenderer {
     createAndBindBuffer(this.gl, this.positions, this.gl.STATIC_DRAW);
     pointToAndEnableVertexAttribute(this.gl, this.attributes.a_position, {
       size: 2,
+      type: this.gl.FLOAT,
+      normalized: false,
+      stride: 0,
+      offset: 0,
+    });
+
+    // initialize and upload bounds buffer data
+    this.attributes.a_bounds = getAttribute(this.gl, this.program, 'a_bounds');
+    createAndBindBuffer(this.gl, this.bounds, this.gl.STATIC_DRAW);
+    pointToAndEnableVertexAttribute(this.gl, this.attributes.a_bounds, {
+      size: 4,
       type: this.gl.FLOAT,
       normalized: false,
       stride: 0,
@@ -270,6 +307,19 @@ class UIFramesRenderer {
 
     // Tell webgl to convert clip space to px
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height);
+
+    const physicalToConfig = mat3.invert(
+      CONFIG_TO_PHYSICAL_SPACE,
+      configViewToPhysicalSpace
+    );
+
+    const configSpacePixel = PHYSICAL_SPACE_PX.transformRect(physicalToConfig);
+
+    this.gl.uniform2f(
+      this.uniforms.u_border_width,
+      configSpacePixel.width,
+      configSpacePixel.height
+    );
 
     this.gl.drawArrays(
       this.gl.TRIANGLES,
