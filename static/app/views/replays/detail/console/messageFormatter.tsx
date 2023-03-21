@@ -8,6 +8,7 @@ import {objectIsEmpty} from 'sentry/utils';
 
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
+  onDimensionChange?: () => void;
 }
 
 const formatRegExp = /%[sdj%]/g;
@@ -17,7 +18,7 @@ function isObject(arg) {
 function isNull(arg) {
   return arg === null;
 }
-const format = function (...args) {
+const format = function (onDimensionChange, ...args) {
   const INSPECTOR_THEME = {
     ...chromeLight,
     BASE_BACKGROUND_COLOR: 'none',
@@ -29,8 +30,13 @@ const format = function (...args) {
     const objects: any[] = [];
     for (let i = 0; i < arguments.length; i++) {
       objects.push(
-        // @ts-expect-error
-        <ObjectInspector key={i} data={arguments[i]} theme={INSPECTOR_THEME} />
+        <ObjectInspector
+          key={i}
+          data={arguments[i]}
+          // @ts-expect-error
+          theme={INSPECTOR_THEME}
+          onExpand={onDimensionChange}
+        />
       );
     }
     return <Fragment>{objects}</Fragment>;
@@ -69,8 +75,14 @@ const format = function (...args) {
       pieces.push(' ' + x);
     } else {
       pieces.push(' ');
-      // @ts-expect-error
-      pieces.push(<ObjectInspector data={x} theme={INSPECTOR_THEME} />);
+      pieces.push(
+        <ObjectInspector
+          data={x}
+          // @ts-expect-error
+          theme={INSPECTOR_THEME}
+          onExpand={onDimensionChange}
+        />
+      );
     }
   }
   return <Fragment>{pieces}</Fragment>;
@@ -79,7 +91,7 @@ const format = function (...args) {
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function MessageFormatter({breadcrumb}: Props) {
+function MessageFormatter({breadcrumb, onDimensionChange}: Props) {
   let logMessage: any = '';
 
   if (!breadcrumb.data?.arguments) {
@@ -103,7 +115,7 @@ function MessageFormatter({breadcrumb}: Props) {
   ) {
     logMessage = breadcrumb.message;
   } else {
-    logMessage = format(...breadcrumb.data.arguments);
+    logMessage = format(onDimensionChange, ...breadcrumb.data.arguments);
   }
 
   return logMessage;

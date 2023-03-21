@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -52,6 +52,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     ref: listRef,
     deps: [items],
   });
+  const onDimensionChange = useCallback(() => updateList(), [updateList]);
 
   const current = useMemo(
     () =>
@@ -94,6 +95,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           breadcrumb={item}
           startTimestampMs={startTimestampMs}
           style={style}
+          onDimensionChange={onDimensionChange}
         />
       </CellMeasurer>
     );

@@ -19,6 +19,7 @@ type Props = {
   isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
+  onDimensionChange?: () => void;
 };
 
 function ConsoleLogRow({
@@ -27,6 +28,7 @@ function ConsoleLogRow({
   isCurrent,
   startTimestampMs,
   style,
+  onDimensionChange,
 }: Props) {
   const {currentTime} = useReplayContext();
 
@@ -67,7 +69,10 @@ function ConsoleLogRow({
           </IssueLinkWrapper>
         ) : null}
         <ErrorBoundary mini>
-          <MessageFormatter breadcrumb={breadcrumb} />
+          <MessageFormatter
+            breadcrumb={breadcrumb}
+            onDimensionChange={onDimensionChange}
+          />
         </ErrorBoundary>
       </Message>
       <TimestampButton
