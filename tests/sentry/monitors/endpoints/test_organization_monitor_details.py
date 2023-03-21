@@ -15,28 +15,12 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
     def test_simple(self):
         monitor = self._create_monitor()
 
-        resp = self.get_success_response(self.organization.slug, monitor.guid)
-        assert resp.data["id"] == str(monitor.guid)
-
-    def test_simple_slug(self):
-        monitor = self._create_monitor(slug="my-monitor")
-
         resp = self.get_success_response(self.organization.slug, monitor.slug)
-        assert resp.data["id"] == str(monitor.guid)
-        assert resp.data["slug"] == "my-monitor"
-
-        # GUID based lookup also works
-        resp = self.get_success_response(self.organization.slug, monitor.guid)
-        assert resp.data["id"] == str(monitor.guid)
-        assert resp.data["slug"] == "my-monitor"
+        assert resp.data["slug"] == monitor.slug
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        self.get_error_response("asdf", monitor.guid, status_code=404)
-
-    def test_invalid_monitor_id(self):
-        self._create_monitor()
-        self.get_error_response(self.organization.slug, "bad-guid", status_code=400)
+        self.get_error_response("asdf", monitor.slug, status_code=404)
 
 
 @region_silo_test(stable=True)
@@ -50,9 +34,9 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_name(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"name": "Monitor Name"}
+            self.organization.slug, monitor.slug, method="PUT", **{"name": "Monitor Name"}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.name == "Monitor Name"
@@ -60,7 +44,7 @@ class UpdateMonitorTest(MonitorTestCase):
     def test_slug(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"slug": "my-monitor"}
+            self.organization.slug, monitor.slug, method="PUT", **{"slug": "my-monitor"}
         )
         assert resp.data["id"] == str(monitor.guid)
 
@@ -69,18 +53,18 @@ class UpdateMonitorTest(MonitorTestCase):
 
         # Validate error cases jsut to be safe
         self.get_error_response(
-            self.organization.slug, monitor.guid, method="PUT", status_code=400, **{"slug": ""}
+            self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": ""}
         )
         self.get_error_response(
-            self.organization.slug, monitor.guid, method="PUT", status_code=400, **{"slug": None}
+            self.organization.slug, monitor.slug, method="PUT", status_code=400, **{"slug": None}
         )
 
     def test_can_disable(self):
         monitor = self._create_monitor()
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"status": "disabled"}
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "disabled"}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorStatus.DISABLED
@@ -91,9 +75,9 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor.update(status=MonitorStatus.DISABLED)
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"status": "active"}
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorStatus.ACTIVE
@@ -104,9 +88,9 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor.update(status=MonitorStatus.OK)
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"status": "active"}
+            self.organization.slug, monitor.slug, method="PUT", **{"status": "active"}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.status == MonitorStatus.OK
@@ -116,11 +100,11 @@ class UpdateMonitorTest(MonitorTestCase):
 
         resp = self.get_success_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             **{"config": {"timezone": "America/Los_Angeles"}},
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["timezone"] == "America/Los_Angeles"
@@ -130,11 +114,11 @@ class UpdateMonitorTest(MonitorTestCase):
 
         resp = self.get_success_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             **{"config": {"checkin_margin": 30}},
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["checkin_margin"] == 30
@@ -143,9 +127,9 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"config": {"max_runtime": 30}}
+            self.organization.slug, monitor.slug, method="PUT", **{"config": {"max_runtime": 30}}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["max_runtime"] == 30
@@ -154,9 +138,9 @@ class UpdateMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
 
         resp = self.get_success_response(
-            self.organization.slug, monitor.guid, method="PUT", **{"config": {"invalid": True}}
+            self.organization.slug, monitor.slug, method="PUT", **{"config": {"invalid": True}}
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert "invalid" not in monitor.config
@@ -166,11 +150,11 @@ class UpdateMonitorTest(MonitorTestCase):
 
         resp = self.get_success_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             **{"config": {"schedule": "*/5 * * * *"}},
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
@@ -191,11 +175,11 @@ class UpdateMonitorTest(MonitorTestCase):
 
         resp = self.get_success_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             **{"config": {"schedule": "@monthly"}},
         )
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.CRONTAB
@@ -206,14 +190,14 @@ class UpdateMonitorTest(MonitorTestCase):
 
         self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"config": {"schedule": "*/0.5 * * * *"}},
         )
         self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"config": {"schedule": "* * * *"}},
@@ -224,12 +208,12 @@ class UpdateMonitorTest(MonitorTestCase):
 
         resp = self.get_success_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             **{"config": {"schedule_type": "interval", "schedule": [1, "month"]}},
         )
 
-        assert resp.data["id"] == str(monitor.guid)
+        assert resp.data["slug"] == monitor.slug
 
         monitor = Monitor.objects.get(id=monitor.id)
         assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
@@ -240,7 +224,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
         self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": [1, "decade"]}},
@@ -248,7 +232,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
         self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": ["foo", "month"]}},
@@ -256,7 +240,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
         self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"config": {"schedule_type": "interval", "schedule": "bar"}},
@@ -267,7 +251,7 @@ class UpdateMonitorTest(MonitorTestCase):
 
         self.get_error_response(
             "asdf",
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=404,
             **{"config": {"schedule_type": "interval", "schedule": [1, "month"]}},
@@ -279,7 +263,7 @@ class UpdateMonitorTest(MonitorTestCase):
         project2 = self.create_project()
         resp = self.get_error_response(
             self.organization.slug,
-            monitor.guid,
+            monitor.slug,
             method="PUT",
             status_code=400,
             **{"project": project2.slug},
@@ -302,7 +286,7 @@ class DeleteMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
 
         self.get_success_response(
-            self.organization.slug, monitor.guid, method="DELETE", status_code=202
+            self.organization.slug, monitor.slug, method="DELETE", status_code=202
         )
 
         monitor = Monitor.objects.get(id=monitor.id)
@@ -312,4 +296,4 @@ class DeleteMonitorTest(MonitorTestCase):
 
     def test_mismatched_org_slugs(self):
         monitor = self._create_monitor()
-        self.get_error_response("asdf", monitor.guid, status_code=404)
+        self.get_error_response("asdf", monitor.slug, status_code=404)
