@@ -15,10 +15,8 @@ import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
-import {
-  getCenterScaleMatrixFromConfigPosition,
-  Rect,
-} from 'sentry/utils/profiling/gl/utils';
+import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const MIN_BORDER_SIZE = 20;
 const MOUSE_DRAG_THRESHOLD = 3;
