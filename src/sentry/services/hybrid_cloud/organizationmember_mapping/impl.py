@@ -23,31 +23,20 @@ class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingSe
         email: Optional[str] = None,
         inviter_id: Optional[int] = None,
         invite_status: Optional[int] = None,
-        idempotency_key: Optional[str] = "",
     ) -> RpcOrganizationMemberMapping:
-        assert user_id or email, "Must set either user or email"
-        if idempotency_key:
-            org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
-                organization_id=organization_id,
-                user_id=user_id,
-                email=email,
-                idempotency_key=idempotency_key,
-                defaults={
-                    "role": role,
-                    "inviter_id": inviter_id,
-                    "invite_status": invite_status,
-                },
-            )
-        else:
-            org_member_mapping = OrganizationMemberMapping.objects.create(
-                organization_id=organization_id,
-                role=role,
-                user_id=user_id,
-                email=email,
-                inviter_id=inviter_id,
-                invite_status=invite_status,
-                idempotency_key=idempotency_key,
-            )
+        assert (user_id is None and email) or (
+            user_id and email is None
+        ), "Must set either user or email"
+        org_member_mapping, _created = OrganizationMemberMapping.objects.update_or_create(
+            organization_id=organization_id,
+            user_id=user_id,
+            email=email,
+            defaults={
+                "role": role,
+                "inviter_id": inviter_id,
+                "invite_status": invite_status,
+            },
+        )
         return self._serialize_rpc(org_member_mapping)
 
     def close(self) -> None:

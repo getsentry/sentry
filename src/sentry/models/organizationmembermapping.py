@@ -23,8 +23,6 @@ class OrganizationMemberMapping(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     date_created = models.DateTimeField(default=timezone.now)
 
-    idempotency_key = models.CharField(max_length=48)
-
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     user = FlexibleForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmembermapping_set"

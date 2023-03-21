@@ -64,7 +64,6 @@ class OrganizationMemberMappingService(InterfaceWithLifecycle):
         email: Optional[str] = None,
         inviter_id: Optional[int] = None,
         invite_status: Optional[int] = None,
-        idempotency_key: Optional[str] = "",
     ) -> RpcOrganizationMemberMapping:
         pass
 

@@ -19,7 +19,6 @@ class OrganizationMappingTest(TransactionTestCase):
             "email": "mail@testserver.com",
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
-            "idempotency_key": "random-key",
         }
         rpc_orgmember_mapping = organizationmember_mapping_service.create(**fields)
         orgmember_mapping = OrganizationMemberMapping.objects.get(
@@ -41,7 +40,6 @@ class OrganizationMappingTest(TransactionTestCase):
             == orgmember_mapping.invite_status
             == fields["invite_status"]
         )
-        assert orgmember_mapping.idempotency_key == fields["idempotency_key"]
 
     def test_create_is_idempotent(self):
         with exempt_from_silo_limits():
@@ -53,7 +51,6 @@ class OrganizationMappingTest(TransactionTestCase):
             "email": "mail@testserver.com",
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
-            "idempotency_key": "random-key",
         }
         organizationmember_mapping_service.create(**fields)
         assert (
@@ -77,7 +74,6 @@ class OrganizationMappingTest(TransactionTestCase):
         orgmember_mapping = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id, user_id=self.user.id
         )
-        assert orgmember_mapping.idempotency_key == fields["idempotency_key"]
 
         assert rpc_orgmember_mapping.date_created == orgmember_mapping.date_created
         assert (
