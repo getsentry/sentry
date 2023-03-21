@@ -89,22 +89,25 @@ function Sidebar({location, organization}: Props) {
   const bcl = document.body.classList;
 
   const useOpenOnboardingSidebar = useMemo(() => {
-    if (hasOrganization && !ConfigStore.get('demoMode')) {
-      const tasks = getMergedTasks({
-        organization,
-        projects: project,
-        onboardingState: onboardingState || undefined,
-      });
+    if (location?.hash === '#welcome') {
+      if (hasOrganization && !ConfigStore.get('demoMode')) {
+        const tasks = getMergedTasks({
+          organization,
+          projects: project,
+          onboardingState: onboardingState || undefined,
+        });
 
-      const allDisplayedTasks = tasks
-        .filter(task => task.display)
-        .filter(task => !task.renderCard);
-      const doneTasks = allDisplayedTasks.filter(isDone);
+        const allDisplayedTasks = tasks
+          .filter(task => task.display)
+          .filter(task => !task.renderCard);
+        const doneTasks = allDisplayedTasks.filter(isDone);
 
-      return !(doneTasks.length >= allDisplayedTasks.length);
+        return !(doneTasks.length >= allDisplayedTasks.length);
+      }
+      return true;
     }
-    return true;
-  }, [organization, onboardingState, hasOrganization, project]);
+    return false;
+  }, [organization, onboardingState, hasOrganization, project, location?.hash]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -136,10 +139,10 @@ function Sidebar({location, organization}: Props) {
 
   // Trigger panels depending on the location hash
   useEffect(() => {
-    if (location?.hash === '#welcome' && useOpenOnboardingSidebar) {
+    if (useOpenOnboardingSidebar) {
       activatePanel(SidebarPanelKey.OnboardingWizard);
     }
-  }, [location?.hash, useOpenOnboardingSidebar]);
+  }, [useOpenOnboardingSidebar]);
 
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
