@@ -40,7 +40,7 @@ class TestCodecovIntegration(APITestCase):
     def test_no_codecov_integration(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=404,
         )
 
@@ -56,7 +56,7 @@ class TestCodecovIntegration(APITestCase):
     def test_has_codecov_integration(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=200,
         )
 

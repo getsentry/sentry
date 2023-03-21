@@ -62,7 +62,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
-        url = CODECOV_REPOS_URL.format(service="gh", owner_username=owner_username)
+        url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
         response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
         if response.status_code == 200:
             return True, None  # We found a codecov integration, so we can stop looking
