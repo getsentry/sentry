@@ -1,5 +1,10 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
+
+  type Image = import('sentry/types/debugImage').Image;
+
+  type SymbolicatorStatus = import('sentry/components/events/interfaces/types').SymbolicatorStatus;
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -10,20 +15,18 @@ declare namespace Profiling {
   type SentrySampledProfileStack = number[];
 
   type SentrySampledProfileFrame = {
+    in_app: boolean;
+    colno?: number;
+    filename?: string;
     function?: string;
     instruction_addr?: string;
     lineno?: number;
-    colno?: number;
-    filename?: string;
-  };
-
-  type SentrySampledProfileDebugMetaImage = {
-    debug_id: string;
-    image_addr: string;
-    code_file: string;
-    type: string;
-    image_size: number;
-    image_vmaddr: string;
+    module?: string;
+    package?: string;
+    abs_path?: string;
+    status?: SymbolicatorStatus;
+    sym_addr?: string;
+    symbol?: string;
   };
 
   type SentrySampledProfileTransaction = {
@@ -57,7 +60,7 @@ declare namespace Profiling {
     platform: string;
     environment?: string;
     debug_meta?: {
-      images: SentryProfileDebugMetaImage[];
+      images: Image[];
     };
     profile: {
       samples: SentrySampledProfileSample[];
@@ -113,10 +116,20 @@ declare namespace Profiling {
     line?: number;
     column?: number;
     is_application?: boolean;
-    image?: string;
     resource?: string;
     threadId?: number;
     inline?: boolean;
+    instructionAddr?: string;
+    symbol?: string;
+    symbolAddr?: string;
+    symbolicatorStatus?: SymbolicatorStatus;
+
+    // This exists as an artifact of the legacy formats, the speedscope format still uses this
+    image?: string;
+    // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
+    package?: string;
+    // This is the import path for the module
+    module?: string;
 
     // nodejs only
     columnNumber?: number;
