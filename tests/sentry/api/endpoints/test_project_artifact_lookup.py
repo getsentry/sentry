@@ -70,7 +70,7 @@ class ArtifactLookupTest(APITestCase):
         file_.putfile(buffer)
         file_.update(timestamp=datetime(2021, 6, 11, 9, 13, 1, 317902, tzinfo=timezone.utc))
 
-        return update_artifact_index(self.release, dist, file_)
+        return (update_artifact_index(self.release, dist, file_), file_)
 
     def test_query_by_debug_ids(self):
         debug_id_a = "aaaaaaaa-0000-0000-0000-000000000000"
@@ -303,7 +303,7 @@ class ArtifactLookupTest(APITestCase):
 
         assert read_artifact_index(self.release, None) is None
 
-        archive1 = self.create_archive(
+        archive1, archive1_file = self.create_archive(
             fields={},
             files={
                 "foo": "foo",
@@ -335,9 +335,10 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
 
         # Override `bar` file inside the index. It will now have different `sha1`` and different `archive_ident` as it comes from other archive.
-        archive2 = self.create_archive(
+        archive2, archive2_file = self.create_archive(
             fields={},
             files={
                 "bar": "BAR",
@@ -367,32 +368,16 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
 
         # Should download 2 archives as they have different `archive_ident`
         response = self.client.get(f"{url}?release={self.release.version}&url=foo&url=bar").json()
 
         assert len(response) == 2
         assert response[0]["type"] == "bundle"
-
-        # TODO: Write assertions about downloaded zip file
-
-        # archive_zip = make_compressed_zip_file(
-        #     "bundle_b.zip",
-        #     {
-        #         "path/in/zip_a": {
-        #             "url": "~/path/to/app.js",
-        #             "type": "source_map",
-        #             "content": b"foo",
-        #         },
-        #         "path/in/zip_b": {
-        #             "url": "~/path/to/other/app.js",
-        #             "type": "source_map",
-        #             "content": b"bar",
-        #         },
-        #     },
-        # )
-
-        # self.assert_download_matches_file(response[0]["url"], archive_zip)
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
+        assert response[1]["type"] == "bundle"
+        self.assert_download_matches_file(response[1]["url"], archive2_file)
 
     def test_query_by_url_and_dist_from_artifact_index(self):
         self.login_as(user=self.user)
@@ -407,7 +392,7 @@ class ArtifactLookupTest(APITestCase):
 
         dist = self.release.add_dist("foo")
 
-        archive1 = self.create_archive(
+        archive1, archive1_file = self.create_archive(
             fields={},
             files={
                 "foo": "foo",
@@ -445,9 +430,10 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
 
         # Override `bar` file inside the index. It will now have different `sha1`` and different `archive_ident` as it comes from other archive.
-        archive2 = self.create_archive(
+        archive2, archive2_file = self.create_archive(
             fields={},
             files={
                 "bar": "BAR",
@@ -480,6 +466,7 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 1
         assert response[0]["type"] == "bundle"
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
 
         # Should download 2 archives as they have different `archive_ident`
         response = self.client.get(
@@ -488,23 +475,6 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 2
         assert response[0]["type"] == "bundle"
-
-        # TODO: Write assertions about downloaded zip file
-
-        # archive_zip = make_compressed_zip_file(
-        #     "bundle_b.zip",
-        #     {
-        #         "path/in/zip_a": {
-        #             "url": "~/path/to/app.js",
-        #             "type": "source_map",
-        #             "content": b"foo",
-        #         },
-        #         "path/in/zip_b": {
-        #             "url": "~/path/to/other/app.js",
-        #             "type": "source_map",
-        #             "content": b"bar",
-        #         },
-        #     },
-        # )
-
-        # self.assert_download_matches_file(response[0]["url"], archive_zip)
+        self.assert_download_matches_file(response[0]["url"], archive1_file)
+        assert response[1]["type"] == "bundle"
+        self.assert_download_matches_file(response[1]["url"], archive2_file)

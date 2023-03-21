@@ -112,7 +112,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         # the file names we are querying for, and also leave us with the remaining
         # set of file names that are not covered by any bundle, to look up below
 
-        bundle_file_ids = collect_artifact_bundles_containing_debug_ids
+        bundle_file_ids = collect_artifact_bundles_containing_debug_ids(debug_ids, project)
         individual_files = try_resolve_urls(urls, project, release_name, dist_name, bundle_file_ids)
 
         # Then: Construct our response
@@ -248,13 +248,12 @@ def collect_legacy_artifact_bundles_containing_urls(
         artifact_index = read_artifact_index(release, dist, artifact_count__gt=0)
     except Exception as exc:
         logger.error("Failed to read artifact index", exc_info=exc)
+    if not artifact_index:
+        return urls
 
     artifact_archives = dict()
 
     def url_in_any_artifact_index(url):
-        if artifact_index is None:
-            return False
-
         file = find_file_in_archive_index(artifact_index, url)
         if file is not None:
             ident = file["archive_ident"]
