@@ -1,11 +1,14 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
+import {IssueCategory} from 'sentry/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 const ISSUE_CATEGORY_FILTER = 'issue.category';
 
@@ -16,26 +19,59 @@ function IssueCategoryFilter({
   onSearch: (query: string) => void;
   query: string;
 }) {
-  const items: SelectOption<string>[] = [
-    {label: t('All Categories'), value: 'all_categories'},
-    {label: t('Errors'), value: 'error'},
-    {label: t('Performance'), value: 'performance'},
-  ];
-  const [selectedOption, setSelectedOption] = useState<SelectOption<string>>(items[0]);
+  const [isPerformanceSeen, setIsPerformanceSeen] = useLocalStorageState(
+    'issue-category-dropdown-seen:performance',
+    false
+  );
 
+  const renderLabel = useCallback(
+    (issueCategory?: IssueCategory, isTriggerLabel?: boolean) => {
+      switch (issueCategory) {
+        case IssueCategory.ERROR:
+          return t('Errors');
+        case IssueCategory.PERFORMANCE:
+          return (
+            <React.Fragment>
+              {t('Performance')}
+              {!isTriggerLabel && !isPerformanceSeen && <FeatureBadge type="new" />}
+            </React.Fragment>
+          );
+        default:
+          return t('All Categories');
+      }
+    },
+    [isPerformanceSeen]
+  );
+
+  const options = useMemo(
+    () => [
+      {label: renderLabel(), value: 'all_categories'},
+      {label: renderLabel(IssueCategory.ERROR), value: IssueCategory.ERROR},
+      {label: renderLabel(IssueCategory.PERFORMANCE), value: IssueCategory.PERFORMANCE},
+    ],
+    [renderLabel]
+  );
+
+  const [selectedOption, setSelectedOption] = useState<SelectOption<string>>(options[0]);
+
+  // Effect that handles setting the current option if the query is changed manually
   useEffect(() => {
-    const queryOption = items.find(({value}) =>
-      query.includes(`${ISSUE_CATEGORY_FILTER}:${value}`)
-    );
+    setSelectedOption(prevOption => {
+      const queryOption = options.find(({value}) =>
+        query.includes(`${ISSUE_CATEGORY_FILTER}:${value}`)
+      );
 
-    if (!queryOption) {
-      setSelectedOption(items[0]);
-    }
+      if (!queryOption) {
+        return options[0];
+      }
 
-    if (queryOption && queryOption.value !== selectedOption.value) {
-      setSelectedOption(queryOption);
-    }
-  }, [query]);
+      if (queryOption.value !== prevOption.value) {
+        return queryOption;
+      }
+
+      return prevOption;
+    });
+  }, [query, options]);
 
   const handleChange = (option: SelectOption<string>) => {
     const search = new MutableSearch(query);
@@ -46,6 +82,10 @@ function IssueCategoryFilter({
       search.setFilterValues(ISSUE_CATEGORY_FILTER, [option.value]);
     }
 
+    if (option.value === 'performance') {
+      setIsPerformanceSeen(true);
+    }
+
     setSelectedOption(option);
     onSearch(search.formatString());
   };
@@ -53,11 +93,11 @@ function IssueCategoryFilter({
   return (
     <React.Fragment>
       <CompactSelect
-        options={items}
+        options={options}
         value={selectedOption.value}
         triggerLabel={
           <React.Fragment>
-            <Icon /> {selectedOption.label}
+            <Icon /> {renderLabel(selectedOption.value as IssueCategory, true)}
           </React.Fragment>
         }
         onChange={handleChange}
