@@ -28,6 +28,8 @@ from sentry.utils.snuba import raw_snql_query
 logger = logging.getLogger(__name__)
 MAX_SECONDS = 60
 CHUNK_SIZE = 9998  # Snuba's limit is 10000 and we fetch CHUNK_SIZE+1
+# Controls the time range on which data is collected
+QUERY_TIME_INTERVAL = timedelta(hours=1)
 
 
 class ProjectTransactions(TypedDict, total=True):
@@ -62,7 +64,7 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
                 ],
                 where=[
                     Condition(Function("modulo", [Column("org_id"), 100]), Op.LT, load_rate),
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
+                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                 ],
@@ -151,7 +153,7 @@ def fetch_transactions_with_total_volumes(
                     AliasedExpression(Column(transaction_tag), "transaction_name"),
                 ],
                 where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(hours=6)),
+                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
                     Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
                     Condition(Column("metric_id"), Op.EQ, metric_id),
                     Condition(Column("org_id"), Op.IN, org_ids),
