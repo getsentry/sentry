@@ -54,6 +54,16 @@ class RegionMappingTest(TestCase):
                 assert get_local_region() == Region(
                     name=MONOLITH_REGION_NAME,
                     id=0,
-                    address="/",
+                    address="http://us.testserver",
                     category=RegionCategory.MULTI_TENANT,
                 )
+                with override_settings(
+                    SENTRY_SINGLE_ORGANIZATION=True,
+                ):
+                    # The relative address and the 0 id are the only important parts of this region value
+                    assert get_local_region() == Region(
+                        name=MONOLITH_REGION_NAME,
+                        id=0,
+                        address="/",
+                        category=RegionCategory.MULTI_TENANT,
+                    )

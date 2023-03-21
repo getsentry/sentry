@@ -7,7 +7,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
-from sentry.api.utils import generate_region_url
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -143,6 +142,8 @@ def get_local_region() -> Region:
     Raises RegionContextError if this server instance is not a region silo.
     """
     from django.conf import settings
+
+    from sentry.api.utils import generate_region_url
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         # In SAAS monolith mode (pre-region deployment), we use US region
