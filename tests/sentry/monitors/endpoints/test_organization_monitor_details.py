@@ -38,6 +38,15 @@ class OrganizationMonitorDetailsTest(MonitorTestCase):
         self._create_monitor()
         self.get_error_response(self.organization.slug, "bad-guid", status_code=400)
 
+    def test_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        self.get_success_response(self.organization.slug, monitor.guid, environment="production")
+        self.get_error_response(
+            self.organization.slug, monitor.guid, environment="jungle", status_code=404
+        )
+
 
 @region_silo_test(stable=True)
 class UpdateMonitorTest(MonitorTestCase):
