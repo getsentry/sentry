@@ -93,6 +93,8 @@ class SpanTreeModel {
 
   get operationNameCounts(): Map<string, number> {
     const result = new Map<string, number>();
+    result.set('db', 1);
+    result.set('snuba_snql.run', 1);
 
     const operationName = this.span.op;
 

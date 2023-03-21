@@ -170,6 +170,21 @@ function Sidebar({location, organization}: Props) {
       />
     </Feature>
   );
+  const starfish = hasOrganization && (
+    <Feature
+      hookName="feature-disabled:performance-sidebar-item"
+      features={['performance-view']}
+      organization={organization}
+    >
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconLightning size="md" />}
+        label={<GuideAnchor target="performance">{t('Application')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/starfish/`}
+        id="application"
+      />
+    </Feature>
+  );
 
   const performance = hasOrganization && (
     <Feature
@@ -327,6 +342,7 @@ function Sidebar({location, organization}: Props) {
               </SidebarSection>
 
               <SidebarSection>
+                {starfish}
                 {performance}
                 {profiling}
                 {replays}

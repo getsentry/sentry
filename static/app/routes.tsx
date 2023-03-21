@@ -1395,6 +1395,27 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const starfishRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/starfish/"
+          component={withDomainRequired(make(() => import('sentry/views/starfish')))}
+          key="orgless-starfish-route"
+        >
+          {cronsChildRoutes({forCustomerDomain: true})}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/starfish/"
+        component={withDomainRedirect(make(() => import('sentry/views/starfish')))}
+        key="org-starfish"
+      >
+        {cronsChildRoutes({forCustomerDomain: false})}
+      </Route>
+    </Fragment>
+  );
+
   const replayChildRoutes = (
     <Fragment>
       <IndexRoute component={make(() => import('sentry/views/replays/list/container'))} />
@@ -2125,6 +2146,7 @@ function buildRoutes() {
       {userFeedbackRoutes}
       {issueListRoutes}
       {issueDetailsRoutes}
+      {starfishRoutes}
       {alertRoutes}
       {cronsRoutes}
       {replayRoutes}

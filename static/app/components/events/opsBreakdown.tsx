@@ -5,6 +5,7 @@ import isFinite from 'lodash/isFinite';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {ActiveOperationFilter} from 'sentry/components/events/interfaces/spans/filter';
 import {
+  EnhancedProcessedSpanType,
   RawSpanType,
   TraceContextType,
 } from 'sentry/components/events/interfaces/spans/types';
@@ -49,6 +50,7 @@ type DefaultProps = {
 type Props = DefaultProps & {
   event: Event;
   operationNameFilters: ActiveOperationFilter;
+  spans: EnhancedProcessedSpanType[];
 };
 
 class OpsBreakdown extends Component<Props> {
@@ -81,15 +83,15 @@ class OpsBreakdown extends Component<Props> {
       return [];
     }
 
-    const spanEntry = event.entries.find(
-      (entry: EntrySpans | any): entry is EntrySpans => {
-        return entry.type === EntryType.SPANS;
-      }
-    );
+    // const spanEntry = event.entries.find(
+    //   (entry: EntrySpans | any): entry is EntrySpans => {
+    //     return entry.type === EntryType.SPANS;
+    //   }
+    // );
 
-    let spans: RawSpanType[] = spanEntry?.data ?? [];
+    let spans: EnhancedProcessedSpanType[] = [];
 
-    const rootSpan = {
+    const rootSpan: any = {
       op: traceContext.op,
       timestamp: event.endTimestamp,
       start_timestamp: event.startTimestamp,
@@ -99,8 +101,8 @@ class OpsBreakdown extends Component<Props> {
     };
 
     spans =
-      spans.length > 0
-        ? spans
+      this.props.spans.length > 0
+        ? this.props.spans
         : // if there are no descendent spans, then use the transaction root span
           [rootSpan];
 
@@ -119,11 +121,12 @@ class OpsBreakdown extends Component<Props> {
     }
 
     const operationNameIntervals = spans.reduce(
-      (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
+      (intervals: Partial<OperationNameIntervals>, pspan: EnhancedProcessedSpanType) => {
+        const span = pspan.span;
         let startTimestamp = span.start_timestamp;
         const endTimestamp = span.timestamp;
 
-        if (!span.exclusive_time) {
+        if (!('exclusive_time' in span)) {
           return intervals;
         }
 
@@ -143,7 +146,7 @@ class OpsBreakdown extends Component<Props> {
 
         const cover: TimeWindowSpan = [
           startTimestamp,
-          startTimestamp + span.exclusive_time / 1000,
+          startTimestamp + (span.exclusive_time ?? 0) / 1000,
         ];
 
         const operationNameInterval = intervals[operationName];

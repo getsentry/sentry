@@ -46,17 +46,18 @@ function Filter({
       ? []
       : [...operationNameFilter.operationNames.keys()];
 
+  const oCounts = operationNameCounts;
   // Memoize menuOptions to prevent CompactSelect from re-rendering every time
   // the value changes
   const menuOptions = useMemo(
     () =>
-      [...operationNameCounts].map(([operationName, operationCount]) => ({
+      [...oCounts].map(([operationName, operationCount]) => ({
         value: operationName,
         label: operationName,
         leadingItems: <OperationDot backgroundColor={pickBarColor(operationName)} />,
         trailingItems: <OperationCount>{operationCount}</OperationCount>,
       })),
-    [operationNameCounts]
+    [oCounts]
   );
 
   function onChange(selectedOpts) {

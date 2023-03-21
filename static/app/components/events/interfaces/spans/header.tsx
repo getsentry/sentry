@@ -427,6 +427,7 @@ class TraceViewHeader extends Component<PropType, State> {
                 >
                   {this.props.event && (
                     <OpsBreakdown
+                      spans={this.props.spans}
                       operationNameFilters={this.props.operationNameFilters}
                       event={this.props.event}
                       topN={3}
