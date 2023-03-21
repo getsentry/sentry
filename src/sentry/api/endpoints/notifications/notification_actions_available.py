@@ -18,7 +18,7 @@ class NotificationActionsAvailableEndpoint(FlaggedOrganizationEndpoint):
         Responds with a payload serialized directly from running the 'serialize_available' methods
         on the ActionRegistration objects within the NotificationAction registry.
         """
-        payload = []
+        payload = {"actions": []}
         integrations = integration_service.get_integrations(
             organization_id=organization.id,
             status=ObjectStatus.ACTIVE,
@@ -30,6 +30,6 @@ class NotificationActionsAvailableEndpoint(FlaggedOrganizationEndpoint):
                 integrations=integrations,
             )
             for action in serialized_available_actions:
-                payload.append(action)
+                payload["actions"].append(action)
 
         return Response(payload)

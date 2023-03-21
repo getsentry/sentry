@@ -55,5 +55,5 @@ class NotificationActionsAvailableEndpointTest(APITestCase):
                 self.organization.slug,
                 status_code=status.HTTP_200_OK,
             )
-            assert trigger_available_response in response.data
+            assert trigger_available_response in response.data["actions"]
         assert registration.serialize_available.called
