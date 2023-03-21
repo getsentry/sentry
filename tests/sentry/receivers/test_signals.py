@@ -21,7 +21,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         issue_unignored.send(
             project=self.project,
             group=self.group,
-            user=self.owner,
+            user_id=self.owner.id,
             transition_type="manual",
             sender=type(self.project),
         )
@@ -32,7 +32,7 @@ class SignalsTest(TestCase, SnubaTestCase):
         issue_unignored.send(
             project=self.project,
             group=self.group,
-            user=None,
+            user_id=None,
             transition_type="automatic",
             sender="clear_expired_snoozes",
         )

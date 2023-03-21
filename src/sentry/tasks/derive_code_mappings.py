@@ -75,7 +75,6 @@ def process_error(error: ApiError, extra: Dict[str, str]) -> None:
 def derive_code_mappings(
     project_id: int,
     data: NodeData,
-    dry_run=False,
 ) -> None:
     """
     Derive code mappings for a project given data from a recent event.
@@ -91,11 +90,11 @@ def derive_code_mappings(
     extra = {
         "organization.slug": org.slug,
     }
-    feat_key = "organizations:derive-code-mappings"
-    # Check the feature flag again to ensure the feature is still enabled.
-    org_has_flag = features.has(feat_key, org) or features.has(f"{feat_key}-dry-run", org)
 
-    if not org_has_flag or not data["platform"] in SUPPORTED_LANGUAGES:
+    if (
+        not features.has("organizations:derive-code-mappings", org)
+        or not data["platform"] in SUPPORTED_LANGUAGES
+    ):
         logger.info("Event should not be processed.", extra=extra)
         return
 
@@ -123,6 +122,9 @@ def derive_code_mappings(
         logger.warning("derive_code_mappings.getting_lock_failed", extra=extra)
         # This will cause the auto-retry logic to try again
         raise error
+    except Exception:
+        logger.exception("Unexpected error type while calling `get_trees_for_org()`.", extra=extra)
+        return
 
     if not trees:
         logger.error("The tree is empty. Investigate.")
@@ -130,10 +132,6 @@ def derive_code_mappings(
 
     trees_helper = CodeMappingTreesHelper(trees)
     code_mappings = trees_helper.generate_code_mappings(stacktrace_paths)
-    if dry_run:
-        report_project_codemappings(code_mappings, stacktrace_paths, project)
-        return
-
     set_project_codemappings(code_mappings, organization_integration, project)
 
 
@@ -228,29 +226,3 @@ def set_project_codemappings(
                     "existing_code_mapping": cm,
                 },
             )
-
-
-def report_project_codemappings(
-    code_mappings: List[CodeMapping],
-    stacktrace_paths: List[str],
-    project: Project,
-) -> None:
-    """
-    Log the code mappings that would be created for a project.
-    """
-    extra = {
-        "org": project.organization.slug,
-        "project": project.slug,
-        "code_mappings": code_mappings,
-        "stacktrace_paths": stacktrace_paths,
-    }
-    if code_mappings:
-        msg = "Code mappings would have been created."
-    else:
-        msg = "NO code mappings would have been created."
-    existing_code_mappings = RepositoryProjectPathConfig.objects.filter(project=project)
-    if existing_code_mappings.exists():
-        msg = "Code mappings already exist."
-        extra["existing_code_mappings"] = existing_code_mappings
-
-    logger.info(msg, extra=extra)

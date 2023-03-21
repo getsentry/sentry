@@ -8,8 +8,6 @@ import RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
-const ERRORS_PER_PAGE = 50; // Need to make sure the url is not too large
-
 type State = {
   /**
    * If any request returned an error then nothing is being returned
@@ -35,6 +33,20 @@ type Options = {
    * The projectSlug and replayId concatenated together
    */
   replaySlug: string;
+
+  /**
+   * Default: 50
+   * You can override this for testing
+   *
+   * Be mindful that the list of error-ids will appear in the GET request url,
+   * so don't make the url string too large!
+   */
+  errorsPerPage?: number;
+  /**
+   * Default: 100
+   * You can override this for testing
+   */
+  segmentsPerPage?: number;
 };
 
 interface Result {
@@ -51,12 +63,6 @@ const INITIAL_STATE: State = Object.freeze({
   fetchingErrors: true,
   fetchingReplay: true,
 });
-
-function responseToAttachments(segment: unknown[]) {
-  // Each segment includes an array of attachments
-  // Therefore we flatten 1 levels deep
-  return segment.flat(1);
-}
 
 /**
  * A react hook to load core replay data over the network.
@@ -82,7 +88,12 @@ function responseToAttachments(segment: unknown[]) {
  * @param {orgSlug, replaySlug} Where to find the root replay event
  * @returns An object representing a unified result of the network requests. Either a single `ReplayReader` data object or fetch errors.
  */
-function useReplayData({replaySlug, orgSlug}: Options): Result {
+function useReplayData({
+  replaySlug,
+  orgSlug,
+  errorsPerPage = 50,
+  segmentsPerPage = 100,
+}: Options): Result {
   const [projectSlug, replayId] = replaySlug.split(':');
 
   const api = useApi();
@@ -112,12 +123,10 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
       return;
     }
 
-    const perPage = 100;
-
-    const pages = Math.ceil(replayRecord.count_segments / 100);
+    const pages = Math.ceil(replayRecord.count_segments / segmentsPerPage);
     const cursors = new Array(pages)
       .fill(0)
-      .map((_, i) => `${perPage}:${i}:${i === 0 ? 1 : 0}`);
+      .map((_, i) => `${segmentsPerPage}:${i}:${i === 0 ? 1 : 0}`);
 
     await Promise.allSettled(
       cursors.map(cursor => {
@@ -126,19 +135,19 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
           {
             query: {
               download: true,
-              per_page: perPage,
+              per_page: segmentsPerPage,
               cursor,
             },
           }
         );
         promise.then(response => {
-          setAttachments(prev => (prev ?? []).concat(responseToAttachments(response)));
+          setAttachments(prev => (prev ?? []).concat(...response));
         });
         return promise;
       })
     );
     setState(prev => ({...prev, fetchingAttachments: false}));
-  }, [api, orgSlug, projectSlug, replayRecord]);
+  }, [segmentsPerPage, api, orgSlug, projectSlug, replayRecord]);
 
   const fetchErrors = useCallback(async () => {
     if (!replayRecord) {
@@ -157,7 +166,7 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
     const finishedAtClone = new Date(replayRecord.finished_at);
     finishedAtClone.setSeconds(finishedAtClone.getSeconds() + 1);
 
-    const chunks = chunk(replayRecord.error_ids, ERRORS_PER_PAGE);
+    const chunks = chunk(replayRecord.error_ids, errorsPerPage);
     await Promise.allSettled(
       chunks.map(errorIds => {
         const promise = api.requestPromise(
@@ -171,13 +180,13 @@ function useReplayData({replaySlug, orgSlug}: Options): Result {
           }
         );
         promise.then(response => {
-          setErrors(prev => (prev ?? []).concat(response.data));
+          setErrors(prev => (prev ?? []).concat(response.data || []));
         });
         return promise;
       })
     );
     setState(prev => ({...prev, fetchingErrors: false}));
-  }, [api, orgSlug, replayRecord]);
+  }, [errorsPerPage, api, orgSlug, replayRecord]);
 
   const onError = useCallback(error => {
     Sentry.captureException(error);

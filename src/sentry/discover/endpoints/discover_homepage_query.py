@@ -22,7 +22,6 @@ def get_homepage_query(organization, user):
 
 @region_silo_endpoint
 class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
-    private = True
 
     permission_classes = (
         IsAuthenticated,

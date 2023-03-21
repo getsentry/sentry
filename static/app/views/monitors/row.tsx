@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import cronstrue from 'cronstrue';
 
 import {deleteMonitor} from 'sentry/actionCreators/monitors';
 import {openConfirmModal} from 'sentry/components/confirm';
@@ -13,9 +12,9 @@ import {IconEllipsis} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {shouldUse24Hours} from 'sentry/utils/dates';
 import useApi from 'sentry/utils/useApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {crontabAsText} from 'sentry/views/monitors/utils';
 
 import {MonitorBadge} from './components/monitorBadge';
 import {Monitor, MonitorConfig, MonitorStatus, ScheduleType} from './types';
@@ -29,11 +28,8 @@ interface MonitorRowProps {
 function scheduleAsText(config: MonitorConfig) {
   // Crontab format uses cronstrue
   if (config.schedule_type === ScheduleType.CRONTAB) {
-    return cronstrue.toString(config.schedule, {
-      verbose: true,
-      throwExceptionOnParseError: false,
-      use24HourTimeFormat: shouldUse24Hours(),
-    });
+    const parsedSchedule = crontabAsText(config.schedule);
+    return parsedSchedule ?? t('Unknown schedule');
   }
 
   // Interval format is simpler

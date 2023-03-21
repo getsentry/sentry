@@ -171,6 +171,13 @@ const styles = (theme: Theme, isDark: boolean) => css`
             }
             .context {
               background: ${theme.background};
+
+              table.key-value {
+                border-color: ${theme.border};
+                td {
+                  border-color: ${theme.border} !important;
+                }
+              }
             }
           }
         }

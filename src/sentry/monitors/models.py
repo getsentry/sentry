@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime, timedelta
 from uuid import uuid4
 
@@ -20,6 +22,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models import Environment, Project
 
 SCHEDULE_INTERVAL_MAP = {
     "year": rrule.YEARLY,
@@ -59,6 +62,7 @@ def get_monitor_context(monitor):
 
     return {
         "id": str(monitor.guid),
+        "slug": monitor.slug,
         "name": monitor.name,
         "config": monitor.config,
         "status": monitor.get_status_display(),
@@ -253,6 +257,16 @@ class Monitor(Model):
         monitor_failed.send(monitor=self, sender=type(self))
         return True
 
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        Monitor.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)
+
 
 @region_silo_only_model
 class MonitorCheckIn(Model):
@@ -312,6 +326,31 @@ class MonitorLocation(Model):
     __repr__ = sane_repr("guid", "name")
 
 
+class MonitorEnvironmentManager(BaseManager):
+    """
+    A manager that consolidates logic for monitor enviroment updates
+    """
+
+    def ensure_environment(
+        self, project: Project, monitor: Monitor, environment_name: str | None
+    ) -> MonitorEnvironment:
+        if not environment_name:
+            environment_name = "production"
+
+        # TODO: assume these objects exist once backfill is completed
+        environment = Environment.get_or_create(project=project, name=environment_name)
+
+        monitorenvironment_defaults = {
+            "status": monitor.status,
+            "next_checkin": monitor.next_checkin,
+            "last_checkin": monitor.last_checkin,
+        }
+
+        return MonitorEnvironment.objects.get_or_create(
+            monitor=monitor, environment=environment, defaults=monitorenvironment_defaults
+        )[0]
+
+
 @region_silo_only_model
 class MonitorEnvironment(Model):
     __include_in_export__ = True
@@ -324,6 +363,8 @@ class MonitorEnvironment(Model):
     next_checkin = models.DateTimeField(null=True)
     last_checkin = models.DateTimeField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects = MonitorEnvironmentManager()
 
     class Meta:
         app_label = "sentry"
@@ -358,3 +399,13 @@ class MonitorEnvironment(Model):
             return False
 
         return True
+
+    def mark_ok(self, checkin: MonitorCheckIn, ts: datetime):
+        params = {
+            "last_checkin": ts,
+            "next_checkin": self.monitor.get_next_scheduled_checkin(ts),
+        }
+        if checkin.status == CheckInStatus.OK and self.status != MonitorStatus.DISABLED:
+            params["status"] = MonitorStatus.OK
+
+        MonitorEnvironment.objects.filter(id=self.id).exclude(last_checkin__gt=ts).update(**params)

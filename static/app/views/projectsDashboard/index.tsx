@@ -2,7 +2,7 @@ import {Fragment, Profiler, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
-import {setTag, withProfiler} from '@sentry/react';
+import {withProfiler} from '@sentry/react';
 import debounce from 'lodash/debounce';
 import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
@@ -24,7 +24,7 @@ import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
 import {Organization, Project, TeamWithProjects} from 'sentry/types';
 import {sortProjects} from 'sentry/utils';
-import {onRenderCallback} from 'sentry/utils/performanceForSentry';
+import {onRenderCallback, setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -74,13 +74,6 @@ function ProjectCardList({projects}: {projects: Project[]}) {
   );
 }
 
-function setProjectDataTags(totalProjects: number) {
-  const countGroup = [0, 1, 5, 10, 50, 100, 500, 1000, Infinity].find(
-    n => totalProjects <= n
-  );
-  setTag('projects.total.grouped', `<=${countGroup}`);
-}
-
 function Dashboard({teams, organization, loadingTeams, error, router, location}: Props) {
   useEffect(() => {
     return function cleanup() {
@@ -112,7 +105,7 @@ function Dashboard({teams, organization, loadingTeams, error, router, location}:
     'id'
   );
   const projects = uniqBy(flatten(teams.map(teamObj => teamObj.projects)), 'id');
-  setProjectDataTags(projects.length);
+  setGroupedEntityTag('projects.total', 1000, projects.length);
 
   const currentProjects = selectedTeams.length === 0 ? projects : filteredTeamProjects;
   const filteredProjects = (currentProjects ?? projects).filter(project =>
