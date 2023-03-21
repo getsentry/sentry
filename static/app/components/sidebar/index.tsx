@@ -1,4 +1,4 @@
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -33,12 +33,12 @@ import PreferencesStore from 'sentry/stores/preferencesStore';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import {Organization} from 'sentry/types';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import theme from 'sentry/utils/theme';
 import useMedia from 'sentry/utils/useMedia';
-import withProjects from 'sentry/utils/withProjects';
+import useProjects from 'sentry/utils/useProjects';
 import {usePersistedOnboardingState} from 'sentry/views/onboarding/utils';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -52,7 +52,6 @@ import SidebarItem from './sidebarItem';
 import {SidebarOrientation, SidebarPanelKey} from './types';
 
 type Props = {
-  projects: Project[];
   location?: Location;
   organization?: Organization;
 };
@@ -69,12 +68,10 @@ function hidePanel() {
   SidebarPanelStore.hidePanel();
 }
 
-function Sidebar(props: Props) {
+function Sidebar({location, organization}: Props) {
   const config = useLegacyStore(ConfigStore);
   const preferences = useLegacyStore(PreferencesStore);
   const activePanel = useLegacyStore(SidebarPanelStore);
-
-  const {location, organization} = props;
 
   const collapsed = !!preferences.collapsed;
   const horizontal = useMedia(`(max-width: ${theme.breakpoints.medium})`);
@@ -82,12 +79,32 @@ function Sidebar(props: Props) {
   const hasOrganization = !!organization;
   const [onboardingState] = usePersistedOnboardingState();
 
+  const {projects: project} = useProjects();
+
   const toggleCollapse = () => {
     const action = collapsed ? showSidebar : hideSidebar;
     action();
   };
 
   const bcl = document.body.classList;
+
+  const useOpenOnboardingSidebar = useMemo(() => {
+    if (hasOrganization && !ConfigStore.get('demoMode')) {
+      const tasks = getMergedTasks({
+        organization,
+        projects: project,
+        onboardingState: onboardingState || undefined,
+      });
+
+      const allDisplayedTasks = tasks
+        .filter(task => task.display)
+        .filter(task => !task.renderCard);
+      const doneTasks = allDisplayedTasks.filter(isDone);
+
+      return !(doneTasks.length >= allDisplayedTasks.length);
+    }
+    return true;
+  }, [organization, onboardingState, hasOrganization, project]);
 
   // Close panel on any navigation
   useEffect(() => void hidePanel(), [location?.pathname]);
@@ -119,28 +136,10 @@ function Sidebar(props: Props) {
 
   // Trigger panels depending on the location hash
   useEffect(() => {
-    if (location?.hash === '#welcome') {
-      if (hasOrganization && !ConfigStore.get('demoMode')) {
-        const projects = props.projects;
-
-        const tasks = getMergedTasks({
-          organization,
-          projects,
-          onboardingState: onboardingState || undefined,
-        });
-
-        const allDisplayedTasks = tasks
-          .filter(task => task.display)
-          .filter(task => !task.renderCard);
-        const doneTasks = allDisplayedTasks.filter(isDone);
-
-        if (doneTasks.length >= allDisplayedTasks.length) {
-          return;
-        }
-      }
+    if (location?.hash === '#welcome' && useOpenOnboardingSidebar) {
       activatePanel(SidebarPanelKey.OnboardingWizard);
     }
-  }, [location?.hash, props.projects, organization, onboardingState, hasOrganization]);
+  }, [location?.hash, useOpenOnboardingSidebar]);
 
   const hasPanel = !!activePanel;
   const orientation: SidebarOrientation = horizontal ? 'top' : 'left';
@@ -455,7 +454,7 @@ function Sidebar(props: Props) {
   );
 }
 
-export default withProjects(Sidebar);
+export default Sidebar;
 
 const responsiveFlex = css`
   display: flex;
