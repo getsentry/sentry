@@ -11,6 +11,9 @@ import {clamp} from '../colors/utils';
 import {FlamegraphCanvas} from '../flamegraphCanvas';
 import {SpanChartRenderer2D} from '../renderers/spansRenderer';
 import {SpanChartNode} from '../spanChart';
+import {Rect} from '../speedscope';
+
+export {Rect};
 
 export function createShader(
   gl: WebGLRenderingContext,
@@ -239,277 +242,6 @@ export function transformMatrixBetweenRect(from: Rect, to: Rect): mat3 {
   );
 }
 
-// Utility class to manipulate a virtual rect element. Some of the implementations are based off
-// speedscope, however they are not 100% accurate and we've made some changes. It is important to
-// note that contructing a lot of these objects at draw time is expensive and should be avoided.
-export class Rect {
-  origin: vec2;
-  size: vec2;
-
-  constructor(x: number, y: number, width: number, height: number) {
-    this.origin = vec2.fromValues(x, y);
-    this.size = vec2.fromValues(width, height);
-  }
-
-  clone(): Rect {
-    return Rect.From(this);
-  }
-
-  isValid(): boolean {
-    return this.toMatrix().every(n => !isNaN(n));
-  }
-
-  isEmpty(): boolean {
-    return this.width === 0 && this.height === 0;
-  }
-
-  static Empty(): Rect {
-    return new Rect(0, 0, 0, 0);
-  }
-
-  static From(rect: Rect): Rect {
-    return new Rect(rect.x, rect.y, rect.width, rect.height);
-  }
-
-  get x(): number {
-    return this.origin[0];
-  }
-  get y(): number {
-    return this.origin[1];
-  }
-  get width(): number {
-    return this.size[0];
-  }
-  get height(): number {
-    return this.size[1];
-  }
-  get left(): number {
-    return this.x;
-  }
-  get right(): number {
-    return this.left + this.width;
-  }
-  get top(): number {
-    return this.y;
-  }
-  get bottom(): number {
-    return this.top + this.height;
-  }
-  get centerX(): number {
-    return this.x + this.width / 2;
-  }
-  get centerY(): number {
-    return this.y + this.height / 2;
-  }
-  get center(): vec2 {
-    return [this.centerX, this.centerY];
-  }
-
-  static decode(query: string | ReadonlyArray<string> | null | undefined): Rect | null {
-    let maybeEncodedRect = query;
-
-    if (typeof query === 'string') {
-      maybeEncodedRect = query.split(',');
-    }
-
-    if (!Array.isArray(maybeEncodedRect)) {
-      return null;
-    }
-
-    if (maybeEncodedRect.length !== 4) {
-      return null;
-    }
-
-    const rect = new Rect(
-      ...(maybeEncodedRect.map(p => parseFloat(p)) as [number, number, number, number])
-    );
-
-    if (rect.isValid()) {
-      return rect;
-    }
-
-    return null;
-  }
-
-  static encode(rect: Rect): string {
-    return rect.toString();
-  }
-
-  toString() {
-    return [this.x, this.y, this.width, this.height].map(n => Math.round(n)).join(',');
-  }
-
-  toMatrix(): mat3 {
-    const {width: w, height: h, x, y} = this;
-    // it's easier to display a matrix as a 3x3 array. WebGl matrices are row first and not column first
-    // https://webglfundamentals.org/webgl/lessons/webgl-matrix-vs-math.html
-    // prettier-ignore
-    return mat3.fromValues(
-      w, 0, 0,
-      0, h, 0,
-      x, y, 1
-    )
-  }
-
-  hasIntersectionWith(other: Rect): boolean {
-    const top = Math.max(this.top, other.top);
-    const bottom = Math.max(top, Math.min(this.bottom, other.bottom));
-    if (bottom - top === 0) {
-      return false;
-    }
-
-    const left = Math.max(this.left, other.left);
-    const right = Math.max(left, Math.min(this.right, other.right));
-
-    if (right - left === 0) {
-      return false;
-    }
-    return true;
-  }
-
-  containsX(vec: vec2): boolean {
-    return vec[0] >= this.left && vec[0] <= this.right;
-  }
-  containsY(vec: vec2): boolean {
-    return vec[1] >= this.top && vec[1] <= this.bottom;
-  }
-
-  contains(vec: vec2): boolean {
-    return this.containsX(vec) && this.containsY(vec);
-  }
-
-  containsRect(rect: Rect): boolean {
-    return (
-      this.left <= rect.left &&
-      rect.right <= this.right &&
-      this.top <= rect.top &&
-      rect.bottom <= this.bottom
-    );
-  }
-
-  leftOverlapsWith(rect: Rect): boolean {
-    return rect.left <= this.left && rect.right >= this.left;
-  }
-
-  rightOverlapsWith(rect: Rect): boolean {
-    return this.right >= rect.left && this.right <= rect.right;
-  }
-
-  overlapsX(other: Rect): boolean {
-    return this.left <= other.right && this.right >= other.left;
-  }
-
-  overlapsY(other: Rect): boolean {
-    return this.top <= other.bottom && this.bottom >= other.top;
-  }
-
-  overlaps(other: Rect): boolean {
-    return this.overlapsX(other) && this.overlapsY(other);
-  }
-
-  transformRect(transform: mat3 | Readonly<mat3>): Rect {
-    const x = this.x * transform[0] + this.y * transform[3] + transform[6];
-    const y = this.x * transform[1] + this.y * transform[4] + transform[7];
-    const width = this.width * transform[0] + this.height * transform[3];
-    const height = this.width * transform[1] + this.height * transform[4];
-
-    return new Rect(
-      x + (width < 0 ? width : 0),
-      y + (height < 0 ? height : 0),
-      Math.abs(width),
-      Math.abs(height)
-    );
-  }
-
-  /**
-   * Returns a transform that inverts the y axis within the rect.
-   * This causes the bottom of the rect to be the top of the rect and vice versa.
-   */
-  invertYTransform(): mat3 {
-    return mat3.fromValues(1, 0, 0, 0, -1, 0, 0, this.y * 2 + this.height, 1);
-  }
-
-  withHeight(height: number): Rect {
-    return new Rect(this.x, this.y, this.width, height);
-  }
-
-  withWidth(width: number): Rect {
-    return new Rect(this.x, this.y, width, this.height);
-  }
-
-  withX(x: number): Rect {
-    return new Rect(x, this.y, this.width, this.height);
-  }
-
-  withY(y: number) {
-    return new Rect(this.x, y, this.width, this.height);
-  }
-
-  toBounds(): [number, number, number, number] {
-    return [this.x, this.y, this.x + this.width, this.y + this.height];
-  }
-
-  toArray(): [number, number, number, number] {
-    return [this.x, this.y, this.width, this.height];
-  }
-
-  between(to: Rect): Rect {
-    return new Rect(to.x, to.y, to.width / this.width, to.height / this.height);
-  }
-
-  translate(x: number, y: number): Rect {
-    return new Rect(x, y, this.width, this.height);
-  }
-
-  translateX(x: number): Rect {
-    return new Rect(x, this.y, this.width, this.height);
-  }
-
-  translateY(y: number): Rect {
-    return new Rect(this.x, y, this.width, this.height);
-  }
-
-  scaleX(x: number): Rect {
-    return new Rect(this.x, this.y, this.width * x, this.height);
-  }
-
-  scaleY(y: number): Rect {
-    return new Rect(this.x, this.y, this.width, this.height * y);
-  }
-
-  scale(x: number, y: number): Rect {
-    return new Rect(this.x * x, this.y * y, this.width * x, this.height * y);
-  }
-
-  scaleOriginBy(x: number, y: number): Rect {
-    return new Rect(this.x * x, this.y * y, this.width, this.height);
-  }
-
-  scaledBy(x: number, y: number): Rect {
-    return new Rect(this.x, this.y, this.width * x, this.height * y);
-  }
-
-  equals(rect: Rect): boolean {
-    if (this.x !== rect.x) {
-      return false;
-    }
-    if (this.y !== rect.y) {
-      return false;
-    }
-    if (this.width !== rect.width) {
-      return false;
-    }
-    if (this.height !== rect.height) {
-      return false;
-    }
-    return true;
-  }
-
-  notEqualTo(rect: Rect): boolean {
-    return !this.equals(rect);
-  }
-}
-
 function getContext(canvas: HTMLCanvasElement, context: '2d'): CanvasRenderingContext2D;
 function getContext(canvas: HTMLCanvasElement, context: 'webgl'): WebGLRenderingContext;
 function getContext(canvas: HTMLCanvasElement, context: string): RenderingContext {
@@ -544,28 +276,6 @@ export function measureText(string: string, ctx?: CanvasRenderingContext2D): Rec
   );
 }
 
-// Taken from speedscope, computes min/max by halving the high/low end
-// of the range on each iteration as long as range precision is greater than the given precision.
-export function findRangeBinarySearch(
-  {low, high}: {high: number; low: number},
-  fn: (val: number) => number,
-  target: number,
-  precision = 1
-): [number, number] {
-  // eslint-disable-next-line
-  while (true) {
-    if (high - low <= precision) {
-      return [low, high];
-    }
-
-    const mid = (high + low) / 2;
-    if (fn(mid) < target) {
-      low = mid;
-    } else {
-      high = mid;
-    }
-  }
-}
 /**
  * Returns first index of value in array where value.start < target
  * Example: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], target = 5, returns 4 which points to value 3
@@ -670,38 +380,11 @@ export function formatColorForFrame(
 }
 
 export const ELLIPSIS = '\u2026';
-type TrimTextCenter = {
+export interface TrimTextCenter {
   end: number;
   length: number;
   start: number;
   text: string;
-};
-
-// Similar to speedscope's implementation, utility fn to trim text in the center with a small bias towards prefixes.
-export function trimTextCenter(text: string, low: number): TrimTextCenter {
-  if (low >= text.length) {
-    return {
-      text,
-      start: 0,
-      end: 0,
-      length: 0,
-    };
-  }
-
-  const prefixLength = Math.floor(low / 2);
-  // Use 1 character less than the low value to account for ellipsis and favor displaying the prefix
-  const postfixLength = low - prefixLength - 1;
-
-  const start = prefixLength;
-  const end = Math.floor(text.length - postfixLength + ELLIPSIS.length);
-  const trimText = `${text.substring(0, start)}${ELLIPSIS}${text.substring(end)}`;
-
-  return {
-    text: trimText,
-    start,
-    end,
-    length: end - start,
-  };
 }
 
 // Utility function to compute a clamped view. This is essentially a bounds check

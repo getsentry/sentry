@@ -1,7 +1,8 @@
 import {Frame} from './frame';
-import {WeightedNode} from './weightedNode';
 
-export class CallTreeNode extends WeightedNode {
+export class CallTreeNode {
+  readonly frame: Frame;
+
   private locked = false;
 
   readonly frame: Frame = Frame.Root;
@@ -10,8 +11,10 @@ export class CallTreeNode extends WeightedNode {
   recursive: CallTreeNode | null = null;
   children: CallTreeNode[] = [];
 
+  totalWeight: number = 0;
+  selfWeight: number = 0;
+
   constructor(frame: Frame, parent: CallTreeNode | null) {
-    super();
     this.parent = parent;
     this.frame = frame;
   }

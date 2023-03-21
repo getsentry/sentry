@@ -20,10 +20,15 @@ class ReferrerTest(TestCase):
         assert warn_log.call_count == 0
 
     @patch("sentry.snuba.referrer.logger.warning")
-    def test_referrer_validate_tsdb_4_model_with_suffix(self, warn_log):
+    def test_referrer_validate_tsdb_model_with_suffix(self, warn_log):
         assert warn_log.call_count == 0
+        validate_referrer("tsdb-modelid:300.user_count_snoozes")
+        assert warn_log.call_count == 0
+        validate_referrer("tsdb-modelid:4.frequency_snoozes")
+        assert warn_log.call_count == 0
+        # tsdb-modelid:4 doesn't use the `user_count_snoozes` suffix
         validate_referrer("tsdb-modelid:4.user_count_snoozes")
-        assert warn_log.call_count == 0
+        assert warn_log.call_count == 1
 
     @patch("sentry.snuba.referrer.logger.warning")
     def test_referrer_validate_base_enum_values(self, warn_log):

@@ -2,7 +2,7 @@ import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
 
 function sortStacks(
   a: {stack: number[]; weight: number},
@@ -25,34 +25,36 @@ function sortStacks(
   return 0;
 }
 
-function stacksWithWeights(profile: Readonly<Profiling.SampledProfile>) {
+function stacksWithWeights(
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
+) {
   return profile.samples.map((stack, index) => {
     return {
       stack,
       weight: profile.weights[index],
+      profileIds: profileIds[index],
     };
   });
 }
 
 function sortSamples(
-  profile: Readonly<Profiling.SampledProfile>
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
 ): {stack: number[]; weight: number}[] {
-  return stacksWithWeights(profile).sort(sortStacks);
+  return stacksWithWeights(profile, profileIds).sort(sortStacks);
 }
 
 function throwIfMissingFrame(index: number) {
   throw new Error(`Could not resolve frame ${index} in frame index`);
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {type: 'flamechart' | 'flamegraph'; profileIds?: Readonly<string[]>}
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -70,9 +72,21 @@ export class SampledProfile extends Profile {
       );
     }
 
+    let resolvedProfileIds: string[][] = [];
+    if (
+      options.type === 'flamegraph' &&
+      sampledProfile.samples_profiles &&
+      options.profileIds
+    ) {
+      resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
+        sampledProfile.samples_profiles,
+        options.profileIds
+      );
+    }
+
     const samples =
       options.type === 'flamegraph'
-        ? sortSamples(sampledProfile)
+        ? sortSamples(sampledProfile, resolvedProfileIds)
         : stacksWithWeights(sampledProfile);
 
     // We process each sample in the profile while maintaining a resolved stack of frames.
@@ -138,7 +152,7 @@ export class SampledProfile extends Profile {
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight, size);
+      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
     }
 
     return profile.build();
@@ -172,7 +186,12 @@ export class SampledProfile extends Profile {
     {type: 'flamechart'}
   );
 
-  appendSampleWithWeight(stack: Frame[], weight: number, end: number): void {
+  appendSampleWithWeight(
+    stack: Frame[],
+    weight: number,
+    end: number,
+    resolvedProfileIds?: string[]
+  ): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
 
@@ -194,9 +213,12 @@ export class SampledProfile extends Profile {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
+        if (resolvedProfileIds) {
+          this.callTreeNodeProfileIdMap.set(node, resolvedProfileIds);
+        }
       }
 
-      node.addToTotalWeight(weight);
+      node.totalWeight += weight;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -215,7 +237,7 @@ export class SampledProfile extends Profile {
       framesInStack[i] = node;
     }
 
-    node.addToSelfWeight(weight);
+    node.selfWeight += weight;
     this.minFrameDuration = Math.min(weight, this.minFrameDuration);
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
@@ -225,10 +247,10 @@ export class SampledProfile extends Profile {
       child.lock();
     }
 
-    node.frame.addToSelfWeight(weight);
+    node.frame.selfWeight += weight;
 
     for (const stackNode of framesInStack) {
-      stackNode.frame.addToTotalWeight(weight);
+      stackNode.frame.totalWeight += weight;
       stackNode.incrementCount();
     }
 

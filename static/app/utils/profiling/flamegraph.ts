@@ -35,10 +35,6 @@ function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
 const alphabeticTreeSort = makeTreeSort(sortAlphabetically);
 const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
-// Intermediary flamegraph data structure for rendering a profile. Constructs a list of frames from a profile
-// and appends them to a virtual root. Taken mostly from speedscope with a few modifications. This should get
-// removed as we port to our own format for profiles. The general idea is to iterate over profiles while
-// keeping an intermediary stack so as to resemble the execution of the program.
 export class Flamegraph {
   profile: Profile;
   frames: ReadonlyArray<FlamegraphFrame> = [];
@@ -167,9 +163,9 @@ export class Flamegraph {
       0
     );
 
-    this.root.node.addToTotalWeight(weight);
+    this.root.node.totalWeight += weight;
     this.root.end = this.root.start + weight;
-    this.root.frame.addToTotalWeight(weight);
+    this.root.frame.totalWeight += weight;
   }
 
   buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
@@ -258,6 +254,7 @@ export class Flamegraph {
         depth: 0,
         start: value,
         end: value,
+        profileIds: profile.callTreeNodeProfileIdMap.get(node),
       };
 
       if (parent) {
@@ -343,7 +340,10 @@ export class Flamegraph {
     for (let i = 0; i < this.frames.length; i++) {
       if (
         this.frames[i].frame.name === frameName &&
-        this.frames[i].frame.image === framePackage
+        // the framePackage can match either the package or the module
+        // this is an artifact of how we previously used image
+        (this.frames[i].frame.package === framePackage ||
+          this.frames[i].frame.module === framePackage)
       ) {
         matches.push(this.frames[i]);
       }
