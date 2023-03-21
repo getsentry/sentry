@@ -224,8 +224,6 @@ default_manager.add("organizations:onboarding-heartbeat-footer-with-view-sample-
 default_manager.add("organizations:onboarding-project-deletion-on-back-click", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-view", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:profile-blocked-main-thread-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-default_manager.add("organizations:profile-blocked-main-thread-ppg", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:sso-basic", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:sso-saml2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
