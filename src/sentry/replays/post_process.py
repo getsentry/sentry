@@ -19,12 +19,18 @@ def generate_restricted_fieldset(
         yield from response
 
 
+def _strip_dashes(field):
+    if field:
+        return field.replace("-", "")
+    return field
+
+
 def generate_normalized_output(
     response: List[Dict[str, Any]]
 ) -> Generator[None, None, Dict[str, Any]]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:
-        item["id"] = item.pop("replay_id", None)
+        item["id"] = _strip_dashes(item.pop("replay_id", None))
         item["project_id"] = str(item["project_id"])
         item["trace_ids"] = item.pop("traceIds", [])
         item["error_ids"] = item.pop("errorIds", [])
