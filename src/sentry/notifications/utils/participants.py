@@ -403,7 +403,7 @@ def should_use_smaller_issue_alert_fallback(org: Organization) -> Tuple[bool, st
     org_exposed = expt_manager.get("IssueAlertFallbackExperiment", org=org) == 1
     if org_exposed:
         return (True, "expt")
-    return (True, "ctrl")
+    return (False, "ctrl")
 
 
 def get_fallthrough_recipients(
