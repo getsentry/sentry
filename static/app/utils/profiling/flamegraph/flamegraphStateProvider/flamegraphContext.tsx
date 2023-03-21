@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {UndoableReducer, UndoableReducerAction} from 'sentry/utils/useUndoableReducer';
 

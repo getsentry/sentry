@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
 import {clamp} from 'sentry/utils/profiling/colors/utils';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useKeyboardNavigation} from './useKeyboardNavigation';
 

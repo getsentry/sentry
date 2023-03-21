@@ -1,4 +1,4 @@
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {
   makeFormatter,
   makeFormatTo,

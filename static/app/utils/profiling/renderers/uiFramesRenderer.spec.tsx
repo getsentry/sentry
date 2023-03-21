@@ -2,8 +2,8 @@ import {vec2} from 'gl-matrix';
 
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {UIFramesRenderer} from 'sentry/utils/profiling/renderers/uiFramesRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
