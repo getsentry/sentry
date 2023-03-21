@@ -84,7 +84,8 @@ class PickledObjectFieldTest(TestCase):
 @pytest.fixture
 def complain_enabled():
     with mock.patch.object(settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", True):
-        yield
+        with mock.patch.object(picklefield, "PICKLE_WRITE_JSON", False):
+            yield
 
 
 @pytest.fixture
@@ -93,7 +94,8 @@ def complain_disabled_sample_100_percent():
         settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", False
     ):
         with mock.patch.object(picklefield, "VALIDATE_JSON_SAMPLE_RATE", 1):
-            yield
+            with mock.patch.object(picklefield, "PICKLE_WRITE_JSON", False):
+                yield
 
 
 @pytest.fixture
@@ -102,7 +104,8 @@ def complain_disabled_sample_disabled():
         settings, "PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE", False
     ):
         with mock.patch.object(picklefield, "VALIDATE_JSON_SAMPLE_RATE", 0):
-            yield
+            with mock.patch.object(picklefield, "PICKLE_WRITE_JSON", False):
+                yield
 
 
 @pytest.fixture

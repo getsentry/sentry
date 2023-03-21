@@ -7,7 +7,7 @@ import django_picklefield
 from sentry.db.models.fields import jsonfield
 from sentry.utils import json
 
-PICKLE_WRITE_JSON = False
+PICKLE_WRITE_JSON = True
 VALIDATE_JSON_SAMPLE_RATE = 1
 
 
