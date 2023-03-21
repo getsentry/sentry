@@ -148,6 +148,7 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             status=CheckInStatus.OK,
         )
 
-        self.get_error_response(
+        resp = self.get_success_response(
             self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "volcano"}
         )
+        assert len(resp.data) == 0
