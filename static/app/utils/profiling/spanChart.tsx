@@ -1,5 +1,5 @@
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {SpanTree, SpanTreeNode} from 'sentry/utils/profiling/spanTree';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {
   makeFormatter,
   makeFormatTo,
