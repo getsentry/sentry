@@ -4,7 +4,6 @@ import {Observer} from 'mobx-react';
 
 import Alert from 'sentry/components/alert';
 import {RadioOption} from 'sentry/components/forms/controls/radioGroup';
-import FieldGroup from 'sentry/components/forms/fieldGroup';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import RadioField from 'sentry/components/forms/fields/radioField';
 import SelectField from 'sentry/components/forms/fields/selectField';
@@ -16,12 +15,12 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import Text from 'sentry/components/text';
-import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import {SelectValue} from 'sentry/types';
+import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -153,6 +152,7 @@ function MonitorForm({
         monitor
           ? {
               name: monitor.name,
+              slug: monitor.slug,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               ...formDataFromConfig(monitor.type, monitor.config),
@@ -178,6 +178,20 @@ function MonitorForm({
             stacked
             inline={false}
           />
+          {monitor && (
+            <StyledTextField
+              name="slug"
+              help={tct(
+                'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
+                {strong: <strong />}
+              )}
+              placeholder={t('monitor-slug')}
+              required
+              stacked
+              inline={false}
+              transformInput={slugify}
+            />
+          )}
           <StyledSentryProjectSelectorField
             name="project"
             projects={projects.filter(project => project.isMember)}
@@ -189,11 +203,6 @@ function MonitorForm({
             stacked
             inline={false}
           />
-          {monitor && (
-            <StyledFieldGroup flexibleControlStateSize stacked inline={false}>
-              <StyledTextCopyInput>{monitor.slug}</StyledTextCopyInput>
-            </StyledFieldGroup>
-          )}
         </InputGroup>
 
         <StyledListItem>{t('Choose your schedule type')}</StyledListItem>
@@ -324,19 +333,11 @@ const StyledList = styled(List)`
   width: 600px;
 `;
 
-const StyledTextCopyInput = styled(TextCopyInput)`
-  padding: 0;
-`;
-
 const StyledNumberField = styled(NumberField)`
   padding: 0;
 `;
 
 const StyledSelectField = styled(SelectField)`
-  padding: 0;
-`;
-
-const StyledFieldGroup = styled(FieldGroup)`
   padding: 0;
 `;
 
