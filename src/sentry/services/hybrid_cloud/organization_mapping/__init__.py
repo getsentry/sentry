@@ -27,7 +27,7 @@ class RpcOrganizationMapping:
     customer_id: Optional[str] = None
 
 
-class RpcOrganizationMappingUpdate(TypedDict):
+class RpcOrganizationMappingUpdate(TypedDict, total=False):
     """A set of values to be updated on an OrganizationMapping.
 
     An absent key indicates that the attribute should not be updated. (Compare to a
