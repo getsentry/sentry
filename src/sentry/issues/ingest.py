@@ -167,7 +167,6 @@ def save_issue_from_occurrence(
             )[0]
 
         if not granted_quota.granted:
-            # Log how many issues we dropped due to rate limiting
             metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
