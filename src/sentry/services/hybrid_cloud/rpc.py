@@ -196,7 +196,7 @@ class RpcService(InterfaceWithLifecycle):
                 # empty spots in the parameter model table. This would cause an error
                 # down the road if the method is called.
                 # TODO: Make this a hard failure when all parameter models are stable
-                logger.error(
+                logger.warning(
                     f"Error on parameter model for {cls.__name__}.{base_method.__name__}: {e}"
                 )
             else:
@@ -237,7 +237,7 @@ class RpcService(InterfaceWithLifecycle):
                 try:
                     return remote_method(service_obj, **kwargs)
                 except RpcServiceUnimplementedException as e:
-                    logger.error(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
+                    logger.info(f"Could not remotely call {cls.__name__}.{method_name}: {e}")
 
                     service = fallback()
                     method = getattr(service, method_name)
