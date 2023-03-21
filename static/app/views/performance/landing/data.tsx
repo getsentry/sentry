@@ -43,7 +43,6 @@ export const MOBILE_COLUMN_TITLES = [
   'tpm',
   'slow frame %',
   'frozen frame %',
-  'ttid',
   'users',
   'user misery',
 ];
