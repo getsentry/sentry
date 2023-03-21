@@ -44,8 +44,8 @@ def generate_normalized_output(
         item["user"]["display_name"] = (
             item["user"]["name"]
             or item["user"]["email"]
-            or item["user"]["ip"]
             or item["user"]["id"]
+            or item["user"]["ip"]
         )
         item["sdk"] = {
             "name": item.pop("sdk_name", None),
