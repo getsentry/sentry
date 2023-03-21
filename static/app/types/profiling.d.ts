@@ -1,9 +1,11 @@
 declare namespace Profiling {
   type Release = import('sentry/types').Release;
+  type SpeedscopeSchema = import('sentry/utils/profiling/speedscope').SpeedscopeSchema;
 
   type Image = import('sentry/types/debugImage').Image;
 
-  type SymbolicatorStatus = import('sentry/components/events/interfaces/types').SymbolicatorStatus;
+  type SymbolicatorStatus =
+    import('sentry/components/events/interfaces/types').SymbolicatorStatus;
 
   type SentrySampledProfileSample = {
     stack_id: number;
@@ -124,7 +126,6 @@ declare namespace Profiling {
     symbolAddr?: string;
     symbolicatorStatus?: SymbolicatorStatus;
 
-    // This exists as an artifact of the legacy formats, the speedscope format still uses this
     image?: string;
     // This is used for native platforms to indicate the name of the assembly, path of the dylib, etc
     package?: string;
@@ -141,7 +142,6 @@ declare namespace Profiling {
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | ChromeTrace.ProfileType
     | Profiling.SentrySampledProfile;
 
   type ImportedProfiles = {
@@ -156,33 +156,8 @@ declare namespace Profiling {
     value: number;
   };
 
-  // This extends speedscope's schema - we are keeping this as is, but we are likely to diverge as we add more
-  // sentry related features to the flamegraphs. This should happen after the MVP integration
-  type Schema = {
-    profileID: string;
-    profiles: ReadonlyArray<
-      Readonly<EventedProfile | SampledProfile | JSSelfProfiling.Trace>
-    >;
-    projectID: number;
-    shared: {
-      frames: ReadonlyArray<Omit<FrameInfo, 'key'>>;
-      profile_ids?: ReadonlyArray<string>;
-    };
-    measurements?: {
-      screen_frame_rates?: {
-        unit: string;
-        values: {elapsed_since_start_ns: number; value: number}[];
-      };
-      frozen_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-      slow_frame_renders?: {
-        unit: string;
-        values: FrameRender[];
-      };
-    };
-    activeProfileIndex?: number;
+  // We have extended the speedscope schema to include some additional metadata and measurements
+  interface Schema extends SpeedscopeSchema {
     metadata: {
       androidAPILevel: number;
       deviceClassification: string;
@@ -198,10 +173,26 @@ declare namespace Profiling {
       profileID: string;
       projectID: number;
       received: string;
+      release: Release | null;
       traceID: string;
       transactionID: string;
-      release: Release | null;
       transactionName: string;
     };
-  };
+    profileID: string;
+    projectID: number;
+    measurements?: {
+      frozen_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+      screen_frame_rates?: {
+        unit: string;
+        values: {elapsed_since_start_ns: number; value: number}[];
+      };
+      slow_frame_renders?: {
+        unit: string;
+        values: FrameRender[];
+      };
+    };
+  }
 }

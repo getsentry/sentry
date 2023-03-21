@@ -8,10 +8,6 @@ interface ProfileStats {
   negativeSamplesCount: number;
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality + some added functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
-// We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class Profile {
   // Duration of the profile
   duration: number;
@@ -111,7 +107,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot() && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
         top = top.parent;
       }
 
@@ -124,7 +120,7 @@ export class Profile {
 
       let node: CallTreeNode | null = stackTop;
 
-      while (node && !node.isRoot() && node !== top) {
+      while (node && !node.isRoot && node !== top) {
         toOpen.push(node);
         node = node.parent;
       }
