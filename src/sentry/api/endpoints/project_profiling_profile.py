@@ -83,7 +83,11 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
             return Response(status=404)
 
         preferred_format = (
-            "sampled" if features.has("organizations:profiling-sampled-format") else "speedscope"
+            "sampled"
+            if features.has(
+                "organizations:profiling-sampled-format", project.organization, actor=request.user
+            )
+            else "speedscope"
         )
 
         response = get_from_profiling_service(
