@@ -1,5 +1,4 @@
 import {
-  makeColorBucketTheme,
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
   makeColorMapByLibrary,
@@ -13,6 +12,8 @@ import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegra
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
+
+import {makeColorBucketTheme} from '../speedscope';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',

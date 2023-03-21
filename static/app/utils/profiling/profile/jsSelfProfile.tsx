@@ -125,7 +125,7 @@ export class JSSelfProfile extends Profile {
         parent.children.push(node);
       }
 
-      node.addToTotalWeight(weight);
+      node.totalWeight += weight;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -145,7 +145,7 @@ export class JSSelfProfile extends Profile {
       framesInStack.push(node);
     }
 
-    node.addToSelfWeight(weight);
+    node.selfWeight += weight;
 
     if (weight > 0) {
       this.minFrameDuration = Math.min(weight, this.minFrameDuration);
@@ -158,10 +158,10 @@ export class JSSelfProfile extends Profile {
       child.lock();
     }
 
-    node.frame.addToSelfWeight(weight);
+    node.frame.selfWeight += weight;
 
     for (const stackNode of framesInStack) {
-      stackNode.frame.addToTotalWeight(weight);
+      stackNode.frame.totalWeight += weight;
       stackNode.incrementCount();
     }
 

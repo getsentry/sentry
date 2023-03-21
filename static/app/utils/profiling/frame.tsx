@@ -1,9 +1,7 @@
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
-import {WeightedNode} from './weightedNode';
-
-export class Frame extends WeightedNode {
+export class Frame {
   readonly key: string | number;
   readonly name: string;
   readonly file?: string;
@@ -21,6 +19,9 @@ export class Frame extends WeightedNode {
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
 
+  totalWeight: number = 0;
+  selfWeight: number = 0;
+
   static Root = new Frame(
     {
       key: 'sentry root',
@@ -31,8 +32,6 @@ export class Frame extends WeightedNode {
   );
 
   constructor(frameInfo: Profiling.FrameInfo, type?: 'mobile' | 'web' | 'node') {
-    super();
-
     this.key = frameInfo.key;
     this.file = frameInfo.file;
     this.name = frameInfo.name;

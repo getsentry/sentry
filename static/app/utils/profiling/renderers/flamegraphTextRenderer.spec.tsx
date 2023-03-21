@@ -2,10 +2,10 @@ import {mat3} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {LightFlamegraphTheme as Theme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect, trimTextCenter} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegraphTextRenderer';
+import {Rect, trimTextCenter} from 'sentry/utils/profiling/speedscope';
 
 const makeBaseFlamegraph = (): Flamegraph => {
   const profile = EventedProfile.FromProfile(

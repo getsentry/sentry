@@ -249,7 +249,7 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
       // make sure to increment the count/weight so it can be sorted later
       last.count += node.count;
-      last.addToSelfWeight(node.selfWeight);
+      last.selfWeight += node.selfWeight;
 
       tree = last;
     }

@@ -4,12 +4,9 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {
   computeHighlightedBounds,
   ELLIPSIS,
-  findRangeBinarySearch,
   getContext,
   lowerBound,
-  Rect,
   resizeCanvasToDisplaySize,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
@@ -17,6 +14,7 @@ import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {Flamegraph} from '../flamegraph';
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;

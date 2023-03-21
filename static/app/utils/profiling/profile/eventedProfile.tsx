@@ -96,12 +96,12 @@ export class EventedProfile extends Profile {
     const weightDelta = weight - this.lastValue;
 
     for (const frame of this.stack) {
-      frame.addToTotalWeight(weightDelta);
+      frame.totalWeight += weightDelta;
     }
 
     const top = lastOfArray(this.stack);
     if (top) {
-      top.addToSelfWeight(weight);
+      top.selfWeight += weight;
     }
   }
 
@@ -109,12 +109,12 @@ export class EventedProfile extends Profile {
     const delta = value - this.lastValue;
 
     for (const node of this.calltree) {
-      node.addToTotalWeight(delta);
+      node.totalWeight += delta;
     }
     const stackTop = lastOfArray(this.calltree);
 
     if (stackTop) {
-      stackTop.addToSelfWeight(delta);
+      stackTop.selfWeight += delta;
     }
   }
 
