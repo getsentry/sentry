@@ -28,8 +28,7 @@ import withApi from 'sentry/utils/withApi';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import AsyncView from 'sentry/views/asyncView';
-
-import TeamMembersRow from './teamMembersRow';
+import TeamMembersRow from 'sentry/views/settings/organizationTeams/teamMembersRow';
 
 type RouteParams = {
   teamId: string;
@@ -209,7 +208,7 @@ class TeamMembers extends AsyncView<Props, State> {
     this.debouncedFetchMembersRequest(e.target.value);
   };
 
-  renderDropdown(hasWriteAccess: boolean) {
+  renderDropdown(hasWriteAccess: boolean, isOrgOwner: boolean) {
     const {organization, params, team} = this.props;
     const {orgMembers} = this.state;
     const existingMembers = new Set(this.state.teamMembers.map(member => member.id));
@@ -218,6 +217,9 @@ class TeamMembers extends AsyncView<Props, State> {
     // otherwise, `org:write` or `team:admin` permissions are required
     const hasOpenMembership = !!organization?.openMembership;
     const canAddMembers = hasOpenMembership || hasWriteAccess;
+
+    const isDropdownDisabled =
+      team.flags['idp:provisioned'] || (team.orgRole !== null && !isOrgOwner);
 
     const items = (orgMembers || [])
       .filter(m => !existingMembers.has(m.id))
@@ -264,14 +266,14 @@ class TeamMembers extends AsyncView<Props, State> {
         onChange={this.handleMemberFilterChange}
         busy={this.state.dropdownBusy}
         onClose={() => this.debouncedFetchMembersRequest('')}
-        disabled={team.flags['idp:provisioned']}
+        disabled={isDropdownDisabled}
       >
         {({isOpen}) => (
           <DropdownButton
             isOpen={isOpen}
             size="xs"
             data-test-id="add-member"
-            disabled={team.flags['idp:provisioned']}
+            disabled={isDropdownDisabled}
           >
             {t('Add Member')}
           </DropdownButton>
@@ -294,13 +296,17 @@ class TeamMembers extends AsyncView<Props, State> {
     const {access} = organization;
     const hasWriteAccess = access.includes('org:write') || access.includes('team:admin');
 
+    // TODO(team-roles): team admins can also manage membership
+    // org:admin is a unique scope that only org owners have
+    const isOrgOwner = access.includes('org:admin');
+
     return (
       <Fragment>
         <Panel>
           <PanelHeader hasButtons>
             <div>{t('Members')}</div>
             <div style={{textTransform: 'none'}}>
-              {this.renderDropdown(hasWriteAccess)}
+              {this.renderDropdown(hasWriteAccess, isOrgOwner)}
             </div>
           </PanelHeader>
           {this.state.teamMembers.length ? (
@@ -309,9 +315,10 @@ class TeamMembers extends AsyncView<Props, State> {
                 <TeamMembersRow
                   key={member.id}
                   hasWriteAccess={hasWriteAccess}
+                  isOrgOwner={isOrgOwner}
+                  team={team}
                   member={member}
                   organization={organization}
-                  team={team}
                   removeMember={this.removeTeamMember}
                   updateMemberRole={this.updateTeamMemberRole}
                   user={config.user}
