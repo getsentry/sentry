@@ -7,8 +7,6 @@ import {t} from 'sentry/locale';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useApi from 'sentry/utils/useApi';
-import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
 import TraceView from '../spans/traceView';
 import {TraceContextType} from '../spans/types';
