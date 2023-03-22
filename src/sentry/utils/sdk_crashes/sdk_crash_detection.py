@@ -27,7 +27,6 @@ class SDKCrashDetector:
             return
 
         is_unhandled = get_path(event, "exception", "values", -1, "mechanism", "handled") is False
-
         if is_unhandled is False:
             return
 
@@ -37,9 +36,11 @@ class SDKCrashDetector:
 
         if self._is_cocoa_sdk_crash(frames):
             sdk_crash_event = self.event_stripper.strip_event_data(event)
+            stripped_frames = self._strip_frames(frames)
+            sdk_crash_event["exception"]["values"][0]["stacktrace"]["frames"] = stripped_frames
             self.sdk_crash_reporter.report(sdk_crash_event)
 
-    def strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
+    def _strip_frames(self, frames: Sequence[Mapping[str, Any]]) -> Sequence[Mapping[str, Any]]:
         return [
             frame
             for frame in frames

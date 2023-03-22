@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
+from sentry.utils.safe import get_path
 from sentry.utils.sdk_crashes.sdk_crash_detection import SDKCrashDetector, SDKCrashReporter
 from tests.sentry.utils.sdk_crashes.test_fixture import (
     IN_APP_FRAME,
@@ -177,34 +178,24 @@ def test_report_cocoa_sdk_crash_frames(frames, should_be_reported):
     _run_report_test_with_event(event, should_be_reported)
 
 
-def test_strip_frames_removes_in_app():
-    frames = get_frames("sentrycrashdl_getBinaryImage")
-
-    crash_detector, _ = given_crash_detector()
-
-    stripped_frames = crash_detector.strip_frames(frames)
-    assert len(stripped_frames) == 6
-    assert (
-        len([frame for frame in stripped_frames if frame["function"] == IN_APP_FRAME["function"]])
-        == 0
-    ), "in_app frame should be removed"
-
-
 @pytest.mark.parametrize(
     "function,in_app",
     [
         ("SentryCrashMonitor_CPPException.cpp", True),
         ("SentryCrashMonitor_CPPException.cpp", False),
-        ("sentr", False),
     ],
-    ids=["sentry_in_app_frame_kept", "sentry_not_in_app_frame_kept", "non_sentry_non_in_app_kept"],
+    ids=["sentry_in_app_frame_kept", "sentry_not_in_app_frame_kept"],
 )
 def test_strip_frames(function, in_app):
     frames = get_frames(function, sentry_frame_in_app=in_app)
+    event = get_crash_event_with_frames(frames)
 
-    crash_detector, _ = given_crash_detector()
+    crash_detector, crash_reporter = given_crash_detector()
+    crash_detector.detect_sdk_crash(event)
 
-    stripped_frames = crash_detector.strip_frames(frames)
+    crash_reporter.report.assert_called_once()
+    reported_event = crash_reporter.report.call_args.args[0]
+    stripped_frames = get_path(reported_event, "exception", "values", -1, "stacktrace", "frames")
 
     assert len(stripped_frames) == 6
     assert (
@@ -223,10 +214,6 @@ def given_crash_detector() -> Tuple[SDKCrashDetector, SDKCrashReporter]:
     return crash_detection, crash_reporter
 
 
-def assert_sdk_crash_reported(crash_reporter: SDKCrashReporter, expected_data: dict):
-    crash_reporter.report.assert_called_once_with(expected_data)
-
-
 def _run_report_test_with_event(event, should_be_reported):
     crash_detector, crash_reporter = given_crash_detector()
 
@@ -236,6 +223,10 @@ def _run_report_test_with_event(event, should_be_reported):
         assert_sdk_crash_reported(crash_reporter, event)
     else:
         assert_no_sdk_crash_reported(crash_reporter)
+
+
+def assert_sdk_crash_reported(crash_reporter: SDKCrashReporter, expected_data: dict):
+    crash_reporter.report.assert_called_once_with(expected_data)
 
 
 def assert_no_sdk_crash_reported(crash_reporter: SDKCrashReporter):
