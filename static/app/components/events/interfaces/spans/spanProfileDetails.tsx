@@ -119,32 +119,22 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     };
   }, [index, maxNodes, event, nodes]);
 
-  const profileTarget =
-    project &&
-    profileGroup &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.traceID,
-      query: {tid: String(profile.threadId)},
-    });
-
   const spanTarget =
     project &&
     profileGroup &&
+    profileGroup.metadata.profileID &&
     profile &&
     generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: profileGroup.traceID,
+      profileId: profileGroup.metadata.profileID,
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
       },
     });
 
-  if (!defined(profile) || !defined(profileTarget) || !defined(spanTarget)) {
+  if (!defined(profile) || !defined(spanTarget)) {
     return null;
   }
 
