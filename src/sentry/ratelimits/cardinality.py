@@ -408,7 +408,8 @@ class RedisClusterBackend(RedisBackend):
         self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
     ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
         with self.client.pipeline(transaction=False) as pipeline:
-            pipeline.get(unit_keys_to_get)
+            for key in unit_keys_to_get:
+                pipeline.get(key)
             # O(self.cluster_shard_factor * len(requests)), assuming there's
             # only one per-org quota
             for key in set_keys_to_count:
@@ -451,6 +452,7 @@ class RedisBlasterBackend(RedisBackend):
         self, unit_keys_to_get: Sequence[str], set_keys_to_count: Sequence[str]
     ) -> Tuple[Mapping[str, int], Mapping[str, int]]:
         with self.client.map() as client:
+
             mget_result = client.mget(unit_keys_to_get)
 
             scard_results = [client.scard(key) for key in set_keys_to_count]
