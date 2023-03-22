@@ -187,8 +187,10 @@ def get_url_from_span(span: Span) -> str:
         return url
 
     if type(url_data) is str:
-        # But usually the URL is a regular string, and so is the query. If
-        # `http.query` is absent, `url` contains the query
+        # Usually the URL is a regular string, and so is the query. This
+        # is the standardized format for all SDKs, and is the preferred
+        # format going forward. Otherwise, if `http.query` is absent, `url`
+        # contains the query.
         url = url_data
         query_data = data.get("http.query")
         if type(query_data) is str and len(query_data) > 0:
