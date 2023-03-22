@@ -213,6 +213,7 @@ from .endpoints.internal import (
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.notifications import (
+    NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
@@ -1334,6 +1335,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
         NotificationActionsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
+        NotificationActionsAvailableEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-available-actions",
     ),
     # Monitors
     url(
