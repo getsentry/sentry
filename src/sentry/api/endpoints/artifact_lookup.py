@@ -73,13 +73,13 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         :pparam string organization_slug: the slug of the organization to query.
         :pparam string project_slug: the slug of the project to query.
-        :qparam string debug_id: If set, will query and return all the artifact
+        :qparam string debug_id: if set, will query and return all the artifact
                                   bundles that match one of the given `debug_id`s.
-        :qparam string url: If set, will query and return all the individual
+        :qparam string url: if set, will query and return all the individual
                              artifacts, or artifact bundles that contain files
                              that match the `url`. This is using a substring-match.
-        :qparam string release: Used in conjunction with `url`.
-        :qparam string dist: Used in conjunction with `url`.
+        :qparam string release: used in conjunction with `url`.
+        :qparam string dist: used in conjunction with `url`.
 
         :auth: required
         """
@@ -181,10 +181,10 @@ def try_resolve_urls(
     # If we have `urls`, we want to:
     # First, get the newest X artifact bundles, and *look inside them*
     # to figure out if the file is included in any of them
-    urls = collect_release_artifact_bundles_containing_urls(
+    remaining_urls = collect_release_artifact_bundles_containing_urls(
         urls, project, release_name, dist_name, bundle_file_ids
     )
-    if not urls:
+    if not remaining_urls:
         return list()
 
     # Next, we want to look up legacy artifact indices / bundles
@@ -205,12 +205,14 @@ def try_resolve_urls(
     except Exception as exc:
         logger.error("Failed to read", exc_info=exc)
 
-    urls = collect_legacy_artifact_bundles_containing_urls(urls, release, dist, bundle_file_ids)
-    if not urls:
+    remaining_urls = collect_legacy_artifact_bundles_containing_urls(
+        remaining_urls, release, dist, bundle_file_ids
+    )
+    if not remaining_urls:
         return list()
 
     # And last but not least, we want to look up legacy individual release files
-    return get_releasefiles_matching_urls(urls, release)
+    return get_releasefiles_matching_urls(remaining_urls, release)
 
 
 def collect_release_artifact_bundles_containing_urls(
@@ -225,10 +227,11 @@ def collect_release_artifact_bundles_containing_urls(
     manifests = []
     for release in releases_with_bundles:
         file_id = release.artifact_bundle.file.id
-        with release.artifact_bundle.file.getfile() as file:
-            archive = ArtifactBundleArchive(file)
-            manifest = archive._read_manifest()
-            manifests.append((file_id, manifest))
+        file = release.artifact_bundle.file.getfile()
+        archive = ArtifactBundleArchive(file)
+        manifest = archive.manifest
+        manifests.append((file_id, manifest))
+        archive.close()
 
     def url_in_any_manifest(url):
         for (file_id, manifest) in manifests:
@@ -262,11 +265,11 @@ def collect_legacy_artifact_bundles_containing_urls(
             if archive is not None:
                 bundle_file_ids.add(archive)
             else:
-                artifact_index_qs = ReleaseFile.objects.filter(
+                artifact_file_id = ReleaseFile.objects.filter(
                     release_id=release.id, ident=ident
-                ).select_related("file")
-                artifact_archives[ident] = artifact_index_qs[0].file.id
-                bundle_file_ids.add(artifact_index_qs[0].file.id)
+                ).values("file_id")[0]
+                artifact_archives[ident] = artifact_file_id
+                bundle_file_ids.add(artifact_file_id)
             return True
         return False
 
