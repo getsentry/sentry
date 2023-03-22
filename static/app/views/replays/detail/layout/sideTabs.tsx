@@ -19,7 +19,7 @@ type Props = {
 function SideTabs({className}: Props) {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
-  const active = getParamValue();
+  const activeTab = getParamValue();
 
   return (
     <ScrollableTabs className={String(className)} underlined>
@@ -27,7 +27,7 @@ function SideTabs({className}: Props) {
         return (
           <ListLink
             key={tab}
-            isActive={() => tab === active}
+            isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_side: tab})}`}
             onClick={e => {
               e.preventDefault();

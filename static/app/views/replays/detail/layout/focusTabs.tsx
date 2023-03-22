@@ -26,7 +26,7 @@ function FocusTabs({className}: Props) {
   const organization = useOrganization();
   const {pathname, query} = useLocation();
   const {getActiveTab, setActiveTab} = useActiveReplayTab();
-  const active = getActiveTab();
+  const activeTab = getActiveTab();
 
   return (
     <ScrollableTabs className={String(className)} underlined>
@@ -34,7 +34,7 @@ function FocusTabs({className}: Props) {
         return (
           <ListLink
             key={tab}
-            isActive={() => tab === active}
+            isActive={() => tab === activeTab}
             to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
             onClick={e => {
               e.preventDefault();
