@@ -24,8 +24,8 @@ def get_occurrence_producer() -> KafkaProducer:
     if occurrence_producer is None:
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_OCCURRENCES]["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type")
-        producer_config.pop("message.max.bytes")
+        producer_config.pop("compression.type", None)
+        producer_config.pop("message.max.bytes", None)
         occurrence_producer = KafkaProducer(
             build_kafka_configuration(default_config=producer_config)
         )
