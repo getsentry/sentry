@@ -416,7 +416,12 @@ class RedisClusterBackend(RedisBackend):
                 pipeline.scard(key)
 
             results = iter(pipeline.execute())
-            unit_keys = dict(zip(unit_keys_to_get, next(results)))
+
+            unit_keys_results = []
+            for i in len(unit_keys_to_get):
+                unit_keys_results.append(next(results))
+
+            unit_keys = dict(zip(unit_keys_to_get, unit_keys_results))
             set_counts = dict(zip(set_keys_to_count, results))
 
         return unit_keys, set_counts
