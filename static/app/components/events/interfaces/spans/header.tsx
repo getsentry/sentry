@@ -430,7 +430,7 @@ class TraceViewHeader extends Component<PropType, State> {
                       spans={this.props.spans}
                       operationNameFilters={this.props.operationNameFilters}
                       event={this.props.event}
-                      topN={3}
+                      topN={7}
                       hideHeader
                     />
                   )}
@@ -740,7 +740,7 @@ export const HeaderContainer = styled('div')`
   z-index: ${p => p.theme.zIndex.traceView.minimapContainer};
   background-color: ${p => p.theme.background};
   border-bottom: 1px solid ${p => p.theme.border};
-  height: ${MINIMAP_CONTAINER_HEIGHT}px;
+  height: ${MINIMAP_CONTAINER_HEIGHT + 50}px;
   border-top-left-radius: ${p => p.theme.borderRadius};
   border-top-right-radius: ${p => p.theme.borderRadius};
 `;
@@ -857,7 +857,7 @@ const WindowSelection = styled('div')`
 
 export const SecondaryHeader = styled('div')`
   position: absolute;
-  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  top: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 50}px;
   left: 0;
   height: ${TIME_AXIS_HEIGHT}px;
   width: 100%;
@@ -868,7 +868,7 @@ export const SecondaryHeader = styled('div')`
 `;
 
 const OperationsBreakdown = styled('div')`
-  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT}px;
+  height: ${MINIMAP_HEIGHT + TIME_AXIS_HEIGHT + 50}px;
   position: absolute;
   left: 0;
   top: 0;

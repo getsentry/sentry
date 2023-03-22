@@ -26,6 +26,8 @@ const OtherOperation = Symbol('Other');
 
 type OperationName = string | typeof OtherOperation;
 
+const OVERLAP_TIME_NETWORK = true;
+
 // mapping an operation name to a disjoint set of time intervals (start/end timestamp).
 // this is an intermediary data structure to help calculate the coverage of an operation name
 // with respect to the root transaction span's operation lifetime
@@ -38,7 +40,7 @@ type OpStats = {
   totalInterval: number;
 };
 
-const TOP_N_SPANS = 4;
+const TOP_N_SPANS = 5;
 
 type OpBreakdownType = OpStats[];
 
@@ -52,6 +54,13 @@ type Props = DefaultProps & {
   operationNameFilters: ActiveOperationFilter;
   spans: EnhancedProcessedSpanType[];
 };
+
+const FRONTEND = 'Frontend';
+const BACKEND = 'Backend';
+const CACHE = 'Cache';
+const NETWORK = 'Network';
+const DATABASE = 'Database';
+const THIRDPARTY = '3rd Party';
 
 class OpsBreakdown extends Component<Props> {
   static defaultProps: DefaultProps = {
@@ -123,8 +132,11 @@ class OpsBreakdown extends Component<Props> {
     const operationNameIntervals = spans.reduce(
       (intervals: Partial<OperationNameIntervals>, pspan: EnhancedProcessedSpanType) => {
         const span = pspan.span;
+        if (!span) {
+          return intervals;
+        }
         let startTimestamp = span.start_timestamp;
-        const endTimestamp = span.timestamp;
+        let endTimestamp = span.timestamp;
 
         if (!('exclusive_time' in span)) {
           return intervals;
@@ -133,21 +145,108 @@ class OpsBreakdown extends Component<Props> {
         if (endTimestamp < startTimestamp) {
           // reverse timestamps
           startTimestamp = span.timestamp;
+          endTimestamp = span.start_timestamp;
         }
 
+        let duration = (span.exclusive_time ?? 0) / 1000;
         // invariant: startTimestamp <= endTimestamp
 
         let operationName = span.op;
-
-        if (typeof operationName !== 'string') {
+        if (
+          operationName?.startsWith('ui') ||
+          operationName?.startsWith('browser') ||
+          operationName?.startsWith('resource')
+        ) {
+          if (operationName !== 'ui.react.render') {
+            operationName = FRONTEND;
+          }
+        } else if (span.data?.type === 'fetch') {
+          const childFromFetch = spans.find(
+            s =>
+              s.span &&
+              'op' in s.span &&
+              'span_id' in s.span &&
+              s.span.parent_span_id === span.span_id
+          )?.span;
+          if (childFromFetch) {
+            // operationName = FRONTEND;
+          } else {
+            operationName = THIRDPARTY;
+          }
+        } else if (operationName?.startsWith('http.client')) {
+          const childFromFetch = spans.find(
+            s =>
+              s.span &&
+              'op' in s.span &&
+              'span_id' in s.span &&
+              s.span.parent_span_id === span.span_id
+          )?.span;
+          if (childFromFetch) {
+            return intervals;
+          }
+          operationName = THIRDPARTY;
+        } else if (
+          operationName?.includes('django') ||
+          operationName?.includes('base') ||
+          operationName?.includes('serialize') ||
+          operationName?.includes('nodestore') ||
+          operationName?.includes('view')
+        ) {
+          operationName = BACKEND;
+        } else if (operationName?.startsWith('db.redis')) {
+          operationName = CACHE;
+        } else if (operationName === 'db') {
+          operationName = DATABASE;
+        } else if (typeof operationName !== 'string') {
           // a span with no operation name is considered an 'unknown' op
           operationName = 'unknown';
+        } else {
+          // return intervals;
         }
 
-        const cover: TimeWindowSpan = [
-          startTimestamp,
-          startTimestamp + (span.exclusive_time ?? 0) / 1000,
-        ];
+        const parentSpanId = span.parent_span_id;
+        const parentSpan = spans.find(
+          s =>
+            s.span &&
+            'op' in s.span &&
+            'span_id' in s.span &&
+            s.span.span_id === parentSpanId &&
+            s.span.op === 'http.client'
+        )?.span;
+        if (parentSpan) {
+          let parentSpanStart = parentSpan.start_timestamp;
+          let parentSpanEnd = parentSpan.timestamp;
+          if (parentSpanEnd < parentSpanStart) {
+            // reverse timestamps
+            parentSpanStart = parentSpanEnd;
+            parentSpanEnd = parentSpan.start_timestamp;
+          }
+          const parentSpanDuration = parentSpanEnd - parentSpanStart;
+          duration = span.timestamp - span.start_timestamp;
+          const network = parentSpanDuration - duration;
+          const netIntervals = intervals[NETWORK] ?? [];
+          const lastIntervalEnd = netIntervals.slice(-1)[0]?.[1] ?? 0;
+
+          // const networkCover: TimeWindowSpan = OVERLAP_TIME_NETWORK
+          //   ? [parentSpanStart, parentSpanStart + network]
+          //   : [lastIntervalEnd + 1, lastIntervalEnd + 1 + network];
+          const networkCover: TimeWindowSpan = OVERLAP_TIME_NETWORK
+            ? [0, 0 + network]
+            : [lastIntervalEnd + 1, lastIntervalEnd + 1 + network];
+          console.log('NETWORK', ...networkCover);
+
+          netIntervals.push(networkCover);
+          intervals[NETWORK] = netIntervals;
+        }
+
+        const cover: TimeWindowSpan = [startTimestamp, startTimestamp + duration];
+        if (
+          ![FRONTEND, BACKEND, DATABASE, NETWORK, CACHE, THIRDPARTY].includes(
+            operationName
+          )
+        ) {
+          return intervals;
+        }
 
         const operationNameInterval = intervals[operationName];
 

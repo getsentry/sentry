@@ -1,6 +1,6 @@
 import 'intersection-observer'; // this is a polyfill
 
-import {Component, createRef, Fragment} from 'react';
+import {Component, createRef, Fragment, useMemo} from 'react';
 import {CellMeasurerCache, List as ReactVirtualizedList} from 'react-virtualized';
 import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
@@ -877,6 +877,15 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
     const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
     if (transactions && transactions.length >= 1) {
+      const eventSlugs = transactions.map(transaction =>
+        generateEventSlug({
+          id: transaction.event_id,
+          project: transaction.project_slug,
+        })
+      );
+      if (toggleEmbeddedChildren && !showEmbeddedChildren) {
+        toggleEmbeddedChildren?.(organization.slug, eventSlugs);
+      }
       return (
         <Tooltip
           title={
@@ -897,13 +906,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                   ? 'span_view.embedded_child.hide'
                   : 'span_view.embedded_child.show';
                 trackAdvancedAnalyticsEvent(eventKey, {organization});
-
-                const eventSlugs = transactions.map(transaction =>
-                  generateEventSlug({
-                    id: transaction.event_id,
-                    project: transaction.project_slug,
-                  })
-                );
 
                 toggleEmbeddedChildren(organization.slug, eventSlugs);
               }
