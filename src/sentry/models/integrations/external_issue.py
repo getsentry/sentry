@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, Sequence
 
 from django.db import models
-from django.db.models import QuerySet
+from django.db.models import F, QuerySet
 from django.utils import timezone
 
 from sentry.db.models import (
@@ -26,7 +26,7 @@ class ExternalIssueManager(BaseManager):
     ) -> QuerySet:
         kwargs = dict(
             integration_id=integration.id,
-            organization__organizationintegration__integration_id=integration.id,
+            integration__organizationintegrations__organization_id=F("organization_id"),
         )
 
         if external_issue_key is not None:

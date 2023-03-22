@@ -5,11 +5,13 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 
-from sentry.models.identity import Identity, IdentityProvider
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.silo import SiloMode
+
+if TYPE_CHECKING:
+    from sentry.models.identity import Identity, IdentityProvider
 
 
 @dataclass(frozen=True)
@@ -29,7 +31,7 @@ class RpcIdentity:
 
 class IdentityService(InterfaceWithLifecycle):
     def _serialize_identity_provider(
-        self, identity_provider: IdentityProvider
+        self, identity_provider: "IdentityProvider"
     ) -> RpcIdentityProvider:
         return RpcIdentityProvider(
             id=identity_provider.id,
@@ -37,7 +39,7 @@ class IdentityService(InterfaceWithLifecycle):
             external_id=identity_provider.external_id,
         )
 
-    def _serialize_identity(self, identity: Identity) -> RpcIdentity:
+    def _serialize_identity(self, identity: "Identity") -> RpcIdentity:
         return RpcIdentity(
             id=identity.id,
             idp_id=identity.idp_id,

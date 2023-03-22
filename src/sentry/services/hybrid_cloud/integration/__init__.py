@@ -163,6 +163,7 @@ class IntegrationService(InterfaceWithLifecycle):
         org_integration_ids: Optional[List[int]] = None,
         integration_id: Optional[int] = None,
         organization_id: Optional[int] = None,
+        organization_ids: Optional[List[int]] = None,
         status: Optional[int] = None,
         providers: Optional[List[str]] = None,
         has_grace_period: Optional[bool] = None,

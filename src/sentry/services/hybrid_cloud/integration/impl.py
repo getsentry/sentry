@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Tuple
 
 from sentry.api.paginator import OffsetPaginator
 from sentry.integrations.mixins import NotifyBasicMixin
@@ -139,6 +139,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         org_integration_ids: List[int] | None = None,
         integration_id: int | None = None,
         organization_id: int | None = None,
+        organization_ids: Optional[List[int]] = None,
         status: int | None = None,
         providers: List[str] | None = None,
         has_grace_period: bool | None = None,
@@ -151,7 +152,9 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if integration_id is not None:
             oi_kwargs["integration_id"] = integration_id
         if organization_id is not None:
-            oi_kwargs["organization_id"] = organization_id
+            organization_ids = [organization_id]
+        if organization_ids is not None:
+            oi_kwargs["organization_id__in"] = organization_ids
         if status is not None:
             oi_kwargs["status"] = status
         if providers is not None:

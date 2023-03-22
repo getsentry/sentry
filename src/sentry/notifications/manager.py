@@ -95,8 +95,8 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
         type: NotificationSettingTypes,
         value: NotificationSettingOptionValues,
         actor: RpcActor,
-        project_or_id: Project | int | None = None,
-        organization_or_id: Organization | int | None = None,
+        project: Project | int | None = None,
+        organization: Organization | int | None = None,
     ) -> None:
         """
         Save a target's notification preferences.
@@ -119,15 +119,15 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 provider,
                 type,
                 actor=actor,
-                project_or_id=project_or_id,
-                organization_or_id=organization_or_id,
+                project_or_id=project,
+                organization_or_id=organization,
             )
 
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
         scope_type, scope_identifier = get_scope(
-            actor, project_or_id=project_or_id, organization_or_id=organization_or_id
+            actor, project_or_id=project, organization_or_id=organization
         )
         self._update_settings(
             provider=provider,
