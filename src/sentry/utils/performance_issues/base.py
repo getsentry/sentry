@@ -175,7 +175,7 @@ def get_url_from_span(span: Span) -> str:
 
     data = span.get("data") or {}
 
-    # The most modern and version is to provide URL information in the span
+    # The most modern version is to provide URL information in the span
     # data
     url_data = data.get("url")
 
