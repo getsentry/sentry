@@ -7,7 +7,7 @@ from copy import deepcopy
 from typing import Any, Mapping, Sequence
 
 from sentry.integrations.utils import where_should_sync
-from sentry.models import ExternalIssue, GroupLink, User, UserOption
+from sentry.models import ExternalIssue, GroupLink, UserOption
 from sentry.models.project import Project
 from sentry.notifications.utils import (
     get_notification_group_title,
@@ -381,7 +381,7 @@ class IssueSyncMixin(IssueBasicMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: User | None,
+        user: RpcUser | None,
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
