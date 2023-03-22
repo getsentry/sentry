@@ -86,6 +86,8 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
+            organizationmember_mapping_service.create_with_organization_member(om)
+
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
                 teams = result.get("teams") or [
@@ -99,14 +101,6 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
                 target_object=om.id,
                 data=om.get_audit_log_data(),
                 event=audit_log.get_event_id("INVITE_REQUEST_ADD"),
-            )
-
-            organizationmember_mapping_service.create(
-                organization_id=organization.id,
-                email=result["email"],
-                role=result["role"],
-                inviter_id=request.user.id,
-                invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
             )
 
             outbox = OrganizationMember.outbox_for_update(
