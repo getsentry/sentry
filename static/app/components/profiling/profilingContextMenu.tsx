@@ -24,9 +24,8 @@ const Menu = styled(
   box-shadow: ${p => p.theme.dropShadowHeavy};
   width: auto;
   min-width: 164px;
-  padding-bottom: ${space(0.5)};
   overflow: auto;
-  overflow-x: hidden;
+  padding-bottom: ${space(0.5)};
 `;
 
 export {Menu as ProfilingContextMenu};
@@ -124,8 +123,7 @@ const MenuButton = styled('button')`
   pointer-events: ${p => (p.disabled ? 'none' : undefined)};
   opacity: ${p => (p.disabled ? 0.7 : undefined)};
 
-  &:focus,
-  &:hover {
+  &:focus {
     color: ${p => p.theme.textColor};
     background: ${p => p.theme.hover};
     outline: none;

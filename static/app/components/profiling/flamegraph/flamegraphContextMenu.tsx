@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+import {createPortal} from 'react-dom';
+import {usePopper} from 'react-popper';
 
 import Link from 'sentry/components/links/link';
 import {Flex} from 'sentry/components/profiling/flex';
@@ -13,7 +14,6 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
@@ -76,7 +76,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
   const organization = useOrganization();
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
-  const subMenuPortalRef = useRef<HTMLDivElement | null>(null);
 
   const [githubLink, setGithubLinkState] = useState<RequestState<StacktraceLinkResult>>({
     type: 'initial',
@@ -167,10 +166,10 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 contextMenu={props.contextMenu}
                 profileIds={props.hoveredNode.profileIds}
                 frameName={props.hoveredNode.frame.name}
-                framePackage={props.hoveredNode.frame.image}
+                framePackage={props.hoveredNode.frame.package}
                 organizationSlug={organization.slug}
                 projectSlug={project?.slug}
-                subMenuPortalRef={subMenuPortalRef.current}
+                subMenuPortalRef={props.contextMenu.subMenuRef.current}
               />
             )}
             <ProfilingContextMenuItemCheckbox
@@ -268,7 +267,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
-      <div ref={el => (subMenuPortalRef.current = el)} id="sub-menu-portal" />
+      <div ref={el => (props.contextMenu.subMenuRef.current = el)} id="sub-menu-portal" />
     </Fragment>
   ) : null;
 }
@@ -282,7 +281,49 @@ function ProfileIdsSubMenu(props: {
   projectSlug: string | undefined;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, _setIsOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
+    placement: 'right-start',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [-16, 0],
+        },
+      },
+    ],
+  });
+
+  const setIsOpen: typeof _setIsOpen = useCallback(
+    nextState => {
+      _setIsOpen(nextState);
+      popper.update?.();
+    },
+    [popper]
+  );
+
+  const currentTarget = useRef<Node | null>();
+  useEffect(() => {
+    const listener = (e: MouseEvent) => {
+      currentTarget.current = e.target as Node;
+      setTimeout(() => {
+        if (!currentTarget.current) {
+          return;
+        }
+        if (
+          !triggerRef.current?.contains(currentTarget.current) &&
+          !props.subMenuPortalRef?.contains(currentTarget.current)
+        ) {
+          setIsOpen(false);
+        }
+      }, 250);
+    };
+    document.addEventListener('mouseover', listener);
+    return () => {
+      document.removeEventListener('mouseover', listener);
+    };
+  }, [props.subMenuPortalRef, setIsOpen]);
 
   const generateFlamechartLink = useCallback(
     (profileId: string) => {
@@ -315,41 +356,43 @@ function ProfileIdsSubMenu(props: {
       <ProfilingContextMenuItemButton
         icon={<IconProfiling size="xs" />}
         {...props.contextMenu.getMenuItemProps({
-          onClick: () => setIsOpen(v => !v),
+          onClick: () => {
+            setIsOpen(true);
+          },
+          ref: el => (triggerRef.current = el),
         })}
+        onMouseEnter={() => {
+          setIsOpen(true);
+        }}
       >
         <Flex w="100%" justify="space-between" align="center">
           <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)} </Flex.Item>
-          <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+          <IconChevron direction="right" size="xs" />
         </Flex>
       </ProfilingContextMenuItemButton>
-      {isOpen && (
-        <ProfilingContextMenuInnerSubMenu>
-          {props.profileIds.map(profileId => {
-            const to = generateFlamechartLink(profileId);
-            return (
-              <ProfilingContextMenuInnerSubMenuItemButton
-                key={profileId}
-                {...props.contextMenu.getMenuItemProps()}
-              >
-                <Link to={to} css={{color: 'unset'}}>
-                  {getShortEventId(profileId)} <IconChevron direction="right" size="xs" />
-                </Link>
-              </ProfilingContextMenuInnerSubMenuItemButton>
-            );
-          })}
-        </ProfilingContextMenuInnerSubMenu>
-      )}
+      {isOpen &&
+        props.subMenuPortalRef &&
+        createPortal(
+          <ProfilingContextMenu style={popper.styles.popper} css={{maxHeight: 250}}>
+            <ProfilingContextMenuGroup>
+              <ProfilingContextMenuHeading>{t('Profiles')}</ProfilingContextMenuHeading>
+              {props.profileIds.map(profileId => {
+                const to = generateFlamechartLink(profileId);
+                return (
+                  <ProfilingContextMenuItemButton
+                    key={profileId}
+                    {...props.contextMenu.getMenuItemProps({})}
+                  >
+                    <Link to={to} css={{color: 'unset'}}>
+                      {getShortEventId(profileId)}{' '}
+                    </Link>
+                  </ProfilingContextMenuItemButton>
+                );
+              })}
+            </ProfilingContextMenuGroup>
+          </ProfilingContextMenu>,
+          props.subMenuPortalRef
+        )}
     </Fragment>
   );
 }
-
-const ProfilingContextMenuInnerSubMenu = styled('div')`
-  background: ${p => p.theme.backgroundSecondary};
-`;
-
-const ProfilingContextMenuInnerSubMenuItemButton = styled(ProfilingContextMenuItemButton)`
-  border-bottom: 1px solid ${p => p.theme.surface100};
-  padding-left: ${space(4)};
-  padding-right: ${space(4)};
-`;
