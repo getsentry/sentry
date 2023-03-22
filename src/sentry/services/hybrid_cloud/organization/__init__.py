@@ -29,7 +29,7 @@ class RpcTeam(RpcModel):
     organization_id: int = -1
     slug: str = ""
     actor_id: Optional[int] = None
-    org_role: str = ""
+    org_role: Optional[str] = None
 
     def class_name(self) -> str:
         return "Team"

@@ -98,11 +98,7 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
-    assert team.org_role == orm_team.org_role or (
-        # TODO: Make RpcTeam.org_role nullable for consistency with ORM?
-        team.org_role == ""
-        and orm_team.org_role is None
-    )
+    assert team.org_role == orm_team.org_role
 
 
 def assert_project_equals(orm_project: Project, project: RpcProject):
