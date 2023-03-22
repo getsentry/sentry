@@ -267,7 +267,7 @@ def collect_legacy_artifact_bundles_containing_urls(
             else:
                 artifact_file_id = ReleaseFile.objects.filter(
                     release_id=release.id, ident=ident
-                ).values("file_id")[0]
+                ).values("file_id")[0]["file_id"]
                 artifact_archives[ident] = artifact_file_id
                 bundle_file_ids.add(artifact_file_id)
             return True
