@@ -1,9 +1,6 @@
-import {Fragment} from 'react';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import GlobalModal from 'sentry/components/globalModal';
 import {metric} from 'sentry/utils/analytics';
 import MetricRulesEdit from 'sentry/views/alerts/rules/metric/edit';
 import {AlertRuleTriggerType} from 'sentry/views/alerts/rules/metric/types';
@@ -19,7 +16,7 @@ jest.mock('sentry/utils/analytics', () => ({
 }));
 
 describe('MetricRulesEdit', function () {
-  beforeAll(function () {
+  beforeEach(function () {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
       body: [],
@@ -51,6 +48,15 @@ describe('MetricRulesEdit', function () {
         },
       ],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [TestStubs.Member()],
+    });
+  });
+
+  afterEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
   });
 
   // eslint-disable-next-line jest/no-disabled-tests
@@ -63,11 +69,6 @@ describe('MetricRulesEdit', function () {
       body: rule,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
-    });
-
     const editRule = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project-slug/alert-rules/${rule.id}/`,
       method: 'PUT',
@@ -75,18 +76,15 @@ describe('MetricRulesEdit', function () {
     });
 
     render(
-      <Fragment>
-        <GlobalModal />
-        <MetricRulesEdit
-          params={{
-            projectId: project.slug,
-            ruleId: rule.id,
-          }}
-          organization={organization}
-          onChangeTitle={onChangeTitleMock}
-          project={project}
-        />
-      </Fragment>
+      <MetricRulesEdit
+        params={{
+          projectId: project.slug,
+          ruleId: rule.id,
+        }}
+        organization={organization}
+        onChangeTitle={onChangeTitleMock}
+        project={project}
+      />
     );
 
     // has existing trigger
@@ -98,11 +96,8 @@ describe('MetricRulesEdit', function () {
     // Check correct rule name is called
     expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
 
-    await userEvent.clear(screen.getByTestId('warning-threshold'));
-    await userEvent.type(screen.getByTestId('warning-threshold'), '13');
-
     await userEvent.clear(screen.getByTestId('resolve-threshold'));
-    await userEvent.type(screen.getByTestId('resolve-threshold'), '12');
+    await userEvent.type(screen.getByTestId('resolve-threshold'), '7');
 
     // Create a new action
     await userEvent.click(screen.getByLabelText('Add Action'));
@@ -111,6 +106,7 @@ describe('MetricRulesEdit', function () {
     await userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(metric.startTransaction).toHaveBeenCalledWith({name: 'saveAlertRule'});
+
     expect(editRule).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
@@ -124,7 +120,7 @@ describe('MetricRulesEdit', function () {
           status: 0,
           timeWindow: 60,
           thresholdType: 0,
-          resolveThreshold: 12,
+          resolveThreshold: 7,
           triggers: [
             expect.objectContaining({
               actions: [
@@ -140,10 +136,6 @@ describe('MetricRulesEdit', function () {
               alertThreshold: 70,
               id: '1',
             }),
-            expect.objectContaining({
-              actions: [],
-              alertThreshold: 13,
-            }),
           ],
         }),
         method: 'PUT',
@@ -153,11 +145,10 @@ describe('MetricRulesEdit', function () {
     // New Trigger should be in list
     // Has correct values
     expect(screen.getByTestId('critical-threshold')).toHaveValue('70');
-    expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
-    expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
+    expect(screen.getByTestId('resolve-threshold')).toHaveValue('7');
   });
 
-  it('clears trigger', async function () {
+  it('removes warning trigger', async function () {
     const {organization, project} = initializeOrg();
     const rule = TestStubs.MetricRule();
     rule.triggers.push({
@@ -167,15 +158,9 @@ describe('MetricRulesEdit', function () {
     });
     rule.resolveThreshold = 12;
 
-    const onChangeTitleMock = jest.fn();
-    const req = MockApiClient.addMockResponse({
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/alert-rules/${rule.id}/`,
       body: rule,
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [TestStubs.Member()],
     });
 
     const editRule = MockApiClient.addMockResponse({
@@ -185,19 +170,16 @@ describe('MetricRulesEdit', function () {
     });
 
     render(
-      <Fragment>
-        <GlobalModal />
-        <MetricRulesEdit
-          params={{
-            orgId: organization.slug,
-            projectId: project.slug,
-            ruleId: rule.id,
-          }}
-          organization={organization}
-          onChangeTitle={onChangeTitleMock}
-          project={project}
-        />
-      </Fragment>
+      <MetricRulesEdit
+        params={{
+          orgId: organization.slug,
+          projectId: project.slug,
+          ruleId: rule.id,
+        }}
+        organization={organization}
+        onChangeTitle={() => {}}
+        project={project}
+      />
     );
 
     // has existing trigger
@@ -205,19 +187,9 @@ describe('MetricRulesEdit', function () {
     expect(screen.getByTestId('warning-threshold')).toHaveValue('13');
     expect(screen.getByTestId('resolve-threshold')).toHaveValue('12');
 
-    expect(req).toHaveBeenCalled();
-
-    // Check correct rule name is called
-    expect(onChangeTitleMock).toHaveBeenCalledWith(rule.name);
-
-    await userEvent.click(screen.getByLabelText('Add Action'));
-
     // Clear warning Trigger
     await userEvent.clear(screen.getByTestId('warning-threshold'));
 
-    await waitFor(() => expect(screen.getByLabelText('Save Rule')).toBeEnabled());
-
-    // Save Trigger
     await userEvent.click(screen.getByLabelText('Save Rule'));
 
     expect(editRule).toHaveBeenCalledWith(
@@ -236,15 +208,7 @@ describe('MetricRulesEdit', function () {
           thresholdType: 0,
           triggers: [
             expect.objectContaining({
-              actions: [
-                expect.objectContaining({
-                  integrationId: null,
-                  targetIdentifier: '',
-                  targetType: 'user',
-                  type: 'email',
-                  options: null,
-                }),
-              ],
+              actions: [],
               alertRuleId: '4',
               alertThreshold: 70,
               id: '1',

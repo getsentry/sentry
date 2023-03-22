@@ -1,17 +1,19 @@
 import {
-  makeColorBucketTheme,
   makeColorMapByApplicationFrame,
   makeColorMapByFrequency,
   makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeColorMapBySymbolName,
   makeColorMapBySystemFrame,
+  makeColorMapBySystemVsApplicationFrame,
   makeStackToColor,
 } from 'sentry/utils/profiling/colors/utils';
 import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {Frame} from 'sentry/utils/profiling/frame';
 import {darkTheme, lightTheme} from 'sentry/utils/theme';
+
+import {makeColorBucketTheme} from '../speedscope';
 
 const MONOSPACE_FONT = `ui-monospace, Menlo, Monaco, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono',
 'Oxygen Mono', 'Ubuntu Monospace', 'Source Code Pro', 'Fira Mono', 'Droid Sans Mono',
@@ -33,6 +35,7 @@ export type ColorChannels = [number, number, number] | [number, number, number, 
 export type ColorMapFn = (
   frames: ReadonlyArray<FlamegraphFrame>,
   colorBucket: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+  theme: FlamegraphTheme,
   sortByKey?: (a: FlamegraphFrame, b: FlamegraphFrame) => number
 ) => Map<FlamegraphFrame['frame']['key'], ColorChannels>;
 
@@ -47,7 +50,9 @@ export interface FlamegraphTheme {
     DIFFERENTIAL_DECREASE: ColorChannels;
     DIFFERENTIAL_INCREASE: ColorChannels;
     FOCUSED_FRAME_BORDER_COLOR: string;
+    FRAME_APPLICATION_COLOR: ColorChannels;
     FRAME_GRAYSCALE_COLOR: ColorChannels;
+    FRAME_SYSTEM_COLOR: ColorChannels;
     GRID_FRAME_BACKGROUND_COLOR: string;
     GRID_LINE_COLOR: string;
     HIGHLIGHTED_LABEL_COLOR: ColorChannels;
@@ -68,7 +73,8 @@ export interface FlamegraphTheme {
     STACK_TO_COLOR: (
       frames: ReadonlyArray<FlamegraphFrame>,
       colorMapFn: ColorMapFn,
-      colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET']
+      colorBucketFn: FlamegraphTheme['COLORS']['COLOR_BUCKET'],
+      theme: FlamegraphTheme
     ) => {
       colorBuffer: Array<number>;
       colorMap: Map<Frame['key'], ColorChannels>;
@@ -173,12 +179,15 @@ export const LightFlamegraphTheme: FlamegraphTheme = {
       'by library': makeColorMapByLibrary,
       'by recursion': makeColorMapByRecursion,
       'by frequency': makeColorMapByFrequency,
+      'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CURSOR_CROSSHAIR: '#bbbbbb',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: lightTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.6, 0.1],
+    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.2],
+    FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.2],
     SPAN_FALLBACK_COLOR: [0, 0, 0, 0.1],
     GRID_FRAME_BACKGROUND_COLOR: 'rgb(250, 249, 251, 1)', // theme.backgroundSecondary
     GRID_LINE_COLOR: '#e5e7eb',
@@ -216,12 +225,15 @@ export const DarkFlamegraphTheme: FlamegraphTheme = {
       'by library': makeColorMapByLibrary,
       'by recursion': makeColorMapByRecursion,
       'by frequency': makeColorMapByFrequency,
+      'by system vs application frame': makeColorMapBySystemVsApplicationFrame,
     },
     CURSOR_CROSSHAIR: '#828285',
     DIFFERENTIAL_DECREASE: [0.309, 0.2058, 0.98],
     DIFFERENTIAL_INCREASE: [0.98, 0.2058, 0.4381],
     FOCUSED_FRAME_BORDER_COLOR: darkTheme.focus,
     FRAME_GRAYSCALE_COLOR: [0.5, 0.5, 0.5, 0.4],
+    FRAME_APPLICATION_COLOR: [0.1, 0.1, 0.8, 0.4],
+    FRAME_SYSTEM_COLOR: [0.7, 0.1, 0.1, 0.5],
     SPAN_FALLBACK_COLOR: [1, 1, 1, 0.3],
     GRID_FRAME_BACKGROUND_COLOR: 'rgb(26, 20, 31,1)',
     GRID_LINE_COLOR: '#222227',

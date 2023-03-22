@@ -211,6 +211,10 @@ from .endpoints.internal import (
     InternalWarningsEndpoint,
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
+from .endpoints.notifications import (
+    NotificationActionsDetailsEndpoint,
+    NotificationActionsIndexEndpoint,
+)
 from .endpoints.organization_access_request_details import OrganizationAccessRequestDetailsEndpoint
 from .endpoints.organization_activity import OrganizationActivityEndpoint
 from .endpoints.organization_api_key_details import OrganizationApiKeyDetailsEndpoint
@@ -377,6 +381,7 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -1318,6 +1323,17 @@ ORGANIZATION_URLS = [
         OrganizationInviteRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-invite-request-detail",
     ),
+    # Notification Actions
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/$",
+        NotificationActionsIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-actions",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/actions/(?P<action_id>[^\/]+)/$",
+        NotificationActionsDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-actions-details",
+    ),
     # Monitors
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/$",
@@ -1882,7 +1898,7 @@ PROJECT_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-filters",
+        name="sentry-api-0-project-filters-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
@@ -1976,6 +1992,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/$",
         ProjectArtifactBundleFilesEndpoint.as_view(),
         name="sentry-api-0-project-artifact-bundle-files",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        ProjectArtifactBundleFileDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-artifact-bundle-file-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
