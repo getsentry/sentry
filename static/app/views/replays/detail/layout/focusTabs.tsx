@@ -30,26 +30,24 @@ function FocusTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={String(className)} underlined>
-      {Object.entries(ReplayTabs).map(([tab, label]) => {
-        return (
-          <ListLink
-            key={tab}
-            isActive={() => tab === activeTab}
-            to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
-            onClick={e => {
-              e.preventDefault();
-              setActiveTab(tab);
+      {Object.entries(ReplayTabs).map(([tab, label]) => (
+        <ListLink
+          key={tab}
+          isActive={() => tab === activeTab}
+          to={`${pathname}?${queryString.stringify({...query, t_main: tab})}`}
+          onClick={e => {
+            e.preventDefault();
+            setActiveTab(tab);
 
-              trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
-                tab,
-                organization,
-              });
-            }}
-          >
-            {label}
-          </ListLink>
-        );
-      })}
+            trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
+              tab,
+              organization,
+            });
+          }}
+        >
+          {label}
+        </ListLink>
+      ))}
     </ScrollableTabs>
   );
 }

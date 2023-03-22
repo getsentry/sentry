@@ -23,21 +23,19 @@ function SideTabs({className}: Props) {
 
   return (
     <ScrollableTabs className={String(className)} underlined>
-      {Object.entries(TABS).map(([tab, label]) => {
-        return (
-          <ListLink
-            key={tab}
-            isActive={() => tab === activeTab}
-            to={`${pathname}?${queryString.stringify({...query, t_side: tab})}`}
-            onClick={e => {
-              e.preventDefault();
-              setParamValue(tab);
-            }}
-          >
-            {label}
-          </ListLink>
-        );
-      })}
+      {Object.entries(TABS).map(([tab, label]) => (
+        <ListLink
+          key={tab}
+          isActive={() => tab === activeTab}
+          to={`${pathname}?${queryString.stringify({...query, t_side: tab})}`}
+          onClick={e => {
+            e.preventDefault();
+            setParamValue(tab);
+          }}
+        >
+          {label}
+        </ListLink>
+      ))}
     </ScrollableTabs>
   );
 }
