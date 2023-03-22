@@ -1336,7 +1336,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": True},
             ]
 
     def test_get_dynamic_sampling_biases_with_previously_assigned_biases(self):
@@ -1363,7 +1363,7 @@ class TestProjectDetailsDynamicSamplingBiases(TestProjectDetailsDynamicSamplingB
                 },
                 {"id": "ignoreHealthChecks", "active": True},
                 {"id": "boostKeyTransactions", "active": True},
-                {"id": "boostLowVolumeTransactions", "active": False},
+                {"id": "boostLowVolumeTransactions", "active": True},
             ]
 
     def test_dynamic_sampling_bias_activation(self):
