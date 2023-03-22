@@ -67,7 +67,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_anonymous(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         resp = self.client.post(self.path, {"init": True})
 
@@ -109,7 +109,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_existing_user_with_new_account(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("bar@example.com")
 
@@ -143,7 +143,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_flow_as_existing_user_with_new_account_member_limit(self):
         with self.feature({"organizations:invite-members": False}):
             auth_provider = AuthProvider.objects.create(
-                organization=self.organization, provider="dummy"
+                organization_id=self.organization.id, provider="dummy"
             )
             user = self.create_user("bar@example.com")
 
@@ -178,7 +178,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_flow_as_existing_identity(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
@@ -197,7 +197,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_org_redirects_to_relative_next_url(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
         next = f"/organizations/{self.organization.slug}/releases/"
@@ -215,7 +215,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_org_redirects_to_next_url_customer_domain(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
@@ -235,7 +235,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_org_login_doesnt_redirect_external(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
 
@@ -254,7 +254,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_unauthenticated_existing_matched_user_no_merge(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("bar@example.com")
 
@@ -348,7 +348,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_unauthenticated_existing_matched_user_via_secondary_email(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("foo@example.com")
         UserEmail.objects.create(user=user, email="bar@example.com", is_verified=True)
@@ -414,7 +414,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_unauthenticated_existing_unmatched_user_with_merge(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("foo@example.com")
 
@@ -458,7 +458,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_unauthenticated_existing_matched_user_with_merge_and_existing_identity(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("bar@example.com")
 
@@ -513,7 +513,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         a new user account.
         """
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("bar@example.com", is_active=False)
 
@@ -567,7 +567,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         This only works when the email is mapped to an identical identity.
         """
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         # setup a 'previous' identity, such as when we migrated Google from
@@ -623,7 +623,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         a member of the org.
         """
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         # setup a 'previous' identity, such as when we migrated Google from
@@ -686,7 +686,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         confirm their identity as they don't have membership.
         """
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
 
         # setup a 'previous' identity, such as when we migrated Google from
@@ -780,7 +780,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_flow_as_unauthenticated_existing_user_legacy_identity_migration(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user_ident = AuthIdentity.objects.create(
             auth_provider=auth_provider, user=user, ident="foo@example.com"
@@ -807,7 +807,7 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
 
     def test_flow_as_authenticated_user_with_invite_joining(self):
         auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         user = self.create_user("bar@example.com")
         member = self.create_member(email="bar@example.com", organization=self.organization)
@@ -1078,7 +1078,7 @@ class OrganizationAuthLoginNoPasswordTest(AuthProviderTestCase):
         self.organization = self.create_organization(name="foo", owner=self.owner)
         self.user = self.create_user("bar@example.com", is_managed=False, password="")
         self.auth_provider = AuthProvider.objects.create(
-            organization=self.organization, provider="dummy"
+            organization_id=self.organization.id, provider="dummy"
         )
         self.path = reverse("sentry-auth-organization", args=[self.organization.slug])
         self.auth_sso_path = reverse("sentry-auth-sso")

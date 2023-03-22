@@ -19,6 +19,7 @@ from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
 from sentry.models import AuthProvider, Organization, OrganizationMember, OrganizationStatus
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.utils import auth, json, metrics
@@ -125,7 +126,7 @@ class AuthLoginView(BaseView):
         return self.respond("sentry/login.html", context)
 
     def _handle_login(self, request: Request, user, organization: Optional[Organization]):
-        login(request, user, organization_id=organization.id if organization else None)
+        login(request, user, organization_id=coerce_id_from(organization))
         self.determine_active_organization(request)
 
     def handle_basic_auth(self, request: Request, **kwargs):

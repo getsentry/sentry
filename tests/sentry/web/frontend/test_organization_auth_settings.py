@@ -15,6 +15,7 @@ from sentry.models import (
     OrganizationMember,
     SentryAppInstallationForProvider,
 )
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
@@ -292,7 +293,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
 
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
-                organization=self.organization, provider="dummy_scim"
+                organization_id=self.organization.id, provider="dummy_scim"
             )
 
     def test_edit_sso_settings(self):
@@ -435,7 +436,15 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         assert getattr(auth_provider.flags, "scim_enabled")
         assert auth_provider.get_scim_token() is not None
-        assert get_scim_url(auth_provider, auth_provider.organization) is not None
+        assert (
+            get_scim_url(
+                auth_provider,
+                organization_service.get_organization_by_id(
+                    id=auth_provider.organization_id
+                ).organization,
+            )
+            is not None
+        )
 
         # "add" some scim users
         u1 = self.create_user()
@@ -468,10 +477,18 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         auth_provider = AuthProvider.objects.get(organization_id=organization.id)
 
         assert not getattr(auth_provider.flags, "scim_enabled")
-        assert get_scim_url(auth_provider, auth_provider.organization) is None
+        assert (
+            get_scim_url(
+                auth_provider,
+                organization_service.get_organization_by_id(
+                    id=auth_provider.organization_id
+                ).organization,
+            )
+            is None
+        )
         with pytest.raises(SentryAppInstallationForProvider.DoesNotExist):
             SentryAppInstallationForProvider.objects.get(
-                organization=self.organization, provider="dummy_scim"
+                organization_id=self.organization.id, provider="dummy_scim"
             )
         not_scim_member.refresh_from_db()
         scim_member.refresh_from_db()
