@@ -11,7 +11,7 @@ def process_raw_response(response: list[dict[str, Any]], fields: list[str]) -> l
 
 def generate_restricted_fieldset(
     fields: list[str] | None,
-    response: Iterator[dict[str, Any]],
+    response: Iterable[dict[str, Any]],
 ) -> Iterator[dict[str, Any]]:
     """Return only the fields requested by the client."""
     if fields:
