@@ -2675,10 +2675,14 @@ KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
+
+# To be deprecated. Should be replaced by the single KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS topic
 KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS = (
     "generic-metrics-distributions-subscription-results"
 )
 KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS = "generic-metrics-sets-subscription-results"
+
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
