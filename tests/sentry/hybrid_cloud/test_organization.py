@@ -1,4 +1,3 @@
-import dataclasses
 import itertools
 from typing import Any, Callable, List, Optional, Sequence, Tuple
 
@@ -99,7 +98,11 @@ def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
-    assert team.org_role == orm_team.org_role
+    assert team.org_role == orm_team.org_role or (
+        # TODO: Make RpcTeam.org_role nullable for consistency with ORM?
+        team.org_role == ""
+        and orm_team.org_role is None
+    )
 
 
 def assert_project_equals(orm_project: Project, project: RpcProject):
@@ -147,9 +150,9 @@ def assert_organization_member_equals(
         )
     }
 
-    for field in dataclasses.fields(organization_member.flags):
-        assert getattr(organization_member.flags, field.name) == getattr(
-            orm_organization_member.flags, unescape_flag_name(field.name)
+    for field_name in organization_member.flags.get_field_names():
+        assert getattr(organization_member.flags, field_name) == getattr(
+            orm_organization_member.flags, unescape_flag_name(field_name)
         )
 
 
@@ -158,9 +161,9 @@ def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.name == orm_org.name
     assert org.slug == orm_org.slug
 
-    for field in dataclasses.fields(org.flags):
-        orm_flag = getattr(orm_org.flags, field.name)
-        org_flag = getattr(org.flags, field.name)
+    for field_name in org.flags.get_field_names():
+        orm_flag = getattr(orm_org.flags, field_name)
+        org_flag = getattr(org.flags, field_name)
         assert orm_flag == org_flag
 
     assert_for_list(

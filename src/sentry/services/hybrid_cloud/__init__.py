@@ -14,6 +14,7 @@ from typing import (
     Dict,
     Generator,
     Generic,
+    Iterable,
     List,
     Mapping,
     Type,
@@ -60,6 +61,10 @@ class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
 
     @classmethod
+    def get_field_names(cls) -> Iterable[str]:
+        return iter(cls.__fields__.keys())
+
+    @classmethod
     def serialize_by_field_name(
         cls,
         obj: Any,
@@ -84,7 +89,7 @@ class RpcModel(pydantic.BaseModel):
 
         fields = {}
 
-        for rpc_field_name in cls.__fields__:
+        for rpc_field_name in cls.get_field_names():
             if name_transform is not None:
                 obj_field_name = name_transform(rpc_field_name)
             else:
