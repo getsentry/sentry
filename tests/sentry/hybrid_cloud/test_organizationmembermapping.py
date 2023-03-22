@@ -1,4 +1,4 @@
-from sentry.models.organizationmember import InviteStatus
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     organizationmember_mapping_service,
@@ -33,6 +33,41 @@ class OrganizationMappingTest(TransactionTestCase):
         )
         assert rpc_orgmember_mapping.role == orgmember_mapping.role == "member"
         assert rpc_orgmember_mapping.user_id == orgmember_mapping.user_id == self.user.id
+        assert rpc_orgmember_mapping.email == orgmember_mapping.email == fields["email"]
+        assert rpc_orgmember_mapping.inviter_id == orgmember_mapping.inviter_id == inviter.id
+        assert (
+            rpc_orgmember_mapping.invite_status
+            == orgmember_mapping.invite_status
+            == fields["invite_status"]
+        )
+
+    def test_create_with_org_member(self):
+        with exempt_from_silo_limits():
+            inviter = self.create_user("foo@example.com")
+        fields = {
+            "organization_id": self.organization.id,
+            "role": "member",
+            "email": "mail@testserver.com",
+            "inviter_id": inviter.id,
+            "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
+        }
+        with exempt_from_silo_limits():
+            org_member = OrganizationMember.objects.create(**fields)
+        rpc_orgmember_mapping = organizationmember_mapping_service.create_with_organization_member(
+            org_member
+        )
+        orgmember_mapping = OrganizationMemberMapping.objects.get(
+            organization_id=self.organization.id
+        )
+
+        assert rpc_orgmember_mapping.date_created == orgmember_mapping.date_created
+        assert (
+            rpc_orgmember_mapping.organization_id
+            == orgmember_mapping.organization_id
+            == self.organization.id
+        )
+        assert rpc_orgmember_mapping.role == orgmember_mapping.role == "member"
+        assert rpc_orgmember_mapping.user_id is orgmember_mapping.user_id is None
         assert rpc_orgmember_mapping.email == orgmember_mapping.email == fields["email"]
         assert rpc_orgmember_mapping.inviter_id == orgmember_mapping.inviter_id == inviter.id
         assert (

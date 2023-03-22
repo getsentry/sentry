@@ -67,6 +67,12 @@ class OrganizationMemberMappingService(InterfaceWithLifecycle):
     ) -> RpcOrganizationMemberMapping:
         pass
 
+    @abstractmethod
+    def create_with_organization_member(
+        self, org_member: OrganizationMember
+    ) -> RpcOrganizationMemberMapping:
+        pass
+
 
 def impl_with_db() -> OrganizationMemberMappingService:
     from sentry.services.hybrid_cloud.organizationmember_mapping.impl import (
