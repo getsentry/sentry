@@ -21,7 +21,7 @@ occurrence_producer = None
 
 def get_occurrence_producer() -> KafkaProducer:
     global occurrence_producer
-    logging.info("Creating occurrence producer")
+    logging.error("Creating occurrence producer")
     if occurrence_producer is None:
         cluster_name = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_OCCURRENCES]["cluster"]
         producer_config = get_kafka_producer_cluster_options(cluster_name)
@@ -34,7 +34,7 @@ def get_occurrence_producer() -> KafkaProducer:
 
 
 def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
-    logging.info("Producing to Kafka")
+    logging.error("Producing to Kafka")
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # If we're not running Kafka then we're just in dev. Skip producing here and just log for
         # debugging.
@@ -65,9 +65,11 @@ def track_occurrence_producer_futures(future: Future[BrokerValue[KafkaPayload]])
 
 
 def handle_occurrence_producer() -> None:
+    logging.error("Started handle_occurrence_producer")
     futures.wait(occurrence_producer_futures)
     if occurrence_producer:
         occurrence_producer.close()
+    logging.error("Finished handle_occurrence_producer")
 
 
 register(handle_occurrence_producer)
