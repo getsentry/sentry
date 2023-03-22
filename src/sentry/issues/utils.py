@@ -12,7 +12,7 @@ def can_create_group(
     entity: Union[IssueOccurrence, IssueOccurrenceData, PerformanceProblem, Group], project: Project
 ) -> bool:
     type_id = None
-    if type(entity) is dict:
+    if isinstance(entity, dict):
         type_id = entity["type"]
     elif isinstance(entity, Group):
         type_id = entity.issue_type.type_id

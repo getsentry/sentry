@@ -12,7 +12,7 @@ def test_track_occurrence_producer_futures() -> None:
     future_mock.result.assert_called_once_with()
 
 
-@override_settings(SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT=2)
+@override_settings(SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT=2)  # type: ignore
 def test_track_occurrence_producer_futures_with_multiple() -> None:
     first_future_mock = Mock()
     first_future_mock.result = Mock()
