@@ -133,7 +133,7 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        return cast(RpcAuthProviderFlags, RpcAuthProviderFlags.serialize_by_field_name(ap))
+        return cast(RpcAuthProviderFlags, RpcAuthProviderFlags.serialize_by_field_name(ap.flags))
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(
