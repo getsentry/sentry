@@ -19,6 +19,7 @@ from .base import DetectorType, PerformanceDetector
 from .detectors import (
     ConsecutiveDBSpanDetector,
     ConsecutiveHTTPSpanDetector,
+    DBMainThreadDetector,
     FileIOMainThreadDetector,
     MNPlusOneDBSpanDetector,
     NPlusOneAPICallsDetector,
@@ -243,6 +244,7 @@ def _detect_performance_problems(
     detectors: List[PerformanceDetector] = [
         ConsecutiveDBSpanDetector(detection_settings, data),
         ConsecutiveHTTPSpanDetector(detection_settings, data),
+        DBMainThreadDetector(detection_settings, data),
         SlowDBQueryDetector(detection_settings, data),
         RenderBlockingAssetSpanDetector(detection_settings, data),
         NPlusOneDBSpanDetector(detection_settings, data),
