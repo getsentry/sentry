@@ -19,6 +19,7 @@ import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import {IconResize} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import theme from 'sentry/utils/theme';
@@ -163,6 +164,7 @@ class Dashboard extends Component<Props, State> {
   componentWillUnmount() {
     window.removeEventListener('resize', this.debouncedHandleResize);
     window.clearTimeout(this.forceCheckTimeout);
+    GroupStore.reset();
   }
 
   forceCheckTimeout: number | undefined = undefined;
