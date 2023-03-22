@@ -93,7 +93,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           save-only: true
           artifact-name: 'acceptance-visual-snapshots-base'
@@ -175,7 +175,7 @@ jobs:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           save-only: true
           artifact-name: 'acceptance-visual-snapshots-pr'
@@ -190,7 +190,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
@@ -252,7 +252,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           save-only: true
           artifact-name: 'frontend-visual-snapshots-base'
@@ -308,7 +308,7 @@ jobs:
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
       - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           save-only: true
           artifact-name: 'frontend-visual-snapshots-pr'
@@ -323,7 +323,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@a2352a3e946d56fa41da256057c2df52e7b0ba13
+        uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
