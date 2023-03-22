@@ -2,6 +2,7 @@ import {useContext, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import GroupListHeader from 'sentry/components/issues/groupListHeader';
 import {t} from 'sentry/locale';
 import {Event, EventTransaction, Organization} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
@@ -75,63 +76,26 @@ export function AnrRootCause({organization}: Props) {
   const affectedSpanIds = [...offendingSpanIDs];
   const focusedSpanIds: string[] = [];
 
-  const profileId = transactionEvent.contexts?.profile?.profile_id ?? null;
-
-  const hasProfilingPreviewsFeature =
-    organization.features.includes('profiling') &&
-    organization.features.includes('profiling-previews');
-
   return (
     <EventDataSection
-      title={t('Contributing Issues')}
-      type="contributing-issues"
-      help={t('Contributing Issues identifies potential root cause of this event.')}
+      title={t('Suspect ANR Culprits')}
+      type="suspect-anr-culprits"
+      help={t('Suspect ANR Culprits identifies potential root cause of this ANR.')}
     >
-      {hasProfilingPreviewsFeature ? (
-        <ProfilesProvider
-          orgSlug={organization.slug}
-          projectSlug={performanceIssue!.project_slug}
-          profileId={profileId || ''}
-        >
-          <ProfileContext.Consumer>
-            {profiles => (
-              <ProfileGroupProvider
-                type="flamechart"
-                input={profiles?.type === 'resolved' ? profiles.data : null}
-                traceID={profileId || ''}
-              >
-                <TraceViewWrapper>
-                  <TraceView
-                    organization={organization}
-                    waterfallModel={
-                      new WaterfallModel(
-                        transactionEvent as EventTransaction,
-                        affectedSpanIds,
-                        focusedSpanIds
-                      )
-                    }
-                    isEmbedded
-                  />
-                </TraceViewWrapper>
-              </ProfileGroupProvider>
-            )}
-          </ProfileContext.Consumer>
-        </ProfilesProvider>
-      ) : (
-        <TraceViewWrapper>
-          <TraceView
-            organization={organization}
-            waterfallModel={
-              new WaterfallModel(
-                transactionEvent as EventTransaction,
-                affectedSpanIds,
-                focusedSpanIds
-              )
-            }
-            isEmbedded
-          />
-        </TraceViewWrapper>
-      )}
+      <GroupListHeader withChart={false} narrowGroups />
+      <TraceViewWrapper>
+        <TraceView
+          organization={organization}
+          waterfallModel={
+            new WaterfallModel(
+              transactionEvent as EventTransaction,
+              affectedSpanIds,
+              focusedSpanIds
+            )
+          }
+          isEmbedded
+        />
+      </TraceViewWrapper>
     </EventDataSection>
   );
 }
