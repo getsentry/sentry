@@ -30,7 +30,7 @@ class Migration(CheckedMigration):
                     ALTER TABLE "sentry_debugidartifactbundle" DROP COLUMN "date_last_accessed";
                     """,
                     reverse_sql="""
-                    ALTER TABLE "sentry_debugidartifactbundle" ADD COLUMN "date_last_accessed" timestamp with time zone NULL;
+                    ALTER TABLE "sentry_debugidartifactbundle" ADD COLUMN "date_last_accessed" DATE NULL;
                     """,
                     hints={"tables": ["sentry_debugidartifactbundle"]},
                 )
