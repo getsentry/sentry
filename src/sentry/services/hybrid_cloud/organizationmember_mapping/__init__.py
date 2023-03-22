@@ -27,7 +27,7 @@ class RpcOrganizationMemberMapping:
     invite_status: Optional[int] = None
 
 
-class RpcOrganizationMemberMappingUpdate(TypedDict):
+class RpcOrganizationMemberMappingUpdate(TypedDict, total=False):
     """
     A set of values to be updated on an OrganizationMemberMapping.
 
