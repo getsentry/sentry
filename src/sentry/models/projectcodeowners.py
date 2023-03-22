@@ -7,7 +7,6 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sentry.api.endpoints.codeowners import MAX_RAW_LENGTH
 from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
@@ -20,6 +19,8 @@ from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
+# Max accepted string length of the CODEOWNERS file
+MAX_RAW_LENGTH = 1_000_000
 
 
 @region_silo_only_model
