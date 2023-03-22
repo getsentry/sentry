@@ -47,20 +47,12 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   const fetchData = useCallback(async () => {
     setLoading(true);
 
-    // This is an experiment we are doing with react.
-    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-    // and the docs will reflect that.
-    const platform =
-      params.platform === 'javascript-react'
-        ? ReactDocVariant.ErrorMonitoringAndPerformance
-        : String(params.platform);
-
     try {
       const {html: reponse} = await loadDocs({
         api,
         orgSlug: organization.slug,
         projectSlug: params.projectId,
-        platform: platform as PlatformKey,
+        platform: params.platform as PlatformKey,
       });
       setHtml(reponse);
     } catch (err) {
@@ -123,22 +115,18 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
       </StyledPageHeader>
 
       <div>
-        {platform.id !== 'javascript-react' ? (
-          <Alert type="info" showIcon>
-            {tct(
-              `
+        <Alert type="info" showIcon>
+          {tct(
+            `
            This is a quick getting started guide. For in-depth instructions
            on integrating Sentry with [platform], view
            [docLink:our complete documentation].`,
-              {
-                platform: platform.name,
-                docLink: <a href={platformLink} />,
-              }
-            )}
-          </Alert>
-        ) : (
-          <div>oi</div>
-        )}
+            {
+              platform: platform.name,
+              docLink: <a href={platformLink} />,
+            }
+          )}
+        </Alert>
 
         {loading ? (
           <LoadingIndicator />
