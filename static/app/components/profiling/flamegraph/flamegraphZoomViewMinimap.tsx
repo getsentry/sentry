@@ -194,12 +194,12 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      const configSpaceMouse = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
+      const newConfigSpaceCursor = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         flamegraphMiniMapCanvas
       );
 
-      setConfigSpaceCursor(configSpaceMouse);
+      setConfigSpaceCursor(newConfigSpaceCursor);
 
       if (!prevConfigSpaceCursor.current) {
         return;
@@ -211,26 +211,43 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
+      const configView = flamegraphMiniMapView.toOriginConfigView(
+        flamegraphMiniMapView.configView
+      );
+
       if (lastInteraction === 'resize') {
-        const configView = flamegraphMiniMapView.configView;
+        const dragDelta = newConfigSpaceCursor[0] - prevConfigSpaceCursor.current[0];
+        if (dragDelta === 0) {
+          return;
+        }
 
-        const configViewCenter = configView.width / 2 + configView.x;
-        const mouseX = configSpaceMouse[0];
-        const dragDelta = prevConfigSpaceCursor.current
-          ? configSpaceMouse[0] - prevConfigSpaceCursor.current[0]
-          : 0;
-        const x = mouseX < configViewCenter ? configSpaceMouse[0] : configView.left;
-        const dragDirection = mouseX < configViewCenter ? -1 : 1;
+        // When a user is resizing the left edge, update the x position of the view by drag delta
+        // and decrease the width by drag delta, so that when they are dragging to the right, the
+        // view shrinks, but when they are dragging to the left, the view grows.
+        if (newConfigSpaceCursor[0] < configView.centerX) {
+          const rect = new Rect(
+            flamegraphMiniMapView.configView.left + dragDelta,
+            newConfigSpaceCursor[1] - configView.height / 2,
+            configView.width - dragDelta,
+            configView.height
+          );
 
-        const rect = new Rect(
-          x,
-          configSpaceMouse[1] - flamegraphMiniMapView.configView.height / 2,
-          configView.width + dragDelta * dragDirection,
-          configView.height
-        );
+          canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
+          prevConfigSpaceCursor.current = newConfigSpaceCursor;
+        } else {
+          // When a user is resizing the right edge, only update the width of the view by drag delta.
+          // we can skip updating the x position of the view because that is our reference edge
+          const rect = new Rect(
+            flamegraphMiniMapView.configView.left,
+            newConfigSpaceCursor[1] - configView.height / 2,
+            configView.width + dragDelta,
+            configView.height
+          );
 
-        canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
-        prevConfigSpaceCursor.current = configSpaceMouse;
+          canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
+          prevConfigSpaceCursor.current = newConfigSpaceCursor;
+        }
+
         return;
       }
 
@@ -238,19 +255,19 @@ function FlamegraphZoomViewMinimap({
         const start = vec2.min(
           vec2.create(),
           prevConfigSpaceCursor.current,
-          configSpaceMouse
+          newConfigSpaceCursor
         );
         const end = vec2.max(
           vec2.create(),
           prevConfigSpaceCursor.current,
-          configSpaceMouse
+          newConfigSpaceCursor
         );
 
         const rect = new Rect(
           start[0],
-          configSpaceMouse[1] - flamegraphMiniMapView.configView.height / 2,
+          newConfigSpaceCursor[1] - configView.height / 2,
           end[0] - start[0],
-          flamegraphMiniMapView.configView.height
+          configView.height
         );
 
         canvasPoolManager.dispatch('set config view', [rect, flamegraphMiniMapView]);
@@ -258,7 +275,7 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      prevConfigSpaceCursor.current = configSpaceMouse;
+      prevConfigSpaceCursor.current = newConfigSpaceCursor;
       setLastInteraction(null);
     },
     [
@@ -302,12 +319,15 @@ function FlamegraphZoomViewMinimap({
       ) {
         return;
       }
+      const configView = flamegraphMiniMapView.toOriginConfigView(
+        flamegraphMiniMapView.configView
+      );
 
       if (
         miniMapConfigSpaceBorderSize >=
         Math.min(
-          Math.abs(flamegraphMiniMapView.configView.left - configSpaceCursor[0]),
-          Math.abs(flamegraphMiniMapView.configView.right - configSpaceCursor[0])
+          Math.abs(configView.left - configSpaceCursor[0]),
+          Math.abs(configView.right - configSpaceCursor[0])
         )
       ) {
         setLastInteraction('resize');
@@ -320,7 +340,7 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      if (flamegraphMiniMapView.configView.contains(configSpaceCursor)) {
+      if (configView.contains(configSpaceCursor)) {
         setLastInteraction('pan');
         setLastDragVector(
           getPhysicalSpacePositionFromOffset(
@@ -361,14 +381,14 @@ function FlamegraphZoomViewMinimap({
         return;
       }
 
-      const configSpaceMouse = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
+      const newConfigSpaceCursor = flamegraphMiniMapView.getTransformedConfigSpaceCursor(
         vec2.fromValues(evt.nativeEvent.offsetX, evt.nativeEvent.offsetY),
         flamegraphMiniMapCanvas
       );
 
       const view = new Rect(
         0,
-        configSpaceMouse[1] - flamegraphMiniMapView.configView.height / 2,
+        newConfigSpaceCursor[1] - flamegraphMiniMapView.configView.height / 2,
         flamegraphMiniMapView.configSpace.width,
         flamegraphMiniMapView.configView.height
       );
