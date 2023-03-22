@@ -9,7 +9,7 @@ from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 @control_silo_test(stable=True)
 class OrganizationMappingTest(TransactionTestCase):
-    def test_create(self):
+    def test_create_mapping(self):
         with exempt_from_silo_limits():
             inviter = self.create_user("foo@example.com")
         fields = {
@@ -20,7 +20,7 @@ class OrganizationMappingTest(TransactionTestCase):
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
-        rpc_orgmember_mapping = organizationmember_mapping_service.create(**fields)
+        rpc_orgmember_mapping = organizationmember_mapping_service.create_mapping(**fields)
         orgmember_mapping = OrganizationMemberMapping.objects.get(
             organization_id=self.organization.id
         )
@@ -52,7 +52,7 @@ class OrganizationMappingTest(TransactionTestCase):
             "inviter_id": inviter.id,
             "invite_status": InviteStatus.REQUESTED_TO_JOIN.value,
         }
-        organizationmember_mapping_service.create(**fields)
+        organizationmember_mapping_service.create_mapping(**fields)
         assert (
             OrganizationMemberMapping.objects.filter(
                 organization_id=self.organization.id, user_id=self.user.id, role="member"
@@ -61,7 +61,7 @@ class OrganizationMappingTest(TransactionTestCase):
         )
 
         next_role = "billing"
-        rpc_orgmember_mapping = organizationmember_mapping_service.create(
+        rpc_orgmember_mapping = organizationmember_mapping_service.create_mapping(
             **{
                 **fields,
                 "role": next_role,

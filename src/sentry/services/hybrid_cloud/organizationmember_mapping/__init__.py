@@ -55,7 +55,7 @@ def update_organizationmember_mapping_from_instance(
 
 class OrganizationMemberMappingService(InterfaceWithLifecycle):
     @abstractmethod
-    def create(
+    def create_mapping(
         self,
         *,
         organization_id: int,

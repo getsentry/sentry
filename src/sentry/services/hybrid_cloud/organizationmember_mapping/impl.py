@@ -14,7 +14,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
-    def create(
+    def create_mapping(
         self,
         *,
         organization_id: int,
