@@ -192,6 +192,7 @@ jobs:
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
+          action-name: 'Visual Snapshot: Acceptance'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
@@ -325,6 +326,7 @@ jobs:
       - name: Diff snapshots
         uses: getsentry/action-visual-snapshot@f2537eaa143289fc5d246370767fb6cb5eff1e12
         with:
+          action-name: 'Visual Snapshot: Frontend'
           api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
           gcs-bucket: 'sentry-visual-snapshots'
           gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
