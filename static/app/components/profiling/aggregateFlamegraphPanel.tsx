@@ -5,7 +5,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {Flex} from 'sentry/components/profiling/flex';
-import {Tooltip} from 'sentry/components/tooltip';
+import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
@@ -19,27 +19,27 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   const isEmpty = data?.shared.frames.length === 0;
   return (
     <Flex column gap={space(1)}>
-      <Flex.Item>
-        <Tooltip
-          showUnderline
+      <Flex align="center" gap={space(0.5)}>
+        <HeaderTitle>{t('Flamegraph')}</HeaderTitle>
+        <QuestionTooltip
+          size="sm"
+          position="right"
           overlayStyle={{
             textAlign: 'unset',
           }}
           isHoverable
           title={
-            <div>
+            <TooltipContent>
               <p>{t('An aggregate of profiles for this transaction.')}</p>
               <p>
                 {t(
                   'Navigate the flamegraph by scrolling and by double clicking a frame to zoom.'
                 )}
               </p>
-            </div>
+            </TooltipContent>
           }
-        >
-          <HeaderTitle>{t('Flamegraph (?)')}</HeaderTitle>
-        </Tooltip>
-      </Flex.Item>
+        />
+      </Flex>
       <ProfileGroupProvider type="flamegraph" input={data ?? null} traceID="">
         <FlamegraphStateProvider
           initialState={{
@@ -70,11 +70,14 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   );
 }
 
-export const HeaderTitle = styled('div')`
+export const HeaderTitle = styled('span')`
   ${p => p.theme.text.cardTitle};
   color: ${p => p.theme.headingColor};
-  font-size: ${p => p.theme.fontSizeSmall};
-  /* text-decoration: underline dotted; */
-  /* text-underline-offset: ${space(0.25)}; */
-  cursor: pointer;
+  font-size: ${p => p.theme.fontSizeMedium};
+`;
+
+export const TooltipContent = styled('div')`
+  & p:last-child {
+    margin-bottom: 0;
+  }
 `;
