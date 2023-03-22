@@ -14,7 +14,7 @@ def copy_date_added_to_date_uploaded(apps, schema_editor):
         ArtifactBundle.objects.filter(date_uploaded__isnull=True)
     ):
         bundle.date_uploaded = bundle.date_added
-        bundle.save(updated_fields=["date_uploaded"])
+        bundle.save(update_fields=["date_uploaded"])
 
 
 class Migration(CheckedMigration):
@@ -42,6 +42,7 @@ class Migration(CheckedMigration):
         ),
         migrations.RunPython(
             copy_date_added_to_date_uploaded,
+            migrations.RunPython.noop,
             hints={"tables": ["sentry_artifactbundle"]},
         ),
     ]
