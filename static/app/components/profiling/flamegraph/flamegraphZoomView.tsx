@@ -26,7 +26,6 @@ import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
@@ -35,6 +34,7 @@ import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegrap
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';

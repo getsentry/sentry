@@ -1,9 +1,16 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
-from rest_framework import status
+from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.notificationaction import NotificationAction, NotificationActionProject
+from sentry.models.notificationaction import (
+    ActionRegistration,
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+    NotificationActionProject,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -14,10 +21,12 @@ NOTIFICATION_ACTION_FEATURE = ["organizations:notification-actions"]
 class NotificationActionsIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-notification-actions"
 
+    @patch.dict(NotificationAction._registry, {})
     def setUp(self):
         self.user = self.create_user("thepaleking@hk.com")
         self.organization = self.create_organization(name="hallownest", owner=self.user)
         self.other_organization = self.create_organization(name="pharloom", owner=self.user)
+        # self.integration = install_slack(organization=self.organization)
         self.team = self.create_team(
             name="pale beings", organization=self.organization, members=[self.user]
         )
@@ -26,12 +35,17 @@ class NotificationActionsIndexEndpointTest(APITestCase):
             self.create_project(name="dirtmouth", organization=self.organization),
         ]
         self.base_data = {
-            "serviceType": "slack",
+            "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@hollowknight",
             "targetIdentifier": "THK",
         }
+        self.mock_register = NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )
         self.login_as(user=self.user)
 
     def test_requires_feature(self):
@@ -224,12 +238,43 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 **data,
             )
 
+    @patch.dict(NotificationAction._registry, {})
+    def test_post_raises_validation_from_registry(self):
+        error_message = "oops-idea-installed"
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock(side_effect=serializers.ValidationError(error_message))
+
+        registration = MockActionRegistration
+        self.mock_register(registration)
+
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
+            response = self.get_error_response(
+                self.organization.slug,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                method="POST",
+                **self.base_data,
+            )
+            assert error_message in str(response.data)
+
+    @patch.dict(NotificationAction._registry, {})
     def test_post_simple(self):
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
         data = {
             **self.base_data,
             "projects": [p.slug for p in self.projects],
         }
         with self.feature(NOTIFICATION_ACTION_FEATURE):
+            assert not registration.validate_action.called
             response = self.get_success_response(
                 self.organization.slug,
                 status_code=status.HTTP_201_CREATED,
@@ -237,6 +282,7 @@ class NotificationActionsIndexEndpointTest(APITestCase):
                 **data,
             )
             # Database reflects changes
+            assert registration.validate_action.called
             notif_action = NotificationAction.objects.get(id=response.data.get("id"))
             assert response.data == serialize(notif_action)
             # Relation table has been updated

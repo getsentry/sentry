@@ -52,6 +52,8 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    # This field represents the date of the upload that we show in the UI.
+    date_uploaded = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -99,7 +101,6 @@ class DebugIdArtifactBundle(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
-    date_last_accessed = models.DateTimeField(default=None, null=True)
 
     class Meta:
         app_label = "sentry"

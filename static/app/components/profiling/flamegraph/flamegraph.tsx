@@ -45,13 +45,13 @@ import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
-  Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';

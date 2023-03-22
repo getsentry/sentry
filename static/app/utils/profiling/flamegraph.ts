@@ -1,12 +1,12 @@
 import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
+import {Rect} from './speedscope';
 
 function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
   return b.totalWeight - a.totalWeight;
@@ -286,7 +286,7 @@ export class Flamegraph {
     };
 
     function visit(node: CallTreeNode, start: number) {
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         openFrame(node, start);
       }
 
@@ -297,7 +297,7 @@ export class Flamegraph {
         childTime += child.totalWeight;
       });
 
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         closeFrame(node, start + node.totalWeight);
       }
     }
