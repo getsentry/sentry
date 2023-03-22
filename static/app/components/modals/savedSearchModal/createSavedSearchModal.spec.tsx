@@ -72,8 +72,7 @@ describe('CreateSavedSearchModal', function () {
     });
   });
 
-  // eslint-disable-next-line jest/no-disabled-tests
-  it.skip('saves a search when query is changed', async function () {
+  it('saves a search when query is changed', async function () {
     render(<CreateSavedSearchModal {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('textbox', {name: /name/i}));
