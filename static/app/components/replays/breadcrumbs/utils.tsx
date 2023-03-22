@@ -12,7 +12,7 @@ type MaybeCrumbData = null | Record<string, unknown>;
 export function getDescription(crumb: Crumb) {
   const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
 
-  if (typeof crumbData === 'object' && crumbData !== null && 'action' in crumbData) {
+  if (crumbData && typeof crumbData === 'object' && 'action' in crumbData) {
     switch (crumbData.action) {
       case 'largest-contentful-paint':
         if (typeof crumbData?.value === 'number') {
