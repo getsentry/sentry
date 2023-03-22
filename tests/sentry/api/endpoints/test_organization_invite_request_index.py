@@ -10,13 +10,12 @@ from sentry.models import (
     OrganizationMemberTeam,
     OrganizationOption,
 )
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import OutboxCategory, RegionOutbox
 from sentry.testutils import APITestCase
 from sentry.testutils.cases import SlackActivityNotificationTest
 from sentry.testutils.helpers.slack import get_attachment_no_text
+from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 
 
@@ -68,7 +67,9 @@ class OrganizationInviteRequestListTest(APITestCase):
 
 
 @region_silo_test(stable=True)
-class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotificationTest):
+class OrganizationInviteRequestCreateTest(
+    APITestCase, SlackActivityNotificationTest, HybridCloudTestMixin
+):
     endpoint = "sentry-api-0-organization-invite-request-index"
     method = "post"
 
@@ -97,14 +98,6 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
     def test_simple(self):
         self.login_as(user=self.user)
 
-        with exempt_from_silo_limits():
-            assert (
-                RegionOutbox.objects.filter(
-                    category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE
-                ).count()
-                == 0
-            )
-
         with self.tasks(), outbox_runner():
             response = self.client.post(
                 self.url, {"email": "eric@localhost", "role": "member", "teams": [self.team.slug]}
@@ -128,23 +121,7 @@ class OrganizationInviteRequestCreateTest(APITestCase, SlackActivityNotification
         assert len(teams) == 1
         assert teams[0].team_id == self.team.id
 
-        with exempt_from_silo_limits():
-            assert (
-                RegionOutbox.objects.filter(
-                    category=OutboxCategory.ORGANIZATION_MEMBER_UPDATE
-                ).count()
-                == 0
-            )
-
-            org_member_mapping = OrganizationMemberMapping.objects.get(
-                organization_id=self.organization.id,
-                email="eric@localhost",
-            )
-            assert org_member_mapping.role == "member"
-            assert org_member_mapping.user_id is None
-            assert org_member_mapping.email == "eric@localhost"
-            assert org_member_mapping.inviter_id == self.user.id
-            assert org_member_mapping.invite_status == InviteStatus.REQUESTED_TO_BE_INVITED.value
+        self.assert_org_member_mapping(org_member=member)
 
     def test_higher_role(self):
         self.login_as(user=self.user)
