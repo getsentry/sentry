@@ -24,9 +24,6 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
         <QuestionTooltip
           size="sm"
           position="right"
-          overlayStyle={{
-            textAlign: 'unset',
-          }}
           isHoverable
           title={
             <TooltipContent>
@@ -77,6 +74,9 @@ export const HeaderTitle = styled('span')`
 `;
 
 export const TooltipContent = styled('div')`
+  & p {
+    text-align: left;
+  }
   & p:last-child {
     margin-bottom: 0;
   }
