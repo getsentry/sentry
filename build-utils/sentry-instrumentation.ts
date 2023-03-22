@@ -60,7 +60,7 @@ class SentryInstrumentation {
         }
         return 1;
       },
-      experiments: {
+      _experiments: {
         // 5 minutes should be plenty
         maxProfileDurationMs: 5 * 60 * 1000,
       },
