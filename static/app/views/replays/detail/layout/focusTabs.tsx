@@ -10,12 +10,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const ReplayTabs: Record<TabKey, string> = {
-  console: t('Console'),
-  network: t('Network'),
-  dom: t('DOM Events'),
-  issues: t('Issues'),
-  memory: t('Memory'),
-  trace: t('Trace'),
+  [TabKey.console]: t('Console'),
+  [TabKey.network]: t('Network'),
+  [TabKey.dom]: t('DOM Events'),
+  [TabKey.issues]: t('Issues'),
+  [TabKey.memory]: t('Memory'),
+  [TabKey.trace]: t('Trace'),
 };
 
 type Props = {className?: string};
