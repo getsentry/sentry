@@ -337,7 +337,7 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         # (https://stackoverflow.com/a/3812600/1544347), there are no formal
         # guarantees about it.
         ordered_keys_to_fetch = list(keys_to_fetch)
-        redis_results = dict(zip(ordered_keys_to_fetch, self.client.mget(ordered_keys_to_fetch)))
+        redis_results = dict(zip(ordered_keys_to_fetch, self.client.get(ordered_keys_to_fetch)))
 
         results = []
 
