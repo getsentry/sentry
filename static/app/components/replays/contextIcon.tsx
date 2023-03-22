@@ -17,21 +17,38 @@ const LazyContextIcon = lazy(
 );
 
 const ContextIcon = styled(({className, name, version}: Props) => {
-  const icon = generateIconName(name, version ?? undefined);
+  const icon = generateIconName(name, version);
+
+  const title = (
+    <CountTooltipContent>
+      <dt>Name:</dt>
+      <dd>{name}</dd>
+      {version ? <dt>Version:</dt> : null}
+      {version ? <dd>{version}</dd> : null}
+    </CountTooltipContent>
+  );
   return (
-    <div className={className}>
-      <Tooltip title={name}>
-        <Suspense fallback={<LoadingMask />}>
-          <LazyContextIcon name={icon} size="sm" />
-        </Suspense>
-      </Tooltip>
-      {version ? <div>{version}</div> : null}
-    </div>
+    <Tooltip title={title} className={className}>
+      <Suspense fallback={<LoadingMask />}>
+        <LazyContextIcon name={icon} size="sm" />
+      </Suspense>
+      {version ? version : null}
+    </Tooltip>
   );
 })`
   display: flex;
   gap: ${space(1)};
   font-variant-numeric: tabular-nums;
+  align-items: center;
+`;
+
+const CountTooltipContent = styled('dl')`
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  gap: ${space(1)} ${space(3)};
+  text-align: left;
+  align-items: center;
+  margin-bottom: 0;
 `;
 
 export default ContextIcon;
