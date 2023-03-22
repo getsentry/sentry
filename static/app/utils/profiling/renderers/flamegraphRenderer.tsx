@@ -1,15 +1,26 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {FlamegraphColorCodings} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+
+export type FlamegraphRendererOptions = {
+  colorCoding: FlamegraphColorCodings[number];
+  draw_border: boolean;
+};
+
+export const DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS: FlamegraphRendererOptions = {
+  colorCoding: 'by symbol name',
+  draw_border: false,
+};
 
 export abstract class FlamegraphRenderer {
   canvas: HTMLCanvasElement;
   flamegraph: Flamegraph;
   theme: FlamegraphTheme;
-  options: {draw_border: boolean};
+  options: FlamegraphRendererOptions;
 
   frames: ReadonlyArray<FlamegraphFrame>;
   roots: ReadonlyArray<FlamegraphFrame>;
@@ -21,7 +32,7 @@ export abstract class FlamegraphRenderer {
     canvas: HTMLCanvasElement,
     flamegraph: Flamegraph,
     theme: FlamegraphTheme,
-    options: {draw_border: boolean} = {draw_border: false}
+    options: FlamegraphRendererOptions = DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS
   ) {
     this.canvas = canvas;
     this.flamegraph = flamegraph;
@@ -33,8 +44,9 @@ export abstract class FlamegraphRenderer {
 
     const {colorBuffer, colorMap} = this.theme.COLORS.STACK_TO_COLOR(
       this.frames,
-      this.theme.COLORS.COLOR_MAP,
-      this.theme.COLORS.COLOR_BUCKET
+      this.theme.COLORS.COLOR_MAPS[this.options.colorCoding],
+      this.theme.COLORS.COLOR_BUCKET,
+      this.theme
     );
     this.colorBuffer = colorBuffer;
     this.colorMap = colorMap;

@@ -211,6 +211,27 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
             (next, 302),
         ]
 
+    @with_feature("organizations:customer-domains")
+    def test_org_redirects_to_next_url_customer_domain(self):
+        user = self.create_user("bar@example.com")
+        auth_provider = AuthProvider.objects.create(
+            organization=self.organization, provider="dummy"
+        )
+        AuthIdentity.objects.create(auth_provider=auth_provider, user=user, ident="foo@example.com")
+
+        next = f"/organizations/{self.organization.slug}/releases/"
+        resp = self.client.post(
+            self.path + "?next=" + self.organization.absolute_url(next), {"init": True}
+        )
+        assert resp.status_code == 200
+        assert self.provider.TEMPLATE in resp.content.decode("utf-8")
+
+        path = reverse("sentry-auth-sso")
+        resp = self.client.post(path, {"email": "foo@example.com"}, follow=True)
+        assert resp.redirect_chain == [
+            (self.organization.absolute_url(next), 302),
+        ]
+
     def test_org_login_doesnt_redirect_external(self):
         user = self.create_user("bar@example.com")
         auth_provider = AuthProvider.objects.create(

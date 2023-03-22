@@ -15,7 +15,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.userreport import UserReportWithGroupSerializer
 from sentry.digests.notifications import build_digest, event_to_record
 from sentry.event_manager import EventManager, get_event_type
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType, ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.mail import build_subject_prefix, mail_adapter
 from sentry.models import (
@@ -46,6 +46,7 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -202,13 +203,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 IssueEvidence("Evidence 2", "Value 2", False),
                 IssueEvidence("Evidence 3", "Value 3", False),
             ],
-            ProfileBlockedThreadGroupType,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -250,13 +253,15 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "1234",
             {"Test": 123},
             [],  # no evidence
-            ProfileBlockedThreadGroupType,
+            ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
+            "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
 
-        event.group.type = ProfileBlockedThreadGroupType.type_id
+        event.group.type = ProfileFileIOGroupType.type_id
 
         rule = Rule.objects.create(project=self.project, label="my rule")
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
@@ -308,7 +313,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             "Parent Span",
             "django.view - index",
             "Repeating Spans (10)",
-            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author`",
+            "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_autho...",
         ]
         for checked_value in checked_values:
             assert (
@@ -364,9 +369,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        assert notification.get_recipient_context(self.user, {})["timezone"] == pytz.timezone(
-            "Europe/Vienna"
+        recipient_context = notification.get_recipient_context(
+            RpcActor.from_orm_user(self.user), {}
         )
+        assert recipient_context["timezone"] == pytz.timezone("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
@@ -386,7 +392,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         self.create_member(user=user, organization=self.organization, teams=[self.team])
 
         UserOption.objects.create(
-            user=user, key="mail:email", value="foo@bar.dodo", project=self.project
+            user=user, key="mail:email", value="foo@bar.dodo", project_id=self.project.id
         )
         # disable slack
         NotificationSetting.objects.update_settings(
@@ -1212,7 +1218,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
@@ -1238,7 +1244,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
 
@@ -1265,7 +1271,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.NOTE.value,
-            user=user_foo,
+            user_id=user_foo.id,
             data={"text": "sup guise"},
         )
 

@@ -6,7 +6,7 @@ from django.utils import timezone
 
 from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models import Environment, EventUser, Release, ReleaseProjectEnvironment, ReleaseStages
 from sentry.search.events.constants import (
@@ -177,7 +177,7 @@ class TagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             env.name,
             timezone.now().replace(hour=0, minute=0, second=0) + timedelta(minutes=1),
             [("foo", "bar"), ("biz", "baz")],
@@ -1188,7 +1188,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         self.ts = SnubaTagStorage()
 
     def test_get_profiling_groups_user_counts_simple(self):
-        first_group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
+        first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
         first_group_timestamp_start = timezone.now() - timedelta(days=5)
 
         self.store_search_issue(
@@ -1224,7 +1224,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         first_group = group_info.group if group_info else None
 
-        second_group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group2"
+        second_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
         second_group_timestamp_start = timezone.now() - timedelta(hours=5)
         for incr in range(1, 5):
             event, issue_occurrence, group_info = self.store_search_issue(
@@ -1246,7 +1246,7 @@ class ProfilingTagStorageTest(TestCase, SnubaTestCase, SearchIssueTestMixin):
         ) == {first_group.id: 3, second_group.id: 4}
 
     def test_get_profiling_group_list_tag_value_by_environment(self):
-        group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
         start_timestamp = timezone.now() - timedelta(hours=1)
         first_event_ts = start_timestamp + timedelta(minutes=1)
         self.store_search_issue(

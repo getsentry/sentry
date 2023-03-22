@@ -69,22 +69,6 @@ describe('Discover > Landing', function () {
     });
   });
 
-  it('handles no projects', function () {
-    ProjectsStore.loadInitialData([]);
-
-    render(
-      <DiscoverLanding
-        organization={TestStubs.Organization({features})}
-        location={{query: {}}}
-        router={{}}
-      />
-    );
-
-    expect(
-      screen.getByText('You need at least one project to use this view')
-    ).toBeInTheDocument();
-  });
-
   it('denies access on missing feature', function () {
     render(
       <DiscoverLanding
@@ -123,9 +107,7 @@ describe('Discover > Landing', function () {
   });
 
   it('links back to the homepage', () => {
-    const org = TestStubs.Organization({
-      features: [...features, 'discover-query-builder-as-landing-page'],
-    });
+    const org = TestStubs.Organization({features});
 
     render(<DiscoverLanding organization={org} location={{query: {}}} router={{}} />, {
       context: TestStubs.routerContext(),

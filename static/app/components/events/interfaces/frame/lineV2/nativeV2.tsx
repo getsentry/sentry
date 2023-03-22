@@ -49,6 +49,7 @@ function Native({
   leadsToApp,
   onMouseDown,
   onClick,
+  event,
   ...props
 }: Props) {
   const traceEventDataSectionContext = useContext(TraceEventDataSectionContext);
@@ -85,8 +86,8 @@ function Native({
     return addr;
   }
 
-  function scrollToImage(event: React.MouseEvent<HTMLAnchorElement>) {
-    event.stopPropagation(); // to prevent collapsing if collapsible
+  function scrollToImage(e: React.MouseEvent<HTMLAnchorElement>) {
+    e.stopPropagation(); // to prevent collapsing if collapsible
 
     if (instructionAddr) {
       DebugMetaStore.updateFilter(makeFilter(instructionAddr));
@@ -112,6 +113,7 @@ function Native({
       <NativeLineContent isFrameAfterLastNonApp={!!isFrameAfterLastNonApp}>
         <PackageInfo>
           <LeadHint
+            event={event}
             isExpanded={isExpanded}
             nextFrame={nextFrame}
             leadsToApp={leadsToApp}

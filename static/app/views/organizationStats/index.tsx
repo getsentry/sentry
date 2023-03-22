@@ -263,7 +263,7 @@ export class OrganizationStats extends Component<Props> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(
@@ -318,7 +318,7 @@ export class OrganizationStats extends Component<Props> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(
@@ -394,22 +394,21 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </div>
-              {!isSingleProject && (
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
-              )}
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  isSingleProject={isSingleProject}
+                  projectIds={this.projectIds}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </PageFiltersContainer>

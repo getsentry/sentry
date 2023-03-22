@@ -1,4 +1,4 @@
-from typing import Callable
+import typing
 
 from yaml.parser import ParserError
 from yaml.scanner import ScannerError
@@ -171,9 +171,9 @@ _type_mapping = {
 }
 
 
-def type_from_value(value):
+def type_from_value(value: typing.Any) -> typing.Callable[[typing.Any], typing.Any]:
     """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]
 
 
-AnyCallable = Callable[..., AnyType]
+AnyCallable = typing.Callable[..., AnyType]

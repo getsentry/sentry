@@ -168,7 +168,7 @@ issue_resolved = BetterSignal(
 )
 issue_unresolved = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
 issue_ignored = BetterSignal(providing_args=["project", "user", "group_list", "activity_data"])
-issue_unignored = BetterSignal(providing_args=["project", "user", "group", "transition_type"])
+issue_unignored = BetterSignal(providing_args=["project", "user_id", "group", "transition_type"])
 issue_mark_reviewed = BetterSignal(providing_args=["project", "user", "group"])
 
 # comments

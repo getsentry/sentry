@@ -165,6 +165,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
           'This determines the rate at which performance issues are created. A rate of 0.0 will disable performance issue creation.'
         ),
       },
+      {
+        name: 'performanceIssueCreationThroughPlatform',
+        type: 'boolean',
+        label: t('Send Occurrences To Platform'),
+        defaultValue: false,
+        help: t(
+          'This determines whether performance issue occurrences are sent to the issues platform.'
+        ),
+      },
     ];
   }
 
@@ -174,15 +183,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'n_plus_one_db_detection_rate',
         type: 'range',
         label: t('N+1 (DB) Detection Rate'),
-        min: 0.0,
-        max: 1.0,
-        step: 0.01,
-        defaultValue: 0,
-      },
-      {
-        name: 'n_plus_one_db_issue_rate',
-        type: 'range',
-        label: t('N+1 (DB) Issue Rate'),
         min: 0.0,
         max: 1.0,
         step: 0.01,

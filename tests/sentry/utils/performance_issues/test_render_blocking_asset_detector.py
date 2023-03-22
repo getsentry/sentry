@@ -11,9 +11,9 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import RenderBlockingAssetSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
     PerformanceProblem,
-    RenderBlockingAssetSpanDetector,
     get_detection_settings,
     run_detector_on_data,
 )
@@ -38,6 +38,7 @@ def _valid_render_blocking_asset_event(url: str) -> Event:
                     "Transfer Size": 1200000,
                     "Encoded Body Size": 1200000,
                     "Decoded Body Size": 2000000,
+                    "resource.render_blocking_status": "blocking",
                 },
             ),
         ],
@@ -81,135 +82,76 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             )
         ]
 
-    def test_not_detect_render_block_asset(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                modify_span_start(
-                    create_span("resource.script", duration=1000.0),
-                    2000.0,
-                ),
-            ],
-        }
+    def test_does_not_detect_if_resource_overlaps_fcp(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                modify_span_start(span, 2000.0)
 
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_fcp(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": None,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["measurements"]["fcp"]["value"] = None
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_no_measurements(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": None,
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        event["measurements"] = None
         assert self.find_problems(event) == []
 
     def test_does_not_detect_with_short_render_blocking_asset(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=200.0),
-            ],
-        }
-
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                span["timestamp"] = 0.1
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_too_small(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span(
-                    "resource.script",
-                    duration=1000.0,
-                    data={
-                        "Transfer Size": 900000,
-                        "Encoded Body Size": 900000,
-                        "Decoded Body Size": 1700000,
-                    },
-                ),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                span["data"]["Encoded Body Size"] = 900000
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_missing_size(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span("resource.script", duration=1000.0),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                del span["data"]
         assert self.find_problems(event) == []
 
     def test_does_not_detect_if_too_large(self):
-        event = {
-            "event_id": "a" * 16,
-            "project": PROJECT_ID,
-            "measurements": {
-                "fcp": {
-                    "value": 2500.0,
-                    "unit": "millisecond",
-                }
-            },
-            "spans": [
-                create_span(
-                    "resource.script",
-                    duration=1000.0,
-                    data={
-                        # A resource span with these stats was really logged.
-                        "Transfer Size": 299,
-                        "Encoded Body Size": 18446744073709552000,
-                        "Decoded Body Size": 0,
-                    },
-                ),
-            ],
-        }
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            if span["op"] == "resource.script":
+                # This is a real value we saw in production.
+                span["data"]["Encoded Body Size"] = 18446744073709552000
+        assert self.find_problems(event) == []
+
+    def test_detects_if_render_blocking_status_is_missing(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            del span["data"]["resource.render_blocking_status"]
+
+        assert self.find_problems(event) == [
+            PerformanceProblem(
+                fingerprint="1-1004-ba43281143a88ba902029356cb543dd0bff8f41c",
+                op="resource.script",
+                desc="https://example.com/a.js",
+                type=PerformanceRenderBlockingAssetSpanGroupType,
+                parent_span_ids=[],
+                cause_span_ids=[],
+                offender_span_ids=["bbbbbbbbbbbbbbbb"],
+            )
+        ]
+
+    def test_does_not_detect_if_render_blocking_status_is_non_blocking(self):
+        event = _valid_render_blocking_asset_event("https://example.com/a.js")
+        for span in event["spans"]:
+            span["data"]["resource.render_blocking_status"] = "non-blocking"
+
         assert self.find_problems(event) == []
 
 
@@ -254,6 +196,18 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             "/foo-6a7a65d8bf641868d8683022a5b62f54.js",
             "/bar-9aa723de2aa141eeb2e61a2c6bbf0d53.js",
         ),
+        # same file, trailing double hash
+        (
+            True,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/foo-7753eadb.362e3029.js",
+        ),
+        # different file, trailing double hash
+        (
+            False,
+            "/foo-6dbbbd06.cfdb8c53.js",
+            "/bar-7753eadb.362e3029.js",
+        ),
         # filename is just a hash
         (
             True,
@@ -283,6 +237,54 @@ class RenderBlockingAssetDetectorTest(unittest.TestCase):
             True,
             "/6a7a65d8-bf64-1868-d868-3022a5b62f54.js",
             "/9aa723de-2aa1-41ee-b2e6-1a2c6bbf0d53.js",
+        ),
+        # dot-separated version number, same file
+        (
+            True,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/foo.js",
+        ),
+        # dot-separated version number, different file
+        (
+            False,
+            "/v7.7.19.1.2/foo.js",
+            "/v8.10/bar.js",
+        ),
+        # version number without dots, same file
+        (
+            True,
+            "/v1/foo.js",
+            "/v20220301115713/foo.js",
+        ),
+        # version number without dots, different file
+        (
+            False,
+            "/v1/foo.js",
+            "/v20220301115713/bar.js",
+        ),
+        # same path, numeric filename
+        (
+            True,
+            "/foo/1.js",
+            "/foo/23.js",
+        ),
+        # same path, numeric filename, different extension
+        (
+            False,
+            "/foo/1.css",
+            "/foo/23.js",
+        ),
+        # different path, numeric filename
+        (
+            False,
+            "/foo/1.js",
+            "/bar/23.js",
+        ),
+        # same path, partially numeric filename
+        (
+            False,
+            "/foo/bar1.js",
+            "/foo/bar2.js",
         ),
     ],
 )

@@ -153,7 +153,7 @@ class ProjectLatestAlerts extends AsyncComponent<Props, State> {
         key={id}
       >
         <AlertBadgeWrapper {...statusProps} icon={Icon}>
-          <AlertBadge status={status} hideText />
+          <AlertBadge status={status} />
         </AlertBadgeWrapper>
         <AlertDetails>
           <AlertTitle>{title}</AlertTitle>

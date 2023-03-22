@@ -15,6 +15,11 @@ from sentry.models.group import Group
 from sentry.utils.cache import cache
 
 READ_CACHE_DURATION = 3600
+ISSUE_OWNERS_DEBOUNCE_KEY = lambda group_id: f"owner_exists:1:{group_id}"
+ISSUE_OWNERS_DEBOUNCE_DURATION = 60 * 60 * 24
+ASSIGNEE_EXISTS_KEY = lambda group_id: f"assignee_exists:1:{group_id}"
+ASSIGNEE_EXISTS_DURATION = 60 * 60 * 24
+ASSIGNEE_DOES_NOT_EXIST_DURATION = 60
 
 
 class GroupOwnerType(Enum):
@@ -140,6 +145,42 @@ class GroupOwner(Model):
                 cls.get_autoassigned_owner_cache_key(group_id, project_id, autoassignment_types)
                 for group_id in group_ids
             ]
+            cache.delete_many(cache_keys)
+
+    @classmethod
+    def invalidate_debounce_issue_owners_evaluation_cache(cls, project_id):
+        # Get all the groups for a project that had an event within the ISSUE_OWNERS_DEBOUNCE_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
+        queryset = Group.objects.filter(
+            project_id=project_id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ISSUE_OWNERS_DEBOUNCE_DURATION),
+        ).values_list("id", flat=True)
+
+        # Run cache invalidation in batches
+        group_id_iter = queryset.iterator(chunk_size=1000)
+        while True:
+            group_ids = list(itertools.islice(group_id_iter, 1000))
+            if not group_ids:
+                break
+            cache_keys = [ISSUE_OWNERS_DEBOUNCE_KEY(group_id) for group_id in group_ids]
+            cache.delete_many(cache_keys)
+
+    @classmethod
+    def invalidate_assignee_exists_cache(cls, project_id):
+        # Get all the groups for a project that had an event within the ASSIGNEE_EXISTS_DURATION window.
+        # Any groups without events in that window would have expired their TTL in the cache.
+        queryset = Group.objects.filter(
+            project_id=project_id,
+            last_seen__gte=timezone.now() - timedelta(seconds=ASSIGNEE_EXISTS_DURATION),
+        ).values_list("id", flat=True)
+
+        # Run cache invalidation in batches
+        group_id_iter = queryset.iterator(chunk_size=1000)
+        while True:
+            group_ids = list(itertools.islice(group_id_iter, 1000))
+            if not group_ids:
+                break
+            cache_keys = [ASSIGNEE_EXISTS_KEY(group_id) for group_id in group_ids]
             cache.delete_many(cache_keys)
 
 

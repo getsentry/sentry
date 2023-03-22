@@ -23,24 +23,23 @@ import {SelectOption} from './types';
 
 export interface SelectContextValue {
   /**
-   * Filter function to determine whether an option should be rendered in the list box.
-   * A true return value means the option should be rendered. This function is
+   * Filter function to determine whether an option should be rendered in the select
+   * list. A true return value means the option should be rendered. This function is
    * automatically updated based on the current search string.
    */
   filterOption: (opt: SelectOption<React.Key>) => boolean;
   overlayIsOpen: boolean;
   /**
-   * Function to be called once when a list box is initialized, to register its list
-   * state in SelectContext. In composite selectors, where there can be multiple list
-   * boxes, the `index` parameter is the list box's index number (the order in which it
-   * appears). In non-composite selectors, where there's only one list box, that list
-   * box's index is 0.
+   * Function to be called once when a list is initialized, to register its state in
+   * SelectContext. In composite selectors, where there can be multiple lists, the
+   * `index` parameter is the list's index number (the order in which it appears). In
+   * non-composite selectors, where there's only one list, that list's index is 0.
    */
   registerListState: (index: number, listState: ListState<any>) => void;
   /**
-   * Function to be called when a list box's selection state changes. We need a complete
+   * Function to be called when a list's selection state changes. We need a complete
    * list of all selected options to label the trigger button. The `index` parameter
-   * indentifies the list box, in the same way as in `registerListState`.
+   * indentifies the list, in the same way as in `registerListState`.
    */
   saveSelectedOptions: (
     index: number,
@@ -69,11 +68,32 @@ export interface ControlProps extends UseOverlayProps {
   clearable?: boolean;
   disabled?: boolean;
   /**
+   * Message to be displayed when all options have been filtered out (via search).
+   */
+  emptyMessage?: string;
+  /**
+   * Whether to render a grid list rather than a list box.
+   *
+   * Unlike list boxes, grid lists are two-dimensional. Users can press Arrow Up/Down to
+   * move between rows (options), and Arrow Left/Right to move between "columns". This
+   * is useful when the select options have smaller, interactive elements
+   * (buttons/links) inside. Grid lists allow users to focus on those child elements
+   * using the Arrow Left/Right keys and interact with them, which isn't possible with
+   * list boxes.
+   */
+  grid?: boolean;
+  /**
    * If true, there will be a loading indicator in the menu header.
    */
   loading?: boolean;
   maxMenuHeight?: number | string;
   maxMenuWidth?: number | string;
+  /**
+   * Footer to be rendered at the bottom of the menu.
+   */
+  menuFooter?:
+    | React.ReactNode
+    | ((actions: {closeOverlay: () => void}) => React.ReactNode);
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -136,6 +156,7 @@ export function Control({
   maxMenuHeight = '32rem',
   maxMenuWidth,
   menuWidth,
+  menuFooter,
 
   // Select props
   size = 'md',
@@ -145,6 +166,7 @@ export function Control({
   clearable = false,
   onClear,
   loading = false,
+  grid = false,
   children,
   ...wrapperProps
 }: ControlProps) {
@@ -187,7 +209,9 @@ export function Control({
       // we should move the focus to the menu items list.
       if (e.key === 'ArrowDown') {
         e.preventDefault(); // Prevent scroll action
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
       }
 
       // Continue propagation, otherwise the overlay won't close on Esc key press
@@ -196,7 +220,7 @@ export function Control({
   });
 
   /**
-   * Clears selection values across all list box states
+   * Clears selection values across all list states
    */
   const clearSelection = useCallback(() => {
     listStates.forEach(listState => listState.selectionManager.clearSelection());
@@ -212,7 +236,7 @@ export function Control({
     overlayRef,
     overlayProps,
   } = useOverlay({
-    type: 'listbox',
+    type: grid ? 'menu' : 'listbox',
     position,
     offset,
     isOpen,
@@ -223,7 +247,7 @@ export function Control({
         await new Promise(resolve => resolve(null));
 
         const firstSelectedOption = overlayRef.current?.querySelector<HTMLLIElement>(
-          'li[role="option"][aria-selected="true"]'
+          `li[role="${grid ? 'row' : 'option'}"][aria-selected="true"]`
         );
 
         // Focus on first selected item
@@ -233,7 +257,9 @@ export function Control({
         }
 
         // If no item is selected, focus on first item instead
-        overlayRef.current?.querySelector<HTMLLIElement>('li[role="option"]')?.focus();
+        overlayRef.current
+          ?.querySelector<HTMLLIElement>(`li[role="${grid ? 'row' : 'option'}"]`)
+          ?.focus();
         return;
       }
 
@@ -246,6 +272,23 @@ export function Control({
       triggerRef.current?.focus();
     },
   });
+
+  /**
+   * The menu's full width, before any option has been filtered out. Used to maintain a
+   * constant width while the user types into the search box.
+   */
+  const [menuFullWidth, setMenuFullWidth] = useState<number>();
+  // When search box is focused, read the menu's width and lock it at that value to
+  // prevent visual jumps during search
+  const onSearchFocus = useCallback(
+    () => setMenuFullWidth(overlayRef.current?.offsetWidth),
+    [overlayRef]
+  );
+  // When search box is blurred, release the lock the menu's width
+  const onSearchBlur = useCallback(
+    () => !search && setMenuFullWidth(undefined),
+    [search]
+  );
 
   /**
    * A list of selected options across all select regions, to be used to generate the
@@ -337,14 +380,17 @@ export function Control({
           {...overlayProps}
         >
           <StyledOverlay
-            width={menuWidth}
+            width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
             maxHeight={overlayProps.style.maxHeight}
             maxHeightProp={maxMenuHeight}
+            data-menu-has-header={!!menuTitle || clearable}
+            data-menu-has-search={searchable}
+            data-menu-has-footer={!!menuFooter}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
-                <MenuHeader size={size} data-header>
+                <MenuHeader size={size}>
                   <MenuTitle>{menuTitle}</MenuTitle>
                   <MenuHeaderTrailingItems>
                     {loading && <StyledLoadingIndicator size={12} mini />}
@@ -360,12 +406,21 @@ export function Control({
                 <SearchInput
                   placeholder={searchPlaceholder}
                   value={search}
+                  onFocus={onSearchFocus}
+                  onBlur={onSearchBlur}
                   onChange={e => updateSearch(e.target.value)}
                   visualSize={size}
                   {...searchKeyboardProps}
                 />
               )}
               <OptionsWrap>{children}</OptionsWrap>
+              {menuFooter && (
+                <MenuFooter>
+                  {typeof menuFooter === 'function'
+                    ? menuFooter({closeOverlay: overlayState.close})
+                    : menuFooter}
+                </MenuFooter>
+              )}
             </FocusScope>
           </StyledOverlay>
         </StyledPositionWrapper>
@@ -399,9 +454,14 @@ const MenuHeader = styled('div')<{size: FormSize}>`
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: ${p => headerVerticalPadding[p.size]} ${space(1)}
-    ${p => headerVerticalPadding[p.size]} ${space(1.5)};
+  padding: ${p => headerVerticalPadding[p.size]} ${space(1.5)};
   box-shadow: 0 1px 0 ${p => p.theme.translucentInnerBorder};
+
+  [data-menu-has-search='true'] > & {
+    padding-bottom: 0;
+    box-shadow: none;
+  }
+
   line-height: ${p => p.theme.text.lineHeightBody};
   z-index: 2;
 
@@ -433,9 +493,10 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
 
 const ClearButton = styled(Button)`
   font-size: inherit; /* Inherit font size from MenuHeader */
+  font-weight: 400;
   color: ${p => p.theme.subText};
-  padding: 0 ${space(0.25)};
-  margin: 0 -${space(0.25)};
+  padding: 0 ${space(0.5)};
+  margin: -${space(0.25)} -${space(0.5)};
 `;
 
 const searchVerticalPadding: Record<FormSize, string> = {
@@ -458,7 +519,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 
   /* Add 1px to top margin if immediately preceded by menu header, to account for the
   header's shadow border */
-  div[data-header] + & {
+  [data-menu-has-header='true'] > & {
     margin-top: calc(${space(0.5)} + 1px);
   }
 
@@ -474,7 +535,7 @@ const SearchInput = styled('input')<{visualSize: FormSize}>`
 const withUnits = value => (typeof value === 'string' ? value : `${value}px`);
 
 const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
+  shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
 })<{
   maxHeightProp: string | number;
   maxHeight?: string | number;
@@ -482,17 +543,17 @@ const StyledOverlay = styled(Overlay, {
   width?: string | number;
 }>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
-  ListBoxWrap will also shrink to fit */
+  ListBoxWrap/GridListWrap will also shrink to fit */
   display: flex;
   flex-direction: column;
   overflow: hidden;
 
+  ${p => p.width && `width: ${withUnits(p.width)};`}
+  max-width: ${p => (p.maxWidth ? `min(${withUnits(p.maxWidth)}, 100%)` : `100%`)};
   max-height: ${p =>
     p.maxHeight
       ? `min(${withUnits(p.maxHeight)}, ${withUnits(p.maxHeightProp)})`
       : withUnits(p.maxHeightProp)};
-  ${p => p.width && `width: ${withUnits(p.width)};`}
-  ${p => p.maxWidth && `max-width: ${withUnits(p.maxWidth)};`}
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
@@ -506,4 +567,10 @@ const OptionsWrap = styled('div')`
   display: flex;
   flex-direction: column;
   min-height: 0;
+`;
+
+const MenuFooter = styled('div')`
+  box-shadow: 0 -1px 0 ${p => p.theme.translucentInnerBorder};
+  padding: ${space(1)} ${space(1.5)};
+  z-index: 2;
 `;

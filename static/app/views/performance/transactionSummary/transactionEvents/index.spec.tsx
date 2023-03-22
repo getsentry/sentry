@@ -166,12 +166,12 @@ describe('Performance > Transaction Summary > Transaction Events > Index', () =>
       name: /percentile p100/i,
     });
 
-    userEvent.click(percentileButton);
+    await userEvent.click(percentileButton);
 
     const p50 = screen.getByRole('option', {name: 'p50'});
     expect(p50).toBeInTheDocument();
 
-    userEvent.click(p50);
+    await userEvent.click(p50);
 
     expect(browserHistory.push).toHaveBeenCalledWith(
       expect.objectContaining({query: expect.objectContaining({showTransactions: 'p50'})})

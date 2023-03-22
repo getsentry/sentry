@@ -51,12 +51,12 @@ from sentry.search.events.constants import (
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupListTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-group-index"
 
@@ -744,7 +744,8 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 0
 
     def test_token_auth(self):
-        token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
+        with exempt_from_silo_limits():
+            token = ApiToken.objects.create(user=self.user, scope_list=["event:read"])
         response = self.client.get(
             reverse("sentry-api-0-organization-group-index", args=[self.project.organization.slug]),
             format="json",
@@ -1561,6 +1562,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
             release_2_g_1,
         ]
 
+        response = self.get_response(sort_by="date", limit=10, query=f"{SEMVER_BUILD_ALIAS}:[124]")
+        assert response.status_code == 400, response.content
+
     def test_aggregate_stats_regression_test(self):
         self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -1946,6 +1950,24 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
 
+    def test_resolve_ignored(self):
+        group = self.create_group(status=GroupStatus.IGNORED)
+        snooze = GroupSnooze.objects.create(
+            group=group, until=timezone.now() - timedelta(minutes=1)
+        )
+
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, teams=group.project.teams.all(), user=member
+        )
+
+        self.login_as(user=member)
+        response = self.get_success_response(
+            qs_params={"id": group.id, "project": self.project.id}, status="resolved"
+        )
+        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert not GroupSnooze.objects.filter(id=snooze.id).exists()
+
     def test_bulk_resolve(self):
         self.login_as(user=self.user)
 
@@ -2079,7 +2101,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
         user = self.user
 
-        uo1 = UserOption.objects.create(key="self_assign_issue", value="1", project=None, user=user)
+        uo1 = UserOption.objects.create(
+            key="self_assign_issue", value="1", project_id=None, user=user
+        )
 
         self.login_as(user=user)
         response = self.get_success_response(qs_params={"id": group.id}, status="resolved")
@@ -2102,7 +2126,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
         uo1 = UserOption.objects.create(
-            key="self_assign_issue", value="1", project=None, user=self.user
+            key="self_assign_issue", value="1", project_id=None, user=self.user
         )
 
         self.login_as(user=self.user)
@@ -3022,7 +3046,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert (
             Activity.objects.filter(
-                group=group1, user=user, type=ActivityType.ASSIGNED.value
+                group=group1, user_id=user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )

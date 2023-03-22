@@ -1,21 +1,50 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import datetime
 from abc import abstractmethod
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, FrozenSet, List, Optional, TypedDict
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass(frozen=True, eq=True)
-class APIUser:
+class RpcAvatar:
+    id: int = 0
+    file_id: int = 0
+    ident: str = ""
+    avatar_type: str = "letter_avatar"
+
+
+@dataclass(frozen=True, eq=True)
+class RpcUserEmail:
+    id: int = 0
+    email: str = ""
+    is_verified: bool = False
+
+
+@dataclass(frozen=True, eq=True)
+class RpcAuthenticator:
+    id: int = 0
+    user_id: int = -1
+    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    type: int = -1
+    config: Any = None
+
+
+@dataclass(frozen=True, eq=True)
+class RpcUser:
     id: int = -1
     pk: int = -1
     name: str = ""
@@ -30,7 +59,7 @@ class APIUser:
     is_anonymous: bool = False
     is_active: bool = False
     is_staff: bool = False
-    last_active: datetime.datetime | None = None
+    last_active: Optional[datetime.datetime] = None
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
@@ -38,8 +67,9 @@ class APIUser:
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
-    avatar: Optional[APIAvatar] = None
-    useremails: FrozenSet[APIUserEmail] = frozenset()
+    avatar: Optional[RpcAvatar] = None
+    useremails: FrozenSet[RpcUserEmail] = frozenset()
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -64,20 +94,8 @@ class APIUser:
     def class_name(self) -> str:
         return "User"
 
-
-@dataclass(frozen=True, eq=True)
-class APIAvatar:
-    id: int = 0
-    file_id: int = 0
-    ident: str = ""
-    avatar_type: str = "letter_avatar"
-
-
-@dataclass(frozen=True, eq=True)
-class APIUserEmail:
-    id: int = 0
-    email: str = ""
-    is_verified: bool = False
+    def has_2fa(self) -> bool:
+        return len(self.authenticators) > 0
 
 
 class UserSerializeType(IntEnum):  # annoying
@@ -96,13 +114,36 @@ class UserFilterArgs(TypedDict, total=False):
     emails: List[str]
 
 
-class UserService(
-    FilterQueryInterface[UserFilterArgs, APIUser, UserSerializeType], InterfaceWithLifecycle
-):
+class UserUpdateArgs(TypedDict, total=False):
+    avatar_url: str
+    avatar_type: int
+
+
+class UserService(InterfaceWithLifecycle):
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: UserFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional["AuthenticationContext"] = None,
+        serializer: Optional[UserSerializeType] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @abstractmethod
+    def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
+        pass
+
     @abstractmethod
     def get_many_by_email(
-        self, emails: List[str], is_active: bool = True, is_verified: bool = True
-    ) -> List[APIUser]:
+        self,
+        emails: List[str],
+        is_active: bool = True,
+        is_verified: bool = True,
+        is_project_member: bool = False,
+        project_id: Optional[int] = None,
+    ) -> List[RpcUser]:
         """
         Return a list of users matching the filters
         :param email:
@@ -113,8 +154,8 @@ class UserService(
 
     @abstractmethod
     def get_by_username(
-        self, username: str, with_valid_password: bool = True, is_active: bool | None = None
-    ) -> List[APIUser]:
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
+    ) -> List[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
         :param username:
@@ -128,15 +169,25 @@ class UserService(
         pass
 
     @abstractmethod
-    def get_from_group(self, group: Group) -> List[APIUser]:
+    def get_from_group(self, group: "Group") -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
     @abstractmethod
-    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[APIUser]:
+    def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         pass
 
-    def get_user(self, user_id: int) -> Optional[APIUser]:
+    @abstractmethod
+    def update_user(
+        self,
+        *,
+        user_id: int,
+        attrs: UserUpdateArgs,
+    ) -> Any:
+        # Returns a serialized user
+        pass
+
+    def get_user(self, user_id: int) -> Optional[RpcUser]:
         """
         This method returns a User object given an ID
         :param user_id:

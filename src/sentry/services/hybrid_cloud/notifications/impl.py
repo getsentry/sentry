@@ -11,12 +11,9 @@ from sentry.notifications.types import (
     NotificationSettingOptionValues,
     NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.notifications import (
-    ApiNotificationSetting,
-    MayHaveActor,
-    NotificationsService,
-)
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
+from sentry.services.hybrid_cloud.notifications import NotificationsService, RpcNotificationSetting
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class DatabaseBackedNotificationsService(NotificationsService):
@@ -24,22 +21,22 @@ class DatabaseBackedNotificationsService(NotificationsService):
         self,
         *,
         types: List[NotificationSettingTypes],
-        users: List[APIUser],
+        users: List[RpcUser],
         value: NotificationSettingOptionValues,
-    ) -> List[ApiNotificationSetting]:
+    ) -> List[RpcNotificationSetting]:
         settings = NotificationSetting.objects.filter(
             target__in=[u.actor_id for u in users],
             type__in=types,
             value=value.value,
             scope_type=NotificationScopeType.USER.value,
         )
-        return [self._serialize_notification_settings(u) for u in settings]
+        return [self.serialize_notification_setting(u) for u in settings]
 
     def get_settings_for_recipient_by_parent(
-        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[MayHaveActor]
-    ) -> List[ApiNotificationSetting]:
-        team_ids = [r.id for r in recipients if r.class_name() == "Team"]
-        user_ids = [r.id for r in recipients if r.class_name() == "User"]
+        self, *, type: NotificationSettingTypes, parent_id: int, recipients: Sequence[RpcActor]
+    ) -> List[RpcNotificationSetting]:
+        team_ids = [r.id for r in recipients if r.actor_type == ActorType.TEAM]
+        user_ids = [r.id for r in recipients if r.actor_type == ActorType.USER]
         actor_ids: List[int] = [r.actor_id for r in recipients if r.actor_id is not None]
 
         parent_specific_scope_type = get_scope_type(type)
@@ -60,11 +57,11 @@ class DatabaseBackedNotificationsService(NotificationsService):
             target__in=actor_ids,
         )
 
-        return [self._serialize_notification_settings(s) for s in notification_settings]
+        return [self.serialize_notification_setting(s) for s in notification_settings]
 
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
-    ) -> List[ApiNotificationSetting]:
+    ) -> List[RpcNotificationSetting]:
         try:
             user = User.objects.get(id=user_id)
         except User.DoesNotExist:
@@ -72,7 +69,7 @@ class DatabaseBackedNotificationsService(NotificationsService):
 
         scope_type = get_scope_type(type)
         return [
-            self._serialize_notification_settings(s)
+            self.serialize_notification_setting(s)
             for s in NotificationSetting.objects.filter(
                 Q(
                     scope_type=scope_type.value,

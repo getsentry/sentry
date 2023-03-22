@@ -78,6 +78,15 @@ class ProjectAlertRulePermission(ProjectPermission):
     }
 
 
+class ProjectOwnershipPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 

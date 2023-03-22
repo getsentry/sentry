@@ -39,7 +39,7 @@ export function MetaData({
 }
 
 const HeaderInfo = styled('div')`
-  height: 78px;
+  min-height: 78px;
 `;
 
 const StyledSectionHeading = styled(SectionHeading)`

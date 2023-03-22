@@ -19,7 +19,7 @@ function TransactionReplaysContainer() {
 
   return (
     <Feature
-      features={['session-replay-ui']}
+      features={['session-replay']}
       organization={organization}
       renderDisabled={renderNoAccess}
     >

@@ -1,7 +1,7 @@
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const makeEmptyEventedTrace = (type?: 'flamegraph' | 'flamechart'): EventedProfile => {
   return EventedProfile.FromProfile(
@@ -364,13 +364,5 @@ describe('flamegraph', () => {
 
   it('Empty', () => {
     expect(Flamegraph.Empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
-  });
-
-  it('setConfigSpace', () => {
-    expect(
-      Flamegraph.Empty()
-        .setConfigSpace(new Rect(0, 0, 10, 5))
-        .configSpace.equals(new Rect(0, 0, 10, 5))
-    ).toBe(true);
   });
 });

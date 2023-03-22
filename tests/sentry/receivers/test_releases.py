@@ -190,7 +190,7 @@ class ResolvedInCommitTest(TestCase):
         assert GroupAssignee.objects.filter(group=group, user_id=user.id).exists()
 
         assert Activity.objects.filter(
-            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
         )[0].data == {
             "assignee": str(user.id),
             "assigneeEmail": user.email,
@@ -227,7 +227,7 @@ class ResolvedInCommitTest(TestCase):
         self.assertResolvedFromCommit(group, commit)
 
         assert not Activity.objects.filter(
-            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user=user
+            project=group.project, group=group, type=ActivityType.ASSIGNED.value, user_id=user.id
         ).exists()
 
         assert GroupSubscription.objects.filter(group=group, user_id=user.id).exists()

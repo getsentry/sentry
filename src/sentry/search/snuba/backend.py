@@ -53,23 +53,23 @@ def assigned_to_filter(
     for actor in actors:
         if actor is None:
             include_none = True
-        types_to_actors[type(actor) if not isinstance(actor, SimpleLazyObject) else User].append(
-            actor
-        )
+        types_to_actors[
+            (actor and actor.class_name()) if not isinstance(actor, SimpleLazyObject) else "User"
+        ].append(actor)
 
     query = Q()
 
-    if Team in types_to_actors:
+    if "Team" in types_to_actors:
         query |= Q(
             **{
                 f"{field_filter}__in": GroupAssignee.objects.filter(
-                    team__in=types_to_actors[Team], project_id__in=[p.id for p in projects]
+                    team__in=types_to_actors["Team"], project_id__in=[p.id for p in projects]
                 ).values_list("group_id", flat=True)
             }
         )
 
-    if User in types_to_actors:
-        users = types_to_actors[User]
+    if "User" in types_to_actors:
+        users = types_to_actors["User"]
         user_ids: List[int] = [u.id for u in users if u is not None]
         query |= Q(
             **{
@@ -200,14 +200,14 @@ def assigned_or_suggested_filter(
     for owner in owners:
         if owner is None:
             include_none = True
-        types_to_owners[type(owner) if not isinstance(owner, SimpleLazyObject) else User].append(
-            owner
-        )
+        types_to_owners[
+            (owner and owner.class_name()) if not isinstance(owner, SimpleLazyObject) else "User"
+        ].append(owner)
 
     query = Q()
 
-    if Team in types_to_owners:
-        teams = types_to_owners[Team]
+    if "Team" in types_to_owners:
+        teams = types_to_owners["Team"]
         query |= Q(
             **{
                 f"{field_filter}__in": GroupOwner.objects.filter(
@@ -221,8 +221,8 @@ def assigned_or_suggested_filter(
             }
         ) | assigned_to_filter(teams, projects, field_filter=field_filter)
 
-    if User in types_to_owners:
-        users = types_to_owners[User]
+    if "User" in types_to_owners:
+        users = types_to_owners["User"]
         user_ids: List[int] = [u.id for u in users if u is not None]
         team_ids = list(
             Team.objects.filter(
@@ -361,6 +361,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
         date_from: Optional[datetime] = None,
         date_to: Optional[datetime] = None,
         max_hits: Optional[int] = None,
+        referrer: Optional[str] = None,
+        actor: Optional[Any] = None,
     ) -> CursorResult[Group]:
         search_filters = search_filters if search_filters is not None else []
 
@@ -414,6 +416,8 @@ class SnubaSearchBackendBase(SearchBackend, metaclass=ABCMeta):
             date_from=date_from,
             date_to=date_to,
             max_hits=max_hits,
+            referrer=referrer,
+            actor=actor,
         )
 
     def _build_group_queryset(

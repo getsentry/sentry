@@ -738,6 +738,7 @@ const commonTheme = {
   borderRadiusRight: '0 6px 6px 0',
 
   panelBorderRadius: '6px',
+  modalBorderRadius: '8px',
   linkBorderRadius: '2px',
 
   headerSelectorRowHeight: 44,
@@ -777,8 +778,8 @@ const commonTheme = {
   },
 
   text: {
-    family: '"Rubik", "Avenir Next", sans-serif',
-    familyMono: '"Roboto Mono", Monaco, Consolas, "Courier New", monospace',
+    family: "'Rubik', 'Avenir Next', sans-serif",
+    familyMono: "'Roboto Mono', Monaco, Consolas, 'Courier New', monospace",
     lineHeightHeading: 1.2,
     lineHeightBody: 1.4,
     pageTitle: {

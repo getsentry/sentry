@@ -1,12 +1,12 @@
 import {lastOfArray} from 'sentry/utils';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
-import {Rect} from './gl/utils';
 import {Profile} from './profile/profile';
 import {SampledProfile} from './profile/sampledProfile';
 import {makeFormatter, makeTimelineFormatter} from './units/units';
 import {CallTreeNode} from './callTreeNode';
 import {Frame} from './frame';
+import {Rect} from './speedscope';
 
 function sortByTotalWeight(a: CallTreeNode, b: CallTreeNode) {
   return b.totalWeight - a.totalWeight;
@@ -35,10 +35,6 @@ function makeTreeSort(sortFn: (a: CallTreeNode, b: CallTreeNode) => number) {
 const alphabeticTreeSort = makeTreeSort(sortAlphabetically);
 const leftHeavyTreeSort = makeTreeSort(sortByTotalWeight);
 
-// Intermediary flamegraph data structure for rendering a profile. Constructs a list of frames from a profile
-// and appends them to a virtual root. Taken mostly from speedscope with a few modifications. This should get
-// removed as we port to our own format for profiles. The general idea is to iterate over profiles while
-// keeping an intermediary stack so as to resemble the execution of the program.
 export class Flamegraph {
   profile: Profile;
   frames: ReadonlyArray<FlamegraphFrame> = [];
@@ -167,9 +163,9 @@ export class Flamegraph {
       0
     );
 
-    this.root.node.addToTotalWeight(weight);
+    this.root.node.totalWeight += weight;
     this.root.end = this.root.start + weight;
-    this.root.frame.addToTotalWeight(weight);
+    this.root.frame.totalWeight += weight;
   }
 
   buildCallOrderChart(profile: Profile): FlamegraphFrame[] {
@@ -258,6 +254,7 @@ export class Flamegraph {
         depth: 0,
         start: value,
         end: value,
+        profileIds: profile.callTreeNodeProfileIdMap.get(node),
       };
 
       if (parent) {
@@ -289,7 +286,7 @@ export class Flamegraph {
     };
 
     function visit(node: CallTreeNode, start: number) {
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         openFrame(node, start);
       }
 
@@ -300,7 +297,7 @@ export class Flamegraph {
         childTime += child.totalWeight;
       });
 
-      if (!node.frame.isRoot()) {
+      if (!node.frame.isRoot) {
         closeFrame(node, start + node.totalWeight);
       }
     }
@@ -308,29 +305,27 @@ export class Flamegraph {
     return frames;
   }
 
-  findAllMatchingFrames(
-    frameOrName: FlamegraphFrame | string,
-    packageName?: string
+  findAllMatchingFramesBy(
+    query: string,
+    fields: (keyof FlamegraphFrame['frame'])[]
   ): FlamegraphFrame[] {
     const matches: FlamegraphFrame[] = [];
+    if (!fields.length) {
+      throw new Error('No fields provided');
+    }
 
-    if (typeof frameOrName === 'string') {
+    if (fields.length === 1) {
       for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName &&
-          // the image name on a frame is optional,
-          // treat it the same as the empty string
-          (this.frames[i].frame.image || '') === packageName
-        ) {
+        if (this.frames[i].frame[fields[0]] === query) {
           matches.push(this.frames[i]);
         }
       }
-    } else {
-      for (let i = 0; i < this.frames.length; i++) {
-        if (
-          this.frames[i].frame.name === frameOrName.node.frame.name &&
-          this.frames[i].frame.image === frameOrName.node.frame.image
-        ) {
+      return matches;
+    }
+
+    for (let i = 0; i < this.frames.length; i++) {
+      for (let j = fields.length; j--; ) {
+        if (this.frames[i].frame[fields[j]] === query) {
           matches.push(this.frames[i]);
         }
       }
@@ -339,8 +334,21 @@ export class Flamegraph {
     return matches;
   }
 
-  setConfigSpace(configSpace: Rect): Flamegraph {
-    this.configSpace = configSpace;
-    return this;
+  findAllMatchingFrames(frameName?: string, framePackage?: string): FlamegraphFrame[] {
+    const matches: FlamegraphFrame[] = [];
+
+    for (let i = 0; i < this.frames.length; i++) {
+      if (
+        this.frames[i].frame.name === frameName &&
+        // the framePackage can match either the package or the module
+        // this is an artifact of how we previously used image
+        (this.frames[i].frame.package === framePackage ||
+          this.frames[i].frame.module === framePackage)
+      ) {
+        matches.push(this.frames[i]);
+      }
+    }
+
+    return matches;
   }
 }

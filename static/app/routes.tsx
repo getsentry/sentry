@@ -20,7 +20,7 @@ import withDomainRequired from 'sentry/utils/withDomainRequired';
 import App from 'sentry/views/app';
 import AuthLayout from 'sentry/views/auth/layout';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import IssueListContainer from 'sentry/views/issueList/container';
+import IssueListContainer from 'sentry/views/issueList';
 import IssueListOverview from 'sentry/views/issueList/overview';
 import OrganizationContextContainer from 'sentry/views/organizationContextContainer';
 import OrganizationDetails from 'sentry/views/organizationDetails';
@@ -129,6 +129,13 @@ function buildRoutes() {
   //   This is where a majority of the app routes live. This is wrapped with
   //   the <OrganizationDetails /> component, which provides the sidebar and
   //   organization context.
+  //
+  //   When adding new routes make sure you have both a route that starts
+  //   with `/organizations/:orgId` and also 'customer-domains' route that
+  //   does not include `/organizations/:orgId`. Often you'll only need to
+  //   worry about this for the container route for that section of the UI.
+  //   Child routes should access the current organization with `useOrganization()`
+  //   or `withOrganization()` methods.
   //
   //   Within these routes are a variety of subroutes. They are not all
   //   listed here as the subroutes will be added and removed, and most are
@@ -459,7 +466,7 @@ function buildRoutes() {
       />
       <Route
         path="ownership/"
-        name={t('Issue Owners')}
+        name={t('Ownership Rules')}
         component={make(() => import('sentry/views/settings/project/projectOwnership'))}
       />
       <Route
@@ -495,14 +502,67 @@ function buildRoutes() {
         name={t('Performance')}
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
-      <Route
-        path="source-maps/"
-        name={t('Source Maps')}
-        component={make(() => import('sentry/views/settings/projectSourceMaps'))}
-      >
+      <Route path="source-maps/" name={t('Source Maps')}>
         <IndexRoute
-          component={make(() => import('sentry/views/settings/projectSourceMaps/list'))}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
         />
+        <Route
+          path="debug-id-bundles/"
+          name={t('Debug ID Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
+          <Route
+            name={t('Artifact Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
+        <Route
+          path="release-bundles/"
+          name={t('Release Bundles')}
+          component={make(async () => {
+            const {ProjectSourceMapsContainer} = await import(
+              'sentry/views/settings/projectSourceMaps'
+            );
+            return {
+              default: ProjectSourceMapsContainer,
+            };
+          })}
+        >
+          <Route
+            name={t('Artifact Bundle')}
+            path=":bundleId/"
+            component={make(async () => {
+              const {ProjectSourceMapsContainer} = await import(
+                'sentry/views/settings/projectSourceMaps'
+              );
+              return {
+                default: ProjectSourceMapsContainer,
+              };
+            })}
+          />
+        </Route>
         <Route
           path=":name/"
           name={t('Archive')}
@@ -1000,7 +1060,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const projectsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1038,7 +1097,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const dashboardRoutes = (
     <Fragment>
       <Fragment>
@@ -1261,7 +1319,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const alertRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1297,8 +1354,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/'
-              : '/organizations/:orgId/crons/:monitorId/'
+              ? '/crons/:monitorSlug/'
+              : '/organizations/:orgId/crons/:monitorSlug/'
           }
           component={make(() => import('sentry/views/monitors/details'))}
           key={
@@ -1308,8 +1365,8 @@ function buildRoutes() {
         <Route
           path={
             forCustomerDomain
-              ? '/crons/:monitorId/edit/'
-              : '/organizations/:orgId/crons/:monitorId/edit/'
+              ? '/crons/:monitorSlug/edit/'
+              : '/organizations/:orgId/crons/:monitorSlug/edit/'
           }
           component={make(() => import('sentry/views/monitors/edit'))}
           key={forCustomerDomain ? 'orgless-monitors-edit' : 'org-monitors-edit'}
@@ -1317,7 +1374,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const cronsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1348,7 +1404,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const replayRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1409,7 +1464,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const releasesRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1482,7 +1536,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const statsRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1633,7 +1686,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const performanceRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1754,7 +1806,6 @@ function buildRoutes() {
       </Fragment>
     );
   };
-
   const issueDetailsChildRoutes = ({forCustomerDomain}: {forCustomerDomain: boolean}) => (
     <Fragment>
       {issueTabs({forCustomerDomain})}
@@ -1914,7 +1965,6 @@ function buildRoutes() {
       />
     </Fragment>
   );
-
   const gettingStartedRoutes = (
     <Fragment>
       {usingCustomerDomain && (
@@ -1936,6 +1986,45 @@ function buildRoutes() {
         key="org-getting-started"
       >
         {gettingStartedChildRoutes}
+      </Route>
+    </Fragment>
+  );
+
+  const profilingChildRoutes = (
+    <Fragment>
+      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
+      <Route
+        path="summary/:projectId/"
+        component={make(() => import('sentry/views/profiling/profileSummary'))}
+      />
+      <Route
+        path="profile/:projectId/:eventId/"
+        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+      >
+        <Route
+          path="flamechart/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+    </Fragment>
+  );
+  const profilingRoutes = (
+    <Fragment>
+      {usingCustomerDomain && (
+        <Route
+          path="/profiling/"
+          component={withDomainRequired(make(() => import('sentry/views/profiling')))}
+          key="orgless-profiling-route"
+        >
+          {profilingChildRoutes}
+        </Route>
+      )}
+      <Route
+        path="/organizations/:orgId/profiling/"
+        component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
+        key="org-profiling"
+      >
+        {profilingChildRoutes}
       </Route>
     </Fragment>
   );
@@ -2026,50 +2115,6 @@ function buildRoutes() {
         )}
       />
     </Route>
-  );
-
-  const profilingChildRoutes = (
-    <Fragment>
-      <IndexRoute component={make(() => import('sentry/views/profiling/content'))} />
-      <Route
-        path="summary/:projectId/"
-        component={make(() => import('sentry/views/profiling/profileSummary'))}
-      />
-      <Route
-        path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
-      >
-        <Route
-          path="details/"
-          component={make(() => import('sentry/views/profiling/profileDetails'))}
-        />
-        <Route
-          path="flamechart/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-    </Fragment>
-  );
-
-  const profilingRoutes = (
-    <Fragment>
-      {usingCustomerDomain && (
-        <Route
-          path="/profiling/"
-          component={withDomainRequired(make(() => import('sentry/views/profiling')))}
-          key="orgless-profiling-route"
-        >
-          {profilingChildRoutes}
-        </Route>
-      )}
-      <Route
-        path="/organizations/:orgId/profiling/"
-        component={withDomainRedirect(make(() => import('sentry/views/profiling')))}
-        key="org-profiling"
-      >
-        {profilingChildRoutes}
-      </Route>
-    </Fragment>
   );
 
   const organizationRoutes = (
@@ -2247,6 +2292,9 @@ function buildRoutes() {
 // We load routes both when initializing the SDK (for routing integrations) and
 // when the app renders Main. Memoize to avoid rebuilding the route tree.
 export const routes = memoize(buildRoutes);
+
+// Exported for use in tests.
+export {buildRoutes};
 
 function NoOp(props: {children: React.ReactNode}) {
   return <Fragment>{props.children}</Fragment>;

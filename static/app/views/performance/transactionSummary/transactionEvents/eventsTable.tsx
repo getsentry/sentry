@@ -33,11 +33,13 @@ import {
 } from 'sentry/utils/discover/fields';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {COLUMN_TITLES} from '../../data';
 import {
+  generateProfileLink,
   generateReplayLink,
   generateTraceLink,
   generateTransactionLink,
@@ -67,7 +69,6 @@ type Props = {
   organization: Organization;
   routes: RouteContextInterface['routes'];
   setError: (msg: string | undefined) => void;
-  showReplayCol: boolean;
   transactionName: string;
   columnTitles?: string[];
   customColumns?: ('attachments' | 'minidump')[];
@@ -203,6 +204,20 @@ class EventsTable extends Component<Props, State> {
       );
     }
 
+    if (field === 'profile.id') {
+      const target = generateProfileLink()(organization, dataRow, undefined);
+      return (
+        <CellAction
+          column={column}
+          dataRow={dataRow}
+          handleCellAction={this.handleCellAction(column)}
+          allowActions={allowActions}
+        >
+          {target ? <Link to={target}>{rendered}</Link> : rendered}
+        </CellAction>
+      );
+    }
+
     const fieldName = getAggregateAlias(field);
     const value = dataRow[fieldName];
     if (tableMeta[fieldName] === 'integer' && defined(value) && value > 999) {
@@ -326,8 +341,7 @@ class EventsTable extends Component<Props, State> {
   };
 
   render() {
-    const {eventView, organization, location, setError, referrer, showReplayCol} =
-      this.props;
+    const {eventView, organization, location, setError, referrer} = this.props;
 
     const totalEventsView = eventView.clone();
     totalEventsView.sorts = [];
@@ -345,9 +359,7 @@ class EventsTable extends Component<Props, State> {
       .getColumns()
       .filter(
         (col: TableColumn<React.ReactText>) =>
-          ((!containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)) &&
-            col.name !== 'replayId') ||
-          showReplayCol
+          !containsSpanOpsBreakdown || !isSpanOperationBreakdownField(col.name)
       )
       .map((col: TableColumn<React.ReactText>, i: number) => {
         if (typeof widths[i] === 'number') {
@@ -465,24 +477,29 @@ class EventsTable extends Component<Props, State> {
                       organization={organization}
                       replayIds={replayIds}
                     >
-                      <GridEditable
-                        isLoading={
-                          isTotalEventsLoading ||
-                          isDiscoverQueryLoading ||
-                          shouldFetchAttachments
-                        }
-                        data={tableData?.data ?? []}
-                        columnOrder={columnOrder}
-                        columnSortBy={eventView.getSorts()}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                        }}
-                        location={location}
-                      />
+                      <VisuallyCompleteWithData
+                        id="TransactionEvents-EventsTable"
+                        hasData={!!tableData?.data?.length}
+                      >
+                        <GridEditable
+                          isLoading={
+                            isTotalEventsLoading ||
+                            isDiscoverQueryLoading ||
+                            shouldFetchAttachments
+                          }
+                          data={tableData?.data ?? []}
+                          columnOrder={columnOrder}
+                          columnSortBy={eventView.getSorts()}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                          }}
+                          location={location}
+                        />
+                      </VisuallyCompleteWithData>
                       <Pagination
                         disabled={isDiscoverQueryLoading}
                         caption={paginationCaption}

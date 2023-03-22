@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -117,8 +116,6 @@ export function FilterResultsStep({
         <ProjectPageFilter disabled />
         <EnvironmentPageFilter disabled />
         <DatePageFilter alignDropdown="left" disabled />
-      </StyledPageFilterBar>
-      <FilterButtons>
         <ReleasesProvider organization={organization} selection={selection}>
           <StyledReleasesSelectControl
             selectedReleases={
@@ -130,7 +127,7 @@ export function FilterResultsStep({
             className="widget-release-select"
           />
         </ReleasesProvider>
-      </FilterButtons>
+      </StyledPageFilterBar>
       <div>
         {queries.map((query, queryIndex) => {
           return (
@@ -199,18 +196,16 @@ const QueryField = styled(FieldGroup)`
 const StyledPageFilterBar = styled(PageFilterBar)`
   margin-bottom: ${space(1)};
   margin-right: ${space(2)};
-`;
 
-const FilterButtons = styled(ButtonBar)`
-  grid-template-columns: 1fr;
-
-  margin-bottom: ${space(1)};
-  margin-right: ${space(2)};
-
-  justify-content: space-between;
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    flex-direction: column;
+    height: auto;
+  }
 `;
 
 const StyledReleasesSelectControl = styled(ReleasesSelectControl)`
+  width: 100%;
+
   button {
     width: 100%;
   }

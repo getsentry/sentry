@@ -11,8 +11,8 @@ from sentry.models import create_files_from_dif_zip
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import FileIOMainThreadDetector
 from sentry.utils.performance_issues.performance_detection import (
-    FileIOMainThreadDetector,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
@@ -35,7 +35,7 @@ org.slf4j.helpers.Util$ClassContextSecurityManager -> org.a.b.g$a:
 
 @region_silo_test
 @pytest.mark.django_db
-class NPlusOneAPICallsDetectorTest(TestCase):
+class FileIOMainThreadDetectorTest(TestCase):
     def setUp(self):
         super().setUp()
         self.settings = get_detection_settings()
@@ -71,11 +71,27 @@ class NPlusOneAPICallsDetectorTest(TestCase):
 
         assert self.find_problems(event) == []
 
+    def test_ignores_nib_files(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["file.path"] = "somethins/stuff.txt/blah/yup/ios.nib"
+
+        assert self.find_problems(event) == []
+
     def test_gives_problem_correct_title(self):
         event = get_event("file-io-on-main-thread")
         event["spans"][0]["data"]["blocked_main_thread"] = True
         problem = self.find_problems(event)[0]
         assert problem.title == "File IO on Main Thread"
+
+    def test_duplicate_calls_do_not_change_callstack(self):
+        event = get_event("file-io-on-main-thread")
+        event["spans"][0]["data"]["blocked_main_thread"] = True
+        single_span_problem = self.find_problems(event)[0]
+        single_problem_fingerprint = single_span_problem.fingerprint
+        event["spans"].append(event["spans"][0])
+        double_span_problem = self.find_problems(event)[0]
+        assert double_span_problem.title == "File IO on Main Thread"
+        assert double_span_problem.fingerprint == single_problem_fingerprint
 
     def test_file_io_with_proguard(self):
         event = get_event("file-io-on-main-thread-with-obfuscation")

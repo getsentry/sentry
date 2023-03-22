@@ -74,15 +74,20 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeEnabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeEnabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeEnabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
+
+    // Prioritize low-volume transactions is not available
+    expect(
+      screen.queryByRole('checkbox', {name: 'Prioritize low-volume transactions'})
+    ).not.toBeInTheDocument();
   });
 
-  it('renders disabled default UI, when user has not permission to edit', async function () {
+  it('renders disabled default UI, async when user has not permission to edit', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -113,7 +118,7 @@ describe('Dynamic Sampling', function () {
 
     expect(prioritizenewReleases).toBeDisabled();
     expect(prioritizenewReleases).toBeChecked();
-    userEvent.hover(prioritizenewReleases);
+    await userEvent.hover(prioritizenewReleases);
     expect(
       await screen.findByText('You do not have permission to edit this setting')
     ).toBeInTheDocument();
@@ -132,15 +137,15 @@ describe('Dynamic Sampling', function () {
     expect(prioritizeKeyTransactions).toBeDisabled();
     expect(prioritizeKeyTransactions).toBeChecked();
 
-    const ignoreHealthChecks = screen.getByRole('checkbox', {
-      name: 'Ignore health checks',
+    const deprioritizeHealthChecks = screen.getByRole('checkbox', {
+      name: 'Deprioritize health checks',
     });
 
-    expect(ignoreHealthChecks).toBeDisabled();
-    expect(ignoreHealthChecks).toBeChecked();
+    expect(deprioritizeHealthChecks).toBeDisabled();
+    expect(deprioritizeHealthChecks).toBeChecked();
   });
 
-  it('user can toggle option', function () {
+  it('user can toggle option', async function () {
     const {project, organization} = initializeOrg({
       ...initializeOrg(),
       projects: [
@@ -158,7 +163,9 @@ describe('Dynamic Sampling', function () {
 
     render(<DynamicSampling project={project} />, {organization});
 
-    userEvent.click(screen.getByRole('checkbox', {name: 'Prioritize new releases'}));
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize new releases'})
+    );
 
     expect(mockRequests.projectDetails).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
@@ -169,6 +176,54 @@ describe('Dynamic Sampling', function () {
             {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
             {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
             {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+          ],
+        },
+      })
+    );
+  });
+
+  it('render and toggle "Prioritize low-volume transactions" option', async function () {
+    const {project, organization} = initializeOrg({
+      ...initializeOrg(),
+      projects: [
+        TestStubs.Project({
+          dynamicSamplingBiases: [
+            ...dynamicSamplingBiases,
+            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: false},
+          ],
+        }),
+      ],
+      organization: {
+        ...initializeOrg().organization,
+        features: [...ORG_FEATURES, 'dynamic-sampling-transaction-name-priority'],
+      },
+    });
+
+    const mockRequests = renderMockRequests(organization.slug, project.slug);
+
+    render(<DynamicSampling project={project} />, {organization});
+
+    const prioritizeTransactionNames = screen.getByRole('checkbox', {
+      name: 'Prioritize low-volume transactions',
+    });
+
+    expect(prioritizeTransactionNames).toBeEnabled();
+    expect(prioritizeTransactionNames).not.toBeChecked();
+
+    await userEvent.click(
+      screen.getByRole('checkbox', {name: 'Prioritize low-volume transactions'})
+    );
+
+    expect(mockRequests.projectDetails).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/`,
+      expect.objectContaining({
+        data: {
+          dynamicSamplingBiases: [
+            {id: DynamicSamplingBiasType.BOOST_LATEST_RELEASES, active: true},
+            {id: DynamicSamplingBiasType.BOOST_ENVIRONMENTS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_KEY_TRANSACTIONS, active: true},
+            {id: DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS, active: true},
+            {id: DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS, active: true},
           ],
         },
       })

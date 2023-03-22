@@ -44,6 +44,20 @@ const performanceConfig: IssueCategoryConfigMapping = {
       linksByPlatform: {},
     },
   },
+  [IssueType.PERFORMANCE_CONSECUTIVE_HTTP]: {
+    resources: {
+      description: t(
+        'A Consecutive HTTP issue occurs when X number of consecutive HTTP calls occur sequentially, each taking Y amount of time'
+      ),
+      links: [
+        {
+          text: t('Sentry Docs: Consecutive HTTP'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/consecutive-http/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
   [IssueType.PERFORMANCE_FILE_IO_MAIN_THREAD]: {
     resources: {
       description: t('File IO operations on your main thread may lead to app hangs.'),
@@ -116,7 +130,12 @@ const performanceConfig: IssueCategoryConfigMapping = {
       description: t(
         'Slow DB Queries are SELECT query spans that are consistently taking longer than 1s. A quick method to understand why this may be the case is running an EXPLAIN command on the query itself. To learn more about how to fix slow DB queries, check out these resources:'
       ),
-      links: [],
+      links: [
+        {
+          text: t('Sentry Docs: Slow DB Queries'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/slow-db-queries/',
+        },
+      ],
       linksByPlatform: {},
     },
   },

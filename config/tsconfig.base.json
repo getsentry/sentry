@@ -102,7 +102,6 @@
       "sentry-locale/*": ["src/sentry/locale/*"],
       "sentry-logos/*": ["src/sentry/static/sentry/images/logos/*"],
       "sentry-fonts/*": ["static/fonts/*"],
-      "docs-ui/*": ["docs-ui/*"],
       // Use the stub file for type checking. Webpack resolver will use the real files
       // based on configuration.
       "integration-docs-platforms": [

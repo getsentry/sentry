@@ -1,3 +1,4 @@
+import logging
 from typing import TYPE_CHECKING, Any, Mapping, Optional, Sequence, Tuple, Union
 
 from django.db import models
@@ -7,17 +8,19 @@ from django.utils import timezone
 from sentry import features
 from sentry.db.models import Model, region_silo_only_model, sane_repr
 from sentry.db.models.fields import FlexibleForeignKey, JSONField
-from sentry.models import ActorTuple
+from sentry.models import Activity, ActorTuple
 from sentry.models.groupowner import OwnerRuleType
 from sentry.models.project import Project
 from sentry.ownership.grammar import Rule, load_schema, resolve_actors
+from sentry.types.activity import ActivityType
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
-    from sentry.models import ProjectCodeOwners, Team, User
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.models import ProjectCodeOwners, Team
+    from sentry.services.hybrid_cloud.user import RpcUser
 
+logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 
 
@@ -168,7 +171,7 @@ class ProjectOwnership(Model):
     ) -> Sequence[
         Tuple[
             "Rule",
-            Sequence[Union["Team", "APIUser"]],
+            Sequence[Union["Team", "RpcUser"]],
             Union[OwnerRuleType.OWNERSHIP_RULE.value, OwnerRuleType.CODEOWNERS.value],
         ]
     ]:
@@ -239,7 +242,14 @@ class ProjectOwnership(Model):
 
         """
         from sentry import analytics
-        from sentry.models import ActivityIntegration, GroupAssignee, GroupOwner, GroupOwnerType
+        from sentry.models import (
+            ActivityIntegration,
+            GroupAssignee,
+            GroupOwner,
+            GroupOwnerType,
+            Team,
+            User,
+        )
 
         with metrics.timer("projectownership.get_autoassign_owners"):
             ownership = cls.get_ownership_cached(project_id)
@@ -279,6 +289,23 @@ class ProjectOwnership(Model):
                     "rule": (issue_owner.context or {}).get("rule", ""),
                 }
             )
+            activity = Activity.objects.filter(
+                group=event.group, type=ActivityType.ASSIGNED.value
+            ).order_by("-datetime")
+            if activity:
+                auto_assigned = activity[0].data.get("integration")
+                if not auto_assigned:
+                    logger.info(
+                        "autoassignment.post_manual_assignment",
+                        extra={
+                            "event_id": event.event_id,
+                            "group_id": event.group_id,
+                            "project": event.project_id,
+                            "organization_id": event.project.organization_id,
+                            **details,
+                        },
+                    )
+                    return
 
             assignment = GroupAssignee.objects.assign(
                 event.group,
@@ -295,6 +322,19 @@ class ProjectOwnership(Model):
                     organization_id=ownership.project.organization_id,
                     project_id=project_id,
                     group_id=event.group.id,
+                )
+                logger.info(
+                    "handle_auto_assignment.success",
+                    extra={
+                        "event": event.event_id,
+                        "group": event.group_id,
+                        "project": event.project_id,
+                        "organization": event.project.organization_id,
+                        # owner_id returns a string including the owner type (user or team) and id
+                        "assignee": issue_owner.owner_id(),
+                        "reason": "created" if assignment["new_assignment"] else "updated",
+                        **details,
+                    },
                 )
 
     @classmethod
@@ -324,6 +364,8 @@ def process_resource_change(instance, change, **kwargs):
     autoassignment_types = ProjectOwnership._get_autoassignment_types(instance)
     if len(autoassignment_types) > 0:
         GroupOwner.invalidate_autoassigned_owner_cache(instance.project_id, autoassignment_types)
+
+    GroupOwner.invalidate_debounce_issue_owners_evaluation_cache(instance.project_id)
 
 
 # Signals update the cached reads used in post_processing

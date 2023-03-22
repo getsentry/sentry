@@ -14,7 +14,8 @@ from sentry.incidents.logic import (
 from sentry.incidents.models import AlertRule
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.integrations.slack.utils import SLACK_RATE_LIMITED_MESSAGE, RedisRuleStatus
-from sentry.models import Organization, User
+from sentry.models import Organization
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError
 from sentry.tasks.base import instrumented_task
 
@@ -38,12 +39,9 @@ def find_channel_id_for_alert_rule(
         redis_rule_status.set_value("failed")
         return
 
-    user = None
+    user: RpcUser | None = None
     if user_id:
-        try:
-            user = User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            pass
+        user = user_service.get_user(user_id=user_id)
 
     alert_rule = None
     if alert_rule_id:

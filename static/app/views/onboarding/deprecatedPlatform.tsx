@@ -7,6 +7,7 @@ import MultiPlatformPicker from 'sentry/components/multiPlatformPicker';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import testableTransition from 'sentry/utils/testableTransition';
+import useOrganization from 'sentry/utils/useOrganization';
 import StepHeading from 'sentry/views/onboarding/components/stepHeading';
 
 import CreateProjectsFooter from './components/createProjectsFooter';
@@ -14,6 +15,7 @@ import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
 
 function OnboardingPlatform(props: StepProps) {
+  const organization = useOrganization();
   const [selectedPlatforms, setSelectedPlatforms] = useState<PlatformKey[]>([]);
   const addPlatform = (platform: PlatformKey) => {
     setSelectedPlatforms([...selectedPlatforms, platform]);
@@ -55,6 +57,7 @@ function OnboardingPlatform(props: StepProps) {
           noAutoFilter
           source="targeted-onboarding"
           {...props}
+          organization={organization}
           removePlatform={removePlatform}
           addPlatform={addPlatform}
           platforms={selectedPlatforms}
@@ -62,6 +65,7 @@ function OnboardingPlatform(props: StepProps) {
       </motion.div>
       <CreateProjectsFooter
         {...props}
+        organization={organization}
         clearPlatforms={clearPlatforms}
         platforms={selectedPlatforms}
       />

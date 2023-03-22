@@ -1,4 +1,5 @@
 import logging
+import pickle
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -507,7 +508,7 @@ def test_process_messages_cardinality_limited(
     with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    ), set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0):
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
 
         class MockCardinalityLimiter(CardinalityLimiter):
             def check_within_quotas(self, requested_quotas):
@@ -562,3 +563,8 @@ def test_invalid_metric_tags() -> None:
     assert invalid_metric_tags(tags) == [bad_tag]
     tags["release"] = None
     assert invalid_metric_tags(tags) == [None]
+
+
+def test_process_messages_is_pickleable():
+    # needed so that the parallel transform step starts up properly
+    pickle.dumps(MESSAGE_PROCESSOR.process_messages)

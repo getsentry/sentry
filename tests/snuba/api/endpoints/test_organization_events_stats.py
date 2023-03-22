@@ -12,7 +12,7 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
@@ -97,21 +97,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
         )
@@ -139,21 +139,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
         )

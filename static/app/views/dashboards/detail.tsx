@@ -2,6 +2,7 @@ import {cloneElement, Component, isValidElement} from 'react';
 import {browserHistory, PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
+import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 
 import {
@@ -397,7 +398,15 @@ class DashboardDetail extends Component<Props, State> {
       filterParams[key] = activeFilters[key].length ? activeFilters[key] : '';
     });
 
-    if (!isEqual(activeFilters, dashboard.filters)) {
+    if (
+      !isEqualWith(activeFilters, dashboard.filters, (a, b) => {
+        // This is to handle the case where dashboard filters has release:[] and the new filter is release:""
+        if (a.length === 0 && b.length === 0) {
+          return a === b;
+        }
+        return undefined;
+      })
+    ) {
       browserHistory.push({
         ...location,
         query: {

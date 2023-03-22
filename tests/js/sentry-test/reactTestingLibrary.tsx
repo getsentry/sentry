@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {InjectedRouter} from 'react-router';
 import {cache} from '@emotion/css'; // eslint-disable-line @emotion/no-vanilla
 import {CacheProvider, ThemeProvider} from '@emotion/react';
@@ -44,9 +44,12 @@ function createProvider(contextDefs: Record<string, any>) {
 }
 
 function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions) {
-  const ContextProvider = context ? createProvider(context) : Fragment;
-
-  const {organization, router} = initializeOrg(initializeOrgOptions as any);
+  const {organization, router, routerContext} = initializeOrg(
+    initializeOrgOptions as any
+  );
+  const ContextProvider = context
+    ? createProvider(context)
+    : createProvider(routerContext);
 
   return function ({children}: {children?: React.ReactNode}) {
     return (

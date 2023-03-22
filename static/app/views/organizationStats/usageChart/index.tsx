@@ -2,7 +2,12 @@ import {Component, Fragment} from 'react';
 import {Theme, withTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import type {LegendComponentOption, SeriesOption, TooltipComponentOption} from 'echarts';
+import type {
+  BarSeriesOption,
+  LegendComponentOption,
+  SeriesOption,
+  TooltipComponentOption,
+} from 'echarts';
 
 import BaseChart from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
@@ -59,6 +64,12 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
     yAxisMinInterval: 100,
   },
   {
+    label: DATA_CATEGORY_INFO.replay.titleName,
+    value: DATA_CATEGORY_INFO.replay.plural,
+    disabled: false,
+    yAxisMinInterval: 100,
+  },
+  {
     label: DATA_CATEGORY_INFO.attachment.titleName,
     value: DATA_CATEGORY_INFO.attachment.plural,
     disabled: false,
@@ -67,12 +78,6 @@ export const CHART_OPTIONS_DATACATEGORY: CategoryOption[] = [
   {
     label: DATA_CATEGORY_INFO.profile.titleName,
     value: DATA_CATEGORY_INFO.profile.plural,
-    disabled: false,
-    yAxisMinInterval: 100,
-  },
-  {
-    label: DATA_CATEGORY_INFO.replay.titleName,
-    value: DATA_CATEGORY_INFO.replay.plural,
     disabled: false,
     yAxisMinInterval: 100,
   },
@@ -172,10 +177,10 @@ type State = {
 };
 
 export type ChartStats = {
-  accepted: NonNullable<SeriesOption['data']>;
-  dropped: NonNullable<SeriesOption['data']>;
-  projected: NonNullable<SeriesOption['data']>;
-  filtered?: NonNullable<SeriesOption['data']>;
+  accepted: NonNullable<BarSeriesOption['data']>;
+  dropped: NonNullable<BarSeriesOption['data']>;
+  projected: NonNullable<BarSeriesOption['data']>;
+  filtered?: NonNullable<BarSeriesOption['data']>;
 };
 
 export class UsageChart extends Component<UsageChartProps, State> {
@@ -333,34 +338,30 @@ export class UsageChart extends Component<UsageChartProps, State> {
     let series: SeriesOption[] = [
       barSeries({
         name: SeriesTypes.ACCEPTED,
-        data: chartData.accepted as any, // TODO(ts)
+        data: chartData.accepted,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
-        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.FILTERED,
-        data: chartData.filtered as any, // TODO(ts)
+        data: chartData.filtered,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
-        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.DROPPED,
-        data: chartData.dropped as any, // TODO(ts)
+        data: chartData.dropped,
         stack: 'usage',
         legendHoverLink: false,
-        zlevel: 10,
       }),
       barSeries({
         name: SeriesTypes.PROJECTED,
-        data: chartData.projected as any, // TODO(ts)
+        data: chartData.projected,
         barMinHeight: 1,
         stack: 'usage',
         legendHoverLink: false,
-        zlevel: 10,
       }),
     ];
 
@@ -381,19 +382,19 @@ export class UsageChart extends Component<UsageChartProps, State> {
       },
     ];
 
-    if (chartData.filtered && (chartData.filtered as any[]).length > 0) {
+    if (chartData.filtered && chartData.filtered.length > 0) {
       legend.push({
         name: SeriesTypes.FILTERED,
       });
     }
 
-    if ((chartData.dropped as any[]).length > 0) {
+    if (chartData.dropped.length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
       });
     }
 
-    if ((chartData.projected as any[]).length > 0) {
+    if (chartData.projected.length > 0) {
       legend.push({
         name: SeriesTypes.PROJECTED,
       });

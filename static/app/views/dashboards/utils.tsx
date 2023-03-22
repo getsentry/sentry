@@ -537,3 +537,19 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
   });
   return !isEmpty(dashboardFilters) ? dashboardFilters : null;
 }
+
+export function dashboardFiltersToString(
+  dashboardFilters: DashboardFilters | null | undefined
+): string {
+  let dashboardFilterConditions = '';
+  if (dashboardFilters) {
+    for (const [key, activeFilters] of Object.entries(dashboardFilters)) {
+      if (activeFilters.length === 1) {
+        dashboardFilterConditions += `${key}:${activeFilters[0]} `;
+      } else if (activeFilters.length > 1) {
+        dashboardFilterConditions += `${key}:[${activeFilters.join(',')}] `;
+      }
+    }
+  }
+  return dashboardFilterConditions;
+}

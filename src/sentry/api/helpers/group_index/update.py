@@ -49,7 +49,7 @@ from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.signals import (
     issue_ignored,
     issue_mark_reviewed,
@@ -61,7 +61,6 @@ from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
 from sentry.utils import metrics
-from sentry.utils.functional import extract_lazy_object
 
 from . import ACTIVITIES_COUNT, BULK_MUTATION_LIMIT, SearchFunction, delete_group_list
 from .validators import GroupValidator, ValidationError
@@ -112,7 +111,7 @@ def handle_discard(
 
 
 def self_subscribe_and_assign_issue(
-    acting_user: User | APIUser | None, group: Group
+    acting_user: User | RpcUser | None, group: Group
 ) -> ActorTuple | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
@@ -280,10 +279,15 @@ def update_groups(
                 # no version yet
                 "version": ""
             }
+
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
             status_details = {
                 "inNextRelease": True,
-                "actor": serialize(extract_lazy_object(user), user),
             }
+            if serialized_user:
+                status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
             res_status = GroupResolution.Status.pending
@@ -301,10 +305,15 @@ def update_groups(
                 # no version yet
                 "version": release.version
             }
+
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
             status_details = {
                 "inRelease": release.version,
-                "actor": serialize(extract_lazy_object(user), user),
             }
+            if serialized_user:
+                status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_release
             res_type_str = "in_release"
             res_status = GroupResolution.Status.resolved
@@ -318,10 +327,15 @@ def update_groups(
             commit = statusDetails["inCommit"]
             activity_type = ActivityType.SET_RESOLVED_IN_COMMIT.value
             activity_data = {"commit": commit.id}
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
+
             status_details = {
                 "inCommit": serialize(commit, user),
-                "actor": serialize(extract_lazy_object(user), user),
             }
+            if serialized_user:
+                status_details["actor"] = serialized_user[0]
             res_type_str = "in_commit"
         else:
             res_type_str = "now"
@@ -572,14 +586,18 @@ def update_groups(
                                 "actor_id": user.id if user.is_authenticated else None,
                             },
                         )
+                        serialized_user = user_service.serialize_many(
+                            filter=dict(user_ids=[user.id]), as_user=user
+                        )
                         result["statusDetails"] = {
                             "ignoreCount": ignore_count,
                             "ignoreUntil": ignore_until,
                             "ignoreUserCount": ignore_user_count,
                             "ignoreUserWindow": ignore_user_window,
                             "ignoreWindow": ignore_window,
-                            "actor": serialize(extract_lazy_object(user), user),
                         }
+                        if serialized_user:
+                            result["statusDetails"]["actor"] = serialized_user[0]
                 else:
                     GroupSnooze.objects.filter(group__in=group_ids).delete()
                     ignore_until = None
@@ -595,7 +613,7 @@ def update_groups(
                     if group.status == GroupStatus.IGNORED:
                         issue_unignored.send_robust(
                             project=project_lookup[group.project_id],
-                            user=acting_user,
+                            user_id=acting_user.id if acting_user else None,
                             group=group,
                             transition_type="manual",
                             sender=update_groups,
@@ -694,7 +712,7 @@ def update_groups(
         )
         if assigned_actor:
             for group in group_list:
-                resolved_actor: APIUser | Team = assigned_actor.resolve()
+                resolved_actor: RpcUser | Team = assigned_actor.resolve()
 
                 assignment = GroupAssignee.objects.assign(
                     group, resolved_actor, acting_user, extra=extra

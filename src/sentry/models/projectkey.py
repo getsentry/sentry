@@ -4,7 +4,7 @@ from uuid import uuid4
 
 import petname
 from django.conf import settings
-from django.db import ProgrammingError, models, transaction
+from django.db import ProgrammingError, models
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
@@ -34,29 +34,13 @@ class ProjectKeyStatus:
 
 class ProjectKeyManager(BaseManager):
     def post_save(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_save"
-            )
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_save"
         )
 
     def post_delete(self, instance, **kwargs):
-        # this hook may be called from model hooks during an
-        # open transaction. In that case, wait until the current transaction has
-        # been committed or rolled back to ensure we don't read stale data in the
-        # task.
-        #
-        # If there is no transaction open, on_commit should run immediately.
-        transaction.on_commit(
-            lambda: schedule_invalidate_project_config(
-                public_key=instance.public_key, trigger="projectkey.post_delete"
-            )
+        schedule_invalidate_project_config(
+            public_key=instance.public_key, trigger="projectkey.post_delete"
         )
 
 
@@ -235,17 +219,6 @@ class ProjectKey(Model):
             return "{}{}".format(
                 endpoint,
                 reverse("sentry-js-sdk-loader", args=[self.public_key, ".min"]),
-            )
-
-    @property
-    def js_sdk_dynamic_loader_cdn_url(self) -> str:
-        if settings.JS_SDK_LOADER_CDN_URL:
-            return f"{settings.JS_SDK_LOADER_CDN_URL}dynamic/{self.public_key}.min.js"
-        else:
-            endpoint = self.get_endpoint()
-            return "{}{}".format(
-                endpoint,
-                reverse("sentry-js-sdk-dynamic-loader", args=[self.public_key, ".min"]),
             )
 
     def get_endpoint(self, public=True):

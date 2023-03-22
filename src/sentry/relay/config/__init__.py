@@ -45,6 +45,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
+    "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -107,16 +108,30 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     for flt in get_all_filter_specs():
         filter_id = get_filter_key(flt)
         settings = _load_filter_settings(flt, project)
-        filter_settings[filter_id] = settings
+        if settings["isEnabled"]:
+            filter_settings[filter_id] = settings
 
+    error_messages: List[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
             filter_settings["releases"] = {"releases": invalid_releases}
 
-        error_messages = project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}")
-        if error_messages:
-            filter_settings["errorMessages"] = {"patterns": error_messages}
+        error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
+
+    enable_react = project.get_option("filters:react-hydration-errors")
+    if enable_react:
+        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
+        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
+        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
+        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
+        # 425 - Text content does not match server-rendered HTML.
+        error_messages += [
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+        ]
+
+    if error_messages:
+        filter_settings["errorMessages"] = {"patterns": error_messages}
 
     blacklisted_ips = project.get_option("sentry:blacklisted_ips")
     if blacklisted_ips:
@@ -162,7 +177,10 @@ def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]
     if features.has("organizations:dynamic-sampling", project.organization) and options.get(
         "dynamic-sampling:enabled-biases"
     ):
-        return {"rules": generate_rules(project), "rulesV2": generate_rules(project, True)}
+        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
+        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
+        return {"rules": [], "rulesV2": generate_rules(project)}
+
     return None
 
 
@@ -264,13 +282,15 @@ def _get_project_config(
                 ],
                 "piiConfig": get_pii_config(project),
                 "datascrubbingSettings": get_datascrubbing_settings(project),
-                "features": get_exposed_features(project),
             },
             "organizationId": project.organization_id,
             "projectId": project.id,  # XXX: Unused by Relay, required by Python store
         }
 
     config = cfg["config"]
+
+    if exposed_features := get_exposed_features(project):
+        config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
@@ -317,13 +337,19 @@ def _get_project_config(
 
     config["spanAttributes"] = project.get_option("sentry:span_attributes")
     with Hub.current.start_span(op="get_filter_settings"):
-        config["filterSettings"] = get_filter_settings(project)
+        if filter_settings := get_filter_settings(project):
+            config["filterSettings"] = filter_settings
     with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
-        config["groupingConfig"] = get_grouping_config_dict_for_project(project)
+        grouping_config = get_grouping_config_dict_for_project(project)
+        if grouping_config is not None:
+            config["groupingConfig"] = grouping_config
     with Hub.current.start_span(op="get_event_retention"):
-        config["eventRetention"] = quotas.get_event_retention(project.organization)
+        event_retention = quotas.get_event_retention(project.organization)
+        if event_retention is not None:
+            config["eventRetention"] = event_retention
     with Hub.current.start_span(op="get_all_quotas"):
-        config["quotas"] = get_quotas(project, keys=project_keys)
+        if quotas_config := get_quotas(project, keys=project_keys):
+            config["quotas"] = quotas_config
 
     return ProjectConfig(project, **cfg)
 
@@ -513,6 +539,8 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.frames_slow@none",
         "d:transactions/measurements.frames_slow_rate@ratio",
         "d:transactions/measurements.frames_total@none",
+        "d:transactions/measurements.time_to_initial_display@millisecond",
+        "d:transactions/measurements.time_to_full_display@millisecond",
         "d:transactions/measurements.stall_count@none",
         "d:transactions/measurements.stall_longest_time@millisecond",
         "d:transactions/measurements.stall_percentage@ratio",

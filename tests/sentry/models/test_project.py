@@ -1,5 +1,8 @@
 from typing import Iterable
 
+import pytest
+from django.db import ProgrammingError, transaction
+
 from sentry.models import (
     ActorTuple,
     Environment,
@@ -15,11 +18,15 @@ from sentry.models import (
     ReleaseProjectEnvironment,
     Rule,
     User,
+    UserOption,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.snuba.models import SnubaQuery
+from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders
 
@@ -318,12 +325,11 @@ class CopyProjectSettingsTest(TestCase):
 
 class FilterToSubscribedUsersTest(TestCase):
     def run_test(self, users: Iterable[User], expected_users: Iterable[User]):
-        assert (
-            NotificationSetting.objects.filter_to_accepting_recipients(self.project, users)[
-                ExternalProviders.EMAIL
-            ]
-            == expected_users
-        )
+        actual_recipients = NotificationSetting.objects.filter_to_accepting_recipients(
+            self.project, users
+        )[ExternalProviders.EMAIL]
+        expected_recipients = {RpcActor.from_orm_user(user) for user in expected_users}
+        assert actual_recipients == expected_recipients
 
     def test(self):
         self.run_test([self.user], {self.user})
@@ -437,3 +443,32 @@ class FilterToSubscribedUsersTest(TestCase):
             },
             {user_global_enabled, user_project_enabled},
         )
+
+
+@region_silo_test
+class ProjectDeletionTest(TestCase):
+    def test_cannot_delete_with_queryset(self):
+        proj = self.create_project()
+        assert Project.objects.exists()
+        with pytest.raises(ProgrammingError), transaction.atomic():
+            Project.objects.filter(id=proj.id).delete()
+        assert Project.objects.exists()
+
+    def test_hybrid_cloud_deletion(self):
+        proj = self.create_project()
+        user = self.create_user()
+        UserOption.objects.set_value(user, "cool_key", "Hello!", project_id=proj.id)
+        proj_id = proj.id
+
+        with outbox_runner():
+            proj.delete()
+
+        assert not Project.objects.filter(id=proj_id).exists()
+
+        # cascade is asynchronous, ensure there is still related search,
+        assert UserOption.objects.filter(project_id=proj_id).exists()
+        with self.tasks():
+            schedule_hybrid_cloud_foreign_key_jobs()
+
+        # Ensure they are all now gone.
+        assert not UserOption.objects.filter(project_id=proj_id).exists()

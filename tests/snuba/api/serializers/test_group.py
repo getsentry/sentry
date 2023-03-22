@@ -8,7 +8,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
 from sentry.issues.grouptype import (
     PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models import (
     Group,
@@ -497,8 +497,8 @@ class ProfilingGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
-        timestamp = timezone.now().replace(hour=0, minute=0, second=0)
+        first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
+        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group

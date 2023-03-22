@@ -8,9 +8,9 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
+import SearchBar from 'sentry/components/events/searchBar';
 import FeatureBadge from 'sentry/components/featureBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
@@ -26,6 +26,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import EventView from 'sentry/utils/discover/eventView';
 import {
   formatError,
   formatSort,
@@ -36,6 +37,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {ProfileCharts} from './landing/profileCharts';
 import {ProfilingSlowestTransactionsPanel} from './landing/profilingSlowestTransactionsPanel';
@@ -51,17 +53,27 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+  const profilingUsingTransactions = organization.features.includes(
+    'profiling-using-transactions'
+  );
+
+  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+
+  const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
     key: 'p99()',
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({query: '', selection});
+  const profileFilters = useProfileFilters({
+    query: '',
+    selection,
+    disabled: profilingUsingTransactions,
+  });
   const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
     cursor,
-    fields: FIELDS,
+    fields,
     query,
     sort,
     referrer: 'api.profiling.landing-table',
@@ -118,65 +130,89 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const isNewProfilingDashboardEnabled = organization.features.includes(
-    'profiling-dashboard-redesign'
-  );
+  const eventView = useMemo(() => {
+    const _eventView = EventView.fromNewQueryWithLocation(
+      {
+        id: undefined,
+        version: 2,
+        name: t('Profiling'),
+        fields: [],
+        query,
+        projects: selection.projects,
+      },
+      location
+    );
+    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
+    return _eventView;
+  }, [location, query, selection.projects]);
 
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
-      <PageFiltersContainer>
+      <PageFiltersContainer
+        defaultSelection={
+          profilingUsingTransactions
+            ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
+            : undefined
+        }
+      >
         <Layout.Page>
-          <NoProjectMessage organization={organization}>
-            <Layout.Header>
-              <Layout.HeaderContent>
-                <Layout.Title>
-                  {t('Profiling')}
-                  <PageHeadingQuestionTooltip
-                    docsUrl="https://docs.sentry.io/product/profiling/"
-                    title={t(
-                      'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
-                    )}
+          <Layout.Header>
+            <Layout.HeaderContent>
+              <Layout.Title>
+                {t('Profiling')}
+                <PageHeadingQuestionTooltip
+                  docsUrl="https://docs.sentry.io/product/profiling/"
+                  title={t(
+                    'A view of how your application performs in a variety of environments, based off of the performance profiles collected from real user devices in production.'
+                  )}
+                />
+                <FeatureBadge type="beta" />
+              </Layout.Title>
+            </Layout.HeaderContent>
+            <Layout.HeaderActions>
+              <ButtonBar gap={1}>
+                <Button size="sm" onClick={onSetupProfilingClick}>
+                  {t('Set Up Profiling')}
+                </Button>
+                <Button
+                  size="sm"
+                  priority="primary"
+                  href="https://discord.gg/zrMjKA4Vnz"
+                  external
+                  onClick={() => {
+                    trackAdvancedAnalyticsEvent('profiling_views.visit_discord_channel', {
+                      organization,
+                    });
+                  }}
+                >
+                  {t('Join Discord')}
+                </Button>
+              </ButtonBar>
+            </Layout.HeaderActions>
+          </Layout.Header>
+          <Layout.Body>
+            <Layout.Main fullWidth>
+              {transactionsError && (
+                <Alert type="error" showIcon>
+                  {transactionsError}
+                </Alert>
+              )}
+              <ActionBar>
+                <PageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter alignDropdown="left" />
+                </PageFilterBar>
+                {profilingUsingTransactions ? (
+                  <SearchBar
+                    searchSource="profile_summary"
+                    organization={organization}
+                    projectIds={eventView.project}
+                    query={query}
+                    onSearch={handleSearch}
+                    maxQueryLength={MAX_QUERY_LENGTH}
                   />
-                  <FeatureBadge type="beta" />
-                </Layout.Title>
-              </Layout.HeaderContent>
-              <Layout.HeaderActions>
-                <ButtonBar gap={1}>
-                  <Button size="sm" onClick={onSetupProfilingClick}>
-                    {t('Set Up Profiling')}
-                  </Button>
-                  <Button
-                    size="sm"
-                    priority="primary"
-                    href="https://discord.gg/zrMjKA4Vnz"
-                    external
-                    onClick={() => {
-                      trackAdvancedAnalyticsEvent(
-                        'profiling_views.visit_discord_channel',
-                        {
-                          organization,
-                        }
-                      );
-                    }}
-                  >
-                    {t('Join Discord')}
-                  </Button>
-                </ButtonBar>
-              </Layout.HeaderActions>
-            </Layout.Header>
-            <Layout.Body>
-              <Layout.Main fullWidth>
-                {transactionsError && (
-                  <Alert type="error" showIcon>
-                    {transactionsError}
-                  </Alert>
-                )}
-                <ActionBar>
-                  <PageFilterBar condensed>
-                    <ProjectPageFilter />
-                    <EnvironmentPageFilter />
-                    <DatePageFilter alignDropdown="left" />
-                  </PageFilterBar>
+                ) : (
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
@@ -186,67 +222,53 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
                   />
-                </ActionBar>
-                {shouldShowProfilingOnboardingPanel ? (
-                  <ProfilingOnboardingPanel>
-                    <Button onClick={onSetupProfilingClick} priority="primary">
-                      {t('Set Up Profiling')}
-                    </Button>
-                    <Button href="https://docs.sentry.io/product/profiling/" external>
-                      {t('Read Docs')}
-                    </Button>
-                  </ProfilingOnboardingPanel>
-                ) : (
-                  <Fragment>
-                    {isNewProfilingDashboardEnabled ? (
-                      <PanelsGrid>
-                        <ProfilingSlowestTransactionsPanel />
-                        <ProfileCharts
-                          query={query}
-                          selection={selection}
-                          hideCount={isNewProfilingDashboardEnabled}
-                        />
-                      </PanelsGrid>
-                    ) : (
-                      <ProfileCharts
-                        query={query}
-                        selection={selection}
-                        hideCount={isNewProfilingDashboardEnabled}
-                      />
-                    )}
-                    <ProfileEventsTable
-                      columns={FIELDS.slice()}
-                      data={
-                        transactions.status === 'success' ? transactions.data[0] : null
-                      }
-                      error={
-                        transactions.status === 'error'
-                          ? t('Unable to load profiles')
-                          : null
-                      }
-                      isLoading={transactions.status === 'loading'}
-                      sort={sort}
-                      sortableColumns={new Set(FIELDS)}
-                    />
-                    <Pagination
-                      pageLinks={
-                        transactions.status === 'success'
-                          ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
-                          : null
-                      }
-                    />
-                  </Fragment>
                 )}
-              </Layout.Main>
-            </Layout.Body>
-          </NoProjectMessage>
+              </ActionBar>
+              {shouldShowProfilingOnboardingPanel ? (
+                <ProfilingOnboardingPanel>
+                  <Button onClick={onSetupProfilingClick} priority="primary">
+                    {t('Set Up Profiling')}
+                  </Button>
+                  <Button href="https://docs.sentry.io/product/profiling/" external>
+                    {t('Read Docs')}
+                  </Button>
+                </ProfilingOnboardingPanel>
+              ) : (
+                <Fragment>
+                  <PanelsGrid>
+                    <ProfilingSlowestTransactionsPanel />
+                    <ProfileCharts query={query} selection={selection} hideCount />
+                  </PanelsGrid>
+                  <ProfileEventsTable
+                    columns={fields.slice()}
+                    data={transactions.status === 'success' ? transactions.data[0] : null}
+                    error={
+                      transactions.status === 'error'
+                        ? t('Unable to load profiles')
+                        : null
+                    }
+                    isLoading={transactions.status === 'loading'}
+                    sort={sort}
+                    sortableColumns={new Set(fields)}
+                  />
+                  <Pagination
+                    pageLinks={
+                      transactions.status === 'success'
+                        ? transactions.data?.[2]?.getResponseHeader('Link') ?? null
+                        : null
+                    }
+                  />
+                </Fragment>
+              )}
+            </Layout.Main>
+          </Layout.Body>
         </Layout.Page>
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
 
-const FIELDS = [
+const BASE_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
@@ -256,7 +278,10 @@ const FIELDS = [
   'count()',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
+// user misery is only available with the profiling-using-transactions feature
+const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
 
 const ActionBar = styled('div')`
   display: grid;

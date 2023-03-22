@@ -2,6 +2,7 @@ import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
+import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import {Event, ProfileContext, ProfileContextKey} from 'sentry/types/event';
@@ -96,6 +97,7 @@ function getProfileKnownDataDetails({
                 source: 'events.profile_event_context',
               })
             }
+            icon={<IconProfiling size="xs" />}
           >
             {t('Go to Profile')}
           </Button>

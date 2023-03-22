@@ -27,9 +27,8 @@ def fetch_unique_transaction_names(
             groupby=[Column("transaction")],
             limit=Limit(limit),
         ),
+        tenant_ids={"organization_id": project.organization_id},
     )
-    snuba_response = raw_snql_query(
-        snuba_request, referrer="src.sentry.ingest.transaction_clusterer"
-    )
+    snuba_response = raw_snql_query(snuba_request, "src.sentry.ingest.transaction_clusterer")
 
     return (row["transaction"] for row in snuba_response["data"])

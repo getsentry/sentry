@@ -10,8 +10,10 @@ import ListItem from 'sentry/components/list/listItem';
 import {IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {Event} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -35,7 +37,7 @@ function getErrorMessage(
   /**
    * Expandable description
    */
-  desc?: string;
+  desc?: React.ReactNode;
   docsLink?: string;
 }> {
   const docPlatform = (sdkName && sourceMapSdkDocsMap[sdkName]) ?? 'javascript';
@@ -61,7 +63,7 @@ function getErrorMessage(
         {
           title: t('Event missing Release tag'),
           desc: t(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI.'
+            'Integrate Sentry into your release pipeline using a tool like Webpack or the CLI.'
           ),
           docsLink: defaultDocsLink,
         },
@@ -69,10 +71,14 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.PARTIAL_MATCH:
       return [
         {
-          title: t(
-            'The abs_path of the stack frame is a partial match. The stack frame has the path %s which is a partial match to %s. You might need to modify the value of url-prefix.',
-            error.data.absPath,
-            error.data.partialMatchPath
+          title: t('Partial Absolute Path Match'),
+          desc: tct(
+            'The abs_path of the stack frame is a partial match. The stack frame has the path [absPath] which is a partial match to [partialMatchPath]. You need to update the value for the URL prefix argument or `includes` in your config options to include [urlPrefix]',
+            {
+              absPath: <code>{error.data.absPath}</code>,
+              partialMatchPath: <code>{error.data.partialMatchPath}</code>,
+              urlPrefix: <code>{error.data.urlPrefix}</code>,
+            }
           ),
           docsLink: getTroubleshootingLink(
             'verify-artifact-names-match-stack-trace-frames'
@@ -84,7 +90,7 @@ function getErrorMessage(
         {
           title: t('Sentry not part of release pipeline'),
           desc: tct(
-            'Integrate Sentry into your release pipeline. You can do this with a tool like Webpack or using the CLI. Please note the release must be the same as being set in your [init]. The value for this event is [version].',
+            "Integrate Sentry into your release pipeline using  a tool like Webpack or the CLI. Your release must match what's set in your [init]. The value for this event is [version].",
             {
               init: sentryInit,
               version: <code>{error.data.version}</code>,
@@ -98,7 +104,7 @@ function getErrorMessage(
         {
           title: t('Source Maps not uploaded'),
           desc: t(
-            'It looks like you are creating but not uploading your source maps. Please refer to the instructions in our docs guide for help with troubleshooting the issue.'
+            "It looks like you're creating, but not uploading your source maps. Read our docs for troubleshooting help."
           ),
           docsLink: defaultDocsLink,
         },
@@ -108,7 +114,7 @@ function getErrorMessage(
         {
           title: t('Invalid Absolute Path URL'),
           desc: tct(
-            'The given [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.',
+            'The [literalAbsPath] of the stack frame is [absPath] which is not a valid URL. Read our docs for troubleshooting help.',
             {
               absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
@@ -124,7 +130,7 @@ function getErrorMessage(
         {
           title: t('Absolute Path Mismatch'),
           desc: tct(
-            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            "The given [literalAbsPath] of the stack frame is [absPath] which doesn't match any release artifact. Read our docs for troubleshooting help.",
             {
               absPath: <code>{error.data.absPath}</code>,
               literalAbsPath: <code>abs_path</code>,
@@ -138,9 +144,9 @@ function getErrorMessage(
     case SourceMapProcessingIssueType.DIST_MISMATCH:
       return [
         {
-          title: t('Absolute Path Mismatch'),
+          title: t('Dist Mismatch'),
           desc: tct(
-            "The distribution identifier you are providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Please refer to the instructions in our docs guide for help with troubleshooting the issue.",
+            "The distribution identifier you're providing doesn't match. The [literalDist] value of [dist] configured in your [init] must be the same as the one used during source map upload. Read our docs for troubleshooting help.",
             {
               init: sentryInit,
               dist: <code>dist</code>,
@@ -150,6 +156,16 @@ function getErrorMessage(
           docsLink: getTroubleshootingLink(
             'verify-artifact-distribution-value-matches-value-configured-in-your-sdk'
           ),
+        },
+      ];
+    case SourceMapProcessingIssueType.SOURCEMAP_NOT_FOUND:
+      return [
+        {
+          title: t("Source Map File doesn't exist"),
+          desc: t(
+            "Sentry couldn't fetch the source map file for this event. Read our docs for troubleshooting help."
+          ),
+          docsLink: getTroubleshootingLink(),
         },
       ];
     case SourceMapProcessingIssueType.UNKNOWN_ERROR:
@@ -227,10 +243,11 @@ interface SourcemapDebugProps {
    * A subset of the total error frames to validate sourcemaps
    */
   debugFrames: StacktraceFilenameQuery[];
-  sdkName?: string;
+  event: Event;
 }
 
-export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
+export function SourceMapDebug({debugFrames, event}: SourcemapDebugProps) {
+  const sdkName = event.sdk?.name;
   const organization = useOrganization();
   const results = useSourceMapDebugQueries(debugFrames.map(debug => debug.query));
 
@@ -249,18 +266,23 @@ export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
     return null;
   }
 
+  const analyticsParams = {
+    organization,
+    project_id: event.projectID,
+    group_id: event.groupID,
+    ...getAnalyticsDataForEvent(event),
+  };
+
   const handleDocsClick = (type: SourceMapProcessingIssueType) => {
     trackAdvancedAnalyticsEvent('source_map_debug.docs_link_clicked', {
-      organization,
-      sdkName,
+      ...analyticsParams,
       type,
     });
   };
 
   const handleExpandClick = (type: SourceMapProcessingIssueType) => {
     trackAdvancedAnalyticsEvent('source_map_debug.expand_clicked', {
-      organization,
-      sdkName,
+      ...analyticsParams,
       type,
     });
   };
@@ -296,8 +318,8 @@ export function SourceMapDebug({debugFrames, sdkName}: SourcemapDebugProps) {
       }
     >
       {tn(
-        "We've encountered %s problem de-minifying your applications source code!",
-        "We've encountered %s problems de-minifying your applications source code!",
+        "We've encountered %s problem un-minifying your applications source code!",
+        "We've encountered %s problems un-minifying your applications source code!",
         errorMessages.length
       )}
     </Alert>

@@ -1,9 +1,8 @@
-import {useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
-import Link from 'sentry/components/links/link';
 import {
   ProfilingBreadcrumbs,
   ProfilingBreadcrumbsProps,
@@ -14,10 +13,6 @@ import {Event} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
-import {
-  generateProfileDetailsRouteWithQuery,
-  generateProfileFlamechartRouteWithQuery,
-} from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useProfiles} from 'sentry/views/profiling/profilesProvider';
@@ -27,7 +22,7 @@ function getTransactionName(input: Profiling.ProfileInput): string {
     return input.metadata.transactionName;
   }
   if (isSentrySampledProfile(input)) {
-    return input.transactions?.[0]?.name || t('Unknown Transaction');
+    return input.transaction.name || t('Unknown Transaction');
   }
 
   return t('Unknown Transaction');
@@ -53,12 +48,12 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
     ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
     : null;
 
-  function handleGoToTransaction() {
+  const handleGoToTransaction = useCallback(() => {
     trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
       organization,
       source: 'transaction_details',
     });
-  }
+  }, [organization]);
 
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
@@ -78,7 +73,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           profileId,
           projectSlug,
           query: location.query,
-          tab: location.pathname.endsWith('details/') ? 'details' : 'flamechart',
         },
       },
     ];
@@ -98,32 +92,6 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
           </Button>
         )}
       </Layout.HeaderActions>
-      <SmallerProfilingHeaderNavTabs underlined>
-        <li className={location.pathname.endsWith('flamechart/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileFlamechartRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug,
-              profileId,
-              query: location.query,
-            })}
-          >
-            {t('Flamechart')}
-          </Link>
-        </li>
-        <li className={location.pathname.endsWith('details/') ? 'active' : undefined}>
-          <Link
-            to={generateProfileDetailsRouteWithQuery({
-              orgSlug: organization.slug,
-              projectSlug,
-              profileId,
-              query: location.query,
-            })}
-          >
-            {t('Details')}
-          </Link>
-        </li>
-      </SmallerProfilingHeaderNavTabs>
     </SmallerLayoutHeader>
   );
 }
@@ -138,11 +106,6 @@ const SmallerProfilingBreadcrumbsWrapper = styled('div')`
   }
 `;
 
-const SmallerProfilingHeaderNavTabs = styled(Layout.HeaderNavTabs)`
-  a {
-    padding-top: 0 !important;
-  }
-`;
 const SmallerLayoutHeader = styled(Layout.Header)`
   padding: ${space(1)} ${space(2)} ${space(0)} ${space(2)} !important;
 `;

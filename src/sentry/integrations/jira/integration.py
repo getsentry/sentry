@@ -28,7 +28,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -880,7 +880,7 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
     def sync_assignee_outbound(
         self,
         external_issue: ExternalIssue,
-        user: Optional[APIUser],
+        user: Optional[RpcUser],
         assign: bool = True,
         **kwargs: Any,
     ) -> None:
@@ -902,7 +902,6 @@ class JiraIntegration(IntegrationInstallation, IssueSyncMixin):
                         account_id = possible_user.get("accountId")
                         email = client.get_email(account_id)
                     # match on lowercase email
-                    # TODO(steve): add check against display name when JIRA_USE_EMAIL_SCOPE is false
                     if email and email.lower() == ue.lower():
                         jira_user = possible_user
                         break

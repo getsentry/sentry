@@ -119,12 +119,6 @@ jobs:
         env:
           PYTEST_SNAPSHOTS_DIR: ${{ steps.setup.outputs.acceptance-dir }}
 
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        with:
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
-
       # This job runs when FE or BE changes happen, however, we only upload coverage data for
       # BE changes since it conflicts with codecov's carry forward functionality
       # Upload coverage data even if running the tests step fails since
@@ -133,11 +127,10 @@ jobs:
         uses: ./.github/actions/artifacts
         if: ${{ always() && needs.files-changed.outputs.backend_all == 'true' }}
 
-  visual-diff:
-    # triggers visual snapshot is a required check so we need this job to
-    # always run and report a status.
+  acceptance-required-checks:
+    # this is a required check so we need this job to always run and report a status.
     if: always()
-    name: triggers visual snapshot
+    name: Acceptance
     needs: [acceptance, files-changed]
     runs-on: ubuntu-20.04
     timeout-minutes: 20
@@ -150,29 +143,3 @@ jobs:
         if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
         run: |
           echo "One of the dependent jobs have failed. You may need to re-run it." && exit 1
-
-      - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        # Run this step only if there are acceptance related code changes
-        # Forks are handled in visual-diff.yml
-        if: needs.files-changed.outputs.acceptance == 'true' && github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
-        with:
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
-  # "Visual Snapshot" is a required check, so we either skip the visual tests
-  # and need to post a status passing OR we run the visual tests and let the
-  # visual snapshot service post a status.
-  #
-  # This handles the skip case and creates a status we skip acceptance tests.
-  fake-visual-snapshot:
-    name: Visual Snapshot
-    needs: [files-changed]
-    # Opposite condition to "triggers visual snapshot" required check
-    if: needs.files-changed.outputs.acceptance != 'true'
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Sentaur attack
-        run: |
-          echo "This check creates a Visual Snapshot to satisfy Github required checks when we skip acceptance tests."

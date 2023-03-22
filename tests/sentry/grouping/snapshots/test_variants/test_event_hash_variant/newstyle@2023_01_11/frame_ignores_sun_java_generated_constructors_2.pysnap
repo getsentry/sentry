@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:30.040808Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -8,7 +6,7 @@ app:
   component:
     app (stacktrace of system takes precedence)
       stacktrace
-        frame (non app frame)
+        frame (marked out of app by stack trace rule (module:sun.* -app))
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*
@@ -19,7 +17,7 @@ system:
   component:
     system*
       stacktrace*
-        frame*
+        frame* (marked out of app by stack trace rule (module:sun.* -app))
           module* (removed codegen marker)
             "sun.reflect.GeneratedConstructorAccessor<auto>"
           function*

@@ -5,7 +5,7 @@ from typing import Sequence
 from rest_framework import serializers
 
 from sentry.models import ActorTuple, Team, User
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 
 def extract_user_ids_from_mentions(organization_id, mentions):
@@ -16,7 +16,7 @@ def extract_user_ids_from_mentions(organization_id, mentions):
     is all user ids from explicitly mentioned teams, excluding any already
     mentioned users.
     """
-    actors: Sequence[APIUser | Team] = ActorTuple.resolve_many(mentions)
+    actors: Sequence[RpcUser | Team] = ActorTuple.resolve_many(mentions)
     actor_mentions = separate_resolved_actors(actors)
 
     team_users = user_service.get_many(
@@ -40,7 +40,7 @@ def separate_actors(actors):
     return {"users": users, "teams": teams}
 
 
-def separate_resolved_actors(actors: Sequence[APIUser | Team]):
+def separate_resolved_actors(actors: Sequence[RpcUser | Team]):
     users = [actor for actor in actors if actor.class_name() == "User"]
     teams = [actor for actor in actors if isinstance(actor, Team)]
 

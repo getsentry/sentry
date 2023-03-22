@@ -1,0 +1,170 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "4364639e22250950545ba3c16a0654d0"
+  tree_label: "run"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "4c25698b1cc1c8396ddad0cd3da00b7d"
+  tree_label: "run | jsdelivr"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "a9af34790c14bc5193c005ba555d9842"
+  tree_label: "run | jsdelivr | cdnjs"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-4:
+  hash: "6ab78545e13144405fb21dadb9045b91"
+  tree_label: "run | jsdelivr | cdnjs | unpkg"
+  component:
+    app-depth-4*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "6ab78545e13144405fb21dadb9045b91"
+  tree_label: "run | jsdelivr | cdnjs | unpkg"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "6ab78545e13144405fb21dadb9045b91"
+  tree_label: "run | jsdelivr | cdnjs | unpkg"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "react-dom@16.13.1/umd/react-dom.production"
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "unpkg"
+          frame*
+            filename (ignored because frame points to a URL)
+              "react-dom.production.min.js"
+            function*
+              "cdnjs"
+          frame*
+            filename (ignored because frame points to a URL)
+              "jquery.min.js"
+            function*
+              "jsdelivr"
+          frame*
+            filename (ignored because frame points to a URL)
+              "d3@7.6.1"
+            function* (trimmed javascript function)
+              "run"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

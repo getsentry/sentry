@@ -13,7 +13,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
-from sentry.db.postgres.roles import test_psql_role_override
+from sentry.db.postgres.roles import in_test_psql_role_override
 
 
 @region_silo_only_model
@@ -99,7 +99,7 @@ def create_counter_function(app_config, using, **kwargs):
     if not get_model_if_available(app_config, "Counter"):
         return
 
-    with test_psql_role_override("postgres", using), connections[using].cursor() as cursor:
+    with in_test_psql_role_override("postgres", using), connections[using].cursor() as cursor:
         cursor.execute(
             """
             create or replace function sentry_increment_project_counter(

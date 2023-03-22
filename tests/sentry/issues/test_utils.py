@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
@@ -37,13 +37,14 @@ class OccurrenceTestMixin:
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
+            "culprit": "api/123",
             "resource_id": "1234",
             "evidence_data": {"Test": 123},
             "evidence_display": [
                 {"name": "hi", "value": "bye", "important": True},
                 {"name": "what", "value": "where", "important": False},
             ],
-            "type": ProfileBlockedThreadGroupType.type_id,
+            "type": ProfileFileIOGroupType.type_id,
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }

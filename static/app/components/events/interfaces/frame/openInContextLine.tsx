@@ -53,7 +53,7 @@ const OpenInContextLine = ({lineNo, filename, components}: Props) => {
 
 export {OpenInContextLine};
 
-export const OpenInContainer = styled('div')<{columnQuantity: number}>`
+const OpenInContainer = styled('div')<{columnQuantity: number}>`
   position: relative;
   z-index: 1;
   display: grid;

@@ -7,7 +7,7 @@ from snuba_sdk import Limit
 from sentry.issues.grouptype import (
     PerformanceNPlusOneGroupType,
     PerformanceRenderBlockingAssetSpanGroupType,
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
@@ -772,8 +772,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group1"
-        group2_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group2"
+        group1_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
+        group2_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
 
         groups = {}
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -842,7 +842,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group4"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group4"
         groups = []
         for i in range(0, 11):
             _, _, group_info = self.store_search_issue(
@@ -876,7 +876,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{ProfileBlockedThreadGroupType.type_id}-group5"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]
         groups = []
         for r in ids:

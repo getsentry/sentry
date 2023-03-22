@@ -12,7 +12,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import MissingProjectMembership from 'sentry/components/projects/missingProjectMembership';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import {Item, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import SentryTypes from 'sentry/sentryTypes';
 import GroupStore from 'sentry/stores/groupStore';
@@ -149,7 +149,6 @@ class GroupDetails extends Component<Props, State> {
   trackView(project: Project) {
     const {group, event} = this.state;
     const {location, organization, router} = this.props;
-    // Remove ref_fallback with IssueAlertFallbackExperiment
     const {alert_date, alert_rule_id, alert_type, ref_fallback} = location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
@@ -168,6 +167,8 @@ class GroupDetails extends Component<Props, State> {
         event
       ),
       ref_fallback,
+      // Will be updated by StacktraceLink if there is a stacktrace link
+      stacktrace_link_viewed: false,
     });
   }
 
@@ -627,9 +628,9 @@ class GroupDetails extends Component<Props, State> {
           project={project as Project}
         />
         <GroupTabPanels>
-          <Item key={currentTab}>
+          <TabPanels.Item key={currentTab}>
             {isValidElement(children) ? cloneElement(children, childProps) : children}
-          </Item>
+          </TabPanels.Item>
         </GroupTabPanels>
       </Tabs>
     );
@@ -661,7 +662,15 @@ class GroupDetails extends Component<Props, State> {
               <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
-              this.renderContent(projects[0], group!)
+              // Search for the slug in the projects list if possible. This is because projects
+              // is just a complete list of stored projects and the first element may not be
+              // the expected project.
+              this.renderContent(
+                (project?.slug
+                  ? projects.find(({slug}) => slug === project?.slug)
+                  : undefined) ?? projects[0],
+                group!
+              )
             )
           ) : (
             <LoadingIndicator />

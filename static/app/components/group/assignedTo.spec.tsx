@@ -70,7 +70,7 @@ describe('Group > AssignedTo', () => {
   });
 
   const openMenu = async () => {
-    userEvent.click(await screen.findByTestId('assignee-selector'), undefined, {
+    await userEvent.click(await screen.findByTestId('assignee-selector'), {
       // Skip hover to prevent tooltip from rendering
       skipHover: true,
     });
@@ -92,6 +92,7 @@ describe('Group > AssignedTo', () => {
   });
 
   it('can assign team', async () => {
+    const onAssign = jest.fn();
     const assignedGroup: Group = {
       ...GROUP_1,
       assignedTo: {...TEAM_1, type: 'team'},
@@ -102,7 +103,7 @@ describe('Group > AssignedTo', () => {
       body: assignedGroup,
     });
     const {rerender} = render(
-      <AssignedTo project={project} group={GROUP_1} event={event} />,
+      <AssignedTo project={project} group={GROUP_1} event={event} onAssign={onAssign} />,
       {
         organization,
       }
@@ -111,7 +112,7 @@ describe('Group > AssignedTo', () => {
     expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
 
     const team1slug = `#${TEAM_1.slug}`;
-    userEvent.click(screen.getByText(team1slug));
+    await userEvent.click(screen.getByText(team1slug));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -121,6 +122,7 @@ describe('Group > AssignedTo', () => {
         })
       )
     );
+    expect(onAssign).toHaveBeenCalledWith('team', TEAM_1, undefined);
 
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
@@ -149,7 +151,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     // Assign first item in list, which is TEAM_1
-    userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
+    await userEvent.click(screen.getByText(`#${TEAM_1.slug}`));
 
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
@@ -163,7 +165,7 @@ describe('Group > AssignedTo', () => {
     // Group changes are passed down from parent component
     rerender(<AssignedTo project={project} group={assignedGroup} event={event} />);
     await openMenu();
-    userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear Assignee'}));
 
     // api was called with empty string, clearing assignment
     await waitFor(() =>
@@ -177,6 +179,7 @@ describe('Group > AssignedTo', () => {
   });
 
   it('displays suggested assignees from committers and owners', async () => {
+    const onAssign = jest.fn();
     const author = TestStubs.CommitAuthor({id: USER_2.id});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
@@ -196,13 +199,44 @@ describe('Group > AssignedTo', () => {
         rules: [[['codeowners', '/./app/components'], [['team', TEAM_1.name]]]],
       },
     });
-
-    render(<AssignedTo project={project} group={GROUP_1} event={event} />, {
-      organization: {...organization, features: ['streamline-targeting-context']},
+    const assignedGroup: Group = {
+      ...GROUP_1,
+      assignedTo: {...USER_2, type: 'user'},
+    };
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/issues/${GROUP_1.id}/`,
+      body: assignedGroup,
     });
+
+    render(
+      <AssignedTo project={project} group={GROUP_1} event={event} onAssign={onAssign} />,
+      {
+        organization: {...organization, features: ['streamline-targeting-context']},
+      }
+    );
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
     expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Suspect commit author'));
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenLastCalledWith(
+        '/issues/1337/',
+        expect.objectContaining({
+          data: {assignedTo: 'user:2', assignedBy: 'assignee_selector'},
+        })
+      )
+    );
+    expect(onAssign).toHaveBeenCalledWith(
+      'member',
+      USER_2,
+      expect.objectContaining({
+        suggestedReason: 'suspectCommit',
+        suggestedReasonText: 'Suspect commit author',
+      })
+    );
   });
 });

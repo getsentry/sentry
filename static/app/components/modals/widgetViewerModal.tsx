@@ -52,7 +52,9 @@ import useRouter from 'sentry/utils/useRouter';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
 import {
+  dashboardFiltersToString,
   eventViewFromWidget,
+  getDashboardFiltersFromURL,
   getFieldsFromEquations,
   getNumEquations,
   getWidgetDiscoverUrl,
@@ -244,6 +246,7 @@ function WidgetViewerModal(props: Props) {
 
   // Get table sort settings from location
   const sort = decodeScalar(location.query[WidgetViewerQueryField.SORT]);
+
   const sortedQueries = cloneDeep(
     sort ? widget.queries.map(query => ({...query, orderby: sort})) : widget.queries
   );
@@ -385,7 +388,15 @@ function WidgetViewerModal(props: Props) {
 
   const queryOptions = sortedQueries.map(({name, conditions}, index) => {
     // Creates the highlighted query elements to be used in the Query Select
-    const parsedQuery = !name && !!conditions ? parseSearch(conditions) : null;
+    const dashboardFilters = dashboardFiltersToString(
+      getDashboardFiltersFromURL(location)
+    );
+    const parsedQuery =
+      !name && !!conditions
+        ? parseSearch(
+            conditions + (dashboardFilters === '' ? '' : ` ${dashboardFilters}`)
+          )
+        : null;
     const getHighlightedQuery = (
       highlightedContainerProps: React.ComponentProps<typeof HighlightContainer>
     ) => {
@@ -728,6 +739,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
+            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
           >
             {renderIssuesTable}
           </IssueWidgetQueries>
@@ -752,6 +764,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
+            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
           >
             {renderReleaseTable}
           </ReleaseWidgetQueries>
@@ -779,6 +792,7 @@ function WidgetViewerModal(props: Props) {
                 : HALF_TABLE_ITEM_LIMIT
             }
             cursor={cursor}
+            dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
           >
             {({tableResults, loading, pageLinks}) => (
               <DiscoverTable
@@ -839,6 +853,7 @@ function WidgetViewerModal(props: Props) {
                 api={api}
                 organization={organization}
                 selection={modalChartSelection.current}
+                dashboardFilters={getDashboardFiltersFromURL(location) ?? undefined}
                 // Top N charts rely on the orderby of the table
                 widget={primaryWidget}
                 onZoom={onZoom}

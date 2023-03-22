@@ -129,7 +129,7 @@ describe('AlertRulesList', () => {
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
-    userEvent.click(btn, {skipHover: true});
+    await userEvent.click(btn, {skipHover: true});
 
     expect(screen.getByText('#team-slug')).toBeInTheDocument();
     expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
@@ -148,8 +148,8 @@ describe('AlertRulesList', () => {
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
-    userEvent.click(btn, {skipHover: true});
-    userEvent.click(screen.getByText('#team-slug'));
+    await userEvent.click(btn, {skipHover: true});
+    await userEvent.click(screen.getByText('#team-slug'));
 
     expect(assignMock).toHaveBeenCalledWith(
       '/projects/org-slug/earth/rules/123/',
@@ -161,10 +161,10 @@ describe('AlertRulesList', () => {
 
   it('displays dropdown context menu with actions', async () => {
     createWrapper();
-    const actions = (await screen.findAllByRole('button', {name: 'Show more'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
-    userEvent.click(actions);
+    await userEvent.click(actions);
 
     expect(screen.getByText('Edit')).toBeInTheDocument();
     expect(screen.getByText('Delete')).toBeInTheDocument();
@@ -173,15 +173,15 @@ describe('AlertRulesList', () => {
 
   it('sends user to new alert page on duplicate action', async () => {
     createWrapper();
-    const actions = (await screen.findAllByRole('button', {name: 'Show more'}))[0];
+    const actions = (await screen.findAllByRole('button', {name: 'Actions'}))[0];
     expect(actions).toBeInTheDocument();
 
-    userEvent.click(actions);
+    await userEvent.click(actions);
 
     const duplicate = await screen.findByText('Duplicate');
     expect(duplicate).toBeInTheDocument();
 
-    userEvent.click(duplicate);
+    await userEvent.click(duplicate);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/alerts/new/issue/',
@@ -247,7 +247,7 @@ describe('AlertRulesList', () => {
     expect(search).toBeInTheDocument();
 
     const testQuery = 'test name';
-    userEvent.type(search, `${testQuery}{enter}`);
+    await userEvent.type(search, `${testQuery}{enter}`);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -270,11 +270,11 @@ describe('AlertRulesList', () => {
       getComponent({location: {query: {team: 'myteams'}, search: '?team=myteams`'}})
     );
 
-    userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'My Teams'}));
 
     // Uncheck myteams
     const myTeams = await screen.findAllByText('My Teams');
-    userEvent.click(myTeams[1]);
+    await userEvent.click(myTeams[1]);
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -323,7 +323,7 @@ describe('AlertRulesList', () => {
     });
     expect(await screen.findByText('First Issue Alert')).toBeInTheDocument();
 
-    userEvent.click(screen.getByLabelText('Next'));
+    await userEvent.click(screen.getByLabelText('Next'));
 
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({

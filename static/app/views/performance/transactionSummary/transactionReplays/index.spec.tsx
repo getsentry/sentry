@@ -35,7 +35,7 @@ let mockRouterContext: {
 
 const getComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay-ui']},
+  organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps) => {
   const {router, organization, routerContext} = initializeOrg({
     organization: {
@@ -198,45 +198,35 @@ describe('TransactionReplays', () => {
       body: {
         data: [
           {
+            ...TestStubs.ReplayList()[0],
             count_errors: 1,
             duration: 52346,
-            finished_at: '2022-09-15T06:54:00+00:00',
+            finished_at: new Date('2022-09-15T06:54:00+00:00'),
             id: '346789a703f6454384f1de473b8b9fcc',
-            project_id: '2',
-            started_at: '2022-09-15T06:50:03+00:00',
+            started_at: new Date('2022-09-15T06:50:00+00:00'),
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
               '/organizations/sentry-emerging-tech/replays/?project=2',
             ],
-            user: {
-              id: '147086',
-              name: '',
-              email: '',
-              ip: '127.0.0.1',
-              display_name: 'testDisplayName',
-            },
           },
           {
+            ...TestStubs.ReplayList()[0],
             count_errors: 4,
             duration: 400,
-            finished_at: '2022-09-21T21:40:38+00:00',
+            finished_at: new Date('2022-09-21T21:40:38+00:00'),
             id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
-            project_id: '2',
-            started_at: '2022-09-21T21:30:44+00:00',
+            started_at: new Date('2022-09-21T21:30:44+00:00'),
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
               '/organizations/sentry-emerging-tech/issues/',
               '/organizations/sentry-emerging-tech/issues/?project=2',
             ],
-            user: {
-              id: '147086',
-              name: '',
-              email: '',
-              ip: '127.0.0.1',
-              display_name: 'testDisplayName',
-            },
           },
-        ],
+        ].map(hydrated => ({
+          ...hydrated,
+          started_at: hydrated.started_at.toString(),
+          finished_at: hydrated.finished_at.toString(),
+        })),
       },
     });
 
@@ -267,10 +257,10 @@ describe('TransactionReplays', () => {
     );
 
     // Expect the first row to have the correct duration
-    expect(screen.getByText('14hr 32min 26s')).toBeInTheDocument();
+    expect(screen.getByText('14:32:26')).toBeInTheDocument();
 
     // Expect the second row to have the correct duration
-    expect(screen.getByText('6min 40s')).toBeInTheDocument();
+    expect(screen.getByText('06:40')).toBeInTheDocument();
 
     // Expect the first row to have the correct errors
     expect(screen.getAllByTestId('replay-table-count-errors')[0]).toHaveTextContent('1');

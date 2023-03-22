@@ -8,6 +8,8 @@ from ..base import DetectorType, PerformanceDetector, fingerprint_resource_span,
 from ..performance_problem import PerformanceProblem
 from ..types import Span
 
+FILE_EXTENSION_DENYLIST = ("woff", "woff2")
+
 
 class UncompressedAssetSpanDetector(PerformanceDetector):
     """
@@ -25,6 +27,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
+        description = span.get("description", "")
         if not op:
             return
 
@@ -55,6 +58,10 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         if encoded_body_size < size_threshold_bytes:
             return
 
+        # Ignore assets with certain file extensions
+        if description.endswith(FILE_EXTENSION_DENYLIST):
+            return
+
         # Ignore assets under a certain duration threshold
         if get_span_duration(span).total_seconds() * 1000 <= self.settings.get(
             "duration_threshold"
@@ -66,8 +73,8 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         if fingerprint and span_id and not self.stored_problems.get(fingerprint, False):
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
-                op=span.get("op"),
-                desc=span.get("description", ""),
+                op=op,
+                desc=description,
                 parent_span_ids=[],
                 type=PerformanceUncompressedAssetsGroupType,
                 cause_span_ids=[],

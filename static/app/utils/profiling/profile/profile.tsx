@@ -8,10 +8,6 @@ interface ProfileStats {
   negativeSamplesCount: number;
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality + some added functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
-// We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class Profile {
   // Duration of the profile
   duration: number;
@@ -43,6 +39,8 @@ export class Profile {
     discardedSamplesCount: 0,
     negativeSamplesCount: 0,
   };
+
+  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
 
   constructor({
     duration,
@@ -101,7 +99,7 @@ export class Profile {
     openFrame: (node: CallTreeNode, value: number) => void,
     closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
-    let prevStack: CallTreeNode[] = [];
+    const prevStack: CallTreeNode[] = [];
     let value = 0;
 
     let sampleIndex = 0;
@@ -109,7 +107,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot() && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
         top = top.parent;
       }
 
@@ -122,19 +120,20 @@ export class Profile {
 
       let node: CallTreeNode | null = stackTop;
 
-      while (node && !node.isRoot() && node !== top) {
-        toOpen.unshift(node);
+      while (node && !node.isRoot && node !== top) {
+        toOpen.push(node);
         node = node.parent;
       }
 
-      for (const toOpenNode of toOpen) {
-        openFrame(toOpenNode, value);
+      for (let i = toOpen.length - 1; i >= 0; i--) {
+        openFrame(toOpen[i], value);
+        prevStack.push(toOpen[i]);
       }
 
-      prevStack = prevStack.concat(toOpen);
       value += this.weights[sampleIndex++];
     }
 
+    // Close any remaining frames
     for (let i = prevStack.length - 1; i >= 0; i--) {
       closeFrame(prevStack[i], value);
     }

@@ -26,29 +26,6 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
     def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
-                "sampleRate": 1,
-                "type": "trace",
-                "condition": {
-                    "op": "or",
-                    "inner": [
-                        {
-                            "op": "glob",
-                            "name": "trace.environment",
-                            "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
-                        }
-                    ],
-                },
-                "active": True,
-                "id": bias_data["id"],
-            }
-        ]
-
-
-class BoostEnvironmentsRulesGeneratorV2(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
-        return [
-            {
                 "samplingValue": {
                     "type": "sampleRate",
                     "value": 1.0,
@@ -61,11 +38,9 @@ class BoostEnvironmentsRulesGeneratorV2(BiasRulesGenerator):
                             "op": "glob",
                             "name": "trace.environment",
                             "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": bias_data["id"],
             }
         ]
@@ -74,8 +49,3 @@ class BoostEnvironmentsRulesGeneratorV2(BiasRulesGenerator):
 class BoostEnvironmentsBias(Bias):
     def __init__(self) -> None:
         super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGenerator)
-
-
-class BoostEnvironmentsBiasV2(Bias):
-    def __init__(self) -> None:
-        super().__init__(BoostEnvironmentsDataProvider, BoostEnvironmentsRulesGeneratorV2)

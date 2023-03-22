@@ -12,9 +12,10 @@ import {defined} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {getProfilingDocsForPlatform} from 'sentry/utils/profiling/platforms';
 import {generateProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -33,8 +34,11 @@ export function GapSpanDetails({
   resetCellMeasureCache,
   span,
 }: GapSpanDetailsProps) {
-  const {projects} = useProjects({slugs: event.projectSlug ? [event.projectSlug] : []});
-  const project = projects?.[0];
+  const {projects} = useProjects();
+  const project = useMemo(
+    () => projects.find(p => p.id === event.projectID),
+    [projects, event]
+  );
 
   const organization = useOrganization();
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
@@ -80,13 +84,14 @@ export function GapSpanDetails({
           organization={organization}
         />
         <FlamegraphContainer>
-          <FlamegraphPreview
-            flamegraph={flamegraph}
-            relativeStartTimestamp={relativeStartTimestamp}
-            relativeStopTimestamp={relativeStopTimestamp}
-            renderText={transactionHasProfile}
-            updateFlamegraphView={setCanvasView}
-          />
+          <FlamegraphThemeProvider>
+            <FlamegraphPreview
+              flamegraph={flamegraph}
+              relativeStartTimestamp={relativeStartTimestamp}
+              relativeStopTimestamp={relativeStopTimestamp}
+              updateFlamegraphView={setCanvasView}
+            />
+          </FlamegraphThemeProvider>
         </FlamegraphContainer>
       </Container>
     );
@@ -96,7 +101,7 @@ export function GapSpanDetails({
   // so use that first and fall back to the project's platform
   const docsLink =
     getProfilingDocsForPlatform(event.platform) ??
-    getProfilingDocsForPlatform(project.platform);
+    (project && getProfilingDocsForPlatform(project.platform));
 
   // This project has received a profile before so they've already
   // set up profiling. No point showing the profiling setup again.
@@ -105,7 +110,7 @@ export function GapSpanDetails({
       <InlineDocs
         orgSlug={organization.slug}
         platform={event.sdk?.name || ''}
-        projectSlug={event?.projectSlug ?? ''}
+        projectSlug={event?.projectSlug ?? project?.slug ?? ''}
         resetCellMeasureCache={resetCellMeasureCache}
       />
     );
@@ -117,13 +122,15 @@ export function GapSpanDetails({
     <Container>
       <SetupProfilingInstructions docsLink={docsLink} />
       <FlamegraphContainer>
-        <FlamegraphPreview
-          flamegraph={flamegraph}
-          relativeStartTimestamp={relativeStartTimestamp}
-          relativeStopTimestamp={relativeStopTimestamp}
-          renderText={transactionHasProfile}
-          updateFlamegraphView={setCanvasView}
-        />
+        <FlamegraphThemeProvider>
+          <FlamegraphPreview
+            flamegraph={flamegraph}
+            relativeStartTimestamp={relativeStartTimestamp}
+            relativeStopTimestamp={relativeStopTimestamp}
+            renderText={false}
+            updateFlamegraphView={setCanvasView}
+          />
+        </FlamegraphThemeProvider>
       </FlamegraphContainer>
     </Container>
   );
@@ -178,10 +185,10 @@ function ProfilePreview({canvasView, event, organization}: ProfilePreviewProps) 
   // we want to try to go straight to the same config view as the preview
   const query = canvasView?.configView
     ? {
+        // TODO: this assumes that profile start timestamp == transaction timestamp
         fov: Rect.encode(canvasView.configView),
         // the flamechart persists some preferences to local storage,
         // force these settings so the view is the same as the preview
-        xAxis: 'profile',
         view: 'top down',
         type: 'flamechart',
       }

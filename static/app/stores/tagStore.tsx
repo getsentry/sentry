@@ -1,6 +1,6 @@
 import {createStore} from 'reflux';
 
-import {Tag, TagCollection} from 'sentry/types';
+import {IssueCategory, IssueType, Organization, Tag, TagCollection} from 'sentry/types';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
@@ -15,8 +15,8 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
 }, {});
 
 interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getIssueAttributes(): TagCollection;
-  getIssueTags(): TagCollection;
+  getIssueAttributes(org: Organization): TagCollection;
+  getIssueTags(org: Organization): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
   state: TagCollection;
@@ -34,7 +34,7 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes() {
+  getIssueAttributes(org: Organization) {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -80,17 +80,30 @@ const storeConfig: TagStoreDefinition = {
       [FieldKey.ISSUE_CATEGORY]: {
         key: FieldKey.ISSUE_CATEGORY,
         name: 'Issue Category',
-        values: ['error', 'performance'],
+        values: [
+          IssueCategory.ERROR,
+          IssueCategory.PERFORMANCE,
+          ...(org.features.includes('issue-platform') ? [IssueCategory.PROFILE] : []),
+        ],
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
         key: FieldKey.ISSUE_TYPE,
         name: 'Issue Type',
         values: [
-          'performance_n_plus_one_db_queries',
-          'performance_n_plus_one_api_calls',
-          'performance_consecutive_db_queries',
-          'performance_slow_db_query',
+          IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+          IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
+          IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+          IssueType.PERFORMANCE_SLOW_DB_QUERY,
+          IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
+          IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
+          ...(org.features.includes('issue-platform')
+            ? [
+                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+              ]
+            : []),
         ],
         predefined: true,
       },
@@ -149,14 +162,14 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Get all tags including builtin issue tags and issue attributes
    */
-  getIssueTags() {
+  getIssueTags(org: Organization) {
     return {
       ...BUILTIN_TAGS,
       ...SEMVER_TAGS,
       // State tags should overwrite built ins.
       ...this.state,
       // We want issue attributes to overwrite any built in and state tags
-      ...this.getIssueAttributes(),
+      ...this.getIssueAttributes(org),
     };
   },
 

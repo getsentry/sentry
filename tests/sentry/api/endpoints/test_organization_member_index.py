@@ -112,9 +112,7 @@ class OrganizationMemberSerializerTest(TestCase):
         serializer = OrganizationMemberSerializer(context=context, data=data)
 
         assert not serializer.is_valid()
-        assert serializer.errors == {
-            "teamRoles": ["You do not have permission to set that team-level role"]
-        }
+        assert serializer.errors == {"teamRoles": ["Invalid team-role"]}
 
 
 class OrganizationMemberListTestBase(APITestCase):
@@ -191,17 +189,27 @@ class OrganizationMemberListTest(OrganizationMemberListTestBase):
         assert response.data[0]["email"] == self.user.email
 
     def test_role_query(self):
+        member_team = self.create_team(organization=self.organization, org_role="member")
+        user = self.create_user("zoo@localhost", username="zoo")
+        self.create_member(
+            user=user,
+            organization=self.organization,
+            role="owner",
+            teams=[member_team],
+        )
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:member"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user2.email
+        assert response.data[1]["email"] == user.email
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "role:owner"}
         )
-        assert len(response.data) == 1
+        assert len(response.data) == 2
         assert response.data[0]["email"] == self.user.email
+        assert response.data[1]["email"] == user.email
 
     def test_is_invited_query(self):
         response = self.get_success_response(

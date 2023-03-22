@@ -79,9 +79,15 @@ class TimeseriesCardinalityLimiter:
     ) -> CardinalityLimiterState:
         request_hashes = defaultdict(set)
         hash_to_offset = {}
+
+        if use_case_id == UseCaseKey.PERFORMANCE:
+            rollout_option = "sentry-metrics.cardinality-limiter.orgs-rollout-rate"
+        elif use_case_id == UseCaseKey.RELEASE_HEALTH:
+            rollout_option = "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate"
+
         for key, message in messages.items():
             org_id = message["org_id"]
-            if not sample_modulo("sentry-metrics.cardinality-limiter.orgs-rollout-rate", org_id):
+            if not sample_modulo(rollout_option, org_id):
                 continue
 
             message_hash = int(

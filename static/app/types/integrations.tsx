@@ -9,6 +9,7 @@ import type {
 } from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -101,6 +102,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {
@@ -517,6 +519,11 @@ export type ServiceHook = {
  */
 export type CodeOwner = {
   codeMappingId: string;
+  /**
+   * Link to the CODEOWNERS file in source control
+   * 'unknown' if the api fails to fetch the file
+   */
+  codeOwnersUrl: string | 'unknown';
   dateCreated: string;
   dateUpdated: string;
   errors: {
@@ -531,6 +538,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {

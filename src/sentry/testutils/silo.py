@@ -22,10 +22,19 @@ from sentry.types.region import Region, RegionCategory
 TestMethod = Callable[..., None]
 
 region_map = [
-    Region("north_america", 1, "na.sentry.io", RegionCategory.MULTI_TENANT),
-    Region("europe", 2, "eu.sentry.io", RegionCategory.MULTI_TENANT),
+    Region("na", 1, "http://na.testserver", RegionCategory.MULTI_TENANT),
+    Region("eu", 2, "http://eu.testserver", RegionCategory.MULTI_TENANT),
     Region("acme-single-tenant", 3, "acme.my.sentry.io", RegionCategory.SINGLE_TENANT),
 ]
+
+
+def _model_silo_limit(t: type[Model]) -> ModelSiloLimit:
+    silo_limit = getattr(t._meta, "silo_limit", None)
+    if not isinstance(silo_limit, ModelSiloLimit):
+        raise ValueError(
+            f"{t!r} is missing a silo limit, add a silo_model decorate to indicate its placement"
+        )
+    return silo_limit
 
 
 class SiloModeTest:
@@ -61,7 +70,7 @@ class SiloModeTest:
                 ):
                     with override_regions(region_map):
                         if mode == SiloMode.REGION:
-                            with override_settings(SENTRY_REGION="north_america"):
+                            with override_settings(SENTRY_REGION="na"):
                                 test_method(*args, **kwargs)
                         else:
                             test_method(*args, **kwargs)
@@ -103,7 +112,7 @@ class SiloModeTest:
             with override_settings(SILO_MODE=silo_mode):
                 with override_regions(region_map):
                     if silo_mode == SiloMode.REGION:
-                        with override_settings(SENTRY_REGION="north_america"):
+                        with override_settings(SENTRY_REGION="na"):
                             test_method(*args, **kwargs)
                     else:
                         test_method(*args, **kwargs)
@@ -125,7 +134,8 @@ class SiloModeTest:
 
     def _call(self, decorated_obj: Any, stable: bool) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)
-        is_function = callable(decorated_obj)
+        is_function = inspect.isfunction(decorated_obj)
+
         if not (is_test_case_class or is_function):
             raise ValueError("@SiloModeTest must decorate a function or TestCase class")
 
@@ -198,44 +208,45 @@ def restrict_role(role: str, model: Any, revocation_type: str) -> None:
         connection.execute(f"REVOKE {revocation_type} ON public.{model._meta.db_table} FROM {role}")
 
 
-def iter_models() -> Iterable[Type[Model]]:
+def iter_models(app_name: str | None = None) -> Iterable[Type[Model]]:
     from django.apps import apps
 
     for app, app_models in apps.all_models.items():
-        for model in app_models.values():
-            if (
-                model.__module__.startswith("django.")
-                or "tests." in model.__module__
-                or "fixtures." in model.__module__
-            ):
-                continue
-            yield model
+        if app == app_name or app_name is None:
+            for model in app_models.values():
+                if (
+                    model.__module__.startswith("django.")
+                    or "tests." in model.__module__
+                    or "fixtures." in model.__module__
+                ):
+                    continue
+                yield model
 
 
-def validate_models_have_silos(exemptions: Set[Type[Model]]) -> None:
-    for model in iter_models():
+def validate_models_have_silos(exemptions: Set[Type[Model]], app_name: str | None = None) -> None:
+    for model in iter_models(app_name):
         if model in exemptions:
             continue
-        if not isinstance(getattr(model._meta, "silo_limit", None), ModelSiloLimit):
-            raise ValueError(
-                f"{model!r} is missing a silo limit, add a silo_model decorate to indicate its placement"
-            )
-        if (
-            SiloMode.REGION not in model._meta.silo_limit.modes
-            and SiloMode.CONTROL not in model._meta.silo_limit.modes
-        ):
+        silo_limit = _model_silo_limit(model)
+        if SiloMode.REGION not in silo_limit.modes and SiloMode.CONTROL not in silo_limit.modes:
             raise ValueError(
                 f"{model!r} is marked as a pending model, but either needs a placement or an exemption in this test."
             )
 
 
-def validate_no_cross_silo_foreign_keys(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
-    for model in iter_models():
-        validate_model_no_cross_silo_foreign_keys(model, exemptions)
+def validate_no_cross_silo_foreign_keys(
+    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
+) -> Set[Any]:
+    seen: Set[Any] = set()
+    for model in iter_models(app_name):
+        seen |= validate_model_no_cross_silo_foreign_keys(model, exemptions)
+    return seen
 
 
-def validate_no_cross_silo_deletions(exemptions: Set[Tuple[Type[Model], Type[Model]]]) -> None:
-    for model_class in iter_models():
+def validate_no_cross_silo_deletions(
+    exemptions: Set[Tuple[Type[Model], Type[Model]]], app_name: str | None = None
+) -> None:
+    for model_class in iter_models(app_name):
         if not hasattr(model_class._meta, "silo_limit"):
             continue
         deletion_task: BaseDeletionTask = deletions.get(model=model_class, query={})
@@ -243,19 +254,29 @@ def validate_no_cross_silo_deletions(exemptions: Set[Tuple[Type[Model], Type[Mod
             to_model = relation.params["model"]
             if (model_class, to_model) in exemptions or (to_model, model_class) in exemptions:
                 continue
-            for mode in model_class._meta.silo_limit.modes:
-                if mode not in to_model._meta.silo_limit.modes:
+            for mode in _model_silo_limit(model_class).modes:
+                if mode not in _model_silo_limit(to_model).modes:
                     raise ValueError(
                         f"Deletions for {model_class!r} cascade to {to_model!r}, but does not belong to the same silo mode.  Please remove this relation from get_child_relations in deletions configuration"
                     )
+
+
+def _is_relation_cross_silo(
+    model: Type[Model],
+    related: Type[Model],
+) -> bool:
+    for mode in _model_silo_limit(model).modes:
+        if mode not in _model_silo_limit(related).modes:
+            return True
+    return False
 
 
 def validate_relation_does_not_cross_silo_foreign_keys(
     model: Type[Model],
     related: Type[Model],
 ) -> None:
-    for mode in model._meta.silo_limit.modes:
-        if mode not in related._meta.silo_limit.modes:
+    for mode in _model_silo_limit(model).modes:
+        if mode not in _model_silo_limit(related).modes:
             raise ValueError(
                 f"{model!r} runs in {mode}, but is related to {related!r} which does not.  Add this relationship pair as an exception or drop the foreign key."
             )
@@ -264,13 +285,19 @@ def validate_relation_does_not_cross_silo_foreign_keys(
 def validate_model_no_cross_silo_foreign_keys(
     model: Type[Model],
     exemptions: Set[Tuple[Type[Model], Type[Model]]],
-) -> None:
+) -> Set[Any]:
+    seen: Set[Any] = set()
     for field in model._meta.fields:
         if isinstance(field, RelatedField):
             if (model, field.related_model) in exemptions:
-                continue
+                if _is_relation_cross_silo(model, field.related_model):
+                    seen = seen | {(model, field.related_model)}
+                    continue
             if (field.related_model, model) in exemptions:
-                continue
+                if _is_relation_cross_silo(field.related_model, model):
+                    seen = seen | {(field.related_model, model)}
+                    continue
 
             validate_relation_does_not_cross_silo_foreign_keys(model, field.related_model)
             validate_relation_does_not_cross_silo_foreign_keys(field.related_model, model)
+    return seen

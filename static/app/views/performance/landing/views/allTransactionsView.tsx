@@ -15,9 +15,9 @@ export function AllTransactionsView(props: BasePerformanceViewProps) {
     canUseMetricsData(props.organization);
 
   const doubleChartRowCharts = [
+    PerformanceWidgetSetting.MOST_REGRESSED,
     PerformanceWidgetSetting.MOST_RELATED_ISSUES,
     PerformanceWidgetSetting.MOST_IMPROVED,
-    PerformanceWidgetSetting.MOST_REGRESSED,
   ];
 
   if (showSpanOperationsWidget) {

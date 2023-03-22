@@ -14,12 +14,12 @@ import {
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  getCenterScaleMatrixFromConfigPosition,
-  Rect,
-} from 'sentry/utils/profiling/gl/utils';
+import {Project} from 'sentry/types';
+import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const MIN_BORDER_SIZE = 20;
+const MOUSE_DRAG_THRESHOLD = 3;
 
 export interface ViewNode {
   node: ViewHierarchyWindow;
@@ -29,10 +29,11 @@ export interface ViewNode {
 type WireframeProps = {
   hierarchy: ViewHierarchyWindow[];
   onNodeSelect: (node?: ViewHierarchyWindow) => void;
+  project: Project;
   selectedNode?: ViewHierarchyWindow;
 };
 
-function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
+function Wireframe({hierarchy, selectedNode, onNodeSelect, project}: WireframeProps) {
   const theme = useTheme();
   const [canvasRef, setCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [overlayRef, setOverlayRef] = useState<HTMLCanvasElement | null>(null);
@@ -45,7 +46,14 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
 
   const canvasSize = useResizeCanvasObserver(canvases);
 
-  const hierarchyData = useMemo(() => getHierarchyDimensions(hierarchy), [hierarchy]);
+  const hierarchyData = useMemo(
+    () =>
+      getHierarchyDimensions(
+        hierarchy,
+        ['flutter', 'dart-flutter'].includes(project?.platform ?? '')
+      ),
+    [hierarchy, project.platform]
+  );
   const nodeLookupMap = useMemo(() => {
     const map = new Map<ViewHierarchyWindow, ViewNode>();
     hierarchyData.nodes.forEach(node => {
@@ -172,18 +180,27 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
 
     const handleMouseDown = (e: MouseEvent) => {
       start = vec2.fromValues(e.offsetX, e.offsetY);
-      overlayRef.style.cursor = 'grabbing';
     };
 
     const handleMouseMove = (e: MouseEvent) => {
       if (start) {
+        const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
+        const delta = vec2.sub(vec2.create(), currPosition, start);
+
+        // If the mouse hasn't moved significantly, then don't consider
+        // this a drag. This prevents missed selections when the user
+        // moves their mouse slightly when clicking
+        const distance = vec2.len(delta);
+        if (!isDragging && distance < MOUSE_DRAG_THRESHOLD) {
+          return;
+        }
+
+        overlayRef.style.cursor = 'grabbing';
         isDragging = true;
         hoveredRect = null;
-        const currPosition = vec2.fromValues(e.offsetX, e.offsetY);
 
         // Delta needs to be scaled by the devicePixelRatio and how
         // much we've zoomed the image by to get an accurate translation
-        const delta = vec2.sub(vec2.create(), currPosition, start);
         vec2.scale(delta, delta, window.devicePixelRatio / transformationMatrix[0]);
 
         // Translate from the original matrix as a starting point
@@ -210,7 +227,7 @@ function Wireframe({hierarchy, selectedNode, onNodeSelect}: WireframeProps) {
         mat3.copy(transformationMatrix, currTransformationMatrix);
       }
       start = null;
-      overlayRef.style.cursor = 'grab';
+      overlayRef.style.cursor = 'pointer';
     };
 
     const handleMouseClick = (e: MouseEvent) => {
@@ -342,6 +359,7 @@ const InteractionContainer = styled('div')`
   left: 0;
   height: 100%;
   width: 100%;
+  cursor: pointer;
 `;
 
 const Controls = styled('div')`
@@ -360,7 +378,6 @@ const InteractionOverlayCanvas = styled('canvas')`
 
 const WireframeCanvas = styled('canvas')`
   background-color: ${p => p.theme.surface100};
-  cursor: grab;
   width: 100%;
   height: 100%;
 `;

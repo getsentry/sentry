@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
-from sentry.models import Integration
 from sentry.rules.actions import TicketEventAction
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils.http import absolute_uri
 
 
@@ -29,6 +29,6 @@ class JiraCreateTicketAction(TicketEventAction):
             absolute_uri(rule_url),
         )
 
-    def translate_integration(self, integration: Integration) -> str:
+    def translate_integration(self, integration: RpcIntegration) -> str:
         name = integration.metadata.get("domain_name", integration.name)
         return name.replace(".atlassian.net", "")

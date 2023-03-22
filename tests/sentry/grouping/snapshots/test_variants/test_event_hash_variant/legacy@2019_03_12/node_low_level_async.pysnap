@@ -1,0 +1,48 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app:
+  hash: null
+  component:
+    app (exception of system takes precedence)
+      exception (ignored because hash matches system variant)
+        stacktrace*
+          frame* (frame considered in-app because no frame is in-app)
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "node:internal/process/task_queues"
+            function*
+              "processTicksAndRejections"
+          frame* (frame considered in-app because no frame is in-app)
+            filename*
+              "(webpack://builder_rest/src/api/AxiosInterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "0006292929602ffceed7679beb242d96"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "task_queues"
+            filename (module takes precedence)
+              "node:internal/process/task_queues"
+            function*
+              "processTicksAndRejections"
+          frame*
+            filename*
+              "(webpack://builder_rest/src/api/AxiosInterceptor.js"
+            function*
+              "runMicrotasks"
+        type*
+          "Error"
+        value (stacktrace and type take precedence)
+          "bad"

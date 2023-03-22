@@ -55,6 +55,7 @@ const typeMappedChildren = {
     'quotaErrors',
     'quotaTransactions',
     'quotaAttachments',
+    'quotaReplays',
     'quotaWarnings',
     'quotaSpendAllocations',
   ],

@@ -17,7 +17,6 @@ from typing import (
     Mapping,
     Type,
     TypeVar,
-    Union,
     cast,
 )
 
@@ -39,7 +38,9 @@ from sentry.silo import SiloMode
 if TYPE_CHECKING:
     from sentry.api.base import Endpoint
 T = TypeVar("T")
-C = TypeVar("C", bound="PatchableMixin[Any]")
+
+IDEMPOTENCY_KEY_LENGTH = 48
+REGION_NAME_LENGTH = 48
 
 
 class InterfaceWithLifecycle(ABC):
@@ -190,13 +191,13 @@ def silo_mode_delegation(
 
 
 @dataclasses.dataclass
-class ApiPaginationArgs:
+class RpcPaginationArgs:
     encoded_cursor: str | None = None
     per_page: int = -1
 
     @classmethod
-    def from_endpoint_request(cls, e: Endpoint, request: Request) -> ApiPaginationArgs:
-        return ApiPaginationArgs(
+    def from_endpoint_request(cls, e: Endpoint, request: Request) -> RpcPaginationArgs:
+        return RpcPaginationArgs(
             encoded_cursor=request.GET.get(e.cursor_name), per_page=e.get_per_page(request)
         )
 
@@ -209,7 +210,7 @@ class ApiPaginationArgs:
         queryset: Any,
         cursor_cls: Type[Cursor] = Cursor,
         count_hits: bool | None = None,
-    ) -> ApiPaginationResult:
+    ) -> RpcPaginationResult:
         cursor = get_cursor(self.encoded_cursor, cursor_cls)
         with sentry_sdk.start_span(
             op="hybrid_cloud.paginate.get_result",
@@ -223,21 +224,21 @@ class ApiPaginationArgs:
             if count_hits is not None:
                 extra_args["count_hits"] = count_hits
 
-            return ApiPaginationResult.from_cursor_result(
+            return RpcPaginationResult.from_cursor_result(
                 paginator.get_result(limit=self.per_page, cursor=cursor, **extra_args)
             )
 
 
 @dataclasses.dataclass
-class ApiCursorState:
+class RpcCursorState:
     encoded: str = ""
     has_results: bool | None = None
 
     @classmethod
-    def from_cursor(cls, cursor: Cursor) -> ApiCursorState:
-        return ApiCursorState(encoded=str(cursor), has_results=cursor.has_results)
+    def from_cursor(cls, cursor: Cursor) -> RpcCursorState:
+        return RpcCursorState(encoded=str(cursor), has_results=cursor.has_results)
 
-    # Api Compatibility with Cursor
+    # Rpc Compatibility with Cursor
     def __str__(self) -> str:
         return self.encoded
 
@@ -246,62 +247,19 @@ class ApiCursorState:
 
 
 @dataclasses.dataclass
-class ApiPaginationResult:
+class RpcPaginationResult:
     ids: List[int] = dataclasses.field(default_factory=list)
     hits: int | None = None
     max_hits: int | None = None
-    next: ApiCursorState = dataclasses.field(default_factory=lambda: ApiCursorState())
-    prev: ApiCursorState = dataclasses.field(default_factory=lambda: ApiCursorState())
+    next: RpcCursorState = dataclasses.field(default_factory=lambda: RpcCursorState())
+    prev: RpcCursorState = dataclasses.field(default_factory=lambda: RpcCursorState())
 
     @classmethod
-    def from_cursor_result(cls, cursor_result: CursorResult[Any]) -> ApiPaginationResult:
-        return ApiPaginationResult(
+    def from_cursor_result(cls, cursor_result: CursorResult[Any]) -> RpcPaginationResult:
+        return RpcPaginationResult(
             ids=[row["id"] for row in cursor_result.results],
             hits=cursor_result.hits,
             max_hits=cursor_result.max_hits,
-            next=ApiCursorState.from_cursor(cursor_result.next),
-            prev=ApiCursorState.from_cursor(cursor_result.prev),
+            next=RpcCursorState.from_cursor(cursor_result.next),
+            prev=RpcCursorState.from_cursor(cursor_result.prev),
         )
-
-
-# Need a non-null default value so that we can
-# detect attributes being set to null. We're using
-# a class for this to get a reasonable repr in debugging.
-class UnsetType:
-    def __repr__(self) -> str:
-        return "Unset"
-
-
-# Protocol to be translated in the RPC layer for fields that have a default but "are not set".
-UnsetVal = UnsetType()
-Unset = Union[object, None, T]
-
-
-class PatchableMixin(Generic[T]):
-    def as_update(self) -> Mapping[str, Any]:
-        return {
-            f.name: getattr(self, f.name)
-            for f in self.patch_fields()
-            if getattr(self, f.name) is not UnsetVal
-        }
-
-    @classmethod
-    def patch_fields(cls: Type[C]) -> List[dataclasses.Field[Any]]:
-        result: List[dataclasses.Field[Any]] = []
-        for field in dataclasses.fields(cls):
-            if field.default is UnsetVal:
-                result.append(field)
-        return result
-
-    @classmethod
-    def params_from_instance(cls: Type[C], inst: T) -> Dict[str, Any]:
-        params: Dict[str, Any] = dict()
-        for field in cls.patch_fields():
-            if hasattr(inst, field.name):
-                params[field.name] = getattr(inst, field.name)
-        return params
-
-    # Subclass this to add additional members that are not 1:1 mapping from instance.
-    @classmethod
-    def from_instance(cls: Type[C], inst: T) -> C:
-        return cls(**cls.params_from_instance(inst))

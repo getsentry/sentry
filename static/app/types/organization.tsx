@@ -82,6 +82,7 @@ export type Team = {
   isPending: boolean;
   memberCount: number;
   name: string;
+  orgRole: string | null;
   slug: string;
   teamRole: string | null;
 };
@@ -126,6 +127,7 @@ export interface Member {
   name: string;
   orgRole: OrgRole['id'];
   orgRoleList: OrgRole[]; // TODO: Move to global store
+  orgRolesFromTeams: {role: OrgRole; teamSlug: string}[];
   pending: boolean | undefined;
   projects: string[];
 

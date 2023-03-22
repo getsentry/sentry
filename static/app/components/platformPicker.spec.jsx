@@ -33,20 +33,20 @@ describe('PlatformPicker', function () {
     expect(screen.getByTestId('platform-native')).toBeInTheDocument();
   });
 
-  it('should render renderPlatformList with community SDKs message if platform not found', function () {
+  it('should render renderPlatformList with community SDKs message if platform not found', async function () {
     render(<PlatformPicker {...baseProps} />);
 
-    userEvent.paste(screen.getByPlaceholderText('Filter Platforms'), 'aaaaaa');
+    await userEvent.type(screen.getByPlaceholderText('Filter Platforms'), 'aaaaaa');
 
     expect(screen.getByText("We don't have an SDK for that yet!")).toBeInTheDocument();
   });
 
-  it('should update State.tab onClick when particular tab is clicked', function () {
+  it('should update State.tab onClick when particular tab is clicked', async function () {
     render(<PlatformPicker {...baseProps} />);
 
     expect(screen.getByText('Popular')).toBeInTheDocument();
 
-    userEvent.click(screen.getByText('All'));
+    await userEvent.click(screen.getByText('All'));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
       'growth.platformpicker_category',
       expect.objectContaining({
@@ -55,7 +55,7 @@ describe('PlatformPicker', function () {
     );
   });
 
-  it('should clear the platform when clear is clicked', function () {
+  it('should clear the platform when clear is clicked', async function () {
     const props = {
       ...baseProps,
       platform: 'java',
@@ -64,7 +64,7 @@ describe('PlatformPicker', function () {
 
     render(<PlatformPicker noAutoFilter {...props} />);
 
-    userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
     expect(props.setPlatform).toHaveBeenCalledWith(null);
   });
 });

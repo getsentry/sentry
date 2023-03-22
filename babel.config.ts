@@ -20,19 +20,7 @@ const config: TransformOptions = {
     ],
     '@babel/preset-typescript',
   ],
-  overrides: [
-    {
-      test: ['./docs-ui'],
-      presets: [
-        [
-          '@babel/preset-react',
-          {
-            runtime: 'automatic',
-          },
-        ],
-      ],
-    },
-  ],
+  overrides: [],
   plugins: [
     '@emotion/babel-plugin',
     '@babel/plugin-transform-runtime',
@@ -66,8 +54,18 @@ const config: TransformOptions = {
       ],
     },
     test: {
-      // Required, see https://github.com/facebook/jest/issues/9430
-      plugins: ['dynamic-import-node'],
+      plugins: [
+        // Required, see https://github.com/facebook/jest/issues/9430
+        'dynamic-import-node',
+        // Disable emotion sourcemaps in tests
+        // Since emotion spends lots of time parsing and inserting sourcemaps
+        [
+          '@emotion/babel-plugin',
+          {
+            sourceMap: false,
+          },
+        ],
+      ],
     },
   },
 };

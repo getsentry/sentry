@@ -1,9 +1,12 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+from celery.exceptions import MaxRetriesExceededError
 from django.utils import timezone
 
 from sentry.models import Repository
+from sentry.models.commit import Commit
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.tasks.commit_context import process_commit_context
@@ -73,7 +76,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -135,7 +138,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfasdf",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -144,6 +147,7 @@ class TestCommitContext(TestCase):
     def test_no_matching_commit_in_db(self, mock_get_commit_context):
         with self.tasks():
             assert not GroupOwner.objects.filter(group=self.event.group).exists()
+            assert not Commit.objects.filter(key="asdfasdf").exists()
             event_frames = get_frame_paths(self.event)
             process_commit_context(
                 event_id=self.event.event_id,
@@ -152,13 +156,14 @@ class TestCommitContext(TestCase):
                 group_id=self.event.group_id,
                 project_id=self.event.project_id,
             )
-        assert not GroupOwner.objects.filter(group=self.event.group).exists()
+        assert Commit.objects.filter(key="asdfasdf").exists()
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
 
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "asdfwreqr",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "admin@localhost",
@@ -241,7 +246,7 @@ class TestCommitContext(TestCase):
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -277,11 +282,53 @@ class TestCommitContext(TestCase):
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
 
+    @patch("sentry.tasks.commit_context.get_users_for_authors", return_value={})
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value={
             "commitId": "somekey",
-            "committedDate": "",
+            "committedDate": "2023-02-14T11:11Z",
+            "commitMessage": "placeholder commit message",
+            "commitAuthorName": "",
+            "commitAuthorEmail": "randomuser@sentry.io",
+        },
+    )
+    def test_commit_author_no_user(self, mock_get_commit_context, mock_get_users_for_author):
+        self.commit_author_2 = self.create_commit_author(
+            project=self.project,
+        )
+        self.commit_2 = self.create_commit(
+            project=self.project,
+            repo=self.repo,
+            author=self.commit_author_2,
+            key="somekey",
+            message="placeholder commit message",
+        )
+
+        with self.tasks(), patch(
+            "sentry.tasks.commit_context.get_users_for_authors", return_value={}
+        ):
+            event_frames = get_frame_paths(self.event)
+            process_commit_context(
+                event_id=self.event.event_id,
+                event_platform=self.event.platform,
+                event_frames=event_frames,
+                group_id=self.event.group_id,
+                project_id=self.event.project_id,
+            )
+        assert GroupOwner.objects.filter(group=self.event.group).exists()
+        assert len(GroupOwner.objects.filter(group=self.event.group)) == 1
+        owner = GroupOwner.objects.get(group=self.event.group)
+        assert owner.type == GroupOwnerType.SUSPECT_COMMIT.value
+        assert owner.user_id is None
+        assert owner.team is None
+        assert owner.context == {"commitId": self.commit_2.id}
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        return_value={
+            "commitId": "somekey",
+            "committedDate": "2023-02-14T11:11Z",
             "commitMessage": "placeholder commit message",
             "commitAuthorName": "",
             "commitAuthorEmail": "randomuser@sentry.io",
@@ -335,3 +382,27 @@ class TestCommitContext(TestCase):
         assert owner.user_id is None
         assert owner.team is None
         assert owner.context == {"commitId": self.commit_2.id}
+
+    @patch(
+        "sentry.integrations.github.GitHubIntegration.get_commit_context",
+        side_effect=ApiError(text="integration_failed"),
+    )
+    @patch("sentry.tasks.groupowner.process_suspect_commits.delay")
+    def test_fallback_if_max_retries_exceeded(self, mock_suspect_commits, mock_get_commit_context):
+        def after_return(self, status, retval, task_id, args, kwargs, einfo):
+            raise MaxRetriesExceededError()
+
+        with self.tasks() and pytest.raises(MaxRetriesExceededError):
+            with patch("celery.app.task.Task.after_return", after_return):
+                process_commit_context.apply(
+                    kwargs={
+                        "event_id": self.event.event_id,
+                        "event_platform": self.event.platform,
+                        "event_frames": get_frame_paths(self.event),
+                        "group_id": self.event.group_id,
+                        "project_id": self.event.project_id,
+                    },
+                    retries=1,
+                )
+
+            assert mock_suspect_commits.called

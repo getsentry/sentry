@@ -1,5 +1,6 @@
 import {Component} from 'react';
 import styled from '@emotion/styled';
+import trimEnd from 'lodash/trimEnd';
 
 import {logout} from 'sentry/actionCreators/account';
 import {Client} from 'sentry/api';
@@ -132,7 +133,14 @@ class SuperuserAccessForm extends Component<Props, State> {
     } catch {
       // ignore errors
     }
-    window.location.assign('/auth/login/');
+    const authLoginPath = `/auth/login/?next=${encodeURIComponent(window.location.href)}`;
+    const {superuserUrl} = window.__initialData.links;
+    if (window.__initialData?.customerDomain && superuserUrl) {
+      const redirectURL = `${trimEnd(superuserUrl, '/')}${authLoginPath}`;
+      window.location.assign(redirectURL);
+      return;
+    }
+    window.location.assign(authLoginPath);
   };
 
   async getAuthenticators() {

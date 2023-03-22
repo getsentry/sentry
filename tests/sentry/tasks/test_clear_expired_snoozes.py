@@ -16,10 +16,14 @@ class ClearExpiredSnoozesTest(TestCase):
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_simple(self, send_robust):
         group1 = self.create_group(status=GroupStatus.IGNORED)
-        GroupSnooze.objects.create(group=group1, until=timezone.now() - timedelta(minutes=1))
+        snooze1 = GroupSnooze.objects.create(
+            group=group1, until=timezone.now() - timedelta(minutes=1)
+        )
 
         group2 = self.create_group(status=GroupStatus.IGNORED)
-        GroupSnooze.objects.create(group=group2, until=timezone.now() + timedelta(minutes=1))
+        snooze2 = GroupSnooze.objects.create(
+            group=group2, until=timezone.now() + timedelta(minutes=1)
+        )
 
         clear_expired_snoozes()
 
@@ -27,6 +31,8 @@ class ClearExpiredSnoozesTest(TestCase):
 
         assert Group.objects.get(id=group2.id).status == GroupStatus.IGNORED
 
+        assert not GroupSnooze.objects.filter(id=snooze1.id).exists()
+        assert GroupSnooze.objects.filter(id=snooze2.id).exists()
         assert GroupHistory.objects.filter(
             group=group1, status=GroupHistoryStatus.UNIGNORED
         ).exists()
@@ -35,3 +41,15 @@ class ClearExpiredSnoozesTest(TestCase):
         ).exists()
 
         assert send_robust.called
+
+    def test_resolved_group(self):
+        group1 = self.create_group(status=GroupStatus.RESOLVED)
+        snooze1 = GroupSnooze.objects.create(
+            group=group1, until=timezone.now() - timedelta(minutes=1)
+        )
+
+        clear_expired_snoozes()
+
+        assert Group.objects.get(id=group1.id).status == GroupStatus.RESOLVED
+        # Validate that even though the group wasn't modified, we still remove the snooze
+        assert not GroupSnooze.objects.filter(id=snooze1.id).exists()

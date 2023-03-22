@@ -55,8 +55,6 @@ const AllEventsTable = (props: Props) => {
     return <LoadingError message={error} onRetry={() => setError('')} />;
   }
 
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
-
   return (
     <EventsTable
       eventView={eventView}
@@ -71,7 +69,6 @@ const AllEventsTable = (props: Props) => {
       transactionName=""
       columnTitles={columnTitles.slice()}
       referrer="api.issues.issue_events"
-      showReplayCol={isReplayEnabled}
     />
   );
 };
@@ -80,7 +77,7 @@ type ColumnInfo = {columnTitles: string[]; fields: string[]};
 
 const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
-  const isReplayEnabled = organization.features.includes('session-replay-ui');
+  const isReplayEnabled = organization.features.includes('session-replay');
 
   const {fields: platformSpecificFields, columnTitles: platformSpecificColumnTitles} =
     getPlatformColumns(group.project.platform ?? group.platform, {isReplayEnabled});

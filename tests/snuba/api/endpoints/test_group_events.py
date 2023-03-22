@@ -3,7 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers import parse_link_header
@@ -439,14 +439,14 @@ class GroupEventsTest(APITestCase, SnubaTestCase, SearchIssueTestMixin, Performa
         event_1, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )
         event_2, _, _ = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{ProfileBlockedThreadGroupType.type_id}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             before_now(hours=1).replace(tzinfo=timezone.utc),
         )

@@ -109,7 +109,6 @@ def _do_preprocess_event(
     project: Optional[Project],
     has_attachments: bool = False,
 ) -> None:
-    from sentry.lang.native.processing import get_symbolication_function
     from sentry.tasks.symbolication import should_demote_symbolication, submit_symbolicate
 
     if cache_key and data is None:
@@ -136,6 +135,11 @@ def _do_preprocess_event(
         project.set_cached_field_value(
             "organization", Organization.objects.get_from_cache(id=project.organization_id)
         )
+
+    if data["platform"] in ("javascript", "node"):
+        from sentry.lang.javascript.processing import get_symbolication_function
+    else:
+        from sentry.lang.native.processing import get_symbolication_function
 
     symbolication_function = get_symbolication_function(data)
     if symbolication_function:

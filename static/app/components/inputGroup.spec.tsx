@@ -1,18 +1,13 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from 'sentry/components/button';
-import {
-  Input,
-  InputGroup,
-  InputLeadingItems,
-  InputTrailingItems,
-} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/inputGroup';
 
 describe('InputGroup', function () {
   it('renders input', function () {
     const {container} = render(
       <InputGroup>
-        <Input value="Search" onChange={() => {}} />
+        <InputGroup.Input value="Search" onChange={() => {}} />
       </InputGroup>
     );
 
@@ -25,7 +20,7 @@ describe('InputGroup', function () {
   it('renders disabled input', function () {
     const {container} = render(
       <InputGroup>
-        <Input disabled />
+        <InputGroup.Input disabled />
       </InputGroup>
     );
 
@@ -33,13 +28,13 @@ describe('InputGroup', function () {
     expect(container).toSnapshot();
   });
 
-  it('renders leading elements', function () {
+  it('renders leading elements', async function () {
     const {container} = render(
       <InputGroup>
-        <InputLeadingItems>
+        <InputGroup.LeadingItems>
           <Button>Leading Button</Button>
-        </InputLeadingItems>
-        <Input />
+        </InputGroup.LeadingItems>
+        <InputGroup.Input />
       </InputGroup>
     );
 
@@ -48,21 +43,21 @@ describe('InputGroup', function () {
     expect(screen.getByRole('button', {name: 'Leading Button'})).toBeInTheDocument();
 
     // Focus moves first to leading button and then to input
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Leading Button'})).toHaveFocus();
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
 
     expect(container).toSnapshot();
   });
 
-  it('renders trailing elements', function () {
+  it('renders trailing elements', async function () {
     const {container} = render(
       <InputGroup>
-        <Input />
-        <InputTrailingItems>
+        <InputGroup.Input />
+        <InputGroup.TrailingItems>
           <Button>Trailing Button</Button>
-        </InputTrailingItems>
+        </InputGroup.TrailingItems>
       </InputGroup>
     );
 
@@ -71,9 +66,9 @@ describe('InputGroup', function () {
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toBeInTheDocument();
 
     // Focus moves first to input and then to trailing button
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('textbox')).toHaveFocus();
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
 
     expect(container).toSnapshot();

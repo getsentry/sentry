@@ -19,7 +19,7 @@ import {
 } from 'sentry/components/performance/waterfall/rowDetails';
 import {generateIssueEventTarget} from 'sentry/components/quickTrace/utils';
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import {IconLink} from 'sentry/icons';
+import {IconLink, IconProfiling} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
@@ -29,7 +29,7 @@ import getDynamicText from 'sentry/utils/getDynamicText';
 import {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
-import {CustomerProfiler} from 'sentry/utils/performanceForSentry';
+import {CustomProfiler} from 'sentry/utils/performanceForSentry';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -148,7 +148,12 @@ class TransactionDetail extends Component<Props> {
     }
 
     return (
-      <StyledButton size="xs" to={target} onClick={handleOnClick}>
+      <StyledButton
+        size="xs"
+        to={target}
+        onClick={handleOnClick}
+        icon={<IconProfiling size="xs" />}
+      >
         {t('Go to Profile')}
       </StyledButton>
     );
@@ -282,7 +287,7 @@ class TransactionDetail extends Component<Props> {
 
   render() {
     return (
-      <CustomerProfiler id="TransactionDetail">
+      <CustomProfiler id="TransactionDetail">
         <TransactionDetailsContainer
           onClick={event => {
             // prevent toggling the transaction detail
@@ -292,7 +297,7 @@ class TransactionDetail extends Component<Props> {
           {this.renderTransactionErrors()}
           {this.renderTransactionDetail()}
         </TransactionDetailsContainer>
-      </CustomerProfiler>
+      </CustomProfiler>
     );
   }
 }

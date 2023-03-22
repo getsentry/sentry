@@ -16,7 +16,7 @@ from sentry.db.models import (
     control_silo_only_model,
     region_silo_only_model,
 )
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.silo import SiloMode
 
 delete_logger = logging.getLogger("sentry.deletions.api")
@@ -121,7 +121,7 @@ class BaseScheduledDeletion(Model):
     def get_instance(self):
         return self.get_model().objects.get(pk=self.object_id)
 
-    def get_actor(self) -> APIUser | None:
+    def get_actor(self) -> RpcUser | None:
         if not self.actor_id:
             return None
 

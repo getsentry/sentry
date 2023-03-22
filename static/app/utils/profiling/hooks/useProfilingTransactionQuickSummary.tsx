@@ -43,7 +43,7 @@ export function useProfilingTransactionQuickSummary(
   const slowestProfileQuery = useProfileEvents({
     ...baseQueryOptions,
     sort: {
-      key: 'profile.duration',
+      key: 'transaction.duration',
       order: 'desc',
     },
     enabled: !skipSlowestProfile,
@@ -69,7 +69,7 @@ export function useProfilingTransactionQuickSummary(
   });
 
   const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
-  const durationUnits = slowestProfileQuery.data?.[0].meta.units['profile.duration'];
+  const durationUnits = slowestProfileQuery.data?.[0].meta.units['transaction.duration'];
   const slowestProfileDurationMultiplier = durationUnits
     ? DURATION_UNITS[durationUnits] ?? 1
     : 1;

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import abc
+import logging
 import string
 from copy import deepcopy
 from datetime import datetime
@@ -27,6 +28,8 @@ from sentry.utils.cache import memoize
 from sentry.utils.canonical import CanonicalKeyView
 from sentry.utils.safe import get_path, trim
 from sentry.utils.strings import truncatechars
+
+logger = logging.getLogger(__name__)
 
 # Keys in the event payload we do not want to send to the event stream / snuba.
 EVENTSTREAM_PRUNED_KEYS = ("debug_meta", "_meta")
@@ -735,7 +738,15 @@ class GroupEvent(BaseEvent):
         return group_event
 
     @property
-    def occurrence(self) -> IssueOccurrence:
+    def occurrence(self) -> Optional[IssueOccurrence]:
+        if not self._occurrence and self.occurrence_id:
+            self._occurrence = IssueOccurrence.fetch(self.occurrence_id, self.project_id)
+            if self._occurrence is None:
+                logger.error(
+                    "Failed to fetch occurrence for event",
+                    extra={"group_id": self.group_id, "occurrence_id": self.occurrence_id},
+                )
+
         return self._occurrence
 
     @occurrence.setter
@@ -744,7 +755,7 @@ class GroupEvent(BaseEvent):
 
     @property
     def occurrence_id(self) -> Optional[str]:
-        if self.occurrence:
+        if self._occurrence:
             return self.occurrence.id
 
         column = self._get_column_name(Columns.OCCURRENCE_ID)

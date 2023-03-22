@@ -7,7 +7,7 @@ from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
     PerformanceNPlusOneGroupType,
-    ProfileBlockedThreadGroupType,
+    ProfileFileIOGroupType,
 )
 from sentry.models import Activity, Group, Project
 from sentry.rules.history.preview import (
@@ -204,7 +204,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         hours = get_hours(PREVIEW_TIME_RANGE)
         prev_hour = timezone.now() - timedelta(hours=1)
         errors = []
-        profile_blocked_thread = []
+        profile_file_io_main_thread = []
         for i in range(hours):
             if i % 2:
                 errors.append(
@@ -213,11 +213,11 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                     )
                 )
             else:
-                profile_blocked_thread.append(
+                profile_file_io_main_thread.append(
                     Group.objects.create(
                         project=self.project,
                         first_seen=prev_hour,
-                        type=ProfileBlockedThreadGroupType.type_id,
+                        type=ProfileFileIOGroupType.type_id,
                     )
                 )
 
@@ -230,7 +230,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
         ]
         result = preview(self.project, conditions, filters, *MATCH_ARGS)
         assert all(group.id not in result for group in errors)
-        assert all(group.id in result for group in profile_blocked_thread)
+        assert all(group.id in result for group in profile_file_io_main_thread)
 
     def test_level(self):
         event = self._set_up_event({"tags": {"level": "error"}})
@@ -350,7 +350,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                 project=project,
                 group=reappearance,
                 type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
+                user_id=None,
                 datetime=prev_hour,
             )
 
@@ -377,7 +377,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             project=self.project,
             group=self.group,
             type=ActivityType.SET_UNRESOLVED.value,
-            user=None,
+            user_id=None,
             datetime=out_of_range,
         )
 
@@ -726,7 +726,7 @@ class FrequencyConditionTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
                 occurrence = self.build_occurrence(level="info")
                 occurrence.save()
                 event.occurrence = occurrence
-                event.group.type = ProfileBlockedThreadGroupType.type_id
+                event.group.type = ProfileFileIOGroupType.type_id
 
         conditions = [
             {

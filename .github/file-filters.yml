@@ -26,7 +26,6 @@ frontend_src: &frontend_src
   - '**/tsconfig*.json'
   - '{package,now,vercel}.json'
   - '**/*.less'
-  - 'docs-ui/**'
   - 'static/**'
   - 'fixtures/search-syntax/**/*'
   - '.github/workflows/frontend.yml'

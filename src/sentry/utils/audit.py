@@ -19,6 +19,7 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.log import log_service
+from sentry.services.hybrid_cloud.user import RpcUser
 
 
 def create_audit_entry(
@@ -36,15 +37,25 @@ def create_audit_entry(
 
 
 def create_audit_entry_from_user(
-    user: User | None,
+    user: User | RpcUser | None,
     api_key: ApiKey | None = None,
     ip_address: str | None = None,
     transaction_id: int | str | None = None,
     logger: Logger | None = None,
+    organization: Organization | None = None,
+    organization_id: int | None = None,
     **kwargs: Any,
 ) -> AuditLogEntry:
+    if organization:
+        assert organization_id is None
+        organization_id = organization.id
+
     entry = AuditLogEntry(
-        actor_id=user.id if user else None, actor_key=api_key, ip_address=ip_address, **kwargs
+        actor_id=user.id if user else None,
+        actor_key=api_key,
+        ip_address=ip_address,
+        organization_id=organization_id,
+        **kwargs,
     )
 
     # Only create a real AuditLogEntry record if we are passing an event type
@@ -110,9 +121,10 @@ def _create_project_delete_log(entry: AuditLogEntry) -> None:
     delete_log.date_created = project.date_added
     delete_log.platform = project.platform
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
     _complete_delete_log(delete_log, entry)
 
@@ -125,9 +137,10 @@ def _create_team_delete_log(entry: AuditLogEntry) -> None:
     delete_log.slug = team.slug
     delete_log.date_created = team.date_added
 
-    delete_log.organization_id = entry.organization.id
-    delete_log.organization_name = entry.organization.name
-    delete_log.organization_slug = entry.organization.slug
+    organization = Organization.objects.get(id=entry.organization_id)
+    delete_log.organization_id = organization.id
+    delete_log.organization_name = organization.name
+    delete_log.organization_slug = organization.slug
 
     _complete_delete_log(delete_log, entry)
 
@@ -145,13 +158,21 @@ def _complete_delete_log(delete_log: DeletedEntry, entry: AuditLogEntry) -> None
 
 
 def create_system_audit_entry(
-    transaction_id: int | str | None = None, logger: Logger | None = None, **kwargs: Any
+    transaction_id: int | str | None = None,
+    logger: Logger | None = None,
+    organization: Organization | None = None,
+    organization_id: int | None = None,
+    **kwargs: Any,
 ) -> AuditLogEntry:
     """
     Creates an audit log entry for events that are triggered by Sentry's
     systems and do not have an associated Sentry user as the "actor".
     """
-    entry = AuditLogEntry(actor_label="Sentry", **kwargs)
+    if organization:
+        assert organization_id is None
+        organization_id = organization.id
+
+    entry = AuditLogEntry(actor_label="Sentry", organization_id=organization_id, **kwargs)
     if entry.event is not None:
         log_service.record_audit_log(event=entry.as_event())
 

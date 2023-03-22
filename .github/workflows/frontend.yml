@@ -30,10 +30,10 @@ jobs:
       frontend_modified_lintable_files: ${{ steps.changes.outputs.frontend_modified_lintable_files }}
       yarn_lockfile: ${{ steps.changes.outputs.yarn_lockfile }}
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Check for frontend file changes
-        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50  # v2.11.1
+        uses: getsentry/paths-filter@4512585405083f25c027a35db413c2b3b9006d50 # v2.11.1
         id: changes
         with:
           token: ${{ github.token }}
@@ -46,11 +46,11 @@ jobs:
     name: typescript and lint
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
 
       - name: Internal github app token
         id: token
-        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc  # v2.0.0
+        uses: getsentry/action-github-app-token@97c9e23528286821f97fba885c1b1123284b29cc # v2.0.0
         continue-on-error: true
         with:
           app_id: ${{ secrets.SENTRY_INTERNAL_APP_ID }}
@@ -110,7 +110,7 @@ jobs:
       # If working tree is dirty, commit and update if we have a token
       - name: Commit any eslint fixed files
         if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master'
-        uses: getsentry/action-github-commit@1761f891f036c3efc813b2ba963b121120c1587a # main
+        uses: getsentry/action-github-commit@bec0adb2924f8c19a9f84c18c83d375caf02ca38 # main
         with:
           github-token: ${{ steps.token.outputs.token }}
 
@@ -118,36 +118,6 @@ jobs:
         id: tsc
         if: steps.dependencies.outcome == 'success'
         run: yarn tsc -p config/tsconfig.ci.json
-
-      - name: storybook
-        if: github.ref != 'refs/heads/master'
-        env:
-          STORYBOOK_BUILD: 1
-        run: |
-          yarn storybook-build
-
-  webpack:
-    if: github.ref == 'refs/heads/master' || needs.files-changed.outputs.frontend == 'true'
-    needs: files-changed
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
-
-      - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
-
-      - name: Install dependencies
-        run: yarn install --frozen-lockfile
-
-      - uses: getsentry/size-limit-action@7be9865310d295ad211da9a8464332288d60d837 # v5
-        env:
-          SENTRY_INSTRUMENTATION: 1
-          SENTRY_WEBPACK_WEBHOOK_SECRET: ${{ secrets.SENTRY_WEBPACK_WEBHOOK_SECRET }}
-        with:
-          main_branch: master
-          skip_step: install
-          build_script: build
-          windows_verbatim_arguments: false
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   frontend-browser-tests:
     if: needs.files-changed.outputs.frontend == 'true'
@@ -168,7 +138,7 @@ jobs:
     env:
       VISUAL_HTML_ENABLE: 1
     steps:
-      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8  # v3.1.0
+      - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v3.1.0
         name: Checkout sentry
 
         with:
@@ -179,7 +149,7 @@ jobs:
       - uses: getsentry/action-setup-volta@54775a59c41065f54ecc76d1dd5f2cdc7a1550cb # v1.1.0
 
       - name: node_modules cache
-        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7  # v3.0.11
+        uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.11
         id: nodemodulescache
         with:
           path: node_modules
@@ -201,11 +171,17 @@ jobs:
           #      wouldn't be correct.
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
         run: |
           SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
       - name: Save HTML artifacts
-        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb  # v3.1.1
+        uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb # v3.1.1
         with:
           retention-days: 14
           name: jest-html
@@ -216,13 +192,6 @@ jobs:
         with:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
-
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        with:
-          artifact-name: frontend-snapshots
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
 
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.
@@ -235,28 +204,11 @@ jobs:
           files: .artifacts/coverage/*
           type: frontend
 
-  frontend-visual-diff:
-    needs: [frontend-browser-tests]
-    name: Visual diff
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
-    steps:
-      - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        with:
-          action-name: 'Visual Snapshot: Frontend'
-          artifact-name: 'frontend-snapshots'
-          base-branch: 'master'
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
-
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
   frontend-required-check:
-    needs: [typescript-and-lint, webpack, frontend-browser-tests]
+    needs: [typescript-and-lint, frontend-browser-tests]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()

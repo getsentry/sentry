@@ -21,10 +21,11 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 
 issue_rate_limiter = RedisSlidingWindowRateLimiter(
     **settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS
@@ -94,11 +95,8 @@ def _create_issue_kwargs(
         # TODO: Figure out what message should be. Or maybe we just implement a platform event and
         # define it in `search_message` there.
         "message": event.search_message,
-        # TODO: Not sure what to put here
-        # "logger": job["logger_name"],
-        # TODO: Level override from occurrence?
-        "level": LOG_LEVELS_MAP.get(event.data["level"]),
-        "culprit": occurrence.subtitle,
+        "level": LOG_LEVELS_MAP.get(occurrence.level),
+        "culprit": occurrence.culprit,
         "last_seen": event.datetime,
         "first_seen": event.datetime,
         "active_at": event.datetime,
@@ -128,13 +126,13 @@ def materialize_metadata(occurrence: IssueOccurrence, event: Event) -> Occurrenc
     event_metadata = dict(event_type.get_metadata(event.data))
     event_metadata = dict(event_metadata)
     event_metadata["title"] = occurrence.issue_title
+    event_metadata["value"] = occurrence.subtitle
 
     return {
         "type": event_type.key,
-        # Not totally sure if this makes sense?
-        "culprit": occurrence.subtitle,
-        "metadata": event_metadata,
         "title": occurrence.issue_title,
+        "culprit": occurrence.culprit,
+        "metadata": event_metadata,
         "location": event.location,
         "last_received": event.datetime,
     }
@@ -157,14 +155,19 @@ def save_issue_from_occurrence(
         .first()
     )
     if not existing_grouphash:
+        cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
+        client = redis.redis_clusters.get(cluster_key)
+        if not should_create_group(occurrence.type, client, new_grouphash, project):
+            metrics.incr("issues.issue.dropped.noise_reduction")
+            return None
+
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
             )[0]
 
         if not granted_quota.granted:
-            # Log how many issues we dropped due to rate limiting
-            metrics.incr("issues.issue.dropped")
+            metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
         with sentry_sdk.start_span(

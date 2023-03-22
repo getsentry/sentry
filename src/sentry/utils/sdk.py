@@ -1,5 +1,6 @@
 import copy
 import inspect
+import logging
 import random
 
 import sentry_sdk
@@ -17,6 +18,8 @@ from sentry import options
 from sentry.utils import metrics
 from sentry.utils.db import DjangoAtomicIntegration
 from sentry.utils.rust import RustInfoIntegration
+
+logger = logging.getLogger(__name__)
 
 UNSAFE_FILES = (
     "sentry/event_manager.py",
@@ -39,7 +42,7 @@ SAMPLED_URL_NAMES = {
     "sentry-api-0-organization-external-user-details": settings.SAMPLED_DEFAULT_RATE,
     # integration platform
     "external-issues": settings.SAMPLED_DEFAULT_RATE,
-    "sentry-api-0-sentry-app-authorizations": settings.SAMPLED_DEFAULT_RATE,
+    "sentry-api-0-sentry-app-installation-authorizations": settings.SAMPLED_DEFAULT_RATE,
     # integrations
     "sentry-extensions-jira-issue-hook": 0.05,
     "sentry-extensions-vercel-webhook": settings.SAMPLED_DEFAULT_RATE,
@@ -113,7 +116,8 @@ SAMPLED_TASKS = {
     "sentry.profiles.task.process_profile": 0.01,
     "sentry.tasks.derive_code_mappings.process_organizations": settings.SAMPLED_DEFAULT_RATE,
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.tasks.check_monitors": 1.0,
+    "sentry.monitors.tasks.check_monitors": 1.0,
+    "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -254,6 +258,16 @@ def traces_sampler(sampling_context):
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)
 
 
+def before_send_transaction(event, _):
+    # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
+    num_of_spans = len(event["spans"])
+    event["tags"]["spans_over_limit"] = num_of_spans >= 1000
+    if not event["measurements"]:
+        event["measurements"] = {}
+    event["measurements"]["num_of_spans"] = {"value": num_of_spans}
+    return event
+
+
 # Patches transport functions to add metrics to improve resolution around events sent to our ingest.
 # Leaving this in to keep a permanent measurement of sdk requests vs ingest.
 def patch_transport_for_instrumentation(transport, transport_name):
@@ -289,6 +303,7 @@ def configure_sdk():
         f"backend@{sdk_options['release']}" if "release" in sdk_options else None
     )
     sdk_options["send_client_reports"] = True
+    sdk_options["before_send_transaction"] = before_send_transaction
 
     if upstream_dsn:
         transport = make_transport(get_options(dsn=upstream_dsn, **sdk_options))
@@ -402,9 +417,6 @@ def configure_sdk():
         **sdk_options,
     )
 
-    if settings.SENTRY_PROFILING_ENABLED:
-        sentry_sdk.set_tag("sentry.profiler", settings.SENTRY_PROFILER_MODE)
-
 
 class RavenShim:
     """Wrapper around sentry-sdk in case people are writing their own
@@ -434,11 +446,34 @@ class RavenShim:
             scope.fingerprint = fingerprint
 
 
+def check_tag(tag_key: str, expected_value: str) -> bool:
+    """Detect a tag already set and being different than what we expect.
+
+    This function checks if a tag has been already been set and if it differs
+    from what we want to set it to.
+    """
+    with configure_scope() as scope:
+        if scope._tags and tag_key in scope._tags and scope._tags[tag_key] != expected_value:
+            extra = {
+                f"previous_{tag_key}": scope._tags[tag_key],
+                f"new_{tag_key}": expected_value,
+            }
+            logger.warning(f"Tag already set and different ({tag_key}).", extra=extra)
+            return True
+
+
 def bind_organization_context(organization):
+    # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    with sentry_sdk.configure_scope() as scope:
+    with sentry_sdk.configure_scope() as scope, sentry_sdk.start_span(
+        op="other", description="bind_organization_context"
+    ):
+        if check_tag("organization.slug", organization.slug):
+            # This can be used to find errors that may have been mistagged
+            scope.set_tag("possible_mistag", True)
+
         scope.set_tag("organization", organization.id)
         scope.set_tag("organization.slug", organization.slug)
         scope.set_context("organization", {"id": organization.id, "slug": organization.slug})

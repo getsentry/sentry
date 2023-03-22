@@ -470,7 +470,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == {self.group1, self.group2, group_3, group_4}
 
-        with pytest.raises(ValueError):
+        with pytest.raises(InvalidSearchQuery):
             self.make_query(search_filter_query="issue.type:performance_i_dont_exist")
 
     def test_status_with_environment(self):
@@ -2419,7 +2419,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         with self.feature("organizations:issue-platform"):
             results = self.make_query(
-                search_filter_query="issue.type:profile_blocked_thread my_tag:1"
+                search_filter_query="issue.type:profile_file_io_main_thread my_tag:1"
             )
         assert list(results) == [self.profile_group_1, self.profile_group_2]
 
@@ -2445,7 +2445,7 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
 
         with self.feature("organizations:issue-platform"):
             results = self.make_query(
-                search_filter_query="issue.type:[profile_blocked_thread, error] my_tag:1"
+                search_filter_query="issue.type:[profile_file_io_main_thread, error] my_tag:1"
             )
         assert list(results) == [
             self.profile_group_1,
@@ -2490,6 +2490,46 @@ class EventsGenericSnubaSearchTest(SharedSnubaTest, OccurrenceTestMixin):
             )
         assert list(results) == []
         assert results.hits == 2
+
+    def test_rejected_filters(self):
+        """
+        Any queries with `error.handled` or `error.unhandled` filters querying the search_issues dataset
+        should be rejected and return empty results.
+        """
+        with self.feature("organizations:issue-platform"):
+            results = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.unhandled:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            results2 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.unhandled:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            result3 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.handled:0",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            results4 = self.make_query(
+                projects=[self.project],
+                search_filter_query="issue.category:profile error.handled:1",
+                sort_by="date",
+                limit=1,
+                count_hits=True,
+            )
+
+            assert list(results) == list(results2) == list(result3) == list(results4) == []
 
 
 class CdcEventsSnubaSearchTest(SharedSnubaTest):

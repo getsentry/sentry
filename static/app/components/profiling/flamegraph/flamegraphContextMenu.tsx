@@ -14,7 +14,6 @@ import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {
-  FlamegraphAxisOptions,
   FlamegraphColorCodings,
   FlamegraphSorting,
   FlamegraphViewOptions,
@@ -29,16 +28,20 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
-  'by symbol name',
+  'by system vs application frame',
   'by system frame',
   'by application frame',
+  'by symbol name',
   'by library',
   'by recursion',
   'by frequency',
 ];
 const FLAMEGRAPH_VIEW_OPTIONS: FlamegraphViewOptions[] = ['top down', 'bottom up'];
-const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = ['left heavy', 'call order'];
-const FLAMEGRAPH_AXIS_OPTIONS: FlamegraphAxisOptions[] = ['profile', 'transaction'];
+const FLAMEGRAPH_SORTING_OPTIONS: FlamegraphSorting[] = [
+  'call order',
+  'alphabetical',
+  'left heavy',
+];
 
 interface FlamegraphContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
@@ -47,6 +50,7 @@ interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onHighlightAllOccurencesClick: () => void;
   profileGroup: ProfileGroup | null;
+  disableCallOrderSort?: boolean;
 }
 
 function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean {
@@ -223,33 +227,23 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
         </ProfilingContextMenuGroup>
         <ProfilingContextMenuGroup>
           <ProfilingContextMenuHeading>{t('Sorting')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set sorting', payload: sorting}),
-              })}
-              onClick={() => dispatch({type: 'set sorting', payload: sorting})}
-              checked={preferences.sorting === sorting}
-            >
-              {sorting}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
-        </ProfilingContextMenuGroup>
-        <ProfilingContextMenuGroup>
-          <ProfilingContextMenuHeading>{t('X Axis')}</ProfilingContextMenuHeading>
-          {FLAMEGRAPH_AXIS_OPTIONS.map((axis, idx) => (
-            <ProfilingContextMenuItemCheckbox
-              key={idx}
-              {...props.contextMenu.getMenuItemProps({
-                onClick: () => dispatch({type: 'set xAxis', payload: axis}),
-              })}
-              onClick={() => dispatch({type: 'set xAxis', payload: axis})}
-              checked={preferences.xAxis === axis}
-            >
-              {axis}
-            </ProfilingContextMenuItemCheckbox>
-          ))}
+          {FLAMEGRAPH_SORTING_OPTIONS.map((sorting, idx) => {
+            if (props.disableCallOrderSort && sorting === 'call order') {
+              return null;
+            }
+            return (
+              <ProfilingContextMenuItemCheckbox
+                key={idx}
+                {...props.contextMenu.getMenuItemProps({
+                  onClick: () => dispatch({type: 'set sorting', payload: sorting}),
+                })}
+                onClick={() => dispatch({type: 'set sorting', payload: sorting})}
+                checked={preferences.sorting === sorting}
+              >
+                {sorting}
+              </ProfilingContextMenuItemCheckbox>
+            );
+          })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
     </Fragment>

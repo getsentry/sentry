@@ -99,13 +99,25 @@ export const getToggleTheme = ({
   disabled,
   errored,
   isSpanGroupToggler,
+  spanBarType,
 }: {
   disabled: boolean;
   errored: boolean;
   isExpanded: boolean;
   theme: Theme;
   isSpanGroupToggler?: boolean;
+  spanBarType?: SpanBarType;
 }) => {
+  if (spanBarType) {
+    const {primary} = getSpanBarColours(spanBarType, theme);
+    return `
+    background: ${primary};
+    border: 2px solid ${theme.button.default.border};
+    color: ${theme.button.primary.color};
+    cursor: pointer;
+  `;
+  }
+
   const buttonTheme = isExpanded ? theme.button.default : theme.button.primary;
   const errorTheme = theme.button.danger;
 
@@ -124,7 +136,7 @@ export const getToggleTheme = ({
   if (isSpanGroupToggler) {
     return `
     background: ${theme.blue300};
-    border: 1px solid ${theme.button.default.border};
+    border: 2px solid ${theme.button.default.border};
     color: ${color};
     cursor: pointer;
   `;
@@ -133,7 +145,7 @@ export const getToggleTheme = ({
   if (disabled) {
     return `
     background: ${background};
-    border: 1px solid ${border};
+    border: 2px solid ${border};
     color: ${color};
     cursor: default;
   `;
@@ -141,7 +153,7 @@ export const getToggleTheme = ({
 
   return `
     background: ${background};
-    border: 1px solid ${border};
+    border: 2px solid ${border};
     color: ${color};
   `;
 };

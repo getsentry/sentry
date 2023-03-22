@@ -198,6 +198,15 @@ ALL_KILLSWITCH_OPTIONS = {
             _update_project_configs, "Trigger invalidation tasks for projects"
         ),
     ),
+    "api.organization.disable-last-deploys": KillswitchInfo(
+        description="""
+        Do not retrieve last deploys for projects in organization.
+
+        To protect database against suboptimal queries for organizations with huge number of
+        projects. This works by adding collapse argument to the serializer.
+        """,
+        fields={"organization_id": "An organization ID to disable last deploys for."},
+    ),
 }
 
 

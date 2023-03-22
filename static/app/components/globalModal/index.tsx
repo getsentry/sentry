@@ -270,7 +270,7 @@ Modal.defaultProps = {
 
 const Content = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: 8px;
+  border-radius: ${p => p.theme.modalBorderRadius};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};

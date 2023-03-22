@@ -1,6 +1,4 @@
 ---
-created: '2023-01-17T00:14:23.253438Z'
-creator: sentry
 source: tests/sentry/relay/test_config.py
 ---
 config:
@@ -19,13 +17,8 @@ config:
     excludeFields: []
     scrubData: true
     scrubDefaults: true
-    scrubIpAddresses: false
     sensitiveFields: []
-  eventRetention: null
-  features: []
   filterSettings:
-    browserExtensions:
-      isEnabled: false
     csp:
       disallowedSources:
       - about
@@ -82,12 +75,9 @@ config:
       - hoholikik.club
       - smartlink.cool
       - promfflinkdev.com
-    legacyBrowsers:
-      isEnabled: false
-    localhost:
-      isEnabled: false
-    webCrawlers:
-      isEnabled: false
+    errorMessages:
+      patterns:
+      - '*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*'
   groupingConfig:
     enhancements: eJybzDRxY3J-bm5-npWRgaGlroGxrpHxBABcYgcZ
     id: newstyle:2019-10-29
@@ -131,6 +121,10 @@ config:
       unit: millisecond
     - name: ttfb
       unit: millisecond
+    - name: time_to_full_display
+      unit: millisecond
+    - name: time_to_initial_display
+      unit: millisecond
     maxCustomMeasurements: 10
   piiConfig:
     applications:
@@ -139,7 +133,6 @@ config:
       - project:remove_ips_and_macs
     rules:
       organization:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:
@@ -147,14 +140,12 @@ config:
         - '@mac'
         type: multiple
       project:remove_ips_and_macs:
-        hide_rule: false
         redaction:
           method: remove
         rules:
         - '@ip'
         - '@mac'
         type: multiple
-  quotas: []
   spanAttributes:
   - exclusive-time
   trustedRelays: []

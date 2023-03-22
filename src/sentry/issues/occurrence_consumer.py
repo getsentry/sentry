@@ -1,24 +1,31 @@
 import logging
 from typing import Any, Dict, Mapping, Optional, Tuple
+from uuid import UUID
 
 import jsonschema
 import rapidjson
+import sentry_sdk
 from arroyo import Topic
 from arroyo.backends.kafka.configuration import build_kafka_consumer_configuration
 from arroyo.backends.kafka.consumer import KafkaConsumer, KafkaPayload
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
-from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
+from arroyo.processing.strategies import (
+    CommitOffsets,
+    ProcessingStrategy,
+    ProcessingStrategyFactory,
+    RunTask,
+)
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
-from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
+from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
 from sentry.models import Organization, Project
 from sentry.utils import json, metrics
@@ -34,9 +41,6 @@ class InvalidEventPayloadError(Exception):
 
 class EventLookupError(Exception):
     pass
-
-
-INGEST_ALLOWED_ISSUE_TYPES = frozenset([ProfileBlockedThreadGroupType.type_id])
 
 
 def get_occurrences_ingest_consumer(
@@ -90,7 +94,7 @@ def save_event_from_occurrence(
     project_id = data.pop("project_id")
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
-        manager = EventManager(data)
+        manager = EventManager(data, remove_other=False)
         event = manager.save(project_id=project_id)
 
         return event
@@ -141,7 +145,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             metrics.timing("occurrence.ingest.size.data", len(payload))
 
             occurrence_data = {
-                "id": payload["id"],
+                "id": UUID(payload["id"]).hex,
                 "project_id": payload["project_id"],
                 "fingerprint": payload["fingerprint"],
                 "issue_title": payload["issue_title"],
@@ -151,11 +155,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 "evidence_display": payload.get("evidence_display"),
                 "type": payload["type"],
                 "detection_time": payload["detection_time"],
-                # TODO: need to parse level
+                "level": payload.get("level", DEFAULT_LEVEL),
             }
 
             if payload.get("event_id"):
-                occurrence_data["event_id"] = payload["event_id"]
+                occurrence_data["event_id"] = UUID(payload["event_id"]).hex
 
             if "event" in payload:
                 event_payload = payload["event"]
@@ -170,17 +174,19 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                     occurrence_data["event_id"] = event_payload.get("event_id")
 
                 event_data = {
-                    "event_id": event_payload.get("event_id"),
+                    "event_id": UUID(event_payload.get("event_id")).hex,
+                    "level": occurrence_data["level"],
                     "project_id": event_payload.get("project_id"),
                     "platform": event_payload.get("platform"),
+                    "received": event_payload.get("received", timezone.now()),
                     "tags": event_payload.get("tags"),
                     "timestamp": event_payload.get("timestamp"),
-                    "received": event_payload.get("received", timezone.now()),
                 }
 
                 optional_params = [
                     "breadcrumbs",
                     "contexts",
+                    "debug_meta",
                     "dist",
                     "environment",
                     "extra",
@@ -199,6 +205,11 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                         event_data[optional_param] = event_payload.get(optional_param)
 
                 _validate_event_data(event_data)
+
+                event_data["metadata"] = {
+                    # This allows us to show the title consistently in discover
+                    "title": occurrence_data["issue_title"],
+                }
 
                 return {"occurrence_data": occurrence_data, "event_data": event_data}
             else:
@@ -228,65 +239,68 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
-    metrics.incr("occurrence_ingest.messages", sample_rate=1.0)
-
-    try:
-        kwargs = _get_kwargs(message)
-        occurrence_data = kwargs["occurrence_data"]
-        if occurrence_data["type"] not in INGEST_ALLOWED_ISSUE_TYPES:
-            return None
-
-        project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-        if not features.has("organizations:profile-blocked-main-thread-ingest", organization):
-            return None
-
-        if "event_data" in kwargs:
-            return process_event_and_issue_occurrence(
-                kwargs["occurrence_data"], kwargs["event_data"]
-            )
-        else:
-            return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
-    except (ValueError, KeyError) as e:
-        raise InvalidEventPayloadError(e)
-
-
-class OccurrenceStrategy(ProcessingStrategy[KafkaPayload]):
-    def __init__(
-        self,
-        committer: Commit,
-        partitions: Mapping[Partition, int],
-    ):
-        pass
-
-    def poll(self) -> None:
-        pass
-
-    def submit(self, message: Message[KafkaPayload]) -> None:
+    with sentry_sdk.start_transaction(
+        op="_process_message",
+        name="issues.occurrence_consumer",
+        sampled=True,
+    ) as txn:
         try:
-            payload = json.loads(message.payload.value, use_rapid_json=True)
-            _process_message(payload)
-        except (rapidjson.JSONDecodeError, InvalidEventPayloadError, EventLookupError, Exception):
-            logger.exception("failed to process message payload")
+            kwargs = _get_kwargs(message)
+            occurrence_data = kwargs["occurrence_data"]
+            metrics.incr(
+                "occurrence_ingest.messages",
+                sample_rate=1.0,
+                tags={"occurrence_type": occurrence_data["type"]},
+            )
+            txn.set_tag("occurrence_type", occurrence_data["type"])
 
-    def close(self) -> None:
-        pass
+            project = Project.objects.get_from_cache(id=occurrence_data["project_id"])
+            organization = Organization.objects.get_from_cache(id=project.organization_id)
 
-    def terminate(self) -> None:
-        pass
+            txn.set_tag("organization_id", organization.id)
+            txn.set_tag("organization_slug", organization.slug)
+            txn.set_tag("project_id", project.id)
+            txn.set_tag("project_slug", project.slug)
 
-    def join(self, timeout: Optional[float] = None) -> None:
-        pass
+            group_type = get_group_type_by_type_id(occurrence_data["type"])
+            if not group_type.allow_ingest(organization):
+                metrics.incr(
+                    "occurrence_ingest.dropped_feature_disabled",
+                    sample_rate=1.0,
+                    tags={"occurrence_type": occurrence_data["type"]},
+                )
+                txn.set_tag("result", "dropped_feature_disabled")
+                return None
+
+            if "event_data" in kwargs:
+                txn.set_tag("result", "success")
+                return process_event_and_issue_occurrence(
+                    kwargs["occurrence_data"], kwargs["event_data"]
+                )
+            else:
+                txn.set_tag("result", "success")
+                return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
+        except (ValueError, KeyError) as e:
+            txn.set_tag("result", "error")
+            raise InvalidEventPayloadError(e)
 
 
 class OccurrenceStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
-        pass
-
     def create_with_partitions(
         self,
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> ProcessingStrategy[KafkaPayload]:
-        return OccurrenceStrategy(commit, partitions)
+        def process_message(message: Message[KafkaPayload]) -> None:
+            try:
+                payload = json.loads(message.payload.value, use_rapid_json=True)
+                _process_message(payload)
+            except (
+                rapidjson.JSONDecodeError,
+                InvalidEventPayloadError,
+                EventLookupError,
+                Exception,
+            ):
+                logger.exception("failed to process message payload")
+
+        return RunTask(process_message, CommitOffsets(commit))

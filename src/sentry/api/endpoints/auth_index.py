@@ -18,7 +18,7 @@ from sentry.api.validators import AuthVerifyValidator
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
-from sentry.services.hybrid_cloud.auth.impl import promote_request_api_user
+from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
@@ -59,7 +59,10 @@ class AuthIndexEndpoint(Endpoint):
         if not is_safe_url(redirect, allowed_hosts=(request.get_host(),)):
             redirect = None
         initiate_login(request, redirect)
-        raise SsoRequired(Organization.objects.get_from_cache(id=org_id))
+        raise SsoRequired(
+            organization=Organization.objects.get_from_cache(id=org_id),
+            after_login_redirect=redirect,
+        )
 
     @staticmethod
     def _verify_user_via_inputs(validator, request):
@@ -90,7 +93,7 @@ class AuthIndexEndpoint(Endpoint):
                 )
         # attempt password authentication
         elif "password" in validator.validated_data:
-            authenticated = promote_request_api_user(request).check_password(
+            authenticated = promote_request_rpc_user(request).check_password(
                 validator.validated_data["password"]
             )
             return authenticated
@@ -133,7 +136,7 @@ class AuthIndexEndpoint(Endpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        user = promote_request_api_user(request)
+        user = promote_request_rpc_user(request)
         return Response(serialize(user, user, DetailedSelfUserSerializer()))
 
     def post(self, request: Request) -> Response:
@@ -157,7 +160,7 @@ class AuthIndexEndpoint(Endpoint):
 
         # If 2fa login is enabled then we cannot sign in with username and
         # password through this api endpoint.
-        if Authenticator.objects.user_has_2fa(request.user):
+        if request.user.has_2fa():
             return Response(
                 {
                     "2fa_required": True,
@@ -227,7 +230,7 @@ class AuthIndexEndpoint(Endpoint):
 
         try:
             # Must use the httprequest object instead of request
-            auth.login(request._request, promote_request_api_user(request))
+            auth.login(request._request, promote_request_rpc_user(request))
             metrics.incr(
                 "sudo_modal.success",
                 sample_rate=1.0,

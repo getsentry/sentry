@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import {Location} from 'history';
@@ -6,6 +6,7 @@ import {Location} from 'history';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import * as Layout from 'sentry/components/layouts/thirds';
 import Pagination from 'sentry/components/pagination';
+import {AggregateFlamegraphPanel} from 'sentry/components/profiling/aggregateFlamegraphPanel';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunctions/suspectFunctionsTable';
 import {mobile} from 'sentry/data/platformCategories';
@@ -17,6 +18,7 @@ import {
   useProfileEvents,
 } from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useOrganization from 'sentry/utils/useOrganization';
 import {ProfileCharts} from 'sentry/views/profiling/landing/profileCharts';
 
 interface ProfileSummaryContentProps {
@@ -28,6 +30,7 @@ interface ProfileSummaryContentProps {
 }
 
 function ProfileSummaryContent(props: ProfileSummaryContentProps) {
+  const organization = useOrganization();
   const fields = useMemo(
     () => getProfilesTableFields(props.project.platform),
     [props.project]
@@ -66,49 +69,62 @@ function ProfileSummaryContent(props: ProfileSummaryContentProps) {
     [props.location]
   );
 
+  const isAggregateFlamegraphEnabled = organization.features.includes(
+    'profiling-aggregate-flamegraph'
+  );
+
   return (
-    <Layout.Main fullWidth>
-      <ProfileCharts query={props.query} hideCount />
-      <TableHeader>
-        <CompactSelect
-          triggerProps={{prefix: t('Filter'), size: 'xs'}}
-          value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
-          options={FILTER_OPTIONS}
-          onChange={opt => handleFilterChange(opt.value)}
+    <Fragment>
+      <Layout.Main fullWidth>
+        <ProfileCharts
+          query={props.query}
+          hideCount
+          compact={isAggregateFlamegraphEnabled}
         />
-        <StyledPagination
-          pageLinks={
-            profiles.status === 'success'
-              ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
-              : null
-          }
-          size="xs"
+        {isAggregateFlamegraphEnabled && (
+          <AggregateFlamegraphPanel transaction={props.transaction} />
+        )}
+        <TableHeader>
+          <CompactSelect
+            triggerProps={{prefix: t('Filter'), size: 'xs'}}
+            value={sort.order === 'asc' ? sort.key : `-${sort.key}`}
+            options={FILTER_OPTIONS}
+            onChange={opt => handleFilterChange(opt.value)}
+          />
+          <StyledPagination
+            pageLinks={
+              profiles.status === 'success'
+                ? profiles.data?.[2]?.getResponseHeader('Link') ?? null
+                : null
+            }
+            size="xs"
+          />
+        </TableHeader>
+        <ProfileEventsTable
+          columns={fields}
+          data={profiles.status === 'success' ? profiles.data[0] : null}
+          error={profiles.status === 'error' ? t('Unable to load profiles') : null}
+          isLoading={profiles.status === 'loading'}
+          sort={sort}
         />
-      </TableHeader>
-      <ProfileEventsTable
-        columns={fields}
-        data={profiles.status === 'success' ? profiles.data[0] : null}
-        error={profiles.status === 'error' ? t('Unable to load profiles') : null}
-        isLoading={profiles.status === 'loading'}
-        sort={sort}
-      />
-      <SuspectFunctionsTable
-        project={props.project}
-        transaction={props.transaction}
-        analyticsPageSource="profiling_transaction"
-      />
-    </Layout.Main>
+        <SuspectFunctionsTable
+          project={props.project}
+          transaction={props.transaction}
+          analyticsPageSource="profiling_transaction"
+        />
+      </Layout.Main>
+    </Fragment>
   );
 }
 
 const ALL_FIELDS = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
   'device.model',
   'device.classification',
   'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ] as const;
 
 export type ProfilingFieldType = (typeof ALL_FIELDS)[number];
@@ -123,11 +139,10 @@ export function getProfilesTableFields(platform: Project['platform']) {
 
 const MOBILE_FIELDS: ProfilingFieldType[] = [...ALL_FIELDS];
 const DEFAULT_FIELDS: ProfilingFieldType[] = [
-  'id',
+  'profile.id',
   'timestamp',
   'release',
-  'device.arch',
-  'profile.duration',
+  'transaction.duration',
 ];
 
 const FILTER_OPTIONS = [
@@ -137,11 +152,11 @@ const FILTER_OPTIONS = [
   },
   {
     label: t('Slowest Profiles'),
-    value: '-profile.duration',
+    value: '-transaction.duration',
   },
   {
     label: t('Fastest Profiles'),
-    value: 'profile.duration',
+    value: 'transaction.duration',
   },
 ];
 

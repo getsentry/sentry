@@ -9,6 +9,7 @@ type TimezoneGroup =
   | 'US/Canada'
   | 'America'
   | 'Europe'
+  | 'Australia'
   | 'Asia'
   | 'Indian'
   | 'Africa'
@@ -323,6 +324,19 @@ const timezones: [
   ['Asia', '+11', 'Asia/Srednekolymsk', 'Srednekolymsk'],
   ['Asia', '+12', 'Asia/Anadyr', 'Anadyr'],
   ['Asia', '+12', 'Asia/Kamchatka', 'Kamchatka'],
+
+  ['Australia', '+8', 'Australia/Perth', 'Perth'],
+  ['Australia', '+8:45', 'Australia/Eucla', 'Eucla'],
+  ['Australia', '+9:30', 'Australia/Darwin', 'Darwin'],
+  ['Australia', '+10', 'Australia/Brisbane', 'Brisbane'],
+  ['Australia', '+10', 'Australia/Lindeman', 'Lindeman'],
+  ['Australia', '+10:30', 'Australia/Adelaide', 'Adelaide'],
+  ['Australia', '+10', 'Australia/Broken_Hill', 'Broken Hill'],
+  ['Australia', '+11', 'Australia/Currie', 'Currie'],
+  ['Australia', '+11', 'Australia/Hobart', 'Hobart'],
+  ['Australia', '+11', 'Australia/Lord_Howe', 'Lord_Howe'],
+  ['Australia', '+11', 'Australia/Melbourne', 'Melbourne'],
+  ['Australia', '+11', 'Australia/Sydney', 'Sydney'],
 
   ['Indian', '+3', 'Indian/Antananarivo', 'Antananarivo'],
   ['Indian', '+3', 'Indian/Comoro', 'Comoro'],

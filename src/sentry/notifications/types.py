@@ -43,6 +43,9 @@ class NotificationSettingTypes(Enum):
     # Notifications for changes in assignment, resolution, comments, etc.
     WORKFLOW = 30
 
+    # Notification when an issue happens shortly after your release. This notification type is no longer supported.
+    ACTIVE_RELEASE = 31
+
     # Notifications that require approval like a request to invite a member
     APPROVAL = 40
 
@@ -53,6 +56,7 @@ class NotificationSettingTypes(Enum):
     QUOTA_ERRORS = 51
     QUOTA_TRANSACTIONS = 52
     QUOTA_ATTACHMENTS = 53
+    QUOTA_REPLAYS = 56
 
     # Sub category of quotas for warnings before hitting the actual limit
     QUOTA_WARNINGS = 54
@@ -69,11 +73,13 @@ NOTIFICATION_SETTING_TYPES = {
     NotificationSettingTypes.DEPLOY: "deploy",
     NotificationSettingTypes.ISSUE_ALERTS: "alerts",
     NotificationSettingTypes.WORKFLOW: "workflow",
+    NotificationSettingTypes.ACTIVE_RELEASE: "activeRelease",
     NotificationSettingTypes.APPROVAL: "approval",
     NotificationSettingTypes.QUOTA: "quota",
     NotificationSettingTypes.QUOTA_ERRORS: "quotaErrors",
     NotificationSettingTypes.QUOTA_TRANSACTIONS: "quotaTransactions",
     NotificationSettingTypes.QUOTA_ATTACHMENTS: "quotaAttachments",
+    NotificationSettingTypes.QUOTA_REPLAYS: "quotaReplays",
     NotificationSettingTypes.QUOTA_WARNINGS: "quotaWarnings",
     NotificationSettingTypes.QUOTA_SPEND_ALLOCATIONS: "quotaSpendAllocations",
     NotificationSettingTypes.SPIKE_PROTECTION: "spikeProtection",
@@ -145,6 +151,7 @@ class UserOptionsSettingsKey(Enum):
     SELF_ASSIGN = "selfAssignOnResolve"
     SUBSCRIBE_BY_DEFAULT = "subscribeByDefault"
     WORKFLOW = "workflowNotifications"
+    ACTIVE_RELEASE = "activeReleaseNotifications"
     APPROVAL = "approvalNotifications"
     QUOTA = "quotaNotifications"
     SPIKE_PROTECTION = "spikeProtectionNotifications"
@@ -177,6 +184,10 @@ VALID_VALUES_FOR_KEY = {
         NotificationSettingOptionValues.NEVER,
     },
     NotificationSettingTypes.QUOTA_ATTACHMENTS: {
+        NotificationSettingOptionValues.ALWAYS,
+        NotificationSettingOptionValues.NEVER,
+    },
+    NotificationSettingTypes.QUOTA_REPLAYS: {
         NotificationSettingOptionValues.ALWAYS,
         NotificationSettingOptionValues.NEVER,
     },

@@ -48,9 +48,13 @@ export const knowDynamicSamplingBiases = {
     label: t('Prioritize key transactions'),
     help: t('Captures more of your most important (starred) transactions'),
   },
+  [DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS]: {
+    label: t('Prioritize low-volume transactions'),
+    help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+  },
   [DynamicSamplingBiasType.IGNORE_HEALTH_CHECKS]: {
-    label: t('Ignore health checks'),
-    help: t('Discards your health checks transactions'),
+    label: t('Deprioritize health checks'),
+    help: t('Captures fewer of your health checks transactions'),
   },
 };
 
@@ -58,6 +62,9 @@ export function DynamicSampling({project}: Props) {
   const organization = useOrganization();
   const api = useApi();
 
+  const hasTransactionNamePriorityFlag = organization.features.includes(
+    'dynamic-sampling-transaction-name-priority'
+  );
   const hasAccess = organization.access.includes('project:write');
   const biases = project.dynamicSamplingBiases ?? [];
 
@@ -146,6 +153,14 @@ export function DynamicSampling({project}: Props) {
               const bias = biases.find(b => b.id === key);
 
               if (!bias) {
+                return null;
+              }
+
+              // "Prioritize low-volume transactions" is only available to orgs with the feature flag
+              if (
+                !hasTransactionNamePriorityFlag &&
+                key === DynamicSamplingBiasType.BOOST_LOW_VOLUME_TRANSACTIONS
+              ) {
                 return null;
               }
 

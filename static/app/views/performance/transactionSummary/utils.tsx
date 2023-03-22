@@ -78,7 +78,7 @@ export function transactionSummaryRouteWithQuery({
   orgSlug: string;
   query: Query;
   transaction: string;
-  additionalQuery?: Record<string, string>;
+  additionalQuery?: Record<string, string | undefined>;
   display?: DisplayModes;
   projectID?: string | string[];
   showTransactions?: TransactionFilterOptions;

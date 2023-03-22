@@ -1,6 +1,7 @@
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
+import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
@@ -26,7 +27,7 @@ function DiscoverContainer({organization, children}: Props) {
       hookName="feature-disabled:discover2-page"
       renderDisabled={renderNoAccess}
     >
-      {children}
+      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
     </Feature>
   );
 }

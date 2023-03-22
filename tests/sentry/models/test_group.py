@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
-from sentry.issues.grouptype import ProfileBlockedThreadGroupType
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Group,
@@ -376,7 +376,7 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         )[0]
 
         group = Group.objects.first()
-        group.update(type=ProfileBlockedThreadGroupType.type_id)
+        group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
         assert group_event.event_id == event_id

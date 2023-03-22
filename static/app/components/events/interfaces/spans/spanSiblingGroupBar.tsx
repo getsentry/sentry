@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {SpanBarType} from 'sentry/components/performance/waterfall/constants';
 import {
   ConnectorBar,
   TOGGLE_BORDER_BOX,
@@ -40,6 +41,7 @@ export type SpanSiblingGroupBarProps = {
   spanNumber: number;
   toggleSiblingSpanGroup: (span: SpanType, occurrence: number) => void;
   treeDepth: number;
+  spanBarType?: SpanBarType;
 };
 
 export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
@@ -59,6 +61,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
     removeContentSpanBarRef,
     isEmbeddedSpanTree,
     didAnchoredSpanMount,
+    spanBarType,
   } = props;
 
   const organization = useOrganization();
@@ -129,11 +132,13 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
             key={index}
             spanGrouping={spanGrouping}
             bounds={getSpanGroupBounds([spanGrouping[index]], generateBounds)}
+            spanBarType={spanBarType}
           />
         ))}
         <SpanRectangleOverlay
           spanGrouping={spanGrouping}
           bounds={getSpanGroupBounds(spanGrouping, generateBounds)}
+          spanBarType={spanBarType}
         />
       </Fragment>
     );
@@ -163,6 +168,7 @@ export default function SpanSiblingGroupBar(props: SpanSiblingGroupBarProps) {
       removeContentSpanBarRef={removeContentSpanBarRef}
       didAnchoredSpanMount={didAnchoredSpanMount}
       getCurrentLeftPos={getCurrentLeftPos}
+      spanBarType={spanBarType}
     />
   );
 }
