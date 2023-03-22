@@ -47,8 +47,11 @@ export function ProductSelection() {
         })}
       </TextBlock>
       <Products>
-        <Product disabled>
-          <Checkbox checked readOnly size="xs" />
+        <Product
+          disabled
+          data-test-id={`product-${PRODUCT.ERROR_MONITORING}-${PRODUCT.PERFORMANCE_MONITORING}-${PRODUCT.SESSION_REPLAY}`}
+        >
+          <Checkbox checked readOnly size="xs" disabled />
           <div>{t('Error Monitoring')}</div>
           <QuestionTooltip
             size="xs"
@@ -65,7 +68,10 @@ export function ProductSelection() {
             isHoverable
           />
         </Product>
-        <Product onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}>
+        <Product
+          onClick={() => handleClickProduct(PRODUCT.PERFORMANCE_MONITORING)}
+          data-test-id={`product-${PRODUCT.PERFORMANCE_MONITORING}`}
+        >
           <Checkbox
             checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
             size="xs"
@@ -87,7 +93,10 @@ export function ProductSelection() {
             isHoverable
           />
         </Product>
-        <Product onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}>
+        <Product
+          onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}
+          data-test-id={`product-${PRODUCT.SESSION_REPLAY}`}
+        >
           <Checkbox
             checked={products.includes(PRODUCT.SESSION_REPLAY)}
             size="xs"

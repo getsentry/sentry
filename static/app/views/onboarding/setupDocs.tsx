@@ -98,6 +98,7 @@ function ProjectDocs(props: {
   );
 
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+
   return (
     <Fragment>
       <SetupIntroduction
@@ -176,6 +177,7 @@ function SetupDocs({search, route, router, location}: Props) {
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
   const project = projects[projectIndex];
+
   // find the next project that doesn't have a first event
   const nextProject = projects.find(
     (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
@@ -208,6 +210,7 @@ function SetupDocs({search, route, router, location}: Props) {
       // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
       // and the docs will reflect that.
       const products = location.query.product ?? [];
+      console.log({products});
       if (
         products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
         products.includes(PRODUCT.SESSION_REPLAY)
