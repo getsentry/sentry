@@ -35,11 +35,7 @@ describe('Discover > QueryList', function () {
 
   beforeEach(function () {
     organization = TestStubs.Organization({
-      features: [
-        'discover-basic',
-        'discover-query',
-        'discover-query-builder-as-landing-page',
-      ],
+      features: ['discover-basic', 'discover-query'],
     });
     savedQueries = [
       TestStubs.DiscoverSavedQuery(),
@@ -219,7 +215,7 @@ describe('Discover > QueryList', function () {
     });
   });
 
-  it('renders Add to Dashboard in context menu with feature flag', async function () {
+  it('renders Add to Dashboard in context menu', async function () {
     const featuredOrganization = TestStubs.Organization({
       features: ['dashboards-edit'],
     });
@@ -243,8 +239,8 @@ describe('Discover > QueryList', function () {
       screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Set as Default'})
-    ).not.toBeInTheDocument();
+      screen.getByRole('menuitemradio', {name: 'Set as Default'})
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('menuitemradio', {name: 'Duplicate Query'})
     ).toBeInTheDocument();

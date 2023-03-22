@@ -121,12 +121,15 @@ class OpsBreakdown extends Component<Props> {
     const operationNameIntervals = spans.reduce(
       (intervals: Partial<OperationNameIntervals>, span: RawSpanType) => {
         let startTimestamp = span.start_timestamp;
-        let endTimestamp = span.timestamp;
+        const endTimestamp = span.timestamp;
+
+        if (!span.exclusive_time) {
+          return intervals;
+        }
 
         if (endTimestamp < startTimestamp) {
           // reverse timestamps
           startTimestamp = span.timestamp;
-          endTimestamp = span.start_timestamp;
         }
 
         // invariant: startTimestamp <= endTimestamp
@@ -138,7 +141,10 @@ class OpsBreakdown extends Component<Props> {
           operationName = 'unknown';
         }
 
-        const cover: TimeWindowSpan = [startTimestamp, endTimestamp];
+        const cover: TimeWindowSpan = [
+          startTimestamp,
+          startTimestamp + span.exclusive_time / 1000,
+        ];
 
         const operationNameInterval = intervals[operationName];
 
