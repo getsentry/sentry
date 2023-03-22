@@ -19,7 +19,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0390_remove_field_in_bundle_model.py"),
+        ("sentry", "0390_remove_field_in_bundle_model"),
     ]
 
     operations = [
