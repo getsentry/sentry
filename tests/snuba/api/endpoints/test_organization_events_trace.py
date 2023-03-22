@@ -55,6 +55,7 @@ class OrganizationEventsTraceEndpointBase(APITestCase, SnubaTestCase):
             span = data["spans"][0]
             if "data" not in span:
                 span["data"] = {}
+            span["op"] = "file.write"
             span["data"].update({"duration": 1, "blocked_main_thread": True})
         with self.feature(self.FEATURES):
             return self.store_event(data, project_id=project_id, **kwargs)

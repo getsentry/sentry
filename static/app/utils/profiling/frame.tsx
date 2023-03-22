@@ -1,9 +1,8 @@
 import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {t} from 'sentry/locale';
 
-import {WeightedNode} from './weightedNode';
-
-export class Frame extends WeightedNode {
+const ROOT_KEY = 'sentry root';
+export class Frame {
   readonly key: string | number;
   readonly name: string;
   readonly file?: string;
@@ -21,18 +20,21 @@ export class Frame extends WeightedNode {
   readonly symbolAddr?: string;
   readonly symbolicatorStatus?: SymbolicatorStatus;
 
+  readonly isRoot: boolean;
+
+  totalWeight: number = 0;
+  selfWeight: number = 0;
+
   static Root = new Frame(
     {
-      key: 'sentry root',
-      name: 'sentry root',
+      key: ROOT_KEY,
+      name: ROOT_KEY,
       is_application: false,
     },
     'mobile'
   );
 
   constructor(frameInfo: Profiling.FrameInfo, type?: 'mobile' | 'web' | 'node') {
-    super();
-
     this.key = frameInfo.key;
     this.file = frameInfo.file;
     this.name = frameInfo.name;
@@ -48,6 +50,7 @@ export class Frame extends WeightedNode {
     this.symbol = frameInfo.symbol;
     this.symbolAddr = frameInfo.symbolAddr;
     this.symbolicatorStatus = frameInfo.symbolicatorStatus;
+    this.isRoot = this.key === ROOT_KEY;
 
     // We are remapping some of the keys as they differ between platforms.
     // This is a temporary solution until we adopt a unified format.
@@ -132,9 +135,5 @@ export class Frame extends WeightedNode {
     if (!this.name) {
       this.name = t('<unknown>');
     }
-  }
-
-  isRoot(): boolean {
-    return this.name === Frame.Root.name;
   }
 }

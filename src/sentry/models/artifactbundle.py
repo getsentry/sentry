@@ -52,12 +52,12 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    # This field represents the date of the upload that we show in the UI.
+    date_uploaded = models.DateTimeField(default=timezone.now, null=True)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundle"
-
-        unique_together = (("organization_id", "bundle_id"),)
 
     @classmethod
     def get_release_dist_pair(
@@ -101,7 +101,6 @@ class DebugIdArtifactBundle(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
-    date_last_accessed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"

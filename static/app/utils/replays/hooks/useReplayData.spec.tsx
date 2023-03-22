@@ -20,7 +20,7 @@ function getMockReplayRecord(replayRecord?: Partial<ReplayRecord>) {
   const HYDRATED_REPLAY = TestStubs.ReplayRecord(replayRecord);
   const RAW_REPLAY = {
     ...HYDRATED_REPLAY,
-    duration: HYDRATED_REPLAY.duration.asMilliseconds() / 1000,
+    duration: HYDRATED_REPLAY.duration.asSeconds(),
     started_at: HYDRATED_REPLAY.started_at.toString(),
     finished_at: HYDRATED_REPLAY.finished_at.toString(),
   };
