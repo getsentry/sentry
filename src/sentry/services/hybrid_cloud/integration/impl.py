@@ -125,7 +125,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if external_id is not None:
             integration_kwargs["external_id"] = external_id
         if organization_id is not None:
-            integration_kwargs["organizationintegration__organization_id"] = organization_id
+            integration_kwargs["organizationintegrations__organization_id"] = organization_id
 
         if not integration_kwargs:
             return None

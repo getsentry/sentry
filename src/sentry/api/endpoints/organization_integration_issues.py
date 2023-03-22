@@ -16,7 +16,7 @@ class OrganizationIntegrationIssuesEndpoint(OrganizationIntegrationBaseEndpoint)
         :pparam string organization: the organization the integration is installed in
         :pparam string integration_id: the id of the integration
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
         )

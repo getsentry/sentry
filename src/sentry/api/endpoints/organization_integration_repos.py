@@ -31,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}

@@ -23,7 +23,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         """
         Get the list of repository project path configs in an integration
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
@@ -40,7 +40,7 @@ class OrganizationIntegrationServerlessFunctionsEndpoint(OrganizationIntegration
         return self.respond(serverless_functions)
 
     def post(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         install = integration_service.get_installation(
             integration=integration, organization_id=organization.id
         )

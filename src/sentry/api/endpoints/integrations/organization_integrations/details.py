@@ -36,7 +36,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
 
     @requires_feature("organizations:integrations-custom-scm")
     def put(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.provider != "custom_scm":
             return self.respond({"detail": "Invalid action for this integration"}, status=400)
@@ -76,7 +76,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         ).first()
         if not org_integration:
             raise Http404
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         # do any integration specific deleting steps
         integration_service.get_installation(
             integration=integration, organization_id=organization.id
@@ -100,7 +100,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         return self.respond(status=204)
 
     def post(self, request: Request, organization, integration_id) -> Response:
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
         installation = integration_service.get_installation(
             integration=integration, organization_id=organization.id
         )

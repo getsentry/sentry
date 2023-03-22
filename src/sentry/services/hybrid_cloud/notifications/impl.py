@@ -20,37 +20,22 @@ from sentry.types.integrations import ExternalProviders
 class DatabaseBackedNotificationsService(NotificationsService):
     def update_settings(
         self,
-        external_provider: int,
-        notification_type: int,
-        setting_option: int,
+        *,
+        external_provider: ExternalProviders,
+        notification_type: NotificationSettingTypes,
+        setting_option: NotificationSettingOptionValues,
         actor: RpcActor,
-        project_id: Optional[int],
-        organization_id: Optional[int],
-    ) -> bool:
-        try:
-            xp = ExternalProviders(external_provider)
-        except ValueError:
-            return False
-
-        try:
-            nt = NotificationSettingTypes(notification_type)
-        except ValueError:
-            return False
-
-        try:
-            value = NotificationSettingOptionValues(setting_option)
-        except ValueError:
-            return False
-
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
         NotificationSetting.objects.update_settings(
-            external_provider=xp,
-            type=nt,
-            value=value,
+            provider=external_provider,
+            type=notification_type,
+            value=setting_option,
             actor=actor,
             project_or_id=project_id,
             organization_or_id=organization_id,
         )
-        return True
 
     def get_settings_for_users(
         self,
@@ -118,6 +103,13 @@ class DatabaseBackedNotificationsService(NotificationsService):
                 target_id=user.actor_id,
             )
         ]
+
+    def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
+        """
+        Delete notification settings based on an actor_id
+        There is no foreign key relationship so we have to manually cascade.
+        """
+        NotificationSetting.objects._filter(target_ids=[actor_id], provider=provider).delete()
 
     def close(self) -> None:
         pass

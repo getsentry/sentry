@@ -74,7 +74,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             messages.add_message(request, messages.WARNING, WARN_SESSION_EXPIRED)
 
         if not auth_provider:
-            response = self.handle_basic_auth(request, organization_id=organization.id)
+            response = self.handle_basic_auth(request, organization=organization)
         else:
             response = self.handle_sso(request, organization, auth_provider)
 

@@ -48,7 +48,9 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
     if not codecov_token:
         return False, CodecovIntegrationError.MISSING_TOKEN.value
 
-    integrations = Integration.objects.filter(organizations=organization.id, provider="github")
+    integrations = Integration.objects.filter(
+        organizationintegrations__organization_id=organization.id, provider="github"
+    )
     if not integrations.exists():
         return False, CodecovIntegrationError.MISSING_GH.value
 

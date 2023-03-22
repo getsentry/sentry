@@ -6,10 +6,12 @@ from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry import analytics
-from sentry.models import ExternalActor, Integration, NotificationSetting, OrganizationMember, Team
+from sentry.models import ExternalActor, Integration, OrganizationMember, Team
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -162,11 +164,11 @@ class SlackLinkTeamView(BaseView):
             )
 
         # Turn on notifications for all of a team's projects.
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team=team,
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_orm_team(team),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
 

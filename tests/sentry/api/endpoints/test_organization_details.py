@@ -887,7 +887,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="github", organization=self.organization
+            provider="github", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True
@@ -897,7 +897,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
         self.auth_provider = AuthProvider.objects.create(
-            provider="saml2", organization=self.organization
+            provider="saml2", organization_id=self.organization.id
         )
         # bypass SSO login
         self.auth_provider.flags.allow_unlinked = True

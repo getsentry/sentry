@@ -52,17 +52,13 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         return org_integration
 
     @staticmethod
-    def get_integration(organization, integration_id) -> RpcIntegration:
+    def get_integration(organization_id, integration_id) -> RpcIntegration:
         """
         Note: The integration may still exist even when the
         OrganizationIntegration cross table entry has been deleted.
-
-        :param organization:
-        :param integration_id:
-        :return:
         """
         integration, org_integration = integration_service.get_organization_context(
-            organization_id=organization, integration_id=integration_id
+            organization_id=organization_id, integration_id=integration_id
         )
         if not integration or not org_integration:
             raise Http404
