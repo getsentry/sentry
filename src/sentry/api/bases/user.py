@@ -6,13 +6,15 @@ from sentry.api.permissions import SentryPermission
 from sentry.auth.superuser import is_active_superuser
 from sentry.auth.system import is_system_auth
 from sentry.models import Organization, OrganizationStatus, User
+from sentry.services.hybrid_cloud.user import user_service
+from sentry.silo.base import SiloMode
 
 
 class UserPermission(SentryPermission):
     def has_object_permission(self, request: Request, view, user=None):
         if user is None:
             user = request.user
-        if request.user == user:
+        if request.user.id == user.id:
             return True
         if is_system_auth(request.auth):
             return True
@@ -65,10 +67,19 @@ class UserEndpoint(Endpoint):
                 raise ResourceDoesNotExist
             user_id = request.user.id
 
-        try:
-            user = User.objects.get(id=user_id)
-        except (User.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
+        # This split decreases code churn in every control silo endpoint controller by returning
+        # ORM users in the control silo and rpc users in region silos.
+        # TODO(hybrid-cloud): consider splitting this endpoint base class into 2 implementations
+        # one for each silo mode
+        if SiloMode.get_current_mode() in [SiloMode.MONOLITH, SiloMode.CONTROL]:
+            try:
+                user = User.objects.get(id=user_id)
+            except (User.DoesNotExist, ValueError):
+                raise ResourceDoesNotExist
+        else:  # Region
+            user = user_service.get_user(user_id=user_id)
+            if user is None:
+                raise ResourceDoesNotExist
 
         self.check_object_permissions(request, user)
 

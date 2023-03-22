@@ -102,6 +102,10 @@ class AvatarBase(Model):
                 router.db_for_write(File),
             )
         ):
+            if "user" in relation:
+                user = relation.pop("user")
+                relation["user_id"] = user.id
+
             if relation.get("sentry_app") and color is not None:
                 instance, created = cls.objects.get_or_create(**relation, color=color)
             else:
