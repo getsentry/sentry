@@ -1,18 +1,26 @@
 from __future__ import annotations
 
 import logging
-from collections import defaultdict
+from abc import ABCMeta, abstractmethod
 from enum import IntEnum
-from typing import Callable, Dict, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Mapping, MutableMapping, Tuple
 
 from django.db import models
-from pyparsing import MutableMapping
 
 from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import region_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.models.organization import Organization
+from sentry.services.hybrid_cloud.integration import RpcIntegration
+from sentry.types.integrations import ExternalProviders
+from sentry.utils.json import JSONData
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from sentry.api.serializers.rest_framework.notification_action import (
+        NotificationActionInputData,
+    )
 
 
 class FlexibleIntEnum(IntEnum):
@@ -45,10 +53,10 @@ class ActionService(FlexibleIntEnum):
     @classmethod
     def as_choices(cls) -> Iterable[Tuple[int, str]]:
         return (
-            (cls.EMAIL.value, "email"),
-            (cls.PAGERDUTY.value, "pagerduty"),
-            (cls.SLACK.value, "slack"),
-            (cls.MSTEAMS.value, "msteams"),
+            (cls.EMAIL.value, ExternalProviders.EMAIL.name),
+            (cls.PAGERDUTY.value, ExternalProviders.PAGERDUTY.name),
+            (cls.SLACK.value, ExternalProviders.SLACK.name),
+            (cls.MSTEAMS.value, ExternalProviders.MSTEAMS.name),
             (cls.SENTRY_APP.value, "sentry_app"),
             (cls.SENTRY_NOTIFICATION.value, "sentry_notification"),
         )
@@ -142,6 +150,40 @@ class NotificationActionProject(Model):
         db_table = "sentry_notificationactionproject"
 
 
+class ActionRegistration(metaclass=ABCMeta):
+    def __init__(self, action: NotificationAction):
+        self.action = action
+
+    @abstractmethod
+    def fire(self, data: Any) -> None:
+        """
+        Handles delivering the message via the service from the action and specified data.
+        """
+        pass
+
+    @classmethod
+    def validate_action(cls, data: NotificationActionInputData) -> None:
+        """
+        Optional function to provide increased validation when saving incoming NotificationActions. See NotificationActionSerializer.
+
+        :param data: The input data sent to the API before updating/creating NotificationActions
+        :raises serializers.ValidationError: Indicates that the incoming action would apply to this registration but is not valid.
+        """
+        pass
+
+    @classmethod
+    def serialize_available(
+        cls, organization: Organization, integrations: List[RpcIntegration] = None
+    ) -> List[JSONData]:
+        """
+        Optional class method to serialize this registration's available actions to an organization. See NotificationActionsAvailableEndpoint.
+
+        :param organization: The relevant organization which will receive the serialized available action in their response.
+        :param integrations: A list of integrations which are set up for the organization.
+        """
+        return []
+
+
 @region_silo_only_model
 class NotificationAction(AbstractNotificationAction):
     """
@@ -151,8 +193,8 @@ class NotificationAction(AbstractNotificationAction):
     __include_in_export__ = True
     __repr__ = sane_repr("id", "trigger_type", "service_type", "target_display")
 
-    _handlers: MutableMapping[int, MutableMapping[int, Callable]] = defaultdict(dict)
     _trigger_types: List[Tuple[int, str]] = ActionTrigger.as_choices()
+    _registry: MutableMapping[str, ActionRegistration] = {}
 
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField("sentry.Project", through=NotificationActionProject)
@@ -186,25 +228,47 @@ class NotificationAction(AbstractNotificationAction):
         cls._trigger_types: List[Tuple[int, str]] = cls._trigger_types + ((value, display_text),)
 
     @classmethod
-    def register_handler(
+    def register_action(
         cls,
         trigger_type: int,
         service_type: int,
+        target_type: int,
     ):
-        def inner(handler):
-            if service_type not in cls._handlers[trigger_type]:
-                cls._handlers[trigger_type][service_type] = handler
-            else:
+        """
+        Register a new trigger/service/target combination for NotificationActions.
+        For example, allowing audit-logs (trigger) to fire actions to slack (service) channels (target)
+
+        :param trigger_type: The registered trigger_type integer value saved to the database
+        :param service_type: The service_type integer value which must exist on ActionService
+        :param target_type: The target_type integer value which must exist on ActionTarget
+        :param registration: A subclass of `ActionRegistration`.
+        """
+
+        def inner(registration: ActionRegistration):
+            if trigger_type not in dict(cls._trigger_types):
                 raise AttributeError(
-                    f"Conflicting handler for trigger:service pair ({trigger_type}:{service_type})"
+                    f"Trigger type of {trigger_type} is not registered. Modify ActionTrigger or call register_trigger_type()."
                 )
-            return handler
+
+            if service_type not in dict(ActionService.as_choices()):
+                raise AttributeError(
+                    f"Service type of {service_type} is not registered. Modify ActionService."
+                )
+
+            if target_type not in dict(ActionTarget.as_choices()):
+                raise AttributeError(
+                    f"Target type of {target_type} is not registered. Modify ActionTarget."
+                )
+            key = cls.get_registry_key(trigger_type, service_type, target_type)
+            if cls._registry.get(key) is not None:
+                raise AttributeError(
+                    f"Existing registration found for trigger:{trigger_type}, service:{service_type}, target:{target_type}."
+                )
+
+            cls._registry[key] = registration
+            return registration
 
         return inner
-
-    @classmethod
-    def get_handlers(cls):
-        return cls._handlers
 
     @classmethod
     def get_trigger_types(cls):
@@ -214,6 +278,21 @@ class NotificationAction(AbstractNotificationAction):
     def get_trigger_text(self, trigger_type: int) -> str:
         return dict(NotificationAction.get_trigger_types())[trigger_type]
 
+    @classmethod
+    def get_registry_key(self, trigger_type: int, service_type: int, target_type: int) -> str:
+        return f"{trigger_type}:{service_type}:{target_type}"
+
+    @classmethod
+    def get_registry(cls) -> Mapping[str, ActionRegistration]:
+        return cls._registry
+
+    @classmethod
+    def get_registration(
+        cls, trigger_type: int, service_type: int, target_type: int
+    ) -> ActionRegistration | None:
+        key = cls.get_registry_key(trigger_type, service_type, target_type)
+        return cls._registry.get(key)
+
     def get_audit_log_data(self) -> Dict[str, str]:
         """
         Returns audit log data for NOTIFICATION_ACTION_ADD, NOTIFICATION_ACTION_EDIT
@@ -222,15 +301,27 @@ class NotificationAction(AbstractNotificationAction):
         return {"trigger": NotificationAction.get_trigger_text(self.trigger_type)}
 
     def fire(self, *args, **kwargs):
-        handler = NotificationAction._handlers[self.trigger_type].get(self.service_type)
-        if handler:
-            return handler(action=self, *args, **kwargs)
+        registration = NotificationAction.get_registration(
+            self.trigger_type, self.service_type, self.target_type
+        )
+        if registration:
+            logger.info(
+                "fire_action",
+                extra={
+                    "action_id": self.id,
+                    "trigger": NotificationAction.get_trigger_text(self.trigger_type),
+                    "service": ActionService.get_name(self.service_type),
+                    "target": ActionTarget.get_name(self.target_type),
+                },
+            )
+            return registration(action=self).fire(*args, **kwargs)
         else:
             logger.error(
-                "missing_handler",
+                "missing_registration",
                 extra={
                     "id": self.id,
                     "service_type": self.service_type,
                     "trigger_type": self.trigger_type,
+                    "target_type": self.target_type,
                 },
             )

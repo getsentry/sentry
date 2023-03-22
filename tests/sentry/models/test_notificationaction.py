@@ -1,17 +1,16 @@
-from collections import defaultdict
 from unittest.mock import MagicMock, patch
 
 import pytest
 from django.forms import ValidationError
 
-from sentry.models.notificationaction import NotificationAction
+from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.notificationaction import logger as NotificationActionLogger
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
 
 @region_silo_test(stable=True)
-@patch.dict(NotificationAction._handlers, defaultdict(dict))
+@patch.dict(NotificationAction._registry, {})
 class NotificationActionTest(TestCase):
     def setUp(self):
         self.organization = self.create_organization(name="night city")
@@ -23,33 +22,33 @@ class NotificationActionTest(TestCase):
             organization=self.organization, projects=self.projects
         )
         self.illegal_trigger = (-1, "sandevistan")
-        self.illegal_service = (-1, "braindance")
 
     @patch.object(NotificationActionLogger, "error")
-    def test_register_handler_for_fire(self, mock_error_logger):
-        self.notif_action.type = self.illegal_service[0]
-        self.notif_action.trigger_type = self.illegal_trigger[0]
-        self.notif_action.save()
+    def test_register_action_for_fire(self, mock_error_logger):
         mock_handler = MagicMock()
-        NotificationAction.register_handler(
-            trigger_type=self.illegal_trigger[0],
-            service_type=self.illegal_service[0],
+        NotificationAction.register_action(
+            trigger_type=self.notif_action.trigger_type,
+            service_type=self.notif_action.service_type,
+            target_type=self.notif_action.target_type,
         )(mock_handler)
 
         self.notif_action.fire()
         assert not mock_error_logger.called
         assert mock_handler.called
 
-    def test_register_handler_for_overlap(self):
+    def test_register_action_for_overlap(self):
+        NotificationAction.register_trigger_type(*self.illegal_trigger)
         mock_handler = MagicMock()
-        NotificationAction.register_handler(
+        NotificationAction.register_action(
             trigger_type=self.illegal_trigger[0],
-            service_type=self.illegal_service[0],
+            service_type=ActionService.EMAIL.value,
+            target_type=ActionTarget.SPECIFIC.value,
         )(mock_handler)
         with pytest.raises(AttributeError):
-            NotificationAction.register_handler(
+            NotificationAction.register_action(
                 trigger_type=self.illegal_trigger[0],
-                service_type=self.illegal_service[0],
+                service_type=ActionService.EMAIL.value,
+                target_type=ActionTarget.SPECIFIC.value,
             )(mock_handler)
 
     def test_register_trigger_type(self):
