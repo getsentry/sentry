@@ -343,7 +343,7 @@ def test_allows_eligible_spans(span):
         {
             "span_id": "a",
             "op": "http.client",
-            "description": "GET http://service.io/resource",
+            "description": "GET /resource.js",
             "hash": "a",
             "data": {"url": "/resource.js"},
         },
@@ -360,7 +360,7 @@ def test_allows_eligible_spans(span):
             "hash": "a",
             "data": {
                 "http.query": "graphql=somequery",
-                "url": "http://service.io",
+                "url": "http://service.io/resource",
             },
         },
         {
