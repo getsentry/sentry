@@ -1,7 +1,10 @@
-import NavTabs from 'sentry/components/navTabs';
+import {CSSProperties} from 'react';
+import queryString from 'query-string';
+
+import ListLink from 'sentry/components/links/listLink';
+import ScrollableTabs from 'sentry/components/replays/scrollableTabs';
 import {t} from 'sentry/locale';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
-import useOrganization from 'sentry/utils/useOrganization';
+import {useLocation} from 'sentry/utils/useLocation';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 const TABS = {
@@ -10,32 +13,32 @@ const TABS = {
 };
 
 type Props = {
-  className?: string;
+  className?: CSSProperties;
 };
 
 function SideTabs({className}: Props) {
-  const organization = useOrganization();
+  const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('t_side', 'crumbs');
   const active = getParamValue();
 
-  const createTabChangeHandler = (tab: string) => () => {
-    trackAdvancedAnalyticsEvent('replay.details-tab-changed', {
-      tab,
-      organization,
-    });
-    setParamValue(tab);
-  };
-
   return (
-    <NavTabs underlined className={className}>
+    <ScrollableTabs className={String(className)} underlined>
       {Object.entries(TABS).map(([tab, label]) => {
         return (
-          <li key={tab} className={active === tab ? 'active' : ''}>
-            <a onClick={createTabChangeHandler(tab)}>{label}</a>
-          </li>
+          <ListLink
+            key={tab}
+            isActive={() => tab === active}
+            to={`${pathname}?${queryString.stringify({...query, t_side: tab})}`}
+            onClick={e => {
+              e.preventDefault();
+              setParamValue(tab);
+            }}
+          >
+            {label}
+          </ListLink>
         );
       })}
-    </NavTabs>
+    </ScrollableTabs>
   );
 }
 
