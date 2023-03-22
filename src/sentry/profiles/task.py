@@ -45,7 +45,16 @@ def process_profile_task(
     profile: Profile,
     **kwargs: Any,
 ) -> None:
+    organization = Organization.objects.get_from_cache(id=profile["organization_id"])
+
+    sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_tag("organization.slug", organization.slug)
+
     project = Project.objects.get_from_cache(id=profile["project_id"])
+
+    sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_tag("project.slug", project.slug)
+
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
@@ -56,15 +65,15 @@ def process_profile_task(
             "profile_id": event_id,
         },
     )
+
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
     if not _symbolicate_profile(profile, project, event_id):
         return
 
     if not _deobfuscate_profile(profile, project):
         return
-
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
 
     if not _normalize_profile(profile, organization, project):
         return
