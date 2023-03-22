@@ -268,6 +268,9 @@ class RpcAuthProvider(RpcModel):
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
 
+    def __hash__(self) -> int:
+        return hash((self.id, self.organization_id, self.provider))
+
 
 class RpcAuthIdentity(RpcModel):
     id: int = -1
