@@ -1067,7 +1067,7 @@ def _get_or_create_group_environment(
     environment: Environment, release: Optional[Release], groups: Sequence[GroupInfo]
 ) -> None:
     for group_info in groups:
-        if not can_create_group(group_info.group, group_info.project):
+        if not can_create_group(group_info.group, group_info.group.project):
             group_info.is_new_group_environment = GroupEnvironment.get_or_create(
                 group_id=group_info.group.id,
                 environment_id=environment.id,
@@ -1159,7 +1159,7 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
-            if not can_create_group(group_info.group, group_info.project):
+            if not can_create_group(group_info.group, group_info.group.project):
                 group_info.group_release = GroupRelease.get_or_create(
                     group=group_info.group,
                     release=release,

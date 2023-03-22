@@ -12,7 +12,7 @@ def can_create_group(
     entity: Union[IssueOccurrence, PerformanceProblem, Group], project: Project
 ) -> bool:
     type_id = entity.type if isinstance(entity, Group) else entity.type.type_id
-    return (
+    return bool(
         # create N+1 db query issues first
         type_id == PerformanceNPlusOneGroupType.type_id
         # system-wide option
@@ -23,7 +23,7 @@ def can_create_group(
 
 
 def write_occurrence_to_platform(performance_problem: PerformanceProblem, project: Project) -> bool:
-    return (
+    return bool(
         # handle only N+1 db query detector first
         performance_problem.type.type_id == PerformanceNPlusOneGroupType.type_id
         # system-wide option
