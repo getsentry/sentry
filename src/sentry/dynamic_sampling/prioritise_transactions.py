@@ -38,6 +38,13 @@ class ProjectTransactions(TypedDict, total=True):
     transaction_counts: List[Tuple[str, int]]
 
 
+class ProjectTransactionsTotals(TypedDict, total=True):
+    project_id: int
+    org_id: int
+    num_transactions: float
+    num_classes: int
+
+
 def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
@@ -107,6 +114,85 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
             break
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
+
+
+def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTransactionsTotals]:
+    """
+    Fetches the total number of transactions and the number of distinct transaction types for each
+    project in the given organisations
+    :param org_ids:
+    :return: an iterator of org_ids
+    """
+    start_time = time.time()
+    offset = 0
+    org_ids = list(org_ids)  # just to be sure it is not some other sequence
+    transaction_string_id = indexer.resolve_shared_org("transaction")
+    transaction_tag = f"tags_raw[{transaction_string_id}]"
+    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
+    more_results = True
+
+    while more_results and (time.time() - start_time) < MAX_SECONDS:
+        query = (
+            Query(
+                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
+                select=[
+                    Function("sum", [Column("value")], "num_transactions"),
+                    Function("uniqExact", [Column(transaction_tag)], "num_classes"),
+                    Column("org_id"),
+                    Column("project_id"),
+                ],
+                groupby=[
+                    Column("org_id"),
+                    Column("project_id"),
+                ],
+                where=[
+                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - QUERY_TIME_INTERVAL),
+                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
+                    Condition(Column("metric_id"), Op.EQ, metric_id),
+                    Condition(Column("org_id"), Op.IN, org_ids),
+                ],
+                granularity=Granularity(3600),
+                orderby=[
+                    OrderBy(Column("org_id"), Direction.ASC),
+                    OrderBy(Column("project_id"), Direction.ASC),
+                ],
+            )
+            .set_limit(CHUNK_SIZE + 1)
+            .set_offset(offset)
+        )
+        request = Request(
+            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
+        )
+        data = raw_snql_query(
+            request,
+            referrer=Referrer.DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS.value,
+        )["data"]
+        count = len(data)
+        more_results = count > CHUNK_SIZE
+        offset += CHUNK_SIZE
+
+        if more_results:
+            data = data[:-1]
+
+        for row in data:
+            proj_id = row["project_id"]
+            org_id = row["org_id"]
+            num_transactions = row["num_transactions"]
+            num_classes = row["num_classes"]
+            yield {
+                "project_id": proj_id,
+                "org_id": org_id,
+                "num_transactions": num_transactions,
+                "num_classes": num_classes,
+            }
+
+    else:
+        logger.error(
+            "",
+            extra={"offset": offset},
+        )
+
+    return None
 
 
 def fetch_transactions_with_total_volumes(

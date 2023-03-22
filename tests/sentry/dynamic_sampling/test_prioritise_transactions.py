@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_transactions import (
+    fetch_project_transaction_totals,
     fetch_transactions_with_total_volumes,
     get_orgs_with_project_counts,
     merge_transactions,
@@ -60,6 +61,12 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
         }
         return idx + counts[name]
 
+    def get_total_counts_for_project(self, idx: int):
+        """
+        Get the total number of transactions and the number of transaction classes for a proj_idx
+        """
+        return 1 + 100 + 1000 + 2000 + 3000 + idx * 5, 5
+
     def test_get_orgs_with_transactions_respects_max_orgs(self):
         with self.options({"dynamic-sampling.prioritise_transactions.load_rate": 1.0}):
             actual = list(get_orgs_with_project_counts(2, 20))
@@ -110,6 +117,20 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                 for name, count in p_tran["transaction_counts"]:
                     assert name in expected_names
                     assert count == self.get_count_for_transaction(idx, name)
+
+    def test_fetch_transactions_with_total_volumes(self):
+        """
+        Create some transactions in some orgs and project and verify
+        that the total counts and total transaction types per project are
+        correctly returned
+        """
+
+        orgs = self.org_ids
+
+        for idx, totals in enumerate(fetch_project_transaction_totals(orgs)):
+            total_counts, num_classes = self.get_total_counts_for_project(idx)
+            assert totals["num_transactions"] == total_counts
+            assert totals["num_classes"] == num_classes
 
 
 def test_merge_transactions():
