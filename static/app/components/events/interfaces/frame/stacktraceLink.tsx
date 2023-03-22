@@ -254,7 +254,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             : !isPromptDismissed
             ? // Stacktrace link setup prompt displayed
               'prompt'
-            : // Setup stacktrace link prompt has been dismissed
+            : // Stacktrace link setup prompt has been dismissed
               'empty',
         }
       : {}
