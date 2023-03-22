@@ -20,6 +20,12 @@ from arroyo.processing.strategies import (
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
+from sentry_kafka_schemas import get_schema
+from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
+    PayloadV2,
+    PayloadV3,
+    SubscriptionResults,
+)
 
 from sentry import options
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -58,35 +64,35 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: str) -> Dict[str, Any]:
+def parse_message_value(value: str, topic: str) -> SubscriptionResults:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
     :param value: A json formatted string
     :return: A dict with the parsed message
     """
+    SUPPORTED_SCHEMA_VERSIONS = [2, 3]
+
+    # entity required for v3
+    # how to validate specific versions?
+    # possible we don't use v2 anymore
+
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-        wrapper: Dict[str, Any] = json.loads(value)
+        wrapper: SubscriptionResults = json.loads(value)
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            jsonschema.validate(wrapper, SUBSCRIPTION_WRAPPER_SCHEMA)
+            jsonschema.validate(wrapper, get_schema(topic)["schema"])
         except jsonschema.ValidationError:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
 
     schema_version: int = wrapper["version"]
-    if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
+    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
         metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
         raise InvalidMessageError("Version specified in wrapper has no schema")
 
-    payload: Dict[str, Any] = wrapper["payload"]
-    with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
-        try:
-            jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
-        except jsonschema.ValidationError:
-            metrics.incr("snuba_query_subscriber.message_payload_invalid")
-            raise InvalidSchemaError("Message payload does not match schema")
+    payload: Union[PayloadV2, PayloadV3] = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
@@ -116,7 +122,7 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
             ):
-                contents = parse_message_value(message_value)
+                contents = parse_message_value(message_value, topic)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
             # and continue
