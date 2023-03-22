@@ -19,6 +19,7 @@ from sentry.models import (
     Team,
     User,
 )
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.integrations import (
     ExternalActor,
     ExternalIssue,
@@ -56,6 +57,7 @@ fk_emeptions = {
     (RuleActivity, User),
     (User, Actor),
     (AlertRuleTriggerAction, SentryApp),
+    (UserAvatar, User),
 }
 
 

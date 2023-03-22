@@ -62,9 +62,9 @@ class UserAvatarTest(APITestCase):
         assert avatar.file_id
         with exempt_from_silo_limits():
             user = User.objects.get(id=user.id)
-            assert user.get_avatar_type() == "upload"
-            assert user.avatar_url == get_local_region().to_url(f"/avatar/{avatar.ident}/")
-            assert AVATAR_URL_REGEX.search(user.avatar_url)
+        assert user.get_avatar_type() == "upload"
+        assert user.avatar_url == get_local_region().to_url(f"/avatar/{avatar.ident}/")
+        assert AVATAR_URL_REGEX.search(user.avatar_url)
 
     def test_put_bad(self):
         user = self.create_user(email="a@example.com")
