@@ -1,6 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect} from 'react';
 
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {fetchTagValues, loadOrganizationTags} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH, NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -13,8 +13,9 @@ import {
   TagValue,
 } from 'sentry/types';
 import {isAggregateField} from 'sentry/utils/discover/fields';
-import {getFieldDefinition, REPLAY_FIELDS} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition, REPLAY_FIELDS} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
+import useTags from 'sentry/utils/useTags';
 
 const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
   `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
@@ -42,7 +43,22 @@ function fieldDefinitionsToTagCollection(fieldKeys: string[]): TagCollection {
   );
 }
 
-const REPLAY_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
+const REPLAY_FIELDS_AS_TAGS = fieldDefinitionsToTagCollection(REPLAY_FIELDS);
+
+function getSupportedTags(supportedTags: TagCollection) {
+  return {
+    ...Object.fromEntries(
+      Object.keys(supportedTags).map(key => [
+        key,
+        {
+          ...supportedTags[key],
+          kind: getReplayFieldDefinition(key)?.kind ?? FieldKind.TAG,
+        },
+      ])
+    ),
+    ...REPLAY_FIELDS_AS_TAGS,
+  };
+}
 
 type Props = React.ComponentProps<typeof SmartSearchBar> & {
   organization: Organization;
@@ -53,6 +69,10 @@ function ReplaySearchBar(props: Props) {
   const {organization, pageFilters} = props;
   const api = useApi();
   const projectIdStrings = pageFilters.projects?.map(String);
+  const tags = useTags();
+  useEffect(() => {
+    loadOrganizationTags(api, organization.slug, pageFilters);
+  }, [api, organization.slug, pageFilters]);
 
   const getTagValues = useCallback(
     (tag: Tag, searchQuery: string, _params: object): Promise<string[]> => {
@@ -83,7 +103,7 @@ function ReplaySearchBar(props: Props) {
     <SmartSearchBar
       {...props}
       onGetTagValues={getTagValues}
-      supportedTags={REPLAY_TAGS}
+      supportedTags={getSupportedTags(tags)}
       placeholder={t('Search for users, duration, count_errors, and more')}
       prepareQuery={prepareQuery}
       maxQueryLength={MAX_QUERY_LENGTH}

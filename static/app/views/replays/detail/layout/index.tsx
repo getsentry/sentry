@@ -6,16 +6,14 @@ import ReplayView from 'sentry/components/replays/replayView';
 import {space} from 'sentry/styles/space';
 import useFullscreen from 'sentry/utils/replays/hooks/useFullscreen';
 import {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
-import useUrlParams from 'sentry/utils/useUrlParams';
-import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
-import FocusArea from 'sentry/views/replays/detail/focusArea';
-import FocusTabs from 'sentry/views/replays/detail/focusTabs';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import FluidPanel from 'sentry/views/replays/detail/layout/fluidPanel';
+import FocusArea from 'sentry/views/replays/detail/layout/focusArea';
+import FocusTabs from 'sentry/views/replays/detail/layout/focusTabs';
 import MeasureSize from 'sentry/views/replays/detail/layout/measureSize';
+import SidebarArea from 'sentry/views/replays/detail/layout/sidebarArea';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 import SideTabs from 'sentry/views/replays/detail/sideTabs';
-import TagPanel from 'sentry/views/replays/detail/tagPanel';
 
 const MIN_VIDEO_WIDTH = 325;
 const MIN_CONTENT_WIDTH = 325;
@@ -64,6 +62,14 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
     </ErrorBoundary>
   );
 
+  const sidebarArea = (
+    <ErrorBoundary mini>
+      <FluidPanel title={<SmallMarginSideTabs />}>
+        <SidebarArea />
+      </FluidPanel>
+    </ErrorBoundary>
+  );
+
   if (layout === LayoutKey.no_video) {
     return (
       <BodyContent>
@@ -79,7 +85,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
                 min: 0,
                 max: width - DIVIDER_SIZE,
               }}
-              right={<SideCrumbsTags />}
+              right={sidebarArea}
             />
           )}
         </MeasureSize>
@@ -107,7 +113,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
                       min: MIN_CONTENT_HEIGHT,
                       max: height - DIVIDER_SIZE - MIN_SIDEBAR_HEIGHT,
                     }}
-                    bottom={<SideCrumbsTags />}
+                    bottom={sidebarArea}
                   />
                 ),
                 default: (width - DIVIDER_SIZE) * 0.5,
@@ -123,12 +129,6 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
   }
 
   // layout === 'topbar'
-  const crumbsWithTitle = (
-    <ErrorBoundary mini>
-      <Breadcrumbs showTitle />
-    </ErrorBoundary>
-  );
-
   return (
     <BodyContent>
       {timeline}
@@ -147,7 +147,7 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
                     min: MIN_VIDEO_WIDTH,
                     max: width - DIVIDER_SIZE - MIN_SIDEBAR_WIDTH,
                   }}
-                  right={crumbsWithTitle}
+                  right={sidebarArea}
                 />
               ),
               default: (height - DIVIDER_SIZE) * 0.5,
@@ -159,26 +159,6 @@ function ReplayLayout({layout = LayoutKey.topbar}: Props) {
         )}
       </MeasureSize>
     </BodyContent>
-  );
-}
-
-function SideCrumbsTags() {
-  const {getParamValue} = useUrlParams('t_side', 'crumbs');
-  const sideTabs = <SmallMarginSideTabs />;
-  if (getParamValue() === 'tags') {
-    return (
-      <FluidPanel title={sideTabs}>
-        <TagPanel />
-      </FluidPanel>
-    );
-  }
-
-  return (
-    <FluidPanel title={sideTabs}>
-      <ErrorBoundary mini>
-        <Breadcrumbs showTitle={false} />
-      </ErrorBoundary>
-    </FluidPanel>
   );
 }
 

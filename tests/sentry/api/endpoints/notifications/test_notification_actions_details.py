@@ -1,7 +1,16 @@
-from rest_framework import status
+from unittest.mock import MagicMock, patch
+
+from rest_framework import serializers, status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.notificationaction import NotificationAction, NotificationActionProject
+from sentry.models.notificationaction import (
+    ActionRegistration,
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+    NotificationActionProject,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -25,7 +34,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             organization=self.organization, projects=self.projects
         )
         self.base_data = {
-            "serviceType": "slack",
+            "serviceType": "email",
             "triggerType": "audit-log",
             "targetType": "specific",
             "targetDisplay": "@pyke",
@@ -191,9 +200,45 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
                 **data,
             )
 
+    @patch.dict(NotificationAction._registry, {})
+    def test_put_raises_validation_from_registry(self):
+        error_message = "oops-missed-cannon"
+
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock(side_effect=serializers.ValidationError(error_message))
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
+        with self.feature(NOTIFICATION_ACTION_FEATURE):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.notif_action.id,
+                status_code=status.HTTP_400_BAD_REQUEST,
+                method="PUT",
+                **self.base_data,
+            )
+            assert error_message in str(response.data)
+
+    @patch.dict(NotificationAction._registry, {})
     def test_put_simple(self):
+        class MockActionRegistration(ActionRegistration):
+            validate_action = MagicMock()
+
+        registration = MockActionRegistration
+        NotificationAction.register_action(
+            trigger_type=ActionTrigger.get_value(self.base_data["triggerType"]),
+            service_type=ActionService.get_value(self.base_data["serviceType"]),
+            target_type=ActionTarget.get_value(self.base_data["targetType"]),
+        )(registration)
+
         data = {**self.base_data}
         with self.feature(NOTIFICATION_ACTION_FEATURE):
+            assert not registration.validate_action.called
             response = self.get_success_response(
                 self.organization.slug,
                 self.notif_action.id,
@@ -204,6 +249,7 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             # Response contains input data
             assert data.items() <= response.data.items()
             # Database reflects changes
+            assert registration.validate_action.called
             self.notif_action.refresh_from_db()
             assert response.data == serialize(self.notif_action)
             # Relation table has been updated
