@@ -3,9 +3,8 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from django.utils.translation import ugettext_lazy as _
 
-from sentry.db.models import BoundedBigIntegerField, FlexibleForeignKey, Model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, sane_repr
 from sentry.db.models.base import control_silo_only_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.organizationmember import InviteStatus
