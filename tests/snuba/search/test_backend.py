@@ -1372,6 +1372,7 @@ class EventsSnubaSearchTest(SharedSnubaTest):
         )
         assert set(results) == set()
 
+    @pytest.mark.fail_slow("90s")  # This test can take longer than the default 60s timeout
     def test_hits_estimate(self):
         # 400 Groups/Events
         # Every 3rd one is Unresolved
