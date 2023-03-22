@@ -38,7 +38,7 @@ def produce_occurrence_to_kafka(occurrence: IssueOccurrence) -> None:
         # debugging.
         logging.info(
             "Attempted to produce occurrence to Kafka, but Kafka isn't running",
-            extra={"occurrence", occurrence},
+            extra={"occurrence": occurrence},
         )
         return
     payload = KafkaPayload(None, json.dumps(occurrence.to_dict()).encode("utf-8"), [])
