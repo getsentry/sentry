@@ -41,6 +41,7 @@ class SentryAuditLogRegistration(ActionRegistration)
 ```
 
 The registration methods are initialized to the following (when they inherit from `ActionRegistration`).
+
  - `fire()` is where you should write the logic for talking to the service, and it must be specified for each registration.
  - `validate_action()` will be invoked when validating new actions. If your action requires unique validation (on top of database integrity checks) this is where you can do so.
  - `serialize_available()` will be invoked to serialize the availability of your action to the frontend. This allows the app to hit one endpoint for all available actions rather than querying across the resources it may take to determine if your action is available.
