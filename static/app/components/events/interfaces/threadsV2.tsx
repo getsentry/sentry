@@ -74,7 +74,7 @@ export function getThreadStateIcon(state: ThreadStates | undefined) {
   }
   switch (state) {
     case ThreadStates.BLOCKED:
-      return <IconLock />;
+      return <IconLock isSolid />;
     case ThreadStates.TIMED_WAITING:
       return <IconTimer />;
     case ThreadStates.WAITING:
