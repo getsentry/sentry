@@ -19,7 +19,8 @@ type Props = {
   isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
-  onDimensionChange?: () => void;
+  expandPaths?: string[];
+  onDimensionChange?: (path: string, expandedState: Record<string, boolean>) => void;
 };
 
 function ConsoleLogRow({
@@ -28,6 +29,7 @@ function ConsoleLogRow({
   isCurrent,
   startTimestampMs,
   style,
+  expandPaths,
   onDimensionChange,
 }: Props) {
   const {currentTime} = useReplayContext();
@@ -70,6 +72,7 @@ function ConsoleLogRow({
         ) : null}
         <ErrorBoundary mini>
           <MessageFormatter
+            expandPaths={expandPaths}
             breadcrumb={breadcrumb}
             onDimensionChange={onDimensionChange}
           />

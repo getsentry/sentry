@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 import {memo, useCallback, useMemo, useRef} from 'react';
+=======
+import {memo, useRef} from 'react';
+>>>>>>> 4fafd0b0c6 (save reference to expanded paths)
 import {
   AutoSizer,
   CellMeasurer,
@@ -36,6 +40,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {currentTime, currentHoverTime} = useReplayContext();
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  const expandPaths = useRef(new Map<number, Set<string>>());
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const itemLookup = useMemo(
@@ -52,7 +61,22 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     ref: listRef,
     deps: [items],
   });
-  const onDimensionChange = useCallback(() => updateList(), [updateList]);
+
+  const handleDimensionChange = (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>
+  ) => {
+    const rowState = expandPaths.current.get(index) || new Set();
+    if (expandedState[path]) {
+      rowState.add(path);
+    } else {
+      // Collapsed, i.e. its default state, so no need to store state
+      rowState.delete(path);
+    }
+    expandPaths.current.set(index, rowState);
+    updateList();
+  };
 
   const current = useMemo(
     () =>
@@ -95,7 +119,10 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           breadcrumb={item}
           startTimestampMs={startTimestampMs}
           style={style}
-          onDimensionChange={onDimensionChange}
+          expandPaths={Array.from(expandPaths.current.get(index) || [])}
+          onDimensionChange={(path, expandedState) =>
+            handleDimensionChange(index, path, expandedState)
+          }
         />
       </CellMeasurer>
     );

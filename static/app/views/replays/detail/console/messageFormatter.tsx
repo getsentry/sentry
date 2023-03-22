@@ -9,13 +9,14 @@ import Format from './format';
 
 interface Props {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  onDimensionChange?: () => void;
+  expandPaths?: string[];
+  onDimensionChange?: (path: string, expandedState: Record<string, boolean>) => void;
 }
 
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function MessageFormatter({breadcrumb, onDimensionChange}: Props) {
+function MessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
   let args = breadcrumb.data?.arguments;
 
   if (!args) {
@@ -55,7 +56,7 @@ function MessageFormatter({breadcrumb, onDimensionChange}: Props) {
     args = [fakeError];
   }
 
-  return <Format onExpand={onDimensionChange} args={args} />;
+  return <Format expandPaths={expandPaths} onExpand={onDimensionChange} args={args} />;
 }
 
 export default MessageFormatter;

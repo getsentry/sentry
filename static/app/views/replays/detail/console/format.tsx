@@ -31,7 +31,8 @@ function isNull(arg: unknown) {
 }
 interface FormatProps {
   args: any[];
-  onExpand?: () => void;
+  expandPaths?: string[];
+  onExpand?: (path: string, expandedState: Record<string, boolean>) => void;
 }
 
 /**
@@ -41,13 +42,20 @@ interface FormatProps {
  *
  * %c is ignored for now
  */
-export default function Format({onExpand, args}: FormatProps) {
+export default function Format({onExpand, expandPaths, args}: FormatProps) {
   const f = args[0];
 
   if (typeof f !== 'string') {
     const objects: any[] = [];
     for (let i = 0; i < args.length; i++) {
-      objects.push(<ObjectInspector key={i} data={args[i]} onExpand={onExpand} />);
+      objects.push(
+        <ObjectInspector
+          key={i}
+          data={args[i]}
+          expandPaths={expandPaths}
+          onExpand={onExpand}
+        />
+      );
     }
     return <Fragment>{objects}</Fragment>;
   }
@@ -86,7 +94,9 @@ export default function Format({onExpand, args}: FormatProps) {
       pieces.push(' ' + x);
     } else {
       pieces.push(' ');
-      pieces.push(<ObjectInspector data={x} onExpand={onExpand} />);
+      pieces.push(
+        <ObjectInspector data={x} expandPaths={expandPaths} onExpand={onExpand} />
+      );
     }
   }
   return <Fragment>{pieces}</Fragment>;
