@@ -37,7 +37,7 @@ class RpcAuthenticator(RpcModel):
     id: int = 0
     user_id: int = -1
     created_at: datetime.datetime = DEFAULT_DATE
-    last_used_at: datetime.datetime = DEFAULT_DATE
+    last_used_at: Optional[datetime.datetime] = None
     type: int = -1
     config: Any = None
 
@@ -61,7 +61,7 @@ class RpcUser(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: str = ""
+    session_nonce: Optional[str] = None
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()

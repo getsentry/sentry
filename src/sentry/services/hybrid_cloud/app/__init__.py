@@ -44,7 +44,7 @@ class RpcSentryApp(RpcModel):
     slug: str = ""
     uuid: str = ""
     events: List[str] = Field(default_factory=list)
-    webhook_url: str = ""
+    webhook_url: Optional[str] = None
 
 
 class RpcSentryAppInstallation(RpcModel):
@@ -172,7 +172,7 @@ class AppService(RpcService):
             slug=app.slug,
             uuid=app.uuid,
             events=app.events,
-            webhook_url=app.webhook_url or "",
+            webhook_url=app.webhook_url,
         )
 
     @rpc_method
