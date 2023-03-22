@@ -16,7 +16,7 @@ LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
-CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
+CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
 CODECOV_TIMEOUT = 2
 
 logger = logging.getLogger(__name__)
@@ -64,7 +64,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
-        url = CODECOV_REPOS_URL.format(service="gh", owner_username=owner_username)
+        url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
         response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
         if response.status_code == 200:
             return True, None  # We found a codecov integration, so we can stop looking

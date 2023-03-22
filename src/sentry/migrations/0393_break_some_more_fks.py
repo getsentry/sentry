@@ -386,7 +386,7 @@ class Migration(CheckedMigration):
     is_dangerous = False
 
     dependencies = [
-        ("sentry", "0390_remove_field_in_bundle_model"),
+        ("sentry", "0392_add_date_uploaded_field_to_bundle"),
     ]
 
     operations = (

@@ -50,7 +50,7 @@ class SentryInstrumentation {
     const {ProfilingIntegration} = require('@sentry/profiling-node');
 
     sentry.init({
-      dsn: 'https://2eec505f93aa4a8da5222be7f01d0133@o1137848.ingest.sentry.io/4504872101150720',
+      dsn: 'https://3d282d186d924374800aa47006227ce9@sentry.io/2053674',
       environment: IS_CI ? 'ci' : 'local',
       tracesSampleRate: 1.0,
       integrations: [new ProfilingIntegration()],
@@ -60,7 +60,7 @@ class SentryInstrumentation {
         }
         return 1;
       },
-      experiments: {
+      _experiments: {
         // 5 minutes should be plenty
         maxProfileDurationMs: 5 * 60 * 1000,
       },
