@@ -186,7 +186,7 @@ function CodecovPrompt({organization}: {organization: Organization}) {
 
   return (
     <OpenInLink
-      href="https://about.codecov.io/sign-up-sentry-codecov/"
+      href="https://about.codecov.io/sign-up-sentry-codecov/?utm_medium=referral&utm_source=sentry-app-stacktrace-link&utm_campaign=sentry-codecov&utm_department=marketing"
       openInNewTab
       onClick={onOpenCodecovLink}
     >
@@ -246,12 +246,16 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       ? {
           stacktrace_link_viewed: true,
           stacktrace_link_status: match.sourceUrl
-            ? 'match'
+            ? // Stacktrace link success state
+              'match'
             : match.error || match.integrations.length
-            ? 'no_match'
+            ? // Error returned but stacktrace link is setup
+              'no_match'
             : !isPromptDismissed
-            ? 'prompt'
-            : 'empty',
+            ? // Stacktrace link setup prompt displayed
+              'prompt'
+            : // Setup stacktrace link prompt has been dismissed
+              'empty',
         }
       : {}
   );

@@ -93,7 +93,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
           help: (
             <PoweredByCodecov>
               {t('powered by')} <IconCodecov /> Codecov{' '}
-              <ExternalLink href="https://about.codecov.io/sign-up-sentry-codecov/">
+              <ExternalLink href="https://about.codecov.io/sign-up-sentry-codecov/?utm_medium=referral&utm_source=sentry-app-settings&utm_campaign=sentry-codecov&utm_department=marketing">
                 {t('Learn More')}
               </ExternalLink>
             </PoweredByCodecov>
