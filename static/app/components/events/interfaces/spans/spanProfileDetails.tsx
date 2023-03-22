@@ -297,7 +297,7 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
 }
 
 function hasApplicationFrame(node: CallTreeNode | null) {
-  while (node && !node.isRoot()) {
+  while (node && !node.isRoot) {
     if (node.frame.is_application) {
       return true;
     }
