@@ -5,12 +5,14 @@
 
 Notification Actions are meant to be a generic abstraction of the actions we fire when alert rules go off.
 In fact the structure of the model for `NotificationAction` was abstracted from `AlertRuleTriggerAction` but is intentionally unrelated to issues/events/incidents.
-Instead, they are meant to help new features of Sentry fire notifications to integrations instead of through personal notifications.
+Instead, they are meant to help new features of Sentry fire notifications to integrations instead of through personal notifications. You can think of these as organization notifications, which can be configured across the whole organization/project, rather than per recipient.
 
 Some examples of possible notification actions:
 - Receiving audit log entries to a slack channel
 - Creating jira tickets from new user feedback items
-- Messaging a team in MSTeams whenever a release is created
+- Triggering a GitHub notification whenever a release is created in Sentry
+- Quota notifications or billing updates to
+- Project notifications send to a slack channel instead of the teams/members
 
 ## How they work
 
@@ -19,7 +21,6 @@ Notification Actions all rely on a few things:
    2. Services - the delivery mechanism (e.g. Slack, PagerDuty, MSTeams, Sentry Notifications, etc.)
    3. Targets - the type of recipeint for the notification. (i.e. is the recipient a user, a team, or specific to the integration)
    4. Registrations - the `ActionRegistration` subclass which helps setup new actions
-
 
 ## Setting up new triggers, services, or targets
 
