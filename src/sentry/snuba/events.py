@@ -480,6 +480,14 @@ class Columns(Enum):
         discover_name="exception_stacks.mechanism_handled",
         alias="error.handled",
     )
+    ERROR_MAIN_THREAD = Column(
+        group_name="events.exception_main_thread",
+        event_name="exception_main_thread",
+        transaction_name=None,
+        discover_name="exception_main_thread",
+        issue_platform_name="exception_main_thread",
+        alias="error.main_thread",
+    )
     ERROR_RECEIVED = Column(
         group_name=None,
         event_name="received",

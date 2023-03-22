@@ -32,6 +32,7 @@ class EventAttributeConditionTest(RuleTestCase):
                                 }
                             ]
                         },
+                        "thread_id": 1,
                     }
                 ]
             },
@@ -56,6 +57,14 @@ class EventAttributeConditionTest(RuleTestCase):
                 "unreal": {
                     "crash_type": "crash",
                 },
+            },
+            "threads": {
+                "values": [
+                    {
+                        "id": 1,
+                        "main": True,
+                    },
+                ],
             },
         }
         data.update(kwargs)
@@ -367,6 +376,34 @@ class EventAttributeConditionTest(RuleTestCase):
 
         rule = self.get_rule(
             data={"match": MatchType.EQUAL, "attribute": "error.unhandled", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_main_thread(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "True"}
+        )
+        self.assertPasses(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "False"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+    def test_error_main_thread_no_threads(self):
+        event = self.get_event(
+            threads={
+                "values": [],
+            }
+        )
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "True"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(
+            data={"match": MatchType.EQUAL, "attribute": "error.main_thread", "value": "False"}
         )
         self.assertDoesNotPass(rule, event)
 
