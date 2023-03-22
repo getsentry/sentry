@@ -1,5 +1,8 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
+import {Flex} from 'sentry/components/profiling/flex';
 import {
   ProfilingContextMenu,
   ProfilingContextMenuGroup,
@@ -8,11 +11,13 @@ import {
   ProfilingContextMenuItemCheckbox,
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
-import {IconCopy, IconGithub} from 'sentry/icons';
+import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {RequestState} from 'sentry/types';
 import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
+import {getShortEventId} from 'sentry/utils/events';
 import {
   FlamegraphColorCodings,
   FlamegraphSorting,
@@ -23,6 +28,10 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {
+  generateProfileFlamechartRoute,
+  generateProfileFlamechartRouteWithHighlightFrame,
+} from 'sentry/utils/profiling/routes';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -67,10 +76,15 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
   const organization = useOrganization();
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
+  const subMenuPortalRef = useRef<HTMLDivElement | null>(null);
 
   const [githubLink, setGithubLinkState] = useState<RequestState<StacktraceLinkResult>>({
     type: 'initial',
   });
+
+  const project = projects.find(
+    p => p.id === String(props.profileGroup?.metadata?.projectID)
+  );
 
   useEffect(() => {
     if (!props.hoveredNode || !props.profileGroup) {
@@ -80,10 +94,6 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
       return undefined;
     }
-
-    const project = projects.find(
-      p => p.id === String(props.profileGroup?.metadata?.projectID)
-    );
 
     if (!project || !props.hoveredNode) {
       return undefined;
@@ -113,7 +123,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     return () => {
       api.clear();
     };
-  }, [props.hoveredNode, api, projects, organization, props.profileGroup]);
+  }, [props.hoveredNode, api, project, organization, props.profileGroup]);
 
   // @TODO: this only works for github right now, other providers will not work
   const onOpenInGithubClick = useCallback(() => {
@@ -152,6 +162,17 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
         {props.hoveredNode ? (
           <ProfilingContextMenuGroup>
             <ProfilingContextMenuHeading>{t('Frame')}</ProfilingContextMenuHeading>
+            {props.hoveredNode.profileIds && (
+              <ProfileIdsSubMenu
+                contextMenu={props.contextMenu}
+                profileIds={props.hoveredNode.profileIds}
+                frameName={props.hoveredNode.frame.name}
+                framePackage={props.hoveredNode.frame.image}
+                organizationSlug={organization.slug}
+                projectSlug={project?.slug}
+                subMenuPortalRef={subMenuPortalRef.current}
+              />
+            )}
             <ProfilingContextMenuItemCheckbox
               {...props.contextMenu.getMenuItemProps({
                 onClick: props.onHighlightAllOccurencesClick,
@@ -160,6 +181,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             >
               {t('Highlight all occurrences')}
             </ProfilingContextMenuItemCheckbox>
+
             <ProfilingContextMenuItemButton
               {...props.contextMenu.getMenuItemProps({
                 onClick: () => {
@@ -246,6 +268,88 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
           })}
         </ProfilingContextMenuGroup>
       </ProfilingContextMenu>
+      <div ref={el => (subMenuPortalRef.current = el)} id="sub-menu-portal" />
     </Fragment>
   ) : null;
 }
+
+function ProfileIdsSubMenu(props: {
+  contextMenu: FlamegraphContextMenuProps['contextMenu'];
+  frameName: string;
+  framePackage: string | undefined;
+  organizationSlug: string;
+  profileIds: string[];
+  projectSlug: string | undefined;
+  subMenuPortalRef: HTMLElement | null;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  const generateFlamechartLink = useCallback(
+    (profileId: string) => {
+      // this case should never happen
+      if (!props.projectSlug) {
+        return {};
+      }
+
+      if (props.framePackage) {
+        return generateProfileFlamechartRouteWithHighlightFrame({
+          orgSlug: props.organizationSlug,
+          projectSlug: props.projectSlug,
+          profileId,
+          frameName: props.frameName,
+          framePackage: props.framePackage,
+        });
+      }
+
+      return generateProfileFlamechartRoute({
+        orgSlug: props.organizationSlug,
+        projectSlug: props.projectSlug,
+        profileId,
+      });
+    },
+    [props.frameName, props.framePackage, props.organizationSlug, props.projectSlug]
+  );
+
+  return (
+    <Fragment>
+      <ProfilingContextMenuItemButton
+        icon={<IconProfiling size="xs" />}
+        {...props.contextMenu.getMenuItemProps({
+          onClick: () => setIsOpen(v => !v),
+        })}
+      >
+        <Flex w="100%" justify="space-between" align="center">
+          <Flex.Item>{t('Appears in %s profiles', props.profileIds.length)} </Flex.Item>
+          <IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />
+        </Flex>
+      </ProfilingContextMenuItemButton>
+      {isOpen && (
+        <ProfilingContextMenuInnerSubMenu>
+          {props.profileIds.map(profileId => {
+            const to = generateFlamechartLink(profileId);
+            return (
+              <ProfilingContextMenuInnerSubMenuItemButton
+                key={profileId}
+                {...props.contextMenu.getMenuItemProps()}
+              >
+                <Link to={to} css={{color: 'unset'}}>
+                  {getShortEventId(profileId)} <IconChevron direction="right" size="xs" />
+                </Link>
+              </ProfilingContextMenuInnerSubMenuItemButton>
+            );
+          })}
+        </ProfilingContextMenuInnerSubMenu>
+      )}
+    </Fragment>
+  );
+}
+
+const ProfilingContextMenuInnerSubMenu = styled('div')`
+  background: ${p => p.theme.backgroundSecondary};
+`;
+
+const ProfilingContextMenuInnerSubMenuItemButton = styled(ProfilingContextMenuItemButton)`
+  border-bottom: 1px solid ${p => p.theme.surface100};
+  padding-left: ${space(4)};
+  padding-right: ${space(4)};
+`;
