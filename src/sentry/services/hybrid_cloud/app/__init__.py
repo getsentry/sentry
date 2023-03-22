@@ -180,6 +180,7 @@ class AppService(RpcService):
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
         pass
 
+    @rpc_method
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
         self,
