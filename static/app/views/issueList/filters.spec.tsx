@@ -47,4 +47,27 @@ describe('IssueListFilters', () => {
     await userEvent.click(allCategoriesOption);
     expect(onSearch).toHaveBeenCalledWith(baseQuery);
   });
+
+  it('should update the search bar query string when an IssueCategoryFilter dropdown option is selected', () => {
+    const {rerender} = render(<IssueListFilters query={baseQuery} onSearch={onSearch} />);
+
+    const filterDropdown = screen.getByTestId('issue-category-filter');
+    expect(filterDropdown).toHaveTextContent('All Categories');
+
+    rerender(
+      <IssueListFilters query={`${baseQuery} issue.category:error`} onSearch={onSearch} />
+    );
+    expect(filterDropdown).toHaveTextContent('Errors');
+
+    rerender(
+      <IssueListFilters
+        query={`${baseQuery} issue.category:performance`}
+        onSearch={onSearch}
+      />
+    );
+    expect(filterDropdown).toHaveTextContent('Performance');
+
+    rerender(<IssueListFilters query="" onSearch={onSearch} />);
+    expect(filterDropdown).toHaveTextContent('All Categories');
+  });
 });
