@@ -7,6 +7,7 @@ from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from sentry.api.endpoints.codeowners import MAX_RAW_LENGTH
 from sentry.db.models import (
     DefaultFieldsModel,
     FlexibleForeignKey,
@@ -99,6 +100,11 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
         if not self.raw:
             return
+
+        if len(self.raw) > MAX_RAW_LENGTH:
+            raise ValidationError(
+                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
+            )
 
         associations, _ = validate_codeowners_associations(self.raw, self.project)
 
