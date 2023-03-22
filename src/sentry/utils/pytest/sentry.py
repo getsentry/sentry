@@ -401,3 +401,10 @@ def pytest_collection_modifyitems(config, items):
 def pytest_xdist_setupnodes():
     # prevent out-of-order django initialization
     os.environ.pop("DJANGO_SETTINGS_MODULE", None)
+
+
+def pytest_sessionfinish():
+    from sentry.issues.producer import occurrence_producer
+
+    if occurrence_producer is not None:
+        occurrence_producer.close()
