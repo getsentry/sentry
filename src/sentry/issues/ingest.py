@@ -21,10 +21,11 @@ from sentry.event_manager import (
     get_event_type,
 )
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import should_create_group
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import GroupHash, Release
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 
 from .utils import can_create_group
 
@@ -171,14 +172,19 @@ def save_issue_from_occurrence(
         if return_group_info_early:
             return None
 
+        cluster_key = settings.SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS.get("cluster", "default")
+        client = redis.redis_clusters.get(cluster_key)
+        if not should_create_group(occurrence.type, client, new_grouphash, project):
+            metrics.incr("issues.issue.dropped.noise_reduction")
+            return None
+
         with metrics.timer("issues.save_issue_from_occurrence.check_write_limits"):
             granted_quota = issue_rate_limiter.check_and_use_quotas(
                 [RequestedQuota(f"issue-platform-issues:{project.id}", 1, [ISSUE_QUOTA])]
             )[0]
 
         if not granted_quota.granted:
-            # Log how many issues we dropped due to rate limiting
-            metrics.incr("issues.issue.dropped")
+            metrics.incr("issues.issue.dropped.rate_limiting")
             return None
 
         with sentry_sdk.start_span(
