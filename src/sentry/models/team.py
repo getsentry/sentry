@@ -152,7 +152,12 @@ class Team(Model):
         default=TeamStatus.VISIBLE,
     )
     actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+        "sentry.Actor",
+        related_name="team_from_actor",
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.PROTECT,
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)

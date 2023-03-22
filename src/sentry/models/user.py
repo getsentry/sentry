@@ -177,7 +177,12 @@ class User(BaseModel, AbstractBaseUser):
 
     session_nonce = models.CharField(max_length=12, null=True)
     actor = FlexibleForeignKey(
-        "sentry.Actor", db_index=True, unique=True, null=True, on_delete=models.PROTECT
+        "sentry.Actor",
+        related_name="user_from_actor",
+        db_index=True,
+        unique=True,
+        null=True,
+        on_delete=models.PROTECT,
     )
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)

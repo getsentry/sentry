@@ -1,11 +1,14 @@
 from collections import defaultdict, namedtuple
 from typing import TYPE_CHECKING, List, Optional, Sequence, Type, Union
 
+from django.conf import settings
 from django.db import models
-from django.db.models.signals import pre_save
+from django.db.models.signals import post_save
 from rest_framework import serializers
 
 from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models.fields.foreignkey import FlexibleForeignKey
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
@@ -72,6 +75,12 @@ class Actor(Model):
             (ACTOR_TYPES["team"], "team"),
             (ACTOR_TYPES["user"], "user"),
         )
+    )
+    user_id = HybridCloudForeignKey(
+        settings.AUTH_USER_MODEL, db_index=True, unique=True, null=True, on_delete="CASCADE"
+    )
+    team = FlexibleForeignKey(
+        "sentry.Team", related_name="actor_from_team", db_index=True, unique=True, null=True
     )
 
     class Meta:
@@ -148,6 +157,12 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return fetch_actor_by_id(self.type, self.id)
 
     def resolve_to_actor(self) -> Actor:
+        obj = self.resolve()
+        if obj.actor_id is None and isinstance(obj, RpcUser):  # This can happen for users now.
+            Actor.objects.create(
+                type=ACTOR_TYPES[type(obj).__name__.lower()],
+                user_id=obj.id,
+            )
         return Actor.objects.get(id=self.resolve().actor_id)
 
     @classmethod
@@ -179,17 +194,18 @@ class ActorTuple(namedtuple("Actor", "id type")):
         return list(filter(None, [results.get((actor.type, actor.id)) for actor in actors]))
 
 
-def handle_actor_pre_save(instance, **kwargs):
+def handle_team_post_save(instance, **kwargs):
     # we want to create an actor if we don't have one
     if not instance.actor_id:
         instance.actor_id = Actor.objects.create(
-            type=ACTOR_TYPES[type(instance).__name__.lower()]
+            type=ACTOR_TYPES[type(instance).__name__.lower()],
+            team_id=instance.id,
         ).id
 
 
-pre_save.connect(
-    handle_actor_pre_save, sender="sentry.Team", dispatch_uid="handle_actor_pre_save", weak=False
+post_save.connect(
+    handle_team_post_save, sender="sentry.Team", dispatch_uid="handle_team_post_save", weak=False
 )
-pre_save.connect(
-    handle_actor_pre_save, sender="sentry.User", dispatch_uid="handle_actor_pre_save", weak=False
-)
+# post_save.connect(
+#     handle_actor_post_save, sender="sentry.User", dispatch_uid="handle_actor_post_save", weak=False
+# )

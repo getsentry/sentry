@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
 
 from django.contrib.auth.models import AnonymousUser
 
+from sentry.models.actor import Actor
 from sentry.notifications.defaults import NOTIFICATION_SETTING_DEFAULTS
 from sentry.notifications.types import (
     NOTIFICATION_SCOPE_TYPE,
@@ -295,6 +296,13 @@ def get_scope(
 def get_target_id(user: User | None = None, team: Team | None = None) -> int:
     """:returns the actor ID from a User or Team."""
     if user:
+        # TODO(hybrid-cloud): Dual write the user actor_id for now. This will get removed later.
+        if user.actor_id is None:
+            user.actor_id = Actor.objects.create(
+                type=1,
+                user_id=user.id,
+            ).id
+            user.save()
         return int(user.actor_id)
     if team:
         return int(team.actor_id)
