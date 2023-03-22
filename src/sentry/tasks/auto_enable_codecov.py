@@ -76,6 +76,6 @@ def enable_for_organization(organization_id: int, dry_run=False) -> None:
         )
     except Exception:
         logger.exception(
-            "Error checking for codecov integration.",
+            "Error checking for Codecov integration",
             extra={"organization_id": organization_id},
         )

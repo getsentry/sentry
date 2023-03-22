@@ -135,8 +135,8 @@ export class JSSelfProfile extends Profile {
       while (stackHeight >= 0) {
         if (framesInStack[stackHeight].frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[stackHeight].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(framesInStack[stackHeight]);
+          framesInStack[stackHeight].recursive = node;
+          node.recursive = framesInStack[stackHeight];
           break;
         }
         stackHeight--;
@@ -162,7 +162,7 @@ export class JSSelfProfile extends Profile {
 
     for (const stackNode of framesInStack) {
       stackNode.frame.totalWeight += weight;
-      stackNode.incrementCount();
+      stackNode.count++;
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample

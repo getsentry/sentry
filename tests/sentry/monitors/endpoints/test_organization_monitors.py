@@ -17,8 +17,8 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         self.login_as(self.user)
 
     def check_valid_response(self, response, expected_monitors):
-        assert [str(monitor.guid) for monitor in expected_monitors] == [
-            str(monitor_resp["id"]) for monitor_resp in response.data
+        assert [monitor.slug for monitor in expected_monitors] == [
+            monitor_resp["slug"] for monitor_resp in response.data
         ]
 
     def test_simple(self):
@@ -78,9 +78,7 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
-
-        monitor = Monitor.objects.get(guid=response.data["id"])
+        monitor = Monitor.objects.get(slug=response.data["slug"])
         assert monitor.organization_id == self.organization.id
         assert monitor.project_id == self.project.id
         assert monitor.name == "My Monitor"
@@ -113,5 +111,4 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         }
         response = self.get_success_response(self.organization.slug, **data)
 
-        assert response.data["id"]
         assert response.data["slug"] == "my-monitor"
