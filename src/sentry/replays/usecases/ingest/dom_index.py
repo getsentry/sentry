@@ -108,15 +108,16 @@ def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsPayloadActio
                 node = payload.get("data", {}).get("node", {})
                 attributes = node.get("attributes", {})
                 yield {
-                    "dom_action": "click",
-                    "dom_element": node["tagName"],
-                    "dom_id": attributes.get("id", ""),
-                    "dom_classes": attributes.get("class", "").split(" "),
-                    "dom_aria_label": attributes.get("aria-label", ""),
-                    "dom_aria_role": attributes.get("aria-role", ""),
-                    "dom_role": attributes.get("role", ""),
-                    "dom_text_content": node["textContent"],
-                    "dom_node_id": node["id"],
+                    "node_id": node["id"],
+                    "tag": node["tagName"],
+                    "id": attributes.get("id", ""),
+                    "class": attributes.get("class", "").split(" "),
+                    "text": node["textContent"],
+                    "role": attributes.get("role", ""),
+                    "alt": attributes.get("alt", ""),
+                    "testid": attributes.get("testid", ""),
+                    "aria_label": attributes.get("aria-label", ""),
+                    "title": attributes.get("title", ""),
                     "timestamp": int(payload["timestamp"]),
                     "event_hash": uuid.uuid4().hex,
                 }

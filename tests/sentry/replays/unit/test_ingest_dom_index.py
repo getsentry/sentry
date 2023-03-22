@@ -39,8 +39,10 @@ def test_iter_user_actions():
                                 "id": "hello",
                                 "class": "hello world",
                                 "aria-label": "test",
-                                "aria-role": "something",
                                 "role": "button",
+                                "alt": "1",
+                                "testid": "2",
+                                "title": "3",
                             },
                             "textContent": "Hello, world!",
                         },
@@ -52,15 +54,16 @@ def test_iter_user_actions():
 
     user_actions = list(iter_user_actions(zlib.compress(json.dumps(data).encode())))
     assert len(user_actions) == 1
-    assert user_actions[0]["dom_action"] == "click"
-    assert user_actions[0]["dom_element"] == "div"
-    assert user_actions[0]["dom_id"] == "hello"
-    assert user_actions[0]["dom_classes"] == ["hello", "world"]
-    assert user_actions[0]["dom_aria_label"] == "test"
-    assert user_actions[0]["dom_aria_role"] == "something"
-    assert user_actions[0]["dom_role"] == "button"
-    assert user_actions[0]["dom_text_content"] == "Hello, world!"
-    assert user_actions[0]["dom_node_id"] == 1
+    assert user_actions[0]["node_id"] == 1
+    assert user_actions[0]["tag"] == "div"
+    assert user_actions[0]["id"] == "hello"
+    assert user_actions[0]["class"] == ["hello", "world"]
+    assert user_actions[0]["text"] == "Hello, world!"
+    assert user_actions[0]["role"] == "button"
+    assert user_actions[0]["alt"] == "1"
+    assert user_actions[0]["testid"] == "2"
+    assert user_actions[0]["aria_label"] == "test"
+    assert user_actions[0]["title"] == "3"
     assert user_actions[0]["timestamp"] == 1674298825
     assert len(user_actions[0]["event_hash"]) == 32
 
@@ -86,8 +89,10 @@ def test_parse_replay_actions():
                                 "id": "id",
                                 "class": "class1 class2",
                                 "role": "button",
-                                "aria-role": "aria-button",
                                 "aria-label": "test",
+                                "alt": "1",
+                                "testid": "2",
+                                "title": "3",
                             },
                             "textContent": "text",
                         },
@@ -112,14 +117,15 @@ def test_parse_replay_actions():
     assert len(payload["actions"]) == 1
 
     action = payload["actions"][0]
-    assert action["dom_action"] == "click"
-    assert action["dom_element"] == "div"
-    assert action["dom_id"] == "id"
-    assert action["dom_classes"] == ["class1", "class2"]
-    assert action["dom_aria_label"] == "test"
-    assert action["dom_aria_role"] == "aria-button"
-    assert action["dom_role"] == "button"
-    assert action["dom_text_content"] == "text"
-    assert action["dom_node_id"] == 59
+    assert action["node_id"] == 59
+    assert action["tag"] == "div"
+    assert action["id"] == "id"
+    assert action["class"] == ["class1", "class2"]
+    assert action["text"] == "text"
+    assert action["aria_label"] == "test"
+    assert action["role"] == "button"
+    assert action["alt"] == "1"
+    assert action["testid"] == "2"
+    assert action["title"] == "3"
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 32
