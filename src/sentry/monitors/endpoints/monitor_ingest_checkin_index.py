@@ -17,7 +17,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import ProjectKey
+from sentry.models import Project, ProjectKey
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -81,7 +81,7 @@ class MonitorIngestCheckInIndexEndpoint(MonitorIngestEndpoint):
     def post(
         self,
         request: Request,
-        project,
+        project: Project,
         monitor_id: str,
         monitor: Monitor | None,
         organization_slug: str | None = None,
