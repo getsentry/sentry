@@ -35,7 +35,7 @@ QUERY_TIME_INTERVAL = timedelta(hours=1)
 class ProjectTransactions(TypedDict, total=True):
     project_id: int
     org_id: int
-    transaction_counts: List[Tuple[str, int]]
+    transaction_counts: List[Tuple[str, float]]
 
 
 class ProjectTransactionsTotals(TypedDict, total=True):
@@ -216,7 +216,7 @@ def fetch_transactions_with_total_volumes(
     metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
     current_org_id: Optional[int] = None
     current_proj_id: Optional[int] = None
-    transaction_counts: List[Tuple[str, int]] = []
+    transaction_counts: List[Tuple[str, float]] = []
 
     if large_transactions:
         transaction_ordering = Direction.DESC

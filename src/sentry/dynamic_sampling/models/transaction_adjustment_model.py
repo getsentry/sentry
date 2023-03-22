@@ -117,14 +117,14 @@ def adjust_sample_rate_full(
 
 
 def get_total(transactions: List[Tuple[str, float]]) -> float:
-    ret_val = 0
+    ret_val = 0.0
     for _, v in transactions:
         ret_val += v
     return ret_val
 
 
 def get_num_sampled_elements(
-    transactions: List[Tuple[str, int]], trans_dict: Mapping[str, float], global_rate: float
+    transactions: List[Tuple[str, float]], trans_dict: Mapping[str, float], global_rate: float
 ) -> float:
     num_transactions = 0.0
     for name, count in transactions:
