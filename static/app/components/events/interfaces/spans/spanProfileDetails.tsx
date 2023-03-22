@@ -231,14 +231,14 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
     duration += profile.weights[i];
 
-    if (sample.isRoot() || !inRange) {
+    if (sample.isRoot || !inRange) {
       continue;
     }
 
     const stack: CallTreeNode[] = [sample];
     let node: CallTreeNode | null = sample;
 
-    while (node && !node.isRoot()) {
+    while (node && !node.isRoot) {
       stack.push(node);
       node = node.parent;
     }
@@ -309,7 +309,7 @@ function hasApplicationFrame(node: CallTreeNode | null) {
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
   const frames: Frame[] = [];
 
-  while (node && !node.isRoot()) {
+  while (node && !node.isRoot) {
     const frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,

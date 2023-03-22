@@ -1095,10 +1095,6 @@ SENTRY_FEATURES = {
     "organizations:profiling-using-transactions": False,
     # Enable the sentry sample format response
     "organizations:profiling-sampled-format": False,
-    # Whether to enable ingest for profile blocked main thread issues
-    "organizations:profile-blocked-main-thread-ingest": False,
-    # Whether to enable post process group for profile blocked main thread issues
-    "organizations:profile-blocked-main-thread-ppg": False,
     # Enable multi project selection
     "organizations:global-views": False,
     # Enable experimental new version of Merged Issues where sub-hashes are shown
@@ -1323,8 +1319,8 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
-    "organizations:onboarding-heartbeat-footer-with-view-sample-error": False,
+    # Enable product selection in the setup-docs page. The docs reflects the selected products.
+    "organizations:onboarding-docs-with-product-selection": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
