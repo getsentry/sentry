@@ -142,8 +142,8 @@ function Icon({level}: {level: Extract<Crumb, BreadcrumbTypeDefault>['level']}) 
 }
 
 const Message = styled('div')`
-  font-family: ${p => p.theme.text.familyMono};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-family: 'Menlo', monospace; /* match Chrome dev tools */
+  font-size: ${p => p.theme.fontSizeExtraSmall};
   white-space: pre-wrap;
   word-break: break-word;
 `;
