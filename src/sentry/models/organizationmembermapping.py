@@ -26,14 +26,14 @@ class OrganizationMemberMapping(Model):
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     user = FlexibleForeignKey(
-        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="sentry_orgmembermapping_set"
+        settings.AUTH_USER_MODEL, null=True, blank=True, related_name="orgmembermapping_set"
     )
     email = models.EmailField(null=True, blank=True, max_length=75)
     inviter = FlexibleForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,
         blank=True,
-        related_name="sentry_inviter_orgmembermapping_set",
+        related_name="inviter_orgmembermapping_set",
         on_delete=models.SET_NULL,
     )
     invite_status = models.PositiveSmallIntegerField(
