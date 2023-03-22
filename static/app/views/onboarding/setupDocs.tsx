@@ -16,7 +16,7 @@ import {PlatformKey} from 'sentry/data/platformCategories';
 import platforms, {ReactDocVariant} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
@@ -46,6 +46,7 @@ type Props = {
 function ProjectDocs(props: {
   hasError: boolean;
   onRetry: () => void;
+  organization: Organization;
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
   project: Project;
@@ -106,7 +107,10 @@ function ProjectDocs(props: {
         )}
         platform={currentPlatform}
       />
-      {currentPlatform === 'javascript-react' && <ProductSelection />}
+      {currentPlatform === 'javascript-react' &&
+        props.organization.features?.includes(
+          'onboarding-docs-with-product-selection'
+        ) && <ProductSelection />}
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -196,11 +200,13 @@ function SetupDocs({search, route, router, location}: Props) {
     }
 
     let platform = String(project.platform);
-
-    // This is an experiment we are doing with react.
-    // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
-    // and the docs will reflect that.
-    if (project.platform === 'javascript-react') {
+    if (
+      organization.features?.includes('onboarding-docs-with-product-selection') &&
+      project.platform === 'javascript-react'
+    ) {
+      // This is an experiment we are doing with react.
+      // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+      // and the docs will reflect that.
       const products = location.query.product ?? [];
       if (
         products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
@@ -315,6 +321,7 @@ function SetupDocs({search, route, router, location}: Props) {
               hasError={hasError}
               platformDocs={platformDocs}
               onRetry={fetchData}
+              organization={organization}
             />
           )}
         </MainContent>

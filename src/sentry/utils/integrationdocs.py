@@ -124,7 +124,6 @@ def sync_docs(quiet: bool = False) -> None:
         echo("syncing documentation (platform index)")
     data: dict[str, dict[str, dict[str, Integration]]]
     data = json.load(urlopen_with_retries(BASE_URL.format("_index.json")))
-
     platform_list: list[Platform] = []
     for platform_id, integrations in data["platforms"].items():
         platform_list.append(
@@ -172,6 +171,7 @@ def sync_integration_docs(
         echo(f"  syncing documentation for {platform_id}.{integration_id} integration")
 
     data = json.load(urlopen_with_retries(BASE_URL.format(path)))
+
     key = get_integration_id(platform_id, integration_id)
 
     dump_doc(

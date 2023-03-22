@@ -48,7 +48,7 @@ export function ProductSelection() {
       </TextBlock>
       <Products>
         <Product disabled>
-          <Checkbox checked onChange={function noRefCheck() {}} size="xs" />
+          <Checkbox checked readOnly size="xs" />
           <div>{t('Error Monitoring')}</div>
           <QuestionTooltip
             size="xs"
@@ -69,6 +69,7 @@ export function ProductSelection() {
           <Checkbox
             checked={products.includes(PRODUCT.PERFORMANCE_MONITORING)}
             size="xs"
+            readOnly
           />
           {t('Performance Monitoring')}
           <QuestionTooltip
@@ -87,7 +88,11 @@ export function ProductSelection() {
           />
         </Product>
         <Product onClick={() => handleClickProduct(PRODUCT.SESSION_REPLAY)}>
-          <Checkbox checked={products.includes(PRODUCT.SESSION_REPLAY)} size="xs" />
+          <Checkbox
+            checked={products.includes(PRODUCT.SESSION_REPLAY)}
+            size="xs"
+            readOnly
+          />
           {t('Session Replay')}
           <QuestionTooltip
             size="xs"

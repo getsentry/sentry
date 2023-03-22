@@ -145,19 +145,23 @@ function Onboarding(props: Props) {
   };
 
   const goNextStep = useCallback(
-    (step: StepDescriptor) => {
-      if (!selectedProjectSlug) {
-        return;
-      }
-
+    (step: StepDescriptor, platforms?: PlatformKey[]) => {
       const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
       const nextStep = onboardingSteps[currentStepIndex + 1];
+
+      if (nextStep.id === 'setup-docs' && !platforms) {
+        return;
+      }
 
       if (step.cornerVariant !== nextStep.cornerVariant) {
         cornerVariantControl.start('none');
       }
 
-      if (nextStep.id === 'setup-docs' && selectedProjectSlug === 'javascript-react') {
+      if (
+        nextStep.id === 'setup-docs' &&
+        platforms?.[0] === 'javascript-react' &&
+        organization.features?.includes('onboarding-docs-with-product-selection')
+      ) {
         props.router.push(
           normalizeUrl(
             `/onboarding/${organization.slug}/${nextStep.id}/?product=${PRODUCT.PERFORMANCE_MONITORING}&product=${PRODUCT.SESSION_REPLAY}`
@@ -168,11 +172,11 @@ function Onboarding(props: Props) {
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
     [
-      selectedProjectSlug,
       organization.slug,
       onboardingSteps,
       cornerVariantControl,
       props.router,
+      organization.features,
     ]
   );
 
@@ -345,7 +349,11 @@ function Onboarding(props: Props) {
                 active
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={() => stepObj && goNextStep(stepObj)}
+                onComplete={platforms => {
+                  if (stepObj) {
+                    goNextStep(stepObj, platforms);
+                  }
+                }}
                 orgId={organization.slug}
                 search={props.location.search}
                 route={props.route}

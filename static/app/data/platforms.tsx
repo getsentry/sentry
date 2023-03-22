@@ -32,14 +32,9 @@ const platformIntegrations: PlatformIntegration[] = [
 ]
   .map(platform => {
     const integrations = platform.integrations.reduce((acc, value) => {
+      // filter out any javascript-react-* platforms; as they're not meant to be used as a platform in the PlatformPicker component
+      // but only to load specific documentation for the React SDK
       if (Object.values(ReactDocVariant).includes(value.id as ReactDocVariant)) {
-        if (!acc['javascript-react']) {
-          acc['javascript-react'] = {
-            ...value,
-            id: 'javascript-react',
-            language: platform.id,
-          };
-        }
         return acc;
       }
 
