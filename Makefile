@@ -131,7 +131,7 @@ test-python-ci:
 		--ignore tests/sentry/search/events \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+		--cov . --cov-report="xml:.artifacts/python.coverage.xml" \
 		--durations=0
 	@echo ""
 
