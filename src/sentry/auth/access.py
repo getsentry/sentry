@@ -467,7 +467,9 @@ class RpcBackedAccess(Access):
     def roles(self) -> Iterable[str] | None:
         if self.rpc_user_organization_context.member is None:
             return None
-        return organization_service.get_all_org_roles(self.rpc_user_organization_context.member)
+        return organization_service.get_all_org_roles(
+            organization_member=self.rpc_user_organization_context.member
+        )
 
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
