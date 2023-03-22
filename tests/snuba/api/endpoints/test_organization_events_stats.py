@@ -1041,6 +1041,47 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "testing"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        # Query for count and count()
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["testing"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:testing"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["testing"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
 
 @region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
