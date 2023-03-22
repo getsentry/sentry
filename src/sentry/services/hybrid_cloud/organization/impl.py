@@ -33,6 +33,9 @@ from sentry.services.hybrid_cloud.organization import (
     RpcTeamMember,
     RpcUserOrganizationContext,
 )
+from sentry.services.hybrid_cloud.organizationmember_mapping import (
+    organizationmember_mapping_service,
+)
 from sentry.services.hybrid_cloud.util import flags_to_bits
 
 if TYPE_CHECKING:
