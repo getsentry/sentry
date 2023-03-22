@@ -22,7 +22,7 @@ class OrganizationMemberMapping(Model):
     __include_in_export__ = True
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="CASCADE")
-    date_created = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now)
 
     role = models.CharField(max_length=32, default=str(organization_roles.get_default().id))
     user = FlexibleForeignKey(

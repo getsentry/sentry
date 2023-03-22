@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Optional, TypedDict
 
@@ -18,7 +18,7 @@ from sentry.silo import SiloMode
 @dataclass(frozen=True, eq=True)
 class RpcOrganizationMemberMapping:
     organization_id: int = -1
-    date_created: datetime = timezone.now()
+    date_added: datetime = field(default_factory=timezone.now)
 
     role: str = ""
     user_id: Optional[int] = None

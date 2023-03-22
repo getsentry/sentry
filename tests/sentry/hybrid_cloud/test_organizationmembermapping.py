@@ -25,7 +25,7 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id
         )
 
-        assert rpc_orgmember_mapping.date_created == orgmember_mapping.date_created
+        assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
             == orgmember_mapping.organization_id
@@ -60,7 +60,7 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id
         )
 
-        assert rpc_orgmember_mapping.date_created == orgmember_mapping.date_created
+        assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
             == orgmember_mapping.organization_id
@@ -110,7 +110,7 @@ class OrganizationMappingTest(TransactionTestCase):
             organization_id=self.organization.id, user_id=self.user.id
         )
 
-        assert rpc_orgmember_mapping.date_created == orgmember_mapping.date_created
+        assert rpc_orgmember_mapping.date_added == orgmember_mapping.date_added
         assert (
             rpc_orgmember_mapping.organization_id
             == orgmember_mapping.organization_id
