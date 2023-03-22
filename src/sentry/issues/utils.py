@@ -1,7 +1,11 @@
 from typing import Union
 
 from sentry import options
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    get_group_type_by_type_id,
+)
 from sentry.issues.issue_occurrence import IssueOccurrence, IssueOccurrenceData
 from sentry.models import Project
 from sentry.models.group import Group
@@ -11,20 +15,22 @@ from sentry.utils.performance_issues.performance_problem import PerformanceProbl
 def can_create_group(
     entity: Union[IssueOccurrence, IssueOccurrenceData, PerformanceProblem, Group], project: Project
 ) -> bool:
-    type_id = None
     if isinstance(entity, dict):
-        type_id = entity["type"]
+        group_type = get_group_type_by_type_id(entity["type"])
     elif isinstance(entity, Group):
-        type_id = entity.issue_type.type_id
+        group_type = entity.issue_type
     else:
-        type_id = entity.type.type_id
+        group_type = entity.type
     return bool(
-        # create N+1 db query issues first
-        type_id == PerformanceNPlusOneGroupType.type_id
-        # system-wide option
-        and options.get("performance.issues.create_issues_through_platform", False)
-        # more-granular per-project option
-        and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+        group_type.category != GroupCategory.PERFORMANCE.value
+        or (
+            # create N+1 db query issues first
+            group_type.type_id == PerformanceNPlusOneGroupType.type_id
+            # system-wide option
+            and options.get("performance.issues.create_issues_through_platform", False)
+            # more-granular per-project option
+            and project.get_option("sentry:performance_issue_create_issue_through_platform", False)
+        )
     )
 
 
