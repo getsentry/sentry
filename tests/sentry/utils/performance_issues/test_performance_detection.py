@@ -353,6 +353,7 @@ class PerformanceDetectionTest(TestCase):
                     "n_plus_one_db": False,
                     "n_plus_one_db_ext": False,
                     "file_io_main_thread": False,
+                    "db_main_thread": False,
                     "n_plus_one_api_calls": False,
                     "m_n_plus_one_db": False,
                     "uncompressed_assets": True,
