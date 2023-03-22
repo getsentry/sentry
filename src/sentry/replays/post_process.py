@@ -70,6 +70,14 @@ def generate_normalized_output(
         item["urls"] = item.pop("urls_sorted", None)
 
         item.pop("isArchived")
+        item.pop("click_tag", None)
+        item.pop("click_id", None)
+        item.pop("click_class", None)
+        item.pop("click_role", None)
+        item.pop("click_testid", None)
+        item.pop("click_aria_label", None)
+        item.pop("click_alt", None)
+        item.pop("click_title", None)
 
         yield item
 

@@ -419,6 +419,18 @@ class ReplayQueryConfig(QueryConfig):
     device = String(field_alias="device", query_alias="device_name")
     sdk = String(field_alias="sdk", query_alias="sdk_name")
 
+    # Click
+    click_tag = ListField(field_alias="replay_click.tag", query_alias="click_tag")
+    click_id = ListField(field_alias="replay_click.id", query_alias="click_id")
+    click_class = ListField(field_alias="replay_click.class", query_alias="click_class")
+    click_role = ListField(field_alias="replay_click.role", query_alias="click_role")
+    click_testid = ListField(field_alias="replay_click.testid", query_alias="click_testid")
+    click_aria_label = ListField(
+        field_alias="replay_click.aria_label", query_alias="click_aria_label"
+    )
+    click_alt = ListField(field_alias="replay_click.alt", query_alias="click_alt")
+    click_title = ListField(field_alias="replay_click.title", query_alias="click_title")
+
     # Tag
     tags = Tag(field_alias="*")
 
@@ -568,6 +580,15 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "device.model": ["device_model"],
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
+    # Click actions
+    "replay_click.tag": ["click.tag"],
+    "replay_click.id": ["click.id"],
+    "replay_click.class": ["click.class"],
+    "replay_click.role": ["click.role"],
+    "replay_click.testid": ["click.testid"],
+    "replay_click.aria_label": ["click.aria_label"],
+    "replay_click.alt": ["click.alt"],
+    "replay_click.title": ["click.title"],
 }
 
 
@@ -662,6 +683,26 @@ QUERY_ALIAS_COLUMN_MAP = {
     "sdk_version": take_first_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
+    "click.tag": Function("groupArrayArray", parameters=[Column("click.tag")], alias="click_tag"),
+    "click.id": Function("groupArrayArray", parameters=[Column("click.id")], alias="click_id"),
+    "click.class": Function(
+        "arrayFlatten",
+        parameters=[Function("groupArrayArray", parameters=[Column("click.class")])],
+        alias="click_class",
+    ),
+    "click.role": Function(
+        "groupArrayArray", parameters=[Column("click.role")], alias="click_role"
+    ),
+    "click.testid": Function(
+        "groupArrayArray", parameters=[Column("click.testid")], alias="click_testid"
+    ),
+    "click.aria_label": Function(
+        "groupArrayArray", parameters=[Column("click.aria_label")], alias="click_aria_label"
+    ),
+    "click.alt": Function("groupArrayArray", parameters=[Column("click.alt")], alias="click_alt"),
+    "click.title": Function(
+        "groupArrayArray", parameters=[Column("click.title")], alias="click_title"
+    ),
 }
 
 
