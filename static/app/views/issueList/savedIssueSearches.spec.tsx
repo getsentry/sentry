@@ -260,7 +260,7 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
     await userEvent.click(
       screen.getByRole('button', {name: /create a new saved search/i})
@@ -288,6 +288,6 @@ describe('SavedIssueSearches', function () {
     });
 
     // Modal should close
-    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+    await waitForElementToBeRemoved(() => screen.queryByRole('dialog'));
   });
 });
