@@ -1,4 +1,5 @@
 import os
+import re
 
 import sentry_sdk
 
@@ -25,6 +26,16 @@ def get_dart_symbols_images(event: Event):
 
 
 def generate_dart_symbols_map(uuid: str, project: Project):
+    """
+    NOTE: This function makes assumptions about the structure of the debug file
+    since we are not currently storing the file. This may need to be updated if we
+    decide to do some pre-processing on the debug file before storing it.
+
+    In its current state, the debug file is expected to be a json file with a list
+    of strings. The strings alternate between deobfuscated and obfuscated names.
+
+    If we preprocess it into a map, we can remove this code and just fetch the file.
+    """
     with sentry_sdk.start_span(op="dart_symbols.generate_dart_symbols_map") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
         debug_file_path = dif_paths.get(uuid)
@@ -41,18 +52,18 @@ def generate_dart_symbols_map(uuid: str, project: Project):
         with open(debug_file_path) as f:
             debug_array = json.loads(f.read())
 
-        # The expectation is that the debug array is a list of strings
-        if not isinstance(debug_array, list):
-            # TODO(nar): Capture some kind of exception here
+        obfuscated_to_deobfuscated_name_map = {}
+        try:
+            for i in range(0, len(debug_array)):
+                deobfuscated_name = debug_array[i]
+                obfuscated_name = debug_array[i + 1]
+                obfuscated_to_deobfuscated_name_map[obfuscated_name] = deobfuscated_name
+        except Exception as err:
+            # The expectation is that the debug array is a list of strings
+            sentry_sdk.capture_exception(err)
             return {}
 
-        map = {}
-        for i in range(0, len(debug_array)):
-            deobfuscated_name = debug_array[i]
-            obfuscated_name = debug_array[i + 1]
-            map[obfuscated_name] = deobfuscated_name
-
-    return map
+    return obfuscated_to_deobfuscated_name_map
 
 
 def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierarchy):
@@ -66,6 +77,11 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
         return
 
     with sentry_sdk.start_span(op="dart_symbols.deobfuscate_view_hierarchy_data"):
+        # Obfuscated type values are either in the form of "xyz" or "xyz<abc>" where
+        # both "xyz" or "abc" need to be deobfuscated. It may also be possible for
+        # the values to be more complicated such as "_xyz", so the regex should capture
+        # values other than "<" and ">".
+        TYPE_REGEX = r"([^<>]+)(?:<([^<>]+)>)?"
         for dart_symbols_uuid in dart_symbols_uuids:
             map = generate_dart_symbols_map(dart_symbols_uuid, project)
             if len(map) == 0:
@@ -74,8 +90,14 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
             windows_to_deobfuscate = [*view_hierarchy.get("windows")]
             while windows_to_deobfuscate:
                 window = windows_to_deobfuscate.pop()
-                # TODO(nar): this needs to do a regex and replace the groups
-                window["type"] = map.get(window.get("type"), window.get("type"))
+
+                obfuscated_values = re.findall(TYPE_REGEX, window.get("type"))
+                for obfuscated_value in obfuscated_values:
+                    if obfuscated_value is not None and obfuscated_value in map:
+                        window["type"] = window["type"].replace(
+                            obfuscated_value, map[obfuscated_value]
+                        )
+
                 if children := window.get("children"):
                     windows_to_deobfuscate.extend(children)
 
