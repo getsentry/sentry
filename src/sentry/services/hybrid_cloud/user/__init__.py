@@ -8,8 +8,6 @@ from abc import abstractmethod
 from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
 
-from pydantic.fields import Field
-
 from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
@@ -32,6 +30,9 @@ class RpcUserEmail(RpcModel):
     email: str = ""
     is_verified: bool = False
 
+    def __hash__(self) -> int:
+        return hash((self.id, self.email))
+
 
 class RpcAuthenticator(RpcModel):
     id: int = 0
@@ -40,6 +41,9 @@ class RpcAuthenticator(RpcModel):
     last_used_at: Optional[datetime.datetime] = None
     type: int = -1
     config: Any = None
+
+    def __hash__(self) -> int:
+        return hash((self.id, self.user_id, self.type))
 
 
 class RpcUser(RpcModel):
@@ -66,8 +70,8 @@ class RpcUser(RpcModel):
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[RpcAvatar] = None
-    useremails: List[RpcUserEmail] = Field(default_factory=list)
-    authenticators: List[RpcAuthenticator] = Field(default_factory=list)
+    useremails: FrozenSet[RpcUserEmail] = frozenset()
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
 
     def __hash__(self) -> int:
         return hash((self.id, self.pk))
