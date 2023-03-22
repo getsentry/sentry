@@ -5,6 +5,7 @@ import styled from '@emotion/styled';
 import {HTMLMotionProps, motion, MotionProps, MotionStyle} from 'framer-motion';
 
 import OverlayArrow from 'sentry/components/overlayArrow';
+import {IS_ACCEPTANCE_TEST, NODE_ENV} from 'sentry/constants';
 import {defined} from 'sentry/utils';
 import PanelProvider from 'sentry/utils/panelProvider';
 import testableTransition from 'sentry/utils/testableTransition';
@@ -108,15 +109,16 @@ const Overlay = styled(
       },
       ref
     ) => {
-      const animationProps = animated
-        ? {
-            ...overlayAnimation,
-            style: {
-              ...style,
-              ...computeOriginFromArrow(placement, originPoint),
-            },
-          }
-        : {style};
+      const animationProps =
+        !IS_ACCEPTANCE_TEST && NODE_ENV !== 'test' && animated
+          ? {
+              ...overlayAnimation,
+              style: {
+                ...style,
+                ...computeOriginFromArrow(placement, originPoint),
+              },
+            }
+          : {style};
 
       return (
         <motion.div {...props} {...animationProps} ref={ref}>
