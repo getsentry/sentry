@@ -337,6 +337,19 @@ class RedisSlidingWindowRateLimiter(SlidingWindowRateLimiter):
         # (https://stackoverflow.com/a/3812600/1544347), there are no formal
         # guarantees about it.
         ordered_keys_to_fetch = list(keys_to_fetch)
+
+        # with self.client.pipeline(transaction=False) as pipeline:
+        #     for key in ordered_keys_to_fetch:
+        #         pipeline.get(key)
+
+        #     results = iter(pipeline.execute())
+
+        #     ordered_keys_results = []
+        #     for i in len(ordered_keys_to_fetch):
+        #         ordered_keys_results.append(next(results))
+
+        #     redis_results = dict(zip(ordered_keys_to_fetch, ordered_keys_results))
+
         ordered_values = []
         for key in ordered_keys_to_fetch:
             ordered_values.append(self.client.get(key))
