@@ -26,10 +26,10 @@ class Migration(CheckedMigration):
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
-                    """
+                    sql="""
                     ALTER TABLE "sentry_debugidartifactbundle" DROP COLUMN "date_last_accessed";
                     """,
-                    """
+                    reverse_sql="""
                     ALTER TABLE "sentry_debugidartifactbundle" ADD COLUMN "date_last_accessed" DATE NULL;
                     """,
                     hints={"tables": ["sentry_debugidartifactbundle"]},
