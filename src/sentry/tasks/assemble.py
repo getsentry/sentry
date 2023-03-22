@@ -4,6 +4,7 @@ from os import path
 from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, router
+from django.db.models import Q
 from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import options
@@ -281,6 +282,10 @@ def _extract_debug_ids_from_manifest(
     return bundle_id, debug_ids_with_types
 
 
+def _remove_duplicate_artifact_bundles(except_id: int, bundle_id: str):
+    ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id).delete()
+
+
 def _create_artifact_bundle(
     version: Optional[str],
     dist: Optional[str],
@@ -327,6 +332,8 @@ def _create_artifact_bundle(
                     artifact_bundle=artifact_bundle,
                     source_file_type=source_file_type.value,
                 )
+
+            _remove_duplicate_artifact_bundles(artifact_bundle.id, bundle_id)
         else:
             raise AssembleArtifactsError(
                 "uploading a bundle without debug ids or release is prohibited"
