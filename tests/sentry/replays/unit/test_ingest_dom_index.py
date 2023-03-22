@@ -113,10 +113,9 @@ def test_parse_replay_actions():
     payload = json.loads(bytes(replay_actions["payload"]))
     assert payload["type"] == "replay_actions"
     assert payload["replay_id"] == "1"
-    assert payload["segment_id"] == 0
-    assert len(payload["actions"]) == 1
+    assert len(payload["clicks"]) == 1
 
-    action = payload["actions"][0]
+    action = payload["clicks"][0]
     assert action["node_id"] == 59
     assert action["tag"] == "div"
     assert action["id"] == "id"

@@ -9,25 +9,25 @@ from sentry.utils import json, kafka_config
 from sentry.utils.pubsub import KafkaPublisher
 
 
-class ReplayActionsPayloadAction(TypedDict):
-    dom_action: str
-    dom_element: str
-    dom_id: str
-    dom_classes: List[str]
-    dom_aria_label: str
-    dom_aria_role: str
-    dom_role: str
-    dom_text_content: str
-    dom_node_id: int
+class ReplayActionsEventPayloadClick(TypedDict):
+    node_id: int
+    tag: str
+    id: str
+    class_: List[str]
+    role: str
+    aria_label: str
+    alt: str
+    testid: str
+    title: str
+    text: str
     timestamp: int
     event_hash: str
 
 
-class ReplayActionsPayload(TypedDict):
+class ReplayActionsEventPayload(TypedDict):
     type: Literal["replay_actions"]
     replay_id: str
-    segment_id: int
-    actions: Iterator[ReplayActionsPayloadAction]
+    clicks: Iterator[ReplayActionsEventPayloadClick]
 
 
 class ReplayActionsEvent(TypedDict):
@@ -72,7 +72,7 @@ def create_replay_actions_event(
     replay_id: str,
     project_id: int,
     retention_days: int,
-    payload: ReplayActionsPayload,
+    payload: ReplayActionsEventPayload,
 ) -> ReplayActionsEvent:
     return {
         "type": "replay_event",
@@ -87,18 +87,18 @@ def create_replay_actions_event(
 def create_replay_actions_payload(
     replay_id: str,
     segment_id: int,
-    actions: Iterator[ReplayActionsPayloadAction],
-) -> ReplayActionsPayload:
+    clicks: Iterator[ReplayActionsEventPayloadClick],
+) -> ReplayActionsEventPayload:
     return {
         "type": "replay_actions",
         "replay_id": replay_id,
         "segment_id": segment_id,
-        "actions": actions,
+        "clicks": clicks,
     }
 
 
-def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsPayloadAction]:
-    """Return a list of ReplayActionsPayloadAction types."""
+def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsEventPayloadClick]:
+    """Return a list of ReplayActionsEventPayloadClick types."""
     events = json.loads(decompress(segment_data))
 
     for event in events:
