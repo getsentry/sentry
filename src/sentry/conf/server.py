@@ -1271,6 +1271,8 @@ SENTRY_FEATURES = {
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
     "organizations:session-replay-ga": False,
+    # Enabled experimental session replay network data view
+    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
