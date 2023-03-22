@@ -17,7 +17,7 @@ import {
   performance as performancePlatforms,
   PlatformKey,
 } from 'sentry/data/platformCategories';
-import platforms, {ReactDocVariant} from 'sentry/data/platforms';
+import platforms from 'sentry/data/platforms';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -76,7 +76,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     if (!params.platform || params.platform === 'other') {
       redirectToNeutralDocs();
     }
-  }, [fetchData, redirectToNeutralDocs, params.platform, location.query.product]);
+  }, [fetchData, redirectToNeutralDocs, params.platform]);
 
   const platform = platforms.find(p => p.id === params.platform);
 
