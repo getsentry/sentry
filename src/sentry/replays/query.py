@@ -683,26 +683,20 @@ QUERY_ALIAS_COLUMN_MAP = {
     "sdk_version": take_first_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
-    "click.tag": Function("groupArrayArray", parameters=[Column("click.tag")], alias="click_tag"),
-    "click.id": Function("groupArrayArray", parameters=[Column("click.id")], alias="click_id"),
+    "click.tag": Function("groupArray", parameters=[Column("click_tag")], alias="click_tag"),
+    "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
     "click.class": Function(
-        "arrayFlatten",
-        parameters=[Function("groupArrayArray", parameters=[Column("click.class")])],
-        alias="click_class",
+        "groupArrayArray", parameters=[Column("click_class")], alias="click_class"
     ),
-    "click.role": Function(
-        "groupArrayArray", parameters=[Column("click.role")], alias="click_role"
-    ),
+    "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),
     "click.testid": Function(
-        "groupArrayArray", parameters=[Column("click.testid")], alias="click_testid"
+        "groupArray", parameters=[Column("click_testid")], alias="click_testid"
     ),
     "click.aria_label": Function(
-        "groupArrayArray", parameters=[Column("click.aria_label")], alias="click_aria_label"
+        "groupArray", parameters=[Column("click_aria_label")], alias="click_aria_label"
     ),
-    "click.alt": Function("groupArrayArray", parameters=[Column("click.alt")], alias="click_alt"),
-    "click.title": Function(
-        "groupArrayArray", parameters=[Column("click.title")], alias="click_title"
-    ),
+    "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
+    "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
 }
 
 
