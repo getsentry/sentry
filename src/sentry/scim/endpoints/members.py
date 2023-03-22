@@ -19,7 +19,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log, roles
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organizationmember import OrganizationMemberEndpoint
 from sentry.api.endpoints.organization_member.index import OrganizationMemberSerializer
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -138,7 +138,7 @@ def resolve_maybe_bool_value(value):
     return None
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "DELETE", "PATCH"}
@@ -168,7 +168,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
             raise PermissionDenied(detail=ERR_ONLY_OWNER)
         with transaction.atomic():
             AuthIdentity.objects.filter(
-                user=member.user, auth_provider__organization=organization
+                user=member.user, auth_provider__organization_id=organization.id
             ).delete()
             member.delete()
             self.create_audit_entry(
@@ -382,7 +382,7 @@ class OrganizationSCIMMemberDetails(SCIMEndpoint, OrganizationMemberEndpoint):
         return Response(context, status=200)
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationSCIMMemberIndex(SCIMEndpoint):
     permission_classes = (OrganizationSCIMMemberPermission,)
     public = {"GET", "POST"}

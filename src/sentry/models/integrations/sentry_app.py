@@ -196,7 +196,7 @@ class SentryApp(ParanoidModel, HasApiScopes):
         from sentry.models import SentryAppInstallation
 
         return SentryAppInstallation.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             sentry_app=self,
         ).exists()
 

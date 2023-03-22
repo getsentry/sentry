@@ -14,7 +14,8 @@ from sentry.api.exceptions import (
 from sentry.auth import access
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud import coerce_id_from
+from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.utils import auth
 
 if TYPE_CHECKING:
@@ -82,17 +83,17 @@ class SentryPermission(ScopedPermission):
     def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
         return False
 
-    def needs_sso(self, request: Request, organization: Organization) -> bool:
+    def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         return False
 
     def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
         return False
 
-    def determine_access(self, request: Request, organization: Organization) -> None:
+    def determine_access(self, request: Request, organization: Organization | int) -> None:
         from sentry.api.base import logger
 
         org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=request.user.id if request.user else None
+            id=coerce_id_from(organization), user_id=request.user.id if request.user else None
         )
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
@@ -116,7 +117,7 @@ class SentryPermission(ScopedPermission):
             rpc_user_org_context=org_context,
         )
 
-        extra = {"organization_id": organization.id, "user_id": request.user.id}
+        extra = {"organization_id": coerce_id_from(organization), "user_id": request.user.id}
 
         if auth.is_user_signed_request(request):
             # if the user comes from a signed request
@@ -127,7 +128,7 @@ class SentryPermission(ScopedPermission):
             )
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
-            if self.needs_sso(request, organization):
+            if self.needs_sso(request, org_context.organization):
 
                 logger.info(
                     "access.must-sso",

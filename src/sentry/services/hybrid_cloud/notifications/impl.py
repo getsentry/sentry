@@ -33,8 +33,8 @@ class DatabaseBackedNotificationsService(NotificationsService):
             type=notification_type,
             value=setting_option,
             actor=actor,
-            project_or_id=project_id,
-            organization_or_id=organization_id,
+            project=project_id,
+            organization=organization_id,
         )
 
     def get_settings_for_users(

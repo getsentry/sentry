@@ -22,6 +22,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -47,7 +48,7 @@ class OrganizationPermission(SentryPermission):
             and not is_active_superuser(request)
         )
 
-    def needs_sso(self, request: Request, organization: Organization) -> bool:
+    def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         # XXX(dcramer): this is very similar to the server-rendered views
         # logic for checking valid SSO
         if not request.access.requires_sso:

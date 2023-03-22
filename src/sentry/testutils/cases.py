@@ -2011,7 +2011,9 @@ class TestMigrations(TransactionTestCase):
 class SCIMTestCase(APITestCase):
     def setUp(self, provider="dummy"):
         super().setUp()
-        self.auth_provider = AuthProviderModel(organization=self.organization, provider=provider)
+        self.auth_provider = AuthProviderModel(
+            organization_id=self.organization.id, provider=provider
+        )
         self.auth_provider.enable_scim(self.user)
         self.auth_provider.save()
         self.scim_user = ApiToken.objects.get(token=self.auth_provider.get_scim_token()).user
