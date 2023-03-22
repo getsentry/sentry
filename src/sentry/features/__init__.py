@@ -220,7 +220,7 @@ default_manager.add("organizations:integrations-issue-sync", OrganizationFeature
 default_manager.add("organizations:integrations-stacktrace-link", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:integrations-ticket-rules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:onboarding-heartbeat-footer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-default_manager.add("organizations:onboarding-heartbeat-footer-with-view-sample-error", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:onboarding-docs-with-product-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-project-deletion-on-back-click", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:onboarding-remove-multiselect-platform", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:performance-view", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
