@@ -210,7 +210,6 @@ function SetupDocs({search, route, router, location}: Props) {
       // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
       // and the docs will reflect that.
       const products = location.query.product ?? [];
-      console.log({products});
       if (
         products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
         products.includes(PRODUCT.SESSION_REPLAY)
