@@ -12,6 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
 import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -391,7 +392,8 @@ class ProjectPerformance extends AsyncView<Props, State> {
                 return acc;
               }, {}) ?? {}
             }
-            onSubmitSuccess={(_response, _instance, id, change) => {
+            onSubmitSuccess={(response, _instance, id, change) => {
+              ProjectsStore.onUpdateSuccess(response);
               trackAdvancedAnalyticsEvent(
                 change?.new === true
                   ? 'dynamic_sampling_settings.priority_enabled'
