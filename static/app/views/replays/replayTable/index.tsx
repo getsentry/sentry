@@ -37,6 +37,11 @@ function ReplayTable({fetchError, isFetching, replays, sort, visibleColumns}: Pr
   const location = useLocation();
   const organization = useOrganization();
 
+  const hasFullTable = !organization.features.includes('session-replay-slim-table');
+  visibleColumns = visibleColumns.filter(
+    column => hasFullTable || !['browser', 'os'].includes(column)
+  );
+
   const tableHeaders = visibleColumns
     .filter(Boolean)
     .map(column => <HeaderCell key={column} column={column} sort={sort} />);

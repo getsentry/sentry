@@ -105,17 +105,15 @@ export type ReplayListLocationQuery = {
 export type ReplayListRecord = Pick<
   ReplayRecord,
   | 'activity'
-  | 'browser'
   | 'count_errors'
   | 'duration'
   | 'finished_at'
   | 'id'
-  | 'os'
   | 'project_id'
   | 'started_at'
-  | 'urls'
   | 'user'
->;
+> &
+  Partial<Pick<ReplayRecord, 'browser' | 'count_urls' | 'os' | 'urls'>>;
 
 // Sync with ReplayListRecord above
 export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
@@ -123,6 +121,7 @@ export const REPLAY_LIST_FIELDS: ReplayRecordNestedFieldName[] = [
   'browser.name',
   'browser.version',
   'count_errors',
+  'count_urls',
   'duration',
   'finished_at',
   'id',

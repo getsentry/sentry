@@ -11,7 +11,8 @@ import {StringWalker} from 'sentry/components/replays/walker/urlWalker';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
-import {IconCalendar} from 'sentry/icons';
+import {IconCalendar, IconLocation} from 'sentry/icons';
+import {tn} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -44,6 +45,39 @@ export function ReplayCell({
     },
   };
 
+  const subText = replay.urls ? (
+    <Cols>
+      <StringWalker urls={replay.urls} />
+      <Row gap={1}>
+        <Row gap={0.5}>
+          {project ? <Avatar size={12} project={project} /> : null}
+          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
+        </Row>
+        <Row gap={0.5}>
+          <IconCalendar color="gray300" size="xs" />
+          <TimeSince date={replay.started_at} />
+        </Row>
+      </Row>
+    </Cols>
+  ) : (
+    <Cols>
+      <Row gap={1}>
+        <Row gap={0.5} minWidth={80}>
+          {project ? <Avatar size={12} project={project} /> : null}
+          <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
+        </Row>
+        <Row gap={0.5} minWidth={80}>
+          <IconLocation color="green400" size="sm" />
+          {tn('%s Page', '%s Pages', replay.count_urls)}
+        </Row>
+        <Row gap={0.5}>
+          <IconCalendar color="gray300" size="xs" />
+          <TimeSince date={replay.started_at} />
+        </Row>
+      </Row>
+    </Cols>
+  );
+
   return (
     <Item>
       <UserBadgeFullWidth
@@ -59,21 +93,7 @@ export function ReplayCell({
           name: replay.user.username || '',
         }}
         // this is the subheading for the avatar, so displayEmail in this case is a misnomer
-        displayEmail={
-          <Cols>
-            <StringWalker urls={replay.urls} />
-            <Row gap={1}>
-              <Row gap={0.5}>
-                {project ? <Avatar size={12} project={project} /> : null}
-                <Link to={replayDetails}>{getShortEventId(replay.id)}</Link>
-              </Row>
-              <Row gap={0.5}>
-                <IconCalendar color="gray300" size="xs" />
-                <TimeSince date={replay.started_at} />
-              </Row>
-            </Row>
-          </Cols>
-        }
+        displayEmail={subText}
       />
     </Item>
   );
@@ -87,14 +107,15 @@ const UserBadgeFullWidth = styled(UserBadge)`
 const Cols = styled('div')`
   display: flex;
   flex-direction: column;
-  gap: ${space(0.25)};
+  gap: ${space(0.5)};
   width: 100%;
 `;
 
-const Row = styled('div')<{gap: ValidSize}>`
+const Row = styled('div')<{gap: ValidSize; minWidth?: number}>`
   display: flex;
   gap: ${p => space(p.gap)};
   align-items: center;
+  ${p => (p.minWidth ? `min-width: ${p.minWidth}px;` : '')}
 `;
 
 const MainLink = styled(Link)`
@@ -122,7 +143,7 @@ export function TransactionCell({
 }
 
 export function OSCell({replay}: Props) {
-  const {name, version} = replay.os;
+  const {name, version} = replay.os ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
@@ -137,7 +158,7 @@ export function OSCell({replay}: Props) {
 }
 
 export function BrowserCell({replay}: Props) {
-  const {name, version} = replay.browser;
+  const {name, version} = replay.browser ?? {};
   const theme = useTheme();
   const hasRoomForColumns = useMedia(`(min-width: ${theme.breakpoints.large})`);
 
