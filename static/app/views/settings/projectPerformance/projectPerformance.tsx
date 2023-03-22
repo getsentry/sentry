@@ -241,7 +241,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'boostLatestRelease',
         type: 'boolean',
         label: t('Prioritize new releases'),
-        defaultValue: true,
         help: t(
           'Captures more transactions for your new releases as they are being adopted'
         ),
@@ -251,7 +250,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'boostEnvironments',
         type: 'boolean',
         label: t('Prioritize dev environments'),
-        defaultValue: true,
         help: t(
           'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
         ),
@@ -261,7 +259,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'boostKeyTransactions',
         type: 'boolean',
         label: t('Prioritize key transactions'),
-        defaultValue: true,
         help: t('Captures more of your most important (starred) transactions'),
         getData: this.getRetentionPrioritiesData,
       },
@@ -269,7 +266,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'boostLowVolumeTransactions',
         type: 'boolean',
         label: t('Prioritize low-volume transactions'),
-        defaultValue: true,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
         visible: this.props.organization.features.includes(
           'dynamic-sampling-transaction-name-priority'
@@ -280,7 +276,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
         name: 'ignoreHealthChecks',
         type: 'boolean',
         label: t('Deprioritize health checks'),
-        defaultValue: true,
         help: t('Captures fewer of your health checks transactions'),
         getData: this.getRetentionPrioritiesData,
       },
