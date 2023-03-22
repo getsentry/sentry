@@ -17,6 +17,7 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
+import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -123,7 +124,7 @@ function AuditNote({
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: entry.data.name,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>
@@ -141,7 +142,7 @@ function AuditNote({
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: entry.data.name,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>

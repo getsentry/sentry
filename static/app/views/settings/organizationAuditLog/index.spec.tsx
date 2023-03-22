@@ -134,7 +134,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Enabled retention priority "boostKeyTransactions" in project ${project.slug}`
+          `Enabled retention priority "Prioritize key transactions" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Disabled retention priority "boostKeyTransactions" in project ${project.slug}`
+          `Disabled retention priority "Prioritize key transactions" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();

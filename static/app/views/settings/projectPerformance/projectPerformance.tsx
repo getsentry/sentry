@@ -21,6 +21,15 @@ import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
 
+// These labels need to be exported so that they can be used in audit logs
+export const retentionPrioritiesLabels = {
+  boostLatestRelease: t('Prioritize new releases'),
+  boostEnvironments: t('Prioritize dev environments'),
+  boostKeyTransactions: t('Prioritize key transactions'),
+  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
+  ignoreHealthChecks: t('Deprioritize health checks'),
+};
+
 type RouteParams = {orgId: string; projectId: string};
 
 type Props = RouteComponentProps<{projectId: string}, {}> & {
@@ -241,7 +250,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         name: 'boostLatestRelease',
         type: 'boolean',
-        label: t('Prioritize new releases'),
+        label: retentionPrioritiesLabels.boostLatestRelease,
         help: t(
           'Captures more transactions for your new releases as they are being adopted'
         ),
@@ -250,7 +259,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         name: 'boostEnvironments',
         type: 'boolean',
-        label: t('Prioritize dev environments'),
+        label: retentionPrioritiesLabels.boostEnvironments,
         help: t(
           'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
         ),
@@ -259,14 +268,14 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         name: 'boostKeyTransactions',
         type: 'boolean',
-        label: t('Prioritize key transactions'),
+        label: retentionPrioritiesLabels.boostKeyTransactions,
         help: t('Captures more of your most important (starred) transactions'),
         getData: this.getRetentionPrioritiesData,
       },
       {
         name: 'boostLowVolumeTransactions',
         type: 'boolean',
-        label: t('Prioritize low-volume transactions'),
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
         help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
         visible: this.props.organization.features.includes(
           'dynamic-sampling-transaction-name-priority'
@@ -276,7 +285,7 @@ class ProjectPerformance extends AsyncView<Props, State> {
       {
         name: 'ignoreHealthChecks',
         type: 'boolean',
-        label: t('Deprioritize health checks'),
+        label: retentionPrioritiesLabels.ignoreHealthChecks,
         help: t('Captures fewer of your health checks transactions'),
         getData: this.getRetentionPrioritiesData,
       },
