@@ -53,7 +53,7 @@ class ArtifactBundle(Model):
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
     # This field represents the date of the upload that we show in the UI.
-    date_uploaded = models.DateTimeField(default=timezone.now, null=True)
+    date_uploaded = models.DateTimeField(default=None, null=True)
 
     class Meta:
         app_label = "sentry"
