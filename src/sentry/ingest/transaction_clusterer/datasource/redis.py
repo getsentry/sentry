@@ -64,7 +64,10 @@ def _store_transaction_name(project: Project, transaction_name: str) -> None:
     with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
         client = get_redis_client()
         redis_key = _get_redis_key(project)
-        add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
+        max_set_size = MAX_SET_SIZE
+        if features.has("organizations:transaction-name-clusterer-2x", project.organization):
+            max_set_size = 2 * MAX_SET_SIZE
+        add_to_set(client, [redis_key], [transaction_name, max_set_size, SET_TTL])
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:

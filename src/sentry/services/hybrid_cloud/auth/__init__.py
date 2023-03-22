@@ -15,10 +15,13 @@ from rest_framework.authentication import BaseAuthentication
 from rest_framework.request import Request
 
 from sentry.api.authentication import ApiKeyAuthentication, TokenAuthentication
-from sentry.models import OrganizationMember
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcOrganizationMember
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcOrganizationMemberSummary,
+)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.utils.linksign import find_signature
@@ -57,6 +60,7 @@ def _normalize_to_b64(input: Optional[Union[str, bytes]]) -> Optional[str]:
 
 
 class RpcAuthentication(BaseAuthentication):  # type: ignore
+    www_authenticate_realm = "api"
     types: List[RpcAuthenticatorType]
 
     def __init__(self, types: List[RpcAuthenticatorType]):
@@ -71,6 +75,12 @@ class RpcAuthentication(BaseAuthentication):  # type: ignore
             return response.user, response.auth
 
         return None
+
+    # What does this do you may ask?  Actually, it tricks the django request_framework to returning the correct 401
+    # over 403 in unauthenticated cases, due to some deep library code nonsense.  Tests fail if you remove.
+    # Otherwise, this authenticate header value means absolutely nothing to clients.
+    def authenticate_header(self, request: Request) -> str:
+        return 'xBasic realm="%s"' % self.www_authenticate_realm
 
 
 @dataclass(eq=True)
@@ -298,7 +308,7 @@ class AuthService(InterfaceWithLifecycle):
         user_id: int,
         is_superuser: bool,
         organization_id: Optional[int],
-        org_member: Optional[Union[RpcOrganizationMember, OrganizationMember]],
+        org_member: Optional[RpcOrganizationMemberSummary],
     ) -> RpcAuthState:
         pass
 

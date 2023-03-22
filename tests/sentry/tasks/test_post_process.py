@@ -164,7 +164,6 @@ class CorePostProcessGroupTestMixin(BasePostProgressGroupMixin):
 
 
 @apply_feature_flag_on_cls("organizations:derive-code-mappings")
-@apply_feature_flag_on_cls("organizations:derive-code-mappings-dry-run")
 class DeriveCodeMappingsProcessGroupTestMixin(BasePostProgressGroupMixin):
     def _call_post_process_group(self, data: Dict[str, str]) -> None:
         event = self.create_event(data=data, project_id=self.project.id)
@@ -996,6 +995,7 @@ class AssignmentTestMixin(BasePostProgressGroupMixin):
             f"issue_owner_assignment_ratelimiter:{self.project.id}",
             (set(range(0, ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT * 10, 10)), datetime.now()),
         )
+        cache.set(f"commit-context-scm-integration:{self.project.organization_id}", True, 60)
         event = self.create_event(
             data={
                 "message": "oh no",
@@ -1101,7 +1101,6 @@ class ProcessCommitsTestMixin(BasePostProgressGroupMixin):
         assert cache.has_key(f"process-commit-context-{self.created_event.group_id}")
 
     @with_feature("organizations:commit-context")
-    @with_feature("organizations:commit-context-fallback")
     @patch(
         "sentry.integrations.github.GitHubIntegration.get_commit_context",
         return_value=github_blame_return_value,

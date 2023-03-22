@@ -453,6 +453,14 @@ class VstsIntegrationProvider(IntegrationProvider):  # type: ignore
             auth_codes = (400, 401, 403)
             permission_error = "permission" in str(e) or "not authorized" in str(e)
             if e.code in auth_codes or permission_error:
+                logger.info(
+                    "vsts.create_subscription_permission_error",
+                    extra={
+                        "organization_id": self.pipeline.organization.id,
+                        "error_message": str(e),
+                        "error_code": e.code,
+                    },
+                )
                 raise IntegrationProviderError(
                     "You do not have sufficient account access to create webhooks\n"
                     "on the selected Azure DevOps organization.\n"

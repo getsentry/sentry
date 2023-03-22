@@ -61,6 +61,7 @@ export enum IssueType {
 
   // Performance
   PERFORMANCE_CONSECUTIVE_DB_QUERIES = 'performance_consecutive_db_queries',
+  PERFORMANCE_CONSECUTIVE_HTTP = 'performance_consecutive_http',
   PERFORMANCE_FILE_IO_MAIN_THREAD = 'performance_file_io_main_thread',
   PERFORMANCE_N_PLUS_ONE_API_CALLS = 'performance_n_plus_one_api_calls',
   PERFORMANCE_N_PLUS_ONE_DB_QUERIES = 'performance_n_plus_one_db_queries',
@@ -178,6 +179,11 @@ export type SuggestedOwner = {
   type: SuggestedOwnerReason;
 };
 
+export interface ParsedOwnershipRule {
+  matcher: {pattern: string; type: string};
+  owners: Actor[];
+}
+
 export type IssueOwnership = {
   autoAssignment:
     | 'Auto Assign to Suspect Commits'
@@ -189,6 +195,7 @@ export type IssueOwnership = {
   isActive: boolean;
   lastUpdated: string | null;
   raw: string | null;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export enum GroupActivityType {

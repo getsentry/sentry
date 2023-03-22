@@ -270,15 +270,21 @@ def schedule_invalidate_project_config(
         slight delay to increase the likelihood of deduplicating invalidations but you can
         tweak this, like e.g. the :func:`invalidate_all` task does.
     """
-    transaction.on_commit(
-        lambda: _schedule_invalidate_project_config(
-            trigger=trigger,
-            organization_id=organization_id,
-            project_id=project_id,
-            public_key=public_key,
-            countdown=countdown,
+    with sentry_sdk.start_span(
+        op="relay.projectconfig_cache.invalidation.schedule_after_db_transaction",
+    ):
+        # XXX(iker): updating a lot of organizations or projects in a single
+        # database transaction causes the `on_commit` list to grow considerably
+        # and may cause memory leaks.
+        transaction.on_commit(
+            lambda: _schedule_invalidate_project_config(
+                trigger=trigger,
+                organization_id=organization_id,
+                project_id=project_id,
+                public_key=public_key,
+                countdown=countdown,
+            )
         )
-    )
 
 
 def _schedule_invalidate_project_config(

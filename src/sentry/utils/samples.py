@@ -290,6 +290,64 @@ def load_data(
     return data
 
 
+def create_n_plus_one_issue(data):
+    timestamp = datetime.fromtimestamp(data["start_timestamp"])
+    n_plus_one_db_duration = timedelta(milliseconds=100)
+    n_plus_one_db_current_offset = timestamp
+    parent_span_id = data["spans"][0]["parent_span_id"]
+    trace_id = data["contexts"]["trace"]["trace_id"]
+    data["spans"].append(
+        {
+            "timestamp": (timestamp + n_plus_one_db_duration).timestamp(),
+            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
+            "op": "db",
+            "parent_span_id": parent_span_id,
+            "span_id": uuid4().hex[:16],
+            "hash": "858fea692d4d93e8",
+            "trace_id": trace_id,
+        }
+    )
+    for i in range(200):
+        n_plus_one_db_duration += timedelta(milliseconds=200) + timedelta(milliseconds=1)
+        n_plus_one_db_current_offset = timestamp + n_plus_one_db_duration
+        data["spans"].append(
+            {
+                "timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=200)
+                ).timestamp(),
+                "start_timestamp": (
+                    n_plus_one_db_current_offset + timedelta(milliseconds=1)
+                ).timestamp(),
+                "description": "SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21",
+                "op": "db",
+                "span_id": uuid4().hex[:16],
+                "parent_span_id": parent_span_id,
+                "hash": "63f1e89e6a073441",
+                "trace_id": trace_id,
+            }
+        )
+    data["spans"].append(
+        {
+            "timestamp": (
+                timestamp + n_plus_one_db_duration + timedelta(milliseconds=200)
+            ).timestamp(),
+            "start_timestamp": timestamp.timestamp(),
+            "description": "new",
+            "op": "django.view",
+            "parent_span_id": uuid4().hex[:16],
+            "span_id": parent_span_id,
+            "hash": "0f43fb6f6e01ca52",
+            "trace_id": trace_id,
+        }
+    )
+
+
+PERFORMANCE_ISSUE_CREATORS = {
+    "n+1": create_n_plus_one_issue,
+}
+
+
 def create_sample_event(
     project,
     platform=None,
@@ -302,6 +360,7 @@ def create_sample_event(
     span_id=None,
     spans=None,
     tagged=False,
+    performance_issues=None,
     **kwargs,
 ):
     if not platform and not default:
@@ -323,6 +382,10 @@ def create_sample_event(
     for key in ["parent_span_id", "hash", "exclusive_time"]:
         if key in kwargs:
             data["contexts"]["trace"][key] = kwargs.pop(key)
+    if performance_issues:
+        for issue in performance_issues:
+            if issue in PERFORMANCE_ISSUE_CREATORS:
+                PERFORMANCE_ISSUE_CREATORS[issue](data)
 
     data.update(kwargs)
     return create_sample_event_basic(data, project.id, raw=raw, tagged=tagged)
@@ -413,6 +476,7 @@ def create_trace(slow, start_timestamp, timestamp, user, trace_id, parent_span_i
         trace=trace_id,
         spans=spans,
         hash=hash_values([data["transaction"]]),
+        performance_issues=data.get("performance_issues"),
         # not the best but just set the exclusive time
         # equal to the duration to get some span data
         exclusive_time=(timestamp - start_timestamp).total_seconds(),

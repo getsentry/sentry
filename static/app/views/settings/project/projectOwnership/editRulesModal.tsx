@@ -65,7 +65,13 @@ export function EditOwnershipRules({ownership, ...props}: EditOwnershipRulesModa
           </Block>
         </Fragment>
       )}
-      {ownership && <OwnerInput {...props} initialText={ownership.raw || ''} />}
+      {ownership && (
+        <OwnerInput
+          {...props}
+          dateUpdated={ownership.lastUpdated}
+          initialText={ownership.raw || ''}
+        />
+      )}
     </Fragment>
   );
 }

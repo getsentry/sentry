@@ -6,7 +6,7 @@ from typing import Any, Callable, Mapping, Optional, Set
 
 import rapidjson
 from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import IMMEDIATE
+from arroyo.commit import IMMEDIATE, ONCE_PER_SECOND
 from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import ProcessingStrategy, ProcessingStrategyFactory
 from arroyo.processing.strategies.commit import CommitOffsets
@@ -69,45 +69,6 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
         return FetchType.DB_READ.value not in str(header_value)
 
 
-class KeepAliveMessageFilter(StreamMessageFilter):
-    """
-    A message filter that wraps another message filter, and ensures that at
-    most `consecutive_drop_limit` messages are dropped in a row. If the wrapped
-    `inner_filter` drops `consecutive_drop_limit` messages in a row, the next
-    message will be unconditionally accepted.
-
-    The reason to use this has to do with the way Kafka works. Kafka works with
-    offsets of messages which need to be committed to the broker to acknowledge
-    them. In cases where there is a shared topic, and only one type of messages
-    on the topic, if we drop all messages then that consumer would never commit
-    offsets to the broker which would result in increase in consumer group lag
-    of the consumer group.
-
-    This leads to false positives in our alerts regarding consumer group having
-    some issues.
-
-    Note: This filter can only be used if the wrapped filter is not required
-    for correctness.
-    """
-
-    def __init__(self, inner_filter: StreamMessageFilter, consecutive_drop_limit: int) -> None:
-        self.inner_filter = inner_filter
-        self.consecutive_drop_count = 0
-        self.consecutive_drop_limit = consecutive_drop_limit
-
-    def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        if not self.inner_filter.should_drop(message):
-            self.consecutive_drop_count = 0
-            return False
-
-        self.consecutive_drop_count += 1
-        if self.consecutive_drop_count < self.consecutive_drop_limit:
-            return True
-        else:
-            self.consecutive_drop_count = 0
-            return False
-
-
 def _update_stale_last_seen(
     table: IndexerTable, seen_ints: Set[int], new_last_seen_time: Optional[datetime.datetime] = None
 ) -> int:
@@ -148,9 +109,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__max_batch_size = max_batch_size
         self.__max_batch_time = max_batch_time
         self.__metrics = get_metrics()
-        self.__prefilter = KeepAliveMessageFilter(
-            LastSeenUpdaterMessageFilter(metrics=self.__metrics), 100
-        )
+        self.__prefilter = LastSeenUpdaterMessageFilter(metrics=self.__metrics)
 
     def __should_accept(self, message: Message[KafkaPayload]) -> bool:
         return not self.__prefilter.should_drop(message)
@@ -189,7 +148,7 @@ class LastSeenUpdaterStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
         transform_step = TransformStep(retrieve_db_read_keys, collect_step)
-        return FilterStep(self.__should_accept, transform_step)
+        return FilterStep(self.__should_accept, transform_step, commit_policy=ONCE_PER_SECOND)
 
 
 def get_last_seen_updater(

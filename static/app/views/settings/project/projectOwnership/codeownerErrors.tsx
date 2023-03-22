@@ -84,7 +84,7 @@ export function CodeOwnerErrors({
       case 'missing_external_teams':
         return (
           <ErrorMessage
-            message={`The following teams do not have an association in the organization: ${orgSlug}`}
+            message="There’s a problem linking teams and members from an integration"
             values={values}
             link={`/settings/${orgSlug}/integrations/${codeMapping?.provider?.slug}/${codeMapping?.integrationId}/?tab=teamMappings`}
             linkValue="Configure Team Mappings"

@@ -480,6 +480,7 @@ class EventManager:
             _run_background_grouping(project, job)
 
         secondary_hashes = None
+        migrate_off_hierarchical = False
 
         try:
             secondary_grouping_config = project.get_option("sentry:secondary_grouping_config")
@@ -516,10 +517,25 @@ class EventManager:
         ):
             hashes = _calculate_event_grouping(project, job["event"], grouping_config)
 
+        # Because this logic is not complex enough we want to special case the situation where we
+        # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
+        # _save_aggregate needs special logic to not create orphaned hashes in migration cases
+        # but it wants a different logic to implement splitting of hierarchical hashes.
+        migrate_off_hierarchical = bool(
+            secondary_hashes
+            and secondary_hashes.hierarchical_hashes
+            and not hashes.hierarchical_hashes
+        )
+
         hashes = CalculatedHashes(
             hashes=list(hashes.hashes) + list(secondary_hashes and secondary_hashes.hashes or []),
-            hierarchical_hashes=hashes.hierarchical_hashes,
-            tree_labels=hashes.tree_labels,
+            hierarchical_hashes=(
+                list(hashes.hierarchical_hashes)
+                + list(secondary_hashes and secondary_hashes.hierarchical_hashes or [])
+            ),
+            tree_labels=(
+                hashes.tree_labels or (secondary_hashes and secondary_hashes.tree_labels) or []
+            ),
         )
 
         if not do_background_grouping_before:
@@ -550,6 +566,7 @@ class EventManager:
                     release=job["release"],
                     metadata=dict(job["event_metadata"]),
                     received_timestamp=job["received_timestamp"],
+                    migrate_off_hierarchical=migrate_off_hierarchical,
                     **kwargs,
                 )
                 job["groups"] = [group_info]
@@ -1432,6 +1449,7 @@ def _save_aggregate(
     release: Optional[Release],
     metadata: dict[str, Any],
     received_timestamp: Union[int, float],
+    migrate_off_hierarchical: Optional[bool] = False,
     **kwargs: dict[str, Any],
 ) -> Optional[GroupInfo]:
     project = event.project
@@ -1556,7 +1574,13 @@ def _save_aggregate(
 
     is_new = False
 
-    if root_hierarchical_grouphash is None:
+    # For the migrarion from hierarchical to non hierarchical we want to associate
+    # all group hashes9
+    if migrate_off_hierarchical:
+        new_hashes = [h for h in flat_grouphashes if h.group_id is None]
+        if root_hierarchical_grouphash:
+            new_hashes.append(root_hierarchical_grouphash)
+    elif root_hierarchical_grouphash is None:
         # No hierarchical grouping was run, only consider flat hashes
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
     elif root_hierarchical_grouphash.group_id is None:

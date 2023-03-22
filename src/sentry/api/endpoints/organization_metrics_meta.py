@@ -19,8 +19,6 @@ class OrganizationMetricsCompatibility(OrganizationEventsEndpointBase):
     which are the projects which don't have null transactions and have at least 1 transaction with a valid name
     """
 
-    private = True
-
     def get(self, request: Request, organization) -> Response:
         data = {
             "incompatible_projects": [],
@@ -67,8 +65,6 @@ class OrganizationMetricsCompatibilitySums(OrganizationEventsEndpointBase):
     This is so the frontend can have an idea given its current selection of projects how good/bad the display would
     be
     """
-
-    private = True
 
     def get(self, request: Request, organization) -> Response:
         data = {

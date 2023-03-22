@@ -77,6 +77,7 @@ import {
 } from './types';
 import {
   durationlessBrowserOps,
+  formatSpanTreeLabel,
   getMeasurementBounds,
   getMeasurements,
   getSpanID,
@@ -578,8 +579,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const description = span?.description ?? getSpanID(span);
-
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
     const errored = Boolean(errors && errors.length > 0);
 
@@ -608,7 +607,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
           >
             <strong>{titleFragments}</strong>
-            {description}
+            {formatSpanTreeLabel(span)}
           </RowTitleContent>
         </RowTitle>
       </RowTitleContainer>

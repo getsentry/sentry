@@ -20,7 +20,6 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "type": ["object", "null"],
             "additionalProperties": {
                 "type": "object",
-                "additionalProperties": {"type": ["string", "null"], "minLength": 1},
             },
         },
         "debug_meta": {
@@ -35,7 +34,6 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                             "type": {"type": "string", "minLength": 1},
                         },
                         "required": ["type"],
-                        "additionalProperties": {"type": ["string", "integer"]},
                     },
                 },
             },

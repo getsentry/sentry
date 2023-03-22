@@ -1,6 +1,5 @@
 {
-  "org": "__org__",
-  "release": "__release__",
+  "debug_id": "67429b2f-1d9e-43bb-a626-771a1e37555c",
   "files": {
     "files/_/_/index.js": {
       "url": "~/index.js",
@@ -26,15 +25,15 @@
       "type": "soure"
     },
     "files/_/_/bundle1.min.js": {
-      "url": "~/bundle1.js",
+      "url": "~/bundle1.min.js",
       "type": "minified_source",
       "headers": {
         "Debug-id": "Eb6e60f1asd1bbeDEd627b-1232xwzsd",
         "Sourcemap": "bundle1.js.map"
       }
     },
-    "files/_/_/bundle1.map.js": {
-      "url": "~/bundle1.js",
+    "files/_/_/bundle1.min.js.map": {
+      "url": "~/bundle1.min.js.map",
       "headers": {
         "Debug-id": "Eb6e60f1asd1bbeDEd627b-1232xwzsd"
       }

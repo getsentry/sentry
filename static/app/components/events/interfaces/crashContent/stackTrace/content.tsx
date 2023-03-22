@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {Frame, Organization, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import Line from '../../frame/line';
@@ -26,7 +27,9 @@ type Props = {
   platform: PlatformType;
   className?: string;
   debugFrames?: StacktraceFilenameQuery[];
+  hideIcon?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
   organization?: Organization;
@@ -139,8 +142,10 @@ class Content extends Component<Props, State> {
       platform,
       includeSystemFrames,
       isHoverPreviewed,
+      maxDepth,
       meta,
       debugFrames,
+      hideIcon,
     } = this.props;
 
     const {showingAbsoluteAddresses, showCompleteFunctionName} = this.state;
@@ -257,6 +262,10 @@ class Content extends Component<Props, State> {
       });
     }
 
+    if (defined(maxDepth)) {
+      frames.splice(maxDepth);
+    }
+
     if (newestFirst) {
       frames.reverse();
     }
@@ -266,7 +275,7 @@ class Content extends Component<Props, State> {
 
     return (
       <Wrapper className={className} data-test-id="stack-trace-content">
-        <StacktracePlatformIcon platform={platformIcon} />
+        {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
         <GuideAnchor target="stack_trace">
           <StyledList data-test-id="frames">{frames}</StyledList>
         </GuideAnchor>

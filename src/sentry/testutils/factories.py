@@ -50,6 +50,7 @@ from sentry.mediators import (
 from sentry.models import (
     Activity,
     Actor,
+    ArtifactBundle,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -96,6 +97,12 @@ from sentry.models import (
 )
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
+from sentry.models.notificationaction import (
+    ActionService,
+    ActionTarget,
+    ActionTrigger,
+    NotificationAction,
+)
 from sentry.models.releasefile import update_artifact_index
 from sentry.signals import project_created
 from sentry.snuba.dataset import Dataset
@@ -234,11 +241,13 @@ DEFAULT_EVENT_DATA = {
 }
 
 
-def _patch_artifact_manifest(path, org, release, project=None, extra_files=None):
+def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
         manifest = json.load(fp)
-    manifest["org"] = org
-    manifest["release"] = release
+    if org:
+        manifest["org"] = org
+    if release:
+        manifest["release"] = release
     if project:
         manifest["project"] = project
     for path in extra_files or {}:
@@ -500,8 +509,8 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_artifact_bundle(
-        org, release, project=None, extra_files=None, fixture_path="artifact_bundle"
+    def create_artifact_bundle_zip(
+        org=None, release=None, project=None, extra_files=None, fixture_path="artifact_bundle"
     ):
         import zipfile
 
@@ -527,11 +536,29 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_release_archive(cls, org, release: str, project=None, dist=None):
-        bundle = cls.create_artifact_bundle(org, release, project)
+        bundle = cls.create_artifact_bundle_zip(org, release, project)
         file_ = File.objects.create(name="release-artifacts.zip")
         file_.putfile(ContentFile(bundle))
         release = Release.objects.get(organization__slug=org, version=release)
         return update_artifact_index(release, dist, file_)
+
+    @classmethod
+    @exempt_from_silo_limits()
+    def create_artifact_bundle(
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+    ):
+        bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
+        file_ = File.objects.create(name="artifact-bundle.zip")
+        file_.putfile(ContentFile(bundle))
+        # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
+        # mock it with an arbitrary value.
+        artifact_bundle = ArtifactBundle.objects.create(
+            organization_id=org.id,
+            bundle_id=uuid4(),
+            file=file_,
+            artifact_count=artifact_count,
+        )
+        return artifact_bundle
 
     @staticmethod
     @exempt_from_silo_limits()
@@ -597,10 +624,14 @@ class Factories:
 
     @staticmethod
     @exempt_from_silo_limits()
-    def create_commit_author(organization_id=None, project=None, user=None):
+    def create_commit_author(organization_id=None, project=None, user=None, email=None):
+        if email:
+            user_email = email
+        else:
+            user_email = user.email if user else f"{make_word()}@example.com"
         return CommitAuthor.objects.get_or_create(
             organization_id=organization_id or project.organization_id,
-            email=user.email if user else f"{make_word()}@example.com",
+            email=user_email,
             defaults={"name": user.name if user else make_word()},
         )[0]
 
@@ -1384,3 +1415,30 @@ class Factories:
             owner = kwargs.pop("owner")
             kwargs["owner_id"] = owner.id if not isinstance(owner, int) else owner
         return SavedSearch.objects.create(name=name, **kwargs)
+
+    @staticmethod
+    @exempt_from_silo_limits()
+    def create_notification_action(
+        organization: Organization = None, projects: List[Project] = None, **kwargs
+    ):
+        if not organization:
+            organization = Factories.create_organization()
+
+        if not projects:
+            projects = []
+
+        action_kwargs = {
+            "organization": organization,
+            "type": ActionService.SENTRY_NOTIFICATION,
+            "target_type": ActionTarget.USER,
+            "target_identifier": 1,
+            "target_display": "Sentry User",
+            "trigger_type": ActionTrigger.AUDIT_LOG,
+            **kwargs,
+        }
+
+        action = NotificationAction.objects.create(**action_kwargs)
+        action.projects.add(*projects)
+        action.save()
+
+        return action

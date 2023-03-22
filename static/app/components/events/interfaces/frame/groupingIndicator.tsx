@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconInfo} from 'sentry/icons/iconInfo';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
 
 type Props = {
@@ -15,7 +15,7 @@ function GroupingIndicator({className}: Props) {
       containerDisplayMode="inline-flex"
       className={className}
     >
-      <IconInfo size="xs" color="gray300" />
+      <IconRefresh size="xs" color="gray300" />
     </StyledTooltip>
   );
 }

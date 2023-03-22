@@ -98,7 +98,9 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "ap",
         "api",
         "app",
+        "as1",
         "at",
+        "au1",
         "auth",
         "authentication",
         "avatar",
@@ -116,6 +118,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "demo",
         "docs",
         "enterprise",
+        "eu1",
+        "eu2",
         "events",
         "expenses",
         "ext",
@@ -159,6 +163,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "register",
         "remote",
         "resources",
+        "sa1",
         "sales",
         "security",
         "sentry-apps",
@@ -176,6 +181,8 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "thanks",
         "themonitor",
         "trust",
+        "us1",
+        "us2",
         "vs",
         "welcome",
     )
@@ -300,7 +307,7 @@ OK_PLUGIN_DISABLED = _("The {name} integration has been disabled.")
 
 OK_PLUGIN_SAVED = _("Configuration for the {name} integration has been saved.")
 
-WARN_SESSION_EXPIRED = "Your session has expired."  # TODO: translate this
+WARN_SESSION_EXPIRED = _("Your session has expired.")
 
 # Maximum length of a symbol
 MAX_SYM = 256
@@ -329,6 +336,7 @@ NATIVE_UNKNOWN_STRING = "<unknown>"
 # LIMIT-OFFSET database queries.
 # These problems should be solved after we implement artifact bundles workflow.
 MAX_RELEASE_FILES_OFFSET = 20000
+MAX_ARTIFACT_BUNDLE_FILES_OFFSET = MAX_RELEASE_FILES_OFFSET
 
 # to go from an integration id (in _platforms.json) to the platform
 # data, such as documentation url or humanized name.
@@ -472,10 +480,12 @@ class SentryAppStatus:
     PUBLISHED = 1
     INTERNAL = 2
     PUBLISH_REQUEST_INPROGRESS = 3
+    DELETION_IN_PROGRESS = 4
     UNPUBLISHED_STR = "unpublished"
     PUBLISHED_STR = "published"
     INTERNAL_STR = "internal"
     PUBLISH_REQUEST_INPROGRESS_STR = "publish_request_inprogress"
+    DELETION_IN_PROGRESS_STR = "deletion_in_progress"
 
     @classmethod
     def as_choices(cls) -> Sequence[Tuple[int, str]]:
@@ -484,6 +494,7 @@ class SentryAppStatus:
             (cls.PUBLISHED, cls.PUBLISHED_STR),
             (cls.INTERNAL, cls.INTERNAL_STR),
             (cls.PUBLISH_REQUEST_INPROGRESS, cls.PUBLISH_REQUEST_INPROGRESS_STR),
+            (cls.DELETION_IN_PROGRESS, cls.DELETION_IN_PROGRESS_STR),
         )
 
     @classmethod
@@ -496,6 +507,8 @@ class SentryAppStatus:
             return cls.INTERNAL_STR
         elif status == cls.PUBLISH_REQUEST_INPROGRESS:
             return cls.PUBLISH_REQUEST_INPROGRESS_STR
+        elif status == cls.DELETION_IN_PROGRESS:
+            return cls.DELETION_IN_PROGRESS_STR
         else:
             return None
 
@@ -509,6 +522,8 @@ class SentryAppStatus:
             return cls.INTERNAL
         elif status == cls.PUBLISH_REQUEST_INPROGRESS_STR:
             return cls.PUBLISH_REQUEST_INPROGRESS
+        elif status == cls.DELETION_IN_PROGRESS_STR:
+            return cls.DELETION_IN_PROGRESS
         else:
             return None
 
