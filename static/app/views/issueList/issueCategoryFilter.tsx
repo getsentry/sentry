@@ -48,9 +48,17 @@ function IssueCategoryFilter({
 
   const options = useMemo(
     () => [
-      {label: renderLabel(), value: 'all_categories'},
-      {label: renderLabel(IssueCategory.ERROR), value: IssueCategory.ERROR},
-      {label: renderLabel(IssueCategory.PERFORMANCE), value: IssueCategory.PERFORMANCE},
+      {label: renderLabel(), value: 'all_categories', textValue: 'all_categories'},
+      {
+        label: renderLabel(IssueCategory.ERROR),
+        value: IssueCategory.ERROR,
+        textValue: IssueCategory.ERROR,
+      },
+      {
+        label: renderLabel(IssueCategory.PERFORMANCE),
+        value: IssueCategory.PERFORMANCE,
+        textValue: IssueCategory.PERFORMANCE,
+      },
     ],
     [renderLabel]
   );
@@ -99,20 +107,19 @@ function IssueCategoryFilter({
   };
 
   return (
-    <React.Fragment>
-      <CompactSelect
-        options={options}
-        value={selectedOption.value}
-        triggerLabel={
-          <React.Fragment>
-            <Icon /> {renderLabel(selectedOption.value as IssueCategory, true)}
-          </React.Fragment>
-        }
-        onChange={handleChange}
-        menuWidth={250}
-        size="md"
-      />
-    </React.Fragment>
+    <CompactSelect
+      data-test-id="issue-category-filter"
+      options={options}
+      value={selectedOption.value}
+      triggerLabel={
+        <React.Fragment>
+          <Icon /> {renderLabel(selectedOption.value as IssueCategory, true)}
+        </React.Fragment>
+      }
+      onChange={handleChange}
+      menuWidth={250}
+      size="md"
+    />
   );
 }
 
