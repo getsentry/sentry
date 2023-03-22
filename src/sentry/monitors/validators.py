@@ -41,14 +41,36 @@ class ObjectField(serializers.Field):
         return data
 
 
-class CronJobValidator(serializers.Serializer):
+class CronJobConfigValidator(serializers.Serializer):
     schedule_type = serializers.ChoiceField(
         choices=list(zip(SCHEDULE_TYPES.keys(), SCHEDULE_TYPES.keys()))
     )
+    """
+    Currently supports "crontab" or "interval"
+    """
+
     schedule = ObjectField()
+    """
+    Varies depending on the schedule_type. Is either a crontab string, or a 2
+    element tuple for intervals (e.g. [1, 'day'])
+    """
+
     checkin_margin = EmptyIntegerField(required=False, allow_null=True, default=None)
+    """
+    How long (in minutes) after the expected checkin time will we wait until we
+    consider the checkin to have been missed.
+    """
+
     max_runtime = EmptyIntegerField(required=False, allow_null=True, default=None)
+    """
+    How long (in minutes) is the checkin allowed to run for in
+    CheckInStatus.IN_PROGRESS before it is considered failed.
+    """
+
     timezone = serializers.ChoiceField(choices=pytz.all_timezones, required=False)
+    """
+    tz database style timezone string
+    """
 
     def validate_schedule_type(self, value):
         if value:
@@ -112,7 +134,7 @@ class MonitorValidator(serializers.Serializer):
         if monitor_type in MONITOR_TYPES:
             monitor_type = MONITOR_TYPES[monitor_type]
         if monitor_type == MonitorType.CRON_JOB:
-            validator = CronJobValidator(
+            validator = CronJobConfigValidator(
                 instance=self.instance.get("config", {}) if self.instance else {},
                 data=attrs.get("config", {}),
                 partial=self.partial,

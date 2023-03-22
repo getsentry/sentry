@@ -2,15 +2,20 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {openModal} from 'sentry/actionCreators/modal';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {PanelTable} from 'sentry/components/panels';
 import TimeSince from 'sentry/components/timeSince';
-import {IconEllipsis, IconGithub, IconGitlab, IconSentry} from 'sentry/icons';
+import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import space from 'sentry/styles/space';
 import type {CodeOwner, CodeownersFile, Project} from 'sentry/types';
+import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
+
+import ViewCodeOwnerModal, {modalCss} from './viewCodeOwnerModal';
 
 interface CodeOwnerFileTableProps {
   codeowners: CodeOwner[];
@@ -18,17 +23,6 @@ interface CodeOwnerFileTableProps {
   onDelete: (data: CodeOwner) => void;
   onUpdate: (data: CodeOwner) => void;
   project: Project;
-}
-
-function CodeownerIcon({provider}: {provider: CodeOwner['provider']}) {
-  switch (provider ?? '') {
-    case 'github':
-      return <IconGithub size="md" />;
-    case 'gitlab':
-      return <IconGitlab size="md" />;
-    default:
-      return <IconSentry size="md" />;
-  }
 }
 
 /**
@@ -49,6 +43,11 @@ export function CodeOwnerFileTable({
   if (codeowners.length === 0) {
     return null;
   }
+
+  const handleView = (codeowner: CodeOwner) => () => {
+    // Open modal with codeowner file
+    openModal(deps => <ViewCodeOwnerModal {...deps} codeowner={codeowner} />, {modalCss});
+  };
 
   const handleSync = (codeowner: CodeOwner) => async () => {
     try {
@@ -90,19 +89,50 @@ export function CodeOwnerFileTable({
   };
 
   return (
-    <StyledPanelTable headers={[t('codeowners'), t('Last Synced'), '']}>
+    <StyledPanelTable
+      headers={[
+        t('codeowners'),
+        t('Stack Trace Root'),
+        t('Source Code Root'),
+        t('Last Synced'),
+        t('File'),
+        '',
+      ]}
+    >
       {codeowners.map(codeowner => (
         <Fragment key={codeowner.id}>
           <FlexCenter>
-            <CodeownerIcon provider={codeowner.provider} />
+            {getCodeOwnerIcon(codeowner.provider)}
             {codeowner.codeMapping?.repoName}
+          </FlexCenter>
+          <FlexCenter>
+            <code>{codeowner.codeMapping?.stackRoot}</code>
+          </FlexCenter>
+          <FlexCenter>
+            <code>{codeowner.codeMapping?.sourceRoot}</code>
           </FlexCenter>
           <FlexCenter>
             <TimeSince date={codeowner.dateUpdated} />
           </FlexCenter>
           <FlexCenter>
+            {codeowner.codeOwnersUrl === 'unknown' ? null : (
+              <StyledExternalLink href={codeowner.codeOwnersUrl}>
+                <IconOpen size="xs" />
+                {t(
+                  'View in %s',
+                  codeowner.codeMapping?.provider?.name ?? codeowner.provider
+                )}
+              </StyledExternalLink>
+            )}
+          </FlexCenter>
+          <FlexCenter>
             <DropdownMenu
               items={[
+                {
+                  key: 'view',
+                  label: t('View'),
+                  onAction: handleView(codeowner),
+                },
                 {
                   key: 'sync',
                   label: t('Sync'),
@@ -123,7 +153,7 @@ export function CodeOwnerFileTable({
                 showChevron: false,
                 disabled,
               }}
-              isDisabled={disabled}
+              disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
           </FlexCenter>
         </Fragment>
@@ -133,16 +163,19 @@ export function CodeOwnerFileTable({
 }
 
 const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr auto min-content;
+  grid-template-columns: 1fr 1fr 1fr auto min-content min-content;
   position: static;
   overflow: auto;
-
-  @media (min-width: ${p => p.theme.breakpoints.small}) {
-    overflow: initial;
-  }
+  white-space: nowrap;
 `;
 
 const FlexCenter = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(1)};
+`;
+
+const StyledExternalLink = styled(ExternalLink)`
   display: flex;
   align-items: center;
   gap: ${space(1)};

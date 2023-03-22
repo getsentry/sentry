@@ -7,7 +7,6 @@ from enum import Enum
 from typing import TYPE_CHECKING, Iterable, Set
 from urllib.parse import urljoin
 
-from sentry.api.utils import generate_region_url
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -50,9 +49,24 @@ class Region:
     """The region's category."""
 
     def __post_init__(self) -> None:
+        from sentry import options
+        from sentry.api.utils import generate_region_url
         from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.id)
+
+        # Validate address with respect to self.name for multi-tenant regions.
+        region_url_template: str | None = options.get("system.region-api-url-template")
+        if (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            and self.category == RegionCategory.MULTI_TENANT
+            and region_url_template is not None
+        ):
+            expected_address = generate_region_url(self.name)
+            if self.address != expected_address:
+                raise Exception(
+                    f"Expected address for {self.name} to be: {expected_address}. Was defined as: {self.address}"
+                )
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a URL on this region's silo.
@@ -128,6 +142,8 @@ def get_local_region() -> Region:
     Raises RegionContextError if this server instance is not a region silo.
     """
     from django.conf import settings
+
+    from sentry.api.utils import generate_region_url
 
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         # In SAAS monolith mode (pre-region deployment), we use US region

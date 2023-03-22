@@ -35,10 +35,10 @@ import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
-  Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
@@ -64,7 +64,9 @@ function findLongestMatchingFrame(
     const frame = frames.pop()!;
     if (
       focusFrame.name === frame.frame.name &&
-      focusFrame.package === frame.frame.image &&
+      // the image name on a frame is optional treat it the same as the empty string
+      (focusFrame.package === (frame.frame.package || '') ||
+        focusFrame.package === (frame.frame.module || '')) &&
       (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
       longestFrame = frame;

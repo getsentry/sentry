@@ -381,6 +381,7 @@ from .endpoints.project_app_store_connect_credentials import (
     AppStoreConnectStatusEndpoint,
     AppStoreConnectUpdateCredentialsEndpoint,
 )
+from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
@@ -1897,7 +1898,7 @@ PROJECT_URLS = [
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/filters/(?P<filter_id>[\w-]+)/$",
         ProjectFilterDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-filters",
+        name="sentry-api-0-project-filters-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/hooks/$",
@@ -1991,6 +1992,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/$",
         ProjectArtifactBundleFilesEndpoint.as_view(),
         name="sentry-api-0-project-artifact-bundle-files",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-bundles/(?P<bundle_id>[^/]+)/files/(?P<file_id>[^/]+)/$",
+        ProjectArtifactBundleFileDetailsEndpoint.as_view(),
+        name="sentry-api-0-project-artifact-bundle-file-details",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/$",
