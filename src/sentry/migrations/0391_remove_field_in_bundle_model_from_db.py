@@ -29,6 +29,9 @@ class Migration(CheckedMigration):
                     """
                     ALTER TABLE "sentry_debugidartifactbundle" DROP COLUMN "date_last_accessed";
                     """,
+                    """
+                    ALTER TABLE "sentry_debugidartifactbundle" ADD COLUMN "date_last_accessed" DATE NULL;
+                    """,
                     hints={"tables": ["sentry_debugidartifactbundle"]},
                 )
             ],
