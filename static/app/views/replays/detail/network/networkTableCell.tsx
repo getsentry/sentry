@@ -6,6 +6,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 import type {NetworkSpan} from 'sentry/views/replays/types';
@@ -19,6 +20,7 @@ type Props = {
   handleMouseLeave: (span: NetworkSpan) => void;
   isCurrent: boolean;
   isHovered: boolean;
+  rowIndex: number;
   sortConfig: ReturnType<typeof useSortNetwork>['sortConfig'];
   span: NetworkSpan;
   startTimestampMs: number;
@@ -34,6 +36,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       handleMouseLeave,
       isCurrent,
       isHovered,
+      rowIndex,
       sortConfig,
       span,
       startTimestampMs,
@@ -42,6 +45,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     const {currentTime} = useReplayContext();
+    const {setParamValue} = useUrlParams('n_detail_row', '');
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -56,10 +60,11 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isCurrent,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
+      onClick: () => setParamValue(String(rowIndex)),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
-      style,
       ref,
+      style,
     };
     const size = span.data.size ?? span.data.responseBodySize;
 
