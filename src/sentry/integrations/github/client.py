@@ -376,6 +376,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             resp = self.get(path, params={"per_page": self.page_size})
             logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
+            next_link = get_next_link(resp)
 
             # XXX: Debugging code; remove afterward
             if (
@@ -386,16 +387,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             ):
                 logger.info(f"headers: {resp.headers}")
                 logger.info(f"output: {output}")
+                logger.info(f"next_link: {next_link}")
                 logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < page_number_limit:
-                new_path = get_next_link(resp)
-                logger.info(f"Page {page_number}: {new_path}")
-                resp = self.get(new_path)
+            while next_link and page_number < page_number_limit:
+                resp = self.get(next_link)
                 logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
+
+                next_link = get_next_link(resp)
+                logger.info(f"Page {page_number}: {next_link}")
                 page_number += 1
             return output
 
