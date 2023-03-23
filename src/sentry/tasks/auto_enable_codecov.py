@@ -7,7 +7,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
@@ -25,25 +25,31 @@ def schedule_organizations(dry_run=False) -> None:
     logger.info("Starting task for sentry.tasks.auto_enable_codecov.schedule_organizations")
 
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    logger.info(f"Processing {len(organizations)} organizations for codecov auto-enable")
+    logger.info(
+        "Processing organizations for codecov auto-enable", extra={"count": len(organizations)}
+    )
     for _, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=1000, result_value_getter=lambda item: item.id)
     ):
-        if not features.has("organizations:codecov-stacktrace-integration", organization):
+        codecov_enabled = features.has("organizations:codecov-stacktrace-integration", organization)
+        should_auto_enable = features.has("organizations:auto-enable-codecov", organization)
+        if codecov_enabled and should_auto_enable:
             logger.warning(
-                f"Skipping {organizations.id}: organizations:codecov-stacktrace-integration is False"
+                "Processing organization",
+                extra={
+                    "organization_id": organization.id,
+                },
             )
-            continue
-
-        if not features.has("organizations:auto-enable-codecov", organization):
+            enable_for_organization(organization.id)
+        else:
             logger.warning(
-                f"Processing {len(organizations)}: organizations:auto-enable-codecov is False"
+                "Skipping organization: feature flag is False",
+                extra={
+                    "organization_id": organization.id,
+                    "codecov_integration_enabled": codecov_enabled,
+                    "should_auto_enable": should_auto_enable,
+                },
             )
-            continue
-
-        # Create a celery task per organization
-        logger.info(f"Queuing organization for codecov access {organization.id}")
-        enable_for_organization.delay(organization.id)
 
 
 @instrumented_task(  # type: ignore
