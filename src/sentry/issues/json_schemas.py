@@ -37,7 +37,6 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
                     },
                 },
             },
-            "required": ["images"],
         },
         "dist": {
             "type": ["object", "null"],
