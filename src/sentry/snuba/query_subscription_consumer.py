@@ -1,7 +1,7 @@
 import logging
 import time
 from random import random
-from typing import Any, Callable, Dict, Mapping
+from typing import Callable, Dict, Iterable, List, Mapping, Optional, cast
 
 import jsonschema
 import pytz
@@ -35,7 +35,7 @@ from sentry.utils.arroyo import MetricsWrapper
 
 logger = logging.getLogger(__name__)
 
-TQuerySubscriptionCallable = Callable[[Dict[str, Any], QuerySubscription], None]
+TQuerySubscriptionCallable = Callable[[PayloadV3, QuerySubscription], None]
 
 subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 
@@ -62,7 +62,7 @@ def register_subscriber(
     return inner
 
 
-def parse_message_value(value: str, topic: str) -> SubscriptionResults:
+def parse_message_value(value: str, topic: str) -> PayloadV3:
     """
     Parses the value received via the Kafka consumer and verifies that it
     matches the expected schema.
@@ -91,9 +91,9 @@ def parse_message_value(value: str, topic: str) -> SubscriptionResults:
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
     # here.
-    payload.setdefault("values", payload.get("result"))
+    payload.setdefault("values", payload.get("result"))  # type: ignore
 
-    payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)
+    payload["timestamp"] = parse_date(payload["timestamp"]).replace(tzinfo=pytz.utc)  # type: ignore
     return payload
 
 

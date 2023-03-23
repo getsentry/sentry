@@ -116,7 +116,7 @@ def handle_subscription_metrics_logger(subscription_update, subscription):
     """
     Logs results from a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    from sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
@@ -147,7 +147,7 @@ def handle_snuba_query_update(subscription_update, subscription):
     """
     Handles a subscription update for a `QuerySubscription`.
     :param subscription_update: dict formatted according to schemas in
-    from sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
+    sentry_kafka_schemas.schema_types.events_subscription_results_v1.SubscriptionResults
     :param subscription: The `QuerySubscription` that this update is for
     """
     from sentry.incidents.subscription_processor import SubscriptionProcessor
