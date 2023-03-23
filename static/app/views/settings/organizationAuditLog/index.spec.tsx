@@ -134,7 +134,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Enabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+          `Enabled retention priority "Prioritize key transactions" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -144,7 +144,7 @@ describe('OrganizationAuditLog', function () {
     expect(
       screen.getByText(
         textWithMarkupMatcher(
-          `Disabled dynamic sampling priority "Prioritize key transactions" in project ${project.slug}`
+          `Disabled retention priority "Prioritize key transactions" in project ${project.slug}`
         )
       )
     ).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe('OrganizationAuditLog', function () {
     for (const link of screen.getAllByRole('link', {name: project.slug})) {
       expect(link).toHaveAttribute(
         'href',
-        `/settings/${organization.slug}/projects/${project.slug}/dynamic-sampling/`
+        `/settings/${organization.slug}/projects/${project.slug}/performance/`
       );
     }
   });

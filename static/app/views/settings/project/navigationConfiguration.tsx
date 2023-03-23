@@ -70,18 +70,6 @@ export default function getConfiguration({
           ),
         },
         {
-          path: `${pathPrefix}/dynamic-sampling/`,
-          title: t('Dynamic Sampling'),
-          show: () => {
-            const orgFeatures = organization?.features ?? [];
-            return orgFeatures.includes('dynamic-sampling');
-          },
-          description: t(
-            "Per-Project basis solution to configure sampling rules within Sentry's UI"
-          ),
-          badge: () => 'new',
-        },
-        {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
           description: t(
