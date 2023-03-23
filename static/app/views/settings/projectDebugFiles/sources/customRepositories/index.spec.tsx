@@ -1,14 +1,7 @@
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -167,9 +160,9 @@ describe('Custom Repositories', function () {
     // Close Modal
     await userEvent.click(screen.getByLabelText('Close Modal'));
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByText('This feature is not enabled on your Sentry installation.')
-    );
+    await waitFor(() => {
+      expect(screen.queryByText('App Store Connect credentials')).not.toBeInTheDocument();
+    });
 
     // Renders disabled repository list
     rerender(
