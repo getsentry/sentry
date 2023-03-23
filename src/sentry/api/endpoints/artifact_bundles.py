@@ -15,9 +15,9 @@ from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifact
 from sentry.utils.db import atomic_transaction
 
 
-class InvalidSortParameter(SentryAPIException):
+class InvalidSortByParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
-    code = "invalid_sort_by"
+    code = "invalid_sort_by_parameter"
     message = "You can either sort via 'date_added' or '-date_added'"
 
 
@@ -31,7 +31,7 @@ class ArtifactBundlesMixin:
             order_by = "date_uploaded"
             return f"-{order_by}" if is_desc else order_by
 
-        raise InvalidSortParameter
+        raise InvalidSortByParameter
 
 
 @region_silo_endpoint
