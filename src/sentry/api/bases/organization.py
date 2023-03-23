@@ -22,7 +22,7 @@ from sentry.constants import ALL_ACCESS_PROJECTS, ALL_ACCESS_PROJECTS_SLUG
 from sentry.models import ApiKey, Organization, Project, ProjectStatus, ReleaseProject
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
@@ -41,7 +41,9 @@ class OrganizationPermission(SentryPermission):
         "DELETE": ["org:admin"],
     }
 
-    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
+    def is_not_2fa_compliant(
+        self, request: Request, organization: RpcOrganization | Organization
+    ) -> bool:
         return (
             organization.flags.require_2fa
             and not request.user.has_2fa()
@@ -66,7 +68,11 @@ class OrganizationPermission(SentryPermission):
         allowed_scopes = set(self.scope_map.get(request.method, []))
         return any(request.access.has_scope(s) for s in allowed_scopes)
 
-    def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
+    def is_member_disabled_from_limit(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> bool:
         return is_member_disabled_from_limit(request, organization)
 
 

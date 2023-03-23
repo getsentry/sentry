@@ -1,21 +1,28 @@
 ---
-created: '2023-03-03T15:11:53.219343Z'
+created: '2023-03-22T16:27:13.923183Z'
 creator: sentry
 source: tests/symbolicator/test_sourcemap.py
 ---
-errors: []
+errors:
+- type: js_no_source
+  url: http://example.com/index.html
 exception:
   values:
   - raw_stacktrace:
       frames:
       - abs_path: http://example.com/test.min.js
         colno: 64
+        context_line: var makeAFailure=function(){function n(n){}function e(n){throw
+          new Error("failed!")}function r(r){var i=null;if(r.failed){i=e}else{i=n}i(r)}
+          {snip}
         data:
           orig_in_app: -1
         filename: test.min.js
         function: e
         in_app: false
         lineno: 1
+        post_context:
+        - //# sourceMappingURL=test.map
       - abs_path: http://example.com/test.min.js
         colno: 136
         context_line: '{snip} row new Error("failed!")}function r(r){var i=null;if(r.failed){i=e}else{i=n}i(r)}function
@@ -42,61 +49,47 @@ exception:
         - //# sourceMappingURL=test.map
       - abs_path: http://example.com/index.html
         colno: 7
-        context_line: var makeAFailure=function(){function n(n){}function e(n){throw
-          new Error("failed!")}function r(r){var i=null;if(r.failed){i=e}else{i=n}i(r)}
-          {snip}
         data:
           orig_in_app: -1
         filename: index.html
         function: produceStack
         in_app: false
         lineno: 6
-        post_context:
-        - //# sourceMappingURL=test.map
     stacktrace:
       frames:
-      - abs_path: http://example.com/index.html
-        colno: 7
+      - abs_path: http://example.com/test.js
+        colno: 11
+        context_line: '    throw new Error(''failed!'');'
         data:
           orig_in_app: -1
-          symbolicator_status: missing_sourcemap
-        filename: index.html
-        function: produceStack
-        in_app: false
-        lineno: 6
-        module: index
-      - abs_path: test.js
-        colno: 5
-        context_line: '    invoke(data);'
-        data:
-          orig_in_app: -1
-          symbolicator_status: symbolicated
+          sourcemap: http://example.com/test.map
         filename: test.js
-        function: test
+        function: onFailure
         in_app: false
-        lineno: 20
+        lineno: 5
+        module: test
         post_context:
         - '  }'
         - ''
-        - '  return test;'
-        - '})();'
-        - ''
+        - '  function invoke(data) {'
+        - '    var cb = null;'
+        - '    if (data.failed) {'
         pre_context:
-        - '    cb(data);'
-        - '  }'
+        - var makeAFailure = (function() {
+        - '  function onSuccess(data) {}'
         - ''
-        - '  function test() {'
-        - '    var data = {failed: true, value: 42};'
-      - abs_path: test.js
+        - '  function onFailure(data) {'
+      - abs_path: http://example.com/test.js
         colno: 5
         context_line: '    cb(data);'
         data:
           orig_in_app: -1
-          symbolicator_status: symbolicated
+          sourcemap: http://example.com/test.map
         filename: test.js
         function: invoke
         in_app: false
         lineno: 15
+        module: test
         post_context:
         - '  }'
         - ''
@@ -109,25 +102,36 @@ exception:
         - '    } else {'
         - '      cb = onSuccess;'
         - '    }'
-      - abs_path: test.js
-        colno: 11
-        context_line: '    throw new Error(''failed!'');'
+      - abs_path: http://example.com/test.js
+        colno: 5
+        context_line: '    invoke(data);'
         data:
           orig_in_app: -1
-          symbolicator_status: symbolicated
+          sourcemap: http://example.com/test.map
         filename: test.js
-        function: onFailure
+        function: test
         in_app: false
-        lineno: 5
+        lineno: 20
+        module: test
         post_context:
         - '  }'
         - ''
-        - '  function invoke(data) {'
-        - '    var cb = null;'
-        - '    if (data.failed) {'
-        pre_context:
-        - var makeAFailure = (function() {
-        - '  function onSuccess(data) {}'
+        - '  return test;'
+        - '})();'
         - ''
-        - '  function onFailure(data) {'
+        pre_context:
+        - '    cb(data);'
+        - '  }'
+        - ''
+        - '  function test() {'
+        - '    var data = {failed: true, value: 42};'
+      - abs_path: http://example.com/index.html
+        colno: 7
+        data:
+          orig_in_app: -1
+        filename: index.html
+        function: produceStack
+        in_app: false
+        lineno: 6
+        module: index
     type: Error

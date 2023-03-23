@@ -236,6 +236,8 @@ class PerformanceProblemContextTestCase(TestCase):
                     parent_span_ids=[],
                     cause_span_ids=[],
                     offender_span_ids=[],
+                    evidence_data={},
+                    evidence_display=[],
                 ),
                 [],
             ).__class__
@@ -252,6 +254,8 @@ class PerformanceProblemContextTestCase(TestCase):
                     parent_span_ids=[],
                     cause_span_ids=[],
                     offender_span_ids=[],
+                    evidence_data={},
+                    evidence_display=[],
                 ),
                 [],
             ).__class__
@@ -270,6 +274,8 @@ class PerformanceProblemContextTestCase(TestCase):
                 parent_span_ids=["b93d2be92cd64fd5"],
                 cause_span_ids=[],
                 offender_span_ids=["054ba3a374d543eb"],
+                evidence_data={},
+                evidence_display=[],
             ),
             [
                 {"span_id": "b93d2be92cd64fd5", "description": "SELECT * FROM parent_table"},
@@ -297,6 +303,8 @@ class PerformanceProblemContextTestCase(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["b93d2be92cd64fd5", "054ba3a374d543eb", "563712f9722fb09"],
+                evidence_data={},
+                evidence_display=[],
             ),
             [
                 {
@@ -337,6 +345,8 @@ class PerformanceProblemContextTestCase(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["b93d2be92cd64fd5"],
+                evidence_data={},
+                evidence_display=[],
             ),
             [
                 {

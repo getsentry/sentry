@@ -88,6 +88,8 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -140,6 +142,8 @@ class NPlusOneDbDetectorTest(unittest.TestCase):
                     "be85dffe4a9a3120",
                     "a3c381b1952dd7fb",
                 ],
+                evidence_data={},
+                evidence_display=[],
             ),
         ]
 
