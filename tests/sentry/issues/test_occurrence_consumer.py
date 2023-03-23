@@ -285,3 +285,17 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
+
+    def test_debug_meta(self):
+        debug_meta_cases = [
+            {"debug_meta": {}},
+            {"debug_meta": None},
+            {"debug_meta": {"images": []}},
+            {"debug_meta": {"images": None}},
+            {"debug_meta": {"images": [{}]}},
+        ]
+
+        for case in debug_meta_cases:
+            message = deepcopy(get_test_message(self.project.id, True))
+            message["event"].update(**case)
+            _get_kwargs(message)
