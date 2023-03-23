@@ -6,11 +6,34 @@ from typing_extensions import TypedDict
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
 from sentry.models import Project
 
-from .models import Monitor, MonitorCheckIn
+from .models import Monitor, MonitorCheckIn, MonitorEnvironment
+
+
+@register(MonitorEnvironment)
+class MonitorEnvironmentSerializer(Serializer):
+    def serialize(self, obj, attrs, user):
+        return {
+            "status": obj.get_status_display(),
+            "name": obj.environment.name,
+            "lastCheckIn": obj.last_checkin,
+            "nextCheckIn": obj.next_checkin,
+            "dateCreated": obj.monitor.date_added,
+        }
+
+
+class MonitorEnvironmentSerializerResponse(TypedDict):
+    name: str
+    status: str
+    dateCreated: datetime
+    lastCheckIn: datetime
+    nextCheckIn: datetime
 
 
 @register(Monitor)
 class MonitorSerializer(Serializer):
+    def __init__(self, environments=None):
+        self.environments = environments
+
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
         projects = {
@@ -20,8 +43,26 @@ class MonitorSerializer(Serializer):
             )
         }
 
+        monitor_environments = {}
+        if self.environments:
+            for item in item_list:
+                monitor_environments[str(item.id)] = {
+                    me.pop("name"): me
+                    for me in serialize(
+                        list(
+                            MonitorEnvironment.objects.filter(
+                                monitor=item, environment__in=self.environments
+                            )
+                        ),
+                        user,
+                    )
+                }
+
         return {
-            item: {"project": projects[str(item.project_id)] if item.project_id else None}
+            item: {
+                "project": projects[str(item.project_id)] if item.project_id else None,
+                "environments": monitor_environments[str(item.id)] if self.environments else None,
+            }
             for item in item_list
         }
 
@@ -29,29 +70,18 @@ class MonitorSerializer(Serializer):
         config = obj.config.copy()
         if "schedule_type" in config:
             config["schedule_type"] = obj.get_schedule_type_display()
-        status, lastCheckIn, nextCheckIn = (
-            obj.get_status_display(),
-            obj.last_checkin,
-            obj.next_checkin,
-        )
-        if hasattr(obj, "selected_monitorenvironment") and obj.selected_monitorenvironment:
-            monitor_environment = obj.selected_monitorenvironment[0]
-            status, lastCheckIn, nextCheckIn = (
-                monitor_environment.get_status_display(),
-                monitor_environment.last_checkin,
-                monitor_environment.next_checkin,
-            )
         return {
             "id": str(obj.guid),
-            "status": status,
+            "status": obj.get_status_display(),
             "type": obj.get_type_display(),
             "name": obj.name,
             "slug": obj.slug,
             "config": config,
-            "lastCheckIn": lastCheckIn,
-            "nextCheckIn": nextCheckIn,
+            "lastCheckIn": obj.last_checkin,
+            "nextCheckIn": obj.next_checkin,
             "dateCreated": obj.date_added,
             "project": attrs["project"],
+            "environments": attrs["environments"],
         }
 
 
@@ -66,6 +96,7 @@ class MonitorSerializerResponse(TypedDict):
     lastCheckIn: datetime
     nextCheckIn: datetime
     project: ProjectSerializerResponse
+    environments: MonitorEnvironmentSerializerResponse
 
 
 @register(MonitorCheckIn)

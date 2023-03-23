@@ -1,4 +1,4 @@
-from django.db.models import Case, IntegerField, Prefetch, Q, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 
 from sentry import audit_log
 from sentry.api.base import region_silo_endpoint
@@ -8,7 +8,8 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.models import Organization, Project
-from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus, MonitorType
+from sentry.monitors.models import Monitor, MonitorStatus, MonitorType
+from sentry.monitors.serializers import MonitorSerializer
 from sentry.monitors.validators import MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.signals import first_cron_monitor_created
@@ -70,18 +71,10 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
         )
         query = request.GET.get("query")
 
+        environments = None
         if "environment" in filter_params:
-            monitor_environments = MonitorEnvironment.objects.filter(
-                environment=filter_params["environment_objects"][0]
-            )
-            prefetch = Prefetch(
-                "monitorenvironment_set",
-                queryset=monitor_environments,
-                to_attr="selected_monitorenvironment",
-            )
-            queryset = queryset.prefetch_related(prefetch).filter(
-                monitorenvironment__in=monitor_environments
-            )
+            environments = filter_params["environment_objects"]
+            queryset = queryset.filter(monitorenvironment__environment__in=environments)
 
         if query:
             tokens = tokenize_query(query)
@@ -114,7 +107,9 @@ class OrganizationMonitorsEndpoint(OrganizationEndpoint):
             request=request,
             queryset=queryset,
             order_by=("status_order", "-last_checkin"),
-            on_results=lambda x: serialize(x, request.user),
+            on_results=lambda x: serialize(
+                x, request.user, MonitorSerializer(environments=environments)
+            ),
             paginator_cls=OffsetPaginator,
         )
 
