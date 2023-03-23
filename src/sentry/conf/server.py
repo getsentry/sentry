@@ -92,6 +92,8 @@ IS_DEV = ENVIRONMENT == "development"
 
 DEBUG = IS_DEV
 
+IS_CANARY = False
+
 ADMIN_ENABLED = DEBUG
 
 ADMINS = ()
