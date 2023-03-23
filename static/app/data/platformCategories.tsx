@@ -241,6 +241,8 @@ export const profiling = [
   'rust',
   // php
   'php',
+  'php-laravel',
+  'php-symfony',
 ] as const;
 
 export const releaseHealth: PlatformKey[] = [
