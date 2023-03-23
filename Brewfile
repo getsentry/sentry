@@ -18,3 +18,7 @@ tap 'homebrew/cask'
 
 # required for acceptance testing
 cask 'chromedriver'
+
+
+# required for secret checks
+brew 'trufflesecurity/trufflehog/trufflehog'
