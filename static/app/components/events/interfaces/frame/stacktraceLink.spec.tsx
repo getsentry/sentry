@@ -34,6 +34,7 @@ describe('StacktraceLink', function () {
       body: {},
     });
     ProjectsStore.loadInitialData([project]);
+    HookStore.init?.();
   });
 
   it('renders ask to setup integration', async function () {
