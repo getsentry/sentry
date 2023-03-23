@@ -6,6 +6,7 @@ from datetime import timedelta
 from typing import Optional
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models import Organization, Project
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -52,6 +53,7 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         "source_span",
         "n_hash",
         "n_spans",
+        "transaction",
     )
 
     type: DetectorType = DetectorType.N_PLUS_ONE_DB_QUERIES
@@ -202,6 +204,8 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
         )
         if fingerprint not in self.stored_problems:
             self._metrics_for_extra_matching_spans()
+            n_span_op = self.n_spans[0].get("op", "")
+            n_span_desc = self.n_spans[0].get("description", "")
 
             self.stored_problems[fingerprint] = PerformanceProblem(
                 fingerprint=fingerprint,
@@ -211,6 +215,28 @@ class NPlusOneDBSpanDetector(PerformanceDetector):
                 parent_span_ids=[parent_span_id],
                 cause_span_ids=[self.source_span.get("span_id", None)],
                 offender_span_ids=[span.get("span_id", None) for span in self.n_spans],
+                evidence_display=[
+                    IssueEvidence(
+                        name="Transaction Name",
+                        value=self._event.get("transaction", ""),
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name="Parent Span",
+                        value=parent_span.get("description", ""),
+                        important=True,
+                    ),
+                    IssueEvidence(
+                        name=f"Repeating Spans ({len(self.n_spans)})",
+                        value=f"{n_span_op} - {n_span_desc}",
+                        important=True,
+                    ),
+                ],
+                evidence_data={
+                    "parent_span_ids": [parent_span_id],
+                    "cause_span_ids": [self.source_span.get("span_id", None)],
+                    "offender_span_ids": [span.get("span_id", None) for span in self.n_spans],
+                },
             )
 
     def _contains_valid_repeating_query(self, span: Span) -> bool:
