@@ -1,4 +1,3 @@
-import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
@@ -12,35 +11,13 @@ import {space} from 'sentry/styles/space';
 import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContextProvider';
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
-  const {
-    selection: {projects},
-  } = usePageFilters();
 
   const isEmpty = data?.shared.frames.length === 0;
 
-  const profileGroupInput = useMemo(() => {
-    if (!data) {
-      return null;
-    }
-
-    // TODO: this is a hack and should be coming from `vroom`
-    // without this our contextMenu links don't work
-    const profileGroupWithprofileId: Profiling.Schema = {
-      ...data,
-      metadata: {
-        ...data.metadata,
-        // without this our contextMenu links don't work
-        projectID: projects[0],
-      },
-    };
-
-    return profileGroupWithprofileId;
-  }, [data, projects]);
   return (
     <Flex column gap={space(1)}>
       <Flex align="center" gap={space(0.5)}>
@@ -61,7 +38,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
           }
         />
       </Flex>
-      <ProfileGroupProvider type="flamegraph" input={profileGroupInput} traceID="">
+      <ProfileGroupProvider type="flamegraph" input={data ?? null} traceID="">
         <FlamegraphStateProvider
           initialState={{
             preferences: {
