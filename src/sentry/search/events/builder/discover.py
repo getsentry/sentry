@@ -636,13 +636,14 @@ class QueryBuilder(BaseQueryBuilder):
                 # to ensure it resolves as a tag
                 self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
                 self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
-                resolved_columns.append(self.resolve_column("tags[group_id]", alias=True))
+                resolved_column = self.resolve_column("tags[group_id]", alias=True)
             else:
                 # need to make sure the column is resolved with the appropriate alias
                 # because the resolved snuba name may be different
                 resolved_column = self.resolve_column(column, alias=True)
-                if resolved_column not in self.columns:
-                    resolved_columns.append(resolved_column)
+
+            if resolved_column not in self.columns:
+                resolved_columns.append(resolved_column)
 
         # Happens after resolving columns to check if there any aggregates
         if self.auto_fields:
