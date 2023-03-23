@@ -1207,6 +1207,8 @@ SENTRY_FEATURES = {
     "organizations:invite-members": True,
     # Enable rate limits for inviting members.
     "organizations:invite-members-rate-limits": True,
+    # Test 10 member fallback vs 10 members
+    "organizations:issue-alert-fallback-experiment": False,
     # Enable new issue alert "issue owners" fallback
     "organizations:issue-alert-fallback-targeting": False,
     # Enable removing issue from issue list if action taken.
@@ -1271,9 +1273,13 @@ SENTRY_FEATURES = {
     "organizations:session-replay-beta-grace": False,
     # Enable replay GA messaging (update paths from AM1 to AM2)
     "organizations:session-replay-ga": False,
+    # Enabled experimental session replay network data view
+    "organizations:session-replay-network-details": False,
     # Enable experimental session replay SDK for recording on Sentry
     "organizations:session-replay-sdk": False,
     "organizations:session-replay-sdk-errors-only": False,
+    # Enable temporary underfetching to improve Replay List query performance
+    "organizations:session-replay-slim-table": False,
     # Enable data scrubbing of replay recording payloads in Relay.
     "organizations:session-replay-recording-scrubbing": False,
     # Enable the new suggested assignees feature
@@ -1319,8 +1325,8 @@ SENTRY_FEATURES = {
     "organizations:device-classification": False,
     # Enable the onboarding heartbeat footer on the sdk setup page
     "organizations:onboarding-heartbeat-footer": False,
-    # Enable the onboarding heartbeat footer on the sdk setup page with the view sample error button
-    "organizations:onboarding-heartbeat-footer-with-view-sample-error": False,
+    # Enable product selection in the setup-docs page. The docs reflects the selected products.
+    "organizations:onboarding-docs-with-product-selection": False,
     # Enable a new behavior for deleting the freshly created project,
     # if the user clicks on the back button in the onboarding for new orgs
     "organizations:onboarding-project-deletion-on-back-click": False,
