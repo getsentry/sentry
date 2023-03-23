@@ -350,47 +350,6 @@ class ProjectPerformance extends AsyncView<Props, State> {
             )}
           </Access>
         </Form>
-        <Feature features={['organizations:performance-issues-dev']}>
-          <Fragment>
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={{
-                performanceIssueCreationRate:
-                  this.state.project.performanceIssueCreationRate,
-              }}
-              apiMethod="PUT"
-              apiEndpoint={projectEndpoint}
-            >
-              <Access access={requiredScopes}>
-                {({hasAccess}) => (
-                  <JsonForm
-                    title={t('Performance Issues - All')}
-                    fields={this.performanceIssueFormFields}
-                    disabled={!hasAccess}
-                  />
-                )}
-              </Access>
-            </Form>
-            <Form
-              saveOnBlur
-              allowUndo
-              initialData={this.state.performance_issue_settings}
-              apiMethod="PUT"
-              apiEndpoint={performanceIssuesEndpoint}
-            >
-              <Access access={requiredScopes}>
-                {({hasAccess}) => (
-                  <JsonForm
-                    title={t('Performance Issues - Detector Settings')}
-                    fields={this.performanceIssueDetectorsFormFields}
-                    disabled={!hasAccess}
-                  />
-                )}
-              </Access>
-            </Form>
-          </Fragment>
-        </Feature>
         <Feature features={['organizations:dynamic-sampling']}>
           <Form
             saveOnBlur
@@ -437,6 +396,47 @@ class ProjectPerformance extends AsyncView<Props, State> {
               )}
             </Access>
           </Form>
+        </Feature>
+        <Feature features={['organizations:performance-issues-dev']}>
+          <Fragment>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={{
+                performanceIssueCreationRate:
+                  this.state.project.performanceIssueCreationRate,
+              }}
+              apiMethod="PUT"
+              apiEndpoint={projectEndpoint}
+            >
+              <Access access={requiredScopes}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - All')}
+                    fields={this.performanceIssueFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+            <Form
+              saveOnBlur
+              allowUndo
+              initialData={this.state.performance_issue_settings}
+              apiMethod="PUT"
+              apiEndpoint={performanceIssuesEndpoint}
+            >
+              <Access access={requiredScopes}>
+                {({hasAccess}) => (
+                  <JsonForm
+                    title={t('Performance Issues - Detector Settings')}
+                    fields={this.performanceIssueDetectorsFormFields}
+                    disabled={!hasAccess}
+                  />
+                )}
+              </Access>
+            </Form>
+          </Fragment>
         </Feature>
       </Fragment>
     );
