@@ -7,6 +7,7 @@ from django.utils import timezone
 
 from sentry.models import Commit, CommitAuthor, CommitFileChange, Integration, Repository, User
 from sentry.plugins.providers import RepositoryProvider
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.shared_integrations.exceptions import ApiError
 from sentry_plugins.github.client import GitHubClient
 
@@ -16,14 +17,14 @@ logger = logging.getLogger("sentry.webhooks")
 
 
 class PushEventWebhook(Webhook):
-    def _handle(self, event, organization, is_apps):
+    def _handle(self, event, organization_id, is_apps):
         authors = {}
 
         gh_username_cache = {}
 
         try:
             repo = Repository.objects.get(
-                organization_id=organization.id,
+                organization_id=organization_id,
                 provider="github_apps" if is_apps else "github",
                 external_id=str(event["repository"]["id"]),
             )
@@ -57,7 +58,7 @@ class PushEventWebhook(Webhook):
                     else:
                         try:
                             commit_author = CommitAuthor.objects.get(
-                                external_id=external_id, organization_id=organization.id
+                                external_id=external_id, organization_id=organization_id
                             )
                         except CommitAuthor.DoesNotExist:
                             commit_author = None
@@ -81,7 +82,7 @@ class PushEventWebhook(Webhook):
                                     user = User.objects.filter(
                                         social_auth__provider="github",
                                         social_auth__uid=gh_user["id"],
-                                        org_memberships=organization,
+                                        org_memberships=organization_id,
                                     )[0]
                                 except IndexError:
                                     pass
@@ -106,7 +107,7 @@ class PushEventWebhook(Webhook):
                 author = None
             elif author_email not in authors:
                 authors[author_email] = author = CommitAuthor.objects.get_or_create(
-                    organization_id=organization.id,
+                    organization_id=organization_id,
                     email=author_email,
                     defaults={"name": commit["author"]["name"][:128]},
                 )[0]
@@ -135,7 +136,7 @@ class PushEventWebhook(Webhook):
                 with transaction.atomic():
                     c = Commit.objects.create(
                         repository_id=repo.id,
-                        organization_id=organization.id,
+                        organization_id=organization_id,
                         key=commit["id"],
                         message=commit["message"],
                         author=author,
@@ -143,15 +144,15 @@ class PushEventWebhook(Webhook):
                     )
                     for fname in commit["added"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="A"
+                            organization_id=organization_id, commit=c, filename=fname, type="A"
                         )
                     for fname in commit["removed"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="D"
+                            organization_id=organization_id, commit=c, filename=fname, type="D"
                         )
                     for fname in commit["modified"]:
                         CommitFileChange.objects.create(
-                            organization_id=organization.id, commit=c, filename=fname, type="M"
+                            organization_id=organization_id, commit=c, filename=fname, type="M"
                         )
             except IntegrityError:
                 pass
@@ -166,9 +167,11 @@ class PushEventWebhook(Webhook):
             integration = Integration.objects.get(
                 external_id=event["installation"]["id"], provider="github_apps"
             )
-            organizations = list(integration.organizations.all())
+            organizations = list(
+                integration.organizationintegration_set.values_list("organization_id", flat=True)
+            )
         else:
-            organizations = [organization]
+            organizations = [coerce_id_from(organization)]
 
-        for org in organizations:
-            self._handle(event, org, is_apps)
+        for org_id in organizations:
+            self._handle(event, org_id, is_apps)

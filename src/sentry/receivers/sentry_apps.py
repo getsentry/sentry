@@ -5,6 +5,7 @@ from typing import Any, List, Mapping
 from sentry import features
 from sentry.api.serializers.models.user import UserSerializer
 from sentry.models import Group, GroupAssignee, Organization, SentryFunction, Team, User
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.signals import (
@@ -77,7 +78,7 @@ def send_comment_webhooks(organization, issue, user, event, data=None):
             installation_id=install.id,
             issue_id=issue.id,
             type=event,
-            user_id=(user.id if user else None),
+            user_id=coerce_id_from(user),
             data=data,
         )
     if features.has("organizations:sentry-functions", organization, actor=user):
@@ -103,7 +104,7 @@ def send_workflow_webhooks(
             installation_id=install.id,
             issue_id=issue.id,
             type=event.split(".")[-1],
-            user_id=(user.id if user else None),
+            user_id=coerce_id_from(user),
             data=data,
         )
     if features.has("organizations:sentry-functions", organization, actor=user):

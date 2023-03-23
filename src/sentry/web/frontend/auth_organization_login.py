@@ -65,7 +65,7 @@ class AuthOrganizationLoginView(AuthLoginView):
             initiate_login(request, next_uri)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
