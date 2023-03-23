@@ -6,6 +6,8 @@
 from dataclasses import fields
 from typing import Optional
 
+from django.db import transaction
+
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
@@ -15,6 +17,7 @@ from sentry.services.hybrid_cloud.organizationmember_mapping import (
 
 
 class DatabaseBackedOrganizationMemberMappingService(OrganizationMemberMappingService):
+    @transaction.atomic
     def create_mapping(
         self,
         *,
