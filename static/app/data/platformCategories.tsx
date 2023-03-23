@@ -239,6 +239,10 @@ export const profiling = [
   'python-rq',
   // rust
   'rust',
+  // php
+  'php',
+  'php-laravel',
+  'php-symfony2',
 ] as const;
 
 export const releaseHealth: PlatformKey[] = [

@@ -9,6 +9,7 @@ export const supportedProfilingPlatformSDKs = [
   'python',
   'php',
   'rust',
+  'php',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
 export type SupportedProfilingPlatformSDK =
@@ -39,6 +40,10 @@ export function getDocsPlatformSDKForPlatform(
 
   if (platform === 'rust') {
     return 'rust';
+  }
+
+  if (platform.startsWith('php')) {
+    return 'php';
   }
 
   return null;
