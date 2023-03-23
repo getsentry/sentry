@@ -350,23 +350,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key
         """
-        with sentry_sdk.configure_scope() as scope:
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-            else:
-                parent_span_id = None
-                trace_id = None
-
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            name=f"{self.integration_type}.http_response.pagination.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=True,
+            description=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 
