@@ -11,7 +11,7 @@ import {t} from 'sentry/locale';
 import space, {ValidSize} from 'sentry/styles/space';
 
 type BadgeProps = {
-  type: 'alpha' | 'beta' | 'new';
+  type: 'alpha' | 'beta' | 'new' | 'experimental';
   expiresAt?: Date;
   noTooltip?: boolean;
   title?: string;
@@ -24,12 +24,14 @@ const defaultTitles = {
   alpha: t('This feature is internal and available for QA purposes'),
   beta: t('This feature is available for early adopters and may change'),
   new: t('This feature is new! Try it out and let us know what you think'),
+  experimental: t('This feature is experimental and may change'),
 };
 
 const labels = {
   alpha: t('alpha'),
   beta: t('beta'),
   new: t('new'),
+  experimental: t('experimental'),
 };
 
 function BaseFeatureBadge({

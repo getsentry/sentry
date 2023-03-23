@@ -8,6 +8,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import Clipboard from 'sentry/components/clipboard';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import FeatureBadge from 'sentry/components/featureBadge';
 import {generateTraceTarget} from 'sentry/components/quickTrace/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -71,6 +72,8 @@ export const GroupEventCarousel = ({
   const xlargeViewport = useMedia(`(min-width: ${theme.breakpoints.xlarge})`);
 
   const groupId = group.id;
+  // const isOpenAIEnabled = organization.features.includes('open-ai-suggestion');
+  const isOpenAIEnabled = true;
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isReplayEnabled = organization.features.includes('session-replay');
   const baseEventsPath = `/organizations/${organization.slug}/issues/${groupId}/events/`;
@@ -182,6 +185,16 @@ export const GroupEventCarousel = ({
           JSON
         </Button>
       )}
+      {isOpenAIEnabled && xlargeViewport && (
+        <OpenAIButton
+          title={t(
+            'This is an AI generated solution that suggests a fix for this event. Be aware that this may not be accurate.'
+          )}
+        >
+          {t('Suggested Fix')}
+          <FeatureBadge type="experimental" />
+        </OpenAIButton>
+      )}
       <DropdownMenu
         position="bottom-end"
         triggerProps={{
@@ -208,6 +221,17 @@ export const GroupEventCarousel = ({
           {
             key: 'json',
             label: `JSON (${formatBytesBase2(event.size)})`,
+            onAction: downloadJson,
+            hidden: xlargeViewport,
+          },
+          {
+            key: 'open-ai-suggestion',
+            label: (
+              <div>
+                {t('Suggested Fix')}
+                <FeatureBadge type="experimental" />
+              </div>
+            ),
             onAction: downloadJson,
             hidden: xlargeViewport,
           },
@@ -268,9 +292,24 @@ export const GroupEventCarousel = ({
 };
 
 const CarouselAndButtonsWrapper = styled('div')`
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  grid-template-rows: repeat(2, max-content);
   gap: ${space(1)};
   margin-bottom: ${space(0.5)};
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-template-columns: 1fr max-content max-content max-content;
+    grid-template-rows: 1fr;
+  }
+`;
+
+const OpenAIButton = styled(Button)`
+  grid-column: 1/1;
+  grid-row: 2/2;
+  @media (min-width: ${p => p.theme.breakpoints.medium}) {
+    grid-column: 2/3;
+    grid-row: 1/1;
+  }
 `;
 
 const StyledButtonBar = styled(ButtonBar)`
