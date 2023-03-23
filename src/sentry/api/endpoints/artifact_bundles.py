@@ -1,3 +1,5 @@
+from typing import Optional
+
 from django.db import router
 from django.db.models import Q
 from rest_framework.request import Request
@@ -12,8 +14,21 @@ from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifact
 from sentry.utils.db import atomic_transaction
 
 
+class ArtifactBundlesMixin:
+    @classmethod
+    def derive_order_by(cls, sort_by: str) -> Optional[str]:
+        is_desc = sort_by.startswith("-")
+        sort_by = sort_by.strip("-")
+
+        if sort_by == "date_added":
+            order_by = "date_uploaded"
+            return f"-{order_by}" if is_desc else order_by
+
+        return None
+
+
 @region_silo_endpoint
-class ArtifactBundlesEndpoint(ProjectEndpoint):
+class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
     permission_classes = (ProjectReleasePermission,)
 
     def get(self, request: Request, project) -> Response:
@@ -31,18 +46,18 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         query = request.GET.get("query")
 
         try:
-            queryset = ProjectArtifactBundle.objects.filter(
-                organization_id=project.organization_id, project_id=project.id
-            ).select_related("artifact_bundle")
+            queryset = ArtifactBundle.objects.filter(
+                organization_id=project.organization_id,
+                projectartifactbundle__project_id=project.id,
+            )
         except ProjectArtifactBundle.DoesNotExist:
             raise ResourceDoesNotExist
 
         if query:
-            query_q = Q(artifact_bundle__bundle_id__icontains=query)
+            query_q = Q(bundle_id__icontains=query)
             queryset = queryset.filter(query_q)
 
-        def expose_artifact_bundle(debug_id_artifact_bundle, release_dist):
-            artifact_bundle = debug_id_artifact_bundle.artifact_bundle
+        def expose_artifact_bundle(artifact_bundle, release_dist):
             release, dist = release_dist
 
             # TODO(iambriccardo): Use a serializer for this.
@@ -51,12 +66,12 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
                 "release": release if release != "" else None,
                 "dist": dist if dist != "" else None,
                 "fileCount": artifact_bundle.artifact_count,
-                "date": debug_id_artifact_bundle.date_added.isoformat()[:19] + "Z",
+                "date": artifact_bundle.date_uploaded.isoformat()[:19] + "Z",
             }
 
         def serialize_results(results):
             release_artifact_bundles = ReleaseArtifactBundle.objects.filter(
-                artifact_bundle_id__in=[r.artifact_bundle_id for r in results]
+                artifact_bundle_id__in=[r.id for r in results]
             )
             release_artifact_bundles = {
                 release.artifact_bundle_id: (release.release_name, release.dist_name)
@@ -67,18 +82,16 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
             return serialize(
                 [
                     expose_artifact_bundle(
-                        debug_id_artifact_bundle=r,
-                        release_dist=release_artifact_bundles.get(
-                            r.artifact_bundle_id, (None, None)
-                        ),
+                        artifact_bundle=r,
+                        release_dist=release_artifact_bundles.get(r.id, (None, None)),
                     )
                     for r in results
                 ],
                 request.user,
             )
 
-        sort_by = request.GET.get("sortBy", "-date_added")
-        if sort_by not in {"-date_added", "date_added"}:
+        order_by = self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added"))
+        if order_by is None:
             return Response(
                 {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
             )
@@ -86,7 +99,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=sort_by,
+            order_by=order_by,
             paginator_cls=OffsetPaginator,
             default_per_page=10,
             on_results=serialize_results,

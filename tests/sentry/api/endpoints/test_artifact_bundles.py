@@ -14,20 +14,22 @@ class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
         project = self.create_project(name="foo")
 
-        artifact_bundle_1 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_1 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_1,
-            date_added=datetime.now(),
         )
 
-        artifact_bundle_2 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_2 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=1)
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_2,
-            date_added=datetime.now() + timedelta(hours=1),
         )
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -36,12 +38,13 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle=artifact_bundle_2,
         )
 
-        artifact_bundle_3 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_3 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=2)
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_3,
-            date_added=datetime.now() + timedelta(hours=2),
         )
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -117,12 +120,15 @@ class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_pagination(self):
         project = self.create_project(name="foo")
         for index in range(0, 15):
-            artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+            artifact_bundle = self.create_artifact_bundle(
+                self.organization,
+                artifact_count=2,
+                date_uploaded=datetime.now() + timedelta(hours=index),
+            )
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
-                date_added=datetime.now() + timedelta(hours=index),
             )
 
         for cursor, expected in [("10:0:1", 10), ("10:1:0", 5)]:
@@ -143,13 +149,16 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
         bundle_ids = []
         for index in range(0, 5):
-            artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+            artifact_bundle = self.create_artifact_bundle(
+                self.organization,
+                artifact_count=2,
+                date_uploaded=datetime.now() + timedelta(hours=index),
+            )
             bundle_ids.append(str(artifact_bundle.bundle_id))
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
-                date_added=datetime.now() + timedelta(hours=index),
             )
 
         url = reverse(
