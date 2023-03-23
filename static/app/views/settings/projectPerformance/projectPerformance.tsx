@@ -12,12 +12,23 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {Organization, Project, Scope} from 'sentry/types';
+import {DynamicSamplingBiasType} from 'sentry/types/sampling';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import routeTitleGen from 'sentry/utils/routeTitle';
 import AsyncView from 'sentry/views/asyncView';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
+
+// These labels need to be exported so that they can be used in audit logs
+export const retentionPrioritiesLabels = {
+  boostLatestRelease: t('Prioritize new releases'),
+  boostEnvironments: t('Prioritize dev environments'),
+  boostKeyTransactions: t('Prioritize key transactions'),
+  boostLowVolumeTransactions: t('Prioritize low-volume transactions'),
+  ignoreHealthChecks: t('Deprioritize health checks'),
+};
 
 type RouteParams = {orgId: string; projectId: string};
 
@@ -74,6 +85,15 @@ class ProjectPerformance extends AsyncView<Props, State> {
     }
 
     return endpoints;
+  }
+
+  getRetentionPrioritiesData(...data) {
+    return {
+      dynamicSamplingBiases: Object.entries(data[1].form).map(([key, value]) => ({
+        id: key,
+        active: value,
+      })),
+    };
   }
 
   handleDelete = () => {
@@ -225,6 +245,53 @@ class ProjectPerformance extends AsyncView<Props, State> {
     ];
   }
 
+  get retentionPrioritiesFormFields(): Field[] {
+    return [
+      {
+        name: 'boostLatestRelease',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLatestRelease,
+        help: t(
+          'Captures more transactions for your new releases as they are being adopted'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostEnvironments',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostEnvironments,
+        help: t(
+          'Captures more traces from environments that contain "dev", "test", "qa", and "local"'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostKeyTransactions',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostKeyTransactions,
+        help: t('Captures more of your most important (starred) transactions'),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'boostLowVolumeTransactions',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.boostLowVolumeTransactions,
+        help: t("Balance high-volume endpoints so they don't drown out low-volume ones"),
+        visible: this.props.organization.features.includes(
+          'dynamic-sampling-transaction-name-priority'
+        ),
+        getData: this.getRetentionPrioritiesData,
+      },
+      {
+        name: 'ignoreHealthChecks',
+        type: 'boolean',
+        label: retentionPrioritiesLabels.ignoreHealthChecks,
+        help: t('Captures fewer of your health checks transactions'),
+        getData: this.getRetentionPrioritiesData,
+      },
+    ];
+  }
+
   get initialData() {
     const {threshold} = this.state;
 
@@ -323,6 +390,53 @@ class ProjectPerformance extends AsyncView<Props, State> {
               </Access>
             </Form>
           </Fragment>
+        </Feature>
+        <Feature features={['organizations:dynamic-sampling']}>
+          <Form
+            saveOnBlur
+            allowUndo
+            initialData={
+              project.dynamicSamplingBiases?.reduce((acc, bias) => {
+                acc[bias.id] = bias.active;
+                return acc;
+              }, {}) ?? {}
+            }
+            onSubmitSuccess={(response, _instance, id, change) => {
+              ProjectsStore.onUpdateSuccess(response);
+              trackAdvancedAnalyticsEvent(
+                change?.new === true
+                  ? 'dynamic_sampling_settings.priority_enabled'
+                  : 'dynamic_sampling_settings.priority_disabled',
+                {
+                  organization,
+                  project_id: project.id,
+                  id: id as DynamicSamplingBiasType,
+                }
+              );
+            }}
+            apiMethod="PUT"
+            apiEndpoint={projectEndpoint}
+          >
+            <Access access={requiredScopes}>
+              {({hasAccess}) => (
+                <JsonForm
+                  title={t('Retention Priorities')}
+                  fields={this.retentionPrioritiesFormFields}
+                  disabled={!hasAccess}
+                  renderFooter={() => (
+                    <Actions>
+                      <Button
+                        external
+                        href="https://docs.sentry.io/product/performance/performance-at-scale/"
+                      >
+                        {t('Read docs')}
+                      </Button>
+                    </Actions>
+                  )}
+                />
+              )}
+            </Access>
+          </Form>
         </Feature>
       </Fragment>
     );
