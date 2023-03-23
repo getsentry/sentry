@@ -1,4 +1,4 @@
-import {MouseEvent, useCallback, useMemo} from 'react';
+import {Fragment, MouseEvent, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -57,7 +57,7 @@ function NetworkRequestDetails({items}: Props) {
   }
 
   return (
-    <div data-test-id="network-request-details">
+    <Fragment>
       <StyledStacked>
         <StyledNetworkRequestTabs />
         <CloseButtonWrapper>
@@ -79,7 +79,7 @@ function NetworkRequestDetails({items}: Props) {
       <ResizeableContainer height={containerSize}>
         <JSONBlock data={data} />
       </ResizeableContainer>
-    </div>
+    </Fragment>
   );
 }
 
@@ -109,10 +109,14 @@ const StyledStacked = styled(Stacked)`
 `;
 
 const StyledNetworkRequestTabs = styled(NetworkRequestTabs)`
-  & > * {
+  & > li > a {
     padding-top: ${space(1)};
+    padding-bottom: ${space(0.5)};
+    height: 100%;
+    border-bottom: ${space(0.5)} solid transparent;
   }
-  & > :first-child {
+
+  & > li:first-child {
     margin-left: ${space(1)};
   }
 `;
