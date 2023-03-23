@@ -3,17 +3,23 @@ import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {BreadcrumbType, Crumb} from 'sentry/types/breadcrumbs';
 
+// Replay SDK can send `data` that does not conform to our issue/event breadcrumbs
+type MaybeCrumbData = null | Record<string, unknown>;
+
 /**
  * Generate breadcrumb descriptions based on type
  */
 export function getDescription(crumb: Crumb) {
-  if (typeof crumb.data === 'object' && crumb.data !== null && 'action' in crumb.data) {
-    switch (crumb.data.action) {
+  const crumbData: MaybeCrumbData = crumb.data as MaybeCrumbData;
+
+  if (crumbData && typeof crumbData === 'object' && 'action' in crumbData) {
+    switch (crumbData.action) {
       case 'largest-contentful-paint':
-        if (crumb.data?.value !== undefined) {
-          return `${Math.round(crumb.data.value)}ms`;
+        if (typeof crumbData?.value === 'number') {
+          return `${Math.round(crumbData.value)}ms`;
         }
-        if (crumb.data?.duration !== undefined) {
+
+        if (crumbData?.duration !== undefined) {
           // this means user is using an old SDK where LCP values are not
           // always correct. Prompt them to upgrade
           return (
@@ -32,11 +38,18 @@ export function getDescription(crumb: Crumb) {
     }
   }
 
+  if (crumb.category === 'replay.mutations') {
+    return t(
+      'A large number of mutations was detected (%s). This can slow down the Replay SDK and impact your customers.',
+      crumbData?.count
+    );
+  }
+
   switch (crumb.type) {
     case BreadcrumbType.NAVIGATION:
-      return `${crumb.data?.to ?? ''}`;
+      return `${crumbData?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
-      return JSON.stringify(crumb.data);
+      return JSON.stringify(crumbData);
     default:
       return crumb.message || '';
   }
@@ -59,6 +72,9 @@ export function getTitle(crumb: Crumb) {
   const [type, action] = crumb.category?.split('.') || [];
   if (type === 'ui') {
     return `User ${action || ''}`;
+  }
+  if (type === 'replay') {
+    return `Replay`;
   }
   return `${type} ${action || ''}`;
 }

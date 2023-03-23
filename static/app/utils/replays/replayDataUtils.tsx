@@ -216,9 +216,22 @@ export function breadcrumbFactory(
 
   const rawCrumbsWithTimestamp: RawCrumb[] = rawCrumbs
     .filter(crumb => {
-      return !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '');
+      return (
+        !UNWANTED_CRUMB_CATEGORIES.includes(crumb.category || '') &&
+        // Explicitly include replay breadcrumbs to ensure we have valid UI for them
+        (!crumb.category?.startsWith('replay') || crumb.category === 'replay.mutations')
+      );
     })
     .map(crumb => {
+      if (crumb.category === 'replay.mutations') {
+        return {
+          ...crumb,
+          type: BreadcrumbType.WARNING,
+          level: BreadcrumbLevelType.WARNING,
+          timestamp: new Date(crumb.timestamp * 1000).toISOString(),
+        };
+      }
+
       return {
         ...crumb,
         type: BreadcrumbType.DEFAULT,
