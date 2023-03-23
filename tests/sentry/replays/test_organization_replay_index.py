@@ -917,7 +917,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.role:button",
                 "replay_click.testid:1",
                 "replay_click.alt:Alt",
-                "replay_click.aria_label:AriaLabel",
+                "replay_click.label:AriaLabel",
                 "replay_click.title:MyTitle",
             ]
             for query in queries:
@@ -933,7 +933,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "replay_click.role:form",
                 "replay_click.testid:2",
                 "replay_click.alt:NotAlt",
-                "replay_click.aria_label:NotAriaLabel",
+                "replay_click.label:NotAriaLabel",
                 "replay_click.title:NotMyTitle",
             ]
             for query in queries:
