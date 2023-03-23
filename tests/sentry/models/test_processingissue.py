@@ -4,6 +4,7 @@ from sentry.models import (
     ProcessingIssue,
     ProcessingIssueManager,
     RawEvent,
+    get_processing_issue_checksum,
 )
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
@@ -32,18 +33,129 @@ class ProcessingIssueTest(TestCase):
 
         assert EventProcessingIssue.objects.count() == 0
 
-    def test_with_release_dist(self):
-        team = self.create_team()
-        project = self.create_project(teams=[team], name="foo")
-        release = self.create_release(version="1.0")
+    def test_with_release_dist_pair_and_no_previous_issue(self):
+        project = self.create_project(name="foo")
+        release = self.create_release(version="1.0", project=project)
         dist = release.add_dist("android")
 
-        raw_event_data = CanonicalKeyDict({"release": release.version, "dist": dist.name})
+        scope = "ab"
+        object = "cd"
+        checksum = get_processing_issue_checksum(scope=scope, object=object)
+
         raw_event = RawEvent.objects.create(
-            project_id=project.id, event_id="abc", data=raw_event_data
+            project_id=project.id,
+            event_id="abc",
+            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
         )
 
         manager = ProcessingIssueManager()
         manager.record_processing_issue(
-            raw_event=raw_event, scope="a", object="", type=EventError.NATIVE_MISSING_DSYM
+            raw_event=raw_event, scope=scope, object=object, type=EventError.NATIVE_MISSING_DSYM
         )
+
+        issues = ProcessingIssue.objects.filter(
+            project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+        )
+        assert len(issues) == 1
+        assert issues[0].data == {
+            "_object": object,
+            "_scope": scope,
+            "dist": dist.name,
+            "release": release.version,
+        }
+
+        event_issues = EventProcessingIssue.objects.filter(
+            raw_event=raw_event, processing_issue=issues[0]
+        )
+        assert len(event_issues) == 1
+
+    def test_with_release_dist_pair_and_previous_issue_without_release_dist(self):
+        project = self.create_project(name="foo")
+        release = self.create_release(version="1.0", project=project)
+        dist = release.add_dist("android")
+
+        scope = "ab"
+        object = "cd"
+        checksum = get_processing_issue_checksum(scope=scope, object=object)
+
+        raw_event = RawEvent.objects.create(
+            project_id=project.id,
+            event_id="abc",
+            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+        )
+
+        ProcessingIssue.objects.create(
+            project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+        )
+
+        manager = ProcessingIssueManager()
+        manager.record_processing_issue(
+            raw_event=raw_event, scope=scope, object=object, type=EventError.NATIVE_MISSING_DSYM
+        )
+
+        issues = ProcessingIssue.objects.filter(
+            project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+        )
+        assert len(issues) == 1
+        assert issues[0].data == {
+            "dist": dist.name,
+            "release": release.version,
+        }
+
+        event_issues = EventProcessingIssue.objects.filter(
+            raw_event=raw_event, processing_issue=issues[0]
+        )
+        assert len(event_issues) == 1
+
+    def test_with_release_dist_pair_and_previous_issue_with_release_dist(self):
+        project = self.create_project(name="foo")
+
+        # We want to create releases with different date_added.
+        release = self.create_release(version="0.0", project=project)
+        dist = release.add_dist("android")
+        release_1 = self.create_release(version="1.0", project=project)
+        dist_1 = release_1.add_dist("android")
+        release_2 = self.create_release(version="2.0", project=project)
+        dist_2 = release_2.add_dist("android")
+
+        scope = "ab"
+        object = "cd"
+        checksum = get_processing_issue_checksum(scope=scope, object=object)
+
+        for event_id, release, dist, expected_release, expected_dist in [
+            ("abc", release_2.version, dist_2.name, release_2.version, dist_2.name),
+            ("def", release.version, dist.name, release_1.version, dist_1.name),
+        ]:
+            issue = ProcessingIssue.objects.create(
+                project_id=project.id,
+                checksum=checksum,
+                type=EventError.NATIVE_MISSING_DSYM,
+                data={"release": release_1.version, "dist": dist_1.name},
+            )
+
+            raw_event = RawEvent.objects.create(
+                project_id=project.id,
+                event_id=event_id,
+                data=CanonicalKeyDict({"release": release, "dist": dist}),
+            )
+
+            manager = ProcessingIssueManager()
+            manager.record_processing_issue(
+                raw_event=raw_event, scope=scope, object=object, type=EventError.NATIVE_MISSING_DSYM
+            )
+
+            issues = ProcessingIssue.objects.filter(
+                project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+            )
+            assert len(issues) == 1
+            assert issues[0].data == {
+                "dist": expected_dist,
+                "release": expected_release,
+            }
+
+            event_issues = EventProcessingIssue.objects.filter(
+                raw_event=raw_event, processing_issue=issues[0]
+            )
+            assert len(event_issues) == 1
+
+            issue.delete()

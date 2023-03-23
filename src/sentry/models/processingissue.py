@@ -12,6 +12,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.models import Release
 
 
 def get_processing_issue_checksum(scope, object):
@@ -79,6 +80,22 @@ class ProcessingIssueManager(BaseManager):
         eventstore.bind_nodes(rv, "data")
         return rv, has_more
 
+    @staticmethod
+    def is_release_newer(project_id, release, other_release):
+        if other_release is None:
+            return True
+
+        try:
+            # TODO: we would need the organization to efficiently query the release.
+            release = Release.objects.get(projects__id=project_id, version=release)
+            other_release = Release.objects.get(projects__id=project_id, version=other_release)
+
+            return float(release.date_added.timestamp()) > float(
+                other_release.date_added.timestamp()
+            )
+        except Release.DoesNotExist:
+            return False
+
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
         """Records a new processing issue for the given raw event."""
         checksum = get_processing_issue_checksum(scope, object)
@@ -91,21 +108,30 @@ class ProcessingIssueManager(BaseManager):
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
         )
 
+        issue.datetime = timezone.now()
+
         release = raw_event.data.get("release")
         dist = raw_event.data.get("dist")
 
+        def update_issue(is_valid_release):
+            if is_valid_release():
+                issue.data["release"] = release
+
+                if dist is not None:
+                    issue.data["dist"] = dist
+
         if created:
-            issue.data["release"] = release
-            issue.data["dist"] = dist
+            update_issue(lambda: release is not None)
         else:
-            pass
-            # prev_release = issue.data["release"]
-            # TODO: fetch version.
+            prev_release = issue.data.get("release")
+            update_issue(
+                lambda: release is not None
+                and self.is_release_newer(raw_event.project_id, release, prev_release)
+            )
 
         # We want to save the updated data.
         issue.save()
 
-        ProcessingIssue.objects.filter(pk=issue.id).update(datetime=timezone.now())
         # In case the issue moved away from unresolved we want to make
         # sure it's back to unresolved
         EventProcessingIssue.objects.get_or_create(raw_event=raw_event, processing_issue=issue)
