@@ -285,7 +285,7 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
 
-    def test_debug_meta(self):
+    def test_debug_meta(self) -> None:
         debug_meta_cases = [
             {"debug_meta": {}},
             {"debug_meta": None},
