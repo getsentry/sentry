@@ -106,6 +106,9 @@ class MonitorCheckInSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
             "id": str(obj.guid),
+            "environment": obj.monitor_environment.environment.name
+            if obj.monitor_environment
+            else None,
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
@@ -115,6 +118,7 @@ class MonitorCheckInSerializer(Serializer):
 
 class MonitorCheckInSerializerResponse(TypedDict):
     id: str
+    environment: str
     status: str
     duration: int
     dateCreated: datetime

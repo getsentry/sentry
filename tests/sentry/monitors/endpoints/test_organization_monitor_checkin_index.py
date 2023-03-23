@@ -88,7 +88,6 @@ class ListMonitorCheckInsTest(MonitorTestCase):
         )
         checkin2 = MonitorCheckIn.objects.create(
             monitor=monitor,
-            monitor_environment=monitor_environment,
             project_id=self.project.id,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -101,31 +100,9 @@ class ListMonitorCheckInsTest(MonitorTestCase):
 
         # Newest first
         assert resp.data[0]["id"] == str(checkin2.guid)
+        assert resp.data[0]["environment"] is None
         assert resp.data[1]["id"] == str(checkin1.guid)
-
-    def test_bad_environment(self):
-        self.login_as(self.user)
-
-        monitor = self._create_monitor()
-        monitor_environment = self._create_monitor_environment(monitor, name="jungle")
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            date_added=monitor.date_added - timedelta(minutes=2),
-            status=CheckInStatus.OK,
-        )
-        MonitorCheckIn.objects.create(
-            monitor=monitor,
-            monitor_environment=monitor_environment,
-            project_id=self.project.id,
-            date_added=monitor.date_added - timedelta(minutes=1),
-            status=CheckInStatus.OK,
-        )
-
-        self.get_error_response(
-            self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "desert"}
-        )
+        assert resp.data[0]["environment"] == str(checkin1.environment)
 
     def test_bad_monitorenvironment(self):
         self.login_as(self.user)
