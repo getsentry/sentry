@@ -85,26 +85,30 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     </Fragment>
   );
 }
+function tryParseData(
+  data: string | undefined
+): undefined | string | Record<string, unknown> {
+  if (data === undefined) {
+    return data;
+  }
+  try {
+    return JSON.parse(data);
+  } catch {
+    return data;
+  }
+}
 
 function getData(item: NetworkSpan | null) {
   if (!item) {
     return undefined;
   }
-
-  // TODO(replay): check with the SDK first, but the value of *.body might
-  // always be a string in which case we should do something similar to
-  // `try{ JSON.parse(*) }` to convert into an object. We could use headers as a
-  // hint, but 3rd party headers could be a challenge. And it's one payload at a
-  // time, so try/catch perf shouldn't be an issue.
-
-  const empty = undefined;
   return {
     headers: {
-      request: item.data?.request?.headers ?? empty,
-      response: item.data?.response?.headers ?? empty,
+      request: tryParseData(item.data?.request?.headers),
+      response: tryParseData(item.data?.response?.headers),
     },
-    request: item.data?.request?.body ?? empty,
-    response: item.data?.response?.body ?? empty,
+    request: tryParseData(item.data?.request?.body),
+    response: tryParseData(item.data?.response?.body),
   };
 }
 
