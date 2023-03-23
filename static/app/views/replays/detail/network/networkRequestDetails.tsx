@@ -28,7 +28,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
 
   const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
 
-  // TODO: the `useResizableDrawer` seems to measure mouse position in relation
+  // TODO(replay): the `useResizableDrawer` seems to measure mouse position in relation
   // to the window with event.clientX and event.clientY
   // We should be able to pass in another frame of reference so mouse movement
   // is relative to some container instead.
@@ -93,7 +93,13 @@ function getDataForVisibleTab(item: NetworkSpan | null, tab: string) {
     return null;
   }
 
-  const empty = item; // TODO: change this to the empty object in production
+  // TODO(replay): check with the SDK first, but the value of *.body might
+  // always be a string in which case we should do something similar to
+  // `try{ JSON.parse(*) }` to convert into an object. We could use headers as a
+  // hint, but 3rd party headers could be a challenge. And it's one payload at a
+  // time, so try/catch perf shouldn't be an issue.
+
+  const empty = undefined;
   switch (tab) {
     case 'request':
       return item.data?.request?.body ?? empty;
