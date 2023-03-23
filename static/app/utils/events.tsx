@@ -45,6 +45,8 @@ export function getMessage(
     case EventOrGroupType.EXPECTSTAPLE:
     case EventOrGroupType.HPKP:
       return '';
+    case EventOrGroupType.GENERIC:
+      return metadata.value;
     default:
       return culprit || '';
   }
