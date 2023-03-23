@@ -1442,6 +1442,49 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["def,9001"]["data"][0][1] == [{"count": 7}]
             assert response.data["Other"]["data"][0][1] == [{"count": 25}]
 
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "the tag"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = 'group_id:"the tag"'
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
     def test_top_events_limits(self):
         data = {
             "start": iso_format(self.day_ago),
