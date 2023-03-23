@@ -632,8 +632,10 @@ class QueryBuilder(BaseQueryBuilder):
                 continue
             elif column == "group_id":
                 # We don't expose group_id publically, so if a user requests it,
-                # we expect it to be a custom tag, so we convert it to tags[group_id]
-                # to ensure it resolves as a tag
+                # we expect it is a custom tag, so we convert it to tags[group_id]
+                # and ensure it queries tag data
+                # These maps are updated so the response can be mapped back to group_id
+                # in the response
                 self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
                 self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
                 resolved_column = self.resolve_column("tags[group_id]", alias=True)
