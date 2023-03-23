@@ -3,7 +3,7 @@ import logging
 from os import path
 from typing import List, Optional, Tuple
 
-from django.db import IntegrityError, router
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -283,7 +283,10 @@ def _extract_debug_ids_from_manifest(
 
 
 def _remove_duplicate_artifact_bundles(except_id: int, bundle_id: str):
-    ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id).delete()
+    for artifact_bundle in ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id):
+        with transaction.atomic():
+            artifact_bundle.delete()
+            artifact_bundle.file.delete()
 
 
 def _create_artifact_bundle(

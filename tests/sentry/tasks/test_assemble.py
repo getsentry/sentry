@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
-from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
+from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -289,6 +289,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
+
+        files = File.objects.filter()
+        assert len(files) == 1
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         # We have two entries, since we have multiple files in the artifact bundle.
