@@ -1,4 +1,3 @@
-import {ReactText} from 'react';
 import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -12,7 +11,7 @@ type Props = {
   underlined?: boolean;
 };
 
-const TABS: Record<string, ReactText> = {
+const TABS = {
   request: t('Request'),
   response: t('Response'),
 };
