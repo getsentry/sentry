@@ -63,6 +63,10 @@ class UserTest(TestCase):
         projects = user.get_projects()
         assert {_.id for _ in projects} == {project.id}
 
+    def test_get_full_name(self):
+        user = self.create_user(name="foo bar")
+        assert user.name == user.get_full_name() == "foo bar"
+
 
 @control_silo_test
 class UserDetailsTest(TestCase):
