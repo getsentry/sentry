@@ -46,13 +46,15 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     ref
   ) => {
     // Rows include the sortable header, the dataIndex does not
-    const dataIndex = rowIndex - 1;
+    const dataIndex = String(rowIndex - 1);
 
     const organization = useOrganization();
     const {currentTime} = useReplayContext();
-    const {setParamValue} = useUrlParams('n_detail_row', '');
+    const {getParamValue, setParamValue} = useUrlParams('n_detail_row', '');
 
-    const hassNetworkDetails = organization.features.includes(
+    const isDetailsOpen = getParamValue() === dataIndex;
+
+    const hasNetworkDetails = organization.features.includes(
       'session-replay-network-details'
     );
 
@@ -67,9 +69,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         : undefined,
       hasOccurredAsc: isByTimestamp ? sortConfig.asc : undefined,
       isCurrent,
+      isDetailsOpen,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: hassNetworkDetails ? () => setParamValue(String(dataIndex)) : undefined,
+      onClick: hasNetworkDetails ? () => setParamValue(dataIndex) : undefined,
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
@@ -170,6 +173,7 @@ const Cell = styled('div')<{
   hasOccurred: boolean | undefined;
   hasOccurredAsc: boolean | undefined;
   isCurrent: boolean;
+  isDetailsOpen: boolean;
   isHovered: boolean;
   isStatusError: boolean;
   numeric?: boolean;
@@ -180,6 +184,8 @@ const Cell = styled('div')<{
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
+
+  font-weight: ${p => (p.isDetailsOpen ? 'bold' : 'inherit')};
 
   ${cellBackground}
   ${cellBorder}
