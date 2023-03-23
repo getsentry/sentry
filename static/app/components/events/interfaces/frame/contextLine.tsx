@@ -128,4 +128,5 @@ const padding = space(2);
 const LineContent = styled('div')`
   display: grid;
   grid-template-columns: ${lineNumberWidth} calc(100% - ${lineNumberWidth} - ${padding});
+  gap: ${space(0.5)};
 `;
