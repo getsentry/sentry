@@ -3,10 +3,15 @@ from datetime import datetime, timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling.prioritise_transactions import (
+    ProjectIdentity,
+    ProjectTransactionsTotals,
     fetch_project_transaction_totals,
     fetch_transactions_with_total_volumes,
     get_orgs_with_project_counts,
     merge_transactions,
+    next_totals,
+    project_before,
+    same_project,
     transactions_zip,
 )
 from sentry.snuba.metrics import TransactionMRI
@@ -261,3 +266,85 @@ def test_transactions_zip():
     )
 
     assert actual == expected
+
+
+def test_same_project():
+    p1 = {"project_id": 1, "org_id": 2}
+    p1bis = {"project_id": 1, "org_id": 2}
+    p2 = {"project_id": 1, "org_id": 3}
+    p3 = {"project_id": 2, "org_id": 1}
+    p4 = {"project_id": 3, "org_id": 4}
+
+    assert same_project(p1, p1bis)
+    assert not same_project(p1, p2)
+    assert not same_project(p1, p3)
+    assert not same_project(p1, p4)
+
+
+def test_project_before():
+    p1 = {"project_id": 1, "org_id": 2}
+    p1bis = {"project_id": 1, "org_id": 2}
+    p2 = {"project_id": 1, "org_id": 3}
+    p3 = {"project_id": 2, "org_id": 2}
+    p4 = {"project_id": 2, "org_id": 1}
+
+    # same project
+    assert not project_before(p1, p1bis)
+    assert not project_before(p1bis, p1)
+
+    # different project_id
+    assert project_before(p1, p2)
+    assert not project_before(p2, p1)
+
+    # different org_id
+    assert project_before(p1, p3)
+    assert not project_before(p3, p1)
+
+    # just different
+    assert project_before(p4, p1)
+    assert not project_before(p1, p4)
+
+
+def test_next_totals():
+    def ct(org_id: int, project_id: int) -> ProjectTransactionsTotals:
+        return {
+            "project_id": project_id,
+            "org_id": org_id,
+            "total_num_transactions": 123,
+            "total_num_classes": 5,
+        }
+
+    def pi(org_id: int, project_id: int) -> ProjectIdentity:
+        return {
+            "project_id": project_id,
+            "org_id": org_id,
+        }
+
+    my_totals = iter([ct(1, 2), ct(1, 4), ct(1, 5), ct(1, 6), ct(1, 9), ct(2, 1)])
+
+    get_totals = next_totals(my_totals)
+
+    # current should be 1,2
+    # ask for something before 1,2
+    assert get_totals(pi(0, 1)) is None
+    assert get_totals(pi(0, 2)) is None
+    assert get_totals(pi(1, 1)) is None
+
+    # ask for 1.2
+    assert get_totals(pi(1, 2)) == ct(1, 2)
+    # ask again
+    assert get_totals(pi(1, 2)) is None
+    # jump a few totals
+    assert get_totals(pi(1, 6)) == ct(1, 6)
+    # make sure we don't go back
+    assert get_totals(pi(1, 5)) is None
+    # forcing it to go forward jumps just enough
+    assert get_totals(pi(1, 10)) is None
+    # but not too much
+    assert get_totals(pi(1, 11)) is None
+    assert get_totals(pi(1, 12)) is None
+    assert get_totals(pi(2, 1)) == ct(2, 1)
+    # and from now on we return None
+    assert get_totals(pi(3, 1)) is None
+    assert get_totals(pi(3, 2)) is None
+    assert get_totals(pi(3, 3)) is None

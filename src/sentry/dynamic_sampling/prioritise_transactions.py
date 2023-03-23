@@ -401,7 +401,9 @@ def next_totals(
 
     def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
         if same_project(current[0], match):
-            return current[0]
+            temp = current[0]
+            current[0] = None
+            return temp
 
         if current[0] is not None and project_before(match, current[0]):
             # still haven't reach current no point looking further
