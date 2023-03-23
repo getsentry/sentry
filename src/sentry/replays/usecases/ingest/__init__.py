@@ -42,12 +42,11 @@ class RecordingSegmentChunkMessage(TypedDict):
 
 class RecordingSegmentMessage(TypedDict):
     retention_days: int
-    replay_id: str  # the uuid of the encompassing replay event
     org_id: int
     project_id: int
+    replay_id: str  # the uuid of the encompassing replay event
     key_id: int | None
     received: int
-    retention_days: int
     replay_recording: ReplayRecordingSegment
 
 
@@ -58,7 +57,6 @@ class RecordingMessage(TypedDict):
     org_id: int
     project_id: int
     received: int
-    retention_days: int
     payload: bytes
 
 
@@ -69,12 +67,11 @@ class MissingRecordingSegmentHeaders(ValueError):
 @dataclasses.dataclass
 class RecordingIngestMessage:
     retention_days: int
+    org_id: int
+    project_id: int
     replay_id: str
     key_id: int | None
-    org_id: int
     received: int
-    project_id: int
-    retention_days: int
     payload_with_headers: bytes
 
 
@@ -175,10 +172,9 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
 
     # Emit DOM search metadata to Clickhouse.
     parse_and_emit_replay_actions(
+        retention_days=message.retention_days,
         project_id=message.project_id,
         replay_id=message.replay_id,
-        segment_id=headers["segment_id"],
-        retention_days=message.retention_days,
         segment_bytes=recording_segment,
     )
 

@@ -101,7 +101,7 @@ def test_parse_replay_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, "1", 0, 30, json.dumps(event).encode())
+    replay_actions = parse_replay_actions(1, "1", 30, json.dumps(event).encode())
 
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)

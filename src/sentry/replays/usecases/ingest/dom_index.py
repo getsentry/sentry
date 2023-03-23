@@ -8,26 +8,31 @@ from django.conf import settings
 from sentry.utils import json, kafka_config
 from sentry.utils.pubsub import KafkaPublisher
 
+replay_publisher: Optional[KafkaPublisher] = None
 
-class ReplayActionsEventPayloadClick(TypedDict):
-    node_id: int
-    tag: str
-    id: str
-    class_: List[str]
-    role: str
-    aria_label: str
-    alt: str
-    testid: str
-    title: str
-    text: str
-    timestamp: int
-    event_hash: str
+ReplayActionsEventPayloadClick = TypedDict(
+    "ReplayActionsEventPayloadClick",
+    {
+        "node_id": int,
+        "tag": str,
+        "id": str,
+        "class": List[str],
+        "role": str,
+        "aria_label": str,
+        "alt": str,
+        "testid": str,
+        "title": str,
+        "text": str,
+        "timestamp": int,
+        "event_hash": str,
+    },
+)
 
 
 class ReplayActionsEventPayload(TypedDict):
     type: Literal["replay_actions"]
     replay_id: str
-    clicks: Iterator[ReplayActionsEventPayloadClick]
+    clicks: List[ReplayActionsEventPayloadClick]
 
 
 class ReplayActionsEvent(TypedDict):
@@ -42,11 +47,10 @@ class ReplayActionsEvent(TypedDict):
 def parse_and_emit_replay_actions(
     project_id: int,
     replay_id: str,
-    segment_id: int,
     retention_days: int,
     segment_bytes: bytes,
 ) -> None:
-    message = parse_replay_actions(project_id, replay_id, segment_id, retention_days, segment_bytes)
+    message = parse_replay_actions(project_id, replay_id, retention_days, segment_bytes)
     if message is not None:
         publisher = _initialize_publisher()
         publisher.publish("ingest-replay-events", json.dumps(message))
@@ -55,7 +59,6 @@ def parse_and_emit_replay_actions(
 def parse_replay_actions(
     project_id: int,
     replay_id: str,
-    segment_id: int,
     retention_days: int,
     segment_bytes: bytes,
 ) -> Optional[ReplayActionsEvent]:
@@ -64,7 +67,7 @@ def parse_replay_actions(
     if len(actions) == 0:
         return None
 
-    payload = create_replay_actions_payload(replay_id, segment_id, actions)
+    payload = create_replay_actions_payload(replay_id, actions)
     return create_replay_actions_event(replay_id, project_id, retention_days, payload)
 
 
@@ -86,13 +89,11 @@ def create_replay_actions_event(
 
 def create_replay_actions_payload(
     replay_id: str,
-    segment_id: int,
-    clicks: Iterator[ReplayActionsEventPayloadClick],
+    clicks: List[ReplayActionsEventPayloadClick],
 ) -> ReplayActionsEventPayload:
     return {
         "type": "replay_actions",
         "replay_id": replay_id,
-        "segment_id": segment_id,
         "clicks": clicks,
     }
 
