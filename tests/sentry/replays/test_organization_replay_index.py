@@ -892,6 +892,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 alt="Alt",
                 aria_label="AriaLabel",
                 title="MyTitle",
+                text="Hello",
             )
         )
         self.store_replays(
@@ -908,16 +909,17 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "replay_click.tag:div",
-                "replay_click.tag:button",
-                "replay_click.id:myid",
+                "replay_click.alt:Alt",
                 "replay_click.class:class1",
                 "replay_click.class:class2",
                 "replay_click.class:class3",
-                "replay_click.role:button",
-                "replay_click.testid:1",
-                "replay_click.alt:Alt",
+                "replay_click.id:myid",
                 "replay_click.label:AriaLabel",
+                "replay_click.role:button",
+                "replay_click.tag:div",
+                "replay_click.tag:button",
+                "replay_click.testid:1",
+                "replay_click.text:Hello",
                 "replay_click.title:MyTitle",
             ]
             for query in queries:
@@ -927,13 +929,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert len(response_data["data"]) == 1, query
 
             queries = [
-                "replay_click.tag:header",
-                "replay_click.id:other",
-                "replay_click.class:class4",
-                "replay_click.role:form",
-                "replay_click.testid:2",
                 "replay_click.alt:NotAlt",
+                "replay_click.class:class4",
+                "replay_click.id:other",
                 "replay_click.label:NotAriaLabel",
+                "replay_click.role:form",
+                "replay_click.tag:header",
+                "replay_click.testid:2",
+                "replay_click.text:World",
                 "replay_click.title:NotMyTitle",
             ]
             for query in queries:

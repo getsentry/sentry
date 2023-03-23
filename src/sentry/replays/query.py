@@ -427,6 +427,7 @@ class ReplayQueryConfig(QueryConfig):
     click_role = ListField(field_alias="replay_click.role", query_alias="click_role")
     click_tag = ListField(field_alias="replay_click.tag", query_alias="click_tag")
     click_testid = ListField(field_alias="replay_click.testid", query_alias="click_testid")
+    click_text = ListField(field_alias="replay_click.text", query_alias="click_text")
     click_title = ListField(field_alias="replay_click.title", query_alias="click_title")
 
     # Tag
@@ -586,6 +587,7 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "replay_click.role": ["click.role"],
     "replay_click.tag": ["click.tag"],
     "replay_click.testid": ["click.testid"],
+    "replay_click.text": ["click.text"],
     "replay_click.title": ["click.title"],
 }
 
@@ -694,6 +696,7 @@ QUERY_ALIAS_COLUMN_MAP = {
     "click.testid": Function(
         "groupArray", parameters=[Column("click_testid")], alias="click_testid"
     ),
+    "click.text": Function("groupArray", parameters=[Column("click_text")], alias="click_text"),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
 }
 
