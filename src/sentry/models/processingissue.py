@@ -81,13 +81,30 @@ class ProcessingIssueManager(BaseManager):
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
         """Records a new processing issue for the given raw event."""
-        data = dict(data or {})
         checksum = get_processing_issue_checksum(scope, object)
+
+        data = dict(data or {})
         data["_scope"] = scope
         data["_object"] = object
-        issue, _ = ProcessingIssue.objects.get_or_create(
+
+        issue, created = ProcessingIssue.objects.get_or_create(
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
         )
+
+        release = raw_event.data.get("release")
+        dist = raw_event.data.get("dist")
+
+        if created:
+            issue.data["release"] = release
+            issue.data["dist"] = dist
+        else:
+            pass
+            # prev_release = issue.data["release"]
+            # TODO: fetch version.
+
+        # We want to save the updated data.
+        issue.save()
+
         ProcessingIssue.objects.filter(pk=issue.id).update(datetime=timezone.now())
         # In case the issue moved away from unresolved we want to make
         # sure it's back to unresolved

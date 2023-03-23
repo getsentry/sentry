@@ -1,6 +1,13 @@
-from sentry.models import EventError, EventProcessingIssue, ProcessingIssue, RawEvent
+from sentry.models import (
+    EventError,
+    EventProcessingIssue,
+    ProcessingIssue,
+    ProcessingIssueManager,
+    RawEvent,
+)
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.canonical import CanonicalKeyDict
 
 
 @region_silo_test(stable=True)
@@ -24,3 +31,19 @@ class ProcessingIssueTest(TestCase):
         issue.delete()
 
         assert EventProcessingIssue.objects.count() == 0
+
+    def test_with_release_dist(self):
+        team = self.create_team()
+        project = self.create_project(teams=[team], name="foo")
+        release = self.create_release(version="1.0")
+        dist = release.add_dist("android")
+
+        raw_event_data = CanonicalKeyDict({"release": release.version, "dist": dist.name})
+        raw_event = RawEvent.objects.create(
+            project_id=project.id, event_id="abc", data=raw_event_data
+        )
+
+        manager = ProcessingIssueManager()
+        manager.record_processing_issue(
+            raw_event=raw_event, scope="a", object="", type=EventError.NATIVE_MISSING_DSYM
+        )
