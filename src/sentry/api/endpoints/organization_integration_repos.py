@@ -3,7 +3,7 @@ from typing import Optional, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import region_silo_endpoint
+from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
@@ -18,7 +18,7 @@ class IntegrationRepository(TypedDict):
     defaultBranch: Optional[str]
 
 
-@region_silo_endpoint
+@control_silo_endpoint
 class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """
@@ -31,7 +31,7 @@ class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
 
         :qparam string search: Name fragment to search repositories by.
         """
-        integration = self.get_integration(organization, integration_id)
+        integration = self.get_integration(organization.id, integration_id)
 
         if integration.status == ObjectStatus.DISABLED:
             context = {"repos": []}
