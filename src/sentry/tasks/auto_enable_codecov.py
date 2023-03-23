@@ -7,7 +7,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper
 
-logger = logging.getLogger("sentry.tasks.auto_enable_codecov")
+logger = logging.getLogger(__name__)
 
 
 @instrumented_task(
