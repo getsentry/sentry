@@ -420,15 +420,13 @@ class ReplayQueryConfig(QueryConfig):
     sdk = String(field_alias="sdk", query_alias="sdk_name")
 
     # Click
-    click_tag = ListField(field_alias="replay_click.tag", query_alias="click_tag")
-    click_id = ListField(field_alias="replay_click.id", query_alias="click_id")
-    click_class = ListField(field_alias="replay_click.class", query_alias="click_class")
-    click_role = ListField(field_alias="replay_click.role", query_alias="click_role")
-    click_testid = ListField(field_alias="replay_click.testid", query_alias="click_testid")
-    click_aria_label = ListField(
-        field_alias="replay_click.aria_label", query_alias="click_aria_label"
-    )
     click_alt = ListField(field_alias="replay_click.alt", query_alias="click_alt")
+    click_aria_label = ListField(field_alias="replay_click.label", query_alias="click_aria_label")
+    click_class = ListField(field_alias="replay_click.class", query_alias="click_class")
+    click_id = ListField(field_alias="replay_click.id", query_alias="click_id")
+    click_role = ListField(field_alias="replay_click.role", query_alias="click_role")
+    click_tag = ListField(field_alias="replay_click.tag", query_alias="click_tag")
+    click_testid = ListField(field_alias="replay_click.testid", query_alias="click_testid")
     click_title = ListField(field_alias="replay_click.title", query_alias="click_title")
 
     # Tag
@@ -581,13 +579,13 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "sdk.name": ["sdk_name"],
     "sdk.version": ["sdk_version"],
     # Click actions
-    "replay_click.tag": ["click.tag"],
-    "replay_click.id": ["click.id"],
-    "replay_click.class": ["click.class"],
-    "replay_click.role": ["click.role"],
-    "replay_click.testid": ["click.testid"],
-    "replay_click.aria_label": ["click.aria_label"],
     "replay_click.alt": ["click.alt"],
+    "replay_click.aria_label": ["click.aria_label"],
+    "replay_click.class": ["click.class"],
+    "replay_click.id": ["click.id"],
+    "replay_click.role": ["click.role"],
+    "replay_click.tag": ["click.tag"],
+    "replay_click.testid": ["click.testid"],
     "replay_click.title": ["click.title"],
 }
 
@@ -683,19 +681,19 @@ QUERY_ALIAS_COLUMN_MAP = {
     "sdk_version": take_first_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
-    "click.tag": Function("groupArray", parameters=[Column("click_tag")], alias="click_tag"),
-    "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
-    "click.class": Function(
-        "groupArrayArray", parameters=[Column("click_class")], alias="click_class"
-    ),
-    "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),
-    "click.testid": Function(
-        "groupArray", parameters=[Column("click_testid")], alias="click_testid"
-    ),
+    "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
     "click.aria_label": Function(
         "groupArray", parameters=[Column("click_aria_label")], alias="click_aria_label"
     ),
-    "click.alt": Function("groupArray", parameters=[Column("click_alt")], alias="click_alt"),
+    "click.class": Function(
+        "groupArrayArray", parameters=[Column("click_class")], alias="click_class"
+    ),
+    "click.id": Function("groupArray", parameters=[Column("click_id")], alias="click_id"),
+    "click.role": Function("groupArray", parameters=[Column("click_role")], alias="click_role"),
+    "click.tag": Function("groupArray", parameters=[Column("click_tag")], alias="click_tag"),
+    "click.testid": Function(
+        "groupArray", parameters=[Column("click_testid")], alias="click_testid"
+    ),
     "click.title": Function("groupArray", parameters=[Column("click_title")], alias="click_title"),
 }
 
