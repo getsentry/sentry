@@ -13,7 +13,6 @@ from .models import Monitor, MonitorCheckIn, MonitorEnvironment
 class MonitorEnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "monitor_id": obj.monitor.id,
             "status": obj.get_status_display(),
             "name": obj.environment.name,
             "lastCheckIn": obj.last_checkin,
@@ -23,7 +22,6 @@ class MonitorEnvironmentSerializer(Serializer):
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
-    monitor_id: str
     name: str
     status: str
     dateCreated: datetime
@@ -47,19 +45,16 @@ class MonitorSerializer(Serializer):
 
         environment_data = {}
         if self.environments:
-            monitor_environments = {
-                monitor_environment.pop("monitor_id"): {
-                    monitor_environment.pop("name"): monitor_environment
-                }
-                for monitor_environment in serialize(
-                    list(
-                        MonitorEnvironment.objects.filter(
-                            monitor__in=item_list, environment__in=self.environments
-                        ).select_related("environment")
-                    ),
-                    user,
+            monitor_environments = {}
+            for monitor_environment in MonitorEnvironment.objects.filter(
+                monitor__in=item_list, environment__in=self.environments
+            ).select_related("environment"):
+                monitor_environments.setdefault(monitor_environment.monitor_id, []).append(
+                    serialize(
+                        monitor_environment,
+                        user,
+                    )
                 )
-            }
 
             environment_data = {str(item.id): monitor_environments[item.id] for item in item_list}
 
