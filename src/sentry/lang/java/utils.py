@@ -33,7 +33,7 @@ def get_proguard_images(event: Event):
 
 
 def get_proguard_mapper(uuid: str, project: Project):
-    with sentry_sdk.start_span(op="proguard.get_proguard_mapper") as span:
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
         debug_file_path = dif_paths.get(uuid)
         if debug_file_path is None:
@@ -46,7 +46,9 @@ def get_proguard_mapper(uuid: str, project: Project):
             sentry_sdk.capture_exception(exc)
             return
 
+    with sentry_sdk.start_span(op="proguard.open"):
         mapper = ProguardMapper.open(debug_file_path)
+
     if not mapper.has_line_info:
         return
 

@@ -4,6 +4,7 @@ import hashlib
 import os
 from collections import defaultdict
 
+import sentry_sdk
 from symbolic import ProguardMapper  # type: ignore
 
 from sentry import features
@@ -94,15 +95,17 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
             for image in images:
                 if image.get("type") == "proguard":
-                    uuid = image.get("uuid")
-                    dif_paths = ProjectDebugFile.difcache.fetch_difs(
-                        project, [uuid], features=["mapping"]
-                    )
-                    debug_file_path = dif_paths.get(uuid)
-                    if debug_file_path is None:
-                        return
+                    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+                        uuid = image.get("uuid")
+                        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                            project, [uuid], features=["mapping"]
+                        )
+                        debug_file_path = dif_paths.get(uuid)
+                        if debug_file_path is None:
+                            return
 
-                    mapper = ProguardMapper.open(debug_file_path)
+                    with sentry_sdk.start_span(op="proguard.open"):
+                        mapper = ProguardMapper.open(debug_file_path)
                     if not mapper.has_line_info:
                         return
                     self.mapper = mapper
