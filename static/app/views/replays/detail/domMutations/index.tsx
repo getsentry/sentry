@@ -23,6 +23,13 @@ type Props = {
   startTimestampMs: number;
 };
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 82,
+};
+
 function DomMutations({replay, startTimestampMs}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
@@ -32,10 +39,7 @@ function DomMutations({replay, startTimestampMs}: Props) {
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const {cache, updateList} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 82,
-    },
+    cellMeasurer,
     ref: listRef,
     deps: [items],
   });
