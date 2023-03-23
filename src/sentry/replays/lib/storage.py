@@ -121,6 +121,7 @@ class StorageBlob(Blob):
             storage.save(self.make_key(segment), BytesIO(value))
         except TooManyRequests:
             # if we 429 because of a dupe segment problem, ignore it
+            metrics.incr("replays.lib.storage.TooManyRequests")
             pass
 
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
