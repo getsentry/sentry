@@ -10,6 +10,7 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
@@ -41,6 +42,10 @@ import useProjects from 'sentry/utils/useProjects';
 
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
+
+const HookCodecovStacktraceLink = HookOrDefault({
+  hookName: 'component:codecov-integration-stacktrace-link',
+});
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -176,26 +181,6 @@ function CodecovLink({
   );
 }
 
-function CodecovPrompt({organization}: {organization: Organization}) {
-  const onOpenCodecovLink = () => {
-    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_PROMPT_CLICKED, {
-      view: 'stacktrace_link',
-      organization,
-    });
-  };
-
-  return (
-    <OpenInLink
-      href="https://about.codecov.io/sign-up-sentry-codecov/"
-      openInNewTab
-      onClick={onOpenCodecovLink}
-    >
-      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      {t('Add Codecov test coverage')}
-    </OpenInLink>
-  );
-}
-
 interface StacktraceLinkProps {
   event: Event;
   frame: Frame;
@@ -307,7 +292,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
             event={event}
           />
         ) : shouldShowCodecovPrompt(organization, match) ? (
-          <CodecovPrompt organization={organization} />
+          <HookCodecovStacktraceLink organization={organization} />
         ) : null}
       </StacktraceLinkWrapper>
     );
