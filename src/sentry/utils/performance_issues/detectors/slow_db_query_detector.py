@@ -60,8 +60,6 @@ class SlowDBQueryDetector(PerformanceDetector):
                 cause_span_ids=[],
                 parent_span_ids=[],
                 offender_span_ids=spans_involved,
-                evidence_data={},
-                evidence_display=[],
             )
 
     def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:

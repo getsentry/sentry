@@ -138,8 +138,6 @@ def pytest_configure(config):
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
 
-    settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
-
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
 
