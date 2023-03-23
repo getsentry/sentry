@@ -729,7 +729,7 @@ class Fetcher:
                 else None,
                 projectartifactbundle__project_id=project_id,
             )
-            .order_by("-date_added")
+            .order_by("-date_uploaded")
             .select_related("file")[:1]
         )
 
@@ -919,7 +919,7 @@ class Fetcher:
                 releaseartifactbundle__dist_name=self.dist.name if self.dist else NULL_STRING,
                 projectartifactbundle__project_id=project_id,
             )
-            .order_by("-date_added")
+            .order_by("-date_uploaded")
             .select_related("file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
