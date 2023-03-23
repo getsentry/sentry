@@ -169,7 +169,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -186,7 +189,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -201,7 +207,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content
