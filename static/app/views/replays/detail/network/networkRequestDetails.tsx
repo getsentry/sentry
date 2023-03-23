@@ -115,13 +115,10 @@ function getData(
     return undefined;
   }
 
+  const queryParams = queryString.parse(span.description?.split('?')?.[1] ?? '');
   return {
-    headers: {
-      [t('Request Headers')]: tryParseData(span.data?.request?.headers),
-      [t('Response Headers')]: tryParseData(span.data?.response?.headers),
-    },
     request: {
-      [t('Query String Parameters')]: queryString.parse(span.description ?? ''),
+      [t('Query String Parameters')]: queryParams,
       [t('Request Payload')]: tryParseData(span.data?.request?.body),
     },
     response: {
