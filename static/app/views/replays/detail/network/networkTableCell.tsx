@@ -54,9 +54,9 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
 
     const isDetailsOpen = getParamValue() === dataIndex;
 
-    const hasNetworkDetails = organization.features.includes(
-      'session-replay-network-details'
-    );
+    const hasNetworkDetails =
+      organization.features.includes('session-replay-network-details') &&
+      ['resource.fetch', 'resource.xhr'].includes(span.op);
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
