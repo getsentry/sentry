@@ -45,6 +45,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   // Due to virtualization, components can be unmounted as the user scrolls, so
   // state needs to be remembered.
   const expandPaths = useRef(new Map<number, Set<string>>());
+  const lastUpdatedRow = useRef<number | null>(null);
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const itemLookup = useMemo(
@@ -146,17 +147,29 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
-                onRowsRendered={({overscanStartIndex, overscanStopIndex}) => {
+                onRowsRendered={({startIndex, stopIndex}) => {
                   // Can't rely cell measurer cache for large lists as rows
                   // will be evicted. Thus we need to call `updateList` when an
                   // expanded row is rendered in order to get the correct
                   // height.
                   const expandedRow = Array.from(expandPaths.current.keys()).find(
-                    i => i > overscanStartIndex && i < overscanStopIndex
+                    i => i > startIndex && i < stopIndex
                   );
 
-                  if (expandedRow) {
+                  if (
+                    expandedRow !== undefined &&
+                    expandedRow !== lastUpdatedRow.current
+                  ) {
+                    lastUpdatedRow.current = expandedRow;
                     updateList();
+                  }
+
+                  if (
+                    lastUpdatedRow.current !== null &&
+                    (lastUpdatedRow.current > stopIndex ||
+                      lastUpdatedRow.current < startIndex)
+                  ) {
+                    lastUpdatedRow.current = null;
                   }
                 }}
                 overscanRowCount={5}
