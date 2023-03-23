@@ -5,6 +5,7 @@ from typing import List, Optional, Tuple
 
 from django.db import IntegrityError, router
 from django.db.models import Q
+from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
 from sentry import options
@@ -302,12 +303,18 @@ def _create_artifact_bundle(
         # We want to save an artifact bundle only if we have found debug ids in the manifest or if the user specified
         # a release for the upload.
         if len(debug_ids_with_types) > 0 or version:
+            now = timezone.now()
+
             artifact_bundle = ArtifactBundle.objects.create(
                 organization_id=org_id,
                 # In case we didn't find the bundle_id in the manifest, we will just generate our own.
                 bundle_id=bundle_id or uuid.uuid4().hex,
                 file=archive_file,
                 artifact_count=artifact_count,
+                # For now these two fields will have the same value but in separate tasks we will update "date_added"
+                # in order to perform partitions rebalancing in the database.
+                date_added=now,
+                date_uploaded=now,
             )
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
@@ -318,6 +325,7 @@ def _create_artifact_bundle(
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our tables.
                     dist_name=dist or "",
                     artifact_bundle=artifact_bundle,
+                    date_added=now,
                 )
 
             for project_id in project_ids or ():
@@ -325,6 +333,7 @@ def _create_artifact_bundle(
                     organization_id=org_id,
                     project_id=project_id,
                     artifact_bundle=artifact_bundle,
+                    date_added=now,
                 )
 
             for source_file_type, debug_id in debug_ids_with_types:
@@ -333,6 +342,7 @@ def _create_artifact_bundle(
                     debug_id=debug_id,
                     artifact_bundle=artifact_bundle,
                     source_file_type=source_file_type.value,
+                    date_added=now,
                 )
 
             _remove_duplicate_artifact_bundles(artifact_bundle.id, bundle_id)
