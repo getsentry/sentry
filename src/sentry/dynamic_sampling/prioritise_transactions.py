@@ -1,7 +1,7 @@
 import logging
 import time
 from datetime import datetime, timedelta
-from typing import Iterator, List, Optional, Tuple, TypedDict, cast
+from typing import Callable, Iterator, List, Optional, Tuple, TypedDict, cast
 
 from snuba_sdk import (
     AliasedExpression,
@@ -32,17 +32,49 @@ CHUNK_SIZE = 9998  # Snuba's limit is 10000 and we fetch CHUNK_SIZE+1
 QUERY_TIME_INTERVAL = timedelta(hours=1)
 
 
+class ProjectIdentity(TypedDict, total=True):
+    """
+    Project identity, used to match projects and also to
+    order them
+    """
+
+    project_id: int
+    org_id: int
+
+
 class ProjectTransactions(TypedDict, total=True):
+    """
+    Information about the project transactions
+
+    """
+
     project_id: int
     org_id: int
     transaction_counts: List[Tuple[str, float]]
+    total_num_transactions: Optional[float]
+    total_num_classes: Optional[int]
 
 
 class ProjectTransactionsTotals(TypedDict, total=True):
     project_id: int
     org_id: int
-    num_transactions: float
-    num_classes: int
+    total_num_transactions: float
+    total_num_classes: int
+
+
+def same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]):
+    if left is None and right is None:
+        return True  # both None
+    if left is None or right is None:
+        return False  # one None the other not None
+
+    return left["project_id"] == right["project_id"] and left["org_id"] == right["org_id"]
+
+
+def project_before(left: ProjectIdentity, right: ProjectIdentity):
+    return left["org_id"] < right["org_id"] or (
+        left["org_id"] == right["org_id"] and left["project_id"] < right["project_id"]
+    )
 
 
 def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
@@ -182,8 +214,8 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
             yield {
                 "project_id": proj_id,
                 "org_id": org_id,
-                "num_transactions": num_transactions,
-                "num_classes": num_classes,
+                "total_num_transactions": num_transactions,
+                "total_num_classes": num_classes,
             }
 
     else:
@@ -208,6 +240,11 @@ def fetch_transactions_with_total_volumes(
 
     max_transactions: maximum number of transactions to return
     """
+
+    if max_transactions == 0:
+        # no transactions required from this end (probably we only need transactions from the other end)
+        return None
+
     start_time = time.time()
     offset = 0
     org_ids = list(org_ids)  # just to be sure it is not some other sequence
@@ -270,7 +307,6 @@ def fetch_transactions_with_total_volumes(
 
         if more_results:
             data = data[:-1]
-
         for row in data:
             proj_id = row["project_id"]
             org_id = row["org_id"]
@@ -282,6 +318,8 @@ def fetch_transactions_with_total_volumes(
                         "project_id": cast(int, current_proj_id),
                         "org_id": cast(int, current_org_id),
                         "transaction_counts": transaction_counts,
+                        "total_num_transactions": None,
+                        "total_num_classes": None,
                     }
                 transaction_counts = []
                 current_org_id = org_id
@@ -293,6 +331,8 @@ def fetch_transactions_with_total_volumes(
                     "project_id": cast(int, current_proj_id),
                     "org_id": cast(int, current_org_id),
                     "transaction_counts": transaction_counts,
+                    "total_num_transactions": None,
+                    "total_num_classes": None,
                 }
             break
     else:
@@ -305,48 +345,100 @@ def fetch_transactions_with_total_volumes(
 
 
 def merge_transactions(
-    left: ProjectTransactions, right: ProjectTransactions
+    left: ProjectTransactions,
+    right: Optional[ProjectTransactions],
+    totals: Optional[ProjectTransactionsTotals],
 ) -> ProjectTransactions:
-    if left["org_id"] != right["org_id"]:
+    if left is not None and right is not None and not same_project(left, right):
         raise ValueError(
-            "missmatched orgs while merging transactions", left["org_id"], right["org_id"]
-        )
-    if left["project_id"] != right["project_id"]:
-        raise ValueError(
-            "missmatched projects while merging transactions",
-            left["project_id"],
-            right["project_id"],
+            "mismatched project transactions",
+            (left["org_id"], left["project_id"]),
+            (right["org_id"], right["project_id"]),
         )
 
-    transactions = set()
-    merged_transactions = [*left["transaction_counts"]]
-    for transaction_name, _ in merged_transactions:
-        transactions.add(transaction_name)
+    if totals is not None and not same_project(left, totals):
+        raise ValueError(
+            "mismatched projectTransaction and projectTransactionTotals",
+            (left["org_id"], left["project_id"]),
+            (totals["org_id"], totals["project_id"]),
+        )
 
-    for transaction_name, count in right["transaction_counts"]:
-        if transaction_name not in transactions:
-            # not already in left, add it
-            merged_transactions.append((transaction_name, count))
+    if right is None:
+        merged_transactions = left["transaction_counts"]
+    else:
+        # we have both left and right we need to merge
+        transactions = set()
+        merged_transactions = [*left["transaction_counts"]]
+        for transaction_name, _ in merged_transactions:
+            transactions.add(transaction_name)
+
+        for transaction_name, count in right["transaction_counts"]:
+            if transaction_name not in transactions:
+                # not already in left, add it
+                merged_transactions.append((transaction_name, count))
 
     return {
         "org_id": left["org_id"],
         "project_id": left["project_id"],
         "transaction_counts": merged_transactions,
+        "total_num_transactions": totals["total_num_transactions"] if totals is not None else None,
+        "total_num_classes": totals["total_num_classes"] if totals is not None else None,
     }
 
 
+def next_totals(
+    totals: Iterator[ProjectTransactionsTotals],
+) -> Callable[[ProjectIdentity], Optional[ProjectTransactionsTotals]]:
+    """
+    Advances the total iterator until it reaches the required identity
+
+    Given a match the iterator returns None if it cannot find it ( i.e. it is
+    already past it) or it is at the end (it never terminates, DO NOT use it
+    in a for loop). If it finds the match it will return the total for the match.
+
+    """
+    current: List[Optional[ProjectTransactionsTotals]] = [None]
+
+    def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
+        if same_project(current[0], match):
+            return current[0]
+
+        if current[0] is not None and project_before(match, current[0]):
+            # still haven't reach current no point looking further
+            return None
+
+        for total in totals:
+            if same_project(total, match):
+                # found it
+                return total
+
+            if project_before(match, total):
+                # we passed after match, remember were we are no need to go further
+                current[0] = total
+                return None
+        return None
+
+    return inner
+
+
 def transactions_zip(
+    totals: Iterator[ProjectTransactionsTotals],
     left: Iterator[ProjectTransactions],
     right: Iterator[ProjectTransactions],
 ) -> Iterator[ProjectTransactions]:
     """
     returns a generator that zips left and right (when they match) and when not it re-aligns the sequence
+
+    if it finds a totals to match it consolidates the result with totals information as well
     """
 
     more_right = True
     more_left = True
     left_elm = None
     right_elm = None
+
+    get_next_total = next_totals(totals)
+
     while more_left or more_right:
         if more_right and right_elm is None:
             try:
@@ -361,35 +453,28 @@ def transactions_zip(
                 more_left = False
                 left_elm = None
 
+        if left_elm is None and right_elm is None:
+            return
+
         if right_elm is not None and left_elm is not None:
             # we have both right and left try to merge them if they point to the same entity
-            if (
-                left_elm["org_id"] == right_elm["org_id"]
-                and left_elm["project_id"] == right_elm["project_id"]
-            ):
-                yield merge_transactions(left_elm, right_elm)
+            if same_project(left_elm, right_elm):
+                yield merge_transactions(left_elm, right_elm, get_next_total(left_elm))
                 left_elm = None
                 right_elm = None
-            else:
-                # the two elements do not match see which one is "smaller" and return it, keep the other
-                # for the next iteration
-                if left_elm["org_id"] < right_elm["org_id"]:
-                    yield left_elm
-                    left_elm = None
-                elif left_elm["org_id"] > right_elm["org_id"]:
-                    yield right_elm
-                    right_elm = None
-                # orgs are the sam try projects
-                elif left_elm["project_id"] < right_elm["project_id"]:
-                    yield left_elm
-                    left_elm = None
-                else:  # right_elm["project_id"] > left_elm["project_id"]
-                    yield right_elm
-                    right_elm = None
-        else:
-            if left_elm is not None:
-                yield left_elm
+            elif project_before(left_elm, right_elm):
+                # left is before right (return left keep right for next iteration)
+                yield merge_transactions(left_elm, None, get_next_total(left_elm))
                 left_elm = None
-            if right_elm is not None:
-                yield right_elm
+            else:  # project_before(right_elm, left_elm):
+                # right before left ( return right keep left for next iteration)
+                yield merge_transactions(right_elm, None, get_next_total(right_elm))
+                right_elm = None
+        else:
+            # only one is not None
+            if left_elm is not None:
+                yield merge_transactions(left_elm, None, get_next_total(left_elm))
+                left_elm = None
+            elif right_elm is not None:
+                yield merge_transactions(right_elm, None, get_next_total(right_elm))
                 right_elm = None

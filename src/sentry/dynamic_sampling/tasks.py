@@ -1,13 +1,14 @@
 import logging
 from typing import Optional, Sequence, Tuple
 
-from sentry import features, quotas
+from sentry import features, options, quotas
 from sentry.dynamic_sampling.models.adjustment_models import AdjustedModel
 from sentry.dynamic_sampling.models.transaction_adjustment_model import adjust_sample_rate_full
 from sentry.dynamic_sampling.models.utils import DSElement
 from sentry.dynamic_sampling.prioritise_projects import fetch_projects_with_total_volumes
 from sentry.dynamic_sampling.prioritise_transactions import (
     ProjectTransactions,
+    fetch_project_transaction_totals,
     fetch_transactions_with_total_volumes,
     get_orgs_with_project_counts,
     transactions_zip,
@@ -24,7 +25,6 @@ from sentry.utils import metrics
 
 CACHE_KEY_TTL = 24 * 60 * 60 * 1000  # in milliseconds
 
-# TODO RaduW validate assumptions
 MAX_ORGS_PER_QUERY = 100
 MAX_PROJECTS_PER_QUERY = 5000
 MAX_TRANSACTIONS_PER_PROJECT = 20
@@ -130,20 +130,28 @@ def prioritise_transactions() -> None:
     metrics.incr("sentry.tasks.dynamic_sampling.prioritise_transactions.start", sample_rate=1.0)
     current_org: Optional[Organization] = None
     current_org_enabled = False
+
+    num_big_trans = int(
+        options.get("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions")
+    )
+    num_small_trans = int(
+        options.get("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions")
+    )
+
     with metrics.timer("sentry.tasks.dynamic_sampling.prioritise_transactions", sample_rate=1.0):
         for orgs in get_orgs_with_project_counts(MAX_ORGS_PER_QUERY, MAX_PROJECTS_PER_QUERY):
             # get the low and high transactions
-            # TODO can we do this in one query rather than two
             for project_transactions in transactions_zip(
+                fetch_project_transaction_totals(orgs),
                 fetch_transactions_with_total_volumes(
                     orgs,
                     large_transactions=True,
-                    max_transactions=MAX_TRANSACTIONS_PER_PROJECT // 2,
+                    max_transactions=num_big_trans,
                 ),
                 fetch_transactions_with_total_volumes(
                     orgs,
                     large_transactions=False,
-                    max_transactions=MAX_TRANSACTIONS_PER_PROJECT // 2,
+                    max_transactions=num_small_trans,
                 ),
             ):
 

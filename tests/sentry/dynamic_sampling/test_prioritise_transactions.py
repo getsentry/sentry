@@ -129,20 +129,85 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
 
         for idx, totals in enumerate(fetch_project_transaction_totals(orgs)):
             total_counts, num_classes = self.get_total_counts_for_project(idx)
-            assert totals["num_transactions"] == total_counts
-            assert totals["num_classes"] == num_classes
+            assert totals["total_num_transactions"] == total_counts
+            assert totals["total_num_classes"] == num_classes
 
 
-def test_merge_transactions():
-    t1 = {"project_id": 1, "org_id": 2, "transaction_counts": [("ts1", 10), ("tm2", 100)]}
-    t2 = {"project_id": 1, "org_id": 2, "transaction_counts": [("tm2", 100), ("tl3", 1000)]}
-
-    actual = merge_transactions(t1, t2)
+def test_merge_transactions_full():
+    t1 = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+    t2 = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+    counts = {"project_id": 1, "org_id": 2, "total_num_transactions": 5555, "total_num_classes": 20}
+    actual = merge_transactions(t1, t2, counts)
 
     expected = {
         "project_id": 1,
         "org_id": 2,
         "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
+        "total_num_transactions": 5555,
+        "total_num_classes": 20,
+    }
+
+    assert actual == expected
+
+
+def test_merge_transactions_missing_totals():
+    t1 = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+    t2 = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("tm2", 100), ("tl3", 1000)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+
+    actual = merge_transactions(t1, t2, None)
+
+    expected = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100), ("tl3", 1000)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+
+    assert actual == expected
+
+
+def test_merge_transactions_missing_right():
+    t1 = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100)],
+        "total_num_transactions": None,
+        "total_num_classes": None,
+    }
+    counts = {"project_id": 1, "org_id": 2, "total_num_transactions": 5555, "total_num_classes": 20}
+    actual = merge_transactions(t1, None, counts)
+
+    expected = {
+        "project_id": 1,
+        "org_id": 2,
+        "transaction_counts": [("ts1", 10), ("tm2", 100)],
+        "total_num_transactions": 5555,
+        "total_num_classes": 20,
     }
 
     assert actual == expected
@@ -153,33 +218,46 @@ def test_transactions_zip():
     low = 2
     both = 3
 
-    def pt(org_id: int, proj_id: int, what: int):
+    def pt(org_id: int, proj_id: int, what: int, add_totals: bool = False):
         if what == high:
             transaction_counts = [("tm2", 100), ("tl3", 1000)]
         elif what == low:
             transaction_counts = [("ts1", 10), ("tm2", 100)]
-        else:
+        else:  # what == both
             transaction_counts = [("ts1", 10), ("tm2", 100), ("tl3", 1000)]
         return {
             "project_id": proj_id,
             "org_id": org_id,
-            "transaction_counts": transaction_counts,  # not relevant in zipping
+            "transaction_counts": transaction_counts,
+            "total_num_transactions": 5000 if add_totals else None,
+            "total_num_classes": 5 if add_totals else None,
+        }
+
+    def tot(org_id, proj_id):
+        return {
+            "project_id": proj_id,
+            "org_id": org_id,
+            "total_num_transactions": 5000,
+            "total_num_classes": 5,
         }
 
     trans_low = [pt(1, 1, low), pt(1, 2, low), pt(2, 1, low), pt(2, 3, low), pt(3, 2, low)]
     trans_high = [pt(2, 1, high), (pt(2, 2, high)), pt(3, 1, high), pt(3, 2, high), pt(3, 3, high)]
+    totals = [tot(1, 0), tot(1, 2), tot(1, 3), tot(2, 1), tot(2, 4), tot(3, 1), tot(3, 3)]
 
     expected = [
         pt(1, 1, low),
-        pt(1, 2, low),
-        pt(2, 1, both),
+        pt(1, 2, low, True),
+        pt(2, 1, both, True),
         pt(2, 2, high),
         pt(2, 3, low),
-        pt(3, 1, high),
+        pt(3, 1, high, True),
         pt(3, 2, both),
-        pt(3, 3, high),
+        pt(3, 3, high, True),
     ]
 
-    actual = list(transactions_zip((x for x in trans_low), (x for x in trans_high)))
+    actual = list(
+        transactions_zip((x for x in totals), (x for x in trans_low), (x for x in trans_high))
+    )
 
     assert actual == expected

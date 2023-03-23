@@ -1,13 +1,16 @@
 import operator
 from collections import namedtuple
 from copy import copy
-from typing import List, Mapping, MutableMapping, Tuple
+from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 AdjustedSampleRate = namedtuple("AdjustedSampleRate", "explicit_rates, global_rate")
 
 
 def adjust_sample_rate(
-    classes: List[Tuple[str, float]], rate: float, total_num_classes: int, total: float
+    classes: List[Tuple[str, float]],
+    rate: float,
+    total_num_classes: Optional[int],
+    total: Optional[float],
 ) -> Tuple[MutableMapping[str, float], float]:
     """
     Adjusts sampling rates to bring the number of samples kept in each class as close to
@@ -26,6 +29,11 @@ def adjust_sample_rate(
     """
 
     classes = sorted(classes, key=operator.itemgetter(1))
+
+    if total_num_classes is None or total is None:
+        # we don't have totals information, the best we can do is do a full_adjustment on
+        # the explicit classes and keep the original rate for the rest
+        return adjust_sample_rate_full(classes, rate), rate
 
     # total count for the explicitly specified classes
     total_explicit = get_total(classes)
