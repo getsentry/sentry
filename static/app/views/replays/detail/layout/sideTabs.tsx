@@ -1,4 +1,3 @@
-import {CSSProperties} from 'react';
 import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -13,7 +12,7 @@ const TABS = {
 };
 
 type Props = {
-  className?: CSSProperties;
+  className?: string;
 };
 
 function SideTabs({className}: Props) {
@@ -22,7 +21,7 @@ function SideTabs({className}: Props) {
   const activeTab = getParamValue();
 
   return (
-    <ScrollableTabs className={String(className)} underlined>
+    <ScrollableTabs className={className} underlined>
       {Object.entries(TABS).map(([tab, label]) => (
         <ListLink
           key={tab}

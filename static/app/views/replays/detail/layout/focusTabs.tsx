@@ -1,4 +1,3 @@
-import {CSSProperties} from 'react';
 import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -19,7 +18,7 @@ const ReplayTabs: Record<TabKey, string> = {
 };
 
 type Props = {
-  className?: CSSProperties;
+  className?: string;
 };
 
 function FocusTabs({className}: Props) {
@@ -29,7 +28,7 @@ function FocusTabs({className}: Props) {
   const activeTab = getActiveTab();
 
   return (
-    <ScrollableTabs className={String(className)} underlined>
+    <ScrollableTabs className={className} underlined>
       {Object.entries(ReplayTabs).map(([tab, label]) => (
         <ListLink
           key={tab}
