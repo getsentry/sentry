@@ -122,7 +122,7 @@ function renderGlobalModal(options?: Options) {
    * wait for the modal to be removed to avoid any act warnings.
    */
   function waitForModalToHide() {
-    return rtl.waitForElementToBeRemoved(() => rtl.screen.getByRole('dialog'));
+    return rtl.waitForElementToBeRemoved(() => rtl.screen.queryByRole('dialog'));
   }
 
   return {...result, waitForModalToHide};

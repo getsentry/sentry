@@ -83,7 +83,7 @@ describe('DropdownLink', function () {
         // Click outside
         await userEvent.click(screen.getByTestId('outside-element'), {delay: null});
 
-        await waitForElementToBeRemoved(() => screen.getByText('hi'));
+        await waitForElementToBeRemoved(() => screen.queryByText('hi'));
       });
 
       it('closes when dropdown actor button is clicked', async function () {
