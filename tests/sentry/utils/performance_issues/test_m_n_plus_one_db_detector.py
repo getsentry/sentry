@@ -68,6 +68,8 @@ class MNPlusOneDBDetectorTest(TestCase):
                     "a96783f2f544024a",
                     "8e110c4aa54e4aa0",
                 ],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
         assert problems[0].title == "N+1 Query"

@@ -47,6 +47,8 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -70,6 +72,8 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -85,6 +89,8 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=None,
                 cause_span_ids=None,
                 offender_span_ids=["a05754d3fde2db29"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -106,6 +112,8 @@ class SlowDBQueryDetectorTest(TestCase):
                 parent_span_ids=[],
                 cause_span_ids=[],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
