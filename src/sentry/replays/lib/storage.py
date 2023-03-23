@@ -13,6 +13,7 @@ from typing import List, Optional, Union
 
 from django.conf import settings
 from django.db.utils import IntegrityError
+from google.api_core.exceptions import TooManyRequests
 
 from sentry import options
 from sentry.models.file import File, get_storage
@@ -116,7 +117,11 @@ class StorageBlob(Blob):
     @metrics.wraps("replays.lib.storage.StorageBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         storage = get_storage(self._make_storage_options())
-        storage.save(self.make_key(segment), BytesIO(value))
+        try:
+            storage.save(self.make_key(segment), BytesIO(value))
+        except TooManyRequests:
+            # if we 429 because of a dupe segment problem, ignore it
+            pass
 
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return make_filename(segment)
