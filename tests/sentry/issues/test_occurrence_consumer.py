@@ -59,7 +59,6 @@ def get_test_message(
                 ],
             },
             "tags": {},
-            "debug_meta": {},
             "timestamp": now.isoformat(),
             "received": now.isoformat(),
         }
