@@ -33,6 +33,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "transaction": self._transaction_filter_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
+            constants.RELEASE_ALIAS: self._release_filter_converter,
         }
 
     @property
