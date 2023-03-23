@@ -13,6 +13,7 @@ from sentry.api.event_search import SearchFilter, parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.net.http import connection_from_url
 from sentry.utils import json, metrics
+from sentry.utils.sdk import set_measurement
 
 
 class RetrySkipTimeout(urllib3.Retry):
@@ -98,9 +99,9 @@ def get_from_profiling_service(
                 "Content-Type": "application/json",
             }
         )
-        kwargs["body"] = brotli.compress(
-            json.dumps(json_data).encode("utf-8"), quality=6, mode=brotli.MODE_TEXT
-        )
+        data = json.dumps(json_data).encode("utf-8")
+        set_measurement("payload.size", len(data), unit="byte")
+        kwargs["body"] = brotli.compress(data, quality=6, mode=brotli.MODE_TEXT)
     return _profiling_pool.urlopen(  # type: ignore
         method,
         path,
