@@ -187,7 +187,7 @@ class MonitorCheckInValidator(serializers.Serializer):
         # Support specifying monitor configuration via a check-in
         #
         # NOTE: Most monitor attributes are contextual (project, slug, etc),
-        #       the monitor config is passed in via this checkin searializers
+        #       the monitor config is passed in via this checkin serializer's
         #       monitor_config attribute.
         monitor_config = attrs.get("monitor_config")
         if monitor_config:
@@ -210,7 +210,7 @@ class MonitorCheckInValidator(serializers.Serializer):
             monitor_validator.is_valid(raise_exception=True)
 
             # Drop the `monitor_config` attribute favor in favor of the fully
-            # validate monitor data
+            # validated monitor data
             attrs["monitor"] = monitor_validator.validated_data
             del attrs["monitor_config"]
 
