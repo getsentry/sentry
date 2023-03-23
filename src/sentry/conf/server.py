@@ -1040,7 +1040,7 @@ SENTRY_FEATURES = {
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
-    "organizations:derive-code-mappings": False,
+    "organizations:derive-code-mappings": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
