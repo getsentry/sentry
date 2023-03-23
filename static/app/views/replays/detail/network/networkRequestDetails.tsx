@@ -52,14 +52,12 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     [setDetailRow]
   );
 
-  const visibleTab = getDetailTab();
-  const data = useMemo(() => {
-    return getDataForVisibleTab(item, visibleTab);
-  }, [item, visibleTab]);
-
+  const data = useMemo(() => getData(item), [item]);
   if (!data) {
     return null;
   }
+
+  const visibleTab = getDetailTab();
 
   return (
     <Fragment>
@@ -82,15 +80,15 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
         </CloseButtonWrapper>
       </StyledStacked>
       <ResizeableContainer height={containerSize}>
-        <JSONBlock data={data ?? {}} />
+        <JSONBlock data={data[visibleTab]} />
       </ResizeableContainer>
     </Fragment>
   );
 }
 
-function getDataForVisibleTab(item: NetworkSpan | null, tab: string) {
+function getData(item: NetworkSpan | null) {
   if (!item) {
-    return null;
+    return undefined;
   }
 
   // TODO(replay): check with the SDK first, but the value of *.body might
@@ -100,18 +98,14 @@ function getDataForVisibleTab(item: NetworkSpan | null, tab: string) {
   // time, so try/catch perf shouldn't be an issue.
 
   const empty = undefined;
-  switch (tab) {
-    case 'request':
-      return item.data?.request?.body ?? empty;
-    case 'response':
-      return item.data?.response?.body ?? empty;
-    case 'headers':
-    default:
-      return {
-        request: item.data?.request?.headers ?? empty,
-        response: item.data?.response?.headers ?? empty,
-      };
-  }
+  return {
+    headers: {
+      request: item.data?.request?.headers ?? empty,
+      response: item.data?.response?.headers ?? empty,
+    },
+    request: item.data?.request?.body ?? empty,
+    response: item.data?.response?.body ?? empty,
+  };
 }
 
 const ResizeableContainer = styled('div')<{height: number}>`

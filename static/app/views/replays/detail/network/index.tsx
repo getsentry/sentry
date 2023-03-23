@@ -132,7 +132,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
       <NetworkTable>
         <FluidHeight>
           {networkSpans ? (
-            <InnerTable>
+            <OverflowHidden>
               <AutoSizer onResize={onWrapperResize}>
                 {({height, width}) => (
                   <MultiGrid
@@ -162,7 +162,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                   />
                 )}
               </AutoSizer>
-            </InnerTable>
+            </OverflowHidden>
           ) : (
             <Placeholder height="100%" />
           )}
@@ -182,13 +182,13 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   );
 }
 
-const InnerTable = styled('div')`
+const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
 `;
 
-const NetworkTable = styled(InnerTable)`
+const NetworkTable = styled(OverflowHidden)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
