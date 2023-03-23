@@ -86,7 +86,9 @@ class SentryPermission(ScopedPermission):
     def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         return False
 
-    def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
+    def is_member_disabled_from_limit(
+        self, request: Request, organization: Organization | int
+    ) -> bool:
         return False
 
     def determine_access(self, request: Request, organization: Organization | int) -> None:
@@ -148,7 +150,7 @@ class SentryPermission(ScopedPermission):
                     "access.not-2fa-compliant",
                     extra=extra,
                 )
-                if request.user.is_superuser and organization.id != Superuser.org_id:
+                if request.user.is_superuser and coerce_id_from(organization) != Superuser.org_id:
                     raise SuperuserRequired()
 
                 raise TwoFactorRequired()

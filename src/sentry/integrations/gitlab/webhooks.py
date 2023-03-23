@@ -12,8 +12,9 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.integrations.utils.cleanup import clear_tags_and_context
-from sentry.models import Commit, CommitAuthor, Integration, PullRequest, Repository
+from sentry.models import Commit, CommitAuthor, Organization, PullRequest, Repository
 from sentry.plugins.providers import IntegrationRepositoryProvider
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
@@ -228,35 +229,34 @@ class GitlabWebhookEndpoint(View):
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
 
-        try:
-            integration = (
-                Integration.objects.filter(
-                    provider=self.provider,
-                    external_id=external_id,  # e.g. example.gitlab.com:group-x
-                )
-                .prefetch_related("organizations")
-                .get()
-            )
-            extra = {
-                **extra,
-                **{
-                    "integration": {
-                        # The metadata could be useful to debug
-                        # domain_name -> gitlab.com/getsentry-ecosystem/foo'
-                        # scopes -> ['api']
-                        "metadata": integration.metadata,
-                        "id": integration.id,  # This is useful to query via Redash
-                        "status": integration.status,  # 0 seems to be active
-                    },
-                    # I do not know how we could have multiple integration installation to many organizations
-                    "slugs": ",".join(map(lambda x: x.slug, integration.organizations.all())),
-                },
-            }
-        except Integration.DoesNotExist:
+        integration, install = integration_service.get_organization_context(
+            provider=self.provider, external_id=external_id
+        )
+        organization = None
+        if integration is not None and install is not None:
+            organization = Organization.objects.filter(id=install.organization_id).first()
+
+        if organization is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
             logger.exception(extra["reason"])
             return HttpResponse(status=400, reason=extra["reason"])
+
+        extra = {
+            **extra,
+            **{
+                "integration": {
+                    # The metadata could be useful to debug
+                    # domain_name -> gitlab.com/getsentry-ecosystem/foo'
+                    # scopes -> ['api']
+                    "metadata": integration.metadata,
+                    "id": integration.id,  # This is useful to query via Redash
+                    "status": integration.status,  # 0 seems to be active
+                },
+                # I do not know how we could have multiple integration installation to many organizations
+                "slugs": organization.slug,
+            },
+        }
 
         try:
             if not constant_time_compare(secret, integration.metadata["webhook_secret"]):

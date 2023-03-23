@@ -146,7 +146,6 @@ class DatabaseBackedIntegrationService(IntegrationService):
         limit: int | None = None,
     ) -> List[RpcOrganizationIntegration]:
         oi_kwargs: Dict[str, Any] = {}
-
         if org_integration_ids is not None:
             oi_kwargs["id__in"] = org_integration_ids
         if integration_id is not None:
