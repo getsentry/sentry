@@ -45,8 +45,8 @@ class MonitorSerializer(Serializer):
 
         monitor_environments = {}
         if self.environments:
-            for item in item_list:
-                monitor_environments[str(item.id)] = {
+            monitor_environments = {
+                str(item.id): {
                     me.pop("name"): me
                     for me in serialize(
                         list(
@@ -57,6 +57,8 @@ class MonitorSerializer(Serializer):
                         user,
                     )
                 }
+                for item in item_list
+            }
 
         return {
             item: {
