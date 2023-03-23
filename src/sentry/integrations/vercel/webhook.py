@@ -20,6 +20,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
     SentryAppInstallationToken,
 )
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.http import absolute_uri
@@ -322,19 +323,33 @@ class VercelWebhookEndpoint(Endpoint):
 
         logging_params = {"external_id": external_id, "vercel_project_id": vercel_project_id}
 
-        org_integrations = OrganizationIntegration.objects.select_related("organization").filter(
-            integration__external_id=external_id, integration__provider=self.provider
+        org_integrations = list(
+            OrganizationIntegration.objects.filter(
+                integration__external_id=external_id, integration__provider=self.provider
+            )
         )
         if not org_integrations:
             logger.info("Integration not found", extra=logging_params)
             return self.respond({"detail": "Integration not found"}, status=404)
+
+        orgs = {
+            o.id: o
+            for o in organization_service.get_organizations(
+                user_id=None,
+                scope=None,
+                only_visible=False,
+                organization_ids=[oi.organization_id for oi in org_integrations],
+            )
+        }
 
         # for each org integration, search the configs to find one that matches the vercel project of the webhook
         for org_integration in org_integrations:
             project_mappings = org_integration.config.get("project_mappings") or []
             matched_mappings = list(filter(lambda x: x[1] == vercel_project_id, project_mappings))
             if matched_mappings:
-                organization = org_integration.organization
+                organization = orgs.get(org_integration.organization_id)
+                if organization is None:
+                    continue
                 sentry_project_id = matched_mappings[0][0]
 
                 logging_params["organization_id"] = organization.id
