@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional
 
 from django.db import router
 from django.db.models import Q
@@ -15,7 +15,7 @@ from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifact
 from sentry.utils.db import atomic_transaction
 
 
-class InvalidSortBy(SentryAPIException):
+class InvalidSortParameter(SentryAPIException):
     status_code = status.HTTP_400_BAD_REQUEST
     code = "invalid_sort_by"
     message = "You can either sort via 'date_added' or '-date_added'"
@@ -23,7 +23,7 @@ class InvalidSortBy(SentryAPIException):
 
 class ArtifactBundlesMixin:
     @classmethod
-    def derive_order_by(cls, sort_by: str) -> Optional[Union[str, Response]]:
+    def derive_order_by(cls, sort_by: str) -> Optional[str]:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
@@ -31,7 +31,7 @@ class ArtifactBundlesMixin:
             order_by = "date_uploaded"
             return f"-{order_by}" if is_desc else order_by
 
-        raise InvalidSortBy()
+        raise InvalidSortParameter
 
 
 @region_silo_endpoint
