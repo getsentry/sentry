@@ -62,7 +62,7 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
         """
         try:
             return Integration.objects.get(
-                id=integration_id, organizationintegration_set__organization_id=organization_id
+                id=integration_id, organizationintegration__organization_id=organization_id
             )
         except Integration.DoesNotExist:
             raise Http404
