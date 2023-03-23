@@ -15,9 +15,10 @@ import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
   items: NetworkSpan[];
+  initialHeight?: number;
 };
 
-function NetworkRequestDetails({items}: Props) {
+function NetworkRequestDetails({initialHeight = 100, items}: Props) {
   const {getParamValue: getDetailRow, setParamValue: setDetailRow} = useUrlParams(
     'n_detail_row',
     ''
@@ -38,7 +39,7 @@ function NetworkRequestDetails({items}: Props) {
     size: containerSize,
   } = useResizableDrawer({
     direction: 'up',
-    initialSize: 100,
+    initialSize: initialHeight,
     min: 0,
     onResize: () => {},
   });

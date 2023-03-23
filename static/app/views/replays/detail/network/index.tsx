@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -33,6 +33,11 @@ type Props = {
 function NetworkList({networkSpans, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
+
+  const initialRequestDetailsHeight = useMemo(
+    () => Math.max(150, window.innerHeight * 0.25),
+    []
+  );
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -127,7 +132,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           {networkSpans ? (
             <InnerTable>
               <AutoSizer onResize={onWrapperResize}>
-                {({width, height}) => (
+                {({height, width}) => (
                   <MultiGrid
                     ref={gridRef}
                     cellRenderer={cellRenderer}
@@ -163,7 +168,10 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             organization={organization}
             renderDisabled={false}
           >
-            <NetworkRequestDetails items={items} />
+            <NetworkRequestDetails
+              initialHeight={initialRequestDetailsHeight}
+              items={items}
+            />
           </Feature>
         </FluidHeight>
       </NetworkTable>

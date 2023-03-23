@@ -6,6 +6,7 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
@@ -47,8 +48,13 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     // Rows include the sortable header, the dataIndex does not
     const dataIndex = rowIndex - 1;
 
+    const organization = useOrganization();
     const {currentTime} = useReplayContext();
     const {setParamValue} = useUrlParams('n_detail_row', '');
+
+    const hassNetworkDetails = organization.features.includes(
+      'session-replay-network-details'
+    );
 
     const startMs = span.startTimestamp * 1000;
     const endMs = span.endTimestamp * 1000;
@@ -63,7 +69,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isCurrent,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: () => setParamValue(String(dataIndex)),
+      onClick: hassNetworkDetails ? () => setParamValue(String(dataIndex)) : undefined,
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
@@ -167,12 +173,13 @@ const Cell = styled('div')<{
   isHovered: boolean;
   isStatusError: boolean;
   numeric?: boolean;
+  onClick?: any;
 }>`
   display: flex;
   align-items: center;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
-  cursor: pointer;
+  cursor: ${p => (p.onClick ? 'pointer' : 'inherit')};
 
   ${cellBackground}
   ${cellBorder}
