@@ -62,7 +62,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         environments = get_environments(request, organization)
 
         if environments:
-            queryset = queryset.filter(monitor_environment__environment=environments[0])
+            queryset = queryset.filter(monitor_environment__environment=environments)
 
         return self.paginate(
             request=request,
