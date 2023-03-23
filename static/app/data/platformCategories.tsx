@@ -242,7 +242,7 @@ export const profiling = [
   // php
   'php',
   'php-laravel',
-  'php-symfony',
+  'php-symfony2',
 ] as const;
 
 export const releaseHealth: PlatformKey[] = [
