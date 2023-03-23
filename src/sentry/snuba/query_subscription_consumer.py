@@ -1,5 +1,5 @@
 import logging
-import re
+import time
 from random import random
 from typing import Any, Callable, Dict, Mapping
 
@@ -22,14 +22,12 @@ from dateutil.parser import parse as parse_date
 from django.conf import settings
 from sentry_kafka_schemas import get_schema
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
-    PayloadV2,
     PayloadV3,
     SubscriptionResults,
 )
 
 from sentry import options
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.json_schemas import SUBSCRIPTION_PAYLOAD_VERSIONS, SUBSCRIPTION_WRAPPER_SCHEMA
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
@@ -71,11 +69,7 @@ def parse_message_value(value: str, topic: str) -> SubscriptionResults:
     :param value: A json formatted string
     :return: A dict with the parsed message
     """
-    SUPPORTED_SCHEMA_VERSIONS = [2, 3]
-
-    # entity required for v3
-    # how to validate specific versions?
-    # possible we don't use v2 anymore
+    SUPPORTED_SCHEMA_VERSION = 3
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
         wrapper: SubscriptionResults = json.loads(value)
@@ -88,11 +82,11 @@ def parse_message_value(value: str, topic: str) -> SubscriptionResults:
             raise InvalidSchemaError("Message wrapper does not match schema")
 
     schema_version: int = wrapper["version"]
-    if schema_version not in SUPPORTED_SCHEMA_VERSIONS:
+    if schema_version != SUPPORTED_SCHEMA_VERSION:
         metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
         raise InvalidMessageError("Version specified in wrapper has no schema")
 
-    payload: Union[PayloadV2, PayloadV3] = wrapper["payload"]
+    payload: PayloadV3 = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
@@ -160,23 +154,11 @@ def handle_message(
                 },
             )
             try:
-                if "entity" in contents:
-                    entity_key = contents["entity"]
-                else:
-                    # XXX(ahmed): Remove this logic. This was kept here as backwards compat
-                    # for subscription updates with schema version `2`. However schema version 3
-                    # sends the "entity" in the payload
-                    metrics.incr("query_subscription_consumer.message_value.v2")
-                    entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
-                    entity_match = re.match(entity_regex, contents["request"]["query"])
-                    if not entity_match:
-                        raise InvalidMessageError("Unable to fetch entity from query in message")
-                    entity_key = entity_match.group(2)
                 if topic in topic_to_dataset:
                     _delete_from_snuba(
                         topic_to_dataset[topic],
                         contents["subscription_id"],
-                        EntityKey(entity_key),
+                        EntityKey(contents["entity"]),
                     )
                 else:
                     logger.error(

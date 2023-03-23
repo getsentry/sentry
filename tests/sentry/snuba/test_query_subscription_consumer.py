@@ -50,15 +50,6 @@ class BaseQuerySubscriptionTest:
             "timestamp": "2020-01-01T01:23:45.1234",
         }
 
-    @cached_property
-    def old_payload(self):
-        return {
-            "subscription_id": "1234",
-            "result": {"data": [{"hello": 50}]},
-            "request": {"some": "data"},
-            "timestamp": "2020-01-01T01:23:45.1234",
-        }
-
     def build_mock_message(self, data, topic=None):
         message = mock.Mock()
         message.value.return_value = json.dumps(data)
@@ -148,7 +139,7 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
 
     def test_invalid_version(self):
         with pytest.raises(InvalidMessageError) as excinfo:
-            self.run_test({"version": 50, "payload": {}})
+            self.run_test({"version": 50, "payload": self.valid_payload})
         assert str(excinfo.value) == "Version specified in wrapper has no schema"
 
     def test_valid(self):
@@ -158,9 +149,6 @@ class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
         payload = deepcopy(self.valid_payload)
         payload["result"]["data"][0]["hello"] = float("nan")
         self.run_test({"version": 3, "payload": payload})
-
-    def test_old_version(self):
-        self.run_test({"version": 2, "payload": self.old_payload})
 
     def test_invalid_wrapper(self):
         self.run_invalid_schema_test({})
