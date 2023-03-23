@@ -17,7 +17,7 @@ CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
-CODECOV_TIMEOUT = 2
+CODECOV_TIMEOUT = 10
 
 logger = logging.getLogger(__name__)
 
@@ -161,6 +161,7 @@ def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[
     except requests.Timeout:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
+            scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
         return {
             "status": status.HTTP_408_REQUEST_TIMEOUT,
         }, "Codecov request timed out. Continuing execution."
