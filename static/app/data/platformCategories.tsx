@@ -239,6 +239,8 @@ export const profiling = [
   'python-rq',
   // rust
   'rust',
+  // php
+  'php',
 ] as const;
 
 export const releaseHealth: PlatformKey[] = [
