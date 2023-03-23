@@ -41,18 +41,35 @@ function MessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
     breadcrumb.message &&
     typeof breadcrumb.message === 'string' &&
     args.length <= 2 &&
-    isObject(args[0]) &&
-    objectIsEmpty(args[0]);
+    isObject(args[0]);
 
-  if (isSerializedError && breadcrumb.message) {
-    // Turn this back into an Error object so <Format> can pretty print it
-    const fakeError = new Error(breadcrumb.message.split('\n')[0].trim());
+  // Turn this back into an Error object so <Format> can pretty print it
+  if (isSerializedError && objectIsEmpty(args[0]) && breadcrumb.message) {
+    // Sometimes message can include stacktrace
+    const splitMessage = breadcrumb.message.split('\n');
+    const errorMessagePiece = splitMessage[0].trim();
+    // Error.prototype.toString() will prepend the error type meaning it will
+    // not be the same as `message` property. We want message only when
+    // creating a new Error instance, otherwise the type will repeat.
+    const errorMessageSplit = errorMessagePiece.split('Error: ');
+    // Restitch together in case there were other `Error: ` strings in the message
+    const errorMessage = errorMessageSplit
+      .splice(errorMessageSplit.length - 1)
+      .join('Error: ');
+    const fakeError = new Error(errorMessage);
 
     try {
-      fakeError.stack = args[1];
+      // Messages generally do not include stack trace due to SDK serialization
+      fakeError.stack = args.length === 2 ? args[1] : undefined;
+
+      // Re-create the error name
+      if (errorMessageSplit.length > 1) {
+        fakeError.name = errorMessageSplit[0] + 'Error: ';
+      }
     } catch {
-      // Some browsers won't allow you to write to stack property}
+      // Some browsers won't allow you to write to error properties
     }
+
     args = [fakeError];
   }
 
