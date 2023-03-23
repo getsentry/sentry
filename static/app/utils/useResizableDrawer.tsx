@@ -65,6 +65,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
 
   const onMouseMove = useCallback(
     (event: MouseEvent) => {
+      // these read from options, they're constant inside the mousemove event:
       const isXAxis = options.direction === 'left' || options.direction === 'right';
       const isInverted = options.direction === 'down' || options.direction === 'left';
 
@@ -84,9 +85,11 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
           return;
         }
 
+        // why store both? just store the one we care about
         const newPositionVector: [number, number] = [event.clientX, event.clientY];
         const newAxisPosition = isXAxis ? newPositionVector[0] : newPositionVector[1];
 
+        // if we store one, then no need for this condition:
         const currentAxisPosition = isXAxis
           ? currentMouseVectorRaf.current[0]
           : currentMouseVectorRaf.current[1];
@@ -119,6 +122,7 @@ export function useResizableDrawer(options: UseResizableDrawerOptions): {
   const onMouseDown = useCallback(
     (evt: React.MouseEvent<HTMLElement>) => {
       setIsHeld(true);
+      // just store the one we care about:
       currentMouseVectorRaf.current = [evt.clientX, evt.clientY];
 
       document.addEventListener('mousemove', onMouseMove, {passive: true});
