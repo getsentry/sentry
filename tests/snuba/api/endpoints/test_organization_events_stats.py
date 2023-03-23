@@ -1057,7 +1057,6 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             event_data["data"]["event_id"] = f"a{i}" * 16
             self.store_event(event_data["data"], project_id=event_data["project"].id)
 
-        # Query for count and count()
         data = {
             "start": iso_format(self.day_ago),
             "end": iso_format(self.day_ago + timedelta(hours=2)),
@@ -1065,17 +1064,16 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
             "yAxis": "count()",
             "orderby": ["-count()"],
             "field": ["count()", "group_id"],
-            "topEvents": 5,
             "partial": 1,
         }
         response = self.client.get(self.url, data, format="json")
         assert response.status_code == 200
-        assert response.data["testing"]["data"][0][1] == [{"count": 7}]
+        assert response.data["data"][0][1] == [{"count": 8}]
 
         data["query"] = "group_id:testing"
         response = self.client.get(self.url, data, format="json")
         assert response.status_code == 200
-        assert response.data["testing"]["data"][0][1] == [{"count": 7}]
+        assert response.data["data"][0][1] == [{"count": 7}]
 
         data["query"] = "group_id:abc"
         response = self.client.get(self.url, data, format="json")
