@@ -60,6 +60,12 @@ repos:
       require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
+    - id: trufflehog
+      name: TruffleHog
+      description: Detect secrets in your data.
+      entry: bash -c 'trufflehog git file://. --since-commit HEAD --fail'
+      language: system
+      stages: [ "commit", "push" ]
 
 -   repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.21.0
