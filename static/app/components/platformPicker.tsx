@@ -60,6 +60,7 @@ class PlatformPicker extends Component<PlatformPickerProps, State> {
 
   get platformList() {
     const {category} = this.state;
+
     const currentCategory = categoryList.find(({id}) => id === category);
 
     const filter = this.state.filter.toLowerCase();

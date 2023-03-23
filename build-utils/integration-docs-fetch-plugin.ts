@@ -35,8 +35,8 @@ type PlatformsData = {
   platforms: Record<string, PlatformItem>;
 };
 
-const transformPlatformsToList = ({platforms}: PlatformsData) =>
-  Object.keys(platforms)
+const transformPlatformsToList = ({platforms}: PlatformsData) => {
+  return Object.keys(platforms)
     .map(platformId => {
       const integrationMap = platforms[platformId];
       const integrations = Object.keys(integrationMap)
@@ -55,6 +55,7 @@ const transformPlatformsToList = ({platforms}: PlatformsData) =>
       };
     })
     .sort(alphaSortFromKey(item => item.name));
+};
 
 class IntegrationDocsFetchPlugin {
   modulePath: string;

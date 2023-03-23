@@ -346,12 +346,17 @@ export function removeProject(
  * @param projectSlug Project Slug
  * @param platform Project platform.
  */
-export function loadDocs(
-  api: Client,
-  orgSlug: string,
-  projectSlug: string,
-  platform: PlatformKey
-) {
+export function loadDocs({
+  api,
+  orgSlug,
+  projectSlug,
+  platform,
+}: {
+  api: Client;
+  orgSlug: string;
+  platform: PlatformKey;
+  projectSlug: string;
+}) {
   return api.requestPromise(`/projects/${orgSlug}/${projectSlug}/docs/${platform}/`);
 }
 

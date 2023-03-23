@@ -31,7 +31,7 @@ import GenericFooter from './genericFooter';
 type Props = {
   clearPlatforms: () => void;
   genSkipOnboardingLink: () => React.ReactNode;
-  onComplete: () => void;
+  onComplete: (selectedPlatforms: PlatformKey[]) => void;
   organization: Organization;
   platforms: PlatformKey[];
 };
@@ -49,11 +49,10 @@ export default function CreateProjectsFooter({
 
   const api = useApi();
   const {teams} = useTeams();
-  const [persistedOnboardingState, setPersistedOnboardingState] =
-    usePersistedOnboardingState();
+  const [clientState, setClientState] = usePersistedOnboardingState();
 
   const createProjects = async () => {
-    if (!persistedOnboardingState) {
+    if (!clientState) {
       // Do nothing if client state is not loaded yet.
       return;
     }
@@ -65,7 +64,7 @@ export default function CreateProjectsFooter({
 
       const responses = await Promise.all(
         platforms
-          .filter(platform => !persistedOnboardingState.platformToProjectIdMap[platform])
+          .filter(platform => !clientState.platformToProjectIdMap[platform])
           .map(platform =>
             createProject(api, organization.slug, teams[0].slug, platform, platform, {
               defaultRules: true,
@@ -73,13 +72,13 @@ export default function CreateProjectsFooter({
           )
       );
       const nextState: OnboardingState = {
-        platformToProjectIdMap: persistedOnboardingState.platformToProjectIdMap,
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
         selectedPlatforms: platforms,
         state: 'projects_selected',
         url: 'setup-docs/',
       };
       responses.forEach(p => (nextState.platformToProjectIdMap[p.platform] = p.slug));
-      setPersistedOnboardingState(nextState);
+      setClientState(nextState);
 
       responses.forEach(data => ProjectsStore.onCreateSuccess(data, organization.slug));
 
@@ -89,7 +88,7 @@ export default function CreateProjectsFooter({
         organization,
       });
       clearIndicators();
-      setTimeout(onComplete);
+      setTimeout(() => onComplete(platforms));
     } catch (err) {
       addErrorMessage(
         singleSelectPlatform

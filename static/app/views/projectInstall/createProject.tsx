@@ -237,8 +237,12 @@ class CreateProject extends Component<Props, State> {
       ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
       const platformKey = platform || 'other';
-      const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
-      browserHistory.push(normalizeUrl(nextUrl));
+
+      browserHistory.push(
+        normalizeUrl(
+          `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
+        )
+      );
     } catch (err) {
       this.setState({
         inFlight: false,

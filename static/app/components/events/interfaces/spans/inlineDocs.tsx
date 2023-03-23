@@ -65,7 +65,12 @@ class InlineDocs extends Component<Props, State> {
     }
 
     try {
-      const {html, link} = await loadDocs(api, orgSlug, projectSlug, tracingPlatform);
+      const {html, link} = await loadDocs({
+        api,
+        orgSlug,
+        projectSlug,
+        platform: tracingPlatform,
+      });
       this.setState({html, link});
     } catch (error) {
       Sentry.captureException(error);
