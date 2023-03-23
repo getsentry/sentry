@@ -184,8 +184,8 @@ def query_replays_count(
             select=[
                 _strip_uuid_dashes("replay_id", Column("replay_id")),
                 Function(
-                    "notEmpty",
-                    parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+                    "any",
+                    parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
                     alias="is_archived",
                 ),
             ],
@@ -637,8 +637,8 @@ QUERY_ALIAS_COLUMN_MAP = {
         alias="count_urls",
     ),
     "is_archived": Function(
-        "notEmpty",
-        parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+        "any",
+        parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
         alias="isArchived",
     ),
     "activity": _activity_score(),
