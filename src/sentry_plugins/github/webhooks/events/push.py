@@ -168,7 +168,7 @@ class PushEventWebhook(Webhook):
                 external_id=event["installation"]["id"], provider="github_apps"
             )
             organizations = list(
-                integration.organizationintegrations.values_list("organization_id", flat=True)
+                integration.organizationintegration_set.values_list("organization_id", flat=True)
             )
         else:
             organizations = [coerce_id_from(organization)]
