@@ -90,6 +90,7 @@ from sentry.models import (
     UserPermission,
     UserReport,
 )
+from sentry.models.actor import get_actor_id_for_user
 from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration_feature import Feature, IntegrationTypes
 from sentry.models.notificationaction import (
@@ -1303,7 +1304,8 @@ class Factories:
         kwargs.setdefault("provider", ExternalProviders.GITHUB.value)
         kwargs.setdefault("external_name", "")
 
-        return ExternalActor.objects.create(actor=user.actor, **kwargs)
+        actor_id = get_actor_id_for_user(user)
+        return ExternalActor.objects.create(actor_id=actor_id, **kwargs)
 
     @staticmethod
     @exempt_from_silo_limits()

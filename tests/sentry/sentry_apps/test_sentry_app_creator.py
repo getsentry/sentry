@@ -11,7 +11,6 @@ from sentry.models import (
     SentryAppComponent,
     SentryAppInstallation,
     User,
-    actor,
 )
 from sentry.models.integrations.integration_feature import IntegrationTypes
 from sentry.sentry_apps.apps import SentryAppCreator
@@ -23,11 +22,6 @@ from sentry.testutils.silo import control_silo_test
 @control_silo_test(stable=True)
 class TestCreator(TestCase):
     def setUp(self):
-        actor.pre_save.disconnect(
-            dispatch_uid="handle_actor_pre_save",
-            sender="sentry.User",
-            receiver=actor.handle_actor_pre_save,
-        )
         self.user = self.create_user(email="foo@bar.com", username="scuba_steve")
         self.org = self.create_organization(owner=self.user)
         self.creator = SentryAppCreator(
@@ -38,11 +32,6 @@ class TestCreator(TestCase):
             webhook_url="http://example.com",
             schema={"elements": [self.create_issue_link_schema()]},
             is_internal=False,
-        )
-
-    def tearDown(self):
-        actor.pre_save.connect(
-            actor.handle_actor_pre_save, dispatch_uid="handle_actor_pre_save", sender="sentry.User"
         )
 
     def test_slug(self):

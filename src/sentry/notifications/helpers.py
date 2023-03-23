@@ -297,7 +297,7 @@ def get_target_id(user: User | None = None, team: Team | None = None) -> int:
     """:returns the actor ID from a User or Team."""
     if user:
         if user.actor_id is None:
-            get_actor_id_for_user(user)
+            user.actor_id = get_actor_id_for_user(user)
         return int(user.actor_id)
     if team:
         return int(team.actor_id)
