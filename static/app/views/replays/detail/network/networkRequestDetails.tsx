@@ -1,5 +1,6 @@
 import {Fragment, MouseEvent, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
+import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
 import JSONBlock from 'sentry/components/jsonBlock';
@@ -10,7 +11,9 @@ import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
-import NetworkRequestTabs from 'sentry/views/replays/detail/network/networkRequestTabs';
+import NetworkRequestTabs, {
+  TabKey,
+} from 'sentry/views/replays/detail/network/networkRequestTabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
@@ -58,7 +61,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
   }
 
   const visibleTab = getDetailTab();
-
+  const tabSections = data[visibleTab];
   return (
     <Fragment>
       <StyledStacked>
@@ -79,9 +82,16 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
           />
         </CloseButtonWrapper>
       </StyledStacked>
-      <ResizeableContainer height={containerSize}>
-        <JSONBlock data={data[visibleTab]} />
-      </ResizeableContainer>
+      <SectionList height={containerSize}>
+        {Object.entries(tabSections).map(([label, sectionData]) => (
+          <Fragment key={label}>
+            <SectionTitle>{label}</SectionTitle>
+            <SectionData>
+              <JSONBlock data={sectionData} />
+            </SectionData>
+          </Fragment>
+        ))}
+      </SectionList>
     </Fragment>
   );
 }
@@ -98,25 +108,27 @@ function tryParseData(
   }
 }
 
-function getData(item: NetworkSpan | null) {
-  if (!item) {
+function getData(
+  span: NetworkSpan | null
+): undefined | Record<TabKey, Record<string, unknown>> {
+  if (!span) {
     return undefined;
   }
+
   return {
     headers: {
-      request: tryParseData(item.data?.request?.headers),
-      response: tryParseData(item.data?.response?.headers),
+      [t('Request Headers')]: tryParseData(span.data?.request?.headers),
+      [t('Response Headers')]: tryParseData(span.data?.response?.headers),
     },
-    request: tryParseData(item.data?.request?.body),
-    response: tryParseData(item.data?.response?.body),
+    request: {
+      [t('Query String Parameters')]: queryString.parse(span.description ?? ''),
+      [t('Request Payload')]: tryParseData(span.data?.request?.body),
+    },
+    response: {
+      [t('Response Body')]: tryParseData(span.data?.response?.body),
+    },
   };
 }
-
-const ResizeableContainer = styled('div')<{height: number}>`
-  height: ${p => p.height}px;
-  overflow: scroll;
-  padding: ${space(1)};
-`;
 
 const StyledStacked = styled(Stacked)`
   position: relative;
@@ -165,6 +177,24 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   :hover {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
+`;
+
+const SectionList = styled('dl')<{height: number}>`
+  height: ${p => p.height}px;
+  overflow: scroll;
+  padding: ${space(1)};
+`;
+
+const SectionTitle = styled('dt')`
+  ${p => p.theme.overflowEllipsis};
+  text-transform: capitalize;
+  font-weight: 600;
+  color: ${p => p.theme.gray400};
+  line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const SectionData = styled('dd')`
+  margin-bottom: ${space(2)};
 `;
 
 export default NetworkRequestDetails;

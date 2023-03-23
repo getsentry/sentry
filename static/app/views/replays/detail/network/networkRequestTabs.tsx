@@ -18,6 +18,8 @@ const TABS: Record<string, ReactText> = {
   response: t('Response'),
 };
 
+export type TabKey = keyof typeof TABS;
+
 function NetworkRequestTabs({className, underlined = true}: Props) {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('n_details_tab', 'headers');
