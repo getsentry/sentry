@@ -117,6 +117,13 @@ class ProcessingIssueManager(BaseManager):
             if is_valid_release():
                 issue.data["release"] = release
 
+                # In case we have a dist, we want to remove it, since we are changing release. Then in the next step
+                # we might either add the dist or not.
+                # This code is put to avoid the edge case in which a newer release comes without a dist and a previous
+                # dist existed.
+                if "dist" in issue.data:
+                    issue.data.pop("dist")
+
                 if dist is not None:
                     issue.data["dist"] = dist
 
