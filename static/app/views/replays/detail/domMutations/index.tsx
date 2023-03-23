@@ -23,6 +23,13 @@ type Props = {
   startTimestampMs: number;
 };
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 82,
+};
+
 function DomMutations({replay, startTimestampMs}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
 
@@ -31,11 +38,8 @@ function DomMutations({replay, startTimestampMs}: Props) {
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 82,
-    },
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
     ref: listRef,
     deps: [items],
   });
@@ -62,13 +66,13 @@ function DomMutations({replay, startTimestampMs}: Props) {
   };
 
   return (
-    <MutationContainer>
+    <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
       <MutationItemContainer>
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
@@ -92,13 +96,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
           </AutoSizer>
         )}
       </MutationItemContainer>
-    </MutationContainer>
+    </FluidHeight>
   );
 }
-
-const MutationContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const MutationItemContainer = styled('div')`
   position: relative;

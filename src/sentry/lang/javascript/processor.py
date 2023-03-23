@@ -26,11 +26,10 @@ from sentry import features, http, options
 from sentry.event_manager import set_tag
 from sentry.models import (
     NULL_STRING,
+    ArtifactBundle,
     ArtifactBundleArchive,
-    DebugIdArtifactBundle,
     EventError,
     Organization,
-    ReleaseArtifactBundle,
     ReleaseFile,
     SourceFileType,
 )
@@ -659,7 +658,15 @@ class Fetcher:
         self.release = release
         self.dist = dist
         self.allow_scraping = allow_scraping
+        # Mappings between bundle_id -> ArtifactBundleArchive to keep all the open archives in memory.
         self.open_archives = {}
+        # Set that contains all the tuples (debug_id, source_file_type) for which the query returned an empty result.
+        # Here we don't put the project in the set, under the assumption that the project will remain the same for the
+        # whole lifecycle of the Fetcher.
+        self.empty_result_for_debug_ids = set()
+        # Set that contains all the tuples (release, dist) of a bundle for which the query returned an empty result.
+        # Here we also don't put the project for the same reasoning as above.
+        self.empty_result_for_releases = set()
 
     def bind_release(self, release=None, dist=None):
         """
@@ -697,7 +704,7 @@ class Fetcher:
 
         return None
 
-    def _get_debug_id_artifact_bundle_entry(self, debug_id, source_file_type):
+    def _get_artifact_bundle_entry_by_debug_id(self, debug_id, source_file_type):
         """
         Gets the DebugIdArtifactBundle entry that maps the debug_id and source_file_type to a specific ArtifactBundle.
 
@@ -705,17 +712,37 @@ class Fetcher:
         decided to take the first element from the result set, but we could use a stronger heuristic like taking the
         newest entry.
         """
-        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
-        #  we have permissions on not all the bundles.
-        return (
-            DebugIdArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
-                debug_id=debug_id,
-                source_file_type=source_file_type.value if source_file_type is not None else None,
+        project_id = self.project.id if self.project else None
+
+        if (debug_id, source_file_type) in self.empty_result_for_debug_ids:
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"that contain debug_id {debug_id} for source_file_type {source_file_type}"
             )
-            .order_by("-date_added")
-            .select_related("artifact_bundle__file")[:1][0]
+
+        entry = list(
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                debugidartifactbundle__debug_id=debug_id,
+                debugidartifactbundle__source_file_type=source_file_type.value
+                if source_file_type is not None
+                else None,
+                projectartifactbundle__project_id=project_id,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[:1]
         )
+
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
+        if len(entry) == 0:
+            self.empty_result_for_debug_ids.add((debug_id, source_file_type))
+            raise Exception(
+                f"There are no artifact bundles bound to project {self.project.id}"
+                f"that contain debug_id {debug_id} for source_file_type {source_file_type}"
+            )
+
+        return entry[0]
 
     @staticmethod
     def _fetch_artifact_bundle_file(artifact_bundle):
@@ -779,10 +806,9 @@ class Fetcher:
 
             # We want to run a query to determine the artifact bundle that contains the tuple
             # (debug_id, source_file_type).
-            artifact_bundle = self._get_debug_id_artifact_bundle_entry(
+            artifact_bundle = self._get_artifact_bundle_entry_by_debug_id(
                 debug_id, source_file_type
-            ).artifact_bundle
-
+            )
             artifact_bundle_id = artifact_bundle.id
 
             # Given an artifact bundle id we check in the local cache if we have the archive already opened.
@@ -868,7 +894,7 @@ class Fetcher:
 
         return result
 
-    def _get_release_artifact_bundle_entries(self):
+    def _get_artifact_bundle_entries_by_release_dist_pair(self):
         """
         Gets the MAX_ARTIFACT_NUMBER most recent entries in the ReleaseArtifactBundle table together with the respective
         ArtifactBundle and the connected File.
@@ -878,18 +904,35 @@ class Fetcher:
         if self.release is None:
             return []
 
-        # TODO: in the future we would like to load all the artifact bundles that are connected to the projects
-        #  we have permissions on not all the bundles.
-        entries = (
-            ReleaseArtifactBundle.objects.filter(
-                organization_id=self.organization.id,
-                release_name=self.release.version,
-                dist_name=self.dist.name if self.dist else NULL_STRING,
+        project_id = self.project.id if self.project else None
+
+        if (self.release, self.dist) in self.empty_result_for_releases:
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"for release {self.release} and dist {self.dist}"
             )
-            .order_by("-date_added")
-            .select_related("artifact_bundle__file")[: MAX_ARTIFACTS_NUMBER + 1]
+
+        entries = list(
+            ArtifactBundle.objects.filter(
+                organization_id=self.organization.id,
+                releaseartifactbundle__release_name=self.release.version,
+                releaseartifactbundle__dist_name=self.dist.name if self.dist else NULL_STRING,
+                projectartifactbundle__project_id=project_id,
+            )
+            .order_by("-date_uploaded")
+            .select_related("file")[: MAX_ARTIFACTS_NUMBER + 1]
         )
 
+        # In case we didn't find any matching result, we will cache that this query had an empty result in order to
+        # avoid making the query for subsequent frames.
+        if len(entries) == 0:
+            self.empty_result_for_releases.add((self.release, self.dist))
+            raise Exception(
+                f"There are no artifact bundles bound to project {project_id}"
+                f"for release {self.release} and dist {self.dist}"
+            )
+
+        # We want to log if the user has more artifacts than the current max.
         if len(entries) > MAX_ARTIFACTS_NUMBER:
             logger.debug(
                 f"The number of artifact bundles for the release {self.release.version}"
@@ -920,9 +963,8 @@ class Fetcher:
             if cached_open_archive:
                 return cached_open_archive
 
-            release_artifact_bundles = self._get_release_artifact_bundle_entries()
-            for release_artifact_bundle in release_artifact_bundles:
-                artifact_bundle = release_artifact_bundle.artifact_bundle
+            artifact_bundles = self._get_artifact_bundle_entries_by_release_dist_pair()
+            for artifact_bundle in artifact_bundles:
                 cached_open_archive = self.open_archives.get(artifact_bundle.id)
 
                 # In case the archive is marked as INVALID_ARCHIVE we are just going to continue in the hope of

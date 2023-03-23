@@ -87,15 +87,16 @@ describe('Dashboards > Create', function () {
       );
       renderGlobalModal({context: initialData.routerContext});
 
-      userEvent.click(await screen.findByTestId('widget-add'));
+      await userEvent.click(await screen.findByTestId('widget-add'));
 
       // Add a custom widget to the dashboard
-      userEvent.click(await screen.findByText('Custom Widget'));
-      userEvent.paste(screen.getByTestId('widget-title-input'), 'Widget Title');
-      userEvent.click(screen.getByText('Save'));
+      await userEvent.click(await screen.findByText('Custom Widget'));
+      await userEvent.click(screen.getByTestId('widget-title-input'));
+      await userEvent.paste('Widget Title');
+      await userEvent.click(screen.getByText('Save'));
 
       // Committing dashboard should complete without throwing error
-      userEvent.click(screen.getByText('Save and Finish'));
+      await userEvent.click(screen.getByText('Save and Finish'));
     });
   });
 });

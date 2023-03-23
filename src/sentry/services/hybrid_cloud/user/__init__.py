@@ -10,11 +10,12 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
 
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.filter_query import FilterQueryInterface
+from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Group
+    from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
 @dataclass(frozen=True, eq=True)
@@ -82,9 +83,6 @@ class RpcUser:
     def get_full_name(self) -> str:
         return self.name
 
-    def get_short_name(self) -> str:
-        return self.username
-
     def get_avatar_type(self) -> str:
         if self.avatar is not None:
             return self.avatar.avatar_type
@@ -118,9 +116,22 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
 
 
-class UserService(
-    FilterQueryInterface[UserFilterArgs, RpcUser, UserSerializeType], InterfaceWithLifecycle
-):
+class UserService(InterfaceWithLifecycle):
+    @abstractmethod
+    def serialize_many(
+        self,
+        *,
+        filter: UserFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional["AuthenticationContext"] = None,
+        serializer: Optional[UserSerializeType] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        pass
+
+    @abstractmethod
+    def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
+        pass
+
     @abstractmethod
     def get_many_by_email(
         self,

@@ -8,16 +8,17 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
+import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigSpaceTranslationBetweenVectors,
   getMinimapCanvasCursor,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -50,6 +51,7 @@ function FlamegraphZoomViewMinimap({
   setFlamegraphMiniMapOverlayCanvasRef,
 }: FlamegraphZoomViewMinimapProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
+  const {colorCoding} = useFlamegraphPreferences();
   const [lastInteraction, setLastInteraction] = useState<
     'pan' | 'click' | 'zoom' | 'scroll' | 'select' | 'resize' | null
   >(null);
@@ -77,9 +79,10 @@ function FlamegraphZoomViewMinimap({
     return new FlamegraphRendererWebGL(
       flamegraphMiniMapCanvasRef,
       flamegraph,
-      flamegraphTheme
+      flamegraphTheme,
+      {colorCoding, draw_border: false}
     );
-  }, [flamegraph, flamegraphMiniMapCanvasRef, flamegraphTheme]);
+  }, [flamegraph, flamegraphMiniMapCanvasRef, colorCoding, flamegraphTheme]);
 
   const positionIndicatorRenderer: PositionIndicatorRenderer | null = useMemo(() => {
     if (!flamegraphMiniMapOverlayCanvasRef) {
@@ -391,7 +394,7 @@ function FlamegraphZoomViewMinimap({
         onMouseLeave={onMinimapCanvasMouseUp}
         onDoubleClick={onMinimapCanvasDoubleClick}
         cursor={getMinimapCanvasCursor(
-          flamegraphMiniMapView?.configView,
+          flamegraphMiniMapView?.toOriginConfigView(flamegraphMiniMapView.configView),
           configSpaceCursor,
           miniMapConfigSpaceBorderSize
         )}

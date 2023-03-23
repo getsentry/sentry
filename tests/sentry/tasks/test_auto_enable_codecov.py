@@ -25,20 +25,20 @@ class AutoEnableCodecovTest(TestCase):
 
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=200,
         )
 
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/fakegit/repos",
+            "https://api.codecov.io/api/v2/github/fakegit",
             status=404,
         )
 
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value={"repositories": [{"full_name": "testgit/abc"}]},
+        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_has_codecov_integration(self, mock_get_repositories):
         AuditLogEntry.objects.all().delete()

@@ -159,7 +159,9 @@ class OrganizationMixin:
             organization_slug = request.subdomain
         return organization_slug  # type: ignore[no-any-return]
 
-    def is_not_2fa_compliant(self, request: Request, organization: RpcOrganization) -> bool:
+    def is_not_2fa_compliant(
+        self, request: Request, organization: RpcOrganization | Organization
+    ) -> bool:
         return (
             organization.flags.require_2fa
             and not request.user.has_2fa()
@@ -167,7 +169,7 @@ class OrganizationMixin:
         )
 
     def is_member_disabled_from_limit(
-        self, request: Request, organization: RpcOrganization
+        self, request: Request, organization: RpcUserOrganizationContext | RpcOrganization
     ) -> bool:
         return is_member_disabled_from_limit(request, organization)
 

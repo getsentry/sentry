@@ -1,6 +1,7 @@
 import React from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
+import startCase from 'lodash/startCase';
 
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -19,11 +20,13 @@ import {IconSubtract} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Member, Organization, Team} from 'sentry/types';
+import {getEffectiveOrgRole} from 'sentry/utils/orgRole';
 import useTeams from 'sentry/utils/useTeams';
 import {
   hasOrgRoleOverwrite,
   RoleOverwritePanelAlert,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 type Props = {
   /**
@@ -49,6 +52,11 @@ type Props = {
    * if empty no confirm will be displayed.
    */
   confirmLastTeamRemoveMessage?: string;
+  /**
+   * Allow adding to teams with org role
+   * if the user is an org owner
+   */
+  isOrgOwner?: boolean;
   /**
    * Used to determine whether we should show a loading state while waiting for teams
    */
@@ -77,6 +85,7 @@ type Props = {
 
 function TeamSelect({
   disabled,
+  isOrgOwner,
   loadingTeams,
   enforceIdpProvisioned,
   menuHeader,
@@ -92,6 +101,23 @@ function TeamSelect({
   const {teams, onSearch, fetching} = useTeams();
   const {orgRoleList, teamRoleList} = organization;
 
+  const slugsToFilter: string[] =
+    selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
+
+  // Determine if adding a team changes the minimum team-role
+  // Get org roles from team membership, if any
+  const orgRolesFromTeams = teams
+    .filter(team => slugsToFilter.includes(team.slug) && team.orgRole)
+    .map(team => team.orgRole as string);
+
+  if (selectedOrgRole) {
+    orgRolesFromTeams.push(selectedOrgRole);
+  }
+
+  // Sort them and to get the highest priority role
+  // Highest prio role may change minimum team role
+  const effectiveOrgRole = getEffectiveOrgRole(orgRolesFromTeams, orgRoleList)?.id;
+
   const renderBody = () => {
     const numTeams = selectedTeams?.length || selectedTeamRoles?.length;
     if (numTeams === 0) {
@@ -105,9 +131,9 @@ function TeamSelect({
 
     return (
       <React.Fragment>
-        {organization.features.includes('team-roles') && selectedOrgRole && (
+        {organization.features.includes('team-roles') && effectiveOrgRole && (
           <RoleOverwritePanelAlert
-            orgRole={selectedOrgRole}
+            orgRole={effectiveOrgRole}
             orgRoleList={orgRoleList}
             teamRoleList={teamRoleList}
           />
@@ -125,7 +151,7 @@ function TeamSelect({
             />
           ))}
 
-        {selectedOrgRole &&
+        {effectiveOrgRole &&
           selectedTeamRoles &&
           /**
            * "Map + Find" operation is O(n * n), leaving it as it us because it is unlikely to cause performance issues because a Member is unlikely to be in 1000+ teams
@@ -148,7 +174,8 @@ function TeamSelect({
                 confirmMessage={confirmMessage}
                 organization={organization}
                 team={team}
-                selectedOrgRole={selectedOrgRole}
+                isOrgOwner={isOrgOwner ?? false}
+                selectedOrgRole={effectiveOrgRole}
                 selectedTeamRole={r.role}
                 onChangeTeamRole={onChangeTeamRole}
                 onRemoveTeam={slug => onRemoveTeam(slug)}
@@ -159,32 +186,34 @@ function TeamSelect({
     );
   };
 
-  const slugsToFilter =
-    selectedTeams?.map(tm => tm.slug) || selectedTeamRoles?.map(tm => tm.teamSlug) || [];
-
   // Only show options that aren't selected in the dropdown
   const options = teams
     .filter(team => !slugsToFilter.some(slug => slug === team.slug))
-    .map((team, index) => ({
-      index,
-      value: team.slug,
-      searchKey: team.slug,
-      label: () => {
-        if (enforceIdpProvisioned && team.flags['idp:provisioned']) {
-          return (
-            <Tooltip
-              title={t(
-                "Membership to this team is managed through your organization's identity provider."
-              )}
-            >
-              <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
-            </Tooltip>
-          );
-        }
-        return <DropdownTeamBadge avatarSize={18} team={team} />;
-      },
-      disabled: enforceIdpProvisioned && team.flags['idp:provisioned'],
-    }));
+    .map((team, index) => {
+      const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
+
+      return {
+        index,
+        value: team.slug,
+        searchKey: team.slug,
+        label: () => {
+          // TODO(team-roles): team admins can also manage membership
+          const isPermissionGroup = team.orgRole !== null && !isOrgOwner;
+          const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+
+          if (isIdpProvisioned || isPermissionGroup) {
+            return (
+              <Tooltip title={buttonHelpText}>
+                <DropdownTeamBadgeDisabled avatarSize={18} team={team} />
+              </Tooltip>
+            );
+          }
+
+          return <DropdownTeamBadge avatarSize={18} team={team} />;
+        },
+        disabled: disabled || isIdpProvisioned || (team.orgRole !== null && !isOrgOwner),
+      };
+    });
 
   return (
     <Panel>
@@ -258,6 +287,7 @@ const ProjectTeamRow = ({
 
 type MemberTeamRowProps = {
   enforceIdpProvisioned: boolean;
+  isOrgOwner: boolean;
   onChangeTeamRole: Props['onChangeTeamRole'];
   selectedOrgRole: Member['orgRole'];
   selectedTeamRole: Member['teamRoles'][0]['role'];
@@ -270,6 +300,7 @@ const MemberTeamRow = ({
   selectedTeamRole,
   onRemoveTeam,
   onChangeTeamRole,
+  isOrgOwner,
   disabled,
   confirmMessage,
   enforceIdpProvisioned,
@@ -285,11 +316,21 @@ const MemberTeamRow = ({
     ? teamRoleList[1] // set as team admin
     : teamRoleList.find(r => r.id === selectedTeamRole) || teamRoleList[0];
 
+  const orgRoleFromTeam = team.orgRole ? `${startCase(team.orgRole)} Team` : null;
+
+  const isIdpProvisioned = enforceIdpProvisioned && team.flags['idp:provisioned'];
+  const isPermissionGroup = team.orgRole !== null && !isOrgOwner;
+  const isRemoveDisabled = disabled || isIdpProvisioned || isPermissionGroup;
+
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+
   return (
     <TeamPanelItem data-test-id="team-row-for-member">
       <StyledLink to={`/settings/${organization.slug}/teams/${team.slug}/`}>
         <TeamBadge team={team} />
       </StyledLink>
+
+      <TeamOrgRole>{orgRoleFromTeam}</TeamOrgRole>
 
       {organization.features.includes('team-roles') && onChangeTeamRole && (
         <React.Fragment>
@@ -308,19 +349,13 @@ const MemberTeamRow = ({
         message={confirmMessage}
         bypass={!confirmMessage}
         onConfirm={() => onRemoveTeam(team.slug)}
-        disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
+        disabled={isRemoveDisabled}
       >
         <Button
           size="xs"
           icon={<IconSubtract isCircled size="xs" />}
-          disabled={disabled || (enforceIdpProvisioned && team.flags['idp:provisioned'])}
-          title={
-            enforceIdpProvisioned && team.flags['idp:provisioned']
-              ? t(
-                  "Membership to this team is managed through your organization's identity provider."
-                )
-              : undefined
-          }
+          disabled={isRemoveDisabled}
+          title={buttonHelpText}
         >
           {t('Remove')}
         </Button>
@@ -349,7 +384,14 @@ const TeamPanelItem = styled(PanelItem)`
 `;
 
 const StyledLink = styled(Link)`
+  flex-grow: 4;
+`;
+
+const TeamOrgRole = styled('div')`
+  min-width: 90px;
   flex-grow: 1;
+  display: flex;
+  justify-content: center;
 `;
 
 const StyledRoleSelectControl = styled(RoleSelectControl)`

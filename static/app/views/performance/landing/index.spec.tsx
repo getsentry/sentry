@@ -264,14 +264,14 @@ describe('Performance > Landing > Index', function () {
     expect(titles.at(4)).toHaveTextContent('Failure Rate');
   });
 
-  it('Can switch between landing displays', function () {
+  it('Can switch between landing displays', async function () {
     const data = initializeData({
       query: {landingDisplay: LandingDisplayField.FRONTEND_PAGELOAD, abc: '123'},
     });
 
     wrapper = render(<WrappedComponent data={data} />, data.routerContext);
     expect(screen.getByTestId('frontend-pageload-view')).toBeInTheDocument();
-    userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'All Transactions'}));
 
     expect(browserHistory.push).toHaveBeenNthCalledWith(
       1,
@@ -317,8 +317,8 @@ describe('Performance > Landing > Index', function () {
 
       render(<WrappedComponent data={data} withStaticFilters />, data.routerContext);
 
-      await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-      userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
+      await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+      await userEvent.type(screen.getByPlaceholderText('Search Transactions'), '{enter}');
       expect(searchHandlerMock).toHaveBeenCalledWith('', 'transactionsOnly');
     });
 

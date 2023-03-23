@@ -144,7 +144,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 49 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 51
+        expected_queries = 48 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 50
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -298,7 +298,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value={"repositories": [{"full_name": "testgit/abc"}]},
+        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
@@ -310,7 +310,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         sentry_options.set("codecov.client-secret", "supersecrettoken")
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=200,
         )
 
@@ -391,12 +391,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=404,
         )
         data = {"codecovAccess": True}

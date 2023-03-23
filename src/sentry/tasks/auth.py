@@ -127,7 +127,7 @@ class TwoFactorComplianceTask(OrganizationComplianceTask):
             type="user.setup_2fa",
             context=email_context,
         )
-        message.send_async([member.email])
+        message.send_async([member.get_email()])
 
 
 @instrumented_task(

@@ -106,17 +106,23 @@ describe('IntegrationCodeMappings', function () {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
     const {waitForModalToHide} = renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
 
     await selectEvent.select(screen.getByText('Choose Sentry project'), projects[1].slug);
     await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
 
-    userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
-    userEvent.type(screen.getByRole('textbox', {name: 'Source Code Root'}), sourceRoot);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Branch'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Branch'}), defaultBranch);
-    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Stack Trace Root'}),
+      stackRoot
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Source Code Root'}),
+      sourceRoot
+    );
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Branch'}));
+    await userEvent.type(screen.getByRole('textbox', {name: 'Branch'}), defaultBranch);
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitForModalToHide();
 
@@ -155,10 +161,13 @@ describe('IntegrationCodeMappings', function () {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
     const {waitForModalToHide} = renderGlobalModal();
 
-    userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
-    userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
-    userEvent.type(screen.getByRole('textbox', {name: 'Stack Trace Root'}), stackRoot);
-    userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getAllByRole('button', {name: 'edit'})[0]);
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Stack Trace Root'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Stack Trace Root'}),
+      stackRoot
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitForModalToHide();
 
@@ -192,7 +201,7 @@ describe('IntegrationCodeMappings', function () {
     render(<IntegrationCodeMappings organization={org} integration={integration} />);
     renderGlobalModal();
 
-    userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Code Mapping'}));
     expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('master');
 
     await selectEvent.select(screen.getByText('Choose repo'), repos[1].name);
