@@ -16,7 +16,7 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESP
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models import ProjectKey
-from sentry.monitors.models import MonitorCheckIn, MonitorEnvironment
+from sentry.monitors.models import MonitorCheckIn
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 
 from .base import MonitorEndpoint
@@ -62,13 +62,7 @@ class OrganizationMonitorCheckInIndexEndpoint(MonitorEndpoint):
         environments = get_environments(request, organization)
 
         if environments:
-            try:
-                monitor_environment = MonitorEnvironment.objects.get(
-                    environment=environments[0], monitor=monitor
-                )
-                queryset = queryset.filter(monitor_environment=monitor_environment)
-            except MonitorEnvironment.DoesNotExist:
-                queryset = queryset.none()
+            queryset = queryset.filter(monitor_environment__environment=environments[0])
 
         return self.paginate(
             request=request,
