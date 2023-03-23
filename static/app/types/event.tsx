@@ -243,6 +243,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  GENERIC = 'generic',
 }
 
 /**
