@@ -7,6 +7,7 @@ export const supportedProfilingPlatformSDKs = [
   'apple-ios',
   'node',
   'python',
+  'php',
   'rust',
 ] as const;
 export type SupportedProfilingPlatform = (typeof supportedProfilingPlatforms)[number];
