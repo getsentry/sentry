@@ -27,7 +27,7 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
-def normalize_output_count_query(response: list[dict[str, Any]]) -> list[str]:
+def normalize_output_count_query(response: dict[str, Any]) -> list[str]:
     return [_strip_dashes(item["replay_id"]) for item in response["data"]]
 
 
