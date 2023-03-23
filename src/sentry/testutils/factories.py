@@ -696,6 +696,8 @@ class Factories:
                         parent_span_ids=None,
                         cause_span_ids=None,
                         offender_span_ids=None,
+                        evidence_data={},
+                        evidence_display=[],
                     )
                 )
 
