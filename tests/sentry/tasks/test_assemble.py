@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 
-from sentry.models import FileBlob, FileBlobOwner, ReleaseFile
+from sentry.models import File, FileBlob, FileBlobOwner, ReleaseFile
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     DebugIdArtifactBundle,
@@ -218,7 +218,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
                 version=version,
-                dist=version,
+                dist=dist,
                 checksum=total_checksum,
                 chunks=[blob1.checksum],
                 upload_as_artifact_bundle=True,
@@ -266,6 +266,44 @@ class AssembleArtifactsTest(BaseAssembleTest):
             DebugIdArtifactBundle.objects.all().delete()
             ReleaseArtifactBundle.objects.all().delete()
             ProjectArtifactBundle.objects.all().delete()
+
+    def test_upload_multiple_artifact_with_same_bundle_id(self):
+        bundle_file = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob1 = FileBlob.from_file(ContentFile(bundle_file))
+        total_checksum = sha1(bundle_file).hexdigest()
+        bundle_id = "67429b2f-1d9e-43bb-a626-771a1e37555c"
+        debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
+
+        for i in range(0, 3):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist="android",
+                checksum=total_checksum,
+                chunks=[blob1.checksum],
+                upload_as_artifact_bundle=True,
+            )
+
+        artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
+        assert len(artifact_bundles) == 1
+
+        files = File.objects.filter()
+        assert len(files) == 1
+
+        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
+        # We have two entries, since we have multiple files in the artifact bundle.
+        assert len(debug_id_artifact_bundles) == 2
+
+        release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
+            release_name="1.0", dist_name="android"
+        )
+        assert len(release_artifact_bundle) == 1
+
+        release_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
+        assert len(release_artifact_bundle) == 1
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
