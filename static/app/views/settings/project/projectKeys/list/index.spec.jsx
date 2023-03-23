@@ -3,7 +3,7 @@ import {
   renderGlobalModal,
   screen,
   userEvent,
-  waitForElementToBeRemoved,
+  waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
 import ProjectKeys from 'sentry/views/settings/project/projectKeys/list';
@@ -100,7 +100,9 @@ describe('ProjectKeys', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
-    await waitForElementToBeRemoved(() => screen.queryByRole('dialog'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
