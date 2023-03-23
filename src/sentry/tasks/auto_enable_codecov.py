@@ -22,15 +22,23 @@ def schedule_organizations(dry_run=False) -> None:
     Note that this is not gated by the V2 flag so we can enable the V2
     features independently of the auto-enablement.
     """
+    logger.info("Starting task for sentry.tasks.auto_enable_codecov.schedule_organizations")
+
     organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
+    logger.info(f"Processing {len(organizations)} organizations for codecov auto-enable")
     for _, organization in enumerate(
         RangeQuerySetWrapper(organizations, step=1000, result_value_getter=lambda item: item.id)
     ):
-
         if not features.has("organizations:codecov-stacktrace-integration", organization):
+            logger.info(
+                f"Skipping {organizations.id}: organizations:codecov-stacktrace-integration is False"
+            )
             continue
 
         if not features.has("organizations:auto-enable-codecov", organization):
+            logger.info(
+                f"Processing {len(organizations)}: organizations:auto-enable-codecov is False"
+            )
             continue
 
         # Create a celery task per organization
