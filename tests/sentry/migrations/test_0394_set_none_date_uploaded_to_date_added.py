@@ -9,8 +9,8 @@ DEFAULT_ENVIRONMENT_NAME = "production"
 
 
 class SetNoneDateUploadedToDateAddedTest(TestMigrations):
-    migrate_from = "0392_add_date_uploaded_field_to_bundle"
-    migrate_to = "0393_set_none_date_uploaded_to_date_added"
+    migrate_from = "0393_create_groupforecast_table"
+    migrate_to = "0394_set_none_date_uploaded_to_date_added"
 
     def setup_before_migration(self, apps):
         time_1 = timezone.now()
