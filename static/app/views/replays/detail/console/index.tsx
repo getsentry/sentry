@@ -146,6 +146,19 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
+                onRowsRendered={({overscanStartIndex, overscanStopIndex}) => {
+                  // Can't rely cell measurer cache for large lists as rows
+                  // will be evicted. Thus we need to call `updateList` when an
+                  // expanded row is rendered in order to get the correct
+                  // height.
+                  const expandedRow = Array.from(expandPaths.current.keys()).find(
+                    i => i > overscanStartIndex && i < overscanStopIndex
+                  );
+
+                  if (expandedRow) {
+                    updateList();
+                  }
+                }}
                 overscanRowCount={5}
                 ref={listRef}
                 rowCount={items.length}
