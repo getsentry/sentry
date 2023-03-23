@@ -4,12 +4,12 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
   FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {
@@ -46,6 +46,8 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
     }
 
     const newContainer = document.createElement('div');
+    newContainer.setAttribute('data-test-id', 'flamegraph-zoom-view-container');
+
     this.container = newContainer;
     parent.appendChild(newContainer);
 
@@ -82,13 +84,13 @@ export class FlamegraphRendererDOM extends FlamegraphRenderer {
   }
 
   setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
+    // @TODO for now just dont do anything as it will throw in tests
   }
 
   setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
   ) {
-    throw new Error('Method `setSearchResults` not implemented.');
+    // @TODO for now just dont do anything as it will throw in tests
   }
 }

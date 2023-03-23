@@ -1,4 +1,5 @@
 from sentry.models import Team, User
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -10,6 +11,15 @@ class TeamManagerTest(TestCase):
         org = self.create_organization()
         team = self.create_team(organization=org, name="Test")
         self.create_member(organization=org, user=user, teams=[team])
+
+        result = Team.objects.get_for_user(organization=org, user=user)
+        assert result == [team]
+
+    def test_simple_with_rpc_user(self):
+        user = user_service.get_user(User.objects.create(username="foo").id)
+        org = self.create_organization()
+        team = self.create_team(organization=org, name="Test")
+        self.create_member(organization=org, user_id=user.id, teams=[team])
 
         result = Team.objects.get_for_user(organization=org, user=user)
         assert result == [team]

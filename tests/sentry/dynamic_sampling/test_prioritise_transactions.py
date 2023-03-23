@@ -40,7 +40,7 @@ class PrioritiseProjectsSnubaQueryTest(BaseMetricsLayerTestCase, TestCase, Snuba
                     self.store_performance_metric(
                         name=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
                         tags={"transaction": name},
-                        hours_before_now=1,
+                        minutes_before_now=30,
                         value=num_transactions,
                         project_id=p.id,
                         org_id=org.id,

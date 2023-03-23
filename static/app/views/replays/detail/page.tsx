@@ -1,18 +1,18 @@
 import {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
-import {FeatureFeedback} from 'sentry/components/featureFeedback';
+import UserBadge from 'sentry/components/idBadge/userBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import DeleteButton from 'sentry/components/replays/deleteButton';
+import DeleteButton from 'sentry/components/replays/header/deleteButton';
 import DetailsPageBreadcrumbs from 'sentry/components/replays/header/detailsPageBreadcrumbs';
+import FeedbackButton from 'sentry/components/replays/header/feedbackButton';
+import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import ReplayMetaData, {
-  HeaderPlaceholder,
-} from 'sentry/views/replays/detail/replayMetaData';
+import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 type Props = {
@@ -33,14 +33,32 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
 
       <ButtonActionsWrapper>
         <ShareButton />
+        <FeedbackButton />
         <DeleteButton />
-        <FeatureFeedback featureName="replay" buttonProps={{size: 'xs'}} />
       </ButtonActionsWrapper>
 
       {replayRecord && crumbs ? (
-        <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+        <UserBadge
+          avatarSize={32}
+          displayName={
+            <Layout.Title>{replayRecord.user.display_name || ''}</Layout.Title>
+          }
+          user={{
+            name: replayRecord.user.display_name || '',
+            email: replayRecord.user.email || '',
+            username: replayRecord.user.username || '',
+            ip_address: replayRecord.user.ip || '',
+            id: replayRecord.user.id || '',
+          }}
+          // this is the subheading for the avatar, so displayEmail in this case is a misnomer
+          displayEmail={
+            <Cols>
+              <CrumbWalker replayRecord={replayRecord} crumbs={crumbs} />
+            </Cols>
+          }
+        />
       ) : (
-        <HeaderPlaceholder />
+        <HeaderPlaceholder width="100%" height="58px" />
       )}
 
       <ReplayMetaData replayRecord={replayRecord} />
@@ -61,9 +79,15 @@ const Header = styled(Layout.Header)`
   gap: ${space(1)};
   padding-bottom: ${space(1.5)};
   @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    gap: 0 ${space(3)};
+    gap: ${space(1)} ${space(3)};
     padding: ${space(2)} ${space(2)} ${space(1.5)} ${space(2)};
   }
+`;
+
+const Cols = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.25)};
 `;
 
 // TODO(replay); This could make a lot of sense to put inside HeaderActions by default

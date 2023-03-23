@@ -61,11 +61,11 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
     @patch("sentry.analytics.record")
     def test_passing(self, mock_record):
-        first_monitor_id = None
+        tested_monitors = []
+
         for path_func in self._get_path_functions():
             monitor = self._create_monitor()
-            if not first_monitor_id:
-                first_monitor_id = str(monitor.guid)
+            tested_monitors.append(monitor)
 
             path = path_func(monitor.guid)
 
@@ -95,7 +95,7 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
             organization_id=self.organization.id,
             project_id=self.project.id,
             user_id=self.user.id,
-            monitor_id=first_monitor_id,
+            monitor_id=str(tested_monitors[0].guid),
         )
 
     def test_failing(self):
@@ -169,7 +169,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -186,7 +189,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 201, resp.content
@@ -201,7 +207,10 @@ class CreateMonitorCheckInTest(MonitorIngestTestCase):
 
             resp = self.client.post(
                 path,
-                {"status": "ok", "config": {"schedule_type": "crontab", "schedule": "5 * * * *"}},
+                {
+                    "status": "ok",
+                    "monitor_config": {"schedule_type": "crontab", "schedule": "5 * * * *"},
+                },
                 **self.dsn_auth_headers,
             )
             assert resp.status_code == 400, resp.content

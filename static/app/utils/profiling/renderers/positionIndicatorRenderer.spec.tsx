@@ -1,8 +1,8 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {LightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {PositionIndicatorRenderer} from 'sentry/utils/profiling/renderers/positionIndicatorRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 describe('PositionIndicatorRenderer', () => {
   it('draws nothing if view is not zoomed', () => {

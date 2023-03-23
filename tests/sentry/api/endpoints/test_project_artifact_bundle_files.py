@@ -1,7 +1,7 @@
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.models import ProjectArtifactBundle
+from sentry.models import ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -20,6 +20,12 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
 
         url = reverse(
             "sentry-api-0-project-artifact-bundle-files",
@@ -34,50 +40,55 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.js",
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
-                "fileSize": 71,
-                "fileType": 0,
-            },
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.min.js",
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
-                "fileSize": 63,
-                "fileType": 2,
-            },
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.min.js.map",
-                "fileSize": 139,
-                "fileType": 0,
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
-            },
-            {
-                "debugId": None,
-                "filePath": "files/_/_/index.js",
-                "id": b"ZmlsZXMvXy9fL2luZGV4Lmpz",
-                "fileSize": 3706,
-                "fileType": 1,
-            },
-            {
-                "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                "filePath": "files/_/_/index.js.map",
-                "id": b"ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
-                "fileSize": 1804,
-                "fileType": 3,
-            },
-            {
-                "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                "filePath": "files/_/_/index.min.js",
-                "id": b"ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
-                "fileSize": 1676,
-                "fileType": 2,
-            },
-        ]
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": "1.0",
+            "dist": "android",
+            "files": [
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.js",
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
+                    "fileSize": 71,
+                    "fileType": 0,
+                },
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.min.js",
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
+                    "fileSize": 63,
+                    "fileType": 2,
+                },
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.min.js.map",
+                    "fileSize": 139,
+                    "fileType": 0,
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
+                },
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/index.js",
+                    "id": "ZmlsZXMvXy9fL2luZGV4Lmpz",
+                    "fileSize": 3706,
+                    "fileType": 1,
+                },
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "files/_/_/index.js.map",
+                    "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
+                    "fileSize": 1804,
+                    "fileType": 3,
+                },
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "files/_/_/index.min.js",
+                    "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
+                    "fileSize": 1676,
+                    "fileType": 2,
+                },
+            ],
+        }
 
     def test_get_artifact_bundle_files_pagination_with_multiple_files(self):
         project = self.create_project(name="foo")
@@ -88,6 +99,11 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
             artifact_bundle=artifact_bundle,
         )
 
@@ -101,54 +117,69 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         )
 
         expected = [
-            [
-                {
-                    "debugId": None,
-                    "filePath": "files/_/_/bundle1.js",
-                    "id": b"ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
-                    "fileSize": 71,
-                    "fileType": 0,
-                },
-                {
-                    "debugId": None,
-                    "filePath": "files/_/_/bundle1.min.js",
-                    "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
-                    "fileSize": 63,
-                    "fileType": 2,
-                },
-            ],
-            [
-                {
-                    "debugId": None,
-                    "filePath": "files/_/_/bundle1.min.js.map",
-                    "fileSize": 139,
-                    "fileType": 0,
-                    "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
-                },
-                {
-                    "debugId": None,
-                    "filePath": "files/_/_/index.js",
-                    "id": b"ZmlsZXMvXy9fL2luZGV4Lmpz",
-                    "fileSize": 3706,
-                    "fileType": 1,
-                },
-            ],
-            [
-                {
-                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                    "filePath": "files/_/_/index.js.map",
-                    "id": b"ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
-                    "fileSize": 1804,
-                    "fileType": 3,
-                },
-                {
-                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                    "filePath": "files/_/_/index.min.js",
-                    "id": b"ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
-                    "fileSize": 1676,
-                    "fileType": 2,
-                },
-            ],
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "release": "1.0",
+                "dist": None,
+                "files": [
+                    {
+                        "debugId": None,
+                        "filePath": "files/_/_/bundle1.js",
+                        "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
+                        "fileSize": 71,
+                        "fileType": 0,
+                    },
+                    {
+                        "debugId": None,
+                        "filePath": "files/_/_/bundle1.min.js",
+                        "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
+                        "fileSize": 63,
+                        "fileType": 2,
+                    },
+                ],
+            },
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "release": "1.0",
+                "dist": None,
+                "files": [
+                    {
+                        "debugId": None,
+                        "filePath": "files/_/_/bundle1.min.js.map",
+                        "fileSize": 139,
+                        "fileType": 0,
+                        "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
+                    },
+                    {
+                        "debugId": None,
+                        "filePath": "files/_/_/index.js",
+                        "id": "ZmlsZXMvXy9fL2luZGV4Lmpz",
+                        "fileSize": 3706,
+                        "fileType": 1,
+                    },
+                ],
+            },
+            {
+                "bundleId": str(artifact_bundle.bundle_id),
+                "release": "1.0",
+                "dist": None,
+                "files": [
+                    {
+                        "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                        "filePath": "files/_/_/index.js.map",
+                        "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
+                        "fileSize": 1804,
+                        "fileType": 3,
+                    },
+                    {
+                        "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                        "filePath": "files/_/_/index.min.js",
+                        "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
+                        "fileSize": 1676,
+                        "fileType": 2,
+                    },
+                ],
+            },
         ]
 
         for index, cursor in enumerate(["2:0:1", "2:1:0", "2:2:0"]):
@@ -185,61 +216,76 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
         query = "bundle1.js"
         response = self.client.get(url + f"?query={query}")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.js",
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
-                "fileSize": 71,
-                "fileType": 0,
-            },
-        ]
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": None,
+            "dist": None,
+            "files": [
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.js",
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
+                    "fileSize": 71,
+                    "fileType": 0,
+                },
+            ],
+        }
 
         # file_path match across multiple files.
         query = "bundle"
         response = self.client.get(url + f"?query={query}")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.js",
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
-                "fileSize": 71,
-                "fileType": 0,
-            },
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.min.js",
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
-                "fileSize": 63,
-                "fileType": 2,
-            },
-            {
-                "debugId": None,
-                "filePath": "files/_/_/bundle1.min.js.map",
-                "fileSize": 139,
-                "fileType": 0,
-                "id": b"ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
-            },
-        ]
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": None,
+            "dist": None,
+            "files": [
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.js",
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
+                    "fileSize": 71,
+                    "fileType": 0,
+                },
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.min.js",
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
+                    "fileSize": 63,
+                    "fileType": 2,
+                },
+                {
+                    "debugId": None,
+                    "filePath": "files/_/_/bundle1.min.js.map",
+                    "fileSize": 139,
+                    "fileType": 0,
+                    "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
+                },
+            ],
+        }
 
         # debug_id match.
         query = "eb6e60f1-65ff-"
         response = self.client.get(url + f"?query={query}")
         assert response.status_code == 200, response.content
-        assert response.data == [
-            {
-                "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                "filePath": "files/_/_/index.js.map",
-                "id": b"ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
-                "fileSize": 1804,
-                "fileType": 3,
-            },
-            {
-                "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                "filePath": "files/_/_/index.min.js",
-                "id": b"ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
-                "fileSize": 1676,
-                "fileType": 2,
-            },
-        ]
+        assert response.data == {
+            "bundleId": str(artifact_bundle.bundle_id),
+            "release": None,
+            "dist": None,
+            "files": [
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "files/_/_/index.js.map",
+                    "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
+                    "fileSize": 1804,
+                    "fileType": 3,
+                },
+                {
+                    "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+                    "filePath": "files/_/_/index.min.js",
+                    "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
+                    "fileSize": 1676,
+                    "fileType": 2,
+                },
+            ],
+        }

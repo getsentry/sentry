@@ -17,7 +17,8 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GLOBAL_PARAMS, MONITOR_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.monitors.models import CheckInStatus, Monitor, MonitorEnvironment, MonitorStatus
+from sentry.models import Project
+from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
 from sentry.monitors.serializers import MonitorCheckInSerializerResponse
 from sentry.monitors.validators import MonitorCheckInValidator
 
@@ -48,7 +49,13 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
             404: RESPONSE_NOTFOUND,
         },
     )
-    def put(self, request: Request, project, monitor, checkin) -> Response:
+    def put(
+        self,
+        request: Request,
+        project: Project,
+        monitor: Monitor,
+        checkin: MonitorCheckIn,
+    ) -> Response:
         """
         Updates a check-in.
 
@@ -92,23 +99,14 @@ class MonitorIngestCheckInDetailsEndpoint(MonitorIngestEndpoint):
 
         with transaction.atomic():
             checkin.update(**params)
+
             if checkin.status == CheckInStatus.ERROR:
                 monitor_failed = monitor.mark_failed(current_datetime)
                 monitor_environment.mark_failed(current_datetime)
                 if not monitor_failed:
                     return self.respond(serialize(checkin, request.user), status=208)
             else:
-                monitor_params = {
-                    "last_checkin": current_datetime,
-                    "next_checkin": monitor.get_next_scheduled_checkin(current_datetime),
-                }
-                if checkin.status == CheckInStatus.OK:
-                    monitor_params["status"] = MonitorStatus.OK
-                Monitor.objects.filter(id=monitor.id).exclude(
-                    last_checkin__gt=current_datetime
-                ).update(**monitor_params)
-                MonitorEnvironment.objects.filter(id=monitor_environment.id).exclude(
-                    last_checkin__gt=checkin.date_added
-                ).update(**monitor_params)
+                monitor.mark_ok(checkin, current_datetime)
+                monitor_environment.mark_ok(checkin, current_datetime)
 
         return self.respond(serialize(checkin, request.user))

@@ -171,6 +171,12 @@ jobs:
           #      wouldn't be correct.
           CI_NODE_TOTAL: 4
           CI_NODE_INDEX: ${{ matrix.instance }}
+          # Disable testing-library from printing out any of of the DOM to
+          # stdout. No one actually looks through this in CI, they're just
+          # going to run it locally.
+          #
+          # This quiets up the logs quite a bit.
+          DEBUG_PRINT_LIMIT: 0
         run: |
           SENTRY_PROFILER_LOGGING_MODE=eager JEST_TESTS=$(yarn -s jest --listTests --json) yarn test-ci --forceExit
 
@@ -187,13 +193,6 @@ jobs:
           base-path: .artifacts/visual-snapshots/jest
           css-path: src/sentry/static/sentry/dist/entrypoints/sentry.css
 
-      - name: Save snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        with:
-          artifact-name: frontend-snapshots
-          save-only: true
-          snapshot-path: .artifacts/visual-snapshots
-
       # We only upload coverage data for FE changes since it conflicts with
       # codecov's carry forward functionality.
       # Upload coverage data even if running the tests step fails since
@@ -204,23 +203,6 @@ jobs:
         with:
           files: .artifacts/coverage/*
           type: frontend
-
-  frontend-visual-diff:
-    needs: [frontend-browser-tests]
-    name: Visual diff
-    runs-on: ubuntu-20.04
-    timeout-minutes: 20
-    if: github.event.pull_request.head.repo.full_name == 'getsentry/sentry'
-    steps:
-      - name: Diff snapshots
-        uses: getsentry/action-visual-snapshot@ea663f1be8b73c86b18081d714423ce52352e934
-        with:
-          action-name: 'Visual Snapshot: Frontend'
-          artifact-name: 'frontend-snapshots'
-          base-branch: 'master'
-          api-token: ${{ secrets.VISUAL_SNAPSHOT_SECRET }}
-          gcs-bucket: 'sentry-visual-snapshots'
-          gcp-service-account-key: ${{ secrets.SNAPSHOT_GOOGLE_SERVICE_ACCOUNT_KEY }}
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)

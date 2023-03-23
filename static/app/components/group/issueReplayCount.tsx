@@ -32,7 +32,7 @@ function IssueReplayCount({groupId}: Props) {
     count
   );
   return (
-    <Tooltip skipWrapper title={count > 50 ? titleOver50 : title50OrLess}>
+    <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink
         to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
         aria-label="replay-count"

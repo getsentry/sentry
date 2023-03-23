@@ -6,9 +6,9 @@ import FormModel from 'sentry/components/forms/model';
 import MetricField from 'sentry/views/alerts/rules/metric/metricField';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
-function openSelectMenu(text) {
+async function openSelectMenu(text) {
   const placeholder = screen.getByText(text);
-  userEvent.type(placeholder, '{keyDown}');
+  await userEvent.type(placeholder, '{keyDown}');
 }
 
 describe('MetricField', function () {
@@ -29,31 +29,31 @@ describe('MetricField', function () {
     );
   });
 
-  it('has a select subset of error fields', function () {
+  it('has a select subset of error fields', async function () {
     render(
       <Form initialData={{dataset: Dataset.ERRORS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    openSelectMenu('(Required)');
+    await openSelectMenu('(Required)');
 
     expect(screen.getByText('count()')).toBeInTheDocument();
     expect(screen.getByText('count_unique(…)')).toBeInTheDocument();
 
     // Select count_unique and verify the tags
-    userEvent.click(screen.getByText('count_unique(…)'));
+    await userEvent.click(screen.getByText('count_unique(…)'));
 
     expect(model.fields.get('metric')).toBe('count_unique(tags[sentry:user])');
     expect(screen.getByText('tags[sentry:user]')).toBeInTheDocument();
   });
 
-  it('has a select subset of transaction fields', function () {
+  it('has a select subset of transaction fields', async function () {
     render(
       <Form initialData={{dataset: Dataset.TRANSACTIONS}} model={model}>
         <MetricField name="metric" organization={organization} />
       </Form>
     );
-    openSelectMenu('(Required)');
+    await openSelectMenu('(Required)');
 
     // 10 error aggregate configs
     [
@@ -70,10 +70,10 @@ describe('MetricField', function () {
     ].forEach(label => {
       expect(screen.getByText(label)).toBeInTheDocument();
     });
-    userEvent.click(screen.getByText('avg(…)'));
+    await userEvent.click(screen.getByText('avg(…)'));
     expect(model.fields.get('metric')).toBe('avg(transaction.duration)');
 
-    openSelectMenu('transaction.duration');
+    await openSelectMenu('transaction.duration');
     expect(screen.getByText('measurements.lcp')).toBeInTheDocument();
     expect(screen.getByText('measurements.fcp')).toBeInTheDocument();
     expect(screen.getByText('measurements.ttfb.requesttime')).toBeInTheDocument();

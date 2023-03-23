@@ -26,7 +26,6 @@ import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useInternalFlamegraphDebugMode} from 'sentry/utils/profiling/hooks/useInternalFlamegraphDebugMode';
@@ -35,6 +34,7 @@ import {FlamegraphTextRenderer} from 'sentry/utils/profiling/renderers/flamegrap
 import {GridRenderer} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {SampleTickRenderer} from 'sentry/utils/profiling/renderers/sampleTickRenderer';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
@@ -69,6 +69,7 @@ interface FlamegraphZoomViewProps {
   setFlamegraphOverlayCanvasRef: React.Dispatch<
     React.SetStateAction<HTMLCanvasElement | null>
   >;
+  disableCallOrderSort?: boolean;
   disableGrid?: boolean;
   disablePanX?: boolean;
   disableZoom?: boolean;
@@ -88,6 +89,7 @@ function FlamegraphZoomView({
   disablePanX = false,
   disableZoom = false,
   disableGrid = false,
+  disableCallOrderSort = false,
 }: FlamegraphZoomViewProps): React.ReactElement {
   const flamegraphTheme = useFlamegraphTheme();
   const profileGroup = useProfileGroup();
@@ -263,10 +265,26 @@ function FlamegraphZoomView({
 
   useEffect(() => {
     if (flamegraphState.profiles.highlightFrames) {
-      selectedFramesRef.current = flamegraph.findAllMatchingFrames(
+      let frames = flamegraph.findAllMatchingFrames(
         flamegraphState.profiles.highlightFrames.name,
         flamegraphState.profiles.highlightFrames.package
       );
+
+      // there is a chance that the reason we did not find any frames is because
+      // for node, we try to infer some package from the frontend code.
+      // If that happens, we'll try and just do a search by name. This logic
+      // is duplicated in flamegraph.tsx and should be kept in sync
+      if (
+        !frames.length &&
+        !flamegraphState.profiles.highlightFrames.package &&
+        flamegraphState.profiles.highlightFrames.name
+      ) {
+        frames = flamegraph.findAllMatchingFramesBy(
+          flamegraphState.profiles.highlightFrames.name,
+          ['name']
+        );
+      }
+      selectedFramesRef.current = frames;
     } else {
       selectedFramesRef.current = null;
     }
@@ -587,15 +605,22 @@ function FlamegraphZoomView({
     }
 
     setHighlightingAllOccurences(true);
+
+    const frameName = hoveredNodeOnContextMenuOpen.current.frame.name;
+    const packageName =
+      hoveredNodeOnContextMenuOpen.current.frame.package ??
+      hoveredNodeOnContextMenuOpen.current.frame.module ??
+      '';
+
     dispatch({
       type: 'set highlight all frames',
       payload: {
-        name: hoveredNodeOnContextMenuOpen.current.frame.name,
-        package: hoveredNodeOnContextMenuOpen.current.frame.image ?? '',
+        name: frameName,
+        package: packageName,
       },
     });
 
-    const frames = flamegraph.findAllMatchingFrames(hoveredNodeOnContextMenuOpen.current);
+    const frames = flamegraph.findAllMatchingFrames(frameName, packageName);
     const rectFrames = frames.map(f => new Rect(f.start, f.depth, f.end - f.start, 1));
     const newConfigView = computeMinZoomConfigViewForFrames(
       flamegraphView.configView,
@@ -641,6 +666,7 @@ function FlamegraphZoomView({
         isHighlightingAllOccurences={highlightingAllOccurences}
         onCopyFunctionNameClick={handleCopyFunctionName}
         onHighlightAllOccurencesClick={handleHighlightAllFramesClick}
+        disableCallOrderSort={disableCallOrderSort}
       />
       {flamegraphCanvas &&
       flamegraphRenderer &&
