@@ -298,3 +298,9 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
             message = deepcopy(get_test_message(self.project.id, True))
             message["event"].update(**case)
             _get_kwargs(message)
+
+    def test_culprit(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["culprit"] = "i did it"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["culprit"] == "i did it"
