@@ -13,6 +13,7 @@ from .models import Monitor, MonitorCheckIn, MonitorEnvironment
 class MonitorEnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
+            "monitor_id": obj.monitor.id,
             "status": obj.get_status_display(),
             "name": obj.environment.name,
             "lastCheckIn": obj.last_checkin,
@@ -22,6 +23,7 @@ class MonitorEnvironmentSerializer(Serializer):
 
 
 class MonitorEnvironmentSerializerResponse(TypedDict):
+    monitor_id: str
     name: str
     status: str
     dateCreated: datetime
@@ -43,27 +45,28 @@ class MonitorSerializer(Serializer):
             )
         }
 
-        monitor_environments = {}
+        environment_data = {}
         if self.environments:
             monitor_environments = {
-                str(item.id): {
-                    me.pop("name"): me
-                    for me in serialize(
-                        list(
-                            MonitorEnvironment.objects.filter(
-                                monitor=item, environment__in=self.environments
-                            )
-                        ),
-                        user,
-                    )
+                monitor_environment.pop("monitor_id"): {
+                    monitor_environment.pop("name"): monitor_environment
                 }
-                for item in item_list
+                for monitor_environment in serialize(
+                    list(
+                        MonitorEnvironment.objects.filter(
+                            monitor__in=item_list, environment__in=self.environments
+                        ).select_related("environment")
+                    ),
+                    user,
+                )
             }
+
+            environment_data = {str(item.id): monitor_environments[item.id] for item in item_list}
 
         return {
             item: {
                 "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": monitor_environments[str(item.id)] if self.environments else None,
+                "environments": environment_data[str(item.id)] if self.environments else None,
             }
             for item in item_list
         }
