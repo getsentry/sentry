@@ -180,6 +180,13 @@ export function getTitle(
         subtitle: isPerfIssue ? culprit : '',
         treeLabel: undefined,
       };
+    case EventOrGroupType.GENERIC:
+      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      return {
+        title: isProfilingIssue ? metadata.title : customTitle ?? title,
+        subtitle: isProfilingIssue ? culprit : '',
+        treeLabel: undefined,
+      };
     default:
       return {
         title: customTitle ?? title,
