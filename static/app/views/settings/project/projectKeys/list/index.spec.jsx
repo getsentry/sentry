@@ -100,7 +100,7 @@ describe('ProjectKeys', function () {
     await userEvent.click(screen.getByRole('button', {name: 'Disable'}));
     await userEvent.click(screen.getByTestId('confirm-button'));
 
-    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+    await waitForElementToBeRemoved(() => screen.queryByRole('dialog'));
 
     expect(enableMock).toHaveBeenCalledWith(
       expect.anything(),
