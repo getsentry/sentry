@@ -423,6 +423,16 @@ class ProjectPerformance extends AsyncView<Props, State> {
                   title={t('Retention Priorities')}
                   fields={this.retentionPrioritiesFormFields}
                   disabled={!hasAccess}
+                  renderFooter={() => (
+                    <Actions>
+                      <Button
+                        external
+                        href="https://docs.sentry.io/product/performance/performance-at-scale/"
+                      >
+                        {t('Read docs')}
+                      </Button>
+                    </Actions>
+                  )}
                 />
               )}
             </Access>
