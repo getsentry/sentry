@@ -100,8 +100,6 @@ class NPlusOneAPICallsDetectorTest(TestCase):
                     "a34089b08b6d0646",
                     "950801c0d7576650",
                 ],
-                evidence_data={},
-                evidence_display=[],
             )
         ]
         assert problems[0].title == "N+1 API Call"

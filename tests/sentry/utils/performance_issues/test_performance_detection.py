@@ -59,8 +59,6 @@ def assert_n_plus_one_db_problem(perf_problems):
                 "88a5ccaf25b9bd8f",
                 "bb32cf50fc56b296",
             ],
-            evidence_data={},
-            evidence_display=[],
         )
         for problem in perf_problems
     )
@@ -138,8 +136,6 @@ class PerformanceDetectionTest(TestCase):
                     "9c3a569621230f03",
                     "8788fb3fc43ad948",
                 ],
-                evidence_data={},
-                evidence_display=[],
             )
         ]
 
@@ -211,8 +207,6 @@ class PerformanceDetectionTest(TestCase):
                         "a307ceb77c702cea",
                         "ac1e90ff646617e7",
                     ],
-                    evidence_data={},
-                    evidence_display=[],
                 )
             ]
 
@@ -392,8 +386,6 @@ class EventPerformanceProblemTest(TestCase):
             ["1"],
             ["2", "3", "4"],
             ["4", "5", "6"],
-            {},
-            [],
         )
 
         EventPerformanceProblem(event, problem).save()
@@ -410,8 +402,6 @@ class EventPerformanceProblemTest(TestCase):
                 ["1"],
                 ["2", "3", "4"],
                 ["4", "5", "6"],
-                {},
-                [],
             ),
             PerformanceProblem(
                 "test_2",
@@ -421,8 +411,6 @@ class EventPerformanceProblemTest(TestCase):
                 ["234"],
                 ["67", "87686", "786"],
                 ["4", "5", "6"],
-                {},
-                [],
             ),
         ]
         event_2 = Event(self.project.id, "something else")
@@ -435,8 +423,6 @@ class EventPerformanceProblemTest(TestCase):
                 ["1"],
                 ["a", "b", "c"],
                 ["d", "e", "f"],
-                {},
-                [],
             ),
             PerformanceProblem(
                 "event_2_test_2",
@@ -446,8 +432,6 @@ class EventPerformanceProblemTest(TestCase):
                 ["234"],
                 ["fdgh", "gdhgf", "gdgh"],
                 ["gdf", "yu", "kjl"],
-                {},
-                [],
             ),
         ]
         all_event_problems = [
@@ -466,8 +450,6 @@ class EventPerformanceProblemTest(TestCase):
             ["234"],
             ["fdgh", "gdhgf", "gdgh"],
             ["gdf", "yu", "kjl"],
-            {},
-            [],
         )
         result = EventPerformanceProblem.fetch_multi(
             [

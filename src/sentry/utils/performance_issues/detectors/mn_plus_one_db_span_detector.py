@@ -178,8 +178,6 @@ class ContinuingMNPlusOne(MNPlusOneState):
             parent_span_ids=[parent_span["span_id"]],
             cause_span_ids=[],
             offender_span_ids=[span["span_id"] for span in offender_spans],
-            evidence_data={},
-            evidence_display=[],
         )
 
     def _first_db_span(self) -> Optional[Span]:

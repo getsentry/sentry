@@ -71,8 +71,6 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
-                evidence_display=[],
             )
         ]
 
@@ -106,8 +104,6 @@ class ConsecutiveDbDetectorTest(TestCase):
                     "bbbbbbbbbbbbbbbb",
                     "bbbbbbbbbbbbbbbb",
                 ],
-                evidence_data={},
-                evidence_display=[],
             )
         ]
 

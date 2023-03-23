@@ -114,8 +114,6 @@ class ConsecutiveDBSpanDetector(PerformanceDetector):
             cause_span_ids=cause_span_ids,
             parent_span_ids=None,
             offender_span_ids=offender_span_ids,
-            evidence_data={},
-            evidence_display=[],
         )
 
         self._reset_variables()
