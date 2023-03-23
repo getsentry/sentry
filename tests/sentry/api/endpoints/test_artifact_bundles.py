@@ -179,7 +179,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=bundleId")
         assert response.status_code == 400
-        assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
+        assert (
+            response.data["detail"]["message"]
+            == "You can either sort via 'date_added' or '-date_added'"
+        )
 
     def test_delete_artifact_bundles(self):
         project = self.create_project(name="foo")

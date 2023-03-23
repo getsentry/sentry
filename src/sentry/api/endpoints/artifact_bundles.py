@@ -2,16 +2,23 @@ from typing import Optional, Union
 
 from django.db import router
 from django.db.models import Q
+from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
-from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.exceptions import ResourceDoesNotExist, SentryAPIException
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
 from sentry.utils.db import atomic_transaction
+
+
+class InvalidSortBy(SentryAPIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    code = "invalid_sort_by"
+    message = "You can either sort via 'date_added' or '-date_added'"
 
 
 class ArtifactBundlesMixin:
@@ -24,9 +31,7 @@ class ArtifactBundlesMixin:
             order_by = "date_uploaded"
             return f"-{order_by}" if is_desc else order_by
 
-        return Response(
-            {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
-        )
+        raise InvalidSortBy()
 
 
 @region_silo_endpoint
@@ -92,12 +97,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 request.user,
             )
 
-        order_by = self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added"))
-
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=order_by,
+            order_by=self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added")),
             paginator_cls=OffsetPaginator,
             default_per_page=10,
             on_results=serialize_results,
