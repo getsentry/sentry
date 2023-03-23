@@ -57,7 +57,7 @@ class PerformanceProblem:
             data.get("evidence_data", {}),
             [
                 IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
-                for evidence in data.get("evidence_display")
+                for evidence in data.get("evidence_display", [])
             ],
         )
 
