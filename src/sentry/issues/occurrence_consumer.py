@@ -229,7 +229,7 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         metrics.incr("occurrence_ingest.event_payload_invalid")
-        raise InvalidEventPayloadError("Event payload does not match schema")
+        raise
 
 
 def _process_message(
