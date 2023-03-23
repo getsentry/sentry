@@ -24,8 +24,10 @@ export type EventLite = {
 };
 
 export type PerformanceIssue = {
+  culprit: string;
   event_id: string;
   issue_id: number;
+  issue_short_id: string;
   level: keyof Theme['level'];
   project_id: number;
   project_slug: string;
@@ -46,6 +48,8 @@ export type TraceError = {
 };
 
 export type TracePerformanceIssue = Omit<TraceError, 'issue' | 'span'> & {
+  culprit: string;
+  issue_short_id: string;
   span: string[];
   suspect_spans: string[];
 };
