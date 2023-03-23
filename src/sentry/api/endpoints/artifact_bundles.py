@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 
 from django.db import router
 from django.db.models import Q
@@ -16,7 +16,7 @@ from sentry.utils.db import atomic_transaction
 
 class ArtifactBundlesMixin:
     @classmethod
-    def derive_order_by(cls, sort_by: str) -> Optional[str]:
+    def derive_order_by(cls, sort_by: str) -> Optional[Union[str, Response]]:
         is_desc = sort_by.startswith("-")
         sort_by = sort_by.strip("-")
 
@@ -24,7 +24,9 @@ class ArtifactBundlesMixin:
             order_by = "date_uploaded"
             return f"-{order_by}" if is_desc else order_by
 
-        return None
+        return Response(
+            {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
+        )
 
 
 @region_silo_endpoint
@@ -91,10 +93,6 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
             )
 
         order_by = self.derive_order_by(sort_by=request.GET.get("sortBy", "-date_added"))
-        if order_by is None:
-            return Response(
-                {"error": "You can either sort via 'date_added' or '-date_added'"}, status=400
-            )
 
         return self.paginate(
             request=request,
