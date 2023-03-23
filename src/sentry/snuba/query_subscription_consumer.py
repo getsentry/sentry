@@ -164,6 +164,7 @@ def handle_message(
                     # XXX(ahmed): Remove this logic. This was kept here as backwards compat
                     # for subscription updates with schema version `2`. However schema version 3
                     # sends the "entity" in the payload
+                    logger.warning("Message value using version 2")
                     entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
                     entity_match = re.match(entity_regex, contents["request"]["query"])
                     if not entity_match:
