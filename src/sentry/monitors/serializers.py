@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import Any
 
+from django.db.models import prefetch_related_objects
 from typing_extensions import TypedDict
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
@@ -101,12 +102,25 @@ class MonitorSerializerResponse(TypedDict):
 
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
+    def get_attrs(self, item_list, user, **kwargs):
+        prefetch_related_objects(item_list, "monitor_environment__environment")
+        environments = {
+            str(i.id): i.monitor_environment.environment.name
+            for i in item_list
+            if i.monitor_environment
+        }
+
+        return {
+            item: {
+                "environment": environments[str(item.id)] if item.monitor_environment else None,
+            }
+            for item in item_list
+        }
+
     def serialize(self, obj, attrs, user):
         return {
             "id": str(obj.guid),
-            "environment": obj.monitor_environment.environment.name
-            if obj.monitor_environment
-            else None,
+            "environment": attrs["environment"],
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
