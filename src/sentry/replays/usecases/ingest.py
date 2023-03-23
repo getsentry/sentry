@@ -208,7 +208,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
 
 @metrics.wraps("replays.usecases.ingest.ingest_chunk")
 def ingest_chunk(
-    message_dict: RecordingSegmentChunkMessage, transaction: Span, current_hub
+    message_dict: RecordingSegmentChunkMessage, transaction: Span, current_hub: Hub
 ) -> None:
     """Ingest chunked message part."""
     with current_hub:
