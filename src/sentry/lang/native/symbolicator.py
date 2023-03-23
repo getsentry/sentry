@@ -9,7 +9,10 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.lang.native.sources import get_internal_release_file_source, sources_for_symbolication
+from sentry.lang.native.sources import (
+    get_internal_artifact_lookup_source,
+    sources_for_symbolication,
+)
 from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.symbolication import RetrySymbolication
@@ -26,7 +29,7 @@ def _task_id_cache_key_for_event(project_id, event_id):
 
 
 class Symbolicator:
-    def __init__(self, project, event_id, release=None):
+    def __init__(self, project, event_id):
         symbolicator_options = options.get("symbolicator.options")
         base_url = symbolicator_options["url"].rstrip("/")
         assert base_url
@@ -38,7 +41,6 @@ class Symbolicator:
             )
 
         self.project = project
-        self.release = release
         self.sess = SymbolicatorSession(
             url=base_url,
             project_id=str(project.id),
@@ -135,8 +137,8 @@ class Symbolicator:
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
 
-    def process_js(self, stacktraces, modules, dist, allow_scraping=True):
-        source = get_internal_release_file_source(self.project, self.release)
+    def process_js(self, stacktraces, modules, release, dist, allow_scraping=True):
+        source = get_internal_artifact_lookup_source(self.project)
 
         json = {
             "source": source,
@@ -145,6 +147,8 @@ class Symbolicator:
             "allow_scraping": allow_scraping,
         }
 
+        if release is not None:
+            json["release"] = release
         if dist is not None:
             json["dist"] = dist
 

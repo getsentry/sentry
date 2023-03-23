@@ -3,38 +3,40 @@ import os.path
 import pytest
 
 from sentry.models import File, Release, ReleaseFile
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from tests.symbolicator import insta_snapshot_javascript_stacktrace_data
 
 # IMPORTANT:
-# For these tests to run, write `symbolicator.enabled: true` into your
-# `~/.sentry/config.yml` and run `sentry devservices up`
-
-# NOTE:
-# Run with `pytest --reuse-db tests/symbolicator/test_sourcemap.py -s` until DB issues are resolved.
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to
+# either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
 def get_fixture_path(name):
     return os.path.join(os.path.dirname(__file__), "fixtures", name)
 
 
-class SymbolicatorSourceMapIntegrationTest(RelayStoreHelper, TransactionTestCase):
+@pytest.mark.django_db(transaction=True)
+@pytest.mark.parametrize("use_symbolicator", [0, 1])
+class TestSymbolicatorSourceMapIntegration(RelayStoreHelper):
     @pytest.fixture(autouse=True)
-    def initialize(self, live_server):
-        with self.options(
-            {
-                "system.internal-url-prefix": live_server.url,
-                "symbolicator.sourcemaps-processing-sample-rate": 1,
-            }
+    def initialize(
+        self, set_sentry_option, live_server, use_symbolicator, default_projectkey, default_project
+    ):
+        self.project = default_project
+        self.projectkey = default_projectkey
+
+        with set_sentry_option("system.url-prefix", live_server.url), set_sentry_option(
+            "symbolicator.sourcemaps-processing-sample-rate", use_symbolicator
         ):
-            # Run test case:
             yield
 
-    @pytest.mark.skip(
-        reason="Used for development only until Symbolicator with SourceMaps support is deployed."
-    )
-    def test_symbolicator_roundtrip(self):
+    def test_symbolicator_roundtrip(self, insta_snapshot):
         project = self.project
         release_id = "abc"
         release = Release.objects.create(
@@ -47,7 +49,7 @@ class SymbolicatorSourceMapIntegrationTest(RelayStoreHelper, TransactionTestCase
                 f_minified = File.objects.create(
                     name=file,
                     type="release.file",
-                    headers={"Content-Type": "application/json"},
+                    headers={},
                 )
                 f_minified.putfile(f)
 
@@ -57,6 +59,8 @@ class SymbolicatorSourceMapIntegrationTest(RelayStoreHelper, TransactionTestCase
                 organization_id=project.organization_id,
                 file=f_minified,
             )
+
+        project.update_option("sentry:scrape_javascript", False)
 
         event_data = {
             "timestamp": iso_format(before_now(minutes=1)),
@@ -106,4 +110,4 @@ class SymbolicatorSourceMapIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         event = self.post_and_retrieve_event(event_data)
 
-        insta_snapshot_javascript_stacktrace_data(self, event.data)
+        insta_snapshot_javascript_stacktrace_data(insta_snapshot, event.data)

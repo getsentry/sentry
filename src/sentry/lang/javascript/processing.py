@@ -68,10 +68,6 @@ def _handle_response_status(event_data, response_json):
     write_error(error, event_data)
 
 
-def get_frames_for_symbolication(frames, data):
-    return [dict(frame) for frame in reversed(frames)]
-
-
 def is_sourcemap_image(image):
     return (
         bool(image)
@@ -86,25 +82,20 @@ def sourcemap_images_from_data(data):
 
 
 def process_payload(data):
-    # We cannot symbolicate JS stacktraces without a release.
-    # TODO: Won't be the case with DebugIDs and Artifact Bundles
-    if data.get("release") is None:
-        return
-
     project = Project.objects.get_from_cache(id=data.get("project"))
 
     allow_scraping_org_level = project.organization.get_option("sentry:scrape_javascript", True)
     allow_scraping_project_level = project.get_option("sentry:scrape_javascript", True)
     allow_scraping = allow_scraping_org_level and allow_scraping_project_level
 
-    symbolicator = Symbolicator(project=project, event_id=data["event_id"], release=data["release"])
+    symbolicator = Symbolicator(project=project, event_id=data["event_id"])
 
     modules = sourcemap_images_from_data(data)
 
     stacktrace_infos = find_stacktraces_in_data(data)
     stacktraces = [
         {
-            "frames": get_frames_for_symbolication(sinfo.stacktrace.get("frames") or (), data),
+            "frames": [dict(frame) for frame in sinfo.stacktrace.get("frames") or ()],
         }
         for sinfo in stacktrace_infos
     ]
@@ -115,6 +106,7 @@ def process_payload(data):
     response = symbolicator.process_js(
         stacktraces=stacktraces,
         modules=modules,
+        release=data.get("release"),
         dist=data.get("dist"),
         allow_scraping=allow_scraping,
     )
@@ -122,26 +114,29 @@ def process_payload(data):
     if not _handle_response_status(data, response):
         return data
 
+    # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
 
     for sinfo, raw_stacktrace, complete_stacktrace in zip(
         stacktrace_infos, response["raw_stacktraces"], response["stacktraces"]
     ):
         new_frames = []
-        new_sinfo_frames = []
+        new_raw_frames = []
 
         for sinfo_frame, raw_frame, complete_frame in zip(
-            sinfo.stacktrace["frames"], raw_stacktrace["frames"], complete_stacktrace["frames"]
+            sinfo.stacktrace["frames"],
+            raw_stacktrace["frames"],
+            complete_stacktrace["frames"],
         ):
             merged_context_frame = _merge_frame_context(sinfo_frame, raw_frame)
-            new_sinfo_frames.append(merged_context_frame)
+            new_raw_frames.append(merged_context_frame)
 
             merged_frame = _merge_frame(merged_context_frame, complete_frame)
             new_frames.append(merged_frame)
 
         if sinfo.container is not None:
             sinfo.container["raw_stacktrace"] = {
-                "frames": new_sinfo_frames,
+                "frames": new_raw_frames,
             }
 
         sinfo.stacktrace["frames"] = new_frames

@@ -16,8 +16,13 @@ from sentry.utils.safe import get_path
 from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
 # IMPORTANT:
-# For these tests to run, write `symbolicator.enabled: true` into your
-# `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to
+# either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
 @pytest.mark.snuba
@@ -25,14 +30,11 @@ class SymbolicatorMinidumpIntegrationTest(RelayStoreHelper, TransactionTestCase)
     @pytest.fixture(autouse=True)
     def initialize(self, live_server, reset_snuba):
         self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            # Do not change to internal-url-prefix, otherwise tests break on docker for mac
-            {"system.url-prefix": new_prefix}
+            {"system.url-prefix": live_server.url}
         ):
-
-            # Run test case:
+            # Run test case
             yield
 
     def upload_symbols(self):
