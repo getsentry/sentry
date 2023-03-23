@@ -60,6 +60,7 @@ class OrganizationSerializerTest(TestCase):
             "dashboards-edit",
             "discover-basic",
             "discover-query",
+            "derive-code-mappings",
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
