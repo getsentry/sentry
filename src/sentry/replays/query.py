@@ -182,7 +182,7 @@ def query_replays_count(
         query=Query(
             match=Entity("replays"),
             select=[
-                _strip_uuid_dashes("replay_id", Column("replay_id")),
+                Column("replay_id"),
                 Function(
                     "notEmpty",
                     parameters=[Function("groupArray", parameters=[Column("is_archived")])],

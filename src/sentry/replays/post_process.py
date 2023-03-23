@@ -27,6 +27,10 @@ def _strip_dashes(field: str) -> str:
     return field
 
 
+def normalize_output_count_query(response: list[dict[str, Any]]) -> list[str]:
+    return [_strip_dashes(item["replay_id"]) for item in response["data"]]
+
+
 def generate_normalized_output(response: list[dict[str, Any]]) -> Iterator[dict[str, Any]]:
     """For each payload in the response strip "agg_" prefixes."""
     for item in response:

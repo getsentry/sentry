@@ -14,6 +14,7 @@ from sentry.api.bases.organization_events import OrganizationEventsV2EndpointBas
 from sentry.api.event_search import parse_search_query
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models import Organization
+from sentry.replays.post_process import normalize_output_count_query
 from sentry.replays.query import query_replays_count
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.types import ParamsType, SnubaParams
@@ -60,12 +61,14 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
         except (InvalidSearchQuery, ValueError) as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        replay_results = query_replays_count(
-            project_ids=[p.id for p in snuba_params.projects],
-            start=snuba_params.start,
-            end=snuba_params.end,
-            replay_ids=list(replay_ids_mapping.keys()),
-            tenant_ids={"organization_id": organization.id},
+        replay_results = normalize_output_count_query(
+            query_replays_count(
+                project_ids=[p.id for p in snuba_params.projects],
+                start=snuba_params.start,
+                end=snuba_params.end,
+                replay_ids=list(replay_ids_mapping.keys()),
+                tenant_ids={"organization_id": organization.id},
+            )
         )
 
         if request.GET.get("returnIds"):
@@ -74,24 +77,26 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             return self.respond(get_counts(replay_results, replay_ids_mapping))
 
 
-def get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
+def get_counts(
+    replay_results: list[str], replay_ids_mapping: dict[str, list[str]]
+) -> dict[str, int]:
     ret: dict[str, int] = defaultdict(int)
-    for row in replay_results["data"]:
-        identifiers = replay_ids_mapping[row["replay_id"]]
+    for replay_id in replay_results:
+        identifiers = replay_ids_mapping[replay_id]
         for identifier in identifiers:
             ret[identifier] = min(ret[identifier] + 1, MAX_REPLAY_COUNT)
     return ret
 
 
 def get_replay_ids(
-    replay_results: Any, replay_ids_mapping: dict[str, list[str]]
+    replay_results: list[str], replay_ids_mapping: dict[str, list[str]]
 ) -> dict[str, list[str]]:
     ret: dict[str, list[str]] = defaultdict(list)
-    for row in replay_results["data"]:
-        identifiers = replay_ids_mapping[row["replay_id"]]
+    for replay_id in replay_results:
+        identifiers = replay_ids_mapping[replay_id]
         for identifier in identifiers:
             if len(ret[identifier]) < MAX_REPLAY_COUNT:
-                ret[identifier].append(row["replay_id"])
+                ret[identifier].append(replay_id)
     return ret
 
 
