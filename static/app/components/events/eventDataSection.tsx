@@ -105,7 +105,7 @@ export function EventDataSection({
           {actions && <ActionContainer>{actions}</ActionContainer>}
         </SectionHeader>
       )}
-      <SectionContents>{children}</SectionContents>
+      {children && <SectionContents>{children}</SectionContents>}
     </DataSection>
   );
 }
@@ -149,7 +149,6 @@ const SectionHeader = styled('div')`
   flex-wrap: wrap;
   align-items: center;
   gap: ${space(0.5)};
-  margin-bottom: ${space(1)};
 
   & h3,
   & h3 a {
@@ -189,6 +188,7 @@ const SectionHeader = styled('div')`
 
 export const SectionContents = styled('div')`
   position: relative;
+  margin-top: ${space(1)};
 `;
 
 const ActionContainer = styled('div')`

@@ -91,6 +91,7 @@ mypy-extensions==0.4.3
 natsort==8.1.0
 nodeenv==1.6.0
 oauthlib==3.1.0
+openai==0.27.0
 openapi-core==0.14.2
 openapi-schema-validator==0.2.3
 openapi-spec-validator==0.4.0

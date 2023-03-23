@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
@@ -17,6 +19,7 @@ import {Exception} from './interfaces/exception';
 import {ExceptionV2} from './interfaces/exceptionV2';
 import {Generic} from './interfaces/generic';
 import {Message} from './interfaces/message';
+import {OpenAISuggestion} from './interfaces/openAISuggestion';
 import {SpanEvidenceSection} from './interfaces/performance/spanEvidence';
 import {Request} from './interfaces/request';
 import {Spans} from './interfaces/spans';
@@ -54,24 +57,34 @@ function EventEntryContent({
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   switch (entry.type) {
-    case EntryType.EXCEPTION:
-      return hasNativeStackTraceV2 ? (
-        <ExceptionV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
-        <Exception
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
+    case EntryType.EXCEPTION: {
+      if (event.entries.some(({type}) => type === EntryType.THREADS)) {
+        return null;
+      }
+
+      return (
+        <Fragment>
+          {hasNativeStackTraceV2 ? (
+            <ExceptionV2
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          ) : (
+            <Exception
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          )}
+          <OpenAISuggestion eventID={event.eventID} projectSlug={projectSlug} />
+        </Fragment>
       );
+    }
 
     case EntryType.MESSAGE:
       return <Message event={event} data={entry.data} />;
@@ -80,22 +93,27 @@ function EventEntryContent({
       return <Request event={event} data={entry.data} />;
 
     case EntryType.STACKTRACE:
-      return hasNativeStackTraceV2 ? (
-        <StackTraceV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
-        <StackTrace
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
+      return (
+        <Fragment>
+          {hasNativeStackTraceV2 ? (
+            <StackTraceV2
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          ) : (
+            <StackTrace
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          )}
+          <OpenAISuggestion eventID={event.eventID} projectSlug={projectSlug} />
+        </Fragment>
       );
 
     case EntryType.TEMPLATE:
@@ -126,22 +144,27 @@ function EventEntryContent({
       );
 
     case EntryType.THREADS:
-      return hasNativeStackTraceV2 ? (
-        <ThreadsV2
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
-      ) : (
-        <Threads
-          event={event}
-          data={entry.data}
-          projectSlug={projectSlug}
-          groupingCurrentLevel={groupingCurrentLevel}
-          hasHierarchicalGrouping={hasHierarchicalGrouping}
-        />
+      return (
+        <Fragment>
+          {hasNativeStackTraceV2 ? (
+            <ThreadsV2
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          ) : (
+            <Threads
+              event={event}
+              data={entry.data}
+              projectSlug={projectSlug}
+              groupingCurrentLevel={groupingCurrentLevel}
+              hasHierarchicalGrouping={hasHierarchicalGrouping}
+            />
+          )}
+          <OpenAISuggestion eventID={event.eventID} projectSlug={projectSlug} />
+        </Fragment>
       );
 
     case EntryType.DEBUGMETA:
