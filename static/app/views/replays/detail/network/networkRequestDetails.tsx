@@ -59,7 +59,13 @@ function NetworkRequestDetails({items}: Props) {
   return (
     <Fragment>
       <StyledStacked>
-        <StyledNetworkRequestTabs />
+        <StyledNetworkRequestTabs underlined={false} />
+        <StyledSplitDivider
+          isHeld={isHeld}
+          onDoubleClick={onDoubleClick}
+          onMouseDown={onMouseDown}
+          slideDirection="updown"
+        />
         <CloseButtonWrapper>
           <Button
             aria-label={t('Hide request details')}
@@ -69,15 +75,9 @@ function NetworkRequestDetails({items}: Props) {
             size="zero"
           />
         </CloseButtonWrapper>
-        <StyledSplitDivider
-          isHeld={isHeld}
-          onDoubleClick={onDoubleClick}
-          onMouseDown={onMouseDown}
-          slideDirection="updown"
-        />
       </StyledStacked>
       <ResizeableContainer height={containerSize}>
-        <JSONBlock data={data} />
+        <JSONBlock data={data ?? {}} />
       </ResizeableContainer>
     </Fragment>
   );
@@ -106,29 +106,45 @@ function getDataForVisibleTab(item: NetworkSpan | null, tab: string) {
 const StyledStacked = styled(Stacked)`
   position: relative;
   border-top: 1px solid ${p => p.theme.border};
+  border-bottom: 1px solid ${p => p.theme.border};
 `;
 
 const StyledNetworkRequestTabs = styled(NetworkRequestTabs)`
+  & > li {
+    margin-right: 0;
+    padding-right: ${space(3)};
+    background: ${p => p.theme.surface400};
+    z-index: ${p => p.theme.zIndex.initial};
+  }
+  & > li:first-child {
+    padding-left: ${space(2)};
+  }
+  & > li:last-child {
+    padding-right: 0;
+  }
+
   & > li > a {
     padding-top: ${space(1)};
     padding-bottom: ${space(0.5)};
     height: 100%;
     border-bottom: ${space(0.5)} solid transparent;
   }
-
-  & > li:first-child {
-    margin-left: ${space(1)};
-  }
 `;
 
 const CloseButtonWrapper = styled('div')`
-  display: flex;
-  flex-direction: row-reverse;
+  position: absolute;
+  right: 0;
+  height: 100%;
   padding: ${space(1)};
+  z-index: ${p => p.theme.zIndex.initial};
 `;
 
-const StyledSplitDivider = styled(SplitDivider)`
+const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   height: 100%;
+  ${p => (p.isHeld ? `z-index: ${p.theme.zIndex.initial + 1};` : '')}
+  :hover {
+    z-index: ${p => p.theme.zIndex.initial + 1};
+  }
 `;
 
 const ResizeableContainer = styled('div')<{height: number}>`

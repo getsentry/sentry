@@ -21,7 +21,8 @@ const SplitDivider = styled(
   height: 100%;
   width: 100%;
 
-  ${p => (p.isHeld ? 'user-select: none;' : '')}
+  user-select: ${p => (p.isHeld ? 'none' : 'inherit')};
+  background: ${p => (p.isHeld ? p.theme.hover : 'inherit')};
 
   :hover {
     background: ${p => p.theme.hover};

@@ -9,6 +9,7 @@ import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {
   className?: CSSProperties;
+  underlined?: boolean;
 };
 
 const TABS: Record<string, ReactText> = {
@@ -17,13 +18,13 @@ const TABS: Record<string, ReactText> = {
   response: t('Response'),
 };
 
-function NetworkRequestTabs({className}: Props) {
+function NetworkRequestTabs({className, underlined = true}: Props) {
   const {pathname, query} = useLocation();
   const {getParamValue, setParamValue} = useUrlParams('n_details_tab', 'headers');
   const activeTab = getParamValue();
 
   return (
-    <ScrollableTabs className={String(className)} underlined>
+    <ScrollableTabs className={String(className)} underlined={underlined}>
       {Object.entries(TABS).map(([tab, label]) => (
         <ListLink
           key={tab}
