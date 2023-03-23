@@ -3,10 +3,12 @@ from __future__ import annotations
 import resource
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Callable, Sequence, Type
+from typing import Any, Callable, Iterable, Sequence, Type
 
 # XXX(mdtro): backwards compatible imports for celery 4.4.7, remove after upgrade to 5.2.7
 import celery
+
+from sentry.silo.base import SiloLimit, SiloMode
 
 if celery.version_info >= (5, 2):
     from celery import current_task
@@ -16,6 +18,26 @@ else:
 from sentry.celery import app
 from sentry.utils import metrics
 from sentry.utils.sdk import capture_exception, configure_scope
+
+
+class TaskSiloLimit(SiloLimit):
+    def handle_when_unavailable(
+        self,
+        original_method: Callable[..., Any],
+        current_mode: SiloMode,
+        available_modes: Iterable[SiloMode],
+    ) -> Callable[..., Any]:
+        def handle(*args: Any, **kwargs: Any) -> Any:
+            name = original_method.__name__
+            message = f"Cannot spawn {name} in {current_mode},"
+            raise self.AvailabilityError(message)
+
+        return handle
+
+    def __call__(self, decorated_func: Any) -> Any:
+        # TODO figure out how we prevent .delay() in the
+        # wrong silo.
+        return self.create_override(decorated_func)
 
 
 def get_rss_usage():
@@ -40,7 +62,12 @@ def load_model_from_db(cls, instance_or_id, allow_cache=True):
     return instance_or_id
 
 
-def instrumented_task(name, stat_suffix=None, **kwargs):
+def instrumented_task(name, stat_suffix=None, silo_mode=None, **kwargs):
+    if silo_mode is None:
+        silo_mode = SiloMode.REGION
+
+    silo_limiter = TaskSiloLimit(silo_mode)
+
     def wrapped(func):
         @wraps(func)
         def _wrapped(*args, **kwargs):
@@ -71,7 +98,7 @@ def instrumented_task(name, stat_suffix=None, **kwargs):
         kwargs["trail"] = False
         return app.task(name=name, **kwargs)(_wrapped)
 
-    return wrapped
+    return silo_limiter(wrapped)
 
 
 def retry(
