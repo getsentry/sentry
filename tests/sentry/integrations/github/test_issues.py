@@ -231,10 +231,11 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
             responses.GET,
             "https://api.github.com/installation/repositories",
             json={
+                "total_count": 2,
                 "repositories": [
                     {"full_name": "getsentry/sentry", "name": "sentry"},
                     {"full_name": "getsentry/other", "name": "other", "archived": True},
-                ]
+                ],
             },
         )
 
@@ -300,7 +301,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
-            json={"repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}]},
+            json={
+                "total_count": 1,
+                "repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}],
+            },
         )
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
@@ -325,7 +329,10 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
-            json={"repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}]},
+            json={
+                "total_count": 1,
+                "repositories": [{"name": "sentry", "full_name": "getsentry/sentry"}],
+            },
         )
         responses.add(
             responses.GET,
@@ -362,7 +369,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
-            json={"repositories": []},
+            json={"total_count": 0, "repositories": []},
         )
         event = self.store_event(
             data={"event_id": "a" * 32, "timestamp": self.min_ago}, project_id=self.project.id
@@ -378,7 +385,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase):
         responses.add(
             responses.GET,
             "https://api.github.com/installation/repositories",
-            json={"repositories": []},
+            json={"total_count": 0, "repositories": []},
         )
         responses.add(
             responses.POST,

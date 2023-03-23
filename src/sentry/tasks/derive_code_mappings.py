@@ -127,7 +127,7 @@ def derive_code_mappings(
         return
 
     if not trees:
-        logger.error("The tree is empty. Investigate.")
+        logger.warning("The trees are empty.")
         return
 
     trees_helper = CodeMappingTreesHelper(trees)

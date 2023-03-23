@@ -178,6 +178,18 @@ class GitHubAppsClientTest(TestCase):
         assert len(responses.calls) == 5
         assert responses.calls[1].response.status_code == 200
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_only_one_page(self, get_jwt):
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.client.page_size}"
+
+        # No link in the headers because there are no more pages
+        responses.add(method=responses.GET, url=url, json={}, headers={})
+        self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        # One call is for getting the token for the installation
+        assert len(responses.calls) == 2
+        assert responses.calls[1].response.status_code == 200
+
     @mock.patch(
         "sentry.integrations.github.integration.GitHubIntegration.check_file",
         return_value=GITHUB_CODEOWNERS["html_url"],

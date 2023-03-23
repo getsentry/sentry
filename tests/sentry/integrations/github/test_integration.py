@@ -122,9 +122,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             },
         }
         self.repositories = repositories
+        len_repos = len(repositories)
         api_url = f"{self.base_url}/installation/repositories"
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
-        last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
+        last = f'<{api_url}?per_page={pp}&page={len_repos}>; rel="last"'
 
         def gen_link(page: int, text: str) -> str:
             return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
@@ -133,21 +134,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET,
             url=api_url,
             match=[responses.matchers.query_param_matcher({"per_page": pp})],
-            json={"repositories": [repositories["foo"]]},
+            json={"total_count": len_repos, "repositories": [repositories["foo"]]},
             headers={"link": ", ".join([gen_link(2, "next"), last])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
-            json={"repositories": [repositories["bar"]]},
+            json={"total_count": len_repos, "repositories": [repositories["bar"]]},
             headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
-            json={"repositories": [repositories["baz"]]},
+            json={"total_count": len_repos, "repositories": [repositories["baz"]]},
             headers={"link": ", ".join([gen_link(2, "prev"), first])},
         )
         # This is for when we're not testing the pagination logic
@@ -155,7 +156,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": 100})],
-            json={"repositories": [repo for repo in repositories.values()]},
+            json={
+                "total_count": len(repositories),
+                "repositories": [repo for repo in repositories.values()],
+            },
         )
 
         responses.add(
