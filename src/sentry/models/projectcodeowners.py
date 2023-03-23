@@ -103,9 +103,8 @@ class ProjectCodeOwners(DefaultFieldsModel):
             return
 
         if len(self.raw) > MAX_RAW_LENGTH:
-            raise ValidationError(
-                {"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"}
-            )
+            logger.error({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
+            return
 
         associations, _ = validate_codeowners_associations(self.raw, self.project)
 
