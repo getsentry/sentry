@@ -1,4 +1,4 @@
-import {CSSProperties, ReactText} from 'react';
+import {ReactText} from 'react';
 import queryString from 'query-string';
 
 import ListLink from 'sentry/components/links/listLink';
@@ -8,7 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useUrlParams from 'sentry/utils/useUrlParams';
 
 type Props = {
-  className?: CSSProperties;
+  className?: string;
   underlined?: boolean;
 };
 
@@ -24,7 +24,7 @@ function NetworkRequestTabs({className, underlined = true}: Props) {
   const activeTab = getParamValue();
 
   return (
-    <ScrollableTabs className={String(className)} underlined={underlined}>
+    <ScrollableTabs className={className} underlined={underlined}>
       {Object.entries(TABS).map(([tab, label]) => (
         <ListLink
           key={tab}

@@ -27,6 +27,10 @@ function NetworkRequestDetails({items}: Props) {
 
   const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
 
+  // TODO: the `useResizableDrawer` seems to measure mouse position in relation
+  // to the window with event.clientX and event.clientY
+  // We should be able to pass in another frame of reference so mouse movement
+  // is relative to some container instead.
   const {
     isHeld,
     onDoubleClick,
@@ -103,6 +107,12 @@ function getDataForVisibleTab(item: NetworkSpan | null, tab: string) {
   }
 }
 
+const ResizeableContainer = styled('div')<{height: number}>`
+  height: ${p => p.height}px;
+  overflow: scroll;
+  padding: ${space(1)};
+`;
+
 const StyledStacked = styled(Stacked)`
   position: relative;
   border-top: 1px solid ${p => p.theme.border};
@@ -110,6 +120,11 @@ const StyledStacked = styled(Stacked)`
 `;
 
 const StyledNetworkRequestTabs = styled(NetworkRequestTabs)`
+  /*
+  Use padding instead of margin so all the <li> will cover the <SplitDivider>
+  without taking 100% width.
+  */
+
   & > li {
     margin-right: 0;
     padding-right: ${space(3)};
@@ -145,12 +160,6 @@ const StyledSplitDivider = styled(SplitDivider)<{isHeld: boolean}>`
   :hover {
     z-index: ${p => p.theme.zIndex.initial + 1};
   }
-`;
-
-const ResizeableContainer = styled('div')<{height: number}>`
-  height: ${p => p.height}px;
-  padding: ${space(1)};
-  overflow: scroll;
 `;
 
 export default NetworkRequestDetails;

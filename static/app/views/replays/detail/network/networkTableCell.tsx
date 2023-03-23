@@ -44,6 +44,9 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
     }: Props,
     ref
   ) => {
+    // Rows include the sortable header, the dataIndex does not
+    const dataIndex = rowIndex - 1;
+
     const {currentTime} = useReplayContext();
     const {setParamValue} = useUrlParams('n_detail_row', '');
 
@@ -60,7 +63,7 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       isCurrent,
       isHovered,
       isStatusError: typeof statusCode === 'number' && statusCode >= 400,
-      onClick: () => setParamValue(String(rowIndex)),
+      onClick: () => setParamValue(String(dataIndex)),
       onMouseEnter: () => handleMouseEnter(span),
       onMouseLeave: () => handleMouseLeave(span),
       ref,
@@ -169,6 +172,7 @@ const Cell = styled('div')<{
   align-items: center;
   padding: ${space(0.75)} ${space(1.5)};
   font-size: ${p => p.theme.fontSizeSmall};
+  cursor: pointer;
 
   ${cellBackground}
   ${cellBorder}
