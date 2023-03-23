@@ -7,7 +7,6 @@ from typing import Any, Dict, Generator, List, Optional, Union
 from snuba_sdk import (
     Column,
     Condition,
-    CurriedFunction,
     Entity,
     Function,
     Granularity,
@@ -320,21 +319,18 @@ def _grouped_unique_values(
     )
 
 
-def take_first_from_aggregation(
+def take_any_from_aggregation(
     column_name: str,
     alias: Optional[str] = None,
     aliased: bool = True,
 ) -> Function:
-    """Returns the first value encountered in an aggregated array.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1] => 1
+    """Returns any value of a non group-by field. in our case, they are always the same,
+    so the value should be consistent.
     """
     return Function(
-        "arrayElement",
+        "any",
         parameters=[
-            CurriedFunction("groupArray", initializers=[1], parameters=[Column(column_name)]),
-            1,
+            Column(column_name),
         ],
         alias=alias or column_name if aliased else None,
     )
@@ -647,30 +643,30 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "activity": _activity_score(),
     "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-    "replay_type": take_first_from_aggregation(column_name="replay_type", alias="replay_type"),
-    "platform": take_first_from_aggregation(column_name="platform"),
-    "agg_environment": take_first_from_aggregation(
+    "replay_type": take_any_from_aggregation(column_name="replay_type", alias="replay_type"),
+    "platform": take_any_from_aggregation(column_name="platform"),
+    "agg_environment": take_any_from_aggregation(
         column_name="environment", alias="agg_environment"
     ),
-    "dist": take_first_from_aggregation(column_name="dist"),
-    "user_id": take_first_from_aggregation(column_name="user_id"),
-    "user_email": take_first_from_aggregation(column_name="user_email"),
-    "user_name": take_first_from_aggregation(column_name="user_name"),
+    "dist": take_any_from_aggregation(column_name="dist"),
+    "user_id": take_any_from_aggregation(column_name="user_id"),
+    "user_email": take_any_from_aggregation(column_name="user_email"),
+    "user_name": take_any_from_aggregation(column_name="user_name"),
     "user_ip": Function(
         "IPv4NumToString",
-        parameters=[take_first_from_aggregation(column_name="ip_address_v4", aliased=False)],
+        parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
-    "os_name": take_first_from_aggregation(column_name="os_name"),
-    "os_version": take_first_from_aggregation(column_name="os_version"),
-    "browser_name": take_first_from_aggregation(column_name="browser_name"),
-    "browser_version": take_first_from_aggregation(column_name="browser_version"),
-    "device_name": take_first_from_aggregation(column_name="device_name"),
-    "device_brand": take_first_from_aggregation(column_name="device_brand"),
-    "device_family": take_first_from_aggregation(column_name="device_family"),
-    "device_model": take_first_from_aggregation(column_name="device_model"),
-    "sdk_name": take_first_from_aggregation(column_name="sdk_name"),
-    "sdk_version": take_first_from_aggregation(column_name="sdk_version"),
+    "os_name": take_any_from_aggregation(column_name="os_name"),
+    "os_version": take_any_from_aggregation(column_name="os_version"),
+    "browser_name": take_any_from_aggregation(column_name="browser_name"),
+    "browser_version": take_any_from_aggregation(column_name="browser_version"),
+    "device_name": take_any_from_aggregation(column_name="device_name"),
+    "device_brand": take_any_from_aggregation(column_name="device_brand"),
+    "device_family": take_any_from_aggregation(column_name="device_family"),
+    "device_model": take_any_from_aggregation(column_name="device_model"),
+    "sdk_name": take_any_from_aggregation(column_name="sdk_name"),
+    "sdk_version": take_any_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
 }

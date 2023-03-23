@@ -27,17 +27,15 @@ EVENT_PAYLOAD_SCHEMA: Mapping[str, Any] = {
             "properties": {
                 "sdk_info": {"type": "object"},
                 "images": {
-                    "type": "array",
+                    "type": ["array", "null"],
                     "items": {
                         "type": "object",
                         "properties": {
                             "type": {"type": "string", "minLength": 1},
                         },
-                        "required": ["type"],
                     },
                 },
             },
-            "required": ["images"],
         },
         "dist": {
             "type": ["object", "null"],

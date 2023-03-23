@@ -30,6 +30,12 @@ type Props = {
   startTimestampMs: number;
 };
 
+const cellMeasurer = {
+  defaultHeight: BODY_HEIGHT,
+  defaultWidth: 100,
+  fixedHeight: true,
+};
+
 function NetworkList({networkSpans, startTimestampMs}: Props) {
   const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
@@ -66,11 +72,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const gridRef = useRef<MultiGrid>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
-      cellMeasurer: {
-        defaultHeight: BODY_HEIGHT,
-        defaultWidth: 100,
-        fixedHeight: true,
-      },
+      cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
       dynamicColumnIndex: 1,
@@ -138,8 +140,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                     cellRenderer={cellRenderer}
                     columnCount={COLUMN_COUNT}
                     columnWidth={getColumnWidth(width)}
-                    estimatedColumnSize={width}
-                    estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
+                    deferredMeasurementCache={cache}
+                    estimatedColumnSize={100}
+                    estimatedRowSize={BODY_HEIGHT}
                     fixedRowCount={1}
                     height={height}
                     noContentRenderer={() => (

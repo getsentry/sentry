@@ -584,15 +584,7 @@ function buildRoutes() {
         <IndexRedirect to="data-filters/" />
         <Route path=":filterType/" />
       </Route>
-      <Route path="dynamic-sampling/" name={t('Dynamic Sampling')}>
-        <IndexRoute
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-        <Route
-          path="rules/:rule/"
-          component={make(() => import('sentry/views/settings/project/dynamicSampling'))}
-        />
-      </Route>
+      <Redirect from="dynamic-sampling/" to="performance/" />
       <Route
         path="issue-grouping/"
         name={t('Issue Grouping')}

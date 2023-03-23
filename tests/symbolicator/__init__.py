@@ -97,15 +97,14 @@ def insta_snapshot_native_stacktrace_data(self, event, **kwargs):
     )
 
 
-def insta_snapshot_javascript_stacktrace_data(self, event, **kwargs):
+def insta_snapshot_javascript_stacktrace_data(insta_snapshot, event):
     # limit amount of data going into a snapshot so that they don't break all
     # the time due to unrelated changes.
-    self.insta_snapshot(
+    insta_snapshot(
         {
             "exception": {"values": [x for x in get_path(event, "exception", "values") or ()]},
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
-        },
-        **kwargs,
+        }
     )
 
 
