@@ -39,9 +39,20 @@ class Migration(CheckedMigration):
         ),
         migrations.AddField(
             model_name="actor",
-            name="user",
+            name="user_id",
             field=sentry.db.models.fields.hybrid_cloud_foreign_key.HybridCloudForeignKey(
                 "sentry.User", db_index=True, null=True, on_delete="CASCADE", unique=True
+            ),
+        ),
+        migrations.AlterField(
+            model_name="team",
+            name="actor",
+            field=sentry.db.models.fields.foreignkey.FlexibleForeignKey(
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="team_from_actor",
+                to="sentry.Actor",
+                unique=True,
             ),
         ),
         migrations.AlterField(

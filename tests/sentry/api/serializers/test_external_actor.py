@@ -5,6 +5,7 @@ from sentry.api.bases.external_actor import (
 )
 from sentry.api.serializers import serialize
 from sentry.models import ExternalActor, Integration
+from sentry.models.actor import get_actor_id_for_user
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 from sentry.types.integrations import ExternalProviders, get_provider_name
@@ -28,7 +29,7 @@ class ExternalActorSerializerTest(TestCase):
 
     def test_user(self):
         external_actor, _ = ExternalActor.objects.get_or_create(
-            actor_id=self.user.actor_id,
+            actor_id=get_actor_id_for_user(self.user),
             organization=self.organization,
             integration=self.integration,
             provider=ExternalProviders.SLACK.value,

@@ -12,7 +12,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 
 if TYPE_CHECKING:
-    from sentry.models import Team
+    from sentry.models import Team, User
 
 ACTOR_TYPES = {"team": 0, "user": 1}
 
@@ -102,6 +102,22 @@ class Actor(Model):
         return self.get_actor_tuple().get_actor_identifier()
 
 
+def get_actor_id_for_user(user: Union["User", RpcUser]):
+    # Handy for JIT creation of user actors
+    if user.actor_id:
+        return user.actor_id
+    # Temporary Dual write
+    actor = Actor.objects.filter(type=1, user_id=user.id).first()
+    if actor is None:
+        actor = Actor.objects.create(
+            type=1,
+            user_id=user.id,
+        )
+        # TODO(hybrid-cloud): remove this after actor migration is complete
+        user_service.update_user(user_id=user.id, attrs={"actor_id": actor.id})
+    return actor.id
+
+
 class ActorTuple(namedtuple("Actor", "id type")):
     """
     This is an artifact from before we had the Actor model.
@@ -159,10 +175,7 @@ class ActorTuple(namedtuple("Actor", "id type")):
     def resolve_to_actor(self) -> Actor:
         obj = self.resolve()
         if obj.actor_id is None and isinstance(obj, RpcUser):  # This can happen for users now.
-            Actor.objects.create(
-                type=ACTOR_TYPES[type(obj).__name__.lower()],
-                user_id=obj.id,
-            )
+            get_actor_id_for_user(obj)
         return Actor.objects.get(id=self.resolve().actor_id)
 
     @classmethod
@@ -201,6 +214,7 @@ def handle_team_post_save(instance, **kwargs):
             type=ACTOR_TYPES[type(instance).__name__.lower()],
             team_id=instance.id,
         ).id
+        instance.save()
 
 
 post_save.connect(
