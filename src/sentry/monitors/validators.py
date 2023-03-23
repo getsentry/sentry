@@ -179,16 +179,17 @@ class MonitorCheckInValidator(serializers.Serializer):
     )
     duration = EmptyIntegerField(required=False, allow_null=True)
     environment = serializers.CharField(required=False, allow_null=True)
-    config = ObjectField(required=False)
+    monitor_config = ObjectField(required=False)
 
     def validate(self, attrs):
         attrs = super().validate(attrs)
 
         # Support specifying monitor configuration via a check-in
         #
-        # NOTE: Most monitor attributes are contextual, the monitor config is
-        #       passed in via this checkin searializers config attribute.
-        monitor_config = attrs.get("config")
+        # NOTE: Most monitor attributes are contextual (project, slug, etc),
+        #       the monitor config is passed in via this checkin searializers
+        #       monitor_config attribute.
+        monitor_config = attrs.get("monitor_config")
         if monitor_config:
             project = self.context["project"]
 
@@ -207,7 +208,10 @@ class MonitorCheckInValidator(serializers.Serializer):
                 },
             )
             monitor_validator.is_valid(raise_exception=True)
+
+            # Drop the `monitor_config` attribute favor in favor of the fully
+            # validate monitor data
             attrs["monitor"] = monitor_validator.validated_data
-            del attrs["config"]
+            del attrs["monitor_config"]
 
         return attrs
