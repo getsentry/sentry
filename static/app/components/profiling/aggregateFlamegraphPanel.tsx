@@ -17,6 +17,7 @@ export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
   const {data, isLoading} = useAggregateFlamegraphQuery({transaction});
 
   const isEmpty = data?.shared.frames.length === 0;
+
   return (
     <Flex column gap={space(1)}>
       <Flex align="center" gap={space(0.5)}>
