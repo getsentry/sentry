@@ -108,7 +108,8 @@ class ResultsChart extends Component<ResultsChartProps> {
         ? WorldMapChart
         : display === DisplayModes.BAR
         ? BarChart
-        : customPerformanceMetricFieldType === 'size' && isTopEvents
+        : (customPerformanceMetricFieldType === 'size' && isTopEvents) ||
+          display === DisplayModes.DEFAULT
         ? AreaChart
         : undefined;
     const interval =
