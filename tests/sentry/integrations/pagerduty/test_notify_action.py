@@ -35,7 +35,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration=self.integration.organizationintegration_set.first(),
+            organization_integration=self.integration.organizationintegrations.first(),
         )
         self.installation = self.integration.get_installation(self.organization.id)
 
@@ -195,7 +195,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         service = PagerDutyService.objects.create(
             service_name=service_info["service_name"],
             integration_key=service_info["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration=integration.organizationintegrations.first(),
         )
         self.installation = integration.get_installation(self.organization.id)
 
@@ -239,7 +239,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         service = PagerDutyService.objects.create(
             service_name=service_info["service_name"],
             integration_key=service_info["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration=integration.organizationintegrations.first(),
         )
         self.installation = integration.get_installation(self.organization.id)
 

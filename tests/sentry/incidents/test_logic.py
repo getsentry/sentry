@@ -1315,7 +1315,7 @@ class CreateAlertRuleTriggerActionTest(BaseAlertRuleTriggerActionTest, TestCase)
         service = PagerDutyService.objects.create(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration=integration.organizationintegrations.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
@@ -1521,7 +1521,7 @@ class UpdateAlertRuleTriggerAction(BaseAlertRuleTriggerActionTest, TestCase):
         service = PagerDutyService.objects.create(
             service_name=services[0]["service_name"],
             integration_key=services[0]["integration_key"],
-            organization_integration=integration.organizationintegration_set.first(),
+            organization_integration=integration.organizationintegrations.first(),
         )
         type = AlertRuleTriggerAction.Type.PAGERDUTY
         target_type = AlertRuleTriggerAction.TargetType.SPECIFIC
