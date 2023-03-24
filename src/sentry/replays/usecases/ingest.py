@@ -12,7 +12,6 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -144,20 +143,6 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         headers, recording_segment = process_headers(message.payload_with_headers)
     except MissingRecordingSegmentHeaders:
         logger.warning(f"missing header on {message.replay_id}")
-        return None
-
-    with metrics.timer("replays.process_recording.store_recording.count_segments"):
-        count_existing_segments = ReplayRecordingSegmentModel.objects.filter(
-            replay_id=message.replay_id,
-            project_id=message.project_id,
-            segment_id=headers["segment_id"],
-        ).count()
-
-    if count_existing_segments > 0:
-        logging.warning(
-            "Recording segment was already processed.",
-            extra={"project_id": message.project_id, "replay_id": message.replay_id},
-        )
         return None
 
     # Normalize ingest data into a standardized ingest format.
