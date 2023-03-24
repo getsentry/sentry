@@ -57,7 +57,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
     super.componentDidUpdate(prevProps, prevState);
   }
 
-  getUplodedDebugFiles(candidates: ImageCandidates) {
+  getUploadedDebugFiles(candidates: ImageCandidates) {
     return candidates.find(candidate => candidate.source === INTERNAL_SOURCE);
   }
 
@@ -70,16 +70,30 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
 
     const {debug_id, candidates = []} = image;
 
-    const uploadedDebugFiles = this.getUplodedDebugFiles(candidates);
+    const hasUploadedDebugFiles = this.getUploadedDebugFiles(candidates);
     const endpoints: ReturnType<AsyncComponent['getEndpoints']> = [];
 
-    if (uploadedDebugFiles) {
+    if (hasUploadedDebugFiles) {
       endpoints.push([
         'debugFiles',
         `/projects/${organization.slug}/${projSlug}/files/dsyms/?debug_id=${debug_id}`,
         {
           query: {
-            file_formats: ['breakpad', 'macho', 'elf', 'pe', 'pdb', 'sourcebundle'],
+            // FIXME(swatinem): Ideally we should not filter here at all,
+            // though Symbolicator does not currently report `bcsymbolmap` and `il2cpp`
+            // candidates, and we would thus show bogus "unapplied" entries for those,
+            // which would probably confuse people more than not seeing successfully
+            // fetched candidates for those two types of files.
+            file_formats: [
+              'breakpad',
+              'macho',
+              'elf',
+              'pe',
+              'pdb',
+              'sourcebundle',
+              'wasm',
+              'portablepdb',
+            ],
           },
         },
       ]);
