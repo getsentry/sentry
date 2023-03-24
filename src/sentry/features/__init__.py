@@ -158,6 +158,7 @@ default_manager.add("organizations:reprocessing-v2", OrganizationFeature, Featur
 default_manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:rule-page", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:sandbox-kill-switch", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:scaleable-codeowners-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:org-roles-for-teams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:sentry-functions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
