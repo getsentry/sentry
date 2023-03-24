@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,11 +17,12 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
+  index: number;
   startTimestampMs: number;
   style: CSSProperties;
 };
 
-function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
+function ConsoleLogRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
@@ -40,21 +41,29 @@ function ConsoleMessage({breadcrumb, breadcrumbs, startTimestampMs, style}: Prop
     [handleMouseLeave, breadcrumb]
   );
 
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
+  const current = useMemo(
+    () =>
+      getPrevReplayEvent({
         items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
+        targetTimestampMs: startTimestampMs + currentTime,
         allowEqual: true,
         allowExact: true,
-      })
-    : undefined;
+      }),
+    [breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime
+        ? getPrevReplayEvent({
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+            allowEqual: true,
+            allowExact: true,
+          })
+        : undefined,
+    [breadcrumbs, currentHoverTime, startTimestampMs]
+  );
 
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
@@ -148,4 +157,4 @@ const Message = styled('div')`
   word-break: break-word;
 `;
 
-export default ConsoleMessage;
+export default ConsoleLogRow;

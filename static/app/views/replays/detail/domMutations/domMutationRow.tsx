@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback} from 'react';
+import {CSSProperties, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -43,21 +43,29 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
   );
 
   const breadcrumbs = mutations.map(({crumb}) => crumb);
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
+  const current = useMemo(
+    () =>
+      getPrevReplayEvent({
         items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
+        targetTimestampMs: startTimestampMs + currentTime,
         allowEqual: true,
         allowExact: true,
-      })
-    : undefined;
+      }),
+    [breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime
+        ? getPrevReplayEvent({
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+            allowEqual: true,
+            allowExact: true,
+          })
+        : undefined,
+    [breadcrumbs, currentHoverTime, startTimestampMs]
+  );
 
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);

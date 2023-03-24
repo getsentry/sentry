@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -44,21 +44,29 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const current = getPrevReplayEvent({
-    items,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
+  const current = useMemo(
+    () =>
+      getPrevReplayEvent({
         items,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
+        targetTimestampMs: startTimestampMs + currentTime,
         allowEqual: true,
         allowExact: true,
-      })
-    : null;
+      }),
+    [items, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime
+        ? getPrevReplayEvent({
+            items,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+            allowEqual: true,
+            allowExact: true,
+          })
+        : null,
+    [items, currentHoverTime, startTimestampMs]
+  );
 
   const gridRef = useRef<MultiGrid>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
