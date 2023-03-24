@@ -3,7 +3,7 @@ import logging
 from os import path
 from typing import List, Optional, Tuple
 
-from django.db import IntegrityError, router
+from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
@@ -284,9 +284,10 @@ def _extract_debug_ids_from_manifest(
 
 
 def _remove_duplicate_artifact_bundles(except_id: int, bundle_id: str):
-    # Even though we delete via a QuerySet the associated file is also deleted, because django will still
-    # fire the on_delete signal.
-    ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id).delete()
+    with transaction.atomic():
+        # Even though we delete via a QuerySet the associated file is also deleted, because django will still
+        # fire the on_delete signal.
+        ArtifactBundle.objects.filter(~Q(id=except_id), bundle_id=bundle_id).delete()
 
 
 def _create_artifact_bundle(
