@@ -552,7 +552,7 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
-@kafka_options("occurrence-consumer", force_cluster=False)
+@kafka_options("occurrence-consumer", allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
 def occurrences_ingest_consumer(**options):
