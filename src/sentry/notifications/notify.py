@@ -1,22 +1,19 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Optional, Union
 
-from sentry.models import User
+from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.services.hybrid_cloud.actor import ActorType, RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviders
 
-if TYPE_CHECKING:
-    from sentry.models import Team
-
 # Shortcut so that types don't explode.
 Notifiable = Callable[
     [
         BaseNotification,
-        Iterable[Union[RpcActor, "Team", "User", "RpcUser"]],
+        Iterable[Union[RpcActor, Team, User, RpcUser]],
         Mapping[str, Any],
         Optional[Mapping[int, Mapping[str, Any]]],
     ],
