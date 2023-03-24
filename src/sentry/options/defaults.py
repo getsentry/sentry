@@ -672,8 +672,4 @@ register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
 register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
 # the number of large transactions to retrieve from Snuba for transaction re-balancing
 register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
 register("hybrid_cloud.outbox_rate", default=0.0)
