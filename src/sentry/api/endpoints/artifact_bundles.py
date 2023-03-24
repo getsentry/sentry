@@ -1,5 +1,6 @@
 from typing import Optional
 
+from django.db import transaction
 from django.db.models import Q
 from rest_framework import status
 from rest_framework.request import Request
@@ -123,9 +124,10 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
 
         if bundle_id:
             try:
-                ArtifactBundle.objects.get(
-                    organization_id=project.organization_id, bundle_id=bundle_id
-                ).delete()
+                with transaction.atomic():
+                    ArtifactBundle.objects.get(
+                        organization_id=project.organization_id, bundle_id=bundle_id
+                    ).delete()
 
                 return Response(status=204)
             except ArtifactBundle.DoesNotExist:
