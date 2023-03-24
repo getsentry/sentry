@@ -100,6 +100,16 @@ def ingest_recording_chunked(
                 logger.exception("Missing recording-segment.")
                 return None
 
+            logger.info(
+                "ingest_recording_chunked.info",
+                extra={
+                    "organization_id": message_dict["org_id"],
+                    "project_id": message_dict["project_id"],
+                    "replay_id": message_dict["replay_id"],
+                    "num_parts": message_dict["replay_recording"]["chunks"],
+                    "size_compressed": len(recording_segment_with_headers),
+                },
+            )
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
                 key_id=message_dict.get("key_id"),
