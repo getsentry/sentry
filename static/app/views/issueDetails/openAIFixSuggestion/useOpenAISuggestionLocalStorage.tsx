@@ -1,6 +1,12 @@
-import ConfigStore from 'sentry/stores/configStore';
+import {useCallback} from 'react';
 
-export function useOpenAISuggestionLocalStorage() {
+import ConfigStore from 'sentry/stores/configStore';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
+export function useOpenAISuggestionLocalStorage(): [
+  boolean,
+  (agreedForwardDataToOpenAI: boolean) => void
+] {
   const user = ConfigStore.get('user');
 
   const [localStorageState, setLocalStorageState] = useLocalStorageState<{
@@ -9,5 +15,12 @@ export function useOpenAISuggestionLocalStorage() {
     agreedForwardDataToOpenAI: false,
   });
 
-  return [localStorageState, setLocalStorageState];
+  const setAgreedForwardDataToOpenAI = useCallback(
+    (agreedForwardDataToOpenAI: boolean) => {
+      setLocalStorageState({agreedForwardDataToOpenAI});
+    },
+    [setLocalStorageState]
+  );
+
+  return [localStorageState.agreedForwardDataToOpenAI, setAgreedForwardDataToOpenAI];
 }

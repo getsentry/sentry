@@ -5,13 +5,10 @@ import Confirm from 'sentry/components/confirm';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {
-  experimentalFeatureTooltipDesc,
-  openAISuggestionLocalStorageKey,
-} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
+import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
+import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
 type Props = {
   groupId: Group['id'];
@@ -32,11 +29,8 @@ export function OpenAIFixSuggestionButton({
   const router = useRouter();
   const hasSignedDPA = false;
 
-  const [localStorageState, setLocalStorageState] = useLocalStorageState<{
-    agreedForwardDataToOpenAI: boolean;
-  }>(openAISuggestionLocalStorageKey(), {
-    agreedForwardDataToOpenAI: false,
-  });
+  const [agreedForwardDataToOpenAI, setAgreedForwardDataToOpenAI] =
+    useOpenAISuggestionLocalStorage();
 
   const handleShowAISuggestion = useCallback(() => {
     router.push({
@@ -46,19 +40,18 @@ export function OpenAIFixSuggestionButton({
   }, [router, groupId]);
 
   const handleDataForwardToOpenAIAgreement = useCallback(() => {
-    setLocalStorageState({agreedForwardDataToOpenAI: true});
+    setAgreedForwardDataToOpenAI(true);
     router.push({
       pathname: `/issues/${groupId}/`,
       query: {...router.location.query, openSuggestedFix: true},
     });
-  }, [router, groupId, setLocalStorageState]);
+  }, [router, groupId, setAgreedForwardDataToOpenAI]);
 
   if (!organization.features.includes('open-ai-suggestion')) {
     return null;
   }
 
-  const byPassNoGuaranteeModal =
-    hasSignedDPA || localStorageState.agreedForwardDataToOpenAI;
+  const byPassNoGuaranteeModal = hasSignedDPA || agreedForwardDataToOpenAI;
 
   return (
     <Confirm
