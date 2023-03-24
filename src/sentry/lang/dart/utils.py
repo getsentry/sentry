@@ -11,7 +11,7 @@ from sentry.utils.safe import get_path
 
 
 def is_valid_image(image):
-    return bool(image) and image.get("type") == "dart-symbols" and image.get("uuid") is not None
+    return bool(image) and image.get("type") == "dart_symbols" and image.get("uuid") is not None
 
 
 def has_dart_symbols_file(data):
@@ -19,7 +19,7 @@ def has_dart_symbols_file(data):
     Checks whether an event contains a dart symbols file
     """
     images = get_path(data, "debug_meta", "images", filter=True)
-    return get_path(images, 0, "type") == "dart-symbols"
+    return get_path(images, 0, "type") == "dart_symbols"
 
 
 def get_dart_symbols_images(event: Event):
