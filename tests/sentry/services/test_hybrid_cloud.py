@@ -1,6 +1,7 @@
 from collections import deque
 
 from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
 
 
@@ -22,3 +23,9 @@ class RpcModelTest(TestCase):
 
         subclasses.remove(RpcModel)
         return subclasses
+
+    def test_rpc_model_equals_method(self):
+        orm_user = self.create_user()
+        user1 = user_service.get_user(orm_user.id)
+        user2 = user_service.get_user(orm_user.id)
+        assert user1 == user2  # This has regressed to raise an exception at least once
