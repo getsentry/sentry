@@ -262,7 +262,7 @@ def total_span_time(span_list: List[Dict[str, Any]]) -> float:
     return total_duration * 1000
 
 
-PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s|(?<=\s)\@([A-z]|[0-9])*")
 
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).
