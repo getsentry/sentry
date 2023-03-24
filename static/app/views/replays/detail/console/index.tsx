@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import {memo, useCallback, useMemo, useRef} from 'react';
-=======
-import {memo, useRef} from 'react';
->>>>>>> 4fafd0b0c6 (save reference to expanded paths)
 import {
   AutoSizer,
   CellMeasurer,
@@ -63,21 +59,20 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     deps: [items],
   });
 
-  const handleDimensionChange = (
-    index: number,
-    path: string,
-    expandedState: Record<string, boolean>
-  ) => {
-    const rowState = expandPaths.current.get(index) || new Set();
-    if (expandedState[path]) {
-      rowState.add(path);
-    } else {
-      // Collapsed, i.e. its default state, so no need to store state
-      rowState.delete(path);
-    }
-    expandPaths.current.set(index, rowState);
-    updateList();
-  };
+  const handleDimensionChange = useCallback(
+    (index: number, path: string, expandedState: Record<string, boolean>) => {
+      const rowState = expandPaths.current.get(index) || new Set();
+      if (expandedState[path]) {
+        rowState.add(path);
+      } else {
+        // Collapsed, i.e. its default state, so no need to store state
+        rowState.delete(path);
+      }
+      expandPaths.current.set(index, rowState);
+      updateList();
+    },
+    [expandPaths, updateList]
+  );
 
   const current = useMemo(
     () =>
@@ -118,12 +113,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           isCurrent={current?.id === item.id}
           isHovered={hovered?.id === item.id}
           breadcrumb={item}
+          index={index}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPaths.current.get(index) || [])}
-          onDimensionChange={(path, expandedState) =>
-            handleDimensionChange(index, path, expandedState)
-          }
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );
@@ -147,10 +141,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                     {t('No console logs recorded')}
                   </NoRowRenderer>
                 )}
-                onRowsRendered={({
-                  startIndex,
-                  stopIndex,
-                }) => {
+                onRowsRendered={({startIndex, stopIndex}) => {
                   // Can't rely cell measurer cache for large lists as rows
                   // will be evicted. Thus we need to call `updateList` when an
                   // expanded row is rendered in order to get the correct
@@ -164,15 +155,6 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
                     expandedRow !== lastUpdatedRow.current
                   ) {
                     lastUpdatedRow.current = expandedRow;
-                    console.log(
-                      'need update list',
-                      expandedRow,
-                      lastUpdatedRow.current,
-                      // overscanStartIndex,
-                      // overscanStopIndex,
-                      startIndex,
-                      stopIndex
-                    );
                     updateList();
                   }
 

@@ -1,3 +1,4 @@
+import {memo} from 'react';
 import isObject from 'lodash/isObject';
 
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
@@ -16,7 +17,7 @@ interface Props {
 /**
  * Attempt to emulate the browser console as much as possible
  */
-function MessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
+function UnmemoizedMessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
   let args = breadcrumb.data?.arguments;
 
   if (!args) {
@@ -76,4 +77,5 @@ function MessageFormatter({breadcrumb, expandPaths, onDimensionChange}: Props) {
   return <Format expandPaths={expandPaths} onExpand={onDimensionChange} args={args} />;
 }
 
+const MessageFormatter = memo(UnmemoizedMessageFormatter);
 export default MessageFormatter;
