@@ -95,7 +95,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     } else {
       pieces.push(' ');
       pieces.push(
-        <ObjectInspector data={x} expandPaths={expandPaths} onExpand={onExpand} />
+        <ObjectInspector key={i} data={x} expandPaths={expandPaths} onExpand={onExpand} />
       );
     }
   }

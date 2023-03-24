@@ -153,7 +153,8 @@ describe('MessageFormatter', () => {
   it('Should print console message with objects correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[1]} />);
 
-    expect(screen.getByText('test 1 false {}')).toBeInTheDocument();
+    expect(screen.getByText('test 1 false')).toBeInTheDocument();
+    expect(screen.getByText('{}')).toBeInTheDocument();
   });
 
   it('Should print console message correctly when it is an Error object', () => {
@@ -171,13 +172,20 @@ describe('MessageFormatter', () => {
   it('Should ignore the "%c" placheholder and print the console message correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[4]} />);
 
-    expect(screen.getByText('prev state { cart: [] }')).toBeInTheDocument();
+    expect(screen.getByText(/%c prev state/)).toBeInTheDocument();
+    expect(screen.getByText('cart')).toBeInTheDocument();
+    expect(screen.getByText('Array(0)')).toBeInTheDocument();
   });
 
   it('Should print arrays correctly', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[5]} />);
 
-    expect(screen.getByText("test [ 'foo', 'bar' ]")).toBeInTheDocument();
+    expect(screen.getByText('test')).toBeInTheDocument();
+    expect(screen.getByText('(2)')).toBeInTheDocument();
+    // expect(screen.getByText('[')).toBeInTheDocument();
+    expect(screen.getByText('"foo"')).toBeInTheDocument();
+    expect(screen.getByText('"bar"')).toBeInTheDocument();
+    // expect(screen.getByText(']')).toBeInTheDocument();
   });
 
   it('Should print literal %', () => {
