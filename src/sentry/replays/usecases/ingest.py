@@ -178,7 +178,8 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     # result but knowing its performance characteristics and the failure rate of this operation
     # will inform future releases.
     try:
-        json.loads(decompress(recording_segment))
+        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
+            json.loads(decompress(recording_segment))
     except Exception:
         logging.exception(
             "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
