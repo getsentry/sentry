@@ -29,12 +29,12 @@ class ProjectProcessingIssuesFixEndpoint(ProjectEndpoint):
         if request.user_from_signed_request and request.user.is_authenticated:
             tokens = [
                 x
-                for x in ApiToken.objects.filter(user=request.user).all()
+                for x in ApiToken.objects.filter(user_id=request.user.id).all()
                 if "project:releases" in x.get_scopes()
             ]
             if not tokens:
                 token = ApiToken.objects.create(
-                    user=request.user,
+                    user_id=request.user.id,
                     scope_list=["project:releases"],
                     refresh_token=None,
                     expires_at=None,

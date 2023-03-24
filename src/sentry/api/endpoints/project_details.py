@@ -480,11 +480,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         if result.get("isBookmarked"):
             try:
                 with transaction.atomic():
-                    ProjectBookmark.objects.create(project_id=project.id, user=request.user)
+                    ProjectBookmark.objects.create(project_id=project.id, user_id=request.user.id)
             except IntegrityError:
                 pass
         elif result.get("isBookmarked") is False:
-            ProjectBookmark.objects.filter(project_id=project.id, user=request.user).delete()
+            ProjectBookmark.objects.filter(project_id=project.id, user_id=request.user.id).delete()
 
         if result.get("digestsMinDelay"):
             project.update_option("digests:mail:minimum_delay", result["digestsMinDelay"])

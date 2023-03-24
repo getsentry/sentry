@@ -22,7 +22,7 @@ class OrganizationAuthProviderDetailsEndpoint(OrganizationEndpoint):
         :auth: required
         """
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
         except AuthProvider.DoesNotExist:
             # This is a valid state where org does not have an auth provider
             # configured, make sure we respond with a 20x

@@ -155,7 +155,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(status=400)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
             auth_provider = auth_provider.get_provider()
         except AuthProvider.DoesNotExist:
             auth_provider = None

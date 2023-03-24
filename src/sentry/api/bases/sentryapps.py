@@ -292,7 +292,7 @@ class SentryAppInstallationPermission(SentryPermission):
         if not hasattr(request, "user") or not request.user:
             return False
 
-        self.determine_access(request, installation.organization)
+        self.determine_access(request, installation.organization_id)
 
         if is_active_superuser(request):
             return True
