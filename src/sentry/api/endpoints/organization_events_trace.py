@@ -90,12 +90,14 @@ class TraceError(TypedDict):
 class TracePerformanceIssue(TypedDict):
     event_id: str
     issue_id: int
+    short_issue_id: str
     span: List[str]
     suspect_spans: List[str]
     project_id: int
     project_slug: str
     title: str
     level: str
+    culprit: str
 
 
 LightResponse = TypedDict(
@@ -212,12 +214,14 @@ class TraceEvent:
                 {
                     "event_id": self.event["id"],
                     "issue_id": group_id,
+                    "issue_short_id": group.qualified_short_id,
                     "span": span,
                     "suspect_spans": suspect_spans,
                     "project_id": self.event["project.id"],
                     "project_slug": self.event["project"],
                     "title": group.title,
                     "level": constants.LOG_LEVELS[group.level],
+                    "culprit": group.culprit,
                 }
             )
 
