@@ -143,7 +143,6 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
 
 
 def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
-    """Return an error if you want it to be reported."""
     data = {}
     message = ""
     try:
