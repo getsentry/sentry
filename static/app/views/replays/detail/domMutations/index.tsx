@@ -95,7 +95,6 @@ function DomMutations({replay, startTimestampMs}: Props) {
           isCurrent={mutation.crumb.id === current?.id}
           isHovered={mutation.crumb.id === hovered?.id}
           mutation={mutation}
-          mutations={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />

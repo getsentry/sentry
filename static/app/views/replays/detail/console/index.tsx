@@ -92,7 +92,6 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           isCurrent={current?.id === item.id}
           isHovered={hovered?.id === item.id}
           breadcrumb={item}
-          breadcrumbs={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />

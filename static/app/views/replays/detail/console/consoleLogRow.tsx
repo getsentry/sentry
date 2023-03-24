@@ -15,12 +15,10 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
-  breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
   isCurrent: boolean;
   isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
-  breadcrumbIndex?: number[][];
 };
 
 function ConsoleLogRow({

@@ -17,7 +17,6 @@ type Props = {
   isCurrent: boolean;
   isHovered: boolean;
   mutation: Extraction;
-  mutations: Extraction[];
   startTimestampMs: number;
   style: CSSProperties;
 };
