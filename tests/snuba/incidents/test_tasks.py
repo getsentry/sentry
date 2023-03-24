@@ -30,7 +30,6 @@ from sentry.incidents.models import (
 from sentry.incidents.tasks import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscription_consumer import (
-    QuerySubscriptionConsumer,
     get_query_subscription_consumer,
     subscriber_registry,
     topic_to_dataset,
@@ -177,11 +176,6 @@ class HandleSnubaQueryUpdateTest(TestCase):
         assert out.subject == message.subject
         built_message = message.build(self.user.email)
         assert out.body == built_message.body
-
-    def test(self):
-        with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):
-            consumer = QuerySubscriptionConsumer("hi", topic=self.topic)
-            self.run_test(consumer)
 
     def test_arroyo(self):
         with mock.patch.dict(topic_to_dataset, {self.topic: Dataset.Metrics}):

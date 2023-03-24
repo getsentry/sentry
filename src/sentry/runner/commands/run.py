@@ -437,28 +437,14 @@ def post_process_forwarder(**options):
 @log_options()
 @configuration
 def query_subscription_consumer(**options):
-    from sentry.snuba.query_subscription_consumer import (
-        QuerySubscriptionConsumer,
-        get_query_subscription_consumer,
+    from sentry.snuba.query_subscription_consumer import get_query_subscription_consumer
+
+    subscriber = get_query_subscription_consumer(
+        topic=options["topic"],
+        group_id=options["group"],
+        strict_offset_reset=options["strict_offset_reset"],
+        initial_offset_reset=options["initial_offset_reset"],
     )
-
-    if not options["use_arroyo_consumer"]:
-        subscriber = QuerySubscriptionConsumer(
-            group_id=options["group"],
-            topic=options["topic"],
-            commit_batch_size=options["commit_batch_size"],
-            commit_batch_timeout_ms=options["commit_batch_timeout_ms"],
-            initial_offset_reset=options.get("initial_offset_reset", "earliest"),
-            force_offset_reset=options["force_offset_reset"],
-        )
-    else:
-        subscriber = get_query_subscription_consumer(
-            topic=options["topic"],
-            group_id=options["group"],
-            strict_offset_reset=options["strict_offset_reset"],
-            initial_offset_reset=options["initial_offset_reset"],
-        )
-
     run_processor_with_signals(subscriber)
 
 
