@@ -442,13 +442,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # FIXME: Unify this assertion once we add error mapping.
-        if process_with_symbolicator:
-            assert "errors" not in event.data
-        else:
-            assert event.data["errors"] == [
-                {"type": "js_no_source", "url": "http//example.com/index.html"}
-            ]
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
@@ -540,13 +536,9 @@ class TestJavascriptIntegration(RelayStoreHelper):
 
         event = self.post_and_retrieve_event(data)
 
-        # FIXME: Unify this assertion once we add error mapping.
-        if process_with_symbolicator:
-            assert "errors" not in event.data
-        else:
-            assert event.data["errors"] == [
-                {"type": "js_no_source", "url": "http//example.com/index.html"}
-            ]
+        assert event.data["errors"] == [
+            {"type": "js_no_source", "url": "http//example.com/index.html"}
+        ]
 
         exception = event.interfaces["exception"]
         frame_list = exception.values[0].stacktrace.frames
