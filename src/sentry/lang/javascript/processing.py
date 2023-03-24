@@ -45,8 +45,10 @@ def _merge_frame(new_frame, symbolicated):
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
     if symbolicated.get("status"):
-        frame_meta = new_frame.setdefault("data", {})
-        frame_meta["symbolicator_status"] = symbolicated["status"]
+        new_frame.setdefault("data", {})
+        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+        # frame_meta = new_frame.setdefault("data", {})
+        # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
@@ -81,6 +83,30 @@ def sourcemap_images_from_data(data):
     return get_path(data, "debug_meta", "images", default=(), filter=is_sourcemap_image)
 
 
+def map_symbolicator_process_js_errors(errors):
+    if errors is None:
+        return []
+
+    mapped_errors = []
+
+    for error in errors:
+        if error["type"] == "invalid_abs_path":
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": error["abs_path"]})
+        if error["type"] == "missing_sourcemap":
+            mapped_errors.append({"type": EventError.JS_MISSING_SOURCE, "url": error["abs_path"]})
+        elif error["type"] == "invalid_location":
+            mapped_errors.append(
+                {
+                    "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
+                    "column": error["col"],
+                    "row": error["line"],
+                    "source": error["abs_path"],
+                }
+            )
+
+    return mapped_errors
+
+
 def process_payload(data):
     project = Project.objects.get_from_cache(id=data.get("project"))
 
@@ -113,6 +139,10 @@ def process_payload(data):
 
     if not _handle_response_status(data, response):
         return data
+
+    processing_errors = response.get("errors", [])
+    if len(processing_errors) > 0:
+        data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
     # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)

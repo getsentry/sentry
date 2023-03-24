@@ -4,7 +4,7 @@ import uuid
 import zlib
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from typing import Iterator, List
+from typing import Iterator, List, Optional
 
 from django.db.models import Prefetch
 from snuba_sdk import (
@@ -245,17 +245,25 @@ def download_segments(segments: List[RecordingSegmentStorageMeta]) -> Iterator[b
     yield b"["
 
     for i, result in enumerate(results):
-        yield result
+        if result is None:
+            yield b"[]"
+        else:
+            yield result
+
         if i < len(segments) - 1:
             yield b","
 
     yield b"]"
 
 
-def download_segment(segment: RecordingSegmentStorageMeta) -> bytes:
+def download_segment(segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
     """Return the segment blob data."""
     driver = FilestoreBlob() if segment.file_id else StorageBlob()
-    return decompress(driver.get(segment))
+    result = driver.get(segment)
+    if result is None:
+        return None
+
+    return decompress(result)
 
 
 def decompress(buffer: bytes) -> bytes:

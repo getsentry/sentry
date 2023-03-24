@@ -668,9 +668,8 @@ register("dynamic-sampling.prioritise_projects.sample_rate", default=0.0)
 # controls how many orgs will be queried by the prioritise by transaction task
 # 0-> no orgs , 0.5 -> half of the orgs, 1.0 -> all orgs
 register("dynamic-sampling.prioritise_transactions.load_rate", default=0.0)
-
-# Killswitch for deriving code mappings
-register("post_process.derive-code-mappings", default=True)
-# Allows adjusting the GA percentage
-register("derive-code-mappings.general-availability-rollout", default=0.0)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_large_transactions", 30)
+# the number of large transactions to retrieve from Snuba for transaction re-balancing
+register("dynamic-sampling.prioritise_transactions.num_explicit_small_transactions", 0)
 register("hybrid_cloud.outbox_rate", default=0.0)

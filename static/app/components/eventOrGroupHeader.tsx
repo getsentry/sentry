@@ -117,6 +117,7 @@ function EventOrGroupHeader({
             }`,
             query: {
               referrer: source || 'event-or-group-header',
+              stream_index: index,
               query,
               // This adds sort to the query if one was selected from the
               // issues list page
