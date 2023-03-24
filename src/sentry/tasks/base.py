@@ -21,6 +21,14 @@ from sentry.utils.sdk import capture_exception, configure_scope
 
 
 class TaskSiloLimit(SiloLimit):
+    """
+    Silo limiter for celery tasks
+
+    We don't want tasks to be spawned in the incorrect silo.
+    We can't reliably cause tasks to fail as not all tasks use
+    the ORM (which also has silo bound safety).
+    """
+
     def handle_when_unavailable(
         self,
         original_method: Callable[..., Any],
@@ -29,15 +37,22 @@ class TaskSiloLimit(SiloLimit):
     ) -> Callable[..., Any]:
         def handle(*args: Any, **kwargs: Any) -> Any:
             name = original_method.__name__
-            message = f"Cannot spawn {name} in {current_mode},"
+            message = f"Cannot call or spawn {name} in {current_mode},"
             raise self.AvailabilityError(message)
 
         return handle
 
-    def __call__(self, decorated_func: Any) -> Any:
-        # TODO figure out how we prevent .delay() in the
-        # wrong silo.
-        return self.create_override(decorated_func)
+    def __call__(self, decorated_task: Any) -> Any:
+        # Replace the celery.Task interface we use.
+        replacements = {"delay", "apply_async", "s", "signature", "retry", "apply", "run"}
+        for attr_name in replacements:
+            task_attr = getattr(decorated_task, attr_name)
+            if callable(task_attr):
+                limited_attr = self.create_override(task_attr)
+                setattr(decorated_task, attr_name, limited_attr)
+
+        limited_func = self.create_override(decorated_task)
+        return limited_func
 
 
 def get_rss_usage():
@@ -63,10 +78,16 @@ def load_model_from_db(cls, instance_or_id, allow_cache=True):
 
 
 def instrumented_task(name, stat_suffix=None, silo_mode=None, **kwargs):
-    if silo_mode is None:
-        silo_mode = SiloMode.REGION
+    """
+    Decorator for defining celery tasks.
 
-    silo_limiter = TaskSiloLimit(silo_mode)
+    Includes a few application specific batteries like:
+
+    - statsd metrics for duration and memory usage.
+    - sentry sdk tagging.
+    - hybrid cloud silo restrictions
+    - disabling of result collection.
+    """
 
     def wrapped(func):
         @wraps(func)
@@ -96,9 +117,14 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, **kwargs):
         # many tasks from a parent task, each task leaks memory. This can lead to the scheduler
         # being OOM killed.
         kwargs["trail"] = False
-        return app.task(name=name, **kwargs)(_wrapped)
+        task = app.task(name=name, **kwargs)(_wrapped)
 
-    return silo_limiter(wrapped)
+        if silo_mode:
+            silo_limiter = TaskSiloLimit(silo_mode)
+            return silo_limiter(task)
+        return task
+
+    return wrapped
 
 
 def retry(
