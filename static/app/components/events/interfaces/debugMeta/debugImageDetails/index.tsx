@@ -17,7 +17,7 @@ import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugIma
 import {Event} from 'sentry/types/event';
 import {displayReprocessEventAction} from 'sentry/utils/displayReprocessEventAction';
 import theme from 'sentry/utils/theme';
-import {getFileType} from 'sentry/views/settings/projectDebugFiles/utils';
+import {getPrettyFileType} from 'sentry/views/settings/projectDebugFiles/utils';
 
 import {getFileName} from '../utils';
 
@@ -182,7 +182,7 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
         size,
         dateCreated,
         symbolType,
-        fileType: getFileType(debugFile),
+        fileType: getPrettyFileType(debugFile),
         source: INTERNAL_SOURCE,
         source_name: t('Sentry'),
       };
@@ -217,18 +217,16 @@ export class DebugImageDetails extends AsyncComponent<Props, State> {
           id: location,
           size,
           dateCreated,
-          cpuName,
         } = internalDebugFileInfo;
 
         return {
           ...debugFileOkCandidate,
-          cpuName,
           location,
           filename,
           size,
           dateCreated,
           symbolType,
-          fileType: getFileType(internalDebugFileInfo),
+          prettyFileType: getPrettyFileType(internalDebugFileInfo),
         };
       }
     );

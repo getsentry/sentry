@@ -4,7 +4,7 @@ import {DebugFile, DebugFileFeature, DebugFileType} from 'sentry/types/debugFile
 const PRETTY_SYMBOL_TYPES = {
   proguard: t('ProGuard mapping'),
   breakpad: t('Breadpad'),
-  macho: t('MachO'),
+  macho: t('Mach-O'),
   elf: t('ELF'),
   pe: t('PE'),
   pdb: t('PDB'),
@@ -31,7 +31,7 @@ export function getPrettyFileType(dsym: DebugFile) {
   const prettySymbolType = PRETTY_SYMBOL_TYPES[symbolType] ?? symbolType;
   const prettyFileType = PRETTY_FILE_TYPES[data?.type ?? '_'];
   const prettyCpuName =
-    cpuName !== 'any' && cpuName !== 'unknown' ? `(${cpuName})` : null;
+    cpuName && cpuName !== 'any' && cpuName !== 'unknown' ? `(${cpuName})` : null;
 
   return [prettySymbolType, prettyFileType, prettyCpuName].filter(Boolean).join(' ');
 }
