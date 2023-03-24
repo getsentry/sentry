@@ -13,9 +13,11 @@ import {
   hasOrgRoleOverwrite,
   RoleOverwriteIcon,
 } from 'sentry/views/settings/organizationTeams/roleOverwriteWarning';
+import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
 
 const TeamMembersRow = (props: {
   hasWriteAccess: boolean;
+  isOrgOwner: boolean;
   member: TeamMember;
   organization: Organization;
   removeMember: (member: Member) => void;
@@ -29,6 +31,7 @@ const TeamMembersRow = (props: {
     member,
     user,
     hasWriteAccess,
+    isOrgOwner,
     removeMember,
     updateMemberRole,
   } = props;
@@ -50,6 +53,8 @@ const TeamMembersRow = (props: {
       <div>
         <RemoveButton
           hasWriteAccess={hasWriteAccess}
+          hasOrgRoleFromTeam={team.orgRole !== null}
+          isOrgOwner={isOrgOwner}
           onClick={() => removeMember(member)}
           member={member}
           user={user}
@@ -75,7 +80,7 @@ const TeamRoleSelect = (props: {
   // Determine the team-role, including if the current team has an org role
   // and if adding the user to the current team changes their minimum team-role
   const possibleOrgRoles = [member.orgRole];
-  if (member.orgRolesFromTeams) {
+  if (member.orgRolesFromTeams && member.orgRolesFromTeams.length > 0) {
     possibleOrgRoles.push(member.orgRolesFromTeams[0].role.id);
   }
   if (team.orgRole) {
@@ -117,20 +122,26 @@ const TeamRoleSelect = (props: {
 };
 
 const RemoveButton = (props: {
+  hasOrgRoleFromTeam: boolean;
   hasWriteAccess: boolean;
+  isOrgOwner: boolean;
   member: TeamMember;
   onClick: () => void;
   user: User;
 }) => {
-  const {member, user, hasWriteAccess, onClick} = props;
+  const {member, user, hasWriteAccess, isOrgOwner, hasOrgRoleFromTeam, onClick} = props;
 
   const isSelf = member.email === user.email;
   const canRemoveMember = hasWriteAccess || isSelf;
   if (!canRemoveMember) {
     return null;
   }
+  const isIdpProvisioned = member.flags['idp:provisioned'];
+  const isPermissionGroup = hasOrgRoleFromTeam && !isOrgOwner;
 
-  if (member.flags['idp:provisioned']) {
+  const buttonHelpText = getButtonHelpText(isIdpProvisioned, isPermissionGroup);
+
+  if (isIdpProvisioned || isPermissionGroup) {
     return (
       <Button
         size="xs"
@@ -138,15 +149,12 @@ const RemoveButton = (props: {
         icon={<IconSubtract size="xs" isCircled />}
         onClick={onClick}
         aria-label={t('Remove')}
-        title={t(
-          "Membership to this team is managed through your organization's identity provider."
-        )}
+        title={buttonHelpText}
       >
         {t('Remove')}
       </Button>
     );
   }
-
   return (
     <Button
       size="xs"

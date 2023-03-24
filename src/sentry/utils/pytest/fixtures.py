@@ -449,3 +449,15 @@ def set_sentry_option():
 def django_cache():
     yield cache
     cache.clear()
+
+
+# NOTE:
+# If you are using a local instance of Symbolicator, you may need to either change `system.url-prefix`
+# to `system.internal-url-prefix` or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`.
+@pytest.fixture(ids=["without_symbolicator", "with_symbolicator"], params=[0, 1])
+def process_with_symbolicator(request, set_sentry_option, live_server):
+    with set_sentry_option("system.url-prefix", live_server.url), set_sentry_option(
+        "symbolicator.sourcemaps-processing-sample-rate", request.param
+    ):
+        # Run test case
+        yield request.param

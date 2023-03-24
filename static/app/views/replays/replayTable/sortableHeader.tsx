@@ -9,7 +9,7 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
-import {ReplayRecord} from 'sentry/views/replays/types';
+import {ReplayRecordNestedFieldName} from 'sentry/views/replays/types';
 
 type NotSortable = {
   label: string;
@@ -17,7 +17,7 @@ type NotSortable = {
 };
 
 type Sortable = {
-  fieldName: keyof ReplayRecord;
+  fieldName: ReplayRecordNestedFieldName;
   label: string;
   sort: undefined | Sort;
   tooltip?: string;
@@ -93,6 +93,7 @@ const Header = styled('div')`
   display: grid;
   grid-template-columns: repeat(2, max-content);
   align-items: center;
+  padding: ${space(1.5)};
 `;
 
 const SortLink = styled(Link)`

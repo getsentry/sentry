@@ -8,29 +8,12 @@ from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import Commit, Message, Partition
 
 from sentry.profiles.task import process_profile_task
-from sentry.utils import json, metrics
+from sentry.utils import json
 
 
 def process_message(message: Message[KafkaPayload]) -> None:
     message_dict = msgpack.unpackb(message.payload.value, use_list=False)
-
-    with metrics.timer("profiles.consumer.duration", instance="json.loads"):
-        metrics.timing("profiles.consumer.profile.size", len(message_dict["payload"]))
-        profile = json.loads(message_dict["payload"], use_rapid_json=True)
-
-    tags = {"platform": profile["platform"]}
-
-    if "version" in profile and profile["version"]:
-        tags["version"] = profile["version"]
-        tags["format"] = "sample"
-    else:
-        tags["format"] = "legacy"
-
-    metrics.incr(
-        "process_profile.profile.format",
-        tags=tags,
-        sample_rate=1.0,
-    )
+    profile = json.loads(message_dict["payload"], use_rapid_json=True)
 
     profile.update(
         {

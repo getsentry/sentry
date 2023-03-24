@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
 import {FlamegraphProfiles} from './reducers/flamegraphProfiles';

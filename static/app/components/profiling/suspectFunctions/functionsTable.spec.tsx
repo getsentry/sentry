@@ -72,7 +72,7 @@ describe('FunctionsTable', function () {
           error={null}
           functions={[func]}
           project={project}
-          sort="-p99"
+          sort="-pr5"
         />
       </TestContext>
     );
@@ -83,14 +83,11 @@ describe('FunctionsTable', function () {
     expect(screen.getByText('Package')).toBeInTheDocument();
     expect(screen.getByText('bar')).toBeInTheDocument();
 
-    expect(screen.getByText('Total Occurrences')).toBeInTheDocument();
+    expect(screen.getByText('Occurrences')).toBeInTheDocument();
     expect(screen.getByText('10')).toBeInTheDocument();
 
-    expect(screen.getByText('P75 Total Duration')).toBeInTheDocument();
+    expect(screen.getByText('P75 Duration')).toBeInTheDocument();
     expect(screen.getByText('10.00ms')).toBeInTheDocument();
-
-    expect(screen.getByText('P99 Total Duration')).toBeInTheDocument();
-    expect(screen.getByText('12.50ms')).toBeInTheDocument();
   });
 
   it('renders empty name', function () {

@@ -157,7 +157,7 @@ selenium==4.3.0
 sentry-arroyo==2.7.1
 sentry-cli==2.14.4
 sentry-relay==0.8.19
-sentry-sdk==1.16.0
+sentry-sdk==1.17.0
 simplejson==3.17.6
 six==1.16.0
 sniffio==1.2.0
@@ -186,7 +186,7 @@ types-redis==4.3.13
 types-requests==2.28.8
 types-simplejson==3.17.7.2
 types-urllib3==1.26.22
-typing-extensions==3.10.0.2
+typing-extensions==4.5.0
 ua-parser==0.10.0
 unidiff==0.7.4
 uritemplate==4.1.1

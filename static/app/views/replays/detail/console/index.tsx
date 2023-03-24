@@ -22,17 +22,21 @@ interface Props {
   startTimestampMs: number;
 }
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 24,
+};
+
 function Console({breadcrumbs, startTimestampMs}: Props) {
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 24,
-    },
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
     ref: listRef,
     deps: [items],
   });
@@ -59,11 +63,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
   };
 
   return (
-    <ConsoleContainer>
+    <FluidHeight>
       <ConsoleFilters breadcrumbs={breadcrumbs} {...filterProps} />
       <ConsoleLogContainer>
         {breadcrumbs ? (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
@@ -89,13 +93,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </ConsoleLogContainer>
-    </ConsoleContainer>
+    </FluidHeight>
   );
 }
-
-const ConsoleContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const ConsoleLogContainer = styled('div')`
   position: relative;

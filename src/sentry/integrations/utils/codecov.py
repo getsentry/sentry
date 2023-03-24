@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from enum import Enum
 from typing import Any, Dict, Optional, Sequence, Tuple
 
@@ -15,8 +16,10 @@ LineCoverage = Sequence[Tuple[int, int]]
 CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
-CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}/repos"
-CODECOV_TIMEOUT = 2
+CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
+CODECOV_TIMEOUT = 10
+
+logger = logging.getLogger(__name__)
 
 
 class CodecovIntegrationError(Enum):
@@ -43,10 +46,17 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
     """
     codecov_token = options.get("codecov.client-secret")
     if not codecov_token:
+        logger.info(
+            "codecov.get_token", extra={"error": "Missing codecov token", "org_id": organization.id}
+        )
         return False, CodecovIntegrationError.MISSING_TOKEN.value
 
     integrations = Integration.objects.filter(organizations=organization.id, provider="github")
     if not integrations.exists():
+        logger.info(
+            "codecov.get_integrations",
+            extra={"error": "Missing github integration", "org_id": organization.id},
+        )
         return False, CodecovIntegrationError.MISSING_GH.value
 
     for integration in integrations:
@@ -59,13 +69,19 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
             continue
 
         owner_username, _ = repos[0].get("full_name").split("/")
-        url = CODECOV_REPOS_URL.format(service="gh", owner_username=owner_username)
+        url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
         response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
-        if response.status_code == 404:
-            continue
-        response.raise_for_status()
+        if response.status_code == 200:
+            logger.info(
+                "codecov.check_integration_success",
+                extra={"url": url, "org_id": organization.id, "status_code": 200},
+            )
+            return True, None  # We found a codecov integration, so we can stop looking
 
-        return True, None  # We found a codecov integration, so we can stop looking
+        logger.warning(
+            "codecov.check_integration_failed",
+            extra={"url": url, "status_code": response.status_code, "org_id": organization.id},
+        )
 
     # None of the Github Integrations had a Codecov integration
     return (
@@ -153,6 +169,7 @@ def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[
     except requests.Timeout:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
+            scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
         return {
             "status": status.HTTP_408_REQUEST_TIMEOUT,
         }, "Codecov request timed out. Continuing execution."

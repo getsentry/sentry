@@ -43,8 +43,9 @@ subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 topic_to_dataset: Dict[str, Dataset] = {
     settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
     settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
-    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
+    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
     settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
     settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
 }
@@ -102,7 +103,11 @@ def parse_message_value(value: str) -> Dict[str, Any]:
 
 
 def handle_message(
-    message_value: str, message_offset: int, message_partition: int, topic: str
+    message_value: str,
+    message_offset: int,
+    message_partition: int,
+    topic: str,
+    dataset: str,
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
@@ -113,7 +118,9 @@ def handle_message(
     """
     with sentry_sdk.push_scope() as scope:
         try:
-            with metrics.timer("snuba_query_subscriber.parse_message_value"):
+            with metrics.timer(
+                "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
+            ):
                 contents = parse_message_value(message_value)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
@@ -130,7 +137,9 @@ def handle_message(
         scope.set_tag("query_subscription_id", contents["subscription_id"])
 
         try:
-            with metrics.timer("snuba_query_subscriber.fetch_subscription"):
+            with metrics.timer(
+                "snuba_query_subscriber.fetch_subscription", tags={"dataset": dataset}
+            ):
                 subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
                     subscription_id=contents["subscription_id"]
                 )
@@ -138,7 +147,9 @@ def handle_message(
                     metrics.incr("snuba_query_subscriber.subscription_inactive")
                     return
         except QuerySubscription.DoesNotExist:
-            metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
+            metrics.incr(
+                "snuba_query_subscriber.subscription_doesnt_exist", tags={"dataset": dataset}
+            )
             logger.warning(
                 "Received subscription update, but subscription does not exist",
                 extra={
@@ -154,6 +165,7 @@ def handle_message(
                     # XXX(ahmed): Remove this logic. This was kept here as backwards compat
                     # for subscription updates with schema version `2`. However schema version 3
                     # sends the "entity" in the payload
+                    metrics.incr("query_subscription_consumer.message_value.v2")
                     entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
                     entity_match = re.match(entity_regex, contents["request"]["query"])
                     if not entity_match:
@@ -178,7 +190,9 @@ def handle_message(
             return
 
         if subscription.type not in subscriber_registry:
-            metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
+            metrics.incr(
+                "snuba_query_subscriber.subscription_type_not_registered", tags={"dataset": dataset}
+            )
             logger.error(
                 "Received subscription update, but no subscription handler registered",
                 extra={
@@ -194,7 +208,9 @@ def handle_message(
 
         callback = subscriber_registry[subscription.type]
         with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
-            "snuba_query_subscriber.callback.duration", instance=subscription.type
+            "snuba_query_subscriber.callback.duration",
+            instance=subscription.type,
+            tags={"dataset": dataset},
         ):
             span.set_data("payload", contents)
             span.set_data("subscription_dataset", subscription.snuba_query.dataset)
@@ -220,6 +236,7 @@ class InvalidSchemaError(InvalidMessageError):
 class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self, topic: str):
         self.topic = topic
+        self.dataset = topic_to_dataset[self.topic]
 
     def create_with_partitions(
         self,
@@ -231,7 +248,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer("snuba_query_subscriber.handle_message"):
+            ), metrics.timer(
+                "snuba_query_subscriber.handle_message", tags={"dataset": self.dataset.value}
+            ):
                 value = message.value
                 assert isinstance(value, BrokerValue)
                 offset = value.offset
@@ -243,6 +262,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                         offset,
                         partition,
                         self.topic,
+                        self.dataset.value,
                     )
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
@@ -332,6 +352,7 @@ class QuerySubscriptionConsumer:
         )
         self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
         self.__shutdown_requested = False
+        self.dataset = topic_to_dataset[self.topic]
 
     def offset_reset_name_to_func(
         self, offset_reset: Optional[str]
@@ -412,7 +433,9 @@ class QuerySubscriptionConsumer:
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer("snuba_query_subscriber.handle_message"):
+            ), metrics.timer(
+                "snuba_query_subscriber.handle_message", tags={"dataset": self.dataset.value}
+            ):
                 try:
                     self.handle_message(message, self.topic)
                 except Exception:
@@ -476,4 +499,6 @@ class QuerySubscriptionConsumer:
         if not self.__batch_deadline:
             self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
 
-        handle_message(message.value(), message.offset(), message.partition(), topic)
+        handle_message(
+            message.value(), message.offset(), message.partition(), topic, self.dataset.value
+        )

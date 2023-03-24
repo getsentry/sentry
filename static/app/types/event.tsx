@@ -244,6 +244,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  GENERIC = 'generic',
 }
 
 /**
@@ -721,7 +722,9 @@ export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   contexts: TraceEventContexts;
   endTimestamp: number;
-  entries: (EntrySpans | EntryRequest)[];
+  // EntryDebugMeta is required for profiles to render in the span
+  // waterfall with the correct symbolication statuses
+  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;

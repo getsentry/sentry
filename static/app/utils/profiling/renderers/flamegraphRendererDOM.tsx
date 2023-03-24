@@ -4,12 +4,12 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {
   DEFAULT_FLAMEGRAPH_RENDERER_OPTIONS,
   FlamegraphRenderer,
   FlamegraphRendererOptions,
 } from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 // Convert color component from 0-1 to 0-255 range
 function colorComponentsToRgba(color: number[]): string {

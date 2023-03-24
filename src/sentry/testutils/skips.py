@@ -77,3 +77,24 @@ def relay_is_available():
 requires_relay = pytest.mark.skipif(
     not relay_is_available(), reason="requires relay server running"
 )
+
+
+def symbolicator_is_available():
+    from sentry import options
+
+    if "symbolicator" in _service_status:
+        return _service_status["symbolicator"]
+    try:
+        parsed = urlparse(options.get("symbolicator.options")["url"])
+        with socket.create_connection((parsed.hostname, parsed.port), 1.0):
+            pass
+    except OSError:
+        _service_status["symbolicator"] = False
+    else:
+        _service_status["symbolicator"] = True
+    return _service_status["symbolicator"]
+
+
+requires_symbolicator = pytest.mark.skipif(
+    not symbolicator_is_available(), reason="requires symbolicator server running"
+)
