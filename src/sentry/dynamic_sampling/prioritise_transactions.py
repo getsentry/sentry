@@ -169,7 +169,7 @@ def fetch_project_transaction_totals(org_ids: List[int]) -> Iterator[ProjectTran
                 match=Entity(EntityKey.GenericOrgMetricsCounters.value),
                 select=[
                     Function("sum", [Column("value")], "num_transactions"),
-                    Function("uniqExact", [Column(transaction_tag)], "num_classes"),
+                    Function("uniq", [Column(transaction_tag)], "num_classes"),
                     Column("org_id"),
                     Column("project_id"),
                 ],
