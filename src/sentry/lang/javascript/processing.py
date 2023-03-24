@@ -98,8 +98,8 @@ def map_symbolicator_process_js_errors(errors):
             mapped_errors.append(
                 {
                     "type": EventError.JS_INVALID_SOURCEMAP_LOCATION,
-                    "column": error["column"],
-                    "row": error["row"],
+                    "column": error["col"],
+                    "row": error["line"],
                     "source": error["abs_path"],
                 }
             )
@@ -140,7 +140,9 @@ def process_payload(data):
     if not _handle_response_status(data, response):
         return data
 
-    data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(response.get("errors")))
+    processing_errors = response.get("errors", [])
+    if len(processing_errors) > 0:
+        data.setdefault("errors", []).extend(map_symbolicator_process_js_errors(processing_errors))
 
     # TODO: should this really be a hard assert? Or rather an internal log?
     assert len(stacktraces) == len(response["stacktraces"]), (stacktraces, response)
