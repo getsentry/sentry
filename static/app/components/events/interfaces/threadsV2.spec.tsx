@@ -201,6 +201,7 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
@@ -628,12 +629,15 @@ describe('ThreadsV2', function () {
                     hasSystemFrames: true,
                   },
                   rawStacktrace: null,
+                  state: 'BLOCKED',
+                  lockReason: 'waiting on tid=1',
                 },
                 {
                   id: 1,
                   current: false,
                   crashed: false,
                   name: null,
+                  state: 'TIMED_WAITING',
                   stacktrace: {
                     frames: [
                       {
@@ -854,12 +858,52 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
         const {container} = render(<ThreadsV2 {...props} />, {organization: org});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        // Actions
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
+
+        expect(screen.queryByText('Threads')).not.toBeInTheDocument();
+        expect(screen.queryByText('Thread State')).not.toBeInTheDocument();
+        expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
+
+        // Stack Trace
+        expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Attempted to dereference null pointer. Originated at or in a subcall of ViewController.causeCrash(Any) -> ()'
+          )
+        ).toBeInTheDocument();
+
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+
+        expect(container).toSnapshot();
+      });
+
+      it('renders thread state and lock reason', function () {
+        const newOrg = {
+          ...organization,
+          features: ['native-stack-trace-v2', 'anr-improvements'],
+        };
+        const newProps = {...props, organization: newOrg};
+        const {container} = render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        // Title
+        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        expect(screen.getByText('Blocked')).toBeInTheDocument();
+        expect(screen.getByText('waiting on tid=1')).toBeInTheDocument();
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
@@ -878,6 +922,70 @@ describe('ThreadsV2', function () {
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(container).toSnapshot();
+      });
+
+      it('maps android vm states to java vm states', function () {
+        const newEvent = {...event};
+        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+          typeof ThreadsV2
+        >['data'];
+        const thread = {
+          id: 0,
+          current: false,
+          crashed: true,
+          name: null,
+          stacktrace: {
+            frames: [
+              {
+                filename: null,
+                absPath: null,
+                module: null,
+                package: '/System/Library/Frameworks/UIKit.framework/UIKit',
+                platform: null,
+                instructionAddr: '0x197885c54',
+                symbolAddr: '0x197885bf4',
+                function: '<redacted>',
+                rawFunction: null,
+                symbol: null,
+                context: [],
+                lineNo: null,
+                colNo: null,
+                inApp: false,
+                trust: null,
+                errors: null,
+                vars: null,
+              },
+            ],
+            registers: {},
+            framesOmitted: null,
+            hasSystemFrames: true,
+          },
+          rawStacktrace: null,
+          state: 'kWaitingPerformingGc',
+        };
+        threadsEntry.values = [
+          {
+            ...thread,
+          },
+          {
+            ...thread,
+            id: 1,
+          },
+        ];
+
+        const newOrg = {
+          ...organization,
+          features: ['native-stack-trace-v2', 'anr-improvements'],
+        };
+        const newProps = {...props, event: newEvent, organization: newOrg};
+        render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        // Title
+        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        // kWaitingPerformingGc maps to Waiting
+        expect(screen.getByText('Waiting')).toBeInTheDocument();
       });
 
       it('toggle full stack trace button', async function () {
