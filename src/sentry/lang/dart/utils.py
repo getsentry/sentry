@@ -10,6 +10,10 @@ from sentry.utils import json
 from sentry.utils.safe import get_path
 
 
+def is_valid_image(image):
+    return bool(image) and image.get("type") == "dart-symbols" and image.get("uuid") is not None
+
+
 def has_dart_symbols_file(data):
     """
     Checks whether an event contains a dart symbols file
@@ -20,7 +24,7 @@ def has_dart_symbols_file(data):
 
 def get_dart_symbols_images(event: Event):
     images = set()
-    for image in get_path(event, "debug_meta", "images", default=()):
+    for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=()):
         images.add(str(image["uuid"]).lower())
     return images
 
@@ -51,10 +55,13 @@ def generate_dart_symbols_map(uuid: str, project: Project):
 
         with open(debug_file_path) as f:
             debug_array = json.loads(f.read())
-
         obfuscated_to_deobfuscated_name_map = {}
         try:
-            for i in range(0, len(debug_array)):
+            if len(debug_array) % 2 != 0:
+                raise Exception("Debug array contains an odd number of elements")
+
+            # Iterate by 2 since the array is a list of string pairs
+            for i in range(0, len(debug_array), 2):
                 deobfuscated_name = debug_array[i]
                 obfuscated_name = debug_array[i + 1]
                 obfuscated_to_deobfuscated_name_map[obfuscated_name] = deobfuscated_name
