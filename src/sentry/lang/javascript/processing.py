@@ -45,8 +45,10 @@ def _merge_frame(new_frame, symbolicated):
     if symbolicated.get("post_context"):
         new_frame["post_context"] = symbolicated["post_context"]
     if symbolicated.get("status"):
-        frame_meta = new_frame.setdefault("data", {})
-        frame_meta["symbolicator_status"] = symbolicated["status"]
+        new_frame.setdefault("data", {})
+        # NOTE: We don't need this currently, and it's not clear whether we'll use it at all.
+        # frame_meta = new_frame.setdefault("data", {})
+        # frame_meta["symbolicator_status"] = symbolicated["status"]
 
     return new_frame
 
