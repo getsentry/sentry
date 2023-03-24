@@ -24,7 +24,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {SpanType} from './types';
 
-const MAX_STACK_DEPTH = 16;
+const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
@@ -81,7 +81,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       profile.unit
     );
 
-    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp);
+    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp).filter(
+      hasApplicationFrame
+    );
   }, [profile, span, event]);
 
   const [index, setIndex] = useState(0);
@@ -282,6 +284,16 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
   }
 
   return b.count - a.count;
+}
+
+function hasApplicationFrame(node: CallTreeNode | null) {
+  while (node && !node.isRoot) {
+    if (node.frame.is_application) {
+      return true;
+    }
+    node = node.parent;
+  }
+  return false;
 }
 
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
