@@ -22,6 +22,11 @@ export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
   span_id: string; // TODO: Remove this temporary type.
 };
 
+enum AnrRootCauseAllowlist {
+  PerformanceFileIOMainThreadGroupType = 1008,
+  PerformanceDBMainThreadGroupType = 1013,
+}
+
 export function AnrRootCause({organization}: Props) {
   const quickTrace = useContext(QuickTraceContext);
   const {projects} = useProjects();
@@ -36,6 +41,14 @@ export function AnrRootCause({organization}: Props) {
     return null;
   }
 
+  const potentialAnrRootCause = quickTrace.trace[0].performance_issues.filter(issue =>
+    Object.values(AnrRootCauseAllowlist).includes(issue.type as AnrRootCauseAllowlist)
+  );
+
+  if (potentialAnrRootCause.length === 0) {
+    return null;
+  }
+
   return (
     <EventDataSection
       title={t('Suspect Root Issues')}
@@ -44,7 +57,7 @@ export function AnrRootCause({organization}: Props) {
         'Suspect Root Issues identifies potential Performance Issues that may be contributing to this ANR.'
       )}
     >
-      {quickTrace.trace[0].performance_issues.map(issue => {
+      {potentialAnrRootCause.map(issue => {
         const project = projects.find(p => p.id === issue.project_id.toString());
         return (
           <IssueSummary key={issue.issue_id}>
