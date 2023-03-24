@@ -92,7 +92,7 @@ export function initializeSdk(config: Config, {routes}: {routes?: Function} = {}
     profilesSampleRate: shouldEnableBrowserProfiling ? 1 : 0,
     tracesSampler: context => {
       if (context.transactionContext.op?.startsWith('ui.action')) {
-        return tracesSampleRate; // / 100; TODO: DIVIDE BY 100
+        return tracesSampleRate / 100;
       }
       return tracesSampleRate;
     },
