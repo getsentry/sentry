@@ -61,7 +61,7 @@ def generate_dart_symbols_map(uuid: str, project: Project):
         except Exception as err:
             # The expectation is that the debug array is a list of strings
             sentry_sdk.capture_exception(err)
-            return {}
+            return
 
     return obfuscated_to_deobfuscated_name_map
 
@@ -84,7 +84,7 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
         TYPE_REGEX = r"([^<>]+)(?:<([^<>]+)>)?"
         for dart_symbols_uuid in dart_symbols_uuids:
             map = generate_dart_symbols_map(dart_symbols_uuid, project)
-            if len(map) == 0:
+            if map is None:
                 return
 
             windows_to_deobfuscate = [*view_hierarchy.get("windows")]
