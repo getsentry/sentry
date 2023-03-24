@@ -206,27 +206,18 @@ def serialize_rpc_user(user: User) -> RpcUser:
     args["session_nonce"] = user.session_nonce
 
     # And process the _base_query special data additions
-    permissions: FrozenSet[str] = frozenset({})
-    if hasattr(user, "permissions") and user.permissions is not None:
-        permissions = frozenset(user.permissions)
-    args["permissions"] = permissions
+    args["permissions"] = frozenset(getattr(user, "permissions", None) or ())
 
-    roles: FrozenSet[str] = frozenset({})
+    roles: FrozenSet[str] = frozenset()
     if hasattr(user, "roles") and user.roles is not None:
         roles = frozenset(flatten(user.roles))
     args["roles"] = roles
 
-    useremails: List[RpcUserEmail] = []
-    if hasattr(user, "useremails") and user.useremails is not None:
-        useremails = [
-            RpcUserEmail(
-                id=e["id"],
-                email=e["email"],
-                is_verified=e["is_verified"],
-            )
-            for e in user.useremails
-        ]
-    args["useremails"] = useremails
+    args["useremails"] = [
+        RpcUserEmail(id=e["id"], email=e["email"], is_verified=e["is_verified"])
+        for e in (getattr(user, "useremails", None) or ())
+    ]
+
     avatar = user.avatar.first()
     if avatar is not None:
         avatar = RpcAvatar(
@@ -236,20 +227,18 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type=avatar.get_avatar_type_display(),
         )
     args["avatar"] = avatar
-    authenticators: List[RpcAuthenticator] = []
-    if hasattr(user, "authenticators") and user.authenticators is not None:
-        authenticators = [
-            RpcAuthenticator(
-                id=a["id"],
-                user_id=a["user_id"],
-                created_at=a["created_at"],
-                last_used_at=a["last_used_at"],
-                type=a["type"],
-                config=a["config"],
-            )
-            for a in user.authenticators
-        ]
-    args["authenticators"] = authenticators
+
+    args["authenticators"] = [
+        RpcAuthenticator(
+            id=a["id"],
+            user_id=a["user_id"],
+            created_at=a["created_at"],
+            last_used_at=a["last_used_at"],
+            type=a["type"],
+            config=a["config"],
+        )
+        for a in (getattr(user, "authenticators", None) or ())
+    ]
 
     return RpcUser(**args)
 
