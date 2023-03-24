@@ -117,6 +117,7 @@ const mockedTrace = (project: Project) => {
         title: 'File IO on Main Thread',
         level: 'info',
         culprit: 'MainActivity.add_attachment',
+        type: 1008,
       },
     ],
     timestamp: 1678290375.150561,
