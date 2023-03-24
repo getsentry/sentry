@@ -26,6 +26,7 @@ CONTAINS_PARAMETER_REGEX = re.compile(
             r"\b(?:true|false)\b",  # booleans
             r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
             r"\?|\$1|%s",  # existing parameters
+            r"(?<=\s)\@([A-z]|[0-9])*",  # existing mssql @xxxx paramerization
         ]
     )
 )
