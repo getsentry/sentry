@@ -157,10 +157,12 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if description.strip()[:3].upper() != "GET":
             return False
 
+        url = get_url_from_span(span)
+
         # GraphQL URLs have complicated queries in them. Until we parse those
         # queries to check for what's duplicated, we can't tell what is being
         # duplicated. Ignore them for now
-        if "graphql" in description:
+        if "graphql" in url:
             return False
 
         # Next.js infixes its data URLs with a build ID. (e.g.,
@@ -168,10 +170,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         # explosion, since every deploy would change this ID and create new
         # fingerprints. Since we're not parameterizing URLs yet, we need to
         # exclude them
-        if "_next/data" in description:
+        if "_next/data" in url:
             return False
-
-        url = get_url_from_span(span)
 
         # Next.js error pages cause an N+1 API Call that isn't useful to anyone
         if "__nextjs_original-stack-frame" in url:
@@ -180,6 +180,9 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         if not url:
             return False
 
+        # Once most users update their SDKs to use the latest standard, we
+        # won't have to do this, since the URLs will be sent in as `span.data`
+        # in a parsed format
         parsed_url = urlparse(str(url))
 
         if parsed_url.netloc in cls.HOST_DENYLIST:
@@ -218,6 +221,8 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             cause_span_ids=[],
             parent_span_ids=[last_span.get("parent_span_id", None)],
             offender_span_ids=[span["span_id"] for span in self.spans],
+            evidence_data={},
+            evidence_display=[],
         )
 
     def _fingerprint(self) -> Optional[str]:

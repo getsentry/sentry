@@ -97,6 +97,10 @@ type AttemptCloseAttemptProps = {
   organizationSlugs: string[];
 };
 
+type CodecovLinkProps = {
+  organization: Organization;
+};
+
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;
 
 /**
@@ -104,6 +108,8 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
  */
 export type ComponentHooks = {
   'component:codecov-integration-cta': () => React.ReactNode;
+  'component:codecov-integration-settings-link': () => React.ComponentType<CodecovLinkProps>;
+  'component:codecov-integration-stacktrace-link': () => React.ComponentType<CodecovLinkProps>;
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;

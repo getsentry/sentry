@@ -11,8 +11,8 @@ import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
-import ExternalLink from 'sentry/components/links/externalLink';
 import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
 import {IconCodecov, IconLock} from 'sentry/icons';
@@ -20,6 +20,10 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
+
+const HookCodecovSettingsLink = HookOrDefault({
+  hookName: 'component:codecov-integration-settings-link',
+});
 
 type Props = {
   access: Set<Scope>;
@@ -93,9 +97,7 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
           help: (
             <PoweredByCodecov>
               {t('powered by')} <IconCodecov /> Codecov{' '}
-              <ExternalLink href="https://about.codecov.io/sign-up-sentry-codecov/">
-                {t('Learn More')}
-              </ExternalLink>
+              <HookCodecovSettingsLink organization={organization} />
             </PoweredByCodecov>
           ),
         },
