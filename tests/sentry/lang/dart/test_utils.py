@@ -31,26 +31,39 @@ def test_generate_dart_symbols_map():
 
 @mock.patch("sentry.lang.dart.utils.generate_dart_symbols_map", return_value=MOCK_DEBUG_MAP)
 @mock.patch("sentry.lang.dart.utils.get_dart_symbols_images", return_value=["test-uuid"])
-def test_view_hierarchy_deobfuscation(self):
+def test_view_hierarchy_deobfuscation(mock_images, mock_map):
     test_view_hierarchy = {
-        "type": "mD",
-        "children": [
+        "windows": [
             {
-                "type": "er",
-                "children": [{"type": "_YMa<er>", "children": [{"type": "_NativeInteger"}]}],
-            },
-        ],
+                "type": "mD",
+                "children": [
+                    {
+                        "type": "er",
+                        "children": [
+                            {"type": "_YMa<er>", "children": [{"type": "_NativeInteger"}]}
+                        ],
+                    },
+                ],
+            }
+        ]
     }
     _deobfuscate_view_hierarchy(mock.Mock(), mock.Mock(), test_view_hierarchy)
 
     assert test_view_hierarchy == {
-        "type": "ButtonTheme",
-        "children": [
+        "windows": [
             {
-                "type": "SemanticsAction",
+                "type": "ButtonTheme",
                 "children": [
-                    {"type": "_entry<SemanticsAction>", "children": [{"type": "_NativeInteger"}]}
+                    {
+                        "type": "SemanticsAction",
+                        "children": [
+                            {
+                                "type": "_entry<SemanticsAction>",
+                                "children": [{"type": "_NativeInteger"}],
+                            }
+                        ],
+                    }
                 ],
             }
-        ],
+        ]
     }

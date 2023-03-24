@@ -98,7 +98,10 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
             while windows_to_deobfuscate:
                 window = windows_to_deobfuscate.pop()
 
-                obfuscated_values = re.findall(TYPE_REGEX, window.get("type"))
+                matcher = re.match(TYPE_REGEX, window.get("type"))
+                if not matcher:
+                    continue
+                obfuscated_values = matcher.groups()
                 for obfuscated_value in obfuscated_values:
                     if obfuscated_value is not None and obfuscated_value in map:
                         window["type"] = window["type"].replace(
