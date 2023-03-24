@@ -273,6 +273,9 @@ class User(BaseModel, AbstractBaseUser):
     def get_avatar_type(self):
         return self.get_avatar_type_display()
 
+    def get_actor_identifier(self):
+        return f"user:{self.id}"
+
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
         from sentry.utils.email import MessageBuilder
