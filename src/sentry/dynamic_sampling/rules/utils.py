@@ -17,6 +17,9 @@ IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 
 ProjectId = int
+SampleRate = float
+DecisionDropCount = int
+DecisionKeepCount = int
 OrganizationId = int
 TransactionName = str
 
