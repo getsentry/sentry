@@ -22,7 +22,7 @@ function getTransactionName(input: Profiling.ProfileInput): string {
     return input.metadata.transactionName;
   }
   if (isSentrySampledProfile(input)) {
-    return input.transactions?.[0]?.name || t('Unknown Transaction');
+    return input.transaction.name || t('Unknown Transaction');
   }
 
   return t('Unknown Transaction');

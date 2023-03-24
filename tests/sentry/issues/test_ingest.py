@@ -1,10 +1,17 @@
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from hashlib import md5
 from unittest import mock
+from unittest.mock import patch
 
 from sentry.constants import LOG_LEVELS_MAP
-from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.issues.grouptype import (
+    GroupCategory,
+    GroupType,
+    GroupTypeRegistry,
+    NoiseConfig,
+    PerformanceNPlusOneGroupType,
+)
 from sentry.issues.ingest import (
     _create_issue_kwargs,
     materialize_metadata,
@@ -190,7 +197,29 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):  # type: ignor
             "sentry.issues.ingest.ISSUE_QUOTA", Quota(3600, 60, 1)
         ):
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
-            metrics.incr.assert_called_once_with("issues.issue.dropped")
+            metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+
+    def test_noise_reduction(self) -> None:
+        with patch("sentry.issues.grouptype.registry", new=GroupTypeRegistry()):
+
+            @dataclass(frozen=True)
+            class TestGroupType(GroupType):
+                type_id = 1
+                slug = "test"
+                description = "Test"
+                category = GroupCategory.PROFILE.value
+                noise_config = NoiseConfig(ignore_limit=2)
+
+            event = self.store_event(data={}, project_id=self.project.id)
+            occurrence = self.build_occurrence(type=TestGroupType.type_id)
+            with mock.patch("sentry.issues.ingest.metrics") as metrics:
+                assert save_issue_from_occurrence(occurrence, event, None) is None
+                metrics.incr.assert_called_once_with("issues.issue.dropped.noise_reduction")
+
+            new_event = self.store_event(data={}, project_id=self.project.id)
+            new_occurrence = self.build_occurrence(type=TestGroupType.type_id)
+            group_info = save_issue_from_occurrence(new_occurrence, new_event, None)
+            assert group_info is not None
 
 
 class CreateIssueKwargsTest(OccurrenceTestMixin, TestCase):  # type: ignore

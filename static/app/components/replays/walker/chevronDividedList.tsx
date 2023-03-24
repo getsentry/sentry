@@ -10,7 +10,7 @@ type Props = {
 
 function ChevronDividedList({items}: Props) {
   return (
-    <List cols={items.length}>
+    <List>
       {items.flatMap((item, i) => {
         const li = <Item key={`${i}-item`}>{item}</Item>;
 
@@ -19,7 +19,7 @@ function ChevronDividedList({items}: Props) {
           : [
               <Item key={`${i}-chev`} role="separator">
                 <Chevron>
-                  <IconChevron color="gray300" size="xs" direction="right" />
+                  <IconChevron color="gray500" size="xs" direction="right" />
                 </Chevron>
               </Item>,
               li,
@@ -29,16 +29,12 @@ function ChevronDividedList({items}: Props) {
   );
 }
 
-const List = styled('ul')<{cols: number}>`
+const List = styled('ul')`
   padding: 0;
   margin: 0;
   list-style: none;
-  display: grid;
-  gap: ${space(1)};
-  grid-template-columns: ${p =>
-    p.cols <= 3
-      ? `minmax(auto, max-content) max-content minmax(auto, max-content) max-content minmax(auto, max-content)`
-      : `minmax(auto, max-content) repeat(3, max-content) minmax(auto, max-content)`};
+  display: flex;
+  gap: ${space(0.75)};
   flex-wrap: nowrap;
   align-items: center;
   overflow: hidden;
@@ -48,11 +44,16 @@ const Item = styled('li')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  flex-shrink: 0;
+
+  &:first-child,
+  &:last-child {
+    flex-shrink: 1;
+  }
 `;
 
 const Chevron = styled('span')`
-  color: ${p => p.theme.gray300};
-  font-size: ${p => p.theme.fontSizeSmall};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;
 

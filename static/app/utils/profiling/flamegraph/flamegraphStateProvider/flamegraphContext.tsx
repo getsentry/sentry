@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
 import {UndoableReducer, UndoableReducerAction} from 'sentry/utils/useUndoableReducer';
 
@@ -24,7 +24,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
       minimap: true,
       transaction_spans: true,
     },
-    colorCoding: 'by symbol name',
+    colorCoding: 'by system vs application frame',
     sorting: 'call order',
     view: 'top down',
     layout: 'table bottom',

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
 from django.db import models
+from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -52,12 +53,12 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    # This field represents the date of the upload that we show in the UI.
+    date_uploaded = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundle"
-
-        unique_together = (("organization_id", "bundle_id"),)
 
     @classmethod
     def get_release_dist_pair(
@@ -71,6 +72,13 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
+
+
+def delete_file_for_artifact_bundle(instance, **kwargs):
+    instance.file.delete()
+
+
+post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
 @region_silo_only_model
@@ -101,7 +109,6 @@ class DebugIdArtifactBundle(Model):
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
-    date_last_accessed = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -202,6 +209,11 @@ class ArtifactBundleArchive:
     ) -> Tuple[IO, dict]:
         file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
+
+    def get_file(self, file_path: str) -> Tuple[IO, dict]:
+        files = self.manifest.get("files", {})
+        file_info = files.get(file_path, {})
+        return self._zip_file.open(file_path), file_info.get("headers", {})
 
     def get_files_by(self, block: Callable[[str, dict], bool]) -> Dict[str, dict]:
         files = self.manifest.get("files", {})
