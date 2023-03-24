@@ -16,7 +16,11 @@ def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: boo
     connection = get_connection(fail_silently=fail_silently)
     # Explicitly typing to satisfy mypy.
     sent: int = connection.send_messages(messages)
-    metrics.incr("email.sent", len(messages), skip_internal=False)
+    metrics.incr("email.sent", sent, skip_internal=False, tags={"success": True})
+    failed = len(messages) - sent
+    if failed:
+        metrics.incr("email.sent", failed, skip_internal=False, tags={"success": False})
+
     for message in messages:
         extra = {
             "message_id": message.extra_headers["Message-Id"],
