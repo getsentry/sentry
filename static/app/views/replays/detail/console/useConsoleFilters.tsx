@@ -85,8 +85,14 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
     [breadcrumbs]
   );
 
-  const logLevel = decodeList(query.f_c_logLevel).filter(isBreadcrumbTypeValue);
-  const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
+  const logLevel = useMemo(
+    () => decodeList(query.f_c_logLevel).filter(isBreadcrumbTypeValue),
+    [query.f_c_logLevel]
+  );
+  const searchTerm = useMemo(
+    () => decodeScalar(query.f_c_search, '').toLowerCase(),
+    [query.f_c_search]
+  );
 
   const items = useMemo(
     () =>

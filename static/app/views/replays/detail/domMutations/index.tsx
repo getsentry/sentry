@@ -74,10 +74,11 @@ function DomMutations({replay, startTimestampMs}: Props) {
     [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
   );
 
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
