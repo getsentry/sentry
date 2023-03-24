@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, Union
 
@@ -12,7 +13,6 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -100,6 +100,16 @@ def ingest_recording_chunked(
                 logger.exception("Missing recording-segment.")
                 return None
 
+            logger.info(
+                "ingest_recording_chunked.info",
+                extra={
+                    "organization_id": message_dict["org_id"],
+                    "project_id": message_dict["project_id"],
+                    "replay_id": message_dict["replay_id"],
+                    "num_parts": message_dict["replay_recording"]["chunks"],
+                    "size_compressed": len(recording_segment_with_headers),
+                },
+            )
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
                 key_id=message_dict.get("key_id"),
@@ -146,20 +156,6 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         logger.warning(f"missing header on {message.replay_id}")
         return None
 
-    with metrics.timer("replays.process_recording.store_recording.count_segments"):
-        count_existing_segments = ReplayRecordingSegmentModel.objects.filter(
-            replay_id=message.replay_id,
-            project_id=message.project_id,
-            segment_id=headers["segment_id"],
-        ).count()
-
-    if count_existing_segments > 0:
-        logging.warning(
-            "Recording segment was already processed.",
-            extra={"project_id": message.project_id, "replay_id": message.replay_id},
-        )
-        return None
-
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
         project_id=message.project_id,
@@ -172,6 +168,22 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     # within this scope.
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
+
+    # Decompress and load the recording JSON. This is a performance test. We don't care about the
+    # result but knowing its performance characteristics and the failure rate of this operation
+    # will inform future releases.
+    try:
+        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
+            json.loads(decompress(recording_segment))
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                headers["segment_id"],
+            )
+        )
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -246,3 +258,11 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
+
+
+def decompress(data: bytes) -> bytes:
+    """Return decompressed bytes."""
+    if data.startswith(b"["):
+        return data
+    else:
+        return zlib.decompress(data, zlib.MAX_WBITS | 32)
