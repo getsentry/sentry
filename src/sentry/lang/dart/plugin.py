@@ -5,7 +5,18 @@ from sentry.utils.options import sample_modulo
 
 
 class DartPlugin(Plugin2):
-    can_disable = False
+    """
+    This plugin is responsible for Dart specific processing on events or attachments.
+
+    Currently, this plugin is applies deobfuscation for view hierarchies, but
+    since we do not have the proper debug files stored in Sentry, this plugin is
+    disabled. When we are ready to roll out dart deobfuscation, this plugin should
+    be enabled and rolled out through the options system.
+    """
+
+    # TODO: This should be removed and it should not be possible to disable the plugin
+    # when we are ready to roll out dart deobfuscation.
+    enabled = False
 
     def can_configure_for_project(self, project, **kwargs):
         return False
