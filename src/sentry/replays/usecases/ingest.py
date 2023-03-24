@@ -100,6 +100,16 @@ def ingest_recording_chunked(
                 logger.exception("Missing recording-segment.")
                 return None
 
+            logger.info(
+                "ingest_recording_chunked.info",
+                extra={
+                    "organization_id": message_dict["org_id"],
+                    "project_id": message_dict["project_id"],
+                    "replay_id": message_dict["replay_id"],
+                    "num_parts": message_dict["replay_recording"]["chunks"],
+                    "size_compressed": len(recording_segment_with_headers),
+                },
+            )
             message = RecordingIngestMessage(
                 replay_id=message_dict["replay_id"],
                 key_id=message_dict.get("key_id"),
@@ -164,7 +174,10 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     # will inform future releases.
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
-            json.loads(decompress(recording_segment))
+            decompressed_segment = decompress(recording_segment)
+            json.loads(decompressed_segment)
+            _report_size_metrics(len(recording_segment), len(decompressed_segment))
+
     except Exception:
         logging.exception(
             "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
@@ -256,3 +269,8 @@ def decompress(data: bytes) -> bytes:
         return data
     else:
         return zlib.decompress(data, zlib.MAX_WBITS | 32)
+
+
+def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
+    metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
+    metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
