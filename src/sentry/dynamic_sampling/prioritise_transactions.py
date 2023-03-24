@@ -347,7 +347,7 @@ def merge_transactions(
     totals: Optional[ProjectTransactionsTotals],
 ) -> ProjectTransactions:
 
-    if left is None and right is None:
+    if right is None and left is None:
         raise ValueError(
             "no transactions passed to merge",
         )
