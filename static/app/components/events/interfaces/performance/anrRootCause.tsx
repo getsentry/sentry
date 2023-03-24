@@ -11,20 +11,14 @@ import {Event, Organization} from 'sentry/types';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import useProjects from 'sentry/utils/useProjects';
 
-import {TraceContextType} from '../spans/types';
+enum AnrRootCauseAllowlist {
+  PerformanceFileIOMainThreadGroupType = 1008,
+  PerformanceDBMainThreadGroupType = 1013,
+}
 
 interface Props {
   event: Event;
   organization: Organization;
-}
-
-export type TraceContextSpanProxy = Omit<TraceContextType, 'span_id'> & {
-  span_id: string; // TODO: Remove this temporary type.
-};
-
-enum AnrRootCauseAllowlist {
-  PerformanceFileIOMainThreadGroupType = 1008,
-  PerformanceDBMainThreadGroupType = 1013,
 }
 
 export function AnrRootCause({organization}: Props) {
