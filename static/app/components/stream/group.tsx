@@ -247,6 +247,7 @@ function BaseGroupRow({
       pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
       query: {
         referrer,
+        stream_index: index,
         ...commonQuery,
         query: filteredQuery,
       },
