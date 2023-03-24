@@ -45,7 +45,6 @@ class ProjectIdentity(TypedDict, total=True):
 class ProjectTransactions(TypedDict, total=True):
     """
     Information about the project transactions
-
     """
 
     project_id: int
@@ -62,16 +61,14 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     total_num_classes: int
 
 
-def same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
-    if left is None and right is None:
-        return True  # both None
+def is_same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
     if left is None or right is None:
-        return False  # one None the other not None
+        return False
 
     return left["project_id"] == right["project_id"] and left["org_id"] == right["org_id"]
 
 
-def project_before(left: ProjectIdentity, right: ProjectIdentity) -> bool:
+def is_project_identity_before(left: ProjectIdentity, right: ProjectIdentity) -> bool:
     return left["org_id"] < right["org_id"] or (
         left["org_id"] == right["org_id"] and left["project_id"] < right["project_id"]
     )
@@ -349,14 +346,20 @@ def merge_transactions(
     right: Optional[ProjectTransactions],
     totals: Optional[ProjectTransactionsTotals],
 ) -> ProjectTransactions:
-    if left is not None and right is not None and not same_project(left, right):
+
+    if left is None and right is None:
+        raise ValueError(
+            "no transactions passed to merge",
+        )
+
+    if left is not None and right is not None and not is_same_project(left, right):
         raise ValueError(
             "mismatched project transactions",
             (left["org_id"], left["project_id"]),
             (right["org_id"], right["project_id"]),
         )
 
-    if totals is not None and not same_project(left, totals):
+    if totals is not None and not is_same_project(left, totals):
         raise ValueError(
             "mismatched projectTransaction and projectTransactionTotals",
             (left["org_id"], left["project_id"]),
@@ -400,21 +403,21 @@ def next_totals(
     current: List[Optional[ProjectTransactionsTotals]] = [None]
 
     def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
-        if same_project(current[0], match):
+        if is_same_project(current[0], match):
             temp = current[0]
             current[0] = None
             return temp
 
-        if current[0] is not None and project_before(match, current[0]):
+        if current[0] is not None and is_project_identity_before(match, current[0]):
             # still haven't reach current no point looking further
             return None
 
         for total in totals:
-            if same_project(total, match):
+            if is_same_project(total, match):
                 # found it
                 return total
 
-            if project_before(match, total):
+            if is_project_identity_before(match, total):
                 # we passed after match, remember were we are no need to go further
                 current[0] = total
                 return None
@@ -460,11 +463,11 @@ def transactions_zip(
 
         if right_elm is not None and left_elm is not None:
             # we have both right and left try to merge them if they point to the same entity
-            if same_project(left_elm, right_elm):
+            if is_same_project(left_elm, right_elm):
                 yield merge_transactions(left_elm, right_elm, get_next_total(left_elm))
                 left_elm = None
                 right_elm = None
-            elif project_before(left_elm, right_elm):
+            elif is_project_identity_before(left_elm, right_elm):
                 # left is before right (return left keep right for next iteration)
                 yield merge_transactions(left_elm, None, get_next_total(left_elm))
                 left_elm = None

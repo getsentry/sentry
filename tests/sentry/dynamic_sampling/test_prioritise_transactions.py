@@ -8,10 +8,10 @@ from sentry.dynamic_sampling.prioritise_transactions import (
     fetch_project_transaction_totals,
     fetch_transactions_with_total_volumes,
     get_orgs_with_project_counts,
+    is_project_identity_before,
+    is_same_project,
     merge_transactions,
     next_totals,
-    project_before,
-    same_project,
     transactions_zip,
 )
 from sentry.snuba.metrics import TransactionMRI
@@ -275,10 +275,10 @@ def test_same_project():
     p3 = {"project_id": 2, "org_id": 1}
     p4 = {"project_id": 3, "org_id": 4}
 
-    assert same_project(p1, p1bis)
-    assert not same_project(p1, p2)
-    assert not same_project(p1, p3)
-    assert not same_project(p1, p4)
+    assert is_same_project(p1, p1bis)
+    assert not is_same_project(p1, p2)
+    assert not is_same_project(p1, p3)
+    assert not is_same_project(p1, p4)
 
 
 def test_project_before():
@@ -289,20 +289,20 @@ def test_project_before():
     p4 = {"project_id": 2, "org_id": 1}
 
     # same project
-    assert not project_before(p1, p1bis)
-    assert not project_before(p1bis, p1)
+    assert not is_project_identity_before(p1, p1bis)
+    assert not is_project_identity_before(p1bis, p1)
 
     # different project_id
-    assert project_before(p1, p2)
-    assert not project_before(p2, p1)
+    assert is_project_identity_before(p1, p2)
+    assert not is_project_identity_before(p2, p1)
 
     # different org_id
-    assert project_before(p1, p3)
-    assert not project_before(p3, p1)
+    assert is_project_identity_before(p1, p3)
+    assert not is_project_identity_before(p3, p1)
 
     # just different
-    assert project_before(p4, p1)
-    assert not project_before(p1, p4)
+    assert is_project_identity_before(p4, p1)
+    assert not is_project_identity_before(p1, p4)
 
 
 def test_next_totals():
