@@ -62,7 +62,7 @@ class ProjectTransactionsTotals(TypedDict, total=True):
     total_num_classes: int
 
 
-def same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]):
+def same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentity]) -> bool:
     if left is None and right is None:
         return True  # both None
     if left is None or right is None:
@@ -71,7 +71,7 @@ def same_project(left: Optional[ProjectIdentity], right: Optional[ProjectIdentit
     return left["project_id"] == right["project_id"] and left["org_id"] == right["org_id"]
 
 
-def project_before(left: ProjectIdentity, right: ProjectIdentity):
+def project_before(left: ProjectIdentity, right: ProjectIdentity) -> bool:
     return left["org_id"] < right["org_id"] or (
         left["org_id"] == right["org_id"] and left["project_id"] < right["project_id"]
     )
