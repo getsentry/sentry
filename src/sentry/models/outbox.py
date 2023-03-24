@@ -176,9 +176,11 @@ class OutboxBase(Model):
         yield coalesced
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
-            _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            deleted_count, _ = (
+                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            )
             tags = {"category": OutboxCategory(self.category).name}
-            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
