@@ -4,7 +4,7 @@ from sentry.integrations.aws_lambda.integration import AwsLambdaIntegration
 from sentry.models import Integration, ProjectKey
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.faux import Mock
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 
 cloudformation_arn = (
     "arn:aws:cloudformation:us-east-2:599817902985:stack/"
@@ -35,11 +35,12 @@ class AbstractServerlessTest(APITestCase):
         return super().get_response(self.organization.slug, self.integration.id, **kwargs)
 
     @property
+    @exempt_from_silo_limits()
     def sentry_dsn(self):
         return ProjectKey.get_default(project=self.project).get_dsn(public=True)
 
 
-@region_silo_test(stable=True)
+@control_silo_test(stable=True)
 class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
     method = "get"
 
@@ -162,7 +163,7 @@ class OrganizationIntegrationServerlessFunctionsGetTest(AbstractServerlessTest):
         ]
 
 
-@region_silo_test
+@control_silo_test(stable=True)
 class OrganizationIntegrationServerlessFunctionsPostTest(AbstractServerlessTest):
     method = "post"
 
