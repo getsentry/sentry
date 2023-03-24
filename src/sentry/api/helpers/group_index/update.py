@@ -49,6 +49,7 @@ from sentry.models.group import STATUS_UPDATE_CHOICES
 from sentry.models.grouphistory import record_group_history_from_activity_type
 from sentry.models.groupinbox import GroupInboxRemoveAction, add_group_to_inbox
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
+from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.signals import (
     issue_ignored,
@@ -88,7 +89,7 @@ def handle_discard(
             try:
                 tombstone = GroupTombstone.objects.create(
                     previous_group_id=group.id,
-                    actor_id=user.id if user else None,
+                    actor_id=coerce_id_from(user),
                     **{name: getattr(group, name) for name in TOMBSTONE_FIELDS_FROM_GROUP},
                 )
             except IntegrityError:

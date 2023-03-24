@@ -3,6 +3,7 @@ from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
 from django.db import models
+from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -52,6 +53,8 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
     date_added = models.DateTimeField(default=timezone.now)
+    # This field represents the date of the upload that we show in the UI.
+    date_uploaded = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -69,6 +72,13 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
+
+
+def delete_file_for_artifact_bundle(instance, **kwargs):
+    instance.file.delete()
+
+
+post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
 @region_silo_only_model
