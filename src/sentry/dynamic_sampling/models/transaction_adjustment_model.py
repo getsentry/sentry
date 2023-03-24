@@ -1,66 +1,105 @@
 import operator
 from collections import namedtuple
 from copy import copy
-from typing import List, Mapping, MutableMapping, Tuple
+from typing import List, Mapping, MutableMapping, Optional, Tuple
 
 AdjustedSampleRate = namedtuple("AdjustedSampleRate", "explicit_rates, global_rate")
 
 
 def adjust_sample_rate(
-    transactions: List[Tuple[str, int]], rate: float, max_explicit_transactions: int
-) -> Tuple[Mapping[str, float], float]:
+    classes: List[Tuple[str, float]],
+    rate: float,
+    total_num_classes: Optional[int],
+    total: Optional[float],
+) -> Tuple[MutableMapping[str, float], float]:
     """
-    Calculates transaction sample size in order to maximize the number of small transactions
+    Adjusts sampling rates to bring the number of samples kept in each class as close to
+    the same value as possible while maintaining the overall sampling rate.
 
-    :param transactions: the transaction types as an array of (name, count) tuples
-    :param rate: the overall desired rate
-    :param max_explicit_transactions: the maximum number of transactions that can have individual
-        rates set, the rest will have a common rate
-    :return: a tuple with the first element a mapping transaction-name->sampling-rate and the
-    second element the transaction rate for all other transactions (that are not in the dict)
+    The algorithm adjusts the explicitly given classes individually to bring them to
+    the ideal sample rate and then adjusts the global sample rate for all the remaining classes.
+
+    :param classes: a list of class id, num_samples in class
+    :param rate: global rate of sampling desired
+    :param total_num_classes: total number of classes (including the explicitly specified in classes)
+    :param total: total number of samples in all classes (including the explicitly specified classes)
+
+    :return: a dictionary with explicit rates for individual classes class_name->rate and
+    a rate for all other (unspecified) classes.
     """
-    # sort by transaction count
-    transactions = sorted(transactions, key=operator.itemgetter(1))
-    if len(transactions) <= max_explicit_transactions:
-        # we can get the ideal rate to all do a full resample
-        return AdjustedSampleRate(
-            explicit_rates=adjust_sample_rate_full(transactions, rate), global_rate=rate
-        )
 
-    # TODO I think we can find out which is the best option by looking at the distribution
-    #   if we compare the smallest rate with the max_explicit_rate_1 rate and the ratio is
-    #   around  1/rate then I think it is safe to go with resample_min otherwise resample_max
-    #   need to investigate and refine this idea.
+    classes = sorted(classes, key=operator.itemgetter(1))
 
-    # See what's gives better results, setting the rate of the smallest transactions or of
-    # the largest transactions (if we have just a few very large transactions is better to
-    # give them individual rates), if we have a few very small transactions we are better off
-    # specifying sample rate for the small transactions.
-    # The way we evaluate what's best is by maximizing the minimum number of samples returned
-    # by a transaction which is not sampled at 1.0
-    min_sample_size_x, explicit_rates_x, global_rate_x = adjust_sample_rate_max(
-        transactions, rate, max_explicit_transactions
-    )
+    if total_num_classes is None or total is None:
+        # we don't have totals information, the best we can do is do a full_adjustment on
+        # the explicit classes and keep the original rate for the rest
+        return adjust_sample_rate_full(classes, rate), rate
 
-    min_sample_size_n, explicit_rates_n, global_rate_n = adjust_sample_rate_min(
-        transactions, rate, max_explicit_transactions
-    )
+    # total count for the explicitly specified classes
+    total_explicit = get_total(classes)
+    # total count for the unspecified classes
+    total_implicit = total - total_explicit
+    # total number of specified classes
+    num_explicit_classes = len(classes)
+    # total number of unspecified classes
+    num_implicit_classes = total_num_classes - num_explicit_classes
 
-    if min_sample_size_n < min_sample_size_x:
-        return AdjustedSampleRate(explicit_rates=explicit_rates_x, global_rate=global_rate_x)
+    total_budget = total * rate
+    budget_per_class = total_budget / total_num_classes
+
+    implicit_budget = budget_per_class * num_implicit_classes
+    explicit_budget = budget_per_class * num_explicit_classes
+
+    if num_explicit_classes == total_num_classes:
+        # we have specified all classes
+        explicit_rates = adjust_sample_rate_full(classes, rate)
+        implicit_rate = rate  # doesn't really matter since everything is explicit
+    elif total_implicit < implicit_budget:
+        # we would not be able to spend all implicit budget we can only spend
+        # a maximum of total_implicit, set the implicit rate to 1
+        # and reevaluate the available budget for the explicit classes
+        implicit_rate = 1
+        # we spent all we could on the implicit classes see what budget we
+        # have left
+        explicit_budget = total_budget - total_implicit
+        # calculate the new global rate for the explicit transactions that
+        # would bring the overall rate to the desired rate
+        explicit_rate = explicit_budget / total_explicit
+        explicit_rates = adjust_sample_rate_full(classes, explicit_rate)
+    elif total_explicit < explicit_budget:
+        # we would not be able to spend all explicit budget we can only
+        # send a maximum of total_explicit so set the explicit rate to 1 for
+        # all explicit classes and reevaluate the available budget for the implicit classes
+        explicit_rates = {name: 1.0 for name, _count in classes}
+
+        # calculate the new global rate for the implicit transactions
+        implicit_budget = total_budget - total_explicit
+        implicit_rate = implicit_budget / total_implicit
     else:
-        return AdjustedSampleRate(explicit_rates=explicit_rates_n, global_rate=global_rate_n)
+        # we can spend all the implicit budget on the implicit classes
+        # and all the explicit budget on the explicit classes
+        # the calculation of rates can be done independently for explicit and
+        # implicit classes
+        implicit_rate = implicit_budget / total_implicit
+        explicit_rate = explicit_budget / total_explicit
+        explicit_rates = adjust_sample_rate_full(classes, explicit_rate)
+    return explicit_rates, implicit_rate
 
 
 def adjust_sample_rate_full(
-    transactions: List[Tuple[str, int]], rate: float
+    transactions: List[Tuple[str, float]], rate: float
 ) -> MutableMapping[str, float]:
     """
-    resample all transactions to their ideal size
+    Resample all classes to their ideal size.
+
+    Ideal size is defined as the minimum of:
+    - num_samples_in_class ( i.e. no sampling, rate 1.0)
+    - total_num_samples * rate / num_classes
+
     """
     transactions = copy(transactions)
     ret_val = {}
-    num_transactions = total_transactions(transactions)
+    num_transactions = get_total(transactions)
     # calculate how many transactions we are allowed to keep overall
     # this will allow us to pass transactions between different transaction types
     total_budget = num_transactions * rate
@@ -85,101 +124,15 @@ def adjust_sample_rate_full(
     return ret_val
 
 
-_SampleRates = namedtuple("_SampleRates", "min_sample_size, explicit_rates, global_rate")
-
-
-def adjust_sample_rate_max(
-    transactions: List[Tuple[str, int]], rate: float, max_explicit_transactions: int
-) -> _SampleRates:
-    """
-    Calculates explicit rates for the transactions with the biggest number of elements and
-    with the remaining space created adjusts the sampling rate for the rest
-    """
-    transactions = copy(transactions)
-    num_transactions, num_types, total_budget, budget_per_transaction_type = _sampling_info(
-        transactions, rate
-    )
-    # first see if we can get sample rate 1 for all small transactions if that's the case then it is
-    # the optimal solution
-    small_transactions = transactions[0 : num_types - max_explicit_transactions]
-    count_small_transactions = total_transactions(small_transactions)
-    transaction_dict: MutableMapping[str, float] = {}
-    if count_small_transactions < budget_per_transaction_type * len(small_transactions):
-        # we can set all small transactions to rate 1 and then adjust large transactions
-        budget_all_big_transactions = total_budget - count_small_transactions
-        big_transactions = transactions[-max_explicit_transactions:]
-        num_big_transactions = total_transactions(big_transactions)
-        # calculate the new rate for big transaction and treat them as a full resample
-        new_rate = budget_all_big_transactions / num_big_transactions
-        transaction_dict = adjust_sample_rate_full(big_transactions, new_rate)
-        # since all small transactions are sampled at 1 the min_sample_size can be found
-        # in any big transaction that is not sampled at 1 (since they all will have the
-        # same size
-        for name, count in big_transactions:
-            rate = transaction_dict[name]
-            if rate != 1.0:
-                min_sample_size = count * rate
-                return _SampleRates(min_sample_size, transaction_dict, 1)
-        # if we are here we are sampling at 1.0 (a bit silly but no reason to crash)
-        return _SampleRates(budget_per_transaction_type, transaction_dict, 1)
-    else:
-        # push all big transactions at the ideal sample size
-        for _ in range(max_explicit_transactions):
-            name, count = transactions.pop(-1)
-            transaction_rate = budget_per_transaction_type / count
-            transaction_dict[name] = transaction_rate
-            total_budget -= budget_per_transaction_type
-        global_rate = total_budget / total_transactions(transactions)
-        # min sample size would be for the first transaction
-        min_sample_size = transactions[0][1] * global_rate
-        return _SampleRates(min_sample_size, transaction_dict, global_rate)
-
-
-def adjust_sample_rate_min(
-    transactions: List[Tuple[str, int]], rate: float, max_explicit_transactions: int
-) -> _SampleRates:
-    transactions = copy(transactions)
-    num_transactions, num_types, total_budget, budget_per_transaction_type = _sampling_info(
-        transactions, rate
-    )
-
-    transactions_dict = {}
-    # push all small transactions at either rate=1 or ideal sample size
-    for idx in range(max_explicit_transactions):
-        name, count = transactions.pop(0)
-        if count < budget_per_transaction_type:
-            transactions_dict[name] = 1.0
-            total_budget -= count
-        else:
-            transactions_dict[name] = budget_per_transaction_type / count
-            total_budget -= budget_per_transaction_type
-        num_types = len(transactions)
-        budget_per_transaction_type = total_budget / num_types
-    # calculate rate for all other transactions
-    global_rate = total_budget / total_transactions(transactions)
-    min_sample_size = global_rate * transactions[0][1]
-    return _SampleRates(min_sample_size, transactions_dict, global_rate)
-
-
-def _sampling_info(
-    transactions: List[Tuple[str, int]], rate: float
-) -> Tuple[int, int, float, float]:
-    num_types = len(transactions)
-    num_transactions = total_transactions(transactions)
-    total_budget = num_transactions * rate
-    budget_per_transaction_type = total_budget / num_types
-    return num_transactions, num_types, total_budget, budget_per_transaction_type
-
-
-def total_transactions(transactions: List[Tuple[str, int]]) -> int:
-    ret_val = 0
+def get_total(transactions: List[Tuple[str, float]]) -> float:
+    ret_val = 0.0
     for _, v in transactions:
         ret_val += v
     return ret_val
 
 
-def get_num_sampled_transactions(
-    transactions: List[Tuple[str, int]], trans_dict: Mapping[str, float], global_rate: float
+def get_num_sampled_elements(
+    transactions: List[Tuple[str, float]], trans_dict: Mapping[str, float], global_rate: float
 ) -> float:
     num_transactions = 0.0
     for name, count in transactions:

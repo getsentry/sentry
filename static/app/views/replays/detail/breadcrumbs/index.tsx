@@ -21,6 +21,13 @@ type Props = {
   startTimestampMs: number;
 };
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 53,
+};
+
 function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
   const items = useMemo(
     () =>
@@ -30,10 +37,7 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const {cache, updateList} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 53,
-    },
+    cellMeasurer,
     ref: listRef,
     deps: [items],
   });

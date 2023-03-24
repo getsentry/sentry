@@ -45,6 +45,8 @@ export function getMessage(
     case EventOrGroupType.EXPECTSTAPLE:
     case EventOrGroupType.HPKP:
       return '';
+    case EventOrGroupType.GENERIC:
+      return metadata.value;
     default:
       return culprit || '';
   }
@@ -178,6 +180,13 @@ export function getTitle(
       return {
         title: isPerfIssue ? metadata.title : customTitle ?? title,
         subtitle: isPerfIssue ? culprit : '',
+        treeLabel: undefined,
+      };
+    case EventOrGroupType.GENERIC:
+      const isProfilingIssue = event.issueCategory === IssueCategory.PROFILE;
+      return {
+        title: isProfilingIssue ? metadata.title : customTitle ?? title,
+        subtitle: isProfilingIssue ? culprit : '',
         treeLabel: undefined,
       };
     default:
