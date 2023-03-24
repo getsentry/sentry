@@ -202,6 +202,7 @@ def prep_search(
             query_kwargs.update(extra_query_kwargs)
 
         query_kwargs["environments"] = environments
+        query_kwargs["actor"] = request.user
         result = search.query(**query_kwargs)
     return result, query_kwargs
 

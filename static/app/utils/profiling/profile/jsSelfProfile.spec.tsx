@@ -260,7 +260,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -293,7 +293,7 @@ describe('jsSelfProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
       true
     );
   });
@@ -382,5 +382,41 @@ describe('jsSelfProfile', () => {
       ['f1', 'close'],
       ['f0', 'close'],
     ]);
+  });
+
+  it('flamegraph tracks node occurences', () => {
+    const trace: JSSelfProfiling.Trace = {
+      resources: ['app.js'],
+      frames: [
+        {name: 'f1', line: 1, column: 1, resourceId: 0},
+        {name: 'f0', line: 1, column: 1, resourceId: 0},
+      ],
+      samples: [
+        {
+          stackId: 0,
+          timestamp: 0,
+        },
+        {
+          timestamp: 10,
+          stackId: 1,
+        },
+        {
+          timestamp: 20,
+          stackId: 0,
+        },
+      ],
+      stacks: [
+        {frameId: 0, parentId: undefined},
+        {frameId: 1, parentId: 0},
+      ],
+    };
+    const profile = JSSelfProfile.FromProfile(
+      trace,
+      createFrameIndex('web', trace.frames, trace),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].children[0].count).toBe(1);
   });
 });

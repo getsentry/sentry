@@ -23,9 +23,6 @@ import IssueListWithStores, {IssueListOverview} from 'sentry/views/issueList/ove
 // Mock <IssueListActions>
 jest.mock('sentry/views/issueList/actions', () => jest.fn(() => null));
 jest.mock('sentry/components/stream/group', () => jest.fn(() => null));
-jest.mock('sentry/views/issueList/noGroupsHandler/congratsRobots', () =>
-  jest.fn(() => null)
-);
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -204,7 +201,7 @@ describe('IssueList', function () {
       });
     });
 
-    it('loads group rows with default query (no pinned queries, and no query in URL)', async function () {
+    it('loads group rows with default query (no pinned queries, async and no query in URL)', async function () {
       render(<IssueListWithStores {...routerProps} {...defaultProps} />, {
         context: routerContext,
       });
@@ -213,7 +210,7 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
       expect(savedSearchesRequest).toHaveBeenCalledTimes(1);
 
-      userEvent.click(await screen.findByRole('textbox'));
+      await userEvent.click(await screen.findByRole('textbox'));
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
@@ -231,8 +228,7 @@ describe('IssueList', function () {
 
       expect(screen.getByRole('textbox')).toHaveValue('is:unresolved ');
 
-      // Tab shows "saved searches" because there is an is:unresolved tab
-      expect(screen.getByRole('button', {name: 'Saved Searches'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /custom search/i})).toBeInTheDocument();
     });
 
     it('loads with query in URL and pinned queries', async function () {
@@ -270,7 +266,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:foo ');
 
       // Tab shows "custom search"
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with a pinned custom query', async function () {
@@ -305,7 +301,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
     it('loads with a saved query', async function () {
@@ -350,7 +346,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('assigned:me ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'Assigned to Me'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Assigned to Me'})).toBeInTheDocument();
     });
 
     it('loads with a query in URL', async function () {
@@ -392,7 +388,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('level:error ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
     });
 
     it('loads with an empty query in URL', async function () {
@@ -430,10 +426,10 @@ describe('IssueList', function () {
       expect(screen.getByRole('textbox')).toHaveValue('is:resolved ');
 
       // Organization saved search selector should have default saved search selected
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
     });
 
-    it('selects a saved search', async function () {
+    it('1 search', async function () {
       const localSavedSearch = {...savedSearch, projectId: null};
       savedSearchesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/searches/',
@@ -446,8 +442,8 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.click(screen.getByRole('button', {name: /saved searches/i}));
-      userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
+      await userEvent.click(screen.getByRole('button', {name: /custom search/i}));
+      await userEvent.click(screen.getByRole('button', {name: localSavedSearch.name}));
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -477,8 +473,8 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.clear(screen.getByRole('textbox'));
-      userEvent.type(screen.getByRole('textbox'), 'dogs{enter}');
+      await userEvent.clear(screen.getByRole('textbox'));
+      await userEvent.type(screen.getByRole('textbox'), 'dogs{enter}');
 
       expect(browserHistory.push).toHaveBeenLastCalledWith(
         expect.objectContaining({
@@ -515,8 +511,8 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.clear(screen.getByRole('textbox'));
-      userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
+      await userEvent.clear(screen.getByRole('textbox'));
+      await userEvent.type(screen.getByRole('textbox'), 'assigned:me level:fatal{enter}');
 
       expect(browserHistory.push.mock.calls[0][0]).toEqual(
         expect.objectContaining({
@@ -538,7 +534,7 @@ describe('IssueList', function () {
         {context: routerContext, router: routerWithQuery}
       );
 
-      expect(screen.getByRole('tab', {name: 'Custom Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Custom Search'})).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
       const createPin = MockApiClient.addMockResponse({
@@ -550,7 +546,7 @@ describe('IssueList', function () {
         url: '/organizations/org-slug/searches/',
         body: [savedSearch, pinnedSearch],
       });
-      userEvent.click(screen.getByLabelText(/Set as Default/i));
+      await userEvent.click(screen.getByLabelText(/Set as Default/i));
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
@@ -598,9 +594,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      expect(screen.getByRole('tab', {name: 'My Default Search'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'My Default Search'})).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/Remove Default/i));
+      await userEvent.click(screen.getByLabelText(/Remove Default/i));
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
@@ -652,9 +648,9 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      expect(screen.getByRole('tab', {name: savedSearch.name})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: savedSearch.name})).toBeInTheDocument();
 
-      userEvent.click(screen.getByLabelText(/set as default/i));
+      await userEvent.click(screen.getByLabelText(/set as default/i));
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
@@ -712,7 +708,7 @@ describe('IssueList', function () {
         },
       });
 
-      userEvent.click(screen.getByLabelText(/set as default/i));
+      await userEvent.click(screen.getByLabelText(/set as default/i));
 
       await waitFor(() => {
         expect(createPin).toHaveBeenCalled();
@@ -777,7 +773,7 @@ describe('IssueList', function () {
 
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
 
-      userEvent.click(screen.getByLabelText(/Remove Default/i));
+      await userEvent.click(screen.getByLabelText(/Remove Default/i));
 
       await waitFor(() => {
         expect(deletePin).toHaveBeenCalled();
@@ -815,7 +811,7 @@ describe('IssueList', function () {
         },
       });
 
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       let pushArgs = {
         pathname: '/organizations/org-slug/issues/',
@@ -844,7 +840,7 @@ describe('IssueList', function () {
       expect(screen.getByRole('button', {name: 'Previous'})).toBeEnabled();
 
       // Click next again
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
@@ -871,7 +867,7 @@ describe('IssueList', function () {
       );
 
       // Click previous
-      userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
       pushArgs = {
         pathname: '/organizations/org-slug/issues/',
@@ -898,7 +894,7 @@ describe('IssueList', function () {
       );
 
       // Click previous back to initial page
-      userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
 
       await waitFor(() => {
         // cursor is undefined because "prev" cursor is === initial "next" cursor
@@ -919,7 +915,7 @@ describe('IssueList', function () {
   });
 
   describe('transitionTo', function () {
-    it('pushes to history when query is updated', function () {
+    it('pushes to history when query is updated', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
@@ -932,8 +928,8 @@ describe('IssueList', function () {
         context: routerContext,
       });
 
-      userEvent.clear(screen.getByRole('textbox'));
-      userEvent.type(screen.getByRole('textbox'), 'is:ignored{enter}');
+      await userEvent.clear(screen.getByRole('textbox'));
+      await userEvent.type(screen.getByRole('textbox'), 'is:ignored{enter}');
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         pathname: '/organizations/org-slug/issues/',
@@ -1086,7 +1082,7 @@ describe('IssueList', function () {
 
       render(<IssueListOverview {...routerProps} {...props} />, {context: routerContext});
 
-      userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
+      await userEvent.type(screen.getByRole('textbox'), ' level:error{enter}');
 
       expect(
         await screen.findByText(/We couldn't find any issues that matched your filters/i)
@@ -1128,7 +1124,7 @@ describe('IssueList', function () {
       await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
     };
 
-    it('displays when no projects selected and all projects user is member of, does not have first event', async function () {
+    it('displays when no projects selected and all projects user is member of, async does not have first event', async function () {
       const projects = [
         TestStubs.Project({
           id: '1',

@@ -11,6 +11,7 @@ function createSpan(extra: {
   op: string;
   data?: Record<string, any>;
   description?: string;
+  startTimestamp?: number;
 }): ReplaySpan<Record<string, any>> {
   return {
     data: {},
@@ -128,6 +129,33 @@ describe('breadcrumbFactory', () => {
         },
       ]
     `);
+  });
+
+  it('sorts breadcrumbs by timestamp', () => {
+    const rawSpans = [
+      createSpan({...navigateSpan, startTimestamp: 30}),
+      createSpan({...lcpSpan, startTimestamp: 10}),
+      createSpan({...navigateSpan, startTimestamp: 40}),
+      createSpan({...navigateSpan, startTimestamp: 20}),
+    ];
+
+    const results = breadcrumbFactory(
+      TestStubs.Event({
+        started_at: new Date(0),
+      }),
+      [],
+      [],
+      rawSpans
+    );
+
+    function toTime(input: string | undefined) {
+      return new Date(input || '').getTime();
+    }
+
+    expect(results).toHaveLength(4);
+    expect(toTime(results[0].timestamp)).toBeLessThan(toTime(results[1].timestamp));
+    expect(toTime(results[1].timestamp)).toBeLessThan(toTime(results[2].timestamp));
+    expect(toTime(results[2].timestamp)).toBeLessThan(toTime(results[3].timestamp));
   });
 });
 

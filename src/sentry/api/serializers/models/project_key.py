@@ -3,6 +3,7 @@ from sentry.loader.browsersdkversion import (
     get_browser_sdk_version_choices,
     get_selected_browser_sdk_version,
 )
+from sentry.loader.dynamic_sdk_options import DynamicSdkLoaderOption, get_dynamic_sdk_loader_option
 from sentry.models import ProjectKey
 
 
@@ -34,5 +35,12 @@ class ProjectKeySerializer(Serializer):
             "browserSdkVersion": get_selected_browser_sdk_version(obj),
             "browserSdk": {"choices": get_browser_sdk_version_choices()},
             "dateCreated": obj.date_added,
+            "dynamicSdkLoaderOptions": {
+                "hasReplay": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_REPLAY),
+                "hasPerformance": get_dynamic_sdk_loader_option(
+                    obj, DynamicSdkLoaderOption.HAS_PERFORMANCE
+                ),
+                "hasDebug": get_dynamic_sdk_loader_option(obj, DynamicSdkLoaderOption.HAS_DEBUG),
+            },
         }
         return d

@@ -27,6 +27,7 @@ import EventView, {isFieldSortable, MetaType} from 'sentry/utils/discover/eventV
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
 import {TableColumn} from 'sentry/views/discover/table/types';
 
@@ -424,24 +425,31 @@ class _Table extends Component<Props, State> {
                 >
                   {({pageLinks, isLoading, tableData}) => (
                     <Fragment>
-                      <GridEditable
-                        isLoading={isLoading}
-                        data={tableData ? tableData.data : []}
-                        columnOrder={columnOrder}
-                        columnSortBy={columnSortBy}
-                        grid={{
-                          onResizeColumn: this.handleResizeColumn,
-                          renderHeadCell: this.renderHeadCellWithMeta(
-                            tableData?.meta
-                          ) as any,
-                          renderBodyCell: this.renderBodyCellWithData(tableData) as any,
-                          renderPrependColumns: this.renderPrependCellWithData(
-                            tableData
-                          ) as any,
-                          prependColumnWidths,
-                        }}
-                        location={location}
-                      />
+                      <VisuallyCompleteWithData
+                        id="PerformanceTable"
+                        hasData={
+                          !isLoading && !!tableData?.data && tableData.data.length > 0
+                        }
+                      >
+                        <GridEditable
+                          isLoading={isLoading}
+                          data={tableData ? tableData.data : []}
+                          columnOrder={columnOrder}
+                          columnSortBy={columnSortBy}
+                          grid={{
+                            onResizeColumn: this.handleResizeColumn,
+                            renderHeadCell: this.renderHeadCellWithMeta(
+                              tableData?.meta
+                            ) as any,
+                            renderBodyCell: this.renderBodyCellWithData(tableData) as any,
+                            renderPrependColumns: this.renderPrependCellWithData(
+                              tableData
+                            ) as any,
+                            prependColumnWidths,
+                          }}
+                          location={location}
+                        />
+                      </VisuallyCompleteWithData>
                       <Pagination
                         pageLinks={pageLinks}
                         paginationAnalyticsEvent={this.paginationAnalyticsEvent}

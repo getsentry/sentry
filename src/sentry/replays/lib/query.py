@@ -89,8 +89,34 @@ class Field:
         value: Union[List[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
-
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
+
+class UUIDField(Field):
+    """
+    as our minimum supported clickhouse version is 20.3, we don't have
+    isUUIDOrZero function, so we must validate the uuid before supplying to clickhouse.
+    """
+
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        if isinstance(value, list):
+            uuids = _transform_uuids(value)
+            if uuids is None:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+            value = uuids
+        else:
+            uuids = _transform_uuids([value])
+            if uuids is None:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+            value = uuids[0]
+
+        return super().as_condition(field_alias, operator, value)
 
 
 class String(Field):

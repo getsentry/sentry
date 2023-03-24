@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Mapping, MutableMapping
+from typing import Any, Mapping
 
 from sentry.models import Activity, NotificationSetting, Organization, Team, User
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import APIUser
 from sentry.types.integrations import ExternalProviders
 
+from ...utils.participants import ParticipantMap
 from .base import GroupActivityNotification
 
 
@@ -67,18 +66,16 @@ class AssignedActivityNotification(GroupActivityNotification):
     ) -> str:
         assignee = self.get_assignee()
 
-        if not self.activity.user:
+        if not self.user:
             return f"Issue automatically assigned to {assignee}"
 
-        author = self.activity.user.get_display_name()
+        author = self.user.get_display_name()
         if assignee == "themselves":
             author, assignee = assignee, author
 
         return f"Issue assigned to {assignee} by {author}"
 
-    def get_participants_with_group_subscription_reason(
-        self,
-    ) -> Mapping[ExternalProviders, Mapping[Team | APIUser, int]]:
+    def get_participants_with_group_subscription_reason(self) -> ParticipantMap:
         """Hack to tack on the assigned team to the list of users subscribed to the group."""
         users_by_provider = super().get_participants_with_group_subscription_reason()
         if is_team_assignee(self.activity):
@@ -91,14 +88,11 @@ class AssignedActivityNotification(GroupActivityNotification):
                     recipients=[assignee_team],
                     type=self.notification_setting_type,
                 )
-                actors_by_provider: MutableMapping[
-                    ExternalProviders,
-                    MutableMapping[Team | APIUser, int],
-                ] = defaultdict(dict)
-                actors_by_provider.update({**users_by_provider})
+                actors_by_provider = ParticipantMap()
+                actors_by_provider.update(users_by_provider)
                 for provider, teams in teams_by_provider.items():
                     for team in teams:
-                        actors_by_provider[provider][team] = GroupSubscriptionReason.assigned
+                        actors_by_provider.add(provider, team, GroupSubscriptionReason.assigned)
                 return actors_by_provider
 
         return users_by_provider

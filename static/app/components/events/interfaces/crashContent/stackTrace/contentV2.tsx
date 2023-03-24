@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {Frame, Group, PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
 import Line from '../../frame/lineV2';
 import {getImageRange, parseAddress, stackTracePlatformIcon} from '../../utils';
@@ -23,8 +24,10 @@ type Props = {
   debugFrames?: StacktraceFilenameQuery[];
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  hideIcon?: boolean;
   includeSystemFrames?: boolean;
   isHoverPreviewed?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   newestFirst?: boolean;
 };
@@ -38,7 +41,9 @@ function Content({
   className,
   isHoverPreviewed,
   groupingCurrentLevel,
+  maxDepth,
   meta,
+  hideIcon,
   includeSystemFrames = true,
   expandFirstFrame = true,
 }: Props) {
@@ -150,7 +155,7 @@ function Content({
       0
     );
 
-    const convertedFrames = frames
+    let convertedFrames = frames
       .map((frame, frameIndex) => {
         const prevFrame = frames[frameIndex - 1];
         const nextFrame = frames[frameIndex + 1];
@@ -233,12 +238,10 @@ function Content({
       convertedFrames[lastFrame] = cloneElement(convertedFrames[lastFrame], {
         registers,
       });
+    }
 
-      if (!newestFirst) {
-        return convertedFrames;
-      }
-
-      return [...convertedFrames].reverse();
+    if (defined(maxDepth)) {
+      convertedFrames = convertedFrames.slice(-maxDepth);
     }
 
     if (!newestFirst) {
@@ -252,7 +255,7 @@ function Content({
 
   return (
     <Wrapper className={getClassName()} data-test-id="stack-trace-content-v2">
-      <StacktracePlatformIcon platform={platformIcon} />
+      {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
       <StyledList>{renderConvertedFrames()}</StyledList>
     </Wrapper>
   );

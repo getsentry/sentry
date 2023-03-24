@@ -8,7 +8,6 @@ from rest_framework.request import Request
 
 from sentry import audit_log, features
 from sentry.models import (
-    Authenticator,
     AuthIdentity,
     AuthProvider,
     Organization,
@@ -194,7 +193,7 @@ class ApiInviteHelper:
             return None
 
         try:
-            provider = AuthProvider.objects.get(organization=om.organization)
+            provider = AuthProvider.objects.get(organization_id=om.organization.id)
         except AuthProvider.DoesNotExist:
             provider = None
 
@@ -225,8 +224,9 @@ class ApiInviteHelper:
 
     def _needs_2fa(self) -> bool:
         org_requires_2fa = self.organization.flags.require_2fa.is_set
-        user_has_2fa = Authenticator.objects.user_has_2fa(self.request.user.id)
-        return org_requires_2fa and not user_has_2fa
+        return org_requires_2fa and (
+            not self.request.user.is_authenticated or not self.request.user.has_2fa()
+        )
 
     def _needs_email_verification(self) -> bool:
         organization = self.organization

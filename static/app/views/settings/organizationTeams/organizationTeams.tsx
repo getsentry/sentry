@@ -13,7 +13,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AccessRequest, Organization} from 'sentry/types';
 import useTeams from 'sentry/utils/useTeams';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';

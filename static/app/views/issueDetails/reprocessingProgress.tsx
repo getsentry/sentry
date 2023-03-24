@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import ProgressBar from 'sentry/components/progressBar';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {percent} from 'sentry/utils';
 
 type Props = {

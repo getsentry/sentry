@@ -1,28 +1,24 @@
+import sentry_sdk
 from symbolic import ProguardMapper
 
 from sentry.lang.java.processing import deobfuscate_exception_value
-from sentry.lang.java.utils import has_proguard_file
+from sentry.lang.java.utils import (
+    deobfuscate_view_hierarchy,
+    get_proguard_images,
+    has_proguard_file,
+)
 from sentry.models import EventError, ProjectDebugFile
 from sentry.plugins.base.v2 import Plugin2
 from sentry.reprocessing import report_processing_issue
 from sentry.stacktraces.processing import StacktraceProcessor
-from sentry.utils.safe import get_path
-
-
-def is_valid_image(image):
-    return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
 
 
 class JavaStacktraceProcessor(StacktraceProcessor):
     def __init__(self, *args, **kwargs):
         StacktraceProcessor.__init__(self, *args, **kwargs)
 
-        self.images = set()
-        self.available = False
-
-        for image in get_path(self.data, "debug_meta", "images", filter=is_valid_image, default=()):
-            self.available = True
-            self.images.add(str(image["uuid"]).lower())
+        self.images = get_proguard_images(self.data)
+        self.available = len(self.images) > 0
 
     def handles_frame(self, frame, stacktrace_info):
         platform = frame.get("platform") or self.data.get("platform")
@@ -32,10 +28,11 @@ class JavaStacktraceProcessor(StacktraceProcessor):
         if not self.available:
             return False
 
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(
-            self.project, self.images, features=["mapping"]
-        )
-        self.mapping_views = []
+        with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+            dif_paths = ProjectDebugFile.difcache.fetch_difs(
+                self.project, self.images, features=["mapping"]
+            )
+            self.mapping_views = []
 
         for debug_id in self.images:
             error_type = None
@@ -44,11 +41,12 @@ class JavaStacktraceProcessor(StacktraceProcessor):
             if dif_path is None:
                 error_type = EventError.PROGUARD_MISSING_MAPPING
             else:
-                view = ProguardMapper.open(dif_path)
-                if not view.has_line_info:
-                    error_type = EventError.PROGUARD_MISSING_LINENO
-                else:
-                    self.mapping_views.append(view)
+                with sentry_sdk.start_span(op="proguard.open"):
+                    view = ProguardMapper.open(dif_path)
+                    if not view.has_line_info:
+                        error_type = EventError.PROGUARD_MISSING_LINENO
+                    else:
+                        self.mapping_views.append(view)
 
             if error_type is None:
                 continue
@@ -139,4 +137,4 @@ class JavaPlugin(Plugin2):
 
     def get_event_preprocessors(self, data):
         if has_proguard_file(data):
-            return [deobfuscate_exception_value]
+            return [deobfuscate_exception_value, deobfuscate_view_hierarchy]

@@ -92,7 +92,7 @@ class SetRefsTest(TestCase):
 
         assert len(release_heads) == 0
         hook = HerokuReleaseHook(project)
-        hook.finish_release(version=version, owner=user)
+        hook.finish_release(version=version, owner_id=user.id)
 
         release = Release.objects.get(projects=project, version=version)
 
@@ -139,12 +139,35 @@ class HookHandleTest(TestCase):
                 "user": {"email": user.email},
                 "slug": {"commit": "abcd123"},
                 "app": {"name": "example"},
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
         assert Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
         assert hook.set_refs.call_count == 1
+
+    def test_only_run_on_update(self):
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        project = self.create_project(organization=organization)
+        hook = HerokuReleaseHook(project)
+        hook.is_valid_signature = Mock()
+        hook.set_refs = Mock()
+
+        req = Mock()
+        body = {
+            "data": {
+                "user": {"email": user.email},
+                "slug": {"commit": "abcd123"},
+                "app": {"name": "example"},
+            },
+            "action": "create",
+        }
+        req.body = bytes(json.dumps(body), "utf-8")
+        hook.handle(req)
+        assert not Release.objects.filter(version=body["data"]["slug"]["commit"]).exists()
+        assert hook.set_refs.call_count == 0
 
     def test_actor_email_success(self):
         user = self.create_user()
@@ -160,7 +183,8 @@ class HookHandleTest(TestCase):
                 "actor": {"email": user.email},
                 "slug": {"commit": "abcd123"},
                 "app": {"name": "example"},
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -180,7 +204,8 @@ class HookHandleTest(TestCase):
                 "user": {"email": "wrong@example.com"},
                 "slug": {"commit": "v999"},
                 "app": {"name": "example"},
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         hook.handle(req)
@@ -198,7 +223,8 @@ class HookHandleTest(TestCase):
                 "actor": {"email": user.email},
                 "slug": {"commit": ""},
                 "app": {"name": "example"},
-            }
+            },
+            "action": "update",
         }
         req.body = bytes(json.dumps(body), "utf-8")
         with pytest.raises(HookValidationError):

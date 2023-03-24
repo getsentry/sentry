@@ -7,14 +7,14 @@ import {
   createProgram,
   createShader,
   ELLIPSIS,
-  findRangeBinarySearch,
+  getCenterScaleMatrixFromConfigPosition,
   getContext,
   lowerBound,
   makeProjectionMatrix,
-  Rect,
-  trimTextCenter,
   upperBound,
 } from 'sentry/utils/profiling/gl/utils';
+
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {
@@ -612,5 +612,40 @@ describe('computeConfigViewWithStrategy', () => {
     expect(
       computeConfigViewWithStrategy('min', view, frame).equals(new Rect(0, 2, 10, 1))
     ).toBe(true);
+  });
+
+  describe('getCenterScaleMatrixFromConfigPosition', function () {
+    it('returns a matrix that represents scaling on both x and y axes', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(0, 0)
+      );
+
+      // Scales by 2 along the x and y axis
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          0, 0, 1
+        )
+      );
+    });
+
+    it('returns a matrix that scales and translates back so the scaling appears to zoom into the point', function () {
+      const actual = getCenterScaleMatrixFromConfigPosition(
+        vec2.fromValues(2, 2),
+        vec2.fromValues(5, 5)
+      );
+
+      expect(actual).toEqual(
+        // prettier-ignore
+        mat3.fromValues(
+          2, 0, 0,
+          0, 2, 0,
+          -5, -5, 1
+        )
+      );
+    });
   });
 });

@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 
 import Input, {InputProps} from 'sentry/components/input';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Column,
   generateFieldAsString,
@@ -205,6 +205,10 @@ export default class ArithmeticInput extends PureComponent<Props, State> {
     if (key === 'Enter') {
       this.blur();
       return;
+    }
+
+    if (key === 'ArrowLeft' || key === 'ArrowRight') {
+      this.updateAutocompleteOptions();
     }
   };
 

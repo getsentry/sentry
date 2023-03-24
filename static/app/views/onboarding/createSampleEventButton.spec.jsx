@@ -22,7 +22,8 @@ describe('CreateSampleEventButton', function () {
         project={{...project, platform: 'javascript'}}
       >
         {createSampleText}
-      </CreateSampleEventButton>
+      </CreateSampleEventButton>,
+      {organization: org}
     );
   }
 
@@ -39,7 +40,7 @@ describe('CreateSampleEventButton', function () {
     });
 
     const sampleButton = await screen.findByRole('button', {name: createSampleText});
-    userEvent.click(sampleButton);
+    await userEvent.click(sampleButton, {delay: null});
 
     // The button should be disabled while creating the event
     expect(sampleButton).toBeDisabled();
@@ -76,7 +77,9 @@ describe('CreateSampleEventButton', function () {
       body: {groupID},
     });
 
-    userEvent.click(await screen.findByRole('button', {name: createSampleText}));
+    await userEvent.click(await screen.findByRole('button', {name: createSampleText}), {
+      delay: null,
+    });
 
     await waitFor(() => expect(createRequest).toHaveBeenCalled());
 

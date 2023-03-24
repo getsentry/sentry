@@ -30,7 +30,11 @@ export const RoleOverwritePanelAlert: React.FC<Props> = props => {
     return null;
   }
 
-  return <PanelAlert>{getOverwriteString(props)}</PanelAlert>;
+  return (
+    <PanelAlert data-test-id="alert-role-overwrite">
+      {getOverwriteString(props)}
+    </PanelAlert>
+  );
 };
 
 /**

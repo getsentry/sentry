@@ -22,7 +22,8 @@ from sentry.integrations.msteams.card_builder import (
     TextBlock,
 )
 from sentry.integrations.msteams.card_builder.utils import IssueConstants
-from sentry.models import Group, GroupStatus, Integration, Project, Rule
+from sentry.models import Group, GroupStatus, Project, Rule
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 from ..utils import ACTION_TYPE
 from .base import MSTeamsMessageBuilder
@@ -45,7 +46,9 @@ from .block import (
 
 
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
-    def __init__(self, group: Group, event: Event, rules: Sequence[Rule], integration: Integration):
+    def __init__(
+        self, group: Group, event: Event, rules: Sequence[Rule], integration: RpcIntegration
+    ):
         self.group = group
         self.event = event
         self.rules = rules

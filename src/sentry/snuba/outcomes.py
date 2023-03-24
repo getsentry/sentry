@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Mapping, MutableMapping, Optional, Sequence, Tuple
 
@@ -222,46 +224,93 @@ class QueryDefinition:
     `fields` and `groupby` definitions as [`ColumnDefinition`] objects.
     """
 
-    def __init__(
-        self,
+    @classmethod
+    def from_query_dict(
+        cls,
         query: QueryDict,
         params: Mapping[Any, Any],
         allow_minute_resolution: Optional[bool] = True,
+    ) -> QueryDefinition:
+        """
+        Create a QueryDefinition from a Django request QueryDict
+
+        Useful when you want to convert request data into an outcomes.QueryDefinition.
+        """
+        return QueryDefinition(
+            fields=query.getlist("field", []) or [],
+            start=query.get("start", None),
+            end=query.get("end", None),
+            stats_period=query.get("statsPeriod", None),
+            organization_id=params.get("organization_id", None),
+            project_ids=params.get("project_id", None),
+            key_id=query.get("key_id", None),
+            interval=query.get("interval"),
+            outcome=query.getlist("outcome", []),
+            group_by=query.getlist("groupBy", []),
+            category=query.getlist("category"),
+            reason=query.get("reason"),
+            allow_minute_resolution=allow_minute_resolution,
+        )
+
+    def __init__(
+        self,
+        fields: List[str],
+        start: Optional[str] = None,
+        end: Optional[str] = None,
+        stats_period: Optional[str] = None,
+        organization_id: Optional[int] = None,
+        project_ids: Optional[List[int]] = None,
+        key_id: Optional[int] = None,
+        interval: Optional[str] = None,
+        outcome: Optional[List[str]] = None,
+        group_by: Optional[List[str]] = None,
+        category: Optional[List[str]] = None,
+        reason: Optional[str] = None,
+        allow_minute_resolution: Optional[bool] = True,
     ):
-        raw_fields = query.getlist("field", [])
-        raw_groupby = query.getlist("groupBy", [])
-        if len(raw_fields) == 0:
+        params: MutableMapping[str, Any] = {"organization_id": organization_id}
+        if project_ids is not None:
+            params["project_id"] = project_ids
+
+        if len(fields) == 0:
             raise InvalidField('At least one "field" is required.')
         self.fields = {}
         self.query: List[Any] = []  # not used but needed for compat with sessions logic
         allowed_resolution = (
             AllowedResolution.one_minute if allow_minute_resolution else AllowedResolution.one_hour
         )
-        start, end, rollup = get_constrained_date_range(query, allowed_resolution)
-        self.dataset, self.match = _outcomes_dataset(rollup)
-        self.rollup = rollup
-        self.start = start
-        self.end = end
+        date_params = {
+            "start": start,
+            "end": end,
+            "interval": interval or "",
+            "statsPeriod": stats_period,
+        }
+
+        self.start, self.end, self.rollup = get_constrained_date_range(
+            date_params, allowed_resolution
+        )
+        self.dataset, self.match = _outcomes_dataset(self.rollup)
         self.select_params = []
-        for key in raw_fields:
+        for key in fields:
             if key not in COLUMN_MAP:
                 raise InvalidField(f'Invalid field: "{key}"')
             field = COLUMN_MAP[key]
             self.select_params.append(field.select_params(self.dataset))
             self.fields[key] = field
 
+        group_by = group_by or []
         self.groupby = []
-        for key in raw_groupby:
+        for key in group_by:
             if key not in GROUPBY_MAP:
                 raise InvalidField(f'Invalid groupBy: "{key}"')
             self.groupby.append(GROUPBY_MAP[key])
 
-        if len(query.getlist("category", [])) == 0 and "category" not in raw_groupby:
+        if (category is None or len(category) == 0) and "category" not in group_by:
             raise InvalidQuery("Query must have category as groupby or filter")
 
         query_columns = set()
         for field in self.fields.values():
-            query_columns.update(field.get_snuba_columns(raw_groupby))
+            query_columns.update(field.get_snuba_columns(group_by))
         for groupby in self.groupby:
             query_columns.update(groupby.get_snuba_columns())
         self.query_columns = list(query_columns)
@@ -275,15 +324,23 @@ class QueryDefinition:
         for key in self.query_groupby:
             self.group_by.append(Column(key))
 
-        self.conditions = self.get_conditions(query, params)
+        condition_data = {
+            "outcome": outcome,
+            "key_id": key_id,
+            "category": category,
+            "reason": reason,
+        }
+        self.conditions = self.get_conditions(condition_data, params)
 
-    def get_conditions(self, query: QueryDict, params: Mapping[Any, Any]) -> List[Any]:
+    def get_conditions(self, query: Mapping[str, Any], params: Mapping[Any, Any]) -> List[Any]:
         query_conditions = [
             Condition(Column("timestamp"), Op.GTE, self.start),
             Condition(Column("timestamp"), Op.LT, self.end),
         ]
         for filter_name in DIMENSION_MAP:
-            raw_filter = query.getlist(filter_name, [])
+            raw_filter = query.get(filter_name, []) or []
+            if not isinstance(raw_filter, list):
+                raw_filter = [raw_filter]
             resolved_filter = DIMENSION_MAP[filter_name].resolve_filter(raw_filter)
             if len(resolved_filter) > 0:
                 query_conditions.append(Condition(Column(filter_name), Op.IN, resolved_filter))
@@ -298,7 +355,9 @@ class QueryDefinition:
         return query_conditions
 
 
-def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
+def run_outcomes_query_totals(
+    query: QueryDefinition, tenant_ids: dict[str, Any] | None = None
+) -> ResultSet:
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -308,12 +367,23 @@ def run_outcomes_query_totals(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
+    request = Request(
+        dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
+    )
     result = raw_snql_query(request, referrer="outcomes.totals")
     return _format_rows(result["data"], query)
 
 
-def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
+def run_outcomes_query_timeseries(
+    query: QueryDefinition,
+    referrer: str = "outcomes.timeseries",
+    tenant_ids: dict[str, Any] | None = None,
+) -> ResultSet:
+    """
+    Runs an outcomes query. By default the referrer is `outcomes.timeseries` and this should not change
+    unless there is a very specific reason to do so. Eg. getsentry uses this function for billing
+    metrics, so the referrer is different as it's no longer a "product" query.
+    """
     snql_query = Query(
         match=Entity(query.match),
         select=query.select_params,
@@ -323,8 +393,10 @@ def run_outcomes_query_timeseries(query: QueryDefinition) -> ResultSet:
         offset=Offset(0),
         granularity=Granularity(query.rollup),
     )
-    request = Request(dataset=query.dataset.value, app_id="default", query=snql_query)
-    result_timeseries = raw_snql_query(request, referrer="outcomes.timeseries")
+    request = Request(
+        dataset=query.dataset.value, app_id="default", query=snql_query, tenant_ids=tenant_ids
+    )
+    result_timeseries = raw_snql_query(request, referrer=referrer)
     return _format_rows(result_timeseries["data"], query)
 
 
@@ -359,7 +431,7 @@ def _rename_row_fields(row: Dict[str, Any]) -> None:
         DIMENSION_MAP[dimension].map_row(row)
 
 
-def _outcomes_dataset(rollup: int) -> Dataset:
+def _outcomes_dataset(rollup: int) -> Tuple[Dataset, str]:
     if rollup >= ONE_HOUR:
         # "Outcomes" is the hourly rollup table
         dataset = Dataset.Outcomes

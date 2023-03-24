@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {SegmentedControl} from 'sentry/components/segmentedControl';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   ExceptionType,
   ExceptionValue,

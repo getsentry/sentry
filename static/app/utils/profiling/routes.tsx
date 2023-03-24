@@ -128,23 +128,3 @@ export function generateProfileFlamechartRouteWithHighlightFrame({
     },
   });
 }
-
-export function generateProfileDetailsRouteWithQuery({
-  orgSlug,
-  projectSlug,
-  profileId,
-  query,
-}: {
-  orgSlug: Organization['slug'];
-  profileId: Trace['id'];
-  projectSlug: Project['slug'];
-  query?: Location['query'];
-}): LocationDescriptor {
-  const pathname = generateProfileDetailsRoute({orgSlug, projectSlug, profileId});
-  return {
-    pathname,
-    query: {
-      ...query,
-    },
-  };
-}

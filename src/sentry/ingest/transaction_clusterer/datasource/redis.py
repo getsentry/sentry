@@ -7,6 +7,7 @@ from django.conf import settings
 
 from sentry import features
 from sentry.ingest.transaction_clusterer.datasource import (
+    HTTP_404_TAG,
     TRANSACTION_SOURCE_SANITIZED,
     TRANSACTION_SOURCE_URL,
 )
@@ -63,7 +64,10 @@ def _store_transaction_name(project: Project, transaction_name: str) -> None:
     with sentry_sdk.start_span(op="txcluster.store_transaction_name"):
         client = get_redis_client()
         redis_key = _get_redis_key(project)
-        add_to_set(client, [redis_key], [transaction_name, MAX_SET_SIZE, SET_TTL])
+        max_set_size = MAX_SET_SIZE
+        if features.has("organizations:transaction-name-clusterer-2x", project.organization):
+            max_set_size = 2 * MAX_SET_SIZE
+        add_to_set(client, [redis_key], [transaction_name, max_set_size, SET_TTL])
 
 
 def get_transaction_names(project: Project) -> Iterator[str]:
@@ -82,27 +86,41 @@ def clear_transaction_names(project: Project) -> None:
 
 
 def record_transaction_name(project: Project, event_data: Mapping[str, Any], **kwargs: Any) -> None:
-    transaction_info = event_data.get("transaction_info") or {}
-
     transaction_name = event_data.get("transaction")
-    source = transaction_info.get("source")
-    if transaction_name and features.has(
-        "organizations:transaction-name-clusterer", project.organization
+
+    if (
+        transaction_name
+        and features.has("organizations:transaction-name-clusterer", project.organization)
+        and _should_store_transaction_name(event_data)
     ):
-        # For now, we also feed back transactions into the clustering algorithm
-        # that have already been sanitized, so we have a chance to discover
-        # more high cardinality segments after partial sanitation.
-        # For example, we may have sanitized `/orgs/*/projects/foo`,
-        # But the clusterer has yet to discover `/orgs/*/projects/*`.
-        #
-        # Disadvantage: the load on redis does not decrease over time.
-        #
-        if source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
-            safe_execute(
-                _store_transaction_name, project, transaction_name, _with_transaction=False
-            )
+        safe_execute(_store_transaction_name, project, transaction_name, _with_transaction=False)
+
         # TODO: For every transaction that had a rule applied to it, we should
         # bump the rule's lifetime here such that it stays alive while it is
         # being used.
         # For that purpose, we need to add the applied rule to the transaction
         # payload so we can check it here.
+
+
+def _should_store_transaction_name(event_data: Mapping[str, Any]) -> bool:
+    """Returns whether the given event must be stored as input for the
+    transaction clusterer."""
+    tags = event_data.get("tags")
+    transaction_info = event_data.get("transaction_info") or {}
+    source = transaction_info.get("source")
+
+    # For now, we also feed back transactions into the clustering algorithm
+    # that have already been sanitized, so we have a chance to discover
+    # more high cardinality segments after partial sanitation.
+    # For example, we may have sanitized `/orgs/*/projects/foo`,
+    # But the clusterer has yet to discover `/orgs/*/projects/*`.
+    #
+    # Disadvantage: the load on redis does not decrease over time.
+    #
+    if source not in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED):
+        return False
+
+    if tags and HTTP_404_TAG in tags:
+        return False
+
+    return True

@@ -10,8 +10,8 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.models import ObjectStatus, Organization, OrganizationIntegration
-from sentry.services.hybrid_cloud import ApiPaginationArgs
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud import RpcPaginationArgs
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 
 def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
@@ -20,7 +20,7 @@ def prepare_feature_filters(features_raw: Sequence[str]) -> set[str]:
 
 
 def prepare_features(
-    integration: APIIntegration,
+    integration: RpcIntegration,
 ) -> set[str]:
     """Normalize feature names Integration provider feature lists."""
 
@@ -80,7 +80,7 @@ class OrganizationIntegrationsEndpoint(OrganizationEndpoint):
                 ObjectStatus.PENDING_DELETION,
             ],
             provider_key=provider_key,
-            args=ApiPaginationArgs.from_endpoint_request(self, request),
+            args=RpcPaginationArgs.from_endpoint_request(self, request),
         )
         results = integration_service.get_organization_integrations(
             org_integration_ids=pagination_result.ids

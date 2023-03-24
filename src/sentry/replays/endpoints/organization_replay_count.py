@@ -35,7 +35,6 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
     then verify that they exist in the replays dataset, and return the count.
     """
 
-    private = True
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
@@ -66,21 +65,39 @@ class OrganizationReplayCountEndpoint(OrganizationEventsV2EndpointBase):
             start=snuba_params.start,
             end=snuba_params.end,
             replay_ids=list(replay_ids_mapping.keys()),
+            tenant_ids={"organization_id": organization.id},
         )
 
-        counts: dict[int, int] = defaultdict(int)
+        if request.GET.get("returnIds"):
+            return self.respond(get_replay_ids(replay_results, replay_ids_mapping))
+        else:
+            return self.respond(get_counts(replay_results, replay_ids_mapping))
 
-        for row in replay_results["data"]:
-            identifiers = replay_ids_mapping[row["replay_id"]]
-            for identifier in identifiers:
-                counts[identifier] = min(counts[identifier] + 1, MAX_REPLAY_COUNT)
 
-        return self.respond(counts)
+def get_counts(replay_results: Any, replay_ids_mapping: dict[str, list[str]]) -> dict[str, int]:
+    ret: dict[str, int] = defaultdict(int)
+    for row in replay_results["data"]:
+        identifiers = replay_ids_mapping[row["replay_id"]]
+        for identifier in identifiers:
+            ret[identifier] = min(ret[identifier] + 1, MAX_REPLAY_COUNT)
+    return ret
+
+
+def get_replay_ids(
+    replay_results: Any, replay_ids_mapping: dict[str, list[str]]
+) -> dict[str, list[str]]:
+    ret: dict[str, list[str]] = defaultdict(list)
+    for row in replay_results["data"]:
+        identifiers = replay_ids_mapping[row["replay_id"]]
+        for identifier in identifiers:
+            if len(ret[identifier]) < MAX_REPLAY_COUNT:
+                ret[identifier].append(row["replay_id"])
+    return ret
 
 
 def get_replay_id_mappings(
     request: Request, params: ParamsType, snuba_params: SnubaParams
-) -> dict[str, list[int]]:
+) -> dict[str, list[str]]:
 
     select_column, value = get_select_column(request.GET.get("query"))
 

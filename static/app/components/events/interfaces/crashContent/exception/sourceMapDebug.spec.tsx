@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {ExceptionValue} from 'sentry/types';
+import {Event, ExceptionValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 
 import {SourceMapDebug} from './sourceMapDebug';
@@ -14,7 +14,7 @@ import {
 jest.mock('sentry/utils/analytics/trackAdvancedAnalyticsEvent');
 
 describe('SourceMapDebug', () => {
-  const organization = TestStubs.Organization({features: ['fix-source-map-cta']});
+  const organization = TestStubs.Organization({});
   const project = TestStubs.Project();
   const eventId = '1ec1bd65b0b1484b97162087a652421b';
   const exceptionValues: ExceptionValue[] = [
@@ -64,6 +64,13 @@ describe('SourceMapDebug', () => {
     projectSlug: project.slug,
     eventId,
   });
+  const event: Event = {
+    ...TestStubs.Event(),
+    id: eventId,
+    sdk: {
+      name: sdkName,
+    },
+  } as Event;
 
   it('should use unqiue in app frames', () => {
     expect(debugFrames).toHaveLength(1);
@@ -87,12 +94,12 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
@@ -108,7 +115,11 @@ describe('SourceMapDebug', () => {
     const error: SourceMapDebugError = {
       type: SourceMapProcessingIssueType.PARTIAL_MATCH,
       message: '',
-      data: {absPath: 'insertPath', partialMatchPath: 'matchedSourcemapPath'},
+      data: {
+        absPath: 'insertPath',
+        partialMatchPath: 'matchedSourcemapPath',
+        urlPrefix: 'urlPrefix',
+      },
     };
     MockApiClient.addMockResponse({
       url,
@@ -116,20 +127,17 @@ describe('SourceMapDebug', () => {
       match: [MockApiClient.matchQuery({exception_idx: '0', frame_idx: '0'})],
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
     expect(
-      screen.getByText(
-        'The abs_path of the stack frame is a partial match. The stack frame has the path insertPath which is a partial match to matchedSourcemapPath.',
-        {exact: false}
-      )
+      screen.getByText('Partial Absolute Path Match', {exact: false})
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read Guide'})).toHaveAttribute(
       'href',
@@ -148,22 +156,22 @@ describe('SourceMapDebug', () => {
       body: {errors: [error]},
     });
 
-    render(<SourceMapDebug debugFrames={debugFrames} sdkName={sdkName} />, {
+    render(<SourceMapDebug debugFrames={debugFrames} event={event} />, {
       organization,
     });
     expect(
       await screen.findByText(
-        "We've encountered 1 problem de-minifying your applications source code!"
+        "We've encountered 1 problem un-minifying your applications source code!"
       )
     ).toBeInTheDocument();
 
     const expandedMessage =
-      'The given abs_path of the stack frame is absValue which is not a valid URL. Please refer to the instructions in our docs guide for help with troubleshooting the issue.';
+      'The abs_path of the stack frame is absValue which is not a valid URL. Read our docs for troubleshooting help.';
     expect(
       screen.queryByText(textWithMarkupMatcher(expandedMessage))
     ).not.toBeInTheDocument();
 
-    userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
     expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledTimes(1);
 
     expect(screen.getByText(textWithMarkupMatcher(expandedMessage))).toBeInTheDocument();

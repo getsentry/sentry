@@ -3,6 +3,7 @@ from typing import List
 import pytest
 
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import PerformanceConsecutiveDBQueriesGroupType
 from sentry.models import ProjectOption
 from sentry.testutils import TestCase
 from sentry.testutils.performance_issues.event_generators import (
@@ -12,9 +13,8 @@ from sentry.testutils.performance_issues.event_generators import (
     modify_span_start,
 )
 from sentry.testutils.silo import region_silo_test
+from sentry.utils.performance_issues.detectors import ConsecutiveDBSpanDetector
 from sentry.utils.performance_issues.performance_detection import (
-    ConsecutiveDBSpanDetector,
-    GroupType,
     PerformanceProblem,
     get_detection_settings,
     run_detector_on_data,
@@ -72,10 +72,12 @@ class ConsecutiveDbDetectorTest(TestCase):
                 fingerprint="1-1007-e6a9fc04320a924f46c7c737432bb0389d9dd095",
                 op="db",
                 desc="SELECT `order`.`id` FROM `books_author`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+                type=PerformanceConsecutiveDBQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 
@@ -179,10 +181,12 @@ class ConsecutiveDbDetectorTest(TestCase):
                 fingerprint="1-1007-3bc15c8aae3e4124dd409035f32ea2fd6835efc9",
                 op="db",
                 desc="SELECT COUNT(*) FROM `products`",
-                type=GroupType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
+                type=PerformanceConsecutiveDBQueriesGroupType,
                 parent_span_ids=None,
                 cause_span_ids=["bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb", "bbbbbbbbbbbbbbbb"],
                 offender_span_ids=["bbbbbbbbbbbbbbbb"],
+                evidence_data={},
+                evidence_display=[],
             )
         ]
 

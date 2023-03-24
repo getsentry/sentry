@@ -1,11 +1,10 @@
 import {useMemo} from 'react';
 
 import {DeepPartial} from 'sentry/types/utils';
-import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useUndoableReducer} from 'sentry/utils/useUndoableReducer';
 
-import {FlamegraphProfiles} from './reducers/flamegraphProfiles';
+import {FlamegraphSearch} from './reducers/flamegraphSearch';
 import {
   DEFAULT_FLAMEGRAPH_STATE,
   FlamegraphState,
@@ -16,19 +15,9 @@ import {
 } from './flamegraphContext';
 
 function isValidHighlightFrame(
-  frame: Partial<FlamegraphProfiles['highlightFrames']> | null | undefined
-): frame is NonNullable<FlamegraphProfiles['highlightFrames']> {
-  return !!frame && typeof frame.name === 'string';
-}
-
-function getAxisForType(
-  type: FlamegraphPreferences['type'],
-  xAxis: FlamegraphPreferences['xAxis']
-): FlamegraphPreferences['xAxis'] {
-  if (type === 'flamegraph') {
-    return 'profile';
-  }
-  return xAxis;
+  frame: Partial<FlamegraphSearch['highlightFrames']> | null | undefined
+): frame is FlamegraphSearch['highlightFrames'] {
+  return !!frame && (typeof frame.name === 'string' || typeof frame.package === 'string');
 }
 
 interface FlamegraphStateProviderProps {
@@ -37,22 +26,8 @@ interface FlamegraphStateProviderProps {
 }
 
 function getDefaultState(initialState?: DeepPartial<FlamegraphState>): FlamegraphState {
-  const type =
-    initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-  const xAxis = getAxisForType(
-    type,
-    initialState?.preferences?.xAxis ?? DEFAULT_FLAMEGRAPH_STATE.preferences.xAxis
-  );
-
   return {
     profiles: {
-      highlightFrames: isValidHighlightFrame(initialState?.profiles?.highlightFrames)
-        ? (initialState?.profiles
-            ?.highlightFrames as FlamegraphProfiles['highlightFrames'])
-        : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames)
-        ? DEFAULT_FLAMEGRAPH_STATE.profiles.highlightFrames
-        : null,
       selectedRoot: null,
       threadId:
         initialState?.profiles?.threadId ?? DEFAULT_FLAMEGRAPH_STATE.profiles.threadId,
@@ -62,7 +37,6 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         DEFAULT_FLAMEGRAPH_STATE.position.view) as Rect,
     },
     preferences: {
-      type: initialState?.preferences?.type ?? DEFAULT_FLAMEGRAPH_STATE.preferences.type,
       timelines: {
         ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
         ...(initialState?.preferences?.timelines ?? {}),
@@ -76,10 +50,18 @@ function getDefaultState(initialState?: DeepPartial<FlamegraphState>): Flamegrap
         initialState?.preferences?.sorting ??
         DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       view: initialState?.preferences?.view ?? DEFAULT_FLAMEGRAPH_STATE.preferences.view,
-      xAxis,
     },
     search: {
       ...DEFAULT_FLAMEGRAPH_STATE.search,
+      highlightFrames: isValidHighlightFrame(initialState?.search?.highlightFrames)
+        ? {
+            name: undefined,
+            package: undefined,
+            ...initialState?.search?.highlightFrames,
+          }
+        : isValidHighlightFrame(DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames)
+        ? DEFAULT_FLAMEGRAPH_STATE.search.highlightFrames
+        : null,
       query: initialState?.search?.query ?? DEFAULT_FLAMEGRAPH_STATE.search.query,
     },
   };

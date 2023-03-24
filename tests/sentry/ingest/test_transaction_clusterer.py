@@ -19,7 +19,8 @@ from sentry.ingest.transaction_clusterer.rules import (
 )
 from sentry.ingest.transaction_clusterer.tasks import cluster_projects, spawn_clusterers
 from sentry.ingest.transaction_clusterer.tree import TreeClusterer
-from sentry.models.project import Project
+from sentry.models import Organization, Project
+from sentry.models.options.project_option import ProjectOption
 from sentry.relay.config import get_project_config
 from sentry.testutils.helpers import Feature
 
@@ -54,8 +55,9 @@ def test_single_leaf():
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 5)
 def test_collection():
-    project1 = Project(id=101, name="p1", organization_id=1)
-    project2 = Project(id=102, name="project2", organization_id=1)
+    org = Organization(pk=666)
+    project1 = Project(id=101, name="p1", organization=org)
+    project2 = Project(id=102, name="project2", organization=org)
 
     for project in (project1, project2):
         for i in range(len(project.name)):
@@ -71,26 +73,26 @@ def test_collection():
     for name in set_entries2:
         assert name.startswith("tx-project2-")
 
-    project3 = Project(id=103, name="project3", organization_id=1)
+    project3 = Project(id=103, name="project3", organization=Organization(pk=66))
     assert set() == set(get_transaction_names(project3))
 
 
 def test_clear_redis():
-    project = Project(id=101, name="p1", organization_id=1)
+    project = Project(id=101, name="p1", organization=Organization(pk=66))
     _store_transaction_name(project, "foo")
     assert set(get_transaction_names(project)) == {"foo"}
     clear_transaction_names(project)
     assert set(get_transaction_names(project)) == set()
 
     # Deleting for a none-existing project does not crash:
-    project2 = Project(id=666, name="project2", organization_id=1)
+    project2 = Project(id=666, name="project2", organization=Organization(pk=66))
     clear_transaction_names(project2)
 
 
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 100)
 def test_distribution():
     """Make sure that the redis set prefers newer entries"""
-    project = Project(id=103, name="", organization_id=1)
+    project = Project(id=103, name="", organization=Organization(pk=66))
     for i in range(1000):
         _store_transaction_name(project, str(i))
 
@@ -103,24 +105,26 @@ def test_distribution():
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._store_transaction_name")
 @pytest.mark.django_db
 @pytest.mark.parametrize(
-    "source,txname,feature_enabled,expected",
+    "source, txname, tags, feature_enabled, expected",
     [
-        ("url", "/a/b/c", True, 1),
-        ("route", "/", True, 0),
-        ("url", None, True, 0),
-        ("url", "/", False, 0),
-        ("route", None, False, 0),
+        ("url", "/a/b/c", [["transaction", "/a/b/c"]], True, 1),
+        ("url", "/a/b/c", [["http.status_code", "200"]], True, 1),
+        ("route", "/", [["transaction", "/"]], True, 0),
+        ("url", None, [], True, 0),
+        ("url", "/a/b/c", [["http.status_code", "404"]], True, 0),
+        ("url", "/", [["transaction", "/"]], False, 0),
+        ("route", None, [], False, 0),
     ],
 )
 def test_record_transactions(
-    mocked_record, default_organization, source, txname, feature_enabled, expected
+    mocked_record, default_organization, source, txname, tags, feature_enabled, expected
 ):
     with Feature({"organizations:transaction-name-clusterer": feature_enabled}):
         project = Project(id=111, name="project", organization_id=default_organization.id)
         record_transaction_name(
             project,
             {
-                "tags": [["transaction", txname]],
+                "tags": tags,
                 "transaction": txname,
                 "transaction_info": {"source": source},
             },
@@ -137,8 +141,16 @@ def test_sort_rules():
     ]
 
 
+@pytest.fixture(params=(True, False))
+def pickle_mode(request):
+    field = ProjectOption._meta.get_field("value")
+    with mock.patch.object(field, "write_json", request.param):
+        yield
+
+
 @mock.patch("sentry.ingest.transaction_clusterer.rules.CompositeRuleStore.MERGE_MAX_RULES", 2)
 @pytest.mark.django_db
+@pytest.mark.usefixtures("pickle_mode")
 def test_max_rule_threshold_merge_composite_store(default_project):
     assert len(get_sorted_rules(default_project)) == 0
 
@@ -226,9 +238,44 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         }
 
 
+@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
+@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
+@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
+@pytest.mark.django_db
+@pytest.mark.parametrize("use_larger", (False, True))
+def test_larger_threshold_and_sample_size(default_organization, use_larger):
+    with Feature(
+        {
+            "organizations:transaction-name-clusterer": True,
+            "organizations:transaction-name-clusterer-2x": use_larger,
+        }
+    ):
+        project = Project(id=123, name="project1", organization_id=default_organization.id)
+        project.save()
+        _store_transaction_name(project, "/foo/foo")
+        _store_transaction_name(project, "/foo/bar")
+        _store_transaction_name(project, "/foo/baz")
+
+        cluster_projects([project])
+
+        rules = set(_get_rules(project).keys())
+        if use_larger:
+            assert rules == set()
+        else:
+            assert rules == {"/foo/*/**"}
+
+        # Add another one, now the rule should be there:
+        _store_transaction_name(project, "/foo/foo")
+        _store_transaction_name(project, "/foo/bar")
+        _store_transaction_name(project, "/foo/baz")
+        _store_transaction_name(project, "/foo/zap")
+        cluster_projects([project])
+        assert set(_get_rules(project).keys()) == {"/foo/*/**"}
+
+
 @pytest.mark.django_db
 def test_get_deleted_project():
-    deleted_project = Project(pk=666)
+    deleted_project = Project(pk=666, organization=Organization(pk=666))
     _store_transaction_name(deleted_project, "foo")
     assert list(get_active_projects()) == []
 
@@ -246,9 +293,8 @@ def test_transaction_clusterer_generates_rules(default_project):
     with Feature({feature: True}):
         assert _get_projconfig_tx_rules(default_project) is None
 
-    default_project.update_option(
-        "sentry:transaction_name_cluster_rules", [("/rule/*/0/**", 0), ("/rule/*/1/**", 1)]
-    )
+    rules = {"/rule/*/0/**": 0, "/rule/*/1/**": 1}
+    ProjectOptionRuleStore().write(default_project, rules)
 
     with Feature({feature: False}):
         assert _get_projconfig_tx_rules(default_project) is None

@@ -87,9 +87,7 @@ function useReplaysCount({
       if (txnsToFetch.length) {
         return {
           field: 'transaction' as const,
-          conditions: `event.type:transaction transaction:[${txnsToFetch
-            .map(t => `"${t}"`)
-            .join(',')}]`,
+          conditions: `transaction:[${txnsToFetch.map(t => `"${t}"`).join(',')}]`,
         };
       }
       return null;
@@ -120,7 +118,7 @@ function useReplaysCount({
   }, [api, organization.slug, query, zeroCounts, projectIds]);
 
   useEffect(() => {
-    const hasSessionReplay = organization.features.includes('session-replay-ui');
+    const hasSessionReplay = organization.features.includes('session-replay');
     if (hasSessionReplay) {
       fetchReplayCount();
     }

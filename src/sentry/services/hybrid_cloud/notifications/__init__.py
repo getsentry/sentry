@@ -1,8 +1,11 @@
-from __future__ import annotations
+# Please do not use
+#     from __future__ import annotations
+# in modules such as this one where hybrid cloud service classes and data models are
+# defined, because we want to reflect on type annotations and avoid forward references.
 
 import dataclasses
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Protocol, Sequence
+from typing import TYPE_CHECKING, List, Sequence
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -10,7 +13,8 @@ from sentry.notifications.types import (
     NotificationSettingTypes,
 )
 from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 from sentry.types.integrations import ExternalProviders
 
@@ -19,26 +23,13 @@ if TYPE_CHECKING:
 
 
 @dataclasses.dataclass
-class ApiNotificationSetting:
+class RpcNotificationSetting:
     scope_type: NotificationScopeType = NotificationScopeType.USER
     scope_identifier: int = -1
     target_id: int = -1
     provider: ExternalProviders = ExternalProviders.EMAIL
     type: NotificationSettingTypes = NotificationSettingTypes.WORKFLOW
     value: NotificationSettingOptionValues = NotificationSettingOptionValues.DEFAULT
-
-
-class MayHaveActor(Protocol):
-    @property
-    def id(self) -> int:
-        pass
-
-    @property
-    def actor_id(self) -> int | None:
-        pass
-
-    def class_name(self) -> str:
-        pass
 
 
 class NotificationsService(InterfaceWithLifecycle):
@@ -48,8 +39,8 @@ class NotificationsService(InterfaceWithLifecycle):
         *,
         type: NotificationSettingTypes,
         parent_id: int,
-        recipients: Sequence[MayHaveActor],
-    ) -> List[ApiNotificationSetting]:
+        recipients: Sequence[RpcActor],
+    ) -> List[RpcNotificationSetting]:
         pass
 
     @abstractmethod
@@ -57,21 +48,22 @@ class NotificationsService(InterfaceWithLifecycle):
         self,
         *,
         types: List[NotificationSettingTypes],
-        users: List[APIUser],
+        users: List[RpcUser],
         value: NotificationSettingOptionValues,
-    ) -> List[ApiNotificationSetting]:
+    ) -> List[RpcNotificationSetting]:
         pass
 
     @abstractmethod
     def get_settings_for_user_by_projects(
         self, *, type: NotificationSettingTypes, user_id: int, parent_ids: List[int]
-    ) -> List[ApiNotificationSetting]:
+    ) -> List[RpcNotificationSetting]:
         pass
 
-    def _serialize_notification_settings(
-        self, setting: NotificationSetting
-    ) -> ApiNotificationSetting:
-        return ApiNotificationSetting(
+    @classmethod
+    def serialize_notification_setting(
+        self, setting: "NotificationSetting"
+    ) -> RpcNotificationSetting:
+        return RpcNotificationSetting(
             scope_type=setting.scope_type,
             scope_identifier=setting.scope_identifier,
             target_id=setting.target_id,

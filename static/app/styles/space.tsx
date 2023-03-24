@@ -16,4 +16,8 @@ function space<S extends ValidSize>(size: S): (typeof SPACES)[S] {
   return SPACES[size];
 }
 
-export default space;
+export {space};
+
+// TODO(epurkhiser): Remove once migrated off it
+const DO_NOT_USE_space = space;
+export default DO_NOT_USE_space;

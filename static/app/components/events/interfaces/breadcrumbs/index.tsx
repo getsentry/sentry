@@ -5,7 +5,8 @@ import pick from 'lodash/pick';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import CompactSelect, {
+import {
+  CompactSelect,
   SelectOption,
   SelectSection,
 } from 'sentry/components/compactSelect';
@@ -14,7 +15,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import EventReplay from 'sentry/components/events/eventReplay';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {BreadcrumbLevelType, Crumb, RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, Event} from 'sentry/types/event';
@@ -146,6 +147,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
 
         filterLevels.push({
           value: `level-${level}`,
+          textValue: level,
           label: (
             <LevelWrap>
               <Level level={level} />
@@ -270,7 +272,7 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
   }
 
   const replayId = event?.tags?.find(({key}) => key === 'replayId')?.value;
-  const showReplay = !isShare && organization.features.includes('session-replay-ui');
+  const showReplay = !isShare && organization.features.includes('session-replay');
 
   const actions = (
     <SearchAndSortWrapper isFullWidth={showReplay}>
@@ -305,9 +307,9 @@ function BreadcrumbsContainer({data, event, organization, projectSlug, isShare}:
       {showReplay ? (
         <Fragment>
           <EventReplay
+            organization={organization}
             replayId={replayId}
             projectSlug={projectSlug}
-            orgSlug={organization.slug}
             event={event}
           />
           {actions}

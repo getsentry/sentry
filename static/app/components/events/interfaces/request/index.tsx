@@ -10,7 +10,7 @@ import {SegmentedControl} from 'sentry/components/segmentedControl';
 import Truncate from 'sentry/components/truncate';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EntryRequest, EntryType, Event} from 'sentry/types/event';
 import {defined, isUrl} from 'sentry/utils';
 

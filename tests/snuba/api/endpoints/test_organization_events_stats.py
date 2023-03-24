@@ -12,12 +12,12 @@ from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.snuba.discover import OTHER_KEY
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -97,21 +97,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(hours=1, minutes=2),
         )
@@ -139,21 +139,21 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         _, _, group_info = self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=1),
         )
         self.store_search_issue(
             self.project.id,
             self.user.id,
-            [f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"],
+            [f"{ProfileFileIOGroupType.type_id}-group1"],
             "prod",
             self.day_ago.replace(tzinfo=utc) + timedelta(minutes=2),
         )
@@ -1041,6 +1041,45 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200
         assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "testing"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "partial": 1,
+        }
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 8}]
+
+        data["query"] = "group_id:testing"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert response.data["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        response = self.client.get(self.url, data, format="json")
+        assert response.status_code == 200
+        assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
+
 
 @region_silo_test
 class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
@@ -1402,6 +1441,49 @@ class OrganizationEventsStatsTopNEvents(APITestCase, SnubaTestCase):
             assert response.data["abc,2"]["data"][0][1] == [{"count": 3}]
             assert response.data["def,9001"]["data"][0][1] == [{"count": 7}]
             assert response.data["Other"]["data"][0][1] == [{"count": 25}]
+
+    def test_group_id_tag_simple(self):
+        event_data = {
+            "data": {
+                "message": "poof",
+                "timestamp": iso_format(self.day_ago + timedelta(minutes=2)),
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "the tag"},
+                "fingerprint": ["group1"],
+            },
+            "project": self.project2,
+            "count": 7,
+        }
+        for i in range(event_data["count"]):
+            event_data["data"]["event_id"] = f"a{i}" * 16
+            self.store_event(event_data["data"], project_id=event_data["project"].id)
+
+        data = {
+            "start": iso_format(self.day_ago),
+            "end": iso_format(self.day_ago + timedelta(hours=2)),
+            "interval": "1h",
+            "yAxis": "count()",
+            "orderby": ["-count()"],
+            "field": ["count()", "group_id"],
+            "topEvents": 5,
+            "partial": 1,
+        }
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200, response.content
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = 'group_id:"the tag"'
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert response.data["the tag"]["data"][0][1] == [{"count": 7}]
+
+        data["query"] = "group_id:abc"
+        with self.feature(self.enabled_features):
+            response = self.client.get(self.url, data, format="json")
+            assert response.status_code == 200
+            assert all([interval[1][0]["count"] == 0 for interval in response.data["data"]])
 
     def test_top_events_limits(self):
         data = {

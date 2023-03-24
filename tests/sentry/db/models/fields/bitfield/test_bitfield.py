@@ -26,6 +26,13 @@ class BitFieldTestModelForm(forms.ModelForm):
         exclude = tuple()
 
 
+class BitFieldTestModelWithDefaultsAsKeyNames(models.Model):
+    class Meta:
+        app_label = "fixtures"
+
+    flags = BitField(flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2"))
+
+
 class BitHandlerTest(unittest.TestCase):
     def test_comparison(self):
         bithandler_1 = BitHandler(0, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
@@ -331,16 +338,12 @@ class BitFieldTest(TestCase):
         pytest.raises(ValueError, BitField, flags={"1": "non_int_key"})
 
     def test_defaults_as_key_names(self):
-        class TestModel(models.Model):
-            class Meta:
-                app_label = "fixtures"
-
-            flags = BitField(
-                flags=("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"), default=("FLAG_1", "FLAG_2")
-            )
-
-        field = TestModel._meta.get_field("flags")
-        self.assertEqual(field.default, TestModel.flags.FLAG_1 | TestModel.flags.FLAG_2)
+        field = BitFieldTestModelWithDefaultsAsKeyNames._meta.get_field("flags")
+        self.assertEqual(
+            field.default,
+            BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_1
+            | BitFieldTestModelWithDefaultsAsKeyNames.flags.FLAG_2,
+        )
 
     def test_pickle_integration(self):
         inst = BitFieldTestModel.objects.create(flags=1)

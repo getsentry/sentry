@@ -1,4 +1,4 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useMemo} from 'react';
 
 import {importProfile, ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 
@@ -32,14 +32,11 @@ interface ProfileGroupProviderProps {
 }
 
 export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
-  const [profileGroup, setProfileGroup] = useState<ProfileGroup>(LoadingGroup);
-
-  useEffect(() => {
+  const profileGroup = useMemo(() => {
     if (!props.input) {
-      return;
+      return LoadingGroup;
     }
-
-    setProfileGroup(importProfile(props.input, props.traceID, props.type));
+    return importProfile(props.input, props.traceID, props.type);
   }, [props.input, props.traceID, props.type]);
 
   return (

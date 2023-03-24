@@ -3,9 +3,8 @@ from __future__ import annotations
 import abc
 import contextlib
 import datetime
-import sys
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set, Type, TypeVar
+from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
@@ -21,6 +20,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
 from sentry.utils import metrics
 
@@ -35,6 +35,8 @@ class OutboxScope(IntEnum):
     WEBHOOK_SCOPE = 2
     AUDIT_LOG_SCOPE = 3
     USER_IP_SCOPE = 4
+    INTEGRATION_SCOPE = 5
+    APP_SCOPE = 6
 
     def __str__(self):
         return self.name
@@ -52,6 +54,10 @@ class OutboxCategory(IntEnum):
     VERIFY_ORGANIZATION_MAPPING = 4
     AUDIT_LOG_EVENT = 5
     USER_IP_EVENT = 6
+    INTEGRATION_UPDATE = 7
+    PROJECT_UPDATE = 8
+    API_APPLICATION_UPDATE = 9
+    SENTRY_APP_INSTALLATION_UPDATE = 10
 
     @classmethod
     def as_choices(cls):
@@ -210,9 +216,6 @@ class OutboxBase(Model):
             )
 
 
-MONOLITH_REGION_NAME = "--monolith--"
-
-
 # Outboxes bound from region silo -> control silo
 @region_silo_only_model
 class RegionOutbox(OutboxBase):
@@ -267,7 +270,7 @@ class ControlOutbox(OutboxBase):
         "object_identifier",
     )
 
-    region_name = models.CharField(max_length=48)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     def send_signal(self):
         process_control_outbox.send(
@@ -330,41 +333,6 @@ class ControlOutbox(OutboxBase):
         return cls(
             shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
         )
-
-
-def _find_orgs_for_user(user_id: int) -> Set[int]:
-    # TODO: This must be changed to the org member mapping in the control silo eventually.
-    from sentry.models import OrganizationMember
-
-    return {
-        m["organization_id"]
-        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
-    }
-
-
-def find_regions_for_user(user_id: int) -> Set[str]:
-    from sentry.models import OrganizationMapping
-
-    org_ids: Set[int]
-    if "pytest" in sys.modules:
-        from sentry.testutils.silo import exempt_from_silo_limits
-
-        with exempt_from_silo_limits():
-            org_ids = _find_orgs_for_user(user_id)
-    else:
-        org_ids = _find_orgs_for_user(user_id)
-
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {
-            MONOLITH_REGION_NAME,
-        }
-    else:
-        return {
-            t["region_name"]
-            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
-                "region_name"
-            )
-        }
 
 
 def outbox_silo_modes() -> List[SiloMode]:

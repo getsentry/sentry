@@ -13,7 +13,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import ScoreCard, {ScoreCardProps} from 'sentry/components/scoreCard';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DataCategoryInfo, IntervalPeriod, Organization, Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/dates';
 
@@ -254,7 +254,7 @@ class UsageStatsOrganization<
   }
 
   get cardMetadata() {
-    const {dataCategory, dataCategoryName, organization} = this.props;
+    const {dataCategory, dataCategoryName, organization, projectIds} = this.props;
     const {total, accepted, dropped, filtered} = this.chartData.cardStats;
 
     const cardMetadata: Record<string, ScoreCardProps> = {
@@ -269,7 +269,11 @@ class UsageStatsOrganization<
         }),
         score: accepted,
         trend: (
-          <UsageStatsPerMin organization={organization} dataCategory={dataCategory} />
+          <UsageStatsPerMin
+            dataCategory={dataCategory}
+            organization={organization}
+            projectIds={projectIds}
+          />
         ),
       },
       filtered: {

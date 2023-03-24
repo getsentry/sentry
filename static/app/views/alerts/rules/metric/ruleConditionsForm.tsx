@@ -17,10 +17,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {Panel, PanelBody} from 'sentry/components/panels';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Environment, Organization, Project, SelectValue} from 'sentry/types';
 import {getDisplayName} from 'sentry/utils/environment';
-import {MobileVital, WebVital} from 'sentry/utils/fields';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import withProjects from 'sentry/utils/withProjects';
 import WizardField from 'sentry/views/alerts/rules/metric/wizardField';
@@ -29,7 +28,11 @@ import {
   DATA_SOURCE_LABELS,
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
 } from 'sentry/views/alerts/utils';
-import {AlertType} from 'sentry/views/alerts/wizard/options';
+import {
+  AlertType,
+  DATASET_OMITTED_TAGS,
+  DATASET_SUPPORTED_TAGS,
+} from 'sentry/views/alerts/wizard/options';
 
 import {isCrashFreeAlert} from './utils/isCrashFreeAlert';
 import {DEFAULT_AGGREGATE, DEFAULT_TRANSACTION_AGGREGATE} from './constants';
@@ -54,7 +57,7 @@ type Props = {
   dataset: Dataset;
   disabled: boolean;
   onComparisonDeltaChange: (value: number) => void;
-  onFilterSearch: (query: string) => void;
+  onFilterSearch: (query: string, isQueryValid) => void;
   onTimeWindowChange: (value: number) => void;
   organization: Organization;
   project: Project;
@@ -145,19 +148,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
       default:
         return t('Filter transactions by URL, tags, and other properties\u2026');
     }
-  }
-
-  get searchSupportedTags() {
-    if (isCrashFreeAlert(this.props.dataset)) {
-      return {
-        release: {
-          key: 'release',
-          name: 'release',
-        },
-      };
-    }
-
-    return undefined;
   }
 
   renderEventTypeFilter() {
@@ -430,16 +420,6 @@ class RuleConditionsForm extends PureComponent<Props, State> {
         []),
     ];
 
-    const transactionTags = [
-      'transaction',
-      'transaction.duration',
-      'transaction.op',
-      'transaction.status',
-    ];
-    const measurementTags = Object.values({...WebVital, ...MobileVital});
-    const eventOmitTags =
-      dataset === 'events' ? [...measurementTags, ...transactionTags] : [];
-
     const hasMetricDataset = organization.features.includes('mep-rollout-flag');
 
     return (
@@ -451,10 +431,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
           <AlertContainer>
             <Alert type="info" showIcon>
               {tct(
-                'Filtering by these conditions automatically switch you to indexed events. [link:Learn more].',
+                'Based on your search criteria and sample rate, the events available may be limited. [link:Learn more].',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/sentry-basics/search/searchable-properties/#processed-event-properties" />
+                    <ExternalLink href="https://docs.sentry.io/product/alerts/create-alerts/metric-alert-config/#filters" />
                   ),
                 }
               )}
@@ -504,15 +484,10 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                 <StyledSearchBar
                   searchSource="alert_builder"
                   defaultQuery={initialData?.query ?? ''}
-                  omitTags={[
-                    'event.type',
-                    'release.version',
-                    'release.stage',
-                    'release.package',
-                    'release.build',
-                    'project',
-                    ...eventOmitTags,
-                  ]}
+                  omitTags={DATASET_OMITTED_TAGS[dataset]}
+                  {...(DATASET_SUPPORTED_TAGS[dataset]
+                    ? {supportedTags: DATASET_SUPPORTED_TAGS[dataset]}
+                    : {})}
                   includeSessionTagsValues={dataset === Dataset.SESSIONS}
                   disabled={disabled}
                   useFormWrapper={false}
@@ -520,6 +495,11 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                   placeholder={this.searchPlaceholder}
                   onChange={onChange}
                   query={initialData.query}
+                  // We only need strict validation for Transaction queries, everything else is fine
+                  highlightUnsupportedTags={[
+                    Dataset.GENERIC_METRICS,
+                    Dataset.TRANSACTIONS,
+                  ].includes(dataset)}
                   onKeyDown={e => {
                     /**
                      * Do not allow enter key to submit the alerts form since it is unlikely
@@ -532,17 +512,14 @@ class RuleConditionsForm extends PureComponent<Props, State> {
 
                     onKeyDown?.(e);
                   }}
-                  onClose={query => {
-                    onFilterSearch(query);
+                  onClose={(query, {validSearch}) => {
+                    onFilterSearch(query, validSearch);
                     onBlur(query);
                   }}
                   onSearch={query => {
-                    onFilterSearch(query);
+                    onFilterSearch(query, true);
                     onChange(query, {});
                   }}
-                  {...(this.searchSupportedTags
-                    ? {supportedTags: this.searchSupportedTags}
-                    : {})}
                   hasRecentSearches={dataset !== Dataset.SESSIONS}
                 />
               </SearchContainer>

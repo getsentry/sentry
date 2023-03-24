@@ -457,7 +457,8 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         });
 
         const searchBarNode = await screen.findByPlaceholderText('Filter Transactions');
-        userEvent.type(searchBarNode, 'count():>3');
+        await userEvent.click(searchBarNode);
+        await userEvent.paste('count():>3');
         expect(searchBarNode).toHaveTextContent('count():>3');
         expect(browserHistory.push).not.toHaveBeenCalled();
       });
@@ -494,7 +495,11 @@ describe('Performance > Transaction Spans > Span Summary', function () {
         );
 
         (await within(displayToggle).findByRole('button')).click();
-        (await within(displayToggle).findByTestId('histogram')).click();
+        (
+          await within(displayToggle).findByRole('option', {
+            name: 'Self Time Distribution',
+          })
+        ).click();
 
         expect(browserHistory.push).toHaveBeenCalledWith(
           expect.objectContaining({

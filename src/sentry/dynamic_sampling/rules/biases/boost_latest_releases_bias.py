@@ -1,8 +1,6 @@
 from datetime import datetime
 from typing import List, cast
 
-from pytz import UTC
-
 from sentry.dynamic_sampling.rules.biases.base import (
     Bias,
     BiasData,
@@ -12,10 +10,12 @@ from sentry.dynamic_sampling.rules.biases.base import (
 )
 from sentry.dynamic_sampling.rules.helpers.latest_releases import ProjectBoostedReleases
 from sentry.dynamic_sampling.rules.utils import (
-    RELEASE_BOOST_FACTOR,
+    LATEST_RELEASES_BOOST_DECAYED_FACTOR,
+    LATEST_RELEASES_BOOST_FACTOR,
     RESERVED_IDS,
-    BaseRule,
+    PolymorphicRule,
     RuleType,
+    apply_dynamic_factor,
 )
 
 
@@ -23,8 +23,10 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
     def get_bias_data(self, bias_params: BiasParams) -> BiasData:
         return {
             "id": RESERVED_IDS[RuleType.BOOST_LATEST_RELEASES_RULE],
-            "baseSampleRate": bias_params.base_sample_rate,
-            "sampleRate": min(1.0, bias_params.base_sample_rate * RELEASE_BOOST_FACTOR),
+            "factor": apply_dynamic_factor(
+                bias_params.base_sample_rate, LATEST_RELEASES_BOOST_FACTOR
+            ),
+            "decayedFactor": LATEST_RELEASES_BOOST_DECAYED_FACTOR,
             "boostedReleases": ProjectBoostedReleases(
                 bias_params.project.id
             ).get_extended_boosted_releases(),
@@ -32,16 +34,21 @@ class BoostLatestReleasesDataProvider(BiasDataProvider):
 
 
 class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+
+    datetime_format = "%Y-%m-%dT%H:%M:%SZ"
+
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         boosted_releases = bias_data["boostedReleases"]
 
         return cast(
-            List[BaseRule],
+            List[PolymorphicRule],
             [
                 {
-                    "sampleRate": bias_data["sampleRate"],
+                    "samplingValue": {
+                        "type": "factor",
+                        "value": bias_data["factor"],
+                    },
                     "type": "trace",
-                    "active": True,
                     "condition": {
                         "op": "and",
                         "inner": [
@@ -62,21 +69,16 @@ class BoostLatestReleasesRulesGenerator(BiasRulesGenerator):
                     },
                     "id": bias_data["id"] + idx,
                     "timeRange": {
-                        "start": str(
-                            datetime.utcfromtimestamp(boosted_release.timestamp).replace(tzinfo=UTC)
+                        "start": datetime.utcfromtimestamp(boosted_release.timestamp).strftime(
+                            self.datetime_format
                         ),
-                        "end": str(
-                            datetime.utcfromtimestamp(
-                                boosted_release.timestamp
-                                + boosted_release.platform.time_to_adoption
-                            ).replace(tzinfo=UTC)
-                        ),
+                        "end": datetime.utcfromtimestamp(
+                            boosted_release.timestamp + boosted_release.platform.time_to_adoption
+                        ).strftime(self.datetime_format),
                     },
-                    # We want to use the linear decaying function for latest release boosting, with the goal
-                    # of interpolating the adoption growth with the reduction in sample rate.
                     "decayingFn": {
                         "type": "linear",
-                        "decayedSampleRate": bias_data["baseSampleRate"],
+                        "decayedValue": bias_data["decayedFactor"],
                     },
                 }
                 for idx, boosted_release in enumerate(boosted_releases)

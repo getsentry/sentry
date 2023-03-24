@@ -12,7 +12,7 @@ from sentry.integrations.slack.utils import (
     strip_channel_name,
     validate_channel_id,
 )
-from sentry.models import Integration
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 
 logger = logging.getLogger("sentry.rules")
@@ -87,9 +87,8 @@ class SlackNotifyServiceForm(forms.Form):  # type: ignore
                     code="invalid",
                     params=params,
                 )
-        try:
-            integration = Integration.objects.get(id=workspace)
-        except Integration.DoesNotExist:
+        integration = integration_service.get_integration(integration_id=workspace)
+        if not integration:
             raise forms.ValidationError(
                 self._format_slack_error_message("Workspace is a required field."),
                 code="invalid",

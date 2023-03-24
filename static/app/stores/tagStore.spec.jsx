@@ -48,7 +48,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      expect(TagStore.getIssueAttributes().has).toEqual({
+      expect(TagStore.getIssueAttributes(TestStubs.Organization()).has).toEqual({
         key: 'has',
         name: 'Has Tag',
         values: ['mytag', 'otherkey'],
@@ -64,7 +64,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueAttributes();
+      const tags = TagStore.getIssueAttributes(TestStubs.Organization());
       expect(tags.is).toBeTruthy();
       expect(tags.is.key).toBe('is');
       expect(tags.assigned).toBeTruthy();
@@ -80,7 +80,7 @@ describe('TagStore', function () {
         },
       ]);
 
-      const tags = TagStore.getIssueTags();
+      const tags = TagStore.getIssueTags(TestStubs.Organization());
 
       // state
       expect(tags.mytag).toBeTruthy();

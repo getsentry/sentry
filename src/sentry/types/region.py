@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import functools
+import sys
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Iterable
+from typing import TYPE_CHECKING, Iterable, Set
+from urllib.parse import urljoin
 
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
     from sentry.models import Organization
+
+MONOLITH_REGION_NAME = "--monolith--"
 
 
 class RegionCategory(Enum):
@@ -34,7 +38,7 @@ class Region:
     """The address of the region's silo.
 
     Represent a region's hostname or subdomain in a production environment
-    (e.g., "eu.sentry.io"), and addresses such as "localhost:8001" in a dev
+    (e.g., "https://eu.sentry.io"), and addresses such as "http://localhost:8001" in a dev
     environment.
 
     (This attribute is a placeholder. Please update this docstring when its
@@ -45,18 +49,31 @@ class Region:
     """The region's category."""
 
     def __post_init__(self) -> None:
-        from sentry.utils.snowflake import NULL_REGION_ID, REGION_ID
+        from sentry import options
+        from sentry.api.utils import generate_region_url
+        from sentry.utils.snowflake import REGION_ID
 
         REGION_ID.validate(self.id)
-        if self.id == NULL_REGION_ID:
-            raise ValueError(f"Region ID {NULL_REGION_ID} is reserved for non-multi-region systems")
+
+        # Validate address with respect to self.name for multi-tenant regions.
+        region_url_template: str | None = options.get("system.region-api-url-template")
+        if (
+            SiloMode.get_current_mode() != SiloMode.MONOLITH
+            and self.category == RegionCategory.MULTI_TENANT
+            and region_url_template is not None
+        ):
+            expected_address = generate_region_url(self.name)
+            if self.address != expected_address:
+                raise Exception(
+                    f"Expected address for {self.name} to be: {expected_address}. Was defined as: {self.address}"
+                )
 
     def to_url(self, path: str) -> str:
         """Resolve a path into a URL on this region's silo.
 
         (This method is a placeholder. See the `address` attribute.)
         """
-        return self.address + path
+        return urljoin(self.address, path)
 
 
 class RegionResolutionError(Exception):
@@ -126,9 +143,63 @@ def get_local_region() -> Region:
     """
     from django.conf import settings
 
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        # This is a dummy value used to make region.to_url work
+        return Region(
+            name=MONOLITH_REGION_NAME,
+            id=0,
+            address="/",
+            category=RegionCategory.MULTI_TENANT,
+        )
+
     if SiloMode.get_current_mode() != SiloMode.REGION:
         raise RegionContextError("Not a region silo")
 
     if not settings.SENTRY_REGION:
         raise Exception("SENTRY_REGION must be set when server is in REGION silo mode")
     return get_region_by_name(settings.SENTRY_REGION)
+
+
+def _find_orgs_for_user(user_id: int) -> Set[int]:
+    # TODO: This must be changed to the org member mapping in the control silo eventually.
+    from sentry.models import OrganizationMember
+
+    return {
+        m["organization_id"]
+        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
+    }
+
+
+def find_regions_for_orgs(org_ids: Iterable[int]) -> Set[str]:
+    from sentry.models import OrganizationMapping
+
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {
+            MONOLITH_REGION_NAME,
+        }
+    else:
+        return {
+            t["region_name"]
+            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
+                "region_name"
+            )
+        }
+
+
+def find_regions_for_user(user_id: int) -> Set[str]:
+    org_ids: Set[int]
+    if "pytest" in sys.modules:
+        from sentry.testutils.silo import exempt_from_silo_limits
+
+        with exempt_from_silo_limits():
+            org_ids = _find_orgs_for_user(user_id)
+    else:
+        org_ids = _find_orgs_for_user(user_id)
+
+    return find_regions_for_orgs(org_ids)
+
+
+def find_all_region_names() -> Iterable[str]:
+    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
+        return {MONOLITH_REGION_NAME}
+    return _load_global_regions().by_name.keys()

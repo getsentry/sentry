@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -27,7 +27,7 @@ import {
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   DataCategoryInfo,
   DateString,
@@ -263,7 +263,7 @@ export class OrganizationStats extends Component<Props> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(
@@ -318,7 +318,7 @@ export class OrganizationStats extends Component<Props> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
       : CHART_OPTIONS_DATACATEGORY.filter(
@@ -394,22 +394,21 @@ export class OrganizationStats extends Component<Props> {
                   />
                 </ErrorBoundary>
               </div>
-              {!isSingleProject && (
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
-              )}
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  isSingleProject={isSingleProject}
+                  projectIds={this.projectIds}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </PageFiltersContainer>

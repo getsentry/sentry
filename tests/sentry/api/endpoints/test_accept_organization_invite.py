@@ -7,7 +7,6 @@ from sentry import audit_log
 from sentry.auth.authenticators import TotpInterface
 from sentry.models import (
     AuditLogEntry,
-    Authenticator,
     AuthProvider,
     InviteStatus,
     Organization,
@@ -29,7 +28,7 @@ class AcceptInviteTest(TestCase):
         return (
             reverse("sentry-api-0-accept-organization-invite", args=args),
             reverse(
-                "sentry-api-0-accept-organization-invite-with-org",
+                "sentry-api-0-organization-accept-organization-invite",
                 args=[self.organization.slug] + args,
             ),
         )
@@ -37,7 +36,7 @@ class AcceptInviteTest(TestCase):
     def _get_urls(self):
         return (
             "sentry-api-0-accept-organization-invite",
-            "sentry-api-0-accept-organization-invite-with-org",
+            "sentry-api-0-organization-accept-organization-invite",
         )
 
     def _get_path(self, url, args):
@@ -63,7 +62,7 @@ class AcceptInviteTest(TestCase):
     def _enroll_user_in_2fa(self, user):
         interface = TotpInterface()
         interface.enroll(user)
-        assert Authenticator.objects.user_has_2fa(user)
+        assert user.has_2fa()
 
     def test_invalid_member_id(self):
         for path in self._get_paths([1, 2]):
@@ -120,7 +119,7 @@ class AcceptInviteTest(TestCase):
 
     def test_user_needs_2fa(self):
         self._require_2fa_for_organization()
-        assert not Authenticator.objects.user_has_2fa(self.user)
+        assert not self.user.has_2fa()
 
         self.login_as(self.user)
 
@@ -187,7 +186,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user
@@ -292,7 +291,7 @@ class AcceptInviteTest(TestCase):
             assert om.user == user
 
             ale = AuditLogEntry.objects.filter(
-                organization=self.organization, event=audit_log.get_event_id("MEMBER_ACCEPT")
+                organization_id=self.organization.id, event=audit_log.get_event_id("MEMBER_ACCEPT")
             ).order_by("-datetime")[0]
 
             assert ale.actor == user
@@ -302,7 +301,7 @@ class AcceptInviteTest(TestCase):
 
     def test_cannot_accept_when_user_needs_2fa(self):
         self._require_2fa_for_organization()
-        self.assertFalse(Authenticator.objects.user_has_2fa(self.user))
+        self.assertFalse(self.user.has_2fa())
 
         self.login_as(self.user)
 
@@ -319,7 +318,7 @@ class AcceptInviteTest(TestCase):
         for i, url in enumerate(urls):
             self._require_2fa_for_organization()
             user = self.create_user(f"boo{i}@example.com")
-            self.assertFalse(Authenticator.objects.user_has_2fa(user))
+            self.assertFalse(user.has_2fa())
 
             self.login_as(user)
 
@@ -351,7 +350,7 @@ class AcceptInviteTest(TestCase):
         )
 
         path = reverse(
-            "sentry-api-0-accept-organization-invite-with-org", args=["asdf", om.id, om.token]
+            "sentry-api-0-organization-accept-organization-invite", args=["asdf", om.id, om.token]
         )
 
         resp = self.client.get(path)

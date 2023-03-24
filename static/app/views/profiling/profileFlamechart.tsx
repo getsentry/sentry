@@ -2,7 +2,6 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
-import {Alert} from 'sentry/components/alert';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flamegraph} from 'sentry/components/profiling/flamegraph/flamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -41,6 +40,8 @@ function ProfileFlamegraph(): React.ReactElement {
       preferences: {
         layout: DEFAULT_FLAMEGRAPH_STATE.preferences.layout,
         view: DEFAULT_FLAMEGRAPH_STATE.preferences.view,
+        colorCoding: DEFAULT_FLAMEGRAPH_STATE.preferences.colorCoding,
+        sorting: DEFAULT_FLAMEGRAPH_STATE.preferences.sorting,
       },
     }
   );
@@ -63,25 +64,11 @@ function ProfileFlamegraph(): React.ReactElement {
       qs.parse(window.location.search)
     );
 
-    let type =
-      storedPreferences.preferences?.type ??
-      queryStringState.preferences?.type ??
-      DEFAULT_FLAMEGRAPH_STATE.preferences.type;
-
-    // Ensure that the type is overriden to the default if the feature is not enabled
-    if (
-      type === 'flamegraph' &&
-      !organization.features.includes('profiling-flamegraphs')
-    ) {
-      type = 'flamechart';
-    }
-
     return {
       ...queryStringState,
       preferences: {
         ...storedPreferences.preferences,
         ...queryStringState.preferences,
-        type,
         timelines: {
           ...DEFAULT_FLAMEGRAPH_STATE.preferences.timelines,
           ...(storedPreferences?.preferences?.timelines ?? {}),
@@ -110,11 +97,7 @@ function ProfileFlamegraph(): React.ReactElement {
             <FlamegraphStateQueryParamSync />
             <FlamegraphStateLocalStorageSync />
             <FlamegraphContainer>
-              {profiles.type === 'errored' ? (
-                <Alert type="error" showIcon>
-                  {profiles.error}
-                </Alert>
-              ) : profiles.type === 'loading' ? (
+              {profiles.type === 'loading' ? (
                 <LoadingIndicatorContainer>
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
@@ -143,7 +126,11 @@ function ProfileGroupTypeProvider({
 }) {
   const preferences = useFlamegraphPreferences();
   return (
-    <ProfileGroupProvider input={input} traceID={traceID} type={preferences.type}>
+    <ProfileGroupProvider
+      input={input}
+      traceID={traceID}
+      type={preferences.sorting === 'call order' ? 'flamechart' : 'flamegraph'}
+    >
       {children}
     </ProfileGroupProvider>
   );

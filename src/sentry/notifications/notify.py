@@ -4,7 +4,8 @@ from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, MutableMappi
 
 from sentry.models import User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.actor import RpcActor
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
 from sentry.types.integrations import ExternalProviders
 
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 Notifiable = Callable[
     [
         BaseNotification,
-        Iterable[Union["Team", "User"]],
+        Iterable[Union[RpcActor, "Team", "User", "RpcUser"]],
         Mapping[str, Any],
         Optional[Mapping[int, Mapping[str, Any]]],
     ],
@@ -49,25 +50,25 @@ def register_notification_provider(
 def notify(
     provider: ExternalProviders,
     notification: Any,
-    recipients: Iterable[Team | APIUser],
+    recipients: Iterable[Team | RpcUser],
     shared_context: Mapping[str, Any],
     extra_context_by_actor_id: Mapping[int, Mapping[str, Any]] | None = None,
 ) -> None:
     """Send notifications to these users or team."""
 
     """ ###################### Begin Hack ######################
-    # Temporary Hybrid Cloud hack that isolates the notification subsystem from APIUser
+    # Temporary Hybrid Cloud hack that isolates the notification subsystem from RpcUser
     # type changes. With this in place, we can assert that changes so far don't affect
     # Notification system behavior (only possibly who receives notifications).
     # This will be removed in future work.
 
-    # Create a new list of recipients that are full Team and User objects (as opposed to APIUser)
+    # Create a new list of recipients that are full Team and User objects (as opposed to RpcUser)
     """
     if SiloMode.get_current_mode() == SiloMode.MONOLITH:
         user_ids = []
         new_recipients = []
         for r in recipients:
-            if isinstance(r, APIUser):
+            if isinstance(r, RpcUser):
                 user_ids.append(r.id)
             else:
                 new_recipients.append(r)

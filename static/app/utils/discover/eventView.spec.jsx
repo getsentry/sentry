@@ -5,6 +5,7 @@ import EventView, {
 } from 'sentry/utils/discover/eventView';
 import {
   CHART_AXIS_OPTIONS,
+  DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
 } from 'sentry/utils/discover/types';
@@ -59,6 +60,7 @@ describe('EventView.fromLocation()', function () {
         environment: ['staging'],
         yAxis: 'p95',
         display: 'previous',
+        dataset: DiscoverDatasets.DISCOVER,
       },
     };
 
@@ -81,6 +83,7 @@ describe('EventView.fromLocation()', function () {
       environment: ['staging'],
       yAxis: 'p95',
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
   });
 
@@ -192,6 +195,7 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
     const eventView = EventView.fromSavedQuery(saved);
 
@@ -213,6 +217,7 @@ describe('EventView.fromSavedQuery()', function () {
       environment: ['staging'],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
 
     const eventView2 = EventView.fromSavedQuery({
@@ -408,6 +413,7 @@ describe('EventView.fromSavedQuery()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
       yAxis: ['count()'],
     };
     const eventView = EventView.fromSavedQuery(saved);
@@ -428,6 +434,7 @@ describe('EventView.fromSavedQuery()', function () {
       statsPeriod: '14d',
       environment: ['staging'],
       yAxis: 'count()',
+      dataset: DiscoverDatasets.DISCOVER,
       display: 'previous',
     });
   });
@@ -627,6 +634,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const location = {
@@ -657,6 +665,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: ['staging'],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
 
     const savedQuery2 = {...saved, range: undefined};
@@ -701,6 +710,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       orderby: '-id',
       environment: ['staging'],
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const location = {
@@ -729,6 +739,7 @@ describe('EventView.fromSavedQueryOrLocation()', function () {
       environment: [],
       yAxis: undefined,
       display: 'previous',
+      dataset: DiscoverDatasets.DISCOVER,
     });
   });
 
@@ -1521,6 +1532,7 @@ describe('EventView.toNewQuery()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'releases',
+    dataset: DiscoverDatasets.DISCOVER,
   };
 
   it('outputs the right fields', function () {
@@ -1542,6 +1554,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1571,6 +1584,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1600,6 +1614,7 @@ describe('EventView.toNewQuery()', function () {
       range: '14d',
       environment: ['staging'],
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     expect(output).toEqual(expected);
@@ -1737,6 +1752,7 @@ describe('EventView.clone()', function () {
       environment: ['staging'],
       interval: '5m',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const eventView = new EventView(state);
@@ -2673,6 +2689,7 @@ describe('EventView.isEqualTo()', function () {
       environment: ['staging'],
       yAxis: 'fam',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const eventView = new EventView(state);
@@ -2725,6 +2742,7 @@ describe('EventView.isEqualTo()', function () {
       environment: ['staging'],
       yAxis: 'fam',
       display: 'releases',
+      dataset: DiscoverDatasets.DISCOVER,
     };
 
     const differences = {
@@ -2740,6 +2758,7 @@ describe('EventView.isEqualTo()', function () {
       environment: [],
       yAxis: 'ok boomer',
       display: 'previous',
+      dataset: DiscoverDatasets.ISSUE_PLATFORM,
     };
     const eventView = new EventView(state);
 
@@ -2770,6 +2789,22 @@ describe('EventView.isEqualTo()', function () {
 });
 
 describe('EventView.getResultsViewUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2782,10 +2817,12 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getResultsViewUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -2793,9 +2830,34 @@ describe('EventView.getResultsViewUrlTarget()', function () {
     expect(result.query.project).toEqual(state.project);
     expect(result.query.display).toEqual(state.display);
   });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getResultsViewUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.display).toEqual(state.display);
+  });
 });
 
 describe('EventView.getResultsViewShortUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2808,10 +2870,12 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getResultsViewShortUrlTarget(organization.slug);
     expect(result.pathname).toEqual('/organizations/org-slug/discover/results/');
@@ -2823,9 +2887,38 @@ describe('EventView.getResultsViewShortUrlTarget()', function () {
     expect(result.query.project).toEqual(state.project);
     expect(result.query.environment).toEqual(state.environment);
   });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getResultsViewShortUrlTarget(organization.slug);
+    expect(result.pathname).toEqual('/discover/results/');
+    expect(result.query).not.toHaveProperty('name');
+    expect(result.query).not.toHaveProperty('fields');
+    expect(result.query).not.toHaveProperty('query');
+    expect(result.query.id).toEqual(state.id);
+    expect(result.query.statsPeriod).toEqual(state.statsPeriod);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.environment).toEqual(state.environment);
+  });
 });
 
 describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function () {
+  beforeEach(function () {
+    window.__initialData = {
+      customerDomain: {
+        subdomain: 'albertos-apples',
+        organizationUrl: 'https://albertos-apples.sentry.io',
+        sentryUrl: 'https://sentry.io',
+      },
+    };
+  });
+
+  afterEach(function () {
+    window.__initialData = {
+      customerDomain: null,
+    };
+  });
+
   const state = {
     id: '1234',
     name: 'best query',
@@ -2838,13 +2931,15 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     statsPeriod: '14d',
     environment: ['staging'],
     display: 'previous',
+    dataset: DiscoverDatasets.DISCOVER,
   };
   const organization = TestStubs.Organization();
   const showTransactions = 'p99';
   const breakdown = 'http';
   const webVital = 'measurements.lcp';
 
-  it('generates a URL', function () {
+  it('generates a URL with non-customer domain context', function () {
+    window.__initialData.customerDomain = null;
     const view = new EventView(state);
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
       showTransactions,
@@ -2854,6 +2949,23 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', function ()
     expect(result.pathname).toEqual(
       '/organizations/org-slug/performance/summary/events/'
     );
+    expect(result.query.query).toEqual(state.query);
+    expect(result.query.project).toEqual(state.project);
+    expect(result.query.sort).toEqual(['-count']);
+    expect(result.query.transaction).toEqual(state.name);
+    expect(result.query.showTransactions).toEqual(showTransactions);
+    expect(result.query.breakdown).toEqual(breakdown);
+    expect(result.query.webVital).toEqual(webVital);
+  });
+
+  it('generates a URL with customer domain context', function () {
+    const view = new EventView(state);
+    const result = view.getPerformanceTransactionEventsViewUrlTarget(organization.slug, {
+      showTransactions,
+      breakdown,
+      webVital,
+    });
+    expect(result.pathname).toEqual('/performance/summary/events/');
     expect(result.query.query).toEqual(state.query);
     expect(result.query.project).toEqual(state.project);
     expect(result.query.sort).toEqual(['-count']);

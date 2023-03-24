@@ -59,13 +59,13 @@ class AuthIdentityHandlerTest(TestCase):
 
     def _handler_with(self, identity):
         with exempt_from_silo_limits():
-            api_organization = DatabaseBackedOrganizationService.serialize_organization(
+            rpc_organization = DatabaseBackedOrganizationService.serialize_organization(
                 self.organization
             )
         return AuthIdentityHandler(
             self.auth_provider,
             DummyProvider(self.provider),
-            api_organization,
+            rpc_organization,
             self.request,
             identity,
         )
@@ -230,7 +230,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             ).exists()
 
         assert AuditLogEntry.objects.filter(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=auth_identity.id,
             event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
             data=auth_identity.get_audit_log_data(),

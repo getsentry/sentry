@@ -312,6 +312,38 @@ const performanceOptionDefinitions: Field[] = [
     ...HIGH_THROUGHPUT_RATE_OPTION,
   },
   {
+    key: 'performance.issues.m_n_plus_one_db.problem-creation',
+    label: t('Problem Creation Rate'),
+    help: t(
+      'Controls the overall rate at which performance problems are detected by the MN+1 DB detector.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'performance.issues.m_n_plus_one_db.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the % of orgs in which performance problems are detected by the MN+1 DB detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
     key: 'performance.issues.render_blocking_assets.problem-creation',
     label: t('Problem Creation Rate'),
     help: t(
@@ -338,6 +370,54 @@ const performanceOptionDefinitions: Field[] = [
     help: t(
       'Controls the rate at which performance problems are detected by the large render blocking asset detector for GA organizations.'
     ),
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ingest.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which performance problems are detected by the blocked main thread profiling detector for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.la-rollout',
+    label: t('Limited Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for LA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ea-rollout',
+    label: t('Early Adopter Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for EA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
+  },
+  {
+    key: 'profile.issues.blocked_main_thread-ppg.ga-rollout',
+    label: t('General Availability Detection Rate'),
+    help: t(
+      'Controls the rate at which profile blocked main thread performance problems are sent to post process group for GA organizations.'
+    ),
+    ...HIGH_THROUGHPUT_RATE_OPTION,
   },
 ];
 

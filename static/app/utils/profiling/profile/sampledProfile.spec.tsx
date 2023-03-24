@@ -148,7 +148,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -169,7 +169,7 @@ describe('SampledProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
       true
     );
   });
@@ -232,6 +232,36 @@ describe('SampledProfile', () => {
     );
     // The self weight of the GC call is only the weight of the GC call
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(3);
+  });
+
+  it('places garbage collector calls on top of previous stack and skips stack', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1, 1, 1],
+      samples: [
+        [0, 1],
+        [0, 2],
+        [0, 2],
+        [0, 1],
+      ],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [
+        {name: 'f0'},
+        {name: 'f1'},
+        {name: '(garbage collector)'},
+      ]),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.weights).toEqual([1, 2, 1]);
   });
 
   it('does not place garbage collector calls on top of previous stack for node', () => {
@@ -299,5 +329,27 @@ describe('SampledProfile', () => {
     // There are no other children than the GC call meaning merge happened
     expect(profile.callTree.children[0].children[0].children[1]).toBe(undefined);
     expect(profile.callTree.children[0].children[0].children[0].frame.selfWeight).toBe(6);
+  });
+
+  it('flamegraph tracks node occurences', () => {
+    const trace: Profiling.SampledProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'sampled',
+      weights: [1, 1, 1],
+      samples: [[0], [0, 1], [0]],
+    };
+
+    const profile = SampledProfile.FromProfile(
+      trace,
+      createFrameIndex('node', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
+      {type: 'flamechart'}
+    );
+
+    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].children[0].count).toBe(1);
   });
 });

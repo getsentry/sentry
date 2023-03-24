@@ -11,7 +11,7 @@ import {Node} from '@react-types/shared';
 import omit from 'lodash/omit';
 
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useOverlay from 'sentry/utils/useOverlay';
 
 import {DropdownMenu} from './index';

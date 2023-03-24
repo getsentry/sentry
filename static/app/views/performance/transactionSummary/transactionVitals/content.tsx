@@ -5,7 +5,7 @@ import {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -14,9 +14,9 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
 import {WebVital} from 'sentry/utils/fields';
 import Histogram from 'sentry/utils/performance/histogram';
@@ -103,12 +103,13 @@ function VitalsContent(props: Props) {
                       value={activeFilter.value}
                       options={FILTER_OPTIONS}
                       onChange={opt => {
-                        trackAnalyticsEvent({
-                          eventKey: 'performance_views.vitals.filter_changed',
-                          eventName: 'Performance Views: Change vitals filter',
-                          organization_id: organization.id,
-                          value: opt.value,
-                        });
+                        trackAdvancedAnalyticsEvent(
+                          'performance_views.vitals.filter_changed',
+                          {
+                            organization,
+                            value: opt.value,
+                          }
+                        );
                         handleFilterChange(opt.value);
                       }}
                       triggerProps={{prefix: t('Outliers')}}
@@ -116,11 +117,12 @@ function VitalsContent(props: Props) {
                     />
                     <Button
                       onClick={() => {
-                        trackAnalyticsEvent({
-                          eventKey: 'performance_views.vitals.reset_view',
-                          eventName: 'Performance Views: Reset vitals view',
-                          organization_id: organization.id,
-                        });
+                        trackAdvancedAnalyticsEvent(
+                          'performance_views.vitals.reset_view',
+                          {
+                            organization,
+                          }
+                        );
 
                         handleResetView();
                       }}

@@ -18,7 +18,6 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.debug import sensitive_post_parameters
 
 from sentry.models import (
-    ApiKey,
     AuditLogEntry,
     AuthIdentity,
     AuthProvider,
@@ -63,13 +62,6 @@ class ProjectAdmin(admin.ModelAdmin):
 admin.site.register(Project, ProjectAdmin)
 
 
-class OrganizationApiKeyInline(admin.TabularInline):
-    model = ApiKey
-    extra = 1
-    fields = ("label", "key", "status", "allowed_origins", "date_added")
-    raw_id_fields = ("organization",)
-
-
 class OrganizationProjectInline(admin.TabularInline):
     model = Project
     extra = 1
@@ -111,7 +103,6 @@ class OrganizationAdmin(admin.ModelAdmin):
         OrganizationMemberInline,
         OrganizationTeamInline,
         OrganizationProjectInline,
-        OrganizationApiKeyInline,
     )
 
 
@@ -119,9 +110,8 @@ admin.site.register(Organization, OrganizationAdmin)
 
 
 class AuthProviderAdmin(admin.ModelAdmin):
-    list_display = ("organization", "provider", "date_added")
-    search_fields = ("organization__name",)
-    raw_id_fields = ("organization", "default_teams")
+    list_display = ("organization_id", "provider", "date_added")
+    raw_id_fields = ("default_teams",)
     list_filter = ("provider",)
 
 
@@ -325,12 +315,12 @@ admin.site.register(User, UserAdmin)
 
 
 class AuditLogEntryAdmin(admin.ModelAdmin):
-    list_display = ("event", "organization", "actor", "datetime")
-    list_filter = ("event", "datetime")
-    search_fields = ("actor__email", "organization__name", "organization__slug")
-    raw_id_fields = ("organization", "actor", "target_user")
+    list_display = ("event", "organization_id", "actor", "datetime")
+    list_filter = ("event", "datetime", "organization_id")
+    search_fields = ("actor__email",)
+    raw_id_fields = ("actor", "target_user")
     readonly_fields = (
-        "organization",
+        "organization_id",
         "actor",
         "actor_key",
         "target_object",

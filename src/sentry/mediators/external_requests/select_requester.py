@@ -23,7 +23,7 @@ class SelectRequester(Mediator):
     """
 
     install = Param("sentry.models.SentryAppInstallation")
-    project = Param("sentry.models.Project", required=False)
+    project_slug = Param(str, required=False)
     uri = Param((str,))
     query = Param((str,), required=False)
     dependent_data = Param((str,), required=False)
@@ -37,8 +37,8 @@ class SelectRequester(Mediator):
 
         query = {"installationId": self.install.uuid}
 
-        if self.project:
-            query["projectSlug"] = self.project.slug
+        if self.project_slug:
+            query["projectSlug"] = self.project_slug
 
         if self.query:
             query["query"] = self.query
@@ -68,7 +68,7 @@ class SelectRequester(Mediator):
                 extra={
                     "sentry_app_slug": self.sentry_app.slug,
                     "install_uuid": self.install.uuid,
-                    "project_slug": self.project and self.project.slug,
+                    "project_slug": self.project_slug,
                     "uri": self.uri,
                     "error_message": str(e),
                 },

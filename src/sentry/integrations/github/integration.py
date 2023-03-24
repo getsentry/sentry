@@ -112,8 +112,14 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
 
     def get_trees_for_org(self, cache_seconds: int = 3600 * 24) -> Dict[str, RepoTree]:
         trees: Dict[str, RepoTree] = {}
-        gh_org = self.model.metadata["domain_name"].split("github.com/")[1]
-        extra = {"gh_org": gh_org, "metadata": self.model.metadata}
+        domain_name = self.model.metadata["domain_name"]
+        extra = {"metadata": self.model.metadata}
+        if domain_name.find("github.com/") == -1:
+            logger.warning("We currently only support github.com domains.", extra=extra)
+            return trees
+
+        gh_org = domain_name.split("github.com/")[1]
+        extra.update({"gh_org": gh_org})
         organization_context = organization_service.get_organization_by_id(
             id=self.org_integration.organization_id, user_id=None
         )
@@ -202,7 +208,7 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
             # make sure installation has access to this specific repo
             # use hooks endpoint since we explicitly ask for those permissions
             # when installing the app (commits can be accessed for public repos)
-            # https://developer.github.com/v3/repos/hooks/#list-hooks
+            # https://docs.github.com/en/rest/webhooks/repo-config#list-hooks
             client.repo_hooks(repo.config["name"])
         except ApiError:
             return False
@@ -215,12 +221,17 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
         if not lineno:
             return None
         try:
-            blame_range = self.get_blame_for_file(repo, filepath, ref, lineno)
+            blame_range: Sequence[Mapping[str, Any]] | None = self.get_blame_for_file(
+                repo, filepath, ref, lineno
+            )
+
+            if blame_range is None:
+                return None
         except ApiError as e:
             raise e
 
         try:
-            commit = max(
+            commit: Mapping[str, Any] = max(
                 (
                     blame
                     for blame in blame_range
@@ -229,7 +240,10 @@ class GitHubIntegration(IntegrationInstallation, GitHubIssueBasic, RepositoryMix
                 key=lambda blame: datetime.strptime(
                     blame.get("commit", {}).get("committedDate"), "%Y-%m-%dT%H:%M:%SZ"
                 ),
+                default={},
             )
+            if not commit:
+                return None
         except (ValueError, IndexError):
             return None
 

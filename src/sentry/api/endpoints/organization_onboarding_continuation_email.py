@@ -40,7 +40,7 @@ def get_request_builder_args(user: User, organization: Organization, platforms: 
 
 @region_silo_endpoint
 class OrganizationOnboardingContinuationEmail(OrganizationEndpoint):
-    private = True
+
     # let anyone in the org use this endpoint
     permission_classes = ()
 

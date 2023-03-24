@@ -4,7 +4,7 @@ import {LocationDescriptor} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Item = {
   target: LocationDescriptor;

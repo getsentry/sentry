@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {WebVital} from 'sentry/utils/fields';
 import {formatPercentage} from 'sentry/utils/formatters';
 

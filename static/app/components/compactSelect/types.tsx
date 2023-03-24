@@ -1,11 +1,6 @@
-import {MenuListItemProps} from 'sentry/components/menuListItem';
+import {SelectValue} from 'sentry/types';
 
-export interface SelectOption<Value extends React.Key> extends MenuListItemProps {
-  /**
-   * The option's value, must be unique within the selector.
-   */
-  value: Value;
-}
+export interface SelectOption<Value extends React.Key> extends SelectValue<Value> {}
 
 export interface SelectSection<Value extends React.Key> {
   options: SelectOption<Value>[];
@@ -19,9 +14,14 @@ export interface SelectSection<Value extends React.Key> {
    */
   key?: React.Key;
   /**
-   * Title to display on top of section.
+   * Title to display in the section header.
    */
   label?: React.ReactNode;
+  /**
+   * Whether to show a "Select All"/"Unselect All" button in the section header (only
+   * applicable in multiple-selection mode).
+   */
+  showToggleAllButton?: boolean;
 }
 
 export type SelectOptionOrSection<Value extends React.Key> =

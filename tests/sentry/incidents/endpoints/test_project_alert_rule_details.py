@@ -18,10 +18,12 @@ from sentry.integrations.slack.client import SlackClient
 from sentry.models import AuditLogEntry, Integration
 from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import APITestCase
+from sentry.testutils.silo import region_silo_test
 from sentry.utils import json
 from sentry.utils.types import Dict
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsBase(APITestCase):
     endpoint = "sentry-api-0-project-alert-rule-details"
 
@@ -107,6 +109,7 @@ class AlertRuleDetailsBase(APITestCase):
         assert resp.status_code == 404
 
 
+@region_silo_test(stable=True)
 class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
     def test_simple(self):
         self.login_as(self.member_user)

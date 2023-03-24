@@ -116,7 +116,7 @@ function SearchBar(props: SearchBarProps) {
       if (currentItem?.value) {
         handleChooseItem(currentItem.value);
       } else {
-        handleSearch(searchString);
+        handleSearch(searchString, true);
       }
     }
   };
@@ -182,7 +182,7 @@ function SearchBar(props: SearchBarProps) {
 
   const handleChooseItem = (value: string) => {
     const item = decodeValueToItem(value);
-    handleSearch(item.transaction);
+    handleSearch(item.transaction, false);
   };
 
   const handleClickItemIcon = (value: string) => {
@@ -190,10 +190,13 @@ function SearchBar(props: SearchBarProps) {
     navigateToItemTransactionSummary(item);
   };
 
-  const handleSearch = (query: string) => {
+  const handleSearch = (query: string, asRawText: boolean) => {
     setSearchResults([]);
     setSearchString(query);
-    onSearch(query ? `transaction:${query}` : '');
+    query = new MutableSearch(query).formatString();
+
+    const fullQuery = asRawText ? query : `transaction:"${query}"`;
+    onSearch(query ? fullQuery : '');
     closeDropdown();
   };
 
@@ -254,8 +257,8 @@ interface DataItem {
   'count()'?: number;
 }
 
-const wrapQueryInWildcards = (query: string) => {
-  if (!query.startsWith('* ')) {
+export const wrapQueryInWildcards = (query: string) => {
+  if (!query.startsWith('*')) {
     query = '*' + query;
   }
 

@@ -1,12 +1,12 @@
 from typing import Any, MutableMapping
 
 from sentry.models import ControlTombstone, RegionTombstone
-from sentry.services.hybrid_cloud.tombstone import ApiTombstone, TombstoneService
+from sentry.services.hybrid_cloud.tombstone import RpcTombstone, TombstoneService
 from sentry.silo import SiloMode
 
 
 class RegionTombstoneService(TombstoneService):
-    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
+    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
     def close(self) -> None:
@@ -14,7 +14,7 @@ class RegionTombstoneService(TombstoneService):
 
 
 class ControlTombstoneService(TombstoneService):
-    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
+    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         ControlTombstone.record_delete(tombstone.table_name, tombstone.identifier)
 
     def close(self) -> None:
@@ -45,7 +45,7 @@ class MonolithTombstoneService(TombstoneService):
                         return model
         raise ValueError(f"Could not find model by table name {table_name}")
 
-    def record_remote_tombstone(self, tombstone: ApiTombstone) -> None:
+    def record_remote_tombstone(self, tombstone: RpcTombstone) -> None:
         model = self._get_model(tombstone.table_name)
         if SiloMode.CONTROL in model._meta.silo_limit.modes:
             RegionTombstone.record_delete(tombstone.table_name, tombstone.identifier)

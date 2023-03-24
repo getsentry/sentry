@@ -7,7 +7,7 @@ from sentry.dynamic_sampling.rules.biases.base import (
     BiasParams,
     BiasRulesGenerator,
 )
-from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, BaseRule, RuleType
+from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 
 ENVIRONMENT_GLOBS = [
     "*dev*",
@@ -23,10 +23,13 @@ class BoostEnvironmentsDataProvider(BiasDataProvider):
 
 
 class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
-    def _generate_bias_rules(self, bias_data: BiasData) -> List[BaseRule]:
+    def _generate_bias_rules(self, bias_data: BiasData) -> List[PolymorphicRule]:
         return [
             {
-                "sampleRate": 1,
+                "samplingValue": {
+                    "type": "sampleRate",
+                    "value": 1.0,
+                },
                 "type": "trace",
                 "condition": {
                     "op": "or",
@@ -35,11 +38,9 @@ class BoostEnvironmentsRulesGenerator(BiasRulesGenerator):
                             "op": "glob",
                             "name": "trace.environment",
                             "value": ENVIRONMENT_GLOBS,
-                            "options": {"ignoreCase": True},
                         }
                     ],
                 },
-                "active": True,
                 "id": bias_data["id"],
             }
         ]

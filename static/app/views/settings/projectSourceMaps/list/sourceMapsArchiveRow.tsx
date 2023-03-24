@@ -13,7 +13,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SourceMapsArchive} from 'sentry/types';
 
 type Props = {

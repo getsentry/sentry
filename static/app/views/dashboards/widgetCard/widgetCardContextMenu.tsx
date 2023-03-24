@@ -10,7 +10,7 @@ import {isWidgetViewerPath} from 'sentry/components/modals/widgetViewerModal/uti
 import Tag from 'sentry/components/tag';
 import {IconEllipsis, IconExpand} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import {Series} from 'sentry/types/echarts';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -288,9 +288,11 @@ const ContextWrapper = styled('div')`
   align-items: center;
   height: ${space(3)};
   margin-left: ${space(1)};
+  gap: ${space(0.25)};
 `;
 
 const StyledDropdownMenuControl = styled(DropdownMenu)`
+  display: flex;
   & > button {
     z-index: auto;
   }

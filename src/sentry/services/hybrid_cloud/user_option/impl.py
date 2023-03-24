@@ -6,18 +6,32 @@ from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.models.options.user_option import UserOption
-from sentry.services.hybrid_cloud.filter_query import FilterQueryDatabaseImpl
+from sentry.services.hybrid_cloud.auth import AuthenticationContext
+from sentry.services.hybrid_cloud.filter_query import (
+    FilterQueryDatabaseImpl,
+    OpaqueSerializedResponse,
+)
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import (
-    ApiUserOption,
+    RpcUserOption,
     UserOptionFilterArgs,
     UserOptionService,
 )
 
 
-class DatabaseBackedUserOptionService(
-    FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, ApiUserOption, None],
-    UserOptionService,
-):
+class DatabaseBackedUserOptionService(UserOptionService):
+    def serialize_many(
+        self,
+        *,
+        filter: UserOptionFilterArgs,
+        as_user: Optional[RpcUser] = None,
+        auth_context: Optional[AuthenticationContext] = None,
+    ) -> List[OpaqueSerializedResponse]:
+        return self._FQ.serialize_many(filter, as_user, auth_context)
+
+    def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
+        return self._FQ.get_many(filter)
+
     def delete_options(self, *, option_ids: List[int]) -> None:
         UserOption.objects.filter(id__in=option_ids).delete()  # type: ignore
 
@@ -38,51 +52,56 @@ class DatabaseBackedUserOptionService(
             organization_id=organization_id,
         )
 
-    def _base_query(self) -> QuerySet:
-        return UserOption.objects  # type: ignore
+    class _UserOptionFilterQuery(
+        FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
+    ):
+        def base_query(self) -> QuerySet:
+            return UserOption.objects  # type: ignore
 
-    def _filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
-        return self._filter_has_any_key_validator("user_ids")
+        def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], Optional[str]]:
+            return self._filter_has_any_key_validator("user_ids")
 
-    def _serialize_api(self, serializer: Optional[None]) -> Serializer:
-        # User options should not be serialized in this way
-        raise NotImplementedError
+        def serialize_api(self, serializer: Optional[None]) -> Serializer:
+            # User options should not be serialized in this way
+            raise NotImplementedError
 
-    def _apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
-        # To maintain expected behaviors, we default these to None and always query for them
-        project_id = None
-        if "project_id" in filters:
-            project_id = filters["project_id"]
-        organization_id = None
-        if "organization_id" in filters:
-            organization_id = filters["organization_id"]
+        def apply_filters(self, query: QuerySet, filters: UserOptionFilterArgs) -> QuerySet:
+            # To maintain expected behaviors, we default these to None and always query for them
+            project_id = None
+            if "project_id" in filters:
+                project_id = filters["project_id"]
+            organization_id = None
+            if "organization_id" in filters:
+                organization_id = filters["organization_id"]
 
-        query = query.filter(
-            user_id__in=filters["user_ids"],
-            project_id=project_id,
-            organization_id=organization_id,
-        )
-
-        if "keys" in filters or "key" in filters:
-            keys: List[str] = []
-            if "keys" in filters:
-                keys = filters["keys"]
-            if "key" in filters:
-                keys.append(filters["key"])
             query = query.filter(
-                key__in=keys,
+                user_id__in=filters["user_ids"],
+                project_id=project_id,
+                organization_id=organization_id,
             )
-        return query
 
-    def _serialize_rpc(self, op: UserOption) -> ApiUserOption:
-        return ApiUserOption(
-            id=op.id,
-            user_id=op.user_id,
-            value=op.value,
-            key=op.key,
-            project_id=op.project_id,
-            organization_id=op.organization_id,
-        )
+            if "keys" in filters or "key" in filters:
+                keys: List[str] = []
+                if "keys" in filters:
+                    keys = filters["keys"]
+                if "key" in filters:
+                    keys.append(filters["key"])
+                query = query.filter(
+                    key__in=keys,
+                )
+            return query
+
+        def serialize_rpc(self, op: UserOption) -> RpcUserOption:
+            return RpcUserOption(
+                id=op.id,
+                user_id=op.user_id,
+                value=op.value,
+                key=op.key,
+                project_id=op.project_id,
+                organization_id=op.organization_id,
+            )
+
+    _FQ = _UserOptionFilterQuery()
 
     def close(self) -> None:
         pass

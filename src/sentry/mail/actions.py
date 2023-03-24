@@ -1,6 +1,5 @@
 import logging
 
-from sentry import features
 from sentry.mail import mail_adapter
 from sentry.mail.forms.notify_email import NotifyEmailForm
 from sentry.notifications.types import (
@@ -19,29 +18,21 @@ logger = logging.getLogger(__name__)
 class NotifyEmailAction(EventAction):
     id = "sentry.mail.actions.NotifyEmailAction"
     form_cls = NotifyEmailForm
-    label = "Send a notification to {targetType}"
+    label = "Send a notification to {targetType} and if none can be found then send a notification to {fallthroughType}"
     prompt = "Send a notification"
     metrics_slug = "EmailAction"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.form_fields = {"targetType": {"type": "mailAction", "choices": ACTION_CHOICES}}
-
-        if features.has(
-            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
-        ):
-            self.label = "Send a notification to {targetType} and if none can be found then send a notification to {fallthroughType}"
-            self.form_fields["fallthroughType"] = {"type": "choice", "choices": FALLTHROUGH_CHOICES}
+        self.form_fields = {
+            "targetType": {"type": "mailAction", "choices": ACTION_CHOICES},
+            "fallthroughType": {"type": "choice", "choices": FALLTHROUGH_CHOICES},
+        }
 
     def render_label(self) -> str:
-        if features.has(
-            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
-        ):
-            if "fallthroughType" not in self.data:
-                self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
-            return self.label.format(**self.data)
-
-        return "Send a notification to {targetType}".format(**self.data)
+        if "fallthroughType" not in self.data:
+            self.data["fallthroughType"] = FallthroughChoiceType.ACTIVE_MEMBERS.value
+        return self.label.format(**self.data)
 
     def after(self, event, state):
         group = event.group
@@ -52,16 +43,12 @@ class NotifyEmailAction(EventAction):
         target_identifier = self.data.get("targetIdentifier", None)
         skip_digests = self.data.get("skipDigests", False)
 
-        fallthrough_type = None
-        if features.has(
-            "organizations:issue-alert-fallback-targeting", self.project.organization, actor=None
-        ):
-            fallthrough_choice = self.data.get("fallthroughType", None)
-            fallthrough_type = (
-                FallthroughChoiceType(fallthrough_choice)
-                if fallthrough_choice
-                else FallthroughChoiceType.ACTIVE_MEMBERS
-            )
+        fallthrough_choice = self.data.get("fallthroughType", None)
+        fallthrough_type = (
+            FallthroughChoiceType(fallthrough_choice)
+            if fallthrough_choice
+            else FallthroughChoiceType.ACTIVE_MEMBERS
+        )
 
         if not determine_eligible_recipients(
             group.project, target_type, target_identifier, event, fallthrough_type

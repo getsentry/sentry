@@ -240,9 +240,7 @@ def configure_structlog() -> None:
     from sentry import options
     from sentry.logging import LoggingFormat
 
-    WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     kwargs: dict[str, Any] = {
-        "context_class": WrappedDictClass,
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
         "processors": [

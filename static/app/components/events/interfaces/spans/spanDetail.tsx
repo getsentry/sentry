@@ -30,7 +30,7 @@ import {
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
@@ -47,6 +47,7 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 import * as SpanEntryContext from './context';
 import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
+import {SpanProfileDetails} from './spanProfileDetails';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
   getCumulativeAlertLevelFromErrors,
@@ -338,6 +339,16 @@ function SpanDetail(props: Props) {
     };
   }
 
+  function renderProfileMessage() {
+    const {organization, span, event} = props;
+
+    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
+      return null;
+    }
+
+    return <SpanProfileDetails span={span} event={event} />;
+  }
+
   function renderSpanDetails() {
     const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
 
@@ -380,14 +391,11 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
-    const flamechartSpanFeatureEnabled = organization.features.includes(
-      'profiling-flamechart-spans'
-    );
-
     return (
       <Fragment>
         {renderOrphanSpanMessage()}
         {renderSpanErrorMessage()}
+        {renderProfileMessage()}
         <SpanDetails>
           <table className="table key-value">
             <tbody>
@@ -425,7 +433,7 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
+              {profileId && event.projectSlug && (
                 <Row
                   title="Profile ID"
                   extra={

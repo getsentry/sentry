@@ -24,7 +24,7 @@ describe('useReplaysCount', () => {
   });
 
   const organization = TestStubs.Organization({
-    features: ['session-replay-ui'],
+    features: ['session-replay'],
   });
   const project = TestStubs.Project({
     platform: 'javascript',
@@ -314,7 +314,7 @@ describe('useReplaysCount', () => {
       '/organizations/org-slug/replay-count/',
       expect.objectContaining({
         query: {
-          query: `event.type:transaction transaction:["/home","/profile"]`,
+          query: `transaction:["/home","/profile"]`,
           statsPeriod: '14d',
           project: [2],
         },

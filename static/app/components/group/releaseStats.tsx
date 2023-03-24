@@ -9,7 +9,7 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CurrentRelease, Environment, Group, Organization, Project} from 'sentry/types';
 import getDynamicText from 'sentry/utils/getDynamicText';
 

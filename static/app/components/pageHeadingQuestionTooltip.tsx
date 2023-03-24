@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 import ExternalLink from './links/externalLink';
 

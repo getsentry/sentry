@@ -1,9 +1,8 @@
-import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
 import {Frame} from './../frame';
 import {Profile} from './profile';
-import {createFrameIndex} from './utils';
+import {createFrameIndex, resolveFlamegraphSamplesProfileIds} from './utils';
 
 function sortStacks(
   a: {stack: number[]; weight: number},
@@ -26,30 +25,36 @@ function sortStacks(
   return 0;
 }
 
-function stacksWithWeights(profile: Readonly<Profiling.SampledProfile>) {
+function stacksWithWeights(
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
+) {
   return profile.samples.map((stack, index) => {
     return {
       stack,
       weight: profile.weights[index],
+      profileIds: profileIds[index],
     };
   });
 }
 
 function sortSamples(
-  profile: Readonly<Profiling.SampledProfile>
+  profile: Readonly<Profiling.SampledProfile>,
+  profileIds: Readonly<string[][]> = []
 ): {stack: number[]; weight: number}[] {
-  return stacksWithWeights(profile).sort(sortStacks);
+  return stacksWithWeights(profile, profileIds).sort(sortStacks);
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
+function throwIfMissingFrame(index: number) {
+  throw new Error(`Could not resolve frame ${index} in frame index`);
+}
 
 // We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class SampledProfile extends Profile {
   static FromProfile(
     sampledProfile: Profiling.SampledProfile,
     frameIndex: ReturnType<typeof createFrameIndex>,
-    options: {type: 'flamechart' | 'flamegraph'}
+    options: {type: 'flamechart' | 'flamegraph'; profileIds?: Readonly<string[]>}
   ): Profile {
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
@@ -58,6 +63,7 @@ export class SampledProfile extends Profile {
       name: sampledProfile.name,
       unit: sampledProfile.unit,
       threadId: sampledProfile.threadID,
+      type: options.type,
     });
 
     if (sampledProfile.samples.length !== sampledProfile.weights.length) {
@@ -66,22 +72,42 @@ export class SampledProfile extends Profile {
       );
     }
 
+    let resolvedProfileIds: string[][] = [];
+    if (
+      options.type === 'flamegraph' &&
+      sampledProfile.samples_profiles &&
+      options.profileIds
+    ) {
+      resolvedProfileIds = resolveFlamegraphSamplesProfileIds(
+        sampledProfile.samples_profiles,
+        options.profileIds
+      );
+    }
+
     const samples =
       options.type === 'flamegraph'
-        ? sortSamples(sampledProfile)
+        ? sortSamples(sampledProfile, resolvedProfileIds)
         : stacksWithWeights(sampledProfile);
+
+    // We process each sample in the profile while maintaining a resolved stack of frames.
+    // There is a special case for GC frames where they are appended on top of the previos stack.
+    // By reusing the stack buffer, we avoid creating a new array for each sample and for GC case,
+    // also avoid re-resolving the previous stack frames as they are already in the buffer.
+
+    // If we encounter multiple consecutive GC frames, we will merge them into a single sample
+    // and sum their weights so that only one of them is processed.
+
+    // After we resolve the stack, we call appendSampleWithWeight with the stack buffer, weight
+    // and size of the stack to process. The size indicates how many items from the buffer we want
+    // to process.
+
+    const resolvedStack: Frame[] = new Array(256); // stack size limit
 
     for (let i = 0; i < samples.length; i++) {
       const stack = samples[i].stack;
       let weight = samples[i].weight;
-
-      let resolvedStack = stack.map(n => {
-        if (!frameIndex[n]) {
-          throw new Error(`Could not resolve frame ${n} in frame index`);
-        }
-
-        return frameIndex[n];
-      });
+      let size = samples[i].stack.length;
+      let useCurrentStack = true;
 
       if (
         options.type === 'flamechart' &&
@@ -91,20 +117,16 @@ export class SampledProfile extends Profile {
         // There is a good chance that this logic will at some point live on the backend
         // and when that happens, we do not want to enter this case as the GC will already
         // be placed at the top of the previous stack and the new stack length will be > 2
-        resolvedStack.length <= 2 &&
-        resolvedStack[resolvedStack.length - 1]?.name ===
-          '(garbage collector) [native code]'
+        stack.length <= 2 &&
+        frameIndex[stack[stack.length - 1]]?.name === '(garbage collector) [native code]'
       ) {
-        // The next stack we append will be previous stack + gc frame placed on top of it
-        resolvedStack = samples[i - 1].stack
-          .map(n => {
-            if (!frameIndex[n]) {
-              throw new Error(`Could not resolve frame ${n} in frame index`);
-            }
-
-            return frameIndex[n];
-          })
-          .concat(resolvedStack[resolvedStack.length - 1]);
+        // We have a GC frame, so we will use the previous stack
+        useCurrentStack = false;
+        // The next stack we will process will be the previous stack + our new gc frame.
+        // We write the GC frame on top of the previous stack and set the size to the new stack length.
+        resolvedStack[samples[i - 1].stack.length] = frameIndex[stack[stack.length - 1]];
+        // Size is not sample[i-1].size + our gc frame
+        size = samples[i - 1].stack.length + 1;
 
         // Now collect all weights of all the consecutive gc frames and skip the samples
         while (
@@ -115,20 +137,61 @@ export class SampledProfile extends Profile {
           // and when that happens, we do not want to enter this case as the GC will already
           // be placed at the top of the previous stack and the new stack length will be > 2
           samples[i + 1].stack.length <= 2 &&
-          frameIndex[samples[i + 1][samples[i + 1].stack.length - 1]]?.name ===
+          frameIndex[samples[i + 1].stack[samples[i + 1].stack.length - 1]]?.name ===
             '(garbage collector) [native code]'
         ) {
-          weight += sampledProfile.weights[++i];
+          weight += samples[++i].weight;
         }
       }
 
-      profile.appendSampleWithWeight(resolvedStack, weight);
+      // If we are using the current stack, then we need to resolve the frames,
+      // else the processed frames will be the frames that were previously resolved
+      if (useCurrentStack) {
+        for (let j = 0; j < stack.length; j++) {
+          resolvedStack[j] = frameIndex[stack[j]] ?? throwIfMissingFrame(stack[j]);
+        }
+      }
+
+      profile.appendSampleWithWeight(resolvedStack, weight, size, resolvedProfileIds[i]);
     }
 
     return profile.build();
   }
 
-  appendSampleWithWeight(stack: Frame[], weight: number): void {
+  static Example = SampledProfile.FromProfile(
+    {
+      startValue: 0,
+      endValue: 1000,
+      name: 'Example sampled profile',
+      threadID: 0,
+      unit: 'millisecond',
+      weights: [200, 200, 200, 200, 200],
+      samples: [
+        [0, 1, 2],
+        [0, 1, 2, 3, 4, 5],
+        [0, 1, 2, 3],
+        [0, 1, 2, 3, 4],
+        [0, 1],
+      ],
+      type: 'sampled',
+    },
+    {
+      0: new Frame({key: 0, name: 'f0'}),
+      1: new Frame({key: 1, name: 'f1'}),
+      2: new Frame({key: 2, name: 'f2'}),
+      3: new Frame({key: 3, name: 'f3'}),
+      4: new Frame({key: 4, name: 'f4'}),
+      5: new Frame({key: 5, name: 'f5'}),
+    },
+    {type: 'flamechart'}
+  );
+
+  appendSampleWithWeight(
+    stack: Frame[],
+    weight: number,
+    end: number,
+    resolvedProfileIds?: string[]
+  ): void {
     // Keep track of discarded samples and ones that may have negative weights
     this.trackSampleStats(weight);
 
@@ -140,8 +203,9 @@ export class SampledProfile extends Profile {
     let node = this.callTree;
     const framesInStack: CallTreeNode[] = [];
 
-    for (const frame of stack) {
-      const last = lastOfArray(node.children);
+    for (let i = 0; i < end; i++) {
+      const frame = stack[i];
+      const last = node.children[node.children.length - 1];
       // Find common frame between two stacks
       if (last && !last.isLocked() && last.frame === frame) {
         node = last;
@@ -149,9 +213,12 @@ export class SampledProfile extends Profile {
         const parent = node;
         node = new CallTreeNode(frame, node);
         parent.children.push(node);
+        if (resolvedProfileIds) {
+          this.callTreeNodeProfileIdMap.set(node, resolvedProfileIds);
+        }
       }
 
-      node.addToTotalWeight(weight);
+      node.totalWeight += weight;
 
       // TODO: This is On^2, because we iterate over all frames in the stack to check if our
       // frame is a recursive frame. We could do this in O(1) by keeping a map of frames in the stack
@@ -160,17 +227,17 @@ export class SampledProfile extends Profile {
       while (start >= 0) {
         if (framesInStack[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          framesInStack[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(framesInStack[start]);
+          framesInStack[start].recursive = node;
+          node.recursive = framesInStack[start];
           break;
         }
         start--;
       }
 
-      framesInStack.push(node);
+      framesInStack[i] = node;
     }
 
-    node.addToSelfWeight(weight);
+    node.selfWeight += weight;
     this.minFrameDuration = Math.min(weight, this.minFrameDuration);
 
     // Lock the stack node, so we make sure we dont mutate it in the future.
@@ -180,14 +247,15 @@ export class SampledProfile extends Profile {
       child.lock();
     }
 
-    node.frame.addToSelfWeight(weight);
+    node.frame.selfWeight += weight;
 
     for (const stackNode of framesInStack) {
-      stackNode.frame.addToTotalWeight(weight);
+      stackNode.frame.totalWeight += weight;
+      stackNode.count++;
     }
 
     // If node is the same as the previous sample, add the weight to the previous sample
-    if (node === lastOfArray(this.samples)) {
+    if (node === this.samples[this.samples.length - 1]) {
       this.weights[this.weights.length - 1] += weight;
     } else {
       this.samples.push(node);

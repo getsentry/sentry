@@ -16,7 +16,7 @@ WINDOWS_PATH_RE = re.compile(r"^([a-z]:\\|\\\\)", re.IGNORECASE)
 # "csharp" events are also considered "native" as they are processed by symbolicator.
 # This includes il2cpp events that are symbolicated using native debug files,
 # as well as .NET with Portable PDB files which are handled by symbolicator.
-NATIVE_PLATFORMS = ("cocoa", "native", "csharp")
+NATIVE_PLATFORMS = ("objc", "cocoa", "swift", "native", "c", "csharp")
 
 # Debug image types that can be handled by the symbolicator
 NATIVE_IMAGE_TYPES = (
@@ -71,33 +71,22 @@ def image_name(pkg):
     return pkg.rsplit(split, 1)[-1]
 
 
-def get_sdk_from_event(event):
-    sdk_info = get_path(event, "debug_meta", "sdk_info")
-    if sdk_info:
-        return sdk_info
-
+def get_os_from_event(event) -> Optional[str]:
+    """
+    Gets the OS name from either the OS context, or the SDK Info, which represents
+    the runtime SDK and *NOT* the Sentry SDK.
+    """
     os = get_path(event, "contexts", "os")
     if os and os.get("type") == "os":
-        return get_sdk_from_os(os)
+        if (os_name := os.get("name")) is not None:
+            return os_name.lower()
 
+    sdk_info = get_path(event, "debug_meta", "sdk_info")
+    if sdk_info:
+        if (sdk_name := sdk_info.get("sdk_name")) is not None:
+            return sdk_name.lower()
 
-def get_sdk_from_os(data):
-    if data.get("name") is None or data.get("version") is None:
-        return
-
-    try:
-        version = str(data["version"]).split("-", 1)[0] + ".0" * 3
-        system_version = tuple(int(x) for x in version.split(".")[:3])
-    except ValueError:
-        return
-
-    return {
-        "sdk_name": data["name"],
-        "version_major": system_version[0],
-        "version_minor": system_version[1],
-        "version_patchlevel": system_version[2],
-        "build": data.get("build"),
-    }
+    return None
 
 
 def signal_from_data(data):

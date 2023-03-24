@@ -5,12 +5,12 @@ import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import * as qs from 'query-string';
 
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
-import CompositeSelect from 'sentry/components/compactSelect/composite';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import {CompositeSelect} from 'sentry/components/compactSelect/composite';
 import DropdownButton from 'sentry/components/dropdownButton';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventView from 'sentry/utils/discover/eventView';
@@ -314,14 +314,14 @@ export const WidgetContainerActions = ({
         label={t('Display')}
         options={menuOptions}
         value={chartSetting}
-        onChange={setChartSetting}
+        onChange={opt => setChartSetting(opt.value)}
       />
       {chartDefinition.allowsOpenInDiscover && (
         <CompositeSelect.Region
           label={t('Other')}
           options={[{label: t('Open in Discover'), value: 'open_in_discover'}]}
           value=""
-          onChange={handleWidgetActionChange}
+          onChange={opt => handleWidgetActionChange(opt.value)}
         />
       )}
     </CompositeSelect>

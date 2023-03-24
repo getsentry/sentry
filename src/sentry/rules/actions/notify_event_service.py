@@ -22,8 +22,9 @@ from sentry.models import SentryApp, SentryAppInstallation
 from sentry.plugins.base import plugins
 from sentry.rules import EventState
 from sentry.rules.actions.base import EventAction
-from sentry.rules.actions.services import PluginService, SentryAppService
+from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
@@ -218,13 +219,8 @@ class NotifyEventServiceAction(EventAction):
             metrics.incr("notifications.sent", instance=plugin.slug, skip_internal=False)
             yield self.future(plugin.rule_notify)
 
-    def get_sentry_app_services(self) -> Sequence[SentryAppService]:
-        # excludes Sentry Apps that have Alert Rule UI Component in their schema
-        return [
-            SentryAppService(app)
-            for app in SentryApp.objects.get_alertable_sentry_apps(self.project.organization_id)
-            if not SentryAppService(app).has_alert_rule_action()
-        ]
+    def get_sentry_app_services(self) -> Sequence[RpcSentryAppService]:
+        return app_service.find_alertable_services(organization_id=self.project.organization_id)
 
     def get_plugins(self) -> Sequence[PluginService]:
         from sentry.plugins.bases.notify import NotificationPlugin

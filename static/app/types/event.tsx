@@ -147,7 +147,9 @@ export interface Thread {
   id: number;
   rawStacktrace: RawStacktrace;
   stacktrace: StacktraceType | null;
+  lockReason?: string | null;
   name?: string | null;
+  state?: string | null;
 }
 
 export type Frame = {
@@ -242,6 +244,7 @@ export enum EventOrGroupType {
   EXPECTSTAPLE = 'expectstaple',
   DEFAULT = 'default',
   TRANSACTION = 'transaction',
+  GENERIC = 'generic',
 }
 
 /**
@@ -259,6 +262,8 @@ export enum EntryType {
   HPKP = 'hpkp',
   BREADCRUMBS = 'breadcrumbs',
   THREADS = 'threads',
+  THREAD_STATE = 'thread-state',
+  THREAD_TAGS = 'thread-tags',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   RESOURCES = 'resources',
@@ -583,9 +588,15 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export interface BrowserContext {
+  name: string;
+  version: string;
+}
+
 type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
+  browser?: BrowserContext;
   client_os?: OSContext;
   device?: DeviceContext;
   feedback?: Record<string, any>;
@@ -647,6 +658,7 @@ type EventOccurrence = {
   issueTitle: string;
   resourceId: string;
   subtitle: string;
+  type: number;
 };
 
 interface EventBase {
@@ -704,6 +716,7 @@ interface EventBase {
 }
 
 interface TraceEventContexts extends EventContexts {
+  browser?: BrowserContext;
   profile?: ProfileContext;
 }
 
@@ -711,7 +724,9 @@ export interface EventTransaction
   extends Omit<EventBase, 'entries' | 'type' | 'contexts'> {
   contexts: TraceEventContexts;
   endTimestamp: number;
-  entries: (EntrySpans | EntryRequest)[];
+  // EntryDebugMeta is required for profiles to render in the span
+  // waterfall with the correct symbolication statuses
+  entries: (EntrySpans | EntryRequest | EntryDebugMeta)[];
   startTimestamp: number;
   type: EventOrGroupType.TRANSACTION;
   perfProblem?: PerformanceDetectorData;

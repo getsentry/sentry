@@ -6,6 +6,10 @@ from django.utils import timezone
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializerSnuba
+from sentry.issues.grouptype import (
+    PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models import (
     Group,
     GroupEnvironment,
@@ -21,13 +25,12 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.testutils import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -163,7 +166,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -175,7 +178,7 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=False
+            user_id=user.id, group=group, project=group.project, is_active=False
         )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
@@ -269,35 +272,36 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         )
 
         for default_value, project_value, is_subscribed, has_details in combinations:
-            UserOption.objects.clear_local_cache()
+            with exempt_from_silo_limits():
+                UserOption.objects.clear_local_cache()
 
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                default_value,
-                user=user,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                project_value,
-                user=user,
-                project=group.project,
-            )
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.WORKFLOW,
+                    default_value,
+                    user=user,
+                )
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.EMAIL,
+                    NotificationSettingTypes.WORKFLOW,
+                    project_value,
+                    user=user,
+                    project=group.project,
+                )
 
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                default_value,
-                user=user,
-            )
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                project_value,
-                user=user,
-                project=group.project,
-            )
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.WORKFLOW,
+                    default_value,
+                    user=user,
+                )
+                NotificationSetting.objects.update_settings(
+                    ExternalProviders.SLACK,
+                    NotificationSettingTypes.WORKFLOW,
+                    project_value,
+                    user=user,
+                    project=group.project,
+                )
 
             result = serialize(group, user, serializer=GroupSerializerSnuba())
             subscription_details = result.get("subscriptionDetails")
@@ -314,16 +318,17 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
-        for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            NotificationSetting.objects.update_settings(
-                provider,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-            )
+        with exempt_from_silo_limits():
+            for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationSettingOptionValues.NEVER,
+                    user=user,
+                )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -334,17 +339,18 @@ class GroupSerializerSnubaTest(APITestCase, SnubaTestCase):
         group = self.create_group()
 
         GroupSubscription.objects.create(
-            user=user, group=group, project=group.project, is_active=True
+            user_id=user.id, group=group, project=group.project, is_active=True
         )
 
         for provider in [ExternalProviders.EMAIL, ExternalProviders.SLACK]:
-            NotificationSetting.objects.update_settings(
-                provider,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user=user,
-                project=group.project,
-            )
+            with exempt_from_silo_limits():
+                NotificationSetting.objects.update_settings(
+                    provider,
+                    NotificationSettingTypes.WORKFLOW,
+                    NotificationSettingOptionValues.NEVER,
+                    user=user,
+                    project=group.project,
+                )
 
         result = serialize(group, user, serializer=GroupSerializerSnuba())
         assert not result["isSubscribed"]
@@ -444,7 +450,7 @@ class PerformanceGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
+        first_group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
         timestamp = timezone.now() - timedelta(days=5)
         times = 5
         for _ in range(0, times):
@@ -491,8 +497,8 @@ class ProfilingGroupSerializerSnubaTest(
         proj = self.create_project()
         environment = self.create_environment(project=proj)
 
-        first_group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
-        timestamp = timezone.now().replace(hour=0, minute=0, second=0)
+        first_group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
+        timestamp = (timezone.now() - timedelta(days=5)).replace(hour=0, minute=0, second=0)
         times = 5
         for incr in range(0, times):
             # for user_0 - user_4, first_group

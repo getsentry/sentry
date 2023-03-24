@@ -20,6 +20,7 @@ import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {t, tct} from 'sentry/locale';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
+import {setGroupedEntityTag} from 'sentry/utils/performanceForSentry';
 
 import {DragManagerChildrenProps} from './dragManager';
 import {ActiveOperationFilter} from './filter';
@@ -38,13 +39,7 @@ import {
   SpanTreeNodeType,
   SpanType,
 } from './types';
-import {
-  getSpanID,
-  getSpanOperation,
-  isGapSpan,
-  setSpansOnTransaction,
-  spanTargetHash,
-} from './utils';
+import {getSpanID, getSpanOperation, isGapSpan, spanTargetHash} from './utils';
 import WaterfallModel from './waterfallModel';
 
 type PropType = ScrollbarManagerChildrenProps & {
@@ -76,7 +71,7 @@ class SpanTree extends Component<PropType> {
   };
 
   componentDidMount() {
-    setSpansOnTransaction(this.props.spans.length);
+    setGroupedEntityTag('spans.total', 1000, this.props.spans.length);
 
     if (location.hash) {
       const {spans} = this.props;
@@ -474,11 +469,21 @@ class SpanTree extends Component<PropType> {
         const {span, treeDepth, continuingTreeDepths} = payload;
 
         if (payload.type === 'span_group_chain') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanNestedGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.DESCENDANT_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,
@@ -500,11 +505,21 @@ class SpanTree extends Component<PropType> {
         }
 
         if (payload.type === 'span_group_siblings') {
+          const groupingContainsAffectedSpan =
+            isEmbeddedSpanTree &&
+            payload.spanSiblingGrouping?.find(
+              ({span: s}) =>
+                !isGapSpan(s) && waterfallModel.affectedSpanIds?.includes(s.span_id)
+            );
+
           acc.spanTree.push({
             type: SpanTreeNodeType.SIBLING_GROUP,
             props: {
               event: waterfallModel.event,
               span,
+              spanBarType: groupingContainsAffectedSpan
+                ? SpanBarType.AUTOGROUPED_AND_AFFECTED
+                : SpanBarType.AUTOGROUPED,
               generateBounds,
               getCurrentLeftPos: this.props.getCurrentLeftPos,
               treeDepth,

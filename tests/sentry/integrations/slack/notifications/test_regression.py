@@ -16,7 +16,7 @@ class SlackRegressionNotificationTest(SlackActivityNotificationTest, Performance
             Activity(
                 project=self.project,
                 group=group,
-                user=self.user,
+                user_id=self.user.id,
                 type=ActivityType.SET_REGRESSION,
                 data={},
             )

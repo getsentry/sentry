@@ -1,10 +1,12 @@
 import {useMemo} from 'react';
 import {Item, Section} from '@react-stately/collections';
 
+import {t} from 'sentry/locale';
 import domId from 'sentry/utils/domId';
 
 import {Control, ControlProps} from './control';
-import {ListBox, MultipleListBoxProps, SingleListBoxProps} from './listBox';
+import {List, MultipleListProps, SingleListProps} from './list';
+import {EmptyMessage} from './styles';
 import type {
   SelectOption,
   SelectOptionOrSection,
@@ -12,27 +14,24 @@ import type {
   SelectSection,
 } from './types';
 
-export {SelectOption, SelectOptionOrSection, SelectSection};
+export type {SelectOption, SelectOptionOrSection, SelectSection};
 
 interface BaseSelectProps<Value extends React.Key> extends ControlProps {
   options: SelectOptionOrSection<Value>[];
-  /**
-   * Same as `disabled` in ControlProps. Allowed only for backward compatibility.
-   * Will be removed soon.
-   * @deprecated
-   */
-  isDisabled?: boolean;
 }
 
 export interface SingleSelectProps<Value extends React.Key>
   extends BaseSelectProps<Value>,
-    Omit<SingleListBoxProps<Value>, 'children' | 'items' | 'compositeIndex' | 'label'> {}
+    Omit<
+      SingleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
+    > {}
 
 export interface MultipleSelectProps<Value extends React.Key>
   extends BaseSelectProps<Value>,
     Omit<
-      MultipleListBoxProps<Value>,
-      'children' | 'items' | 'compositeIndex' | 'label'
+      MultipleListProps<Value>,
+      'children' | 'items' | 'grid' | 'compositeIndex' | 'label'
     > {}
 
 export type SelectProps<Value extends React.Key> =
@@ -49,7 +48,7 @@ function CompactSelect<Value extends React.Key>(props: SelectProps<Value>): JSX.
  * Flexible select component with a customizable trigger button
  */
 function CompactSelect<Value extends React.Key>({
-  // List box props
+  // List props
   options,
   value,
   defaultValue,
@@ -59,8 +58,9 @@ function CompactSelect<Value extends React.Key>({
   isOptionDisabled,
 
   // Control props
+  grid,
   disabled,
-  isDisabled,
+  emptyMessage,
   size = 'md',
   closeOnSelect,
   triggerProps,
@@ -68,33 +68,42 @@ function CompactSelect<Value extends React.Key>({
 }: SelectProps<Value>) {
   const triggerId = useMemo(() => domId('select-trigger-'), []);
 
-  // Combine list box props into an object with two clearly separated types, one where
+  // Combine list props into an object with two clearly separated types, one where
   // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
-  const listBoxProps = useMemo(() => {
+  const listProps = useMemo(() => {
     if (multiple) {
-      return {multiple, value, defaultValue, onChange, closeOnSelect};
+      return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
     }
-    return {multiple, value, defaultValue, onChange, closeOnSelect};
-  }, [multiple, value, defaultValue, onChange, closeOnSelect]);
+    return {multiple, value, defaultValue, onChange, closeOnSelect, grid};
+  }, [multiple, value, defaultValue, onChange, closeOnSelect, grid]);
 
   const optionsWithKey = useMemo<SelectOptionOrSectionWithKey<Value>[]>(
     () =>
       options.map((item, i) => ({
         ...item,
-        key: 'options' in item ? item.key ?? i : item.value,
+        // options key has to be unique to the current list of options,
+        // else we risk of a duplicate key error and end up confusing react
+        // which ultimately fails to call the correct item handlers
+        key: 'options' in item ? item.key ?? `options-${i}` : item.value,
       })),
     [options]
+  );
+
+  const controlDisabled = useMemo(
+    () => disabled ?? options?.length === 0,
+    [disabled, options]
   );
 
   return (
     <Control
       {...controlProps}
       triggerProps={{...triggerProps, id: triggerId}}
-      disabled={isDisabled ?? disabled ?? options?.length === 0}
+      disabled={controlDisabled}
+      grid={grid}
       size={size}
     >
-      <ListBox
-        {...listBoxProps}
+      <List
+        {...listProps}
         items={optionsWithKey}
         disallowEmptySelection={disallowEmptySelection}
         isOptionDisabled={isOptionDisabled}
@@ -106,7 +115,7 @@ function CompactSelect<Value extends React.Key>({
             return (
               <Section key={item.key} title={item.label}>
                 {item.options.map(opt => (
-                  <Item key={opt.value} textValue={String(opt.label)} {...opt}>
+                  <Item key={opt.value} {...opt}>
                     {opt.label}
                   </Item>
                 ))}
@@ -115,14 +124,17 @@ function CompactSelect<Value extends React.Key>({
           }
 
           return (
-            <Item key={item.value} textValue={String(item.label)} {...item}>
+            <Item key={item.value} {...item}>
               {item.label}
             </Item>
           );
         }}
-      </ListBox>
+      </List>
+
+      {/* Only displayed when List is empty */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
     </Control>
   );
 }
 
-export default CompactSelect;
+export {CompactSelect};

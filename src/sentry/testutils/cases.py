@@ -30,6 +30,7 @@ __all__ = (
     "ReplaysAcceptanceTestCase",
     "ReplaysSnubaTestCase",
     "MonitorTestCase",
+    "MonitorIngestTestCase",
 )
 import hashlib
 import inspect
@@ -81,6 +82,7 @@ from sentry.auth.superuser import ORG_ID as SU_ORG_ID
 from sentry.auth.superuser import Superuser
 from sentry.event_manager import EventManager
 from sentry.eventstream.snuba import SnubaEventStream
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail import mail_adapter
 from sentry.models import ApiToken
 from sentry.models import AuthProvider as AuthProviderModel
@@ -98,18 +100,16 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
-    Monitor,
-    MonitorType,
     NotificationSetting,
     Organization,
     ProjectOption,
     Release,
     ReleaseCommit,
     Repository,
-    ScheduleType,
     UserEmail,
     UserOption,
 )
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.plugins.base import plugins
 from sentry.replays.models import ReplayRecordingSegment
@@ -129,7 +129,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.helpers.slack import install_slack
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils import json
 from sentry.utils.auth import SsoSession
 from sentry.utils.json import dumps_htmlsafe
@@ -483,7 +482,7 @@ class PerformanceIssueTestCase(BaseTestCase):
         event_data = load_data(
             "transaction-n-plus-one",
             timestamp=before_now(minutes=10),
-            fingerprint=[f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group1"],
+            fingerprint=[f"{PerformanceNPlusOneGroupType.type_id}-group1"],
         )
         perf_event_manager = EventManager(event_data)
         perf_event_manager.normalize()
@@ -1511,6 +1510,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         "measurements.fid": "metrics_distributions",
         "measurements.cls": "metrics_distributions",
         "measurements.frames_frozen_rate": "metrics_distributions",
+        "measurements.time_to_initial_display": "metrics_distributions",
         "spans.http": "metrics_distributions",
         "user": "metrics_sets",
     }
@@ -1824,7 +1824,7 @@ class OrganizationDashboardWidgetTestCase(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.anon_users_query = {
             "name": "Anonymous Users",
@@ -2299,23 +2299,57 @@ class OrganizationMetricMetaIntegrationTestCase(MetricsAPIBaseTestCase):
 
 
 class MonitorTestCase(APITestCase):
-    @property
-    def endpoint_with_org(self):
-        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
-
-    def _get_path_functions(self):
-        return (
-            lambda monitor: reverse(self.endpoint, args=[monitor.guid]),
-            lambda monitor: reverse(
-                self.endpoint_with_org, args=[self.organization.slug, monitor.guid]
-            ),
-        )
-
-    def _create_monitor(self):
+    def _create_monitor(self, **kwargs):
         return Monitor.objects.create(
             organization_id=self.organization.id,
             project_id=self.project.id,
             next_checkin=timezone.now() - timedelta(minutes=1),
             type=MonitorType.CRON_JOB,
             config={"schedule": "* * * * *", "schedule_type": ScheduleType.CRONTAB},
+            **kwargs,
+        )
+
+
+class MonitorIngestTestCase(MonitorTestCase):
+    """
+    Base test case which provides support for both styles of legacy ingestion
+    endpoints, as well as sets up token and DSN authentication helpers
+    """
+
+    @property
+    def endpoint_with_org(self):
+        raise NotImplementedError(f"implement for {type(self).__module__}.{type(self).__name__}")
+
+    @property
+    def dsn_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"DSN {self.project_key.dsn_public}"}
+
+    @property
+    def token_auth_headers(self):
+        return {"HTTP_AUTHORIZATION": f"Bearer {self.token.token}"}
+
+    def setUp(self):
+        super().setUp()
+        # DSN based auth
+        self.project_key = self.create_project_key()
+
+        # Token based auth
+        sentry_app = self.create_sentry_app(
+            organization=self.organization,
+            scopes=["project:write"],
+        )
+        app = self.create_sentry_app_installation(
+            slug=sentry_app.slug, organization=self.organization
+        )
+        self.token = self.create_internal_integration_token(app, user=self.user)
+
+    def _get_path_functions(self):
+        # Monitor paths are supported both with an org slug and without.  We test both as long as we support both.
+        # Because removing old urls takes time and consideration of the cost of breaking lingering references, a
+        # decision to permanently remove either path schema is a TODO.
+        return (
+            lambda monitor_id: reverse(self.endpoint, args=[monitor_id]),
+            lambda monitor_id: reverse(
+                self.endpoint_with_org, args=[self.organization.slug, monitor_id]
+            ),
         )

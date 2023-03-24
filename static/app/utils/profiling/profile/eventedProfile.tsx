@@ -1,6 +1,7 @@
 import {lastOfArray} from 'sentry/utils';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
+import {formatTo} from 'sentry/utils/profiling/units/units';
 
 import {Profile} from './profile';
 import {createFrameIndex} from './utils';
@@ -10,6 +11,7 @@ export class EventedProfile extends Profile {
   stack: Frame[] = [];
 
   lastValue = 0;
+  samplingIntervalApproximation = 0;
 
   static FromProfile(
     eventedProfile: Profiling.EventedProfile,
@@ -29,6 +31,11 @@ export class EventedProfile extends Profile {
     // If frames are offset, we need to set lastValue to profile start, so that delta between
     // samples is correctly offset by the start value.
     profile.lastValue = Math.max(0, eventedProfile.startValue);
+    profile.samplingIntervalApproximation = formatTo(
+      10,
+      'milliseconds',
+      eventedProfile.unit
+    );
 
     for (const event of eventedProfile.events) {
       const frame = frameIndex[event.frame];
@@ -89,12 +96,12 @@ export class EventedProfile extends Profile {
     const weightDelta = weight - this.lastValue;
 
     for (const frame of this.stack) {
-      frame.addToTotalWeight(weightDelta);
+      frame.totalWeight += weightDelta;
     }
 
     const top = lastOfArray(this.stack);
     if (top) {
-      top.addToSelfWeight(weight);
+      top.selfWeight += weight;
     }
   }
 
@@ -102,12 +109,12 @@ export class EventedProfile extends Profile {
     const delta = value - this.lastValue;
 
     for (const node of this.calltree) {
-      node.addToTotalWeight(delta);
+      node.totalWeight += delta;
     }
     const stackTop = lastOfArray(this.calltree);
 
     if (stackTop) {
-      stackTop.addToSelfWeight(delta);
+      stackTop.selfWeight += delta;
     }
   }
 
@@ -165,8 +172,8 @@ export class EventedProfile extends Profile {
       while (start >= 0) {
         if (this.calltree[start].frame === node.frame) {
           // The recursion edge is bidirectional
-          this.calltree[start].setRecursiveThroughNode(node);
-          node.setRecursiveThroughNode(this.calltree[start]);
+          this.calltree[start].recursive = node;
+          node.recursive = this.calltree[start];
           break;
         }
         start--;
@@ -195,6 +202,10 @@ export class EventedProfile extends Profile {
     // iterate over them again in the future.
     leavingStackTop.lock();
     const sampleDelta = at - this.lastValue;
+
+    leavingStackTop.count += Math.ceil(
+      leavingStackTop.totalWeight / this.samplingIntervalApproximation
+    );
 
     if (sampleDelta > 0) {
       this.samples.push(leavingStackTop);

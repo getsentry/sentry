@@ -17,20 +17,20 @@ class GroupAssigneeTestCase(TestCase):
         # Can't both be assigned
         with pytest.raises(AssertionError):
             GroupAssignee.objects.create(
-                group=self.group, project=self.group.project, user=self.user, team=self.team
+                group=self.group, project=self.group.project, user_id=self.user.id, team=self.team
             )
 
         # Can't have nobody assigned
         with pytest.raises(AssertionError):
             GroupAssignee.objects.create(
-                group=self.group, project=self.group.project, user=None, team=None
+                group=self.group, project=self.group.project, user_id=None, team=None
             )
 
     def test_assign_user(self):
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+            project=self.group.project, group=self.group, user_id=self.user.id, team__isnull=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -45,7 +45,7 @@ class GroupAssigneeTestCase(TestCase):
         GroupAssignee.objects.assign(self.group, self.team)
 
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, team=self.team, user__isnull=True
+            project=self.group.project, group=self.group, team=self.team, user_id__isnull=True
         ).exists()
 
         activity = Activity.objects.get(
@@ -61,7 +61,7 @@ class GroupAssigneeTestCase(TestCase):
         assert result == {"new_assignment": True, "updated_assignment": False}
 
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+            project=self.group.project, group=self.group, user_id=self.user.id, team__isnull=True
         ).exists()
         activity = Activity.objects.get(
             project=self.group.project, group=self.group, type=ActivityType.ASSIGNED.value
@@ -75,7 +75,7 @@ class GroupAssigneeTestCase(TestCase):
         assert result == {"new_assignment": False, "updated_assignment": False}
         # Assignee should not have changed
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+            project=self.group.project, group=self.group, user_id=self.user.id, team__isnull=True
         ).exists()
         # Should be no new activity rows
         activity = Activity.objects.get(
@@ -89,13 +89,13 @@ class GroupAssigneeTestCase(TestCase):
         GroupAssignee.objects.assign(self.group, self.user)
 
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, user=self.user, team__isnull=True
+            project=self.group.project, group=self.group, user_id=self.user.id, team__isnull=True
         ).exists()
 
         GroupAssignee.objects.assign(self.group, self.team)
 
         assert GroupAssignee.objects.filter(
-            project=self.group.project, group=self.group, team=self.team, user__isnull=True
+            project=self.group.project, group=self.group, team=self.team, user_id__isnull=True
         ).exists()
 
         activity = list(
@@ -151,7 +151,10 @@ class GroupAssigneeTestCase(TestCase):
                 )
 
                 assert GroupAssignee.objects.filter(
-                    project=self.group.project, group=self.group, user=self.user, team__isnull=True
+                    project=self.group.project,
+                    group=self.group,
+                    user_id=self.user.id,
+                    team__isnull=True,
                 ).exists()
 
                 activity = Activity.objects.get(
@@ -201,7 +204,10 @@ class GroupAssigneeTestCase(TestCase):
                 mock_sync_assignee_outbound.assert_called_with(external_issue, None, assign=False)
 
                 assert not GroupAssignee.objects.filter(
-                    project=self.group.project, group=self.group, user=self.user, team__isnull=True
+                    project=self.group.project,
+                    group=self.group,
+                    user_id=self.user.id,
+                    team__isnull=True,
                 ).exists()
 
                 assert Activity.objects.filter(
@@ -255,7 +261,7 @@ class GroupAssigneeTestCase(TestCase):
 
             assert groups_updated[0] == group
             assert GroupAssignee.objects.filter(
-                project=group.project, group=group, user=user_w_access, team__isnull=True
+                project=group.project, group=group, user_id=user_w_access.id, team__isnull=True
             ).exists()
 
             # confirm capitalization doesn't affect syncing
@@ -265,7 +271,7 @@ class GroupAssigneeTestCase(TestCase):
 
             assert groups_updated[0] == group
             assert GroupAssignee.objects.filter(
-                project=group.project, group=group, user=user_w_access, team__isnull=True
+                project=group.project, group=group, user_id=user_w_access.id, team__isnull=True
             ).exists()
 
     def test_assignee_sync_inbound_deassign(self):
@@ -306,5 +312,5 @@ class GroupAssigneeTestCase(TestCase):
 
             assert groups_updated[0] == group
             assert not GroupAssignee.objects.filter(
-                project=group.project, group=group, user=self.user, team__isnull=True
+                project=group.project, group=group, user_id=self.user.id, team__isnull=True
             ).exists()

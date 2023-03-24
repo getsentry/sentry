@@ -162,7 +162,7 @@ describe('EventedProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(profile.callTree)).isRecursive()).toBe(true);
+    expect(!!firstCallee(firstCallee(profile.callTree)).recursive).toBe(true);
   });
 
   it('marks indirect recursion', () => {
@@ -189,7 +189,7 @@ describe('EventedProfile', () => {
       {type: 'flamechart'}
     );
 
-    expect(firstCallee(firstCallee(firstCallee(profile.callTree))).isRecursive()).toBe(
+    expect(!!firstCallee(firstCallee(firstCallee(profile.callTree))).recursive).toBe(
       true
     );
   });
@@ -336,5 +336,32 @@ describe('EventedProfile - flamegraph', () => {
     expect(profile.weights[0]).toBe(2);
     expect(profile.weights[1]).toBe(1);
     expect(profile.weights.length).toBe(2);
+  });
+
+  it('flamegraph tracks node count', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'evented',
+      events: [
+        {type: 'O', at: 0, frame: 0},
+        {type: 'O', at: 10, frame: 1},
+        {type: 'C', at: 20, frame: 1},
+        {type: 'C', at: 30, frame: 0},
+      ],
+    };
+
+    const profile = EventedProfile.FromProfile(
+      trace,
+      createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
+      {type: 'flamegraph'}
+    );
+
+    // frame 0 is opened twice, so the weight gets merged
+    expect(profile.callTree.children[0].count).toBe(3);
+    expect(profile.callTree.children[0].children[0].count).toBe(1);
   });
 });

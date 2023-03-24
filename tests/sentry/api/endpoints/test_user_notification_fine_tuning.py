@@ -47,7 +47,7 @@ class UserNotificationFineTuningGetTest(UserNotificationFineTuningTestBase):
 
         UserOption.objects.create(
             user=self.user,
-            organization=None,
+            organization_id=None,
             key="reports:disabled-organizations",
             value=[self.organization.id],
         )
@@ -154,10 +154,10 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         self.get_success_response("me", "email", status_code=204, **data)
 
         value1 = UserOption.objects.get(
-            user=self.user, project=self.project, key="mail:email"
+            user=self.user, project_id=self.project.id, key="mail:email"
         ).value
         value2 = UserOption.objects.get(
-            user=self.user, project=self.project2, key="mail:email"
+            user=self.user, project_id=self.project2.id, key="mail:email"
         ).value
 
         assert value1 == email
@@ -268,7 +268,7 @@ class UserNotificationFineTuningTest(UserNotificationFineTuningTestBase):
         self.get_error_response("me", "reports", status_code=403, **data)
 
         assert not UserOption.objects.filter(
-            user=self.user, organization=new_org, key="reports"
+            user=self.user, organization_id=new_org.id, key="reports"
         ).exists()
 
         data = {str(new_project.id): 1}

@@ -5,8 +5,6 @@ import uniqBy from 'lodash/uniqBy';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import AsyncComponent from 'sentry/components/asyncComponent';
-import IntegrationExternalMappingForm from 'sentry/components/integrationExternalMappingForm';
-import IntegrationExternalMappings from 'sentry/components/integrationExternalMappings';
 import {t} from 'sentry/locale';
 import {
   ExternalActorMapping,
@@ -19,6 +17,9 @@ import {sentryNameToOption} from 'sentry/utils/integrationUtil';
 import withOrganization from 'sentry/utils/withOrganization';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
+
+import IntegrationExternalMappingForm from './integrationExternalMappingForm';
+import IntegrationExternalMappings from './integrationExternalMappings';
 
 type Props = AsyncComponent['props'] &
   WithRouterProps & {

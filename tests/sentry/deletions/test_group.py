@@ -20,7 +20,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class DeleteGroupTest(TestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -73,7 +73,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
             type=file.type,
             name="hello.png",
         )
-        GroupAssignee.objects.create(group=group, project=self.project, user=self.user)
+        GroupAssignee.objects.create(group=group, project=self.project, user_id=self.user.id)
         GroupHash.objects.create(project=self.project, group=group, hash=uuid4().hex)
         GroupMeta.objects.create(group=group, key="foo", value="bar")
         GroupRedirect.objects.create(group_id=group.id, previous_group_id=1)

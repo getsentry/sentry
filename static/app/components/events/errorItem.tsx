@@ -10,7 +10,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import ListItem from 'sentry/components/list/listItem';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export type EventErrorData = {
   message: React.ReactNode;

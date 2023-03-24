@@ -155,7 +155,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         from sentry.constants import ObjectStatus
         from sentry.data_export.models import ExportedData
         from sentry.db.deletion import BulkDeleteQuery
+        from sentry.monitors import models as monitor_models
         from sentry.replays import models as replay_models
+        from sentry.sentry_metrics.indexer.postgres import models as metrics_indexer_models
         from sentry.utils import metrics
         from sentry.utils.query import RangeQuerySetWrapper
 
@@ -180,7 +182,9 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             (models.GroupEmailThread, "date", None),
             (models.GroupRuleStatus, "date_added", None),
             (models.RuleFireHistory, "date_added", None),
-            (models.MonitorCheckIn, "date_added", None),
+            (monitor_models.MonitorCheckIn, "date_added", None),
+            (metrics_indexer_models.StringIndexer, "last_seen", None),
+            (metrics_indexer_models.PerfStringIndexer, "last_seen", None),
         ] + EXTRA_BULK_QUERY_DELETES
 
         # Deletions that use the `deletions` code path (which handles their child relations)

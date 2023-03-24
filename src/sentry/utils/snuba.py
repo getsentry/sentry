@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import logging
 import os
@@ -568,7 +570,7 @@ def _prepare_start_end(
     return start, end
 
 
-def _prepare_query_params(query_params):
+def _prepare_query_params(query_params: SnubaQueryParams, referrer: str | None = None):
     kwargs = deepcopy(query_params.kwargs)
     query_params_conditions = deepcopy(query_params.conditions)
 
@@ -625,6 +627,10 @@ def _prepare_query_params(query_params):
         }
     )
     kwargs = {k: v for k, v in kwargs.items() if v is not None}
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs["tenant_ids"] if "tenant_ids" in kwargs else dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
 
     kwargs.update(OVERRIDE_OPTIONS)
     return kwargs, forward, reverse
@@ -709,6 +715,11 @@ def raw_query(
     Sends a query to snuba.  See `SnubaQueryParams` docstring for param
     descriptions.
     """
+
+    if referrer:
+        kwargs["tenant_ids"] = kwargs.get("tenant_ids") or dict()
+        kwargs["tenant_ids"]["referrer"] = referrer
+
     snuba_params = SnubaQueryParams(
         dataset=dataset,
         start=start,
@@ -743,6 +754,10 @@ def raw_snql_query(
     if "consistent" in OVERRIDE_OPTIONS:
         request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
+    if referrer:
+        request.tenant_ids = request.tenant_ids or dict()
+        request.tenant_ids["referrer"] = referrer
+
     params: SnubaQueryBody = (request, lambda x: x, lambda x: x)
     return _apply_cache_and_build_results([params], referrer=referrer, use_cache=use_cache)[0]
 
@@ -759,6 +774,12 @@ def bulk_snql_query(
     if "consistent" in OVERRIDE_OPTIONS:
         for request in requests:
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
+
+    for request in requests:
+        if referrer:
+            request.tenant_ids = request.tenant_ids or dict()
+            request.tenant_ids["referrer"] = referrer
+
     params: SnubaQuery = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
@@ -778,7 +799,7 @@ def bulk_raw_query(
     referrer: Optional[str] = None,
     use_cache: Optional[bool] = False,
 ) -> ResultSet:
-    params = [_prepare_query_params(param) for param in snuba_param_list]
+    params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
 
 
@@ -1494,8 +1515,12 @@ def is_duration_measurement(key):
         "measurements.fid",
         "measurements.ttfb",
         "measurements.ttfb.requesttime",
+        "measurements.time_to_initial_display",
+        "measurements.time_to_full_display",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
+        "measurements.time_to_full_display",
+        "measurements.time_to_initial_display",
     ]
 
 

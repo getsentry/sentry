@@ -8,6 +8,7 @@ import pytz
 from django.utils.timezone import now
 from freezegun import freeze_time
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models import Rule
 from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
@@ -18,7 +19,6 @@ from sentry.testutils.cases import RuleTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.store_transaction import PerfIssueTransactionTestMixin
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 
 
 class FrequencyConditionMixin:
@@ -78,7 +78,7 @@ class PerfEventMixin(PerfIssueTransactionTestMixin):
         fingerprint = (
             fingerprint
             if "-" in fingerprint
-            else f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-{data['fingerprint'][0]}"
+            else f"{PerformanceNPlusOneGroupType.type_id}-{data['fingerprint'][0]}"
         )
         # Store a performance event
         event = self.store_transaction(

@@ -9,10 +9,14 @@ from sentry_relay import meta_with_chunks
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event, GroupEvent
+from sentry.issues.grouptype import (
+    GroupCategory,
+    get_group_type_by_type_id,
+    get_group_types_by_category,
+)
 from sentry.models import EventAttachment, EventError, GroupHash, Release, User, UserReport
 from sentry.sdk_updates import SdkSetupState, get_suggested_updates
-from sentry.search.utils import convert_user_tag_to_query
-from sentry.types.issues import GROUP_CATEGORY_TO_TYPES, GroupCategory, GroupType
+from sentry.search.utils import convert_user_tag_to_query, map_device_class_level
 from sentry.utils.json import prune_empty_keys
 from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.safe import get_path
@@ -68,6 +72,7 @@ def get_tags_with_meta(event):
         query = convert_user_tag_to_query(tag["key"], tag["value"])
         if query:
             tag["query"] = query
+    map_device_class_tags(tags)
 
     tags_meta = prune_empty_keys({str(i): e.pop("_meta") for i, e in enumerate(tags)})
 
@@ -113,7 +118,7 @@ def get_problems(item_list: Sequence[Event | GroupEvent]):
         group_hash.group_id: group_hash
         for group_hash in GroupHash.objects.filter(
             group__id__in={e.group_id for e in item_list if getattr(e, "group_id", None)},
-            group__type__in=[gt.value for gt in GROUP_CATEGORY_TO_TYPES[GroupCategory.PERFORMANCE]],
+            group__type__in=get_group_types_by_category(GroupCategory.PERFORMANCE.value),
         )
     }
     return EventPerformanceProblem.fetch_multi(
@@ -358,10 +363,7 @@ class DetailedEventSerializer(EventSerializer):
             return None
         converted_problem = convert_dict_key_case(perf_problem, snake_to_camel_case)
         issue_type = perf_problem.get("type")
-        if issue_type in [type.value for type in GroupType]:
-            converted_problem["issueType"] = GroupType(issue_type).name.lower()
-        else:
-            converted_problem["issueType"] = "Issue"
+        converted_problem["issueType"] = get_group_type_by_type_id(issue_type).slug
         return converted_problem
 
     def serialize(self, obj, attrs, user):
@@ -417,6 +419,7 @@ class SimpleEventSerializer(EventSerializer):
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
+        map_device_class_tags(tags)
 
         user = obj.get_minimal_user()
 
@@ -455,6 +458,7 @@ class ExternalEventSerializer(EventSerializer):
             query = convert_user_tag_to_query(tag["key"], tag["value"])
             if query:
                 tag["query"] = query
+        map_device_class_tags(tags)
 
         user = obj.get_minimal_user()
 
@@ -473,3 +477,15 @@ class ExternalEventSerializer(EventSerializer):
             "platform": obj.platform,
             "datetime": obj.datetime.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
         }
+
+
+def map_device_class_tags(tags):
+    """
+    If device.class tag exists, set the value to high, medium, low
+    """
+    for tag in tags:
+        if tag["key"] == "device.class":
+            if device_class := map_device_class_level(tag["value"]):
+                tag["value"] = device_class
+            continue
+    return tags

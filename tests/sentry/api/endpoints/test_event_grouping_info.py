@@ -73,11 +73,11 @@ class EventGroupingInfoEndpointTestCase(APITestCase, PerformanceIssueTestCase):
         content = json.loads(response.content)
 
         assert response.status_code == 200
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["type"] == "performance-problem"
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["evidence"]["parent_span_hashes"] == [
+        assert content["performance_n_plus_one_db_queries"]["type"] == "performance-problem"
+        assert content["performance_n_plus_one_db_queries"]["evidence"]["parent_span_hashes"] == [
             "6a992d5529f459a4"
         ]
-        assert content["PERFORMANCE_N_PLUS_ONE_DB_QUERIES"]["evidence"]["offender_span_hashes"] == [
+        assert content["performance_n_plus_one_db_queries"]["evidence"]["offender_span_hashes"] == [
             "d74ed7012596c3fb",
             "d74ed7012596c3fb",
             "d74ed7012596c3fb",

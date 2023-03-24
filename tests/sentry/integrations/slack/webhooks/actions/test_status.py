@@ -86,7 +86,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
 
@@ -152,7 +152,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=user2).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
 
         expect_status = (
             f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
@@ -199,7 +199,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_data=[status_action])
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
 
         expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
             assignee=self.external_id

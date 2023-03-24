@@ -78,10 +78,26 @@ class ProjectAlertRulePermission(ProjectPermission):
     }
 
 
+class ProjectOwnershipPermission(ProjectPermission):
+    scope_map = {
+        "GET": ["project:read", "project:write", "project:admin"],
+        "POST": ["project:write", "project:admin"],
+        "PUT": ["project:read", "project:write", "project:admin"],
+        "DELETE": ["project:admin"],
+    }
+
+
 class ProjectEndpoint(Endpoint):
     permission_classes = (ProjectPermission,)
 
-    def convert_args(self, request: Request, organization_slug, project_slug, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        organization_slug: str,
+        project_slug: str,
+        *args,
+        **kwargs,
+    ):
         try:
             project = (
                 Project.objects.filter(organization__slug=organization_slug, slug=project_slug)

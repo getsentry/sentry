@@ -5,7 +5,7 @@ import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
@@ -136,7 +136,12 @@ export function FlamegraphTreeTable({
     }
 
     canvasPoolManager.dispatch('highlight frame', [
-      flamegraph.findAllMatchingFrames(clickedContextMenuNode.node),
+      flamegraph.findAllMatchingFrames(
+        clickedContextMenuNode.node.frame.name,
+        clickedContextMenuNode.node.frame.package ??
+          clickedContextMenuNode.node.frame.module ??
+          ''
+      ),
       'selected',
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);

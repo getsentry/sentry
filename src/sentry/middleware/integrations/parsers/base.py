@@ -9,7 +9,7 @@ from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 
 from sentry.models.integrations import Integration, OrganizationIntegration
-from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary, organization_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
@@ -106,7 +106,7 @@ class BaseRequestParser(abc.ABC):
 
     def get_organizations(
         self, integration: Integration = None
-    ) -> Sequence[ApiOrganizationSummary]:
+    ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration() method to identify organizations associated with
         the integration request.
@@ -130,7 +130,7 @@ class BaseRequestParser(abc.ABC):
         )
 
     def get_regions(
-        self, organizations: Sequence[ApiOrganizationSummary] = None
+        self, organizations: Sequence[RpcOrganizationSummary] = None
     ) -> Sequence[Region]:
         """
         Use the get_organizations() method to identify forwarding regions.

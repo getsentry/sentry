@@ -2,10 +2,12 @@ from unittest.mock import patch
 
 from django.urls import reverse
 
+from sentry import audit_log, deletions
 from sentry.constants import SentryAppStatus
-from sentry.models import OrganizationMember, SentryApp
+from sentry.models import AuditLogEntry, OrganizationMember, SentryApp
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers import Feature, with_feature
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
 
@@ -43,6 +45,8 @@ class SentryAppDetailsTest(APITestCase):
         self.url = reverse("sentry-api-0-sentry-app-details", args=[self.published_app.slug])
 
 
+# cannot be stable until we have org member mappings
+@control_silo_test
 class GetSentryAppDetailsTest(SentryAppDetailsTest):
     def test_superuser_sees_all_apps(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -115,7 +119,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             format="json",
         )
 
-        assert json.loads(response.content) == {
+        data = json.loads(response.content)
+        data["featureData"] = sorted(data["featureData"], key=lambda a: a["featureId"])
+
+        assert data == {
             "name": self.published_app.name,
             "author": "A Company",
             "slug": self.published_app.slug,
@@ -173,7 +180,7 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         assert response.data["events"] == {"issue"}
         assert response.data["uuid"] == self.unpublished_app.uuid
         assert response.data["webhookUrl"] == "https://newurl.com"
-        assert response.data["featureData"] == [
+        assert sorted(response.data["featureData"], key=lambda a: a["featureId"]) == [
             {
                 "featureId": 1,
                 "featureGate": "integrations-issue-link",
@@ -187,12 +194,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
         ]
 
     def test_can_update_name_with_non_unique_name(self):
-        from sentry.mediators import sentry_apps
-
         self.login_as(user=self.user)
         sentry_app = self.create_sentry_app(name="Foo Bar", organization=self.org)
 
-        sentry_apps.Destroyer.run(sentry_app=sentry_app, user=self.user)
+        deletions.exec_sync(sentry_app)
 
         response = self.client.put(self.url, data={"name": sentry_app.name}, format="json")
         assert response.status_code == 200
@@ -420,11 +425,21 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
 
 
 class DeleteSentryAppDetailsTest(SentryAppDetailsTest):
-    def test_delete_unpublished_app(self):
+    @patch("sentry.analytics.record")
+    def test_delete_unpublished_app(self, record):
         self.login_as(user=self.superuser, superuser=True)
         url = reverse("sentry-api-0-sentry-app-details", args=[self.unpublished_app.slug])
         response = self.client.delete(url)
         assert response.status_code == 204
+        assert AuditLogEntry.objects.filter(
+            event=audit_log.get_event_id("SENTRY_APP_REMOVE")
+        ).exists()
+        record.assert_called_with(
+            "sentry_app.deleted",
+            user_id=self.superuser.id,
+            organization_id=self.org.id,
+            sentry_app=self.unpublished_app.slug,
+        )
 
     def test_cannot_delete_published_app(self):
         self.login_as(user=self.superuser, superuser=True)

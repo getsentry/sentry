@@ -7,7 +7,7 @@ import omit from 'lodash/omit';
 import set from 'lodash/set';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {fetchOrgMembers} from 'sentry/actionCreators/members';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -17,7 +17,7 @@ import LoadingError from 'sentry/components/loadingError';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DateString, Organization, PageFilters, TagCollection} from 'sentry/types';
 import {defined, objectIsEmpty} from 'sentry/utils';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
@@ -161,11 +161,20 @@ function WidgetBuilder({
     defaultTableColumns = [defaultTableColumns];
   }
 
+  const hasReleaseHealthFeature = organization.features.includes('dashboards-rh-widget');
+
+  const filteredDashboardWidgets = dashboard.widgets.filter(({widgetType}) => {
+    if (widgetType === WidgetType.RELEASE) {
+      return hasReleaseHealthFeature;
+    }
+    return true;
+  });
+
   const isEditing = defined(widgetIndex);
   const widgetIndexNum = Number(widgetIndex);
   const isValidWidgetIndex =
     widgetIndexNum >= 0 &&
-    widgetIndexNum < dashboard.widgets.length &&
+    widgetIndexNum < filteredDashboardWidgets.length &&
     Number.isInteger(widgetIndexNum);
   const orgSlug = organization.slug;
 
@@ -260,7 +269,7 @@ function WidgetBuilder({
     }
 
     if (isEditing && isValidWidgetIndex) {
-      const widgetFromDashboard = dashboard.widgets[widgetIndexNum];
+      const widgetFromDashboard = filteredDashboardWidgets[widgetIndexNum];
 
       let queries;
       let newDisplayType = widgetFromDashboard.displayType;
@@ -811,6 +820,7 @@ function WidgetBuilder({
         loading: false,
         errors: {...state.errors, ...mapErrors(error?.responseJSON ?? {}, {})},
       });
+      addErrorMessage(t('Unable to save widget'));
       return false;
     }
   }
@@ -998,6 +1008,7 @@ function WidgetBuilder({
                                 dataSet={state.dataSet}
                                 displayType={state.displayType}
                                 onChange={handleDataSetChange}
+                                hasReleaseHealthFeature={hasReleaseHealthFeature}
                               />
                               {isTabularChart && (
                                 <DashboardsMEPConsumer>

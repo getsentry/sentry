@@ -11,7 +11,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import EventView, {EventData} from 'sentry/utils/discover/eventView';
 import {FieldKey} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';

@@ -45,7 +45,7 @@ __all__ = [
     "pending_silo_endpoint",
 ]
 
-from ..services.hybrid_cloud.auth import ApiAuthentication, ApiAuthenticatorType
+from ..services.hybrid_cloud.auth import RpcAuthentication, RpcAuthenticatorType
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -121,8 +121,6 @@ class Endpoint(APIView):
 
     cursor_name = "cursor"
 
-    # end user of endpoint must set private to true, or define public endpoints
-    private: Optional[bool] = None
     public: Optional[HTTP_METHODS_SET] = None
 
     rate_limits: RateLimitConfig = DEFAULT_RATE_LIMIT_CONFIG
@@ -138,16 +136,16 @@ class Endpoint(APIView):
         if SiloMode.get_current_mode() == SiloMode.MONOLITH:
             return super().get_authenticators()
 
-        last_api_authenticator = ApiAuthentication([])
+        last_api_authenticator = RpcAuthentication([])
         result: List[BaseAuthentication] = []
         for authenticator_cls in self.authentication_classes:
-            auth_type = ApiAuthenticatorType.from_authenticator(authenticator_cls)
+            auth_type = RpcAuthenticatorType.from_authenticator(authenticator_cls)
             if auth_type:
                 last_api_authenticator.types.append(auth_type)
             else:
                 if last_api_authenticator.types:
                     result.append(last_api_authenticator)
-                    last_api_authenticator = ApiAuthentication([])
+                    last_api_authenticator = RpcAuthentication([])
                 result.append(authenticator_cls())
 
         if last_api_authenticator.types:
@@ -285,9 +283,11 @@ class Endpoint(APIView):
                 self.initial(request, *args, **kwargs)
 
                 # Get the appropriate handler method
-                if request.method.lower() in self.http_method_names:
-                    handler = getattr(self, request.method.lower(), self.http_method_not_allowed)
+                method = request.method.lower()
+                if method in self.http_method_names and hasattr(self, method):
+                    handler = getattr(self, method)
 
+                    # Only convert args when using defined handlers
                     (args, kwargs) = self.convert_args(request, *args, **kwargs)
                     self.args = args
                     self.kwargs = kwargs
@@ -602,3 +602,6 @@ region_silo_endpoint = EndpointSiloLimit(SiloMode.REGION)
 # that the test will fail if a new endpoint is added with no decorator at all.
 # Eventually we should replace all instances of this decorator and delete it.
 pending_silo_endpoint = EndpointSiloLimit()
+
+# This should be rarely used, but this should be used for any endpoints that exist in any silo mode.
+all_silo_endpoint = EndpointSiloLimit(SiloMode.CONTROL, SiloMode.REGION, SiloMode.MONOLITH)

@@ -1,3 +1,5 @@
+import type {ReplayListRecord, ReplayRecord} from 'sentry/views/replays/types';
+
 type SimpleStub<T = any> = () => T;
 
 type OverridableStub<T = any> = (params?: Partial<T>) => T;
@@ -24,6 +26,7 @@ type TestStubFixtures = {
   Breadcrumb: OverridableStub;
   Broadcast: OverridableStub;
   BuiltInSymbolSources: OverridableStubList;
+  CodeOwner: OverridableStub;
   Commit: OverridableStub;
   CommitAuthor: OverridableStub;
   Config: OverridableStub;
@@ -68,9 +71,6 @@ type TestStubFixtures = {
   Members: OverridableStubList;
   MetricRule: OverridableStub;
   MetricsField: OverridableStub;
-  MetricsFieldByMeasurementRating: OverridableStub;
-  MetricsFieldByTransactionStatus: OverridableStub;
-  MetricsFieldsByMeasurementRating: OverridableStub;
   MetricsMeta: OverridableStub;
   MetricsSessionUserCountByStatusByRelease: SimpleStub;
   MetricsTotalCountByReleaseIn24h: SimpleStub;
@@ -99,7 +99,16 @@ type TestStubFixtures = {
   PublishedApps: SimpleStub;
   PullRequest: OverridableStub;
   Release: (params?: any, healthParams?: any) => any;
-  ReplayReaderParams: OverridableStub;
+  ReplayError: OverridableStub;
+  ReplayList: OverridableStubList<ReplayListRecord>;
+  ReplayRRWebDivHelloWorld: OverridableStub;
+  ReplayRRWebNode: OverridableStub;
+  ReplayRecord: OverridableStub<ReplayRecord>;
+  ReplaySegmentBreadcrumb: OverridableStub;
+  ReplaySegmentConsole: OverridableStub;
+  ReplaySegmentFullsnapshot: OverridableStub;
+  ReplaySegmentInit: OverridableStub;
+  ReplaySegmentNavigation: OverridableStub;
   Repository: OverridableStub;
   RepositoryProjectPathConfig: OverridableStub;
   Search: OverridableStub;
@@ -127,6 +136,8 @@ type TestStubFixtures = {
   ShortIdQueryResult: OverridableStub;
   SourceMapArchive: OverridableStub;
   SourceMapArtifact: OverridableStub;
+  SourceMapsDebugIDBundles: OverridableStub;
+  SourceMapsDebugIDBundlesArtifacts: OverridableStub;
   Span: OverridableStub;
   Subscriptions: OverridableStubList;
   TagValues: OverridableStubList;

@@ -154,7 +154,7 @@ class PluginActionsModal extends Component<ModalProps, ModalState> {
     return (
       <Fragment>
         <Header closeButton>
-          {tct('[name] Issue', {name: plugin.name || plugin.title})}
+          <h4>{tct('[name] Issue', {name: plugin.name || plugin.title})}</h4>
         </Header>
         <NavTabs underlined>
           <li className={actionType === 'create' ? 'active' : ''}>

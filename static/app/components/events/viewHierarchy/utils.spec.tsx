@@ -7,7 +7,7 @@ import {
   getHierarchyDimensions,
 } from 'sentry/components/events/viewHierarchy/utils';
 import {defined} from 'sentry/utils';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 const LEAF_NODE = {
   x: 2,
@@ -42,7 +42,7 @@ describe('View Hierarchy Utils', function () {
   });
 
   describe('getHierarchyDimensions', function () {
-    it('properly calculates coordinates', function () {
+    it('properly calculates coordinates and shifts children by default', function () {
       const actual = getHierarchyDimensions(MOCK_HIERARCHY);
 
       expect(actual).toEqual({
@@ -50,6 +50,22 @@ describe('View Hierarchy Utils', function () {
           {node: MOCK_HIERARCHY[0], rect: new Rect(0, 0, 10, 10)},
           {node: INTERMEDIATE_NODE, rect: new Rect(10, 5, 10, 10)},
           {node: LEAF_NODE, rect: new Rect(12, 7, 5, 5)},
+          {node: MOCK_HIERARCHY[1], rect: new Rect(10, 0, 20, 20)},
+        ],
+        maxWidth: 30,
+        maxHeight: 20,
+      });
+    });
+
+    it('does not shift children when specified', function () {
+      const actual = getHierarchyDimensions(MOCK_HIERARCHY, true);
+
+      // One array for each root
+      expect(actual).toEqual({
+        nodes: [
+          {node: MOCK_HIERARCHY[0], rect: new Rect(0, 0, 10, 10)},
+          {node: INTERMEDIATE_NODE, rect: new Rect(10, 5, 10, 10)},
+          {node: LEAF_NODE, rect: new Rect(2, 2, 5, 5)},
           {node: MOCK_HIERARCHY[1], rect: new Rect(10, 0, 20, 20)},
         ],
         maxWidth: 30,

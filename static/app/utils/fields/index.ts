@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import {TagCollection} from 'sentry/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -23,6 +24,7 @@ export enum FieldKey {
   DEVICE_BATTERY_LEVEL = 'device.battery_level',
   DEVICE_BRAND = 'device.brand',
   DEVICE_CHARGING = 'device.charging',
+  DEVICE_CLASS = 'device.class',
   DEVICE_FAMILY = 'device.family',
   DEVICE_LOCALE = 'device.locale',
   DEVICE_MODEL_ID = 'device.model_id',
@@ -146,6 +148,8 @@ export enum MobileVital {
   StallTotalTime = 'measurements.stall_total_time',
   StallLongestTime = 'measurements.stall_longest_time',
   StallPercentage = 'measurements.stall_percentage',
+  TimeToFullDisplay = 'measurements.time_to_full_display',
+  TimeToInitialDisplay = 'measurements.time_to_initial_display',
 }
 
 export enum SpanOpBreakdown {
@@ -414,6 +418,18 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.PERCENTAGE,
   },
+  [MobileVital.TimeToFullDisplay]: {
+    desc: t(
+      'The time between application launch and complete display of all resources and views'
+    ),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
+  [MobileVital.TimeToInitialDisplay]: {
+    desc: t('The time it takes for an application to produce its first frame'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
@@ -498,6 +514,11 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('Charging at the time of the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
+  },
+  [FieldKey.DEVICE_CLASS]: {
+    desc: t('The estimated performance level of the device, graded low, medium, or high'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
   },
   [FieldKey.DEVICE_FAMILY]: {
     desc: t('Model name across generations'),
@@ -658,7 +679,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     keywords: ['ignored', 'assigned', 'for_review', 'unassigned', 'linked', 'unlinked'],
   },
   [FieldKey.ISSUE]: {
-    desc: t('The issue identification code'),
+    desc: t('The issue identification short code'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -973,6 +994,7 @@ export const ISSUE_FIELDS = [
   FieldKey.HTTP_URL,
   FieldKey.ID,
   FieldKey.IS,
+  FieldKey.ISSUE,
   FieldKey.ISSUE_CATEGORY,
   FieldKey.ISSUE_TYPE,
   FieldKey.LAST_SEEN,
@@ -1061,6 +1083,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.DEVICE_SIMULATOR,
   FieldKey.DEVICE_ONLINE,
   FieldKey.DEVICE_CHARGING,
+  FieldKey.DEVICE_CLASS,
   FieldKey.GEO_COUNTRY_CODE,
   FieldKey.GEO_REGION,
   FieldKey.GEO_CITY,
@@ -1165,19 +1188,17 @@ export const REPLAY_FIELDS = [
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
   [ReplayFieldKey.ACTIVITY]: {
-    desc: t(
-      'Amount of activity in the replay from 0 to 10. Determined by number of errors, duration and UI events.'
-    ),
+    desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
   [ReplayFieldKey.BROWSER_NAME]: {
-    desc: t('Name of the brower'),
+    desc: t('Name of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: t('Version number of the Browser'),
+    desc: t('Version number of the browser'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1241,3 +1262,22 @@ export const getFieldDefinition = (
       return EVENT_FIELD_DEFINITIONS[key] ?? null;
   }
 };
+
+export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
+  return Object.fromEntries(
+    fieldKeys.map(fieldKey => [
+      fieldKey,
+      {
+        key: fieldKey,
+        name: fieldKey,
+        kind: getFieldDefinition(fieldKey)?.kind,
+      },
+    ])
+  );
+}
+
+export function isDeviceClass(key): boolean {
+  return key === FieldKey.DEVICE_CLASS;
+}
+
+export const DEVICE_CLASS_TAG_VALUES = ['high', 'medium', 'low'];

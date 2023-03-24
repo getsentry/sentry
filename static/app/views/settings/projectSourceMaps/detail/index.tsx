@@ -19,7 +19,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Artifact, Organization, Project} from 'sentry/types';
 import {formatVersion} from 'sentry/utils/formatters';
 import {decodeScalar} from 'sentry/utils/queryString';

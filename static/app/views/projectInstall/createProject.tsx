@@ -16,7 +16,7 @@ import categoryList from 'sentry/data/platformCategories';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Team} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getPlatformName from 'sentry/utils/getPlatformName';
@@ -237,8 +237,12 @@ class CreateProject extends Component<Props, State> {
       ProjectsStore.onCreateSuccess(projectData, organization.slug);
 
       const platformKey = platform || 'other';
-      const nextUrl = `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`;
-      browserHistory.push(normalizeUrl(nextUrl));
+
+      browserHistory.push(
+        normalizeUrl(
+          `/${organization.slug}/${projectData.slug}/getting-started/${platformKey}/`
+        )
+      );
     } catch (err) {
       this.setState({
         inFlight: false,

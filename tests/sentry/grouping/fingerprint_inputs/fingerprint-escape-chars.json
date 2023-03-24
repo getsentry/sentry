@@ -1,0 +1,19 @@
+{
+    "_fingerprinting_rules": [
+        {
+            "matchers": [
+                [
+                    "message",
+                    "\\{\\[\\*\\?\\]\\}"
+                ]
+            ],
+            "fingerprint": [
+                "escaped",
+                "{{ message }}"
+            ]
+        }
+    ],
+    "logentry": {
+        "formatted": "{[*?]}"
+    }
+}

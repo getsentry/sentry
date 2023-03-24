@@ -1,10 +1,10 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import CompactSelect, {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import {IconList} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {FlamegraphState} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/flamegraphContext';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
@@ -57,12 +57,13 @@ function FlamegraphThreadSelector({
       emptyProfiles.push(option);
       return;
     });
+
     return [profiles, emptyProfiles];
   }, [profileGroup]);
 
-  const handleChange: (opt: SelectOption<number>) => void = useCallback(
+  const handleChange: (opt: SelectOption<any>) => void = useCallback(
     opt => {
-      if (defined(opt)) {
+      if (defined(opt) && typeof opt.value === 'number') {
         onThreadIdChange(opt.value);
       }
     },
@@ -70,18 +71,22 @@ function FlamegraphThreadSelector({
   );
 
   return (
-    <CompactSelect
+    <StyledCompactSelect
       triggerProps={{
         icon: <IconList size="xs" />,
         size: 'xs',
       }}
       options={[
-        {label: t('Profiles'), options: profileOptions},
-        {label: t('Empty Profiles'), options: emptyProfileOptions},
+        {key: 'profiles', label: t('Profiles'), options: profileOptions},
+        {
+          key: 'empty-profiles',
+          label: t('Empty Profiles'),
+          options: emptyProfileOptions,
+        },
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
-      isSearchable
+      searchable
     />
   );
 }
@@ -142,4 +147,12 @@ const DetailsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 14ch;
+  min-width: 14ch;
+
+  > button {
+    width: 100%;
+  }
+`;
 export {FlamegraphThreadSelector};
