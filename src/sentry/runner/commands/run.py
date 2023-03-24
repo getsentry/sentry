@@ -69,7 +69,7 @@ QueueSet = QueueSetType()
 
 def kafka_options(
     consumer_group: str,
-    allow_force_cluster: bool = True,
+    allow_force_cluster: bool = False,
     include_batching_options: bool = False,
     default_max_batch_size: Optional[int] = None,
     default_max_batch_time_ms: Optional[int] = 1000,
@@ -387,7 +387,7 @@ def cron(**options):
 
 
 @run.command("post-process-forwarder")
-@kafka_options("snuba-post-processor")
+@kafka_options("snuba-post-processor", allow_force_cluster=False)
 @strict_offset_reset_option()
 @click.option(
     "--topic",
@@ -552,21 +552,9 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
+@kafka_options("occurrence-consumer", force_cluster=False)
 @strict_offset_reset_option()
 @configuration
-@click.option(
-    "--consumer-group",
-    "group_id",
-    default="occurrence-consumer",
-    help="Kafka consumer group for the consumer.",
-)
-@click.option(
-    "--auto-offset-reset",
-    "auto_offset_reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 
