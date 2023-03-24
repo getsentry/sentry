@@ -287,12 +287,11 @@ def get_scope(
         actor = RpcActor.from_object(user)
     if team is not None:
         actor = RpcActor.from_object(team)
-
     if actor:
         if actor.actor_type == ActorType.TEAM:
-            return NotificationScopeType.TEAM, team.id
+            return NotificationScopeType.TEAM, actor.id
         else:
-            return NotificationScopeType.USER, user.id
+            return NotificationScopeType.USER, actor.id
 
     raise Exception("scope must be either user, team, organization, or project")
 
