@@ -16,3 +16,6 @@ class LoggingBackend(MetricsBackend):
 
     def gauge(self, key, value, instance=None, tags=None, sample_rate=1):
         logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})
+
+    def histogram(self, key, value, instance=None, tags=None, sample_rate=1):
+        logger.debug("%r: %+g", key, value, extra={"instance": instance, "tags": tags or {}})

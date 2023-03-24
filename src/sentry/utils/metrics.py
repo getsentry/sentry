@@ -284,6 +284,25 @@ def timing(
         logger.exception("Unable to record backend metric")
 
 
+def histogram(
+    key: str,
+    value: Union[int, float],
+    instance: Optional[str] = None,
+    tags: Optional[Tags] = None,
+    sample_rate: float = settings.SENTRY_METRICS_SAMPLE_RATE,
+) -> None:
+    current_tags = _get_current_global_tags()
+    if tags is not None:
+        current_tags.update(tags)
+    current_tags = _filter_tags(key, current_tags)
+
+    try:
+        backend.histogram(key, value, instance, current_tags, sample_rate)
+    except Exception:
+        logger = logging.getLogger("sentry.errors")
+        logger.exception("Unable to record backend metric")
+
+
 @contextmanager
 def timer(
     key: str,

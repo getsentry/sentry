@@ -30,3 +30,10 @@ class DatadogMetricsBackendTest(TestCase):
         mock_gauge.assert_called_once_with(
             "sentrytest.foo", 5, sample_rate=1, tags=["instance:bar"], host=get_hostname()
         )
+
+    @patch("datadog.threadstats.base.ThreadStats.histogram")
+    def test_histogram(self, mock_histogram):
+        self.backend.histogram("foo", 5, instance="bar")
+        mock_histogram.assert_called_once_with(
+            "sentrytest.foo", 5, sample_rate=1, tags=["instance:bar"], host=get_hostname()
+        )

@@ -28,3 +28,6 @@ class MetricsBackend(local):
 
     def gauge(self, key, value, instance=None, tags=None, sample_rate=1):
         raise NotImplementedError
+
+    def histogram(self, key, value, instance=None, tags=None, sample_rate=1):
+        raise NotImplementedError

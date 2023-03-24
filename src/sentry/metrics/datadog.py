@@ -70,3 +70,16 @@ class DatadogMetricsBackend(MetricsBackend):
         self.stats.gauge(
             self._get_key(key), value, sample_rate=sample_rate, tags=tags, host=self.host
         )
+
+    def histogram(self, key, value, instance=None, tags=None, sample_rate=1):
+        if tags is None:
+            tags = {}
+        if self.tags:
+            tags.update(self.tags)
+        if instance:
+            tags["instance"] = instance
+        if tags:
+            tags = [f"{k}:{v}" for k, v in tags.items()]
+        self.stats.histogram(
+            self._get_key(key), value, sample_rate=sample_rate, tags=tags, host=self.host
+        )
