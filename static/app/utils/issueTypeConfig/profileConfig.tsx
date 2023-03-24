@@ -36,8 +36,36 @@ const profileConfig: IssueCategoryConfigMapping = {
       ),
       links: [
         {
-          text: t('File IO on Main Thread'),
+          text: t('File I/O on Main Thread'),
           link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/main-thread-io/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a JSON blob into a data structure can be a long running operation, especially for large blobs, and can cause frames to drop or the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
+      ),
+      links: [
+        {
+          text: t('JSON Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/json-decoding-main-thread/',
+        },
+      ],
+      linksByPlatform: {},
+    },
+  },
+  [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: {
+    resources: {
+      description: t(
+        'Decoding a compressed image from a format such as JPEG or PNG into a bitmap can be a long running operation, especially for large images, and can cause frames to drop or the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
+      ),
+      links: [
+        {
+          text: t('Image Decode on Main Thread'),
+          link: 'https://docs.sentry.io/product/issues/issue-details/performance-issues/image-decoding-main-thread/',
         },
       ],
       linksByPlatform: {},
