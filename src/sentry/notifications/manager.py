@@ -142,16 +142,14 @@ class NotificationsManager(BaseManager["NotificationSetting"]):
                 provider,
                 type,
                 actor=actor,
-                project_or_id=project,
-                organization_or_id=organization,
+                project=project,
+                organization=organization,
             )
 
         if not validate(type, value):
             raise Exception(f"value '{value}' is not valid for type '{type}'")
 
-        scope_type, scope_identifier = get_scope(
-            actor, project_or_id=project, organization_or_id=organization
-        )
+        scope_type, scope_identifier = get_scope(actor, project=project, organization=organization)
         self._update_settings(
             provider=provider,
             type=type,
