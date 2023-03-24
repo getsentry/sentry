@@ -69,6 +69,7 @@ const GroupEventDetailsContent = ({
   const location = useLocation();
   const hasReplay = Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
   const isANR = event?.tags?.find(({key}) => key === 'mechanism')?.value === 'ANR';
+  const hasAnrImprovementsFeature = organization.features.includes('anr-improvements');
 
   if (!event) {
     return (
@@ -109,7 +110,9 @@ const GroupEventDetailsContent = ({
       <GroupEventEntry entryType={EntryType.EXCEPTION} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.STACKTRACE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.THREADS} {...eventEntryProps} />
-      {isANR && <AnrRootCause event={event} organization={organization} />}
+      {hasAnrImprovementsFeature && isANR && (
+        <AnrRootCause event={event} organization={organization} />
+      )}
       {group.issueCategory === IssueCategory.PERFORMANCE && (
         <SpanEvidenceSection
           event={event as EventTransaction}

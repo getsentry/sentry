@@ -12,6 +12,8 @@ import GroupEventDetails, {
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
 
+const TRACE_ID = '797cda4e24844bdc90e0efe741616047';
+
 const makeDefaultMockData = (
   organization?: Organization,
   project?: Project
@@ -33,6 +35,14 @@ const makeDefaultMockData = (
       errors: [],
       entries: [],
       tags: [{key: 'environment', value: 'dev'}],
+      contexts: {
+        trace: {
+          trace_id: TRACE_ID,
+          span_id: 'b0e6f15b45c36b12',
+          op: 'ui.action.click',
+          type: 'trace',
+        },
+      },
     }),
   };
 };
@@ -65,6 +75,51 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
   };
 
   return <GroupEventDetails {...mergedProps} />;
+};
+
+const mockedTrace = (project: Project) => {
+  return [
+    {
+      event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+      span_id: 'b0e6f15b45c36b12',
+      transaction: 'MainActivity.add_attachment',
+      'transaction.duration': 1000,
+      'transaction.op': 'navigation',
+      project_id: project.id,
+      project_slug: project.slug,
+      parent_span_id: null,
+      parent_event_id: null,
+      generation: 0,
+      errors: [
+        {
+          event_id: 'c6971a73454646338bc3ec80c70f8891',
+          issue_id: 104,
+          span: 'b0e6f15b45c36b12',
+          project_id: project.id,
+          project_slug: project.slug,
+          title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+          level: 'error',
+        },
+      ],
+      performance_issues: [
+        {
+          event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+          issue_id: 110,
+          issue_short_id: 'SENTRY-ANDROID-1R',
+          span: ['b0e6f15b45c36b12'],
+          suspect_spans: ['89930aab9a0314d4'],
+          project_id: project.id,
+          project_slug: project.slug,
+          title: 'File IO on Main Thread',
+          level: 'info',
+          culprit: 'MainActivity.add_attachment',
+        },
+      ],
+      timestamp: 1678290375.150561,
+      start_timestamp: 1678290374.150561,
+      children: [],
+    },
+  ];
 };
 
 const mockGroupApis = (
@@ -101,6 +156,16 @@ const mockGroupApis = (
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/tags/`,
     body: [],
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
+    body: mockedTrace(project),
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
+    body: mockedTrace(project),
   });
 
   MockApiClient.addMockResponse({
