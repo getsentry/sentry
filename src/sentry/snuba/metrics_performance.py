@@ -1,17 +1,25 @@
+import logging
 from datetime import timedelta
 from typing import Dict, List, Optional, Sequence
 
 import sentry_sdk
+from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.search.events.builder import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
+    TopEventsMetricQueryBuilder,
 )
 from sentry.search.events.fields import get_function_alias
 from sentry.snuba import discover
 from sentry.utils.snuba import Dataset, SnubaTSResult
+
+logger = logging.getLogger(__name__)
+
+
+OTHER_KEY = "Other"
 
 
 def query(
@@ -255,3 +263,147 @@ def normalize_histogram_results(fields, histogram_params, results):
             new_data[field].append(row)
 
     return new_data
+
+
+def create_result_key(result_row, fields) -> str:
+    values = []
+    for field in fields:
+        if field == "transaction.status":
+            values.append(SPAN_STATUS_CODE_TO_NAME.get(result_row[field], "unknown"))
+        else:
+            value = result_row.get(field)
+            if isinstance(value, list):
+                if len(value) > 0:
+                    value = value[-1]
+                else:
+                    value = ""
+            values.append(str(value))
+    result = ",".join(values)
+    # If the result would be identical to the other key, include the field name
+    # only need the first field since this would only happen with a single field
+    if result == OTHER_KEY:
+        result = f"{result} ({fields[0]})"
+    return result
+
+
+def top_events_timeseries(
+    timeseries_columns: Sequence[str],
+    selected_columns: Sequence[str],
+    user_query: str,
+    params: Dict[str, str],
+    orderby: str,
+    rollup: int,
+    limit: int,
+    organization,
+    equations=None,
+    referrer: str = None,
+    top_events=None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: Optional[List[str]] = None,
+    allow_metric_aggregates: bool = True,
+) -> SnubaTSResult:
+    if top_events is None:
+        with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
+            top_events = query(
+                selected_columns,
+                query=user_query,
+                params=params,
+                orderby=orderby,
+                limit=limit,
+                referrer=referrer,
+                auto_aggregations=True,
+                use_aggregate_conditions=True,
+                has_metrics=True,
+                use_metrics_layer=True,
+            )
+
+    top_events_builder = TopEventsMetricQueryBuilder(
+        params,
+        rollup,
+        Dataset.PerformanceMetrics,
+        top_events["data"],
+        other=False,
+        query=user_query,
+        selected_columns=selected_columns,
+        timeseries_columns=timeseries_columns,
+        functions_acl=functions_acl,
+    )
+
+    result = top_events_builder.run_query(referrer)
+
+    if len(top_events["data"]) == limit and include_other:
+        other_events_builder = TopEventsMetricQueryBuilder(
+            params,
+            rollup,
+            Dataset.PerformanceMetrics,
+            top_events["data"],
+            other=True,
+            query=user_query,
+            selected_columns=selected_columns,
+            timeseries_columns=timeseries_columns,
+        )
+        other_result = other_events_builder.run_query(referrer)
+    else:
+        other_result = {"data": []}
+    if (
+        not allow_empty
+        and not len(result.get("data", []))
+        and not len(other_result.get("data", []))
+    ):
+        return SnubaTSResult(
+            {
+                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else [],
+                "isMetricsData": True,
+                "meta": result["meta"],
+            },
+            params["start"],
+            params["end"],
+            rollup,
+        )
+    with sentry_sdk.start_span(
+        op="discover.discover", description="top_events.transform_results"
+    ) as span:
+        span.set_data("result_count", len(result.get("data", [])))
+        result = top_events_builder.process_results(result)
+
+        translated_groupby = top_events_builder.translated_groupby
+
+        results = (
+            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+            if len(other_result.get("data", []))
+            else {}
+        )
+        # Using the top events add the order to the results
+        for index, item in enumerate(top_events["data"]):
+            result_key = create_result_key(item, translated_groupby)
+            results[result_key] = {"order": index, "data": []}
+        for row in result["data"]:
+            result_key = create_result_key(row, translated_groupby)
+            if result_key in results:
+                results[result_key]["data"].append(row)
+            else:
+                logger.warning(
+                    "discover.top-events.timeseries.key-mismatch",
+                    extra={"result_key": result_key, "top_event_keys": list(results.keys())},
+                )
+        for key, item in results.items():
+            results[key] = SnubaTSResult(
+                {
+                    "data": discover.zerofill(
+                        item["data"], params["start"], params["end"], rollup, "time"
+                    )
+                    if zerofill_results
+                    else item["data"],
+                    "order": item["order"],
+                    "isMetricsData": True,
+                },
+                params["start"],
+                params["end"],
+                rollup,
+            )
+
+    return results

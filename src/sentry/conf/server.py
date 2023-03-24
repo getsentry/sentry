@@ -1063,6 +1063,8 @@ SENTRY_FEATURES = {
     "organizations:discover": False,
     # Enables events endpoint rate limit
     "organizations:discover-events-rate-limit": False,
+    # Enable mep for top n queries in discover
+    "organizations:discover-mep-top-n": False,
     # Enable attaching arbitrary files to events.
     "organizations:event-attachments": True,
     # Allow organizations to configure all symbol sources.

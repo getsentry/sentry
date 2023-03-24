@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional, Set, Tuple, Uni
 import sentry_sdk
 from snuba_sdk import (
     AliasedExpression,
+    And,
     Column,
     Condition,
     CurriedFunction,
@@ -23,6 +24,7 @@ from snuba_sdk import (
 )
 
 from sentry.api.event_search import SearchFilter
+from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.search.events import constants, fields
 from sentry.search.events.builder import QueryBuilder
@@ -1061,6 +1063,265 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
                     for meta in metric_layer_result["meta"]:
                         if meta["name"] not in data:
                             data[meta["name"]] = self.get_default_value(meta["type"])
+
+                return metric_layer_result
+
+        queries = self.get_snql_query()
+        if queries:
+            results = bulk_snql_query(queries, referrer, use_cache)
+        else:
+            results = []
+
+        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
+        meta_dict = {}
+        for current_result in results:
+            # there's only 1 thing in the groupby which is time
+            for row in current_result["data"]:
+                time_map[row[self.time_alias]].update(row)
+            for meta in current_result["meta"]:
+                meta_dict[meta["name"]] = meta["type"]
+
+        return {
+            "data": list(time_map.values()),
+            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
+        }
+
+
+class TopEventsMetricQueryBuilder(TimeseriesMetricQueryBuilder):
+    def __init__(
+        self,
+        params: ParamsType,
+        interval: int,
+        dataset: Dataset,
+        top_events: List[Dict[str, Any]],
+        other: bool = False,
+        query: Optional[str] = None,
+        selected_columns: Optional[List[str]] = None,
+        timeseries_columns: Optional[List[str]] = None,
+        allow_metric_aggregates: Optional[bool] = False,
+        functions_acl: Optional[List[str]] = None,
+        limit: Optional[int] = 10000,
+    ):
+        selected_columns = [] if selected_columns is None else selected_columns
+        timeseries_columns = [] if timeseries_columns is None else timeseries_columns
+        timeseries_equations, timeseries_functions = categorize_columns(timeseries_columns)
+        super().__init__(
+            params,
+            interval=interval,
+            query=query,
+            selected_columns=list(set(selected_columns + timeseries_functions)),
+            functions_acl=functions_acl,
+            limit=limit,
+            allow_metric_aggregates=allow_metric_aggregates,
+            use_metrics_layer=True,
+            dataset=dataset,
+        )
+
+        self.fields: List[str] = selected_columns if selected_columns is not None else []
+        self.fields = [self.tag_to_prefixed_map.get(c, c) for c in selected_columns]
+
+        if (conditions := self.resolve_top_event_conditions(top_events, other)) is not None:
+            self.where.append(conditions)
+
+        if not other:
+            self.groupby.extend(
+                [column for column in self.columns if column not in self.aggregates]
+            )
+
+    @property
+    def translated_groupby(self) -> List[str]:
+        """Get the names of the groupby columns to create the series names"""
+        translated = []
+        for groupby in self.groupby:
+            if groupby == self.time_column:
+                continue
+            if isinstance(groupby, (CurriedFunction, AliasedExpression)):
+                translated.append(groupby.alias)
+            else:
+                translated.append(groupby.name)
+        # sorted so the result key is consistent
+        return sorted(translated)
+
+    def get_snql_query(self) -> List[Request]:
+        prefix = "generic_" if self.dataset is Dataset.PerformanceMetrics else ""
+
+        return [
+            Request(
+                dataset=self.dataset.value,
+                app_id="default",
+                query=Query(
+                    match=Entity(f"{prefix}metrics_distributions", sample=self.sample_rate),
+                    # Metrics doesn't support columns in the select, and instead expects them in the groupby
+                    select=self.aggregates
+                    + [
+                        # Team key transaction is a special case sigh
+                        col
+                        for col in self.columns
+                        if isinstance(col, Function) and col.function == "team_key_transaction"
+                    ],
+                    array_join=self.array_join,
+                    where=self.where,
+                    having=self.having,
+                    groupby=self.groupby,
+                    orderby=[],
+                    granularity=self.granularity,
+                ),
+                tenant_ids=self.tenant_ids,
+            )
+        ]
+
+    def resolve_top_event_conditions(
+        self, top_events: List[Dict[str, Any]], other: bool
+    ) -> Optional[WhereType]:
+        """Given a list of top events construct the conditions"""
+        conditions = []
+        for field in self.fields:
+            # If we have a project field, we need to limit results by project so we don't hit the result limit
+            if field in ["project", "project.id"] and top_events:
+                # Iterate through the existing conditions to find the project one
+                # the project condition is a requirement of queries so there should always be one
+                project_condition = [
+                    condition
+                    for condition in self.where
+                    if type(condition) == Condition and condition.lhs == self.column("project_id")
+                ][0]
+                self.where.remove(project_condition)
+                if field == "project":
+                    projects = list(
+                        {self.params.project_slug_map[event["project"]] for event in top_events}
+                    )
+                else:
+                    projects = list({event["project.id"] for event in top_events})
+                self.where.append(Condition(self.column("project_id"), Op.IN, projects))
+                continue
+
+            resolved_field = self.resolve_column(self.prefixed_to_tag_map.get(field, field))
+
+            values: Set[Any] = set()
+            for event in top_events:
+                if field in event:
+                    alias = field
+                elif self.is_column_function(resolved_field) and resolved_field.alias in event:
+                    alias = resolved_field.alias
+                else:
+                    continue
+
+                # Note that because orderby shouldn't be an array field its not included in the values
+                if isinstance(event.get(alias), list):
+                    continue
+                else:
+                    values.add(event.get(alias))
+            values_list = list(values)
+
+            if values_list:
+                if field == "timestamp" or field.startswith("timestamp.to_"):
+                    if not other:
+                        # timestamp fields needs special handling, creating a big OR instead
+                        function, operator = Or, Op.EQ
+                    else:
+                        # Needs to be a big AND when negated
+                        function, operator = And, Op.NEQ
+                    if len(values_list) > 1:
+                        conditions.append(
+                            function(
+                                conditions=[
+                                    Condition(resolved_field, operator, value)
+                                    for value in sorted(values_list)
+                                ]
+                            )
+                        )
+                    else:
+                        conditions.append(Condition(resolved_field, operator, values_list[0]))
+                elif None in values_list:
+                    # one of the values was null, but we can't do an in with null values, so split into two conditions
+                    non_none_values = [value for value in values_list if value is not None]
+                    null_condition = Condition(
+                        Function("isNull", [resolved_field]), Op.EQ if not other else Op.NEQ, 1
+                    )
+                    if non_none_values:
+                        non_none_condition = Condition(
+                            resolved_field, Op.IN if not other else Op.NOT_IN, non_none_values
+                        )
+                        if not other:
+                            conditions.append(Or(conditions=[null_condition, non_none_condition]))
+                        else:
+                            conditions.append(And(conditions=[null_condition, non_none_condition]))
+                    else:
+                        conditions.append(null_condition)
+                else:
+                    conditions.append(
+                        Condition(resolved_field, Op.IN if not other else Op.NOT_IN, values_list)
+                    )
+        if len(conditions) > 1:
+            final_function = And if not other else Or
+            final_condition = final_function(conditions=conditions)
+        elif len(conditions) == 1:
+            final_condition = conditions[0]
+        else:
+            final_condition = None
+
+        return final_condition
+
+    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+        if self.use_metrics_layer:
+            from sentry.snuba.metrics.datasource import get_series
+            from sentry.snuba.metrics.mqb_query_transformer import (
+                transform_mqb_query_to_metrics_query,
+            )
+
+            snuba_query = self.get_snql_query()[0].query
+
+            # Unnest And conditions. We might have And conditions due to groupbys.
+            # There should only be one level of and conditions, so don't need to do recursion.
+            for condition in snuba_query.where:
+                if isinstance(condition, And):
+                    snuba_query.where.extend(condition.conditions)
+                # Currently don't support Or conditions in metrics query transform.
+                if isinstance(condition, Or):
+                    return {"data": []}
+            snuba_query.where[:] = [
+                condition for condition in snuba_query.where if not isinstance(condition, And)
+            ]
+
+            try:
+                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                    metric_query = transform_mqb_query_to_metrics_query(
+                        snuba_query, self.is_alerts_query
+                    )
+                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                    metrics_data = get_series(
+                        projects=self.params.projects,
+                        metrics_query=metric_query,
+                        use_case_id=UseCaseKey.PERFORMANCE
+                        if self.is_performance
+                        else UseCaseKey.RELEASE_HEALTH,
+                        include_meta=True,
+                        tenant_ids=self.tenant_ids,
+                    )
+            except Exception as err:
+                raise IncompatibleMetricsQuery(err)
+            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+                metric_layer_result: Any = {
+                    "data": [],
+                    "meta": metrics_data["meta"],
+                }
+                for group in metrics_data.get("groups", []):
+                    # metric layer adds bucketed time automatically but doesn't remove it
+                    for meta in metric_layer_result["meta"]:
+                        if meta["name"] == "bucketed_time":
+                            meta["name"] = "time"
+                    for index, interval in enumerate(metrics_data["intervals"]):
+                        # the metric layer changes the intervals to datetime objects when we want the isoformat
+                        data = {self.time_alias: interval.isoformat()}
+                        for key, value_list in group.get("series", {}).items():
+                            data[key] = value_list[index]
+                        # add group bys to the data
+                        for key, value in group.get("by", {}).items():
+                            data[key] = value
+                        metric_layer_result["data"].append(data)
+                        for meta in metric_layer_result["meta"]:
+                            if meta["name"] not in data:
+                                data[meta["name"]] = self.get_default_value(meta["type"])
 
                 return metric_layer_result
 

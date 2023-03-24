@@ -73,6 +73,7 @@ default_manager.add("organizations:dashboards-rh-widget", OrganizationFeature, F
 default_manager.add("organizations:dashboards-template", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:discover-events-rate-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+default_manager.add("organizations:discover-mep-top-n", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
 default_manager.add("organizations:ds-prioritise-by-project-bias", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:ds-prioritise-by-transaction-bias", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
 default_manager.add("organizations:enterprise-perf", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

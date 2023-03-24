@@ -180,7 +180,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):  # type
             comparison_delta: Optional[datetime],
         ) -> SnubaTSResult:
             if top_events > 0:
-                return discover.top_events_timeseries(
+                can_use_metrics_for_top_n = self.get_features(organization, request).get(
+                    "organizations:discover-mep-top-n", False
+                )
+                return (dataset if can_use_metrics_for_top_n else discover).top_events_timeseries(
                     timeseries_columns=query_columns,
                     selected_columns=self.get_field_list(organization, request),
                     equations=self.get_equation_list(organization, request),

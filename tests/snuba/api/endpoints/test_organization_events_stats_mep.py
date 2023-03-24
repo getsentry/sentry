@@ -601,3 +601,217 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+
+    def create_top_metrics(self):
+        environments = ["prod", "staging"]
+        transactions = [
+            "a_transaction",
+            "b_transaction",
+            "c_transaction",
+            "d_transaction",
+            "e_transaction",
+        ]
+        for environment in environments:
+            for index, transaction in enumerate(transactions):
+                for _ in range(index + 1):
+                    self.store_transaction_metric(
+                        (index + 1) * 111,
+                        timestamp=self.day_ago + timedelta(hours=1),
+                        entity="metrics_distributions",
+                        tags={"transaction": transaction, "environment": environment},
+                    )
+
+    def test_simple_metrics_top_metrics(self):
+        self.create_top_metrics()
+        response = self.do_request(
+            url=reverse(
+                "sentry-api-0-organization-events-stats",
+                kwargs={"organization_slug": self.project.organization.slug},
+            ),
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": "-sum(transaction.duration)",
+                "field": ["transaction", "sum(transaction.duration)"],
+                "yAxis": "sum(transaction.duration)",
+                "topEvents": 6,
+                "dataset": "metrics",
+            },
+        )
+
+        data = response.data
+        assert response.status_code == 200, response.content
+        assert len(response.data.items()) == 5
+        assert data["e_transaction"]["data"][-1][-1][0]["count"] == 5550.0
+        assert data["e_transaction"]["order"] == 0
+        assert data["e_transaction"]["isMetricsData"]
+        assert data["d_transaction"]["data"][-1][-1][0]["count"] == 3552.0
+        assert data["d_transaction"]["order"] == 1
+        assert data["d_transaction"]["isMetricsData"]
+        assert data["c_transaction"]["data"][-1][-1][0]["count"] == 1998.0
+        assert data["c_transaction"]["order"] == 2
+        assert data["c_transaction"]["isMetricsData"]
+        assert data["b_transaction"]["data"][-1][-1][0]["count"] == 888.0
+        assert data["b_transaction"]["order"] == 3
+        assert data["b_transaction"]["isMetricsData"]
+        assert data["a_transaction"]["data"][-1][-1][0]["count"] == 222.0
+        assert data["a_transaction"]["order"] == 4
+        assert data["a_transaction"]["isMetricsData"]
+
+    def test_simple_metrics_top_metrics_other(self):
+        self.create_top_metrics()
+        response = self.do_request(
+            url=reverse(
+                "sentry-api-0-organization-events-stats",
+                kwargs={"organization_slug": self.project.organization.slug},
+            ),
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": "-sum(transaction.duration)",
+                "field": ["transaction", "sum(transaction.duration)"],
+                "yAxis": "sum(transaction.duration)",
+                "topEvents": 3,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.items()) == 4
+
+        other = response.data["Other"]
+        c = response.data["c_transaction"]
+        d = response.data["d_transaction"]
+        e = response.data["e_transaction"]
+
+        assert e["data"][-1][-1][0]["count"] == 5550.0
+        assert e["order"] == 0
+        assert e["isMetricsData"]
+        assert d["data"][-1][-1][0]["count"] == 3552.0
+        assert d["order"] == 1
+        assert d["isMetricsData"]
+        assert c["data"][-1][-1][0]["count"] == 1998.0
+        assert c["order"] == 2
+        assert c["isMetricsData"]
+        assert other["data"][-1][-1][0]["count"] == 1110.0
+        assert other["order"] == 3
+        assert other["isMetricsData"]
+
+    def test_simple_metrics_top_metrics_multiple_y_axis(self):
+        self.create_top_metrics()
+        response = self.do_request(
+            url=reverse(
+                "sentry-api-0-organization-events-stats",
+                kwargs={"organization_slug": self.project.organization.slug},
+            ),
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": "-sum(transaction.duration)",
+                "field": ["transaction", "sum(transaction.duration)", "count()"],
+                "yAxis": ["sum(transaction.duration)", "count()"],
+                "topEvents": 6,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.items()) == 5
+
+        a = response.data["a_transaction"]
+        b = response.data["b_transaction"]
+        c = response.data["c_transaction"]
+        d = response.data["d_transaction"]
+        e = response.data["e_transaction"]
+
+        assert e["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 5550.0
+        assert e["count()"]["data"][-1][-1][0]["count"] == 10
+        assert d["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 3552.0
+        assert d["count()"]["data"][-1][-1][0]["count"] == 8
+        assert c["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 1998.0
+        assert c["count()"]["data"][-1][-1][0]["count"] == 6
+        assert b["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 888.0
+        assert b["count()"]["data"][-1][-1][0]["count"] == 4
+        assert a["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 222.0
+        assert a["count()"]["data"][-1][-1][0]["count"] == 2
+
+    def test_simple_metrics_top_metrics_multiple_group_by(self):
+        self.create_top_metrics()
+        response = self.do_request(
+            url=reverse(
+                "sentry-api-0-organization-events-stats",
+                kwargs={"organization_slug": self.project.organization.slug},
+            ),
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": "-sum(transaction.duration)",
+                "field": ["transaction", "environment", "sum(transaction.duration)"],
+                "yAxis": "sum(transaction.duration)",
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.items()) == 5
+
+        staging_e = response.data["staging,e_transaction"]
+        prod_e = response.data["prod,e_transaction"]
+        staging_d = response.data["staging,d_transaction"]
+        prod_d = response.data["prod,d_transaction"]
+        staging_c = response.data["staging,c_transaction"]
+
+        assert staging_e["data"][-1][-1][0]["count"] == 2775.0
+        assert staging_e["order"] == 0
+        assert prod_e["data"][-1][-1][0]["count"] == 2775.0
+        assert prod_e["order"] == 1
+        assert staging_d["data"][-1][-1][0]["count"] == 1776.0
+        assert staging_d["order"] == 3
+        assert prod_d["data"][-1][-1][0]["count"] == 1776.0
+        assert prod_d["order"] == 2
+        assert staging_c["data"][-1][-1][0]["count"] == 999.0
+        assert staging_c["order"] == 4
+
+    def test_simple_metrics_top_metrics_multiple_group_by_multiple_y_axis(self):
+        self.create_top_metrics()
+        response = self.do_request(
+            url=reverse(
+                "sentry-api-0-organization-events-stats",
+                kwargs={"organization_slug": self.project.organization.slug},
+            ),
+            data={
+                "start": iso_format(self.day_ago),
+                "end": iso_format(self.day_ago + timedelta(hours=2)),
+                "interval": "1h",
+                "orderby": "-sum(transaction.duration)",
+                "field": ["transaction", "environment", "sum(transaction.duration)", "count()"],
+                "yAxis": ["sum(transaction.duration)", "count()"],
+                "topEvents": 5,
+                "dataset": "metrics",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data.items()) == 5
+
+        staging_e = response.data["staging,e_transaction"]
+        prod_e = response.data["prod,e_transaction"]
+        staging_d = response.data["staging,d_transaction"]
+        prod_d = response.data["prod,d_transaction"]
+        staging_c = response.data["staging,c_transaction"]
+
+        assert staging_e["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 2775.0
+        assert staging_e["count()"]["data"][-1][-1][0]["count"] == 5
+        assert prod_e["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 2775.0
+        assert prod_e["count()"]["data"][-1][-1][0]["count"] == 5
+        assert staging_d["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 1776.0
+        assert staging_d["count()"]["data"][-1][-1][0]["count"] == 4
+        assert prod_d["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 1776.0
+        assert prod_d["count()"]["data"][-1][-1][0]["count"] == 4
+        assert staging_c["sum(transaction.duration)"]["data"][-1][-1][0]["count"] == 999.0
+        assert staging_c["count()"]["data"][-1][-1][0]["count"] == 3
