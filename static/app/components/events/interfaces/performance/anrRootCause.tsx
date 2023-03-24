@@ -46,7 +46,7 @@ export function AnrRootCause({organization}: Props) {
   return (
     <EventDataSection
       title={t('Suspect Root Issues')}
-      type="suspect-anr-culprits"
+      type="suspect-root-issues"
       help={t(
         'Suspect Root Issues identifies potential Performance Issues that may be contributing to this ANR.'
       )}
