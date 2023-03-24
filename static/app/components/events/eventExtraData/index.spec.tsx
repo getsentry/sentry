@@ -178,7 +178,7 @@ describe('EventExtraData', function () {
 
     expect(await screen.findAllByText(/redacted/)).toHaveLength(10);
 
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
       await screen.findByText(

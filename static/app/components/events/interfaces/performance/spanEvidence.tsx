@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {getProblemSpansForSpanTree} from 'sentry/components/events/interfaces/performance/utils';
 import {t} from 'sentry/locale';
-import {EventTransaction, IssueType, Organization} from 'sentry/types';
+import {EventTransaction, Organization} from 'sentry/types';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 import {ProfileContext, ProfilesProvider} from 'sentry/views/profiling/profilesProvider';
 
@@ -27,22 +28,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
     return null;
   }
 
-  const parentSpanIDs = event?.perfProblem?.parentSpanIds ?? [];
-  const offendingSpanIDs = event?.perfProblem?.offenderSpanIds ?? [];
-
-  const affectedSpanIds = [...offendingSpanIDs];
-  const focusedSpanIds: string[] = [];
-  const issueType = event?.perfProblem?.issueType;
-  if (issueType !== IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS) {
-    affectedSpanIds.push(...parentSpanIDs);
-  }
-  if (issueType === IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES) {
-    const consecutiveSpanIds = event?.perfProblem?.causeSpanIds ?? [];
-
-    if (consecutiveSpanIds.length < 11) {
-      focusedSpanIds.push(...consecutiveSpanIds);
-    }
-  }
+  const {affectedSpanIds, focusedSpanIds} = getProblemSpansForSpanTree(event);
 
   const profileId = event.contexts?.profile?.profile_id ?? null;
 
@@ -58,7 +44,7 @@ export function SpanEvidenceSection({event, organization, projectSlug}: Props) {
         'Span Evidence identifies the root cause of this issue, found in other similar events within the same issue.'
       )}
     >
-      <SpanEvidenceKeyValueList event={event} />
+      <SpanEvidenceKeyValueList event={event} projectSlug={projectSlug} />
       {hasProfilingPreviewsFeature ? (
         <ProfilesProvider
           orgSlug={organization.slug}

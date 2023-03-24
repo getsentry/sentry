@@ -44,7 +44,7 @@ class OrganizationDashboardsAcceptanceTest(AcceptanceTestCase):
             project_id=self.project.id,
         )
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.page = DashboardDetailPage(
             self.browser, self.client, organization=self.organization, dashboard=self.dashboard
@@ -710,7 +710,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
             organization=self.organization, teams=[self.team], name="Bengal"
         )
         self.dashboard = Dashboard.objects.create(
-            title="Dashboard 1", created_by=self.user, organization=self.organization
+            title="Dashboard 1", created_by_id=self.user.id, organization=self.organization
         )
         self.widget_1 = DashboardWidget.objects.create(
             dashboard=self.dashboard,
@@ -745,7 +745,7 @@ class OrganizationDashboardsManageAcceptanceTest(AcceptanceTestCase):
     def test_dashboard_manager_with_unset_layouts_and_defined_layouts(self):
         dashboard_with_layouts = Dashboard.objects.create(
             title="Dashboard with some defined layouts",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
         )
         DashboardWidget.objects.create(

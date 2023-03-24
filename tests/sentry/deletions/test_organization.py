@@ -64,7 +64,7 @@ class DeleteOrganizationTest(TransactionTestCase):
         )
 
         dashboard = Dashboard.objects.create(
-            organization_id=org.id, title="The Dashboard", created_by=self.user
+            organization_id=org.id, title="The Dashboard", created_by_id=self.user.id
         )
         widget_1 = DashboardWidget.objects.create(
             dashboard=dashboard,

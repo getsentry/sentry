@@ -201,6 +201,7 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
@@ -228,21 +229,21 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle full stack trace button', function () {
+      it('toggle full stack trace button', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
+        await userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by display option', function () {
+      it('toggle sort by display option', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -256,8 +257,8 @@ describe('ThreadsV2', function () {
         expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
 
         // Switch to recent last
-        userEvent.click(screen.getByText('Newest'));
-        userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByText('Oldest'));
 
         // Recent last is checked
         expect(screen.getByText('Oldest')).toBeInTheDocument();
@@ -271,8 +272,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on recent first
-        userEvent.click(screen.getByText('Oldest'));
-        userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -285,7 +286,7 @@ describe('ThreadsV2', function () {
       it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -299,7 +300,7 @@ describe('ThreadsV2', function () {
         });
 
         // Hover over the Minified option
-        userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(displayOptions.minified));
 
         // Minified option is disabled
         expect(
@@ -628,12 +629,15 @@ describe('ThreadsV2', function () {
                     hasSystemFrames: true,
                   },
                   rawStacktrace: null,
+                  state: 'BLOCKED',
+                  lockReason: 'waiting on tid=1',
                 },
                 {
                   id: 1,
                   current: false,
                   crashed: false,
                   name: null,
+                  state: 'TIMED_WAITING',
                   stacktrace: {
                     frames: [
                       {
@@ -854,12 +858,52 @@ describe('ThreadsV2', function () {
         groupingCurrentLevel: 0,
         hasHierarchicalGrouping: true,
         projectSlug: project.slug,
+        organization,
       };
 
       it('renders', function () {
         const {container} = render(<ThreadsV2 {...props} />, {organization: org});
         // Title
         expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        // Actions
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
+        expect(screen.getByRole('button', {name: 'Options'})).toBeInTheDocument();
+
+        expect(screen.queryByText('Threads')).not.toBeInTheDocument();
+        expect(screen.queryByText('Thread State')).not.toBeInTheDocument();
+        expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
+
+        // Stack Trace
+        expect(screen.getByRole('heading', {name: 'EXC_BAD_ACCESS'})).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            'Attempted to dereference null pointer. Originated at or in a subcall of ViewController.causeCrash(Any) -> ()'
+          )
+        ).toBeInTheDocument();
+
+        expect(screen.getByTestId('stack-trace')).toBeInTheDocument();
+        expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
+
+        expect(container).toSnapshot();
+      });
+
+      it('renders thread state and lock reason', function () {
+        const newOrg = {
+          ...organization,
+          features: ['native-stack-trace-v2', 'anr-improvements'],
+        };
+        const newProps = {...props, organization: newOrg};
+        const {container} = render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        // Title
+        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        expect(screen.getByText('Blocked')).toBeInTheDocument();
+        expect(screen.getByText('waiting on tid=1')).toBeInTheDocument();
+        expect(screen.getByText('Thread Tags')).toBeInTheDocument();
 
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
@@ -880,21 +924,85 @@ describe('ThreadsV2', function () {
         expect(container).toSnapshot();
       });
 
-      it('toggle full stack trace button', function () {
+      it('maps android vm states to java vm states', function () {
+        const newEvent = {...event};
+        const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
+          typeof ThreadsV2
+        >['data'];
+        const thread = {
+          id: 0,
+          current: false,
+          crashed: true,
+          name: null,
+          stacktrace: {
+            frames: [
+              {
+                filename: null,
+                absPath: null,
+                module: null,
+                package: '/System/Library/Frameworks/UIKit.framework/UIKit',
+                platform: null,
+                instructionAddr: '0x197885c54',
+                symbolAddr: '0x197885bf4',
+                function: '<redacted>',
+                rawFunction: null,
+                symbol: null,
+                context: [],
+                lineNo: null,
+                colNo: null,
+                inApp: false,
+                trust: null,
+                errors: null,
+                vars: null,
+              },
+            ],
+            registers: {},
+            framesOmitted: null,
+            hasSystemFrames: true,
+          },
+          rawStacktrace: null,
+          state: 'kWaitingPerformingGc',
+        };
+        threadsEntry.values = [
+          {
+            ...thread,
+          },
+          {
+            ...thread,
+            id: 1,
+          },
+        ];
+
+        const newOrg = {
+          ...organization,
+          features: ['native-stack-trace-v2', 'anr-improvements'],
+        };
+        const newProps = {...props, event: newEvent, organization: newOrg};
+        render(<ThreadsV2 {...newProps} />, {organization: newOrg});
+        // Title
+        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+
+        expect(screen.getByText('Threads')).toBeInTheDocument();
+        expect(screen.getByText('Thread State')).toBeInTheDocument();
+        // kWaitingPerformingGc maps to Waiting
+        expect(screen.getByText('Waiting')).toBeInTheDocument();
+      });
+
+      it('toggle full stack trace button', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).not.toBeChecked();
 
-        userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
+        await userEvent.click(screen.getByRole('radio', {name: 'Full Stack Trace'}));
 
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeChecked();
 
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(4);
       });
 
-      it('toggle sort by option', function () {
+      it('toggle sort by option', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
         expect(
@@ -903,7 +1011,7 @@ describe('ThreadsV2', function () {
           )
         ).toBeInTheDocument();
 
-        userEvent.click(screen.getByRole('button', {name: 'Newest'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Newest'}));
 
         // Sort by options
         expect(screen.getAllByText('Newest')).toHaveLength(2);
@@ -916,7 +1024,7 @@ describe('ThreadsV2', function () {
         );
 
         // Click on recent last
-        userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByText('Oldest'));
 
         // Recent last is enabled
         expect(screen.queryByText('Newest')).not.toBeInTheDocument();
@@ -928,8 +1036,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Switch back to recent first
-        userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
-        userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
+        await userEvent.click(screen.getByText('Newest'));
 
         // First frame is the first on the list
         expect(
@@ -942,7 +1050,7 @@ describe('ThreadsV2', function () {
       it('check display options', async function () {
         render(<ThreadsV2 {...props} />, {organization: org});
 
-        userEvent.click(screen.getByRole('button', {name: 'Options'}));
+        await userEvent.click(screen.getByRole('button', {name: 'Options'}));
 
         expect(await screen.findByText('Display')).toBeInTheDocument();
 
@@ -951,7 +1059,7 @@ describe('ThreadsV2', function () {
         });
 
         // Hover over absolute file paths option
-        userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
+        await userEvent.hover(screen.getByText(displayOptions['absolute-file-paths']));
 
         // Absolute file paths option is disabled
         expect(
@@ -959,7 +1067,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Hover over Minified option
-        userEvent.hover(screen.getByText(displayOptions.minified));
+        await userEvent.hover(screen.getByText(displayOptions.minified));
 
         // Minified option is disabled
         expect(
@@ -974,7 +1082,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on verbose function name option
-        userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
+        await userEvent.click(screen.getByText(displayOptions['verbose-function-names']));
 
         // Function name is now verbose
         expect(
@@ -989,7 +1097,7 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on absolute file paths option
-        userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
+        await userEvent.click(screen.getByText(displayOptions['absolute-addresses']));
 
         // Address is now absolute
         expect(
@@ -1002,7 +1110,7 @@ describe('ThreadsV2', function () {
         });
 
         // Click on raw stack trace option
-        userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
+        await userEvent.click(screen.getByText(displayOptions['raw-stack-trace']));
 
         // Download button is displayed
         expect(screen.getByRole('button', {name: 'Download'})).toBeInTheDocument();

@@ -24,11 +24,12 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.postgres.roles import in_test_psql_role_override
-from sentry.models import LostPasswordHash
+from sentry.models import LostPasswordHash, UserAvatar
 from sentry.models.authenticator import Authenticator
-from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, find_regions_for_user
+from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
+from sentry.types.region import find_regions_for_user
 from sentry.utils.http import absolute_uri
 
 audit_logger = logging.getLogger("sentry.audit.user")
@@ -181,6 +182,9 @@ class User(BaseModel, AbstractBaseUser):
     date_joined = models.DateTimeField(_("date joined"), default=timezone.now)
     last_active = models.DateTimeField(_("last active"), default=timezone.now, null=True)
 
+    avatar_type = models.PositiveSmallIntegerField(default=0, choices=UserAvatar.AVATAR_TYPES)
+    avatar_url = models.CharField(_("avatar url"), max_length=120, null=True)
+
     objects = UserManager(cache_fields=["pk"])
 
     USERNAME_FIELD = "username"
@@ -253,19 +257,13 @@ class User(BaseModel, AbstractBaseUser):
     def get_full_name(self):
         return self.name
 
-    def get_short_name(self):
-        return self.username
-
     def get_salutation_name(self):
         name = self.name or self.username.split("@", 1)[0].split(".", 1)[0]
         first_name = name.split(" ", 1)[0]
         return first_name.capitalize()
 
     def get_avatar_type(self):
-        avatar = self.avatar.first()
-        if avatar:
-            return avatar.get_avatar_type_display()
-        return "letter_avatar"
+        return self.get_avatar_type_display()
 
     def send_confirm_email_singular(self, email, is_new_user=False):
         from sentry import options
@@ -384,7 +382,7 @@ class User(BaseModel, AbstractBaseUser):
                 except IntegrityError:
                     pass
 
-        Activity.objects.filter(user=from_user).update(user=to_user)
+        Activity.objects.filter(user_id=from_user.id).update(user_id=to_user.id)
         # users can be either the subject or the object of actions which get logged
         AuditLogEntry.objects.filter(actor=from_user).update(actor=to_user)
         AuditLogEntry.objects.filter(target_user=from_user).update(target_user=to_user)

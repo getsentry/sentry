@@ -149,6 +149,38 @@ def get_internal_source(project):
     }
 
 
+def get_internal_artifact_lookup_source(project):
+    """
+    Returns the source configuration for the Sentry artifact-lookup API.
+    """
+    internal_url_prefix = options.get("system.internal-url-prefix")
+    if not internal_url_prefix:
+        internal_url_prefix = options.get("system.url-prefix")
+        if sys.platform == "darwin":
+            internal_url_prefix = internal_url_prefix.replace(
+                "localhost", "host.docker.internal"
+            ).replace("127.0.0.1", "host.docker.internal")
+
+    assert internal_url_prefix
+    sentry_source_url = "{}{}".format(
+        internal_url_prefix.rstrip("/"),
+        reverse(
+            "sentry-api-0-project-artifact-lookup",
+            kwargs={
+                "organization_slug": project.organization.slug,
+                "project_slug": project.slug,
+            },
+        ),
+    )
+
+    return {
+        "type": "sentry",
+        "id": INTERNAL_SOURCE_NAME,
+        "url": sentry_source_url,
+        "token": get_system_token(),
+    }
+
+
 def is_internal_source_id(source_id):
     """Determines if a DIF object source identifier is reserved for internal sentry use.
 

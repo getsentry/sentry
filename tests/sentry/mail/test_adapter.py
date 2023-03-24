@@ -46,6 +46,7 @@ from sentry.notifications.utils.digest import get_digest_subject
 from sentry.ownership import grammar
 from sentry.ownership.grammar import Matcher, Owner, dump_schema
 from sentry.plugins.base import Notification
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -205,6 +206,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
             "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
@@ -254,6 +256,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
             ProfileFileIOGroupType,
             ensure_aware(datetime.now()),
             "info",
+            "/api/123",
         )
         occurrence.save()
         event.occurrence = occurrence
@@ -366,9 +369,10 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
         args, kwargs = mock_func.call_args
         notification = args[1]
 
-        assert notification.get_recipient_context(self.user, {})["timezone"] == pytz.timezone(
-            "Europe/Vienna"
+        recipient_context = notification.get_recipient_context(
+            RpcActor.from_orm_user(self.user), {}
         )
+        assert recipient_context["timezone"] == pytz.timezone("Europe/Vienna")
 
         self.assertEqual(notification.project, self.project)
         self.assertEqual(notification.reference, group)
@@ -1214,7 +1218,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.user.id), "assigneeType": "user"},
         )
 
@@ -1240,7 +1244,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.ASSIGNED.value,
-            user=self.create_user("foo@example.com"),
+            user_id=self.create_user("foo@example.com").id,
             data={"assignee": str(self.project.teams.first().id), "assigneeType": "team"},
         )
 
@@ -1267,7 +1271,7 @@ class MailAdapterNotifyAboutActivityTest(BaseMailAdapterTest):
             project=self.project,
             group=self.group,
             type=ActivityType.NOTE.value,
-            user=user_foo,
+            user_id=user_foo.id,
             data={"text": "sup guise"},
         )
 

@@ -293,6 +293,73 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         event3 = save_event(4)
         assert event3.group_id == event2.group_id
 
+    def test_applies_downgrade_hierarchical(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+
+        timestamp = time() - 300
+
+        def save_event(ts_offset):
+            ts = timestamp + ts_offset
+            manager = EventManager(
+                make_event(
+                    message="foo 123",
+                    event_id=hex(2**127 + int(ts))[-32:],
+                    timestamp=ts,
+                    exception={
+                        "values": [
+                            {
+                                "type": "Hello",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "not_in_app_function",
+                                        },
+                                        {
+                                            "function": "in_app_function",
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                )
+            )
+            manager.normalize()
+            with self.tasks():
+                return manager.save(project.id)
+
+        event = save_event(0)
+
+        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+
+        # Switching to newstyle grouping changes hashes as 123 will be removed
+        event2 = save_event(2)
+
+        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group_id)
+
+        group_hashes = GroupHash.objects.filter(
+            project=self.project, hash__in=event.get_hashes().hashes
+        )
+        assert group_hashes
+        for hash in group_hashes:
+            assert hash.group_id == event.group_id
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        event3 = save_event(4)
+        assert event3.group_id == event2.group_id
+
     @mock.patch("sentry.event_manager._calculate_background_grouping")
     def test_applies_background_grouping(self, mock_calc_grouping):
         timestamp = time() - 300
@@ -2303,6 +2370,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                {},
+                [],
             )
 
     @override_options({"performance.issues.all.problem-detection": 1.0})

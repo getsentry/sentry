@@ -31,6 +31,7 @@ DIRECT_GROUP_RELATED_MODELS = (
     models.GroupSubscription,
     models.GroupHistory,
     models.RuleFireHistory,
+    models.GroupForecast,
 )
 
 _GROUP_RELATED_MODELS = DIRECT_GROUP_RELATED_MODELS + (
@@ -80,6 +81,9 @@ class EventDataDeletionTask(BaseDeletionTask):
             limit=self.DEFAULT_CHUNK_SIZE,
             referrer="deletions.group",
             orderby=["-timestamp", "-event_id"],
+            tenant_ids={"organization_id": self.groups[0].project.organization_id}
+            if self.groups
+            else None,
         )
         if not events:
             # Remove all group events now that their node data has been removed.

@@ -18,6 +18,7 @@ IGNORE_HEALTH_CHECKS_FACTOR = 5
 
 ProjectId = int
 OrganizationId = int
+TransactionName = str
 
 
 class ActivatableBias(TypedDict):
@@ -48,7 +49,7 @@ DEFAULT_BIASES: List[ActivatableBias] = [
     },
     {"id": RuleType.IGNORE_HEALTH_CHECKS_RULE.value, "active": True},
     {"id": RuleType.BOOST_KEY_TRANSACTIONS_RULE.value, "active": True},
-    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": False},
+    {"id": RuleType.BOOST_LOW_VOLUME_TRANSACTIONS.value, "active": True},
 ]
 RESERVED_IDS = {
     RuleType.UNIFORM_RULE: 1000,

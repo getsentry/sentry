@@ -5950,3 +5950,81 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["total.count"] == 1
+
+    def test_device_class(self):
+        project1 = self.create_project()
+        for i in range(3):
+            self.store_event(
+                data={
+                    "event_id": "a" * 32,
+                    "transaction": "/example",
+                    "message": "how to make fast",
+                    "timestamp": self.ten_mins_ago_iso,
+                    "tags": {"device.class": f"{i + 1}"},
+                },
+                project_id=project1.id,
+            )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["device.class"],
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 3
+        result = (*map(lambda columns: columns["device.class"], data),)
+        assert "low" in result
+        assert "medium" in result
+        assert "high" in result
+
+    def test_device_class_filter_low(self):
+        project1 = self.create_project()
+        for i in range(3):
+            self.store_event(data=self.load_data(platform="javascript"), project_id=project1.id)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "transaction": "/example",
+                "message": "how to make fast",
+                "timestamp": self.ten_mins_ago_iso,
+                "tags": {"device.class": "1"},
+            },
+            project_id=project1.id,
+        )
+
+        features = {"organizations:discover-basic": True, "organizations:global-views": True}
+        query = {
+            "field": ["device.class", "count()"],
+            "query": "device.class:low",
+            "orderby": "count()",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query, features=features)
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["count()"] == 1
+
+    def test_group_id_as_custom_tag(self):
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "this should just get returned"},
+            },
+            project_id=project1.id,
+        )
+        query = {
+            "field": ["group_id"],
+            "query": "",
+            "orderby": "group_id",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["group_id"] == "this should just get returned"

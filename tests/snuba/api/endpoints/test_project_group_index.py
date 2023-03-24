@@ -1248,7 +1248,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         assert (
             Activity.objects.filter(
-                group=group1, user=user, type=ActivityType.ASSIGNED.value
+                group=group1, user_id=user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )

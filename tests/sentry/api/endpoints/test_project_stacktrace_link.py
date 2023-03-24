@@ -4,15 +4,13 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.utils.http import urlencode
-from responses.matchers import query_string_matcher
 
 from sentry import options
 from sentry.api.endpoints.project_stacktrace_link import ProjectStacktraceLinkEndpoint
 from sentry.integrations.example.integration import ExampleIntegration
 from sentry.models import Integration, OrganizationIntegration
 from sentry.testutils import APITestCase
-from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 
 example_base_url = "https://example.com/getsentry/sentry/blob/master"
@@ -362,18 +360,14 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     )
     @responses.activate
     def test_codecov_line_coverage_success(self, mock_integration):
-        qs = urlencode(
-            {"sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0", "path": "src/path/to/file.py"}
-        )
-
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
-            match=[query_string_matcher(qs)],
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
+                "line_coverage": self.expected_line_coverage,
                 "commit_file_url": self.expected_codecov_url,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )
@@ -400,16 +394,14 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     )
     @responses.activate
     def test_codecov_line_coverage_with_branch_success(self, mock_integration):
-        qs = urlencode({"branch": "master", "path": "src/path/to/file.py"})
-
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=200,
-            match=[query_string_matcher(qs)],
             json={
-                "files": [{"line_coverage": self.expected_line_coverage}],
+                "line_coverage": self.expected_line_coverage,
                 "commit_file_url": self.expected_codecov_url,
+                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
             },
             content_type="application/json",
         )
@@ -435,11 +427,9 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
     @responses.activate
     def test_codecov_line_coverage_exception(self, mock_integration):
         self._caplog.set_level(logging.ERROR, logger="sentry")
-        qs = urlencode({"branch": "master", "path": "src/path/to/file.py"})
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/report",
-            match=[query_string_matcher(qs)],
+            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
             status=404,
             content_type="application/json",
         )
@@ -463,39 +453,6 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
                 "Something unexpected happened. Continuing execution.",
             )
         ]
-
-    @patch.object(
-        ExampleIntegration,
-        "get_stacktrace_link",
-        return_value="https://github.com/repo/blob/a67ea84967ed1ec42844720d9daf77be36ff73b0/src/path/to/file.py",
-    )
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
-    @responses.activate
-    def test_codecov_new_endpoint(self, mock_integration):
-        responses.add(
-            responses.GET,
-            "https://api.codecov.io/api/v2/example/getsentry/repos/sentry/file_report/src/path/to/file.py",
-            status=200,
-            json={
-                "line_coverage": self.expected_line_coverage,
-                "commit_file_url": self.expected_codecov_url,
-                "commit_sha": "a67ea84967ed1ec42844720d9daf77be36ff73b0",
-            },
-            content_type="application/json",
-        )
-
-        response = self.get_success_response(
-            self.organization.slug,
-            self.project.slug,
-            qs_params={
-                "file": self.filepath,
-                "absPath": "abs_path",
-                "module": "module",
-                "package": "package",
-            },
-        )
-        assert response.data["codecov"]["lineCoverage"] == self.expected_line_coverage
-        assert response.data["codecov"]["status"] == 200
 
 
 class ProjectStacktraceLinkTestMultipleMatches(BaseProjectStacktraceLink):

@@ -57,12 +57,13 @@ function FlamegraphThreadSelector({
       emptyProfiles.push(option);
       return;
     });
+
     return [profiles, emptyProfiles];
   }, [profileGroup]);
 
-  const handleChange: (opt: SelectOption<number>) => void = useCallback(
+  const handleChange: (opt: SelectOption<any>) => void = useCallback(
     opt => {
-      if (defined(opt)) {
+      if (defined(opt) && typeof opt.value === 'number') {
         onThreadIdChange(opt.value);
       }
     },
@@ -70,14 +71,18 @@ function FlamegraphThreadSelector({
   );
 
   return (
-    <CompactSelect
+    <StyledCompactSelect
       triggerProps={{
         icon: <IconList size="xs" />,
         size: 'xs',
       }}
       options={[
-        {label: t('Profiles'), options: profileOptions},
-        {label: t('Empty Profiles'), options: emptyProfileOptions},
+        {key: 'profiles', label: t('Profiles'), options: profileOptions},
+        {
+          key: 'empty-profiles',
+          label: t('Empty Profiles'),
+          options: emptyProfileOptions,
+        },
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
@@ -142,4 +147,12 @@ const DetailsContainer = styled('div')`
   gap: ${space(1)};
 `;
 
+const StyledCompactSelect = styled(CompactSelect)`
+  width: 14ch;
+  min-width: 14ch;
+
+  > button {
+    width: 100%;
+  }
+`;
 export {FlamegraphThreadSelector};

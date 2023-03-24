@@ -22,16 +22,18 @@ from django.http import Http404, HttpRequest, HttpResponse
 from rest_framework.exceptions import ParseError
 from rest_framework.response import Response
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
+from snuba_sdk import AliasedExpression, Column, Function
 
-from sentry import eventstore, features
+from sentry import constants, eventstore, features
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.eventstore.models import Event
-from sentry.models import Organization
+from sentry.models import Group, Organization
 from sentry.search.events.builder import QueryBuilder
 from sentry.snuba import discover
-from sentry.utils.numbers import format_grouped_length
+from sentry.utils.numbers import base32_encode, format_grouped_length
+from sentry.utils.performance_issues.performance_detection import EventPerformanceProblem
 from sentry.utils.sdk import set_measurement
 from sentry.utils.snuba import Dataset, bulk_snql_query
 from sentry.utils.validators import INVALID_ID_DETAILS, is_event_id
@@ -56,6 +58,7 @@ SnubaTransaction = TypedDict(
         "root": str,
         "project.id": int,
         "project": str,
+        "issue.ids": List[int],
     },
 )
 SnubaError = TypedDict(
@@ -84,6 +87,20 @@ class TraceError(TypedDict):
     level: str
 
 
+class TracePerformanceIssue(TypedDict):
+    event_id: str
+    issue_id: int
+    issue_short_id: Optional[str]
+    span: List[str]
+    suspect_spans: List[str]
+    project_id: int
+    project_slug: str
+    title: str
+    level: str
+    culprit: str
+    type: int
+
+
 LightResponse = TypedDict(
     "LightResponse",
     {
@@ -98,6 +115,7 @@ LightResponse = TypedDict(
         "parent_event_id": Optional[str],
         "generation": Optional[int],
         "errors": List[TraceError],
+        "performance_issues": List[TracePerformanceIssue],
     },
 )
 FullResponse = TypedDict(
@@ -115,6 +133,7 @@ FullResponse = TypedDict(
         "profile_id": Optional[str],
         "generation": Optional[int],
         "errors": List[TraceError],
+        "performance_issues": List[TracePerformanceIssue],
         "timestamp": str,
         "start_timestamp": str,
         # Any because children are more FullResponse objects
@@ -130,18 +149,90 @@ FullResponse = TypedDict(
 
 class TraceEvent:
     def __init__(
-        self, event: SnubaTransaction, parent: Optional[str], generation: Optional[int]
+        self,
+        event: SnubaTransaction,
+        parent: Optional[str],
+        generation: Optional[int],
+        light: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: List[TraceError] = []
         self.children: List[TraceEvent] = []
+        self.performance_issues: List[TracePerformanceIssue] = []
 
         # Can be None on the light trace when we don't know the parent
         self.parent_event_id: Optional[str] = parent
         self.generation: Optional[int] = generation
 
         # Added as required because getting the nodestore_event is expensive
-        self.nodestore_event: Optional[Event] = None
+        self._nodestore_event: Optional[Event] = None
+        self.fetched_nodestore: bool = False
+        self.load_performance_issues(light)
+
+    @property
+    def nodestore_event(self) -> Optional[Event]:
+        with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
+            if self._nodestore_event is None and not self.fetched_nodestore:
+                self.fetched_nodestore = True
+                self._nodestore_event = eventstore.get_event_by_id(
+                    self.event["project.id"], self.event["id"]
+                )
+        return self._nodestore_event
+
+    def load_performance_issues(self, light: bool) -> None:
+        """Doesn't get suspect spans, since we don't need that for the light view"""
+        for group_id in self.event["issue.ids"]:
+            group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
+            if group is None:
+                continue
+
+            suspect_spans: List[str] = []
+            if light:
+                # This value doesn't matter for the light view
+                span = [self.event["trace.span"]]
+            else:
+                if self.nodestore_event is not None:
+                    hashes = self.nodestore_event.get_hashes().hashes
+                    problems = [
+                        eventproblem.problem
+                        for eventproblem in EventPerformanceProblem.fetch_multi(
+                            [(self.nodestore_event, event_hash) for event_hash in hashes]
+                        )
+                    ]
+                    unique_spans: Set[str] = set()
+                    for problem in problems:
+                        if problem.parent_span_ids is not None:
+                            unique_spans = unique_spans.union(problem.parent_span_ids)
+                    span = list(unique_spans)
+                    for event_span in self.nodestore_event.data.get("spans", []):
+                        for problem in problems:
+                            if event_span.get("span_id") in problem.offender_span_ids:
+                                suspect_spans.append(event_span.get("span_id"))
+                else:
+                    span = [self.event["trace.span"]]
+
+            # Logic for qualified_short_id is copied from property on the Group model
+            # to prevent an N+1 query from accessing project.slug everytime
+            qualified_short_id = None
+            project_slug = self.event["project"]
+            if group.short_id is not None:
+                qualified_short_id = f"{project_slug.upper()}-{base32_encode(group.short_id)}"
+
+            self.performance_issues.append(
+                {
+                    "event_id": self.event["id"],
+                    "issue_id": group_id,
+                    "issue_short_id": qualified_short_id,
+                    "span": span,
+                    "suspect_spans": suspect_spans,
+                    "project_id": self.event["project.id"],
+                    "project_slug": self.event["project"],
+                    "title": group.title,
+                    "level": constants.LOG_LEVELS[group.level],
+                    "culprit": group.culprit,
+                    "type": group.type,
+                }
+            )
 
     def to_dict(self) -> LightResponse:
         return {
@@ -157,6 +248,7 @@ class TraceEvent:
             "parent_event_id": self.parent_event_id,
             "generation": self.generation,
             "errors": self.errors,
+            "performance_issues": self.performance_issues,
         }
 
     def full_dict(self, detailed: bool = False) -> FullResponse:
@@ -185,7 +277,7 @@ class TraceEvent:
                 result["tags"], result["_meta"]["tags"] = get_tags_with_meta(self.nodestore_event)
         # Only add children that have nodestore events, which may be missing if we're pruning for trace navigator
         result["children"] = [
-            child.full_dict(detailed) for child in self.children if child.nodestore_event
+            child.full_dict(detailed) for child in self.children if child.fetched_nodestore
         ]
         return result
 
@@ -203,7 +295,7 @@ def is_root(item: SnubaTransaction) -> bool:
 
 
 def child_sort_key(item: TraceEvent) -> List[int]:
-    if item.nodestore_event:
+    if item.fetched_nodestore and item.nodestore_event is not None:
         return [
             item.nodestore_event.data["start_timestamp"],
             item.nodestore_event.data["timestamp"],
@@ -211,6 +303,21 @@ def child_sort_key(item: TraceEvent) -> List[int]:
     # The sorting of items without nodestore events doesn't matter cause we drop them
     else:
         return [0]
+
+
+def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
+    transaction_query = QueryBuilder(
+        Dataset.Transactions,
+        params,
+        query=f"trace:{trace_id}",
+        selected_columns=[],
+        limit=MAX_TRACE_SIZE,
+    )
+    transaction_query.columns.append(
+        Function("sum", [Function("length", [Column("group_ids")])], "total_groups")
+    )
+    count = transaction_query.run_query("api.trace-view.count-performance-issues")
+    return cast(int, count["data"][0].get("total_groups", 0))
 
 
 def query_trace_data(
@@ -238,6 +345,7 @@ def query_trace_data(
         orderby=["-root", "timestamp", "id"],
         limit=MAX_TRACE_SIZE,
     )
+    transaction_query.columns.append(AliasedExpression(Column("group_ids"), "issue.ids"))
     error_query = QueryBuilder(
         Dataset.Events,
         params,
@@ -480,12 +588,13 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     root,
                                     None,
                                     0,
+                                    True,
                                 )
                             )
                             current_generation = 1
                             break
 
-            current_event = TraceEvent(snuba_event, root_id, current_generation)
+            current_event = TraceEvent(snuba_event, root_id, current_generation, True)
             trace_results.append(current_event)
 
             spans: NodeSpans = nodestore_event.data.get("spans", [])
@@ -515,6 +624,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     if current_event.generation is not None
                                     else None
                                 ),
+                                True,
                             )
                             for child_event in child_events
                         ]
@@ -607,16 +717,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                             del parent_map[to_remove["trace.parent_span"]]
                     to_check = deque()
 
-                # This is faster than doing a call to get_events, since get_event_by_id only makes a call to snuba
-                # when non transaction events are included.
-                with sentry_sdk.start_span(op="nodestore", description="get_event_by_id"):
-                    nodestore_event = eventstore.get_event_by_id(
-                        current_event["project.id"], current_event["id"]
-                    )
-
-                previous_event.nodestore_event = nodestore_event
-
-                spans: NodeSpans = nodestore_event.data.get("spans", [])
+                spans: NodeSpans = (
+                    previous_event.nodestore_event.data.get("spans", [])
+                    if previous_event.nodestore_event
+                    else []
+                )
 
                 # Need to include the transaction as a span as well
                 #
@@ -725,6 +830,8 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
+            # Merge the result back into the first query
+            result["data"][0]["performance_issues"] = count_performance_issues(trace_id, params)
         return Response(self.serialize(result["data"][0]))
 
     @staticmethod
@@ -734,4 +841,5 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             "projects": results.get("projects") or 0,
             "transactions": results.get("transactions") or 0,
             "errors": results.get("errors") or 0,
+            "performance_issues": results.get("performance_issues") or 0,
         }

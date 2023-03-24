@@ -25,7 +25,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
             ident=pr.id,
-            user=user,
+            user_id=user.id,
             data={"pull_request": pr.id},
         )
 
@@ -49,7 +49,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -71,7 +71,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -94,7 +94,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 
@@ -118,7 +118,7 @@ class GroupActivityTestCase(TestCase):
             group=group,
             type=ActivityType.SET_RESOLVED_IN_COMMIT.value,
             ident=commit.id,
-            user=user,
+            user_id=user.id,
             data={"commit": commit.id},
         )
 

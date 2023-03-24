@@ -5,7 +5,7 @@
 
 from abc import abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, List, Mapping, Optional
+from typing import Any, Iterable, List, Mapping, Optional
 
 from sentry.models.organization import OrganizationStatus
 from sentry.roles.manager import TeamRole
@@ -75,17 +75,20 @@ class RpcOrganizationMemberFlags:
 
 
 @dataclass
-class RpcOrganizationMember:
+class RpcOrganizationMemberSummary:
     id: int = -1
     organization_id: int = -1
-    # This can be null when the user is deleted.
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None  # This can be null when the user is deleted.
+    flags: RpcOrganizationMemberFlags = field(default_factory=lambda: RpcOrganizationMemberFlags())
+
+
+@dataclass
+class RpcOrganizationMember(RpcOrganizationMemberSummary):
     member_teams: List[RpcTeamMember] = field(default_factory=list)
     role: str = ""
     has_global_access: bool = False
     project_ids: List[int] = field(default_factory=list)
     scopes: List[str] = field(default_factory=list)
-    flags: RpcOrganizationMemberFlags = field(default_factory=lambda: RpcOrganizationMemberFlags())
 
     def get_audit_log_metadata(self, user_email: str) -> Mapping[str, Any]:
         team_ids = [mt.team_id for mt in self.member_teams]
@@ -251,6 +254,10 @@ class OrganizationService(InterfaceWithLifecycle):
 
     @abstractmethod
     def add_team_member(self, *, team_id: int, organization_member: RpcOrganizationMember) -> None:
+        pass
+
+    @abstractmethod
+    def get_team_members(self, *, team_id: int) -> Iterable[RpcOrganizationMember]:
         pass
 
     @abstractmethod

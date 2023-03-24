@@ -44,7 +44,7 @@ describe('Organization Rate Limits', function () {
     expect(container).toSnapshot();
   });
 
-  it('can change Account Rate Limit', function () {
+  it('can change Account Rate Limit', async function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -59,8 +59,8 @@ describe('Organization Rate Limits', function () {
     // Remember value needs to be an index of allowedValues for account limit
     const slider = screen.getByRole('slider', {name: 'Account Limit'});
     fireEvent.change(slider, {target: {value: 11}});
-    userEvent.click(slider);
-    userEvent.tab();
+    await userEvent.click(slider);
+    await userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
@@ -73,7 +73,7 @@ describe('Organization Rate Limits', function () {
     );
   });
 
-  it('can change Project Rate Limit', function () {
+  it('can change Project Rate Limit', async function () {
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'PUT',
@@ -87,8 +87,8 @@ describe('Organization Rate Limits', function () {
     // Change Project Rate Limit
     const slider = screen.getByRole('slider', {name: 'Per-Project Limit'});
     fireEvent.change(slider, {target: {value: 100}});
-    userEvent.click(slider);
-    userEvent.tab();
+    await userEvent.click(slider);
+    await userEvent.tab();
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,

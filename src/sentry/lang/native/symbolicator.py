@@ -9,7 +9,10 @@ from requests.exceptions import RequestException
 
 from sentry import options
 from sentry.cache import default_cache
-from sentry.lang.native.sources import sources_for_symbolication
+from sentry.lang.native.sources import (
+    get_internal_artifact_lookup_source,
+    sources_for_symbolication,
+)
 from sentry.models import Organization
 from sentry.net.http import Session
 from sentry.tasks.symbolication import RetrySymbolication
@@ -133,6 +136,23 @@ class Symbolicator:
 
         res = self._process("symbolicate_stacktraces", "symbolicate", json=json)
         return process_response(res)
+
+    def process_js(self, stacktraces, modules, release, dist, allow_scraping=True):
+        source = get_internal_artifact_lookup_source(self.project)
+
+        json = {
+            "source": source,
+            "stacktraces": stacktraces,
+            "modules": modules,
+            "allow_scraping": allow_scraping,
+        }
+
+        if release is not None:
+            json["release"] = release
+        if dist is not None:
+            json["dist"] = dist
+
+        return self._process("symbolicate_js_stacktraces", "symbolicate-js", json=json)
 
 
 class TaskIdNotFound(Exception):

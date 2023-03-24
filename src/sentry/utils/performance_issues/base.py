@@ -14,6 +14,7 @@ from sentry.eventstore.models import Event
 from sentry.issues.grouptype import (
     PerformanceConsecutiveDBQueriesGroupType,
     PerformanceConsecutiveHTTPQueriesGroupType,
+    PerformanceDBMainThreadGroupType,
     PerformanceFileIOMainThreadGroupType,
     PerformanceMNPlusOneDBQueriesGroupType,
     PerformanceNPlusOneAPICallsGroupType,
@@ -38,6 +39,7 @@ class DetectorType(Enum):
     FILE_IO_MAIN_THREAD = "file_io_main_thread"
     M_N_PLUS_ONE_DB = "m_n_plus_one_db"
     UNCOMPRESSED_ASSETS = "uncompressed_assets"
+    DB_MAIN_THREAD = "db_main_thread"
 
 
 DETECTOR_TYPE_TO_GROUP_TYPE = {
@@ -51,6 +53,7 @@ DETECTOR_TYPE_TO_GROUP_TYPE = {
     DetectorType.M_N_PLUS_ONE_DB: PerformanceMNPlusOneDBQueriesGroupType,
     DetectorType.UNCOMPRESSED_ASSETS: PerformanceUncompressedAssetsGroupType,
     DetectorType.CONSECUTIVE_HTTP_OP: PerformanceConsecutiveHTTPQueriesGroupType,
+    DetectorType.DB_MAIN_THREAD: PerformanceDBMainThreadGroupType,
 }
 
 
@@ -59,12 +62,14 @@ DETECTOR_TYPE_ISSUE_CREATION_TO_SYSTEM_OPTION = {
     DetectorType.N_PLUS_ONE_DB_QUERIES: "performance.issues.n_plus_one_db.problem-creation",
     DetectorType.N_PLUS_ONE_DB_QUERIES_EXTENDED: "performance.issues.n_plus_one_db_ext.problem-creation",
     DetectorType.CONSECUTIVE_DB_OP: "performance.issues.consecutive_db.problem-creation",
+    DetectorType.CONSECUTIVE_HTTP_OP: "performance.issues.consecutive_http.flag_disabled",
     DetectorType.N_PLUS_ONE_API_CALLS: "performance.issues.n_plus_one_api_calls.problem-creation",
     DetectorType.FILE_IO_MAIN_THREAD: "performance.issues.file_io_main_thread.problem-creation",
     DetectorType.UNCOMPRESSED_ASSETS: "performance.issues.compressed_assets.problem-creation",
     DetectorType.SLOW_DB_QUERY: "performance.issues.slow_db_query.problem-creation",
     DetectorType.RENDER_BLOCKING_ASSET_SPAN: "performance.issues.render_blocking_assets.problem-creation",
     DetectorType.M_N_PLUS_ONE_DB: "performance.issues.m_n_plus_one_db.problem-creation",
+    DetectorType.DB_MAIN_THREAD: "performance.issues.db_main_thread.problem-creation",
 }
 
 
@@ -131,11 +136,17 @@ class PerformanceDetector(ABC):
             return False
 
         try:
-            rate = options.get(system_option)
-        except options.UnknownOption:
-            rate = 0
+            creation_option_value: bool | float | None = options.get(system_option)
+            if isinstance(creation_option_value, bool):
+                return not creation_option_value
+            elif isinstance(
+                creation_option_value, float
+            ):  # If the option is a float, we are controlling it with a rate. TODO - make all detectors use boolean
+                return creation_option_value > random.random()
+            return False
 
-        return rate > random.random()
+        except options.UnknownOption:
+            return False
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
         return False  # Creation is off by default. Ideally, it should auto-generate the feature flag name, and check its value
@@ -154,27 +165,61 @@ def get_span_duration(span: Span) -> timedelta:
     )
 
 
+def get_duration_between_spans(first_span: Span, second_span: Span):
+    first_span_ends = first_span.get("timestamp", 0)
+    second_span_begins = second_span.get("start_timestamp", 0)
+    return timedelta(seconds=second_span_begins - first_span_ends).total_seconds() * 1000
+
+
 def get_url_from_span(span: Span) -> str:
+    """
+    Parses the span data and pulls out the URL. Accounts for different SDKs and
+    different versions of SDKs formatting and parsing the URL contents
+    differently.
+    """
+
     data = span.get("data") or {}
-    url = data.get("url") or ""
-    if not url:
-        # If data is missing, fall back to description
-        description = span.get("description") or ""
-        parts = description.split(" ", 1)
-        if len(parts) == 2:
-            url = parts[1]
 
-    if type(url) is dict:
-        url = url.get("pathname") or ""
+    # The most modern version is to provide URL information in the span
+    # data
+    url_data = data.get("url")
 
-    return url
+    if type(url_data) is dict:
+        # Some transactions mysteriously provide the URL as a dict that looks
+        # like JavaScript's URL object
+        url = url_data.get("pathname") or ""
+        url += url_data.get("search") or ""
+        return url
+
+    if type(url_data) is str:
+        # Usually the URL is a regular string, and so is the query. This
+        # is the standardized format for all SDKs, and is the preferred
+        # format going forward. Otherwise, if `http.query` is absent, `url`
+        # contains the query.
+        url = url_data
+        query_data = data.get("http.query")
+        if type(query_data) is str and len(query_data) > 0:
+            url += f"?{query_data}"
+
+        return url
+
+    # Attempt to parse the full URL from the span description, in case
+    # the previous approaches did not yield a good result
+    description = span.get("description") or ""
+    parts = description.split(" ", 1)
+    if len(parts) == 2:
+        url = parts[1]
+        return url
+
+    return ""
 
 
-def fingerprint_spans(spans: List[Span]):
+def fingerprint_spans(spans: List[Span], unique_only: bool = False):
     span_hashes = []
     for span in spans:
-        hash = span.get("hash", "") or ""
-        span_hashes.append(str(hash))
+        hash = str(span.get("hash", "") or "")
+        if not unique_only or hash not in span_hashes:
+            span_hashes.append(hash)
     joined_hashes = "-".join(span_hashes)
     return hashlib.sha1(joined_hashes.encode("utf8")).hexdigest()
 
@@ -194,6 +239,31 @@ def fingerprint_span(span: Span):
 
     return fingerprint
 
+
+def total_span_time(span_list: List[Dict[str, Any]]) -> float:
+    """Return the total non-overlapping span time in milliseconds for all the spans in the list"""
+    # Sort the spans so that when iterating the next span in the list is either within the current, or afterwards
+    sorted_span_list = sorted(span_list, key=lambda span: span["start_timestamp"])
+    total_duration = 0
+    first_item = sorted_span_list[0]
+    current_min = first_item["start_timestamp"]
+    current_max = first_item["timestamp"]
+    for span in sorted_span_list[1:]:
+        # If the start is contained within the current, check if the max extends the current duration
+        if current_min <= span["start_timestamp"] <= current_max:
+            current_max = max(span["timestamp"], current_max)
+        # If not within current min&max then there's a gap between spans, so add to total_duration and start a new
+        # min/max
+        else:
+            total_duration += current_max - current_min
+            current_min = span["start_timestamp"]
+            current_max = span["timestamp"]
+    # Add the remaining duration
+    total_duration += current_max - current_min
+    return total_duration * 1000
+
+
+PARAMETERIZED_SQL_QUERY_REGEX = re.compile(r"\?|\$1|%s")
 
 # Finds dash-separated UUIDs. (Without dashes will be caught by
 # ASSET_HASH_REGEX).

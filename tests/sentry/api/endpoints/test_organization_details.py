@@ -144,7 +144,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             sentry_options.delete("store.symbolicate-event-lpq-never")
 
         # TODO(dcramer): We need to pare this down. Lots of duplicate queries for membership data.
-        expected_queries = 49 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 51
+        expected_queries = 48 if SiloMode.get_current_mode() == SiloMode.MONOLITH else 50
 
         with self.assertNumQueries(expected_queries, using="default"):
             response = self.get_success_response(self.organization.slug)
@@ -196,7 +196,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
 
     def test_trusted_relays_info(self):
         with exempt_from_silo_limits():
-            AuditLogEntry.objects.filter(organization=self.organization).delete()
+            AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -298,19 +298,19 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
     @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
         self.create_integration(
             organization=self.organization, provider="github", external_id="extid"
         )
         sentry_options.set("codecov.client-secret", "supersecrettoken")
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=200,
         )
 
@@ -365,7 +365,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:events_member_admin") is False
 
         # log created
-        log = AuditLogEntry.objects.get(organization=org)
+        log = AuditLogEntry.objects.get(organization_id=org.id)
         assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
         assert "to {}".format(data["defaultRole"]) in log.data["default_role"]
@@ -391,12 +391,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
-        return_value=["testgit/abc"],
+        return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
     def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
         responses.add(
             responses.GET,
-            "https://api.codecov.io/api/v2/gh/testgit/repos",
+            "https://api.codecov.io/api/v2/github/testgit",
             status=404,
         )
         data = {"codecovAccess": True}
@@ -421,7 +421,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         Try to put the same key twice and check we get an error
         """
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -453,7 +453,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
     def test_creating_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
             {
@@ -496,7 +496,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
-        log = AuditLogEntry.objects.get(organization=self.organization)
+        log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         trusted_relay_log = log.data["trustedRelays"]
 
         assert trusted_relay_log is not None
@@ -507,7 +507,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {
@@ -585,7 +585,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        (first_log, second_log) = AuditLogEntry.objects.filter(organization=self.organization)
+        (first_log, second_log) = AuditLogEntry.objects.filter(organization_id=self.organization.id)
         log_str_1 = first_log.data["trustedRelays"]
         log_str_2 = second_log.data["trustedRelays"]
 
@@ -603,7 +603,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
-        AuditLogEntry.objects.filter(organization=self.organization).delete()
+        AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
             {

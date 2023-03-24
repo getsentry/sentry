@@ -102,7 +102,7 @@ describe('OrganizationTeamProjects', function () {
     const stars = await screen.findAllByRole('button', {name: 'Bookmark Project'});
     expect(stars).toHaveLength(2);
 
-    userEvent.click(stars[0]);
+    await userEvent.click(stars[0]);
     expect(
       screen.getByRole('button', {name: 'Bookmark Project', pressed: true})
     ).toBeInTheDocument();
@@ -123,14 +123,14 @@ describe('OrganizationTeamProjects', function () {
 
     expect(getMock).toHaveBeenCalledTimes(2);
 
-    userEvent.click(await screen.findByText('Add Project'));
-    userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
+    await userEvent.click(await screen.findByText('Add Project'));
+    await userEvent.click(screen.getByRole('option', {name: 'project-slug-2'}));
 
     expect(postMock).toHaveBeenCalledTimes(1);
 
     // find second project's remove button
     const removeButtons = await screen.findAllByRole('button', {name: 'Remove'});
-    userEvent.click(removeButtons[1]);
+    await userEvent.click(removeButtons[1]);
 
     expect(deleteMock).toHaveBeenCalledTimes(1);
   });
@@ -148,9 +148,9 @@ describe('OrganizationTeamProjects', function () {
 
     expect(getMock).toHaveBeenCalledTimes(2);
 
-    userEvent.click(await screen.findByText('Add Project'));
+    await userEvent.click(await screen.findByText('Add Project'));
 
-    userEvent.type(screen.getByRole('textbox'), 'a');
+    await userEvent.type(screen.getByRole('textbox'), 'a');
 
     expect(getMock).toHaveBeenCalledTimes(3);
     expect(getMock).toHaveBeenCalledWith(

@@ -6,6 +6,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry import models
         from sentry.discover.models import DiscoverSavedQueryProject
         from sentry.incidents.models import AlertRule, IncidentProject
+        from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
 
@@ -37,7 +38,7 @@ class ProjectDeletionTask(ModelDeletionTask):
             models.GroupShare,
             models.GroupSubscription,
             models.LatestAppConnectBuildsCheck,
-            models.Monitor,
+            Monitor,
             models.ProjectBookmark,
             models.ProjectKey,
             models.ProjectTeam,

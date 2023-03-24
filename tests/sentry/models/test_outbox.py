@@ -7,7 +7,6 @@ from freezegun import freeze_time
 from pytest import raises
 
 from sentry.models import (
-    MONOLITH_REGION_NAME,
     ControlOutbox,
     Organization,
     OrganizationMember,
@@ -20,7 +19,9 @@ from sentry.models import (
 from sentry.silo import SiloMode
 from sentry.tasks.deliver_from_outbox import enqueue_outbox_jobs
 from sentry.testutils.factories import Factories
-from sentry.testutils.silo import control_silo_test, region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits, region_silo_test
+from sentry.types.region import MONOLITH_REGION_NAME
 
 
 @pytest.mark.django_db(transaction=True)
@@ -29,6 +30,11 @@ def test_creating_org_outboxes():
     Organization.outbox_for_update(10).save()
     OrganizationMember.outbox_for_update(12, 15).save()
     assert RegionOutbox.objects.count() == 2
+
+    with exempt_from_silo_limits(), outbox_runner():
+        # drain outboxes
+        pass
+    assert RegionOutbox.objects.count() == 0
 
 
 @pytest.mark.django_db(transaction=True)

@@ -2,7 +2,7 @@ import enum
 import logging
 from enum import Enum, unique
 from itertools import chain
-from typing import Optional
+from typing import Mapping, Optional
 
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
@@ -355,6 +355,13 @@ class ReferrerBase(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
         "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
     )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
+        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
+        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"
@@ -542,8 +549,44 @@ TSDBModelReferrer = enum.Enum(
     {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
 )
 
+# specific suffixes that apply to tsdb-modelid referrers, these are optional
+# and are passed around through using `referrer_suffix`.
+TSDB_MODEL_TO_SUFFIXES = {
+    TSDBModel.group: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
+    TSDBModel.group_performance: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
+    TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
+    TSDBModel.users_affected_by_perf_group: {
+        "user_count_snoozes",
+        "alert_event_uniq_user_frequency",
+    },
+}
+
+
+def generate_enums() -> Mapping[str, str]:
+    enums = {}
+    for model, suffixes in TSDB_MODEL_TO_SUFFIXES.items():
+        for suffix in suffixes:
+            enums[f"TSDB_MODELID_{model.value}_{suffix}"] = f"tsdb-modelid:{model.value}.{suffix}"
+    return enums
+
+
+TSDBModelSuffixReferrer = enum.Enum(
+    "TSDBModelSuffixReferrer",
+    generate_enums(),
+)
+
+
 Referrer = enum.Enum(
-    "Referrer", [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer)]
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer)],
 )
 
 

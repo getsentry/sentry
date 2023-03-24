@@ -50,7 +50,7 @@ def strip_trailing_addr(value):
     return STRIP_TRAILING_ADDR_RE.sub("", value)
 
 
-def normalize_exception(exc):
+def normalize_native_exception(exc):
     if exc:
         exc = dict(exc)
         exc["type"] = strip_trailing_addr(exc["type"])
@@ -68,7 +68,7 @@ def strip_stacktrace_container(container):
     return container
 
 
-def insta_snapshot_stacktrace_data(self, event, **kwargs):
+def insta_snapshot_native_stacktrace_data(self, event, **kwargs):
     # limit amount of data going into a snapshot so that they don't break all
     # the time due to unrelated changes.
     self.insta_snapshot(
@@ -76,7 +76,7 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
             "stacktrace": strip_stacktrace(event.get("stacktrace")),
             "exception": {
                 "values": [
-                    normalize_exception(strip_stacktrace_container(x))
+                    normalize_native_exception(strip_stacktrace_container(x))
                     for x in get_path(event, "exception", "values") or ()
                 ]
             },
@@ -94,6 +94,17 @@ def insta_snapshot_stacktrace_data(self, event, **kwargs):
             "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
         },
         **kwargs,
+    )
+
+
+def insta_snapshot_javascript_stacktrace_data(insta_snapshot, event):
+    # limit amount of data going into a snapshot so that they don't break all
+    # the time due to unrelated changes.
+    insta_snapshot(
+        {
+            "exception": {"values": [x for x in get_path(event, "exception", "values") or ()]},
+            "errors": [e for e in event.get("errors") or () if e.get("name") != "timestamp"],
+        }
     )
 
 

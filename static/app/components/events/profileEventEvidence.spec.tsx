@@ -14,7 +14,7 @@ describe('ProfileEventEvidence', function () {
           frameName: 'some_func',
           framePackage: 'something.dll',
           transactionId: 'transaction-id',
-          transactionName: '/some/transaction/',
+          transactionName: 'SomeTransaction',
         },
       },
     }),
@@ -29,10 +29,10 @@ describe('ProfileEventEvidence', function () {
     render(<ProfileEventEvidence {...defaultProps} />);
 
     expect(screen.getByRole('cell', {name: 'Transaction Name'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '/some/transaction/'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: /SomeTransaction/})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Profile ID'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'profile-id'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: /profile-id/})).toBeInTheDocument();
 
     expect(screen.getByRole('cell', {name: 'Evidence name'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Evidence value'})).toBeInTheDocument();
@@ -41,7 +41,7 @@ describe('ProfileEventEvidence', function () {
   it('correctly links to the profile frame', function () {
     render(<ProfileEventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('link', {name: 'profile-id'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View Profile'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/profiling/profile/project-slug/profile-id/flamechart/?frameName=some_func&framePackage=something.dll&referrer=issue'
     );
@@ -50,7 +50,7 @@ describe('ProfileEventEvidence', function () {
   it('correctly links to the transaction', function () {
     render(<ProfileEventEvidence {...defaultProps} />);
 
-    expect(screen.getByRole('link', {name: '/some/transaction/'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'View Transaction'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/performance/project-slug:transaction-id/?referrer=issue'
     );

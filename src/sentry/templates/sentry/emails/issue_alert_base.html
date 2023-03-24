@@ -141,7 +141,9 @@
                       {% else %}
                       <a href="{% absolute_uri link %}">{{ event.title|truncatechars:40 }}</a>
                       {% endif %}
-                      {% if transaction %}
+                      {% if culprit %}
+                        <span class="event-subtitle">{{ culprit }}</span>
+                      {% elif transaction %}
                         <span class="event-subtitle">{{ transaction }}</span>
                       {% endif %}
                       <br />

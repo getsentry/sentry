@@ -304,22 +304,14 @@ div.traceback > ul {
 
     &.is-expandable .title {
       cursor: pointer;
-
-      &:hover {
-        background: lighten(@blue-light, 36);
-      }
-    }
-
-    &.system-frame.is-expandable .title:hover {
-      background: darken(@white-dark, 5);
     }
 
     .title {
-      padding: 8px 20px;
+      padding: 6px 20px;
       font-size: 13px;
       margin: 0;
       line-height: 16px;
-      background: lighten(@blue-light, 35);
+      background: #faf9fb;
 
       word-break: break-all;
       /* for firefox */
@@ -333,10 +325,6 @@ div.traceback > ul {
       .informal {
         font-style: italic;
       }
-    }
-
-    &.system-frame .title {
-      background: @white-dark;
     }
 
     .title.as-table {
@@ -480,7 +468,7 @@ div.traceback > ul {
       table.key-value {
         border-top: 1px solid @trim;
         padding: 0;
-        margin: 0 0 -8px;
+        margin: 0;
 
         td {
           border-bottom: 1px solid @trim !important;
@@ -565,10 +553,9 @@ div.traceback > ul {
 
     &.collapsed {
       .title {
-        opacity: 0.7;
-        font-size: 12px;
         padding: 4px 20px 4px 20px;
-        background: lighten(@blue-light, 33);
+        background: #faf9fb;
+        min-height: 32px;
 
         &.is-expandable:hover {
           opacity: 1;
@@ -592,6 +579,7 @@ div.traceback > ul {
 
       .leads-to-app-hint {
         display: inline;
+        color: @gray-light;
       }
     }
   }

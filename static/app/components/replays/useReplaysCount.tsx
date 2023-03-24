@@ -87,9 +87,7 @@ function useReplaysCount({
       if (txnsToFetch.length) {
         return {
           field: 'transaction' as const,
-          conditions: `event.type:transaction transaction:[${txnsToFetch
-            .map(t => `"${t}"`)
-            .join(',')}]`,
+          conditions: `transaction:[${txnsToFetch.map(t => `"${t}"`).join(',')}]`,
         };
       }
       return null;

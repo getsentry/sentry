@@ -27,9 +27,14 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
         lookup_key = tagstore.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
-
+        tenant_ids = {"organization_id": group.project.organization_id}
         try:
-            tagstore.get_group_tag_key(group, None, lookup_key)
+            tagstore.get_group_tag_key(
+                group,
+                None,
+                lookup_key,
+                tenant_ids=tenant_ids,
+            )
         except tagstore.GroupTagKeyNotFound:
             raise ResourceDoesNotExist
         sort = request.GET.get("sort")
@@ -48,7 +53,7 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint, EnvironmentMixin):
             serializer_cls = None
 
         paginator = tagstore.get_group_tag_value_paginator(
-            group, environment_ids, lookup_key, order_by=order_by
+            group, environment_ids, lookup_key, order_by=order_by, tenant_ids=tenant_ids
         )
 
         return self.paginate(

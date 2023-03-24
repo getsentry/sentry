@@ -17,6 +17,7 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.tasks import activity
 from sentry.types.activity import CHOICES, ActivityType
 
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
 class ActivityManager(BaseManager):
     def get_activities_for_group(self, group: Group, num: int) -> Sequence[Group]:
         activities = []
-        activity_qs = self.filter(group=group).order_by("-datetime").select_related("user")
+        activity_qs = self.filter(group=group).order_by("-datetime")
 
         prev_sig = None
         sig = None
@@ -61,17 +62,20 @@ class ActivityManager(BaseManager):
         group: Group,
         type: ActivityType,
         user: Optional[User | RpcUser] = None,
+        user_id: Optional[int] = None,
         data: Optional[Mapping[str, Any]] = None,
         send_notification: bool = True,
     ) -> Activity:
+        if user:
+            user_id = user.id
         activity_args = {
             "project_id": group.project_id,
             "group": group,
             "type": type.value,
             "data": data,
         }
-        if user is not None:
-            activity_args["user_id"] = user.id
+        if user_id is not None:
+            activity_args["user_id"] = user_id
         activity = self.create(**activity_args)
         if send_notification:
             activity.send_notification()
@@ -89,7 +93,7 @@ class Activity(Model):
     type = BoundedPositiveIntegerField(choices=CHOICES)
     ident = models.CharField(max_length=64, null=True)
     # if the user is not set, it's assumed to be the system
-    user = FlexibleForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL)
+    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
     datetime = models.DateTimeField(default=timezone.now)
     data = GzippedDictField(null=True)
 

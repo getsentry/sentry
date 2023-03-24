@@ -1,3 +1,4 @@
+from sentry.lang.javascript.utils import should_use_symbolicator_for_sourcemaps
 from sentry.plugins.base.v2 import Plugin2
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.utils.safe import get_path
@@ -7,6 +8,9 @@ from .errormapping import rewrite_exception
 from .processor import JavaScriptStacktraceProcessor
 
 
+# TODO: We still need `preprocess_event` tasks and the remaining, non-symbolication specific
+# code from `lang/javascript/processor.py` to run somewhere. Unless we want whole `processor.py`
+# to be moved to Rust side, including module generation, rewriting and translations.
 def preprocess_event(data):
     rewrite_exception(data)
     translate_exception(data)
@@ -41,5 +45,8 @@ class JavascriptPlugin(Plugin2):
         return []
 
     def get_stacktrace_processors(self, data, stacktrace_infos, platforms, **kwargs):
+        if should_use_symbolicator_for_sourcemaps(data.get("project")):
+            return []
+
         if "javascript" in platforms or "node" in platforms:
             return [JavaScriptStacktraceProcessor]

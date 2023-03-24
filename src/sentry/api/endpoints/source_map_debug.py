@@ -8,21 +8,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from typing_extensions import TypedDict
 
-from sentry import eventstore, features
+from sentry import eventstore
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.endpoints.project_release_files import ArtifactSource
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOTFOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import EVENT_PARAMS, GLOBAL_PARAMS
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.models import (
-    Distribution,
-    Organization,
-    Project,
-    Release,
-    ReleaseFile,
-    SourceMapProcessingIssue,
-)
+from sentry.models import Distribution, Project, Release, ReleaseFile, SourceMapProcessingIssue
 from sentry.models.releasefile import read_artifact_index
 from sentry.utils.javascript import find_sourcemap
 from sentry.utils.urls import non_standard_url_join
@@ -42,9 +35,6 @@ class SourceMapProcessingResponse(TypedDict):
 @extend_schema(tags=["Events"])
 class SourceMapDebugEndpoint(ProjectEndpoint):
     public = {"GET"}
-
-    def has_feature(self, organization: Organization, request: Request):
-        return features.has("organizations:fix-source-map-cta", organization, actor=request.user)
 
     @extend_schema(
         operation_id="Debug issues related to source maps for a given event",
@@ -69,12 +59,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         ```````````````````````````````````````````
         Return a list of source map errors for a given event.
         """
-
-        if not self.has_feature(project.organization, request):
-            raise NotFound(
-                detail="Endpoint not available without 'organizations:fix-source-map-cta' feature flag"
-            )
-
         frame_idx = request.GET.get("frame_idx")
         if not frame_idx:
             raise ParseError(detail="Query parameter 'frame_idx' is required")

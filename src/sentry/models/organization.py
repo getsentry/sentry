@@ -349,14 +349,18 @@ class Organization(Model, SnowflakeIdMixin):
         )
         return len(owners[:2]) == 1
 
-    def get_members_with_org_roles(self, roles: Collection[str]):
-        members_with_role = set(
-            self.member_set.filter(
-                role__in=roles,
-                user__isnull=False,
-                user__is_active=True,
-            ).values_list("id", flat=True)
+    def get_members_with_org_roles(
+        self,
+        roles: Collection[str],
+        include_null_users: bool = False,
+    ):
+        members_with_role = self.member_set.filter(
+            role__in=roles,
         )
+        if not include_null_users:
+            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+
+        members_with_role = set(members_with_role.values_list("id", flat=True))
 
         teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
 
@@ -531,8 +535,8 @@ class Organization(Model, SnowflakeIdMixin):
         )
 
         for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization=from_org)
-            do_update(queryset, {"organization": to_org})
+            queryset = model.objects.filter(organization_id=from_org.id)
+            do_update(queryset, {"organization_id": to_org.id})
 
         for model in ATTR_MODEL_LIST:
             queryset = model.objects.filter(organization_id=from_org.id)
@@ -670,7 +674,7 @@ class Organization(Model, SnowflakeIdMixin):
         return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.priority > 0:
+        if role.id != "member":
             return role.scopes
 
         scopes = set(role.scopes)

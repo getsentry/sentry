@@ -52,7 +52,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
     def get_last_commits(self, repo: str, end_sha: str) -> Sequence[JSONData]:
         """
         Return API request that fetches last ~30 commits
-        see https://developer.github.com/v3/repos/commits/#list-commits-on-a-repository
+        see https://docs.github.com/en/rest/commits/commits#list-commits-on-a-repository
         using end_sha as parameter.
         """
         # Explicitly typing to satisfy mypy.
@@ -63,7 +63,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     def compare_commits(self, repo: str, start_sha: str, end_sha: str) -> JSONData:
         """
-        See https://developer.github.com/v3/repos/commits/#compare-two-commits
+        See https://docs.github.com/en/rest/commits/commits#compare-two-commits
         where start sha is oldest and end is most recent.
         """
         # Explicitly typing to satisfy mypy.
@@ -71,21 +71,33 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return diff
 
     def repo_hooks(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/webhooks/repos#list-repository-webhooks
+        """
         # Explicitly typing to satisfy mypy.
         hooks: Sequence[JSONData] = self.get(f"/repos/{repo}/hooks")
         return hooks
 
     def get_commits(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/commits/commits#list-commits
+        """
         # Explicitly typing to satisfy mypy.
         commits: Sequence[JSONData] = self.get(f"/repos/{repo}/commits")
         return commits
 
     def get_commit(self, repo: str, sha: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/commits/commits#get-a-commit
+        """
         # Explicitly typing to satisfy mypy.
         commit: JSONData = self.get_cached(f"/repos/{repo}/commits/{sha}")
         return commit
 
     def get_repo(self, repo: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/repos/repos#get-a-repository
+        """
         # Explicitly typing to satisfy mypy.
         repository: JSONData = self.get(f"/repos/{repo}")
         return repository
@@ -166,7 +178,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repositories = self._populate_repositories(gh_org, cache_seconds)
         extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-        logger.info("Using cached trees for Github org.", extra=extra)
+        if trees:
+            logger.info("Using cached trees for Github org.", extra=extra)
 
         try:
             rate_limit = self.get_rate_limit()
@@ -306,8 +319,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
     # XXX: Find alternative approach
     def search_repositories(self, query: bytes) -> Mapping[str, Sequence[JSONData]]:
-        """Find repositories matching a query.
-        NOTE: This API is rate limited to 30 requests/minute"""
+        """
+        Find repositories matching a query.
+        NOTE: This API is rate limited to 30 requests/minute
+
+        https://docs.github.com/en/rest/search#search-repositories
+        """
         # Explicitly typing to satisfy mypy.
         repositories: Mapping[str, Sequence[JSONData]] = self.get(
             "/search/repositories", params={"q": query}
@@ -315,6 +332,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return repositories
 
     def get_assignees(self, repo: str) -> Sequence[JSONData]:
+        """
+        https://docs.github.com/en/rest/issues/assignees#list-assignees
+        """
         # Explicitly typing to satisfy mypy.
         assignees: Sequence[JSONData] = self.get_with_pagination(f"/repos/{repo}/assignees")
         return assignees
@@ -331,23 +351,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key
         """
-        with sentry_sdk.configure_scope() as scope:
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-            else:
-                parent_span_id = None
-                trace_id = None
-
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            name=f"{self.integration_type}.http_response.pagination.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=True,
+            description=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 
@@ -356,15 +365,29 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             resp = self.get(path, params={"per_page": self.page_size})
             logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
+            next_link = get_next_link(resp)
+
+            # XXX: Debugging code; remove afterward
+            if (
+                response_key
+                and response_key == "repositories"
+                and resp["total_count"] > 0
+                and not output
+            ):
+                logger.info(f"headers: {resp.headers}")
+                logger.info(f"output: {output}")
+                logger.info(f"next_link: {next_link}")
+                logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < page_number_limit:
-                new_path = get_next_link(resp)
-                logger.info(f"Page {page_number}: {path}")
-                resp = self.get(new_path)
+            while next_link and page_number < page_number_limit:
+                resp = self.get(next_link)
                 logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
+
+                next_link = get_next_link(resp)
+                logger.info(f"Page {page_number}: {next_link}")
                 page_number += 1
             return output
 
@@ -373,6 +396,9 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return issues
 
     def search_issues(self, query: str) -> Mapping[str, Sequence[Mapping[str, Any]]]:
+        """
+        https://docs.github.com/en/rest/search?#search-issues-and-pull-requests
+        """
         # Explicitly typing to satisfy mypy.
         issues: Mapping[str, Sequence[Mapping[str, Any]]] = self.get(
             "/search/issues", params={"q": query}
@@ -380,17 +406,29 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         return issues
 
     def get_issue(self, repo: str, number: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/issues#get-an-issue
+        """
         return self.get(f"/repos/{repo}/issues/{number}")
 
     def create_issue(self, repo: str, data: Mapping[str, Any]) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/issues#create-an-issue
+        """
         endpoint = f"/repos/{repo}/issues"
         return self.post(endpoint, data=data)
 
     def create_comment(self, repo: str, issue_id: str, data: Mapping[str, Any]) -> JSONData:
+        """
+        https://docs.github.com/en/rest/issues/comments#create-an-issue-comment
+        """
         endpoint = f"/repos/{repo}/issues/{issue_id}/comments"
         return self.post(endpoint, data=data)
 
     def get_user(self, gh_username: str) -> JSONData:
+        """
+        https://docs.github.com/en/rest/users/users#get-a-user
+        """
         return self.get(f"/users/{gh_username}")
 
     # subclassing BaseApiClient request method

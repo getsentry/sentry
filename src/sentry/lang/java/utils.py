@@ -8,7 +8,6 @@ from sentry.eventstore.models import Event
 from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
-from sentry.utils.options import sample_modulo
 from sentry.utils.safe import get_path
 
 CACHE_TIMEOUT = 3600
@@ -34,7 +33,7 @@ def get_proguard_images(event: Event):
 
 
 def get_proguard_mapper(uuid: str, project: Project):
-    with sentry_sdk.start_span(op="proguard.get_proguard_mapper") as span:
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files") as span:
         dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
         debug_file_path = dif_paths.get(uuid)
         if debug_file_path is None:
@@ -47,7 +46,9 @@ def get_proguard_mapper(uuid: str, project: Project):
             sentry_sdk.capture_exception(exc)
             return
 
+    with sentry_sdk.start_span(op="proguard.open"):
         mapper = ProguardMapper.open(debug_file_path)
+
     if not mapper.has_line_info:
         return
 
@@ -81,11 +82,6 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
 
 def deobfuscate_view_hierarchy(data):
     project = Project.objects.get_from_cache(id=data["project"])
-
-    if not sample_modulo(
-        "processing.view-hierarchies-deobfuscation-general-availability", project.organization.id
-    ):
-        return
 
     cache_key = cache_key_for_event(data)
     attachments = [*attachment_cache.get(cache_key)]

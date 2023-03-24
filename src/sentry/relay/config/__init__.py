@@ -45,6 +45,7 @@ from .measurements import CUSTOM_MEASUREMENT_LIMIT, get_measurements_config
 #: These features will be listed in the project config
 EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
+    "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:profiling",
     "organizations:session-replay",
     "organizations:session-replay-recording-scrubbing",
@@ -538,6 +539,8 @@ ALL_MEASUREMENT_METRICS = frozenset(
         "d:transactions/measurements.frames_slow@none",
         "d:transactions/measurements.frames_slow_rate@ratio",
         "d:transactions/measurements.frames_total@none",
+        "d:transactions/measurements.time_to_initial_display@millisecond",
+        "d:transactions/measurements.time_to_full_display@millisecond",
         "d:transactions/measurements.stall_count@none",
         "d:transactions/measurements.stall_longest_time@millisecond",
         "d:transactions/measurements.stall_percentage@ratio",

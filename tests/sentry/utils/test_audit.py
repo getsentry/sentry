@@ -250,6 +250,6 @@ class CreateAuditEntryTest(TestCase):
 
         assert entry.event == audit_log.get_event_id("SSO_DISABLE")
         assert entry.actor_label == "Sentry"
-        assert entry.organization == self.org
+        assert entry.organization_id == self.org.id
         assert entry.target_object == self.org.id
         assert audit_log.get(entry.event).render(entry) == "disabled sso (GitHub)"

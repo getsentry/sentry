@@ -328,7 +328,7 @@ class GroupUpdateTest(APITestCase):
 
         assert (
             Activity.objects.filter(
-                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+                group=group, user_id=self.user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )
@@ -364,7 +364,7 @@ class GroupUpdateTest(APITestCase):
 
         assert (
             Activity.objects.filter(
-                group=group, user=self.user, type=ActivityType.ASSIGNED.value
+                group=group, user_id=self.user.id, type=ActivityType.ASSIGNED.value
             ).count()
             == 1
         )

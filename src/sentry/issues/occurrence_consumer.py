@@ -20,10 +20,10 @@ from arroyo.types import Commit, Message, Partition
 from django.conf import settings
 from django.utils import timezone
 
-from sentry import features, nodestore
+from sentry import nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
-from sentry.issues.grouptype import GroupCategory, get_group_types_by_category
+from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import DEFAULT_LEVEL, IssueOccurrence, IssueOccurrenceData
 from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
@@ -94,7 +94,7 @@ def save_event_from_occurrence(
     project_id = data.pop("project_id")
 
     with metrics.timer("occurrence_consumer.save_event_occurrence.event_manager.save"):
-        manager = EventManager(data)
+        manager = EventManager(data, remove_other=False)
         event = manager.save(project_id=project_id)
 
         return event
@@ -161,6 +161,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("event_id"):
                 occurrence_data["event_id"] = UUID(payload["event_id"]).hex
 
+            if payload.get("culprit"):
+                occurrence_data["culprit"] = payload["culprit"]
+
             if "event" in payload:
                 event_payload = payload["event"]
                 if payload["project_id"] != event_payload.get("project_id"):
@@ -186,6 +189,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
                 optional_params = [
                     "breadcrumbs",
                     "contexts",
+                    "debug_meta",
                     "dist",
                     "environment",
                     "extra",
@@ -228,7 +232,7 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         metrics.incr("occurrence_ingest.event_payload_invalid")
-        raise InvalidEventPayloadError("Event payload does not match schema")
+        raise
 
 
 def _process_message(
@@ -261,9 +265,8 @@ def _process_message(
             txn.set_tag("project_id", project.id)
             txn.set_tag("project_slug", project.slug)
 
-            if occurrence_data["type"] not in get_group_types_by_category(
-                GroupCategory.PROFILE.value
-            ) or not features.has("organizations:profile-blocked-main-thread-ingest", organization):
+            group_type = get_group_type_by_type_id(occurrence_data["type"])
+            if not group_type.allow_ingest(organization):
                 metrics.incr(
                     "occurrence_ingest.dropped_feature_disabled",
                     sample_rate=1.0,

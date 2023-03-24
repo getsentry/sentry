@@ -28,7 +28,6 @@ from sentry.models import (
     TOMBSTONE_FIELDS_FROM_GROUP,
     Activity,
     Broadcast,
-    CheckInStatus,
     Commit,
     CommitAuthor,
     CommitFileChange,
@@ -39,10 +38,6 @@ from sentry.models import (
     Group,
     GroupRelease,
     GroupTombstone,
-    Monitor,
-    MonitorCheckIn,
-    MonitorStatus,
-    MonitorType,
     Organization,
     OrganizationAccessRequest,
     OrganizationMember,
@@ -56,6 +51,13 @@ from sentry.models import (
     Team,
     User,
     UserReport,
+)
+from sentry.monitors.models import (
+    CheckInStatus,
+    Monitor,
+    MonitorCheckIn,
+    MonitorStatus,
+    MonitorType,
 )
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
@@ -541,7 +543,7 @@ def main(
                     type=ActivityType.RELEASE.value,
                     project=project,
                     ident=release.version,
-                    user=user,
+                    user_id=user.id,
                     data={"version": release.version},
                 )
 
@@ -743,7 +745,7 @@ def main(
         type=ActivityType.RELEASE.value,
         project=project,
         ident="4f38b65c62c4565aa94bba391ff8946922a8eed4",
-        user=user,
+        user_id=user.id,
         data={"version": "4f38b65c62c4565aa94bba391ff8946922a8eed4"},
     )
 
@@ -1278,6 +1280,10 @@ if __name__ == "__main__":
             load_performance_issues=options.load_performance_issues,
             slow=options.slow,
         )
+
+        from sentry.issues.producer import get_occurrence_producer
+
+        get_occurrence_producer().close()
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
         import sys

@@ -39,6 +39,7 @@ from sentry.models import (
     ScheduledDeletion,
     UserEmail,
 )
+from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMappingUpdate,
     organization_mapping_service,
@@ -177,7 +178,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
+        return AuthProvider.objects.filter(organization_id=org.id).exists()
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -428,7 +429,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 class OwnerOrganizationSerializer(OrganizationSerializer):
     defaultRole = serializers.ChoiceField(choices=roles.get_choices())
     cancelDeletion = serializers.BooleanField(required=False)
-    idempotencyKey = serializers.CharField(max_length=32, required=False)
+    idempotencyKey = serializers.CharField(max_length=IDEMPOTENCY_KEY_LENGTH, required=False)
 
     def save(self, *args, **kwargs):
         org = self.context["organization"]
@@ -527,10 +528,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                         )
                     elif "name" in changed_data:
                         organization_mapping_service.update(
-                            RpcOrganizationMappingUpdate(
-                                organization_id=organization.id,
-                                name=organization.name,
-                            )
+                            organization.id, RpcOrganizationMappingUpdate(name=organization.name)
                         )
             # TODO(hybrid-cloud): This will need to be a more generic error
             # when the internal RPC is implemented.

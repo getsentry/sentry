@@ -350,7 +350,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
                 project=project,
                 group=reappearance,
                 type=ActivityType.SET_UNRESOLVED.value,
-                user=None,
+                user_id=None,
                 datetime=prev_hour,
             )
 
@@ -377,7 +377,7 @@ class ProjectRulePreviewTest(TestCase, SnubaTestCase):
             project=self.project,
             group=self.group,
             type=ActivityType.SET_UNRESOLVED.value,
-            user=None,
+            user_id=None,
             datetime=out_of_range,
         )
 

@@ -11,11 +11,16 @@ from sentry.models import File, ProjectDebugFile
 from sentry.testutils import RelayStoreHelper, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from tests.symbolicator import insta_snapshot_stacktrace_data, redact_location
+from tests.symbolicator import insta_snapshot_native_stacktrace_data, redact_location
 
 # IMPORTANT:
-# For these tests to run, write `symbolicator.enabled: true` into your
-# `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to
+# either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
 REAL_RESOLVING_EVENT_DATA = {
@@ -59,18 +64,14 @@ REAL_RESOLVING_EVENT_DATA = {
 
 
 class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
-
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": new_prefix}
+            {"system.url-prefix": live_server.url}
         ):
-            # Run test case:
+            # Run test case
             yield
 
     def get_event(self, event_id):
@@ -111,7 +112,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         redact_location(candidates)
         event.data["debug_meta"]["images"][0]["candidates"] = candidates
 
-        insta_snapshot_stacktrace_data(self, event.data)
+        insta_snapshot_native_stacktrace_data(self, event.data)
 
     def test_debug_id_resolving(self):
         file = File.objects.create(
@@ -174,14 +175,14 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
         redact_location(candidates)
         event.data["debug_meta"]["images"][0]["candidates"] = candidates
 
-        insta_snapshot_stacktrace_data(self, event.data)
+        insta_snapshot_native_stacktrace_data(self, event.data)
 
     def test_missing_dsym(self):
         self.login_as(user=self.user)
 
         event = self.post_and_retrieve_event(REAL_RESOLVING_EVENT_DATA)
         assert event.data["culprit"] == "unknown"
-        insta_snapshot_stacktrace_data(self, event.data)
+        insta_snapshot_native_stacktrace_data(self, event.data)
 
     def test_missing_debug_images(self):
         self.login_as(user=self.user)
@@ -191,7 +192,7 @@ class SymbolicatorResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase
 
         event = self.post_and_retrieve_event(payload)
         assert event.data["culprit"] == "unknown"
-        insta_snapshot_stacktrace_data(self, event.data)
+        insta_snapshot_native_stacktrace_data(self, event.data)
 
     def test_resolving_with_candidates_sentry_source(self):
         # Checks the candidates with a sentry source URI for location
