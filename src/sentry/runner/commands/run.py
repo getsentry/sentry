@@ -429,7 +429,7 @@ def post_process_forwarder(**options):
 )
 @click.option(
     "--use-arroyo-consumer",
-    default=False,
+    default=True,
     is_flag=True,
     help="Switches to the new arroyo consumer implementation.",
 )
