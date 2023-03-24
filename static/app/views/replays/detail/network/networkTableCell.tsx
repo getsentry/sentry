@@ -1,4 +1,4 @@
-import {CSSProperties, forwardRef} from 'react';
+import {CSSProperties, forwardRef, MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import FileSize from 'sentry/components/fileSize';
