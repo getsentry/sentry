@@ -122,21 +122,23 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
         for file_id in bundle_file_ids:
             found_artifacts.append(
                 {
+                    "id": str(file_id),
                     "type": "bundle",
                     "url": url_constructor.url_for_file_id(file_id),
                 }
             )
 
-        for file in individual_files:
+        for release_file in individual_files:
             found_artifacts.append(
                 {
+                    "id": str(release_file.file.id),
                     "type": "file",
-                    "url": url_constructor.url_for_file_id(file.id),
+                    "url": url_constructor.url_for_file_id(release_file.file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
-                    "abs_path": file.name,
+                    "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
-                    "headers": file.headers,
+                    "headers": release_file.file.headers,
                 }
             )
 
@@ -276,7 +278,7 @@ def collect_legacy_artifact_bundles_containing_urls(
     return list(filter(lambda url: not url_in_any_artifact_index(url), urls))
 
 
-def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[File]:
+def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequence[ReleaseFile]:
     # Exclude files which are also present in archive:
     file_list = (
         ReleaseFile.public_objects.filter(release_id=release.id)
@@ -288,9 +290,7 @@ def get_releasefiles_matching_urls(urls: List[str], release: Release) -> Sequenc
     for url in urls[1:]:
         condition |= Q(name__icontains=url)
     file_list = file_list.filter(condition)
-    file_list = file_list[:MAX_RELEASEFILES_QUERY]
-
-    return map(lambda release_file: release_file.file, file_list)
+    return file_list[:MAX_RELEASEFILES_QUERY]
 
 
 def url_exists_in_manifest(manifest: dict, url: str) -> bool:

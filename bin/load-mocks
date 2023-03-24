@@ -1280,6 +1280,10 @@ if __name__ == "__main__":
             load_performance_issues=options.load_performance_issues,
             slow=options.slow,
         )
+
+        from sentry.issues.producer import get_occurrence_producer
+
+        get_occurrence_producer().close()
     except Exception:
         # Avoid reporting any issues recursively back into Sentry
         import sys

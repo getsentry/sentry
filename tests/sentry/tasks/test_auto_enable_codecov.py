@@ -69,7 +69,7 @@ class AutoEnableCodecovTest(TestCase):
         org = Organization.objects.get(id=self.org_1.id)
         assert not org.flags.codecov_access.is_set
 
-    @patch("sentry.tasks.auto_enable_codecov.enable_for_organization.delay")
+    @patch("sentry.tasks.auto_enable_codecov.enable_for_organization")
     def test_schedules_for_orgs(self, mock_enable_for_organization):
         schedule_organizations()
 

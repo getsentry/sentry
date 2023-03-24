@@ -469,7 +469,7 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     if debug_file_id is None or debug_file_id == "":
         return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.fetch_difs"):
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
         dif_paths = ProjectDebugFile.difcache.fetch_difs(
             project, [debug_file_id], features=["mapping"]
         )
@@ -477,12 +477,12 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
         if debug_file_path is None:
             return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.open_mapper"):
+    with sentry_sdk.start_span(op="proguard.open"):
         mapper = ProguardMapper.open(debug_file_path)
         if not mapper.has_line_info:
             return
 
-    with sentry_sdk.start_span(op="task.profiling.deobfuscate.remap"):
+    with sentry_sdk.start_span(op="proguard.remap"):
         for method in profile["profile"]["methods"]:
             mapped = mapper.remap_frame(
                 method["class_name"], method["name"], method["source_line"] or 0

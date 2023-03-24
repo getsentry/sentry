@@ -2,9 +2,10 @@ import datetime
 import logging
 import uuid
 from copy import deepcopy
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, Type
 
 import pytest
+from jsonschema import ValidationError
 
 from sentry import eventstore
 from sentry.eventstore.snuba.backend import SnubaEventStorage
@@ -179,14 +180,17 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
     def run_test(self, message: Dict[str, Any]) -> None:
         _get_kwargs(message)
 
-    def run_invalid_schema_test(self, message: Dict[str, Any]) -> None:
-        with pytest.raises(InvalidEventPayloadError):
+    def run_invalid_schema_test(
+        self, message: Dict[str, Any], expected_error: Type[Exception]
+    ) -> None:
+        with pytest.raises(expected_error):
             self.run_test(message)
 
     def run_invalid_payload_test(
         self,
         remove_event_fields: Optional[Sequence[str]] = None,
         update_event_fields: Optional[Dict[str, Any]] = None,
+        expected_error: Type[Exception] = InvalidEventPayloadError,
     ) -> None:
         message = deepcopy(get_test_message(self.project.id))
         if remove_event_fields:
@@ -194,17 +198,31 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
                 message["event"].pop(field)
         if update_event_fields:
             message["event"].update(update_event_fields)
-        self.run_invalid_schema_test(message)
+        self.run_invalid_schema_test(message, expected_error)
 
     def test_invalid_payload(self) -> None:
-        self.run_invalid_payload_test(remove_event_fields=["project_id"])
-        self.run_invalid_payload_test(remove_event_fields=["timestamp"])
-        self.run_invalid_payload_test(remove_event_fields=["platform"])
-        self.run_invalid_payload_test(remove_event_fields=["tags"])
-        self.run_invalid_payload_test(update_event_fields={"project_id": "p_id"})
-        self.run_invalid_payload_test(update_event_fields={"timestamp": 0000})
-        self.run_invalid_payload_test(update_event_fields={"platform": 0000})
-        self.run_invalid_payload_test(update_event_fields={"tags": "tagged"})
+        self.run_invalid_payload_test(
+            remove_event_fields=["project_id"],
+        )
+        self.run_invalid_payload_test(
+            remove_event_fields=["timestamp"], expected_error=ValidationError
+        )
+        self.run_invalid_payload_test(
+            remove_event_fields=["platform"], expected_error=ValidationError
+        )
+        self.run_invalid_payload_test(remove_event_fields=["tags"], expected_error=ValidationError)
+        self.run_invalid_payload_test(
+            update_event_fields={"project_id": "p_id"}, expected_error=InvalidEventPayloadError
+        )
+        self.run_invalid_payload_test(
+            update_event_fields={"timestamp": 0000}, expected_error=ValidationError
+        )
+        self.run_invalid_payload_test(
+            update_event_fields={"platform": 0000}, expected_error=ValidationError
+        )
+        self.run_invalid_payload_test(
+            update_event_fields={"tags": "tagged"}, expected_error=ValidationError
+        )
 
     def test_valid(self) -> None:
         self.run_test(get_test_message(self.project.id))
@@ -284,3 +302,23 @@ class ParseEventPayloadTest(IssueOccurrenceTestBase):
         message = deepcopy(get_test_message(self.project.id))
         kwargs = _get_kwargs(message)
         assert kwargs["occurrence_data"]["level"] == kwargs["event_data"]["level"]
+
+    def test_debug_meta(self) -> None:
+        debug_meta_cases = [
+            {"debug_meta": {}},
+            {"debug_meta": None},
+            {"debug_meta": {"images": []}},
+            {"debug_meta": {"images": None}},
+            {"debug_meta": {"images": [{}]}},
+        ]
+
+        for case in debug_meta_cases:
+            message = deepcopy(get_test_message(self.project.id, True))
+            message["event"].update(**case)
+            _get_kwargs(message)
+
+    def test_culprit(self) -> None:
+        message = deepcopy(get_test_message(self.project.id))
+        message["culprit"] = "i did it"
+        kwargs = _get_kwargs(message)
+        assert kwargs["occurrence_data"]["culprit"] == "i did it"
