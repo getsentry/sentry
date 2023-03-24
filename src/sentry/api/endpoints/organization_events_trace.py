@@ -98,6 +98,7 @@ class TracePerformanceIssue(TypedDict):
     title: str
     level: str
     culprit: str
+    type: int
 
 
 LightResponse = TypedDict(
@@ -222,6 +223,7 @@ class TraceEvent:
                     "title": group.title,
                     "level": constants.LOG_LEVELS[group.level],
                     "culprit": group.culprit,
+                    "type": group.type,
                 }
             )
 
