@@ -131,7 +131,7 @@ test-python-ci:
 		--ignore tests/sentry/search/events \
 		--ignore tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
 		--ignore tests/sentry/region_to_control/test_region_to_control_kafka.py \
-		--cov . --cov-report="xml:.artifacts/python.coverage.xml"
+		--cov . --cov-branch --cov-report="xml:.artifacts/python.coverage.xml"
 	@echo ""
 
 test-snuba:
@@ -140,12 +140,12 @@ test-snuba:
 		tests/sentry/eventstream/kafka \
 		tests/sentry/snuba \
 		tests/sentry/search/events \
-		-vv --cov . --cov-report="xml:.artifacts/snuba.coverage.xml"
+		-vv --cov . --cov-branch --cov-report="xml:.artifacts/snuba.coverage.xml"
 	@echo ""
 
 test-tools:
 	@echo "--> Running tools tests"
-	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-report="xml:.artifacts/tools.coverage.xml"
+	pytest -c /dev/null --confcutdir tests/tools tests/tools -vv --cov=tools --cov=tests/tools --cov-branch --cov-report="xml:.artifacts/tools.coverage.xml"
 	@echo ""
 
 backend-typing:
@@ -155,12 +155,12 @@ backend-typing:
 
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
-	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	pytest tests/symbolicator -vv --cov . --cov-branch --cov-report="xml:.artifacts/symbolicator.coverage.xml"
 	@echo ""
 
 test-chartcuterie:
 	@echo "--> Running chartcuterie tests"
-	pytest tests/chartcuterie -vv --cov . --cov-report="xml:.artifacts/chartcuterie.coverage.xml"
+	pytest tests/chartcuterie -vv --cov . --cov-branch --cov-report="xml:.artifacts/chartcuterie.coverage.xml"
 	@echo ""
 
 test-acceptance: node-version-check
@@ -170,7 +170,7 @@ test-acceptance: node-version-check
 
 test-plugins:
 	@echo "--> Running plugin tests"
-	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml"
+	pytest tests/sentry_plugins -vv --cov . --cov-branch --cov-report="xml:.artifacts/plugins.coverage.xml"
 	@echo ""
 
 test-relay-integration:
@@ -178,7 +178,7 @@ test-relay-integration:
 	pytest \
 		tests/relay_integration \
 		tests/sentry/ingest/ingest_consumer/test_ingest_consumer_kafka.py \
-		-vv --cov . --cov-report="xml:.artifacts/relay.coverage.xml"
+		-vv --cov . --cov-branch --cov-report="xml:.artifacts/relay.coverage.xml"
 	@echo ""
 
 test-api-docs: build-api-docs
