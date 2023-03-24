@@ -523,7 +523,7 @@ class EventManager:
 
         # Because this logic is not complex enough we want to special case the situation where we
         # migrate from a hierarchical hash to a non hierarchical hash.  The reason being that
-        # _save_aggregate needs special logic to not create orphaned hashes in migration cases
+        # `_save_aggregate` needs special logic to not create orphaned hashes in migration cases
         # but it wants a different logic to implement splitting of hierarchical hashes.
         migrate_off_hierarchical = bool(
             secondary_hashes
@@ -1578,8 +1578,8 @@ def _save_aggregate(
 
     is_new = False
 
-    # For the migrarion from hierarchical to non hierarchical we want to associate
-    # all group hashes9
+    # For the migration from hierarchical to non hierarchical we want to associate
+    # all group hashes
     if migrate_off_hierarchical:
         new_hashes = [h for h in flat_grouphashes if h.group_id is None]
         if root_hierarchical_grouphash:
