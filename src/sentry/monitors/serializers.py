@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
@@ -46,21 +47,19 @@ class MonitorSerializer(Serializer):
 
         environment_data = {}
         if self.environments:
-            monitor_environments = {}
+            monitor_environments = defaultdict(list)
             for monitor_environment in MonitorEnvironment.objects.filter(
                 monitor__in=item_list, environment__in=self.environments
             ).select_related("environment"):
                 # individually serialize as related objects are prefetched
-                monitor_environments.setdefault(monitor_environment.monitor_id, []).append(
+                monitor_environments[monitor_environment.monitor_id].append(
                     serialize(
                         monitor_environment,
                         user,
                     )
                 )
 
-            environment_data = {
-                str(item.id): monitor_environments.get(item.id, []) for item in item_list
-            }
+            environment_data = {str(item.id): monitor_environments[item.id] for item in item_list}
 
         return {
             item: {
