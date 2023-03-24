@@ -59,7 +59,7 @@ class MonitorSerializer(Serializer):
                 )
 
             environment_data = {
-                str(item.id): monitor_environments.get(item.id) for item in item_list
+                str(item.id): monitor_environments.get(item.id, []) for item in item_list
             }
 
         return {
