@@ -3,7 +3,14 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    File,
+    ProjectArtifactBundle,
+    ReleaseArtifactBundle,
+    SourceFileType,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -14,20 +21,22 @@ class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_with_multiple_bundles(self):
         project = self.create_project(name="foo")
 
-        artifact_bundle_1 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_1 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now()
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_1,
-            date_added=datetime.now(),
         )
 
-        artifact_bundle_2 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_2 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=1)
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_2,
-            date_added=datetime.now() + timedelta(hours=1),
         )
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -36,12 +45,13 @@ class ArtifactBundlesEndpointTest(APITestCase):
             artifact_bundle=artifact_bundle_2,
         )
 
-        artifact_bundle_3 = self.create_artifact_bundle(self.organization, artifact_count=2)
+        artifact_bundle_3 = self.create_artifact_bundle(
+            self.organization, artifact_count=2, date_uploaded=datetime.now() + timedelta(hours=2)
+        )
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
             artifact_bundle=artifact_bundle_3,
-            date_added=datetime.now() + timedelta(hours=2),
         )
         ReleaseArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -117,12 +127,15 @@ class ArtifactBundlesEndpointTest(APITestCase):
     def test_get_artifact_bundles_pagination(self):
         project = self.create_project(name="foo")
         for index in range(0, 15):
-            artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+            artifact_bundle = self.create_artifact_bundle(
+                self.organization,
+                artifact_count=2,
+                date_uploaded=datetime.now() + timedelta(hours=index),
+            )
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
-                date_added=datetime.now() + timedelta(hours=index),
             )
 
         for cursor, expected in [("10:0:1", 10), ("10:1:0", 5)]:
@@ -143,13 +156,16 @@ class ArtifactBundlesEndpointTest(APITestCase):
         project = self.create_project(name="foo")
         bundle_ids = []
         for index in range(0, 5):
-            artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=2)
+            artifact_bundle = self.create_artifact_bundle(
+                self.organization,
+                artifact_count=2,
+                date_uploaded=datetime.now() + timedelta(hours=index),
+            )
             bundle_ids.append(str(artifact_bundle.bundle_id))
             ProjectArtifactBundle.objects.create(
                 organization_id=self.organization.id,
                 project_id=project.id,
                 artifact_bundle=artifact_bundle,
-                date_added=datetime.now() + timedelta(hours=index),
             )
 
         url = reverse(
@@ -170,7 +186,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         self.login_as(user=self.user)
         response = self.client.get(url + "?sortBy=bundleId")
         assert response.status_code == 400
-        assert response.data["error"] == "You can either sort via 'date_added' or '-date_added'"
+        assert (
+            response.data["detail"]["message"]
+            == "You can either sort via 'date_added' or '-date_added'"
+        )
 
     def test_delete_artifact_bundles(self):
         project = self.create_project(name="foo")
@@ -178,6 +197,18 @@ class ArtifactBundlesEndpointTest(APITestCase):
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
+            artifact_bundle=artifact_bundle,
+        )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
 
@@ -194,3 +225,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert not ProjectArtifactBundle.objects.filter(
             artifact_bundle_id=artifact_bundle.id
         ).exists()
+        assert not ReleaseArtifactBundle.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
+        assert not DebugIdArtifactBundle.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
+        assert not File.objects.filter(id=artifact_bundle.file.id).exists()

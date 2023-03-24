@@ -2,16 +2,17 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, Union
 
+from sentry_sdk import Hub
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
 from sentry.utils.outcomes import Outcome, track_outcome
@@ -76,62 +77,65 @@ class RecordingIngestMessage:
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_chunked")
 def ingest_recording_chunked(
-    message_dict: RecordingSegmentMessage,
-    transaction: Span,
+    message_dict: RecordingSegmentMessage, transaction: Span, current_hub: Hub
 ) -> None:
     """Ingest chunked recording messages."""
-    with transaction.start_child(
-        op="replays.usecases.ingest.ingest_recording_chunked",
-        description="ingest_recording_chunked",
-    ):
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["replay_recording"]["id"],
-        )
-        parts = RecordingSegmentParts(
-            prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
-        )
+    with current_hub:
+        with transaction.start_child(
+            op="replays.usecases.ingest.ingest_recording_chunked",
+            description="ingest_recording_chunked",
+        ):
+            cache_prefix = replay_recording_segment_cache_id(
+                project_id=message_dict["project_id"],
+                replay_id=message_dict["replay_id"],
+                segment_id=message_dict["replay_recording"]["id"],
+            )
+            parts = RecordingSegmentParts(
+                prefix=cache_prefix, num_parts=message_dict["replay_recording"]["chunks"]
+            )
 
-        try:
-            recording_segment_with_headers = collate_segment_chunks(parts)
-        except ValueError:
-            logger.exception("Missing recording-segment.")
-            return None
+            try:
+                recording_segment_with_headers = collate_segment_chunks(parts)
+            except ValueError:
+                logger.exception("Missing recording-segment.")
+                return None
 
-        message = RecordingIngestMessage(
-            replay_id=message_dict["replay_id"],
-            key_id=message_dict.get("key_id"),
-            org_id=message_dict["org_id"],
-            project_id=message_dict["project_id"],
-            received=message_dict["received"],
-            retention_days=message_dict["retention_days"],
-            payload_with_headers=recording_segment_with_headers,
-        )
-        ingest_recording(message, transaction)
+            message = RecordingIngestMessage(
+                replay_id=message_dict["replay_id"],
+                key_id=message_dict.get("key_id"),
+                org_id=message_dict["org_id"],
+                project_id=message_dict["project_id"],
+                received=message_dict["received"],
+                retention_days=message_dict["retention_days"],
+                payload_with_headers=recording_segment_with_headers,
+            )
+            ingest_recording(message, transaction)
 
-        # Segment chunks are always deleted if ingest behavior runs without error.
-        with metrics.timer("replays.process_recording.store_recording.drop_segments"):
-            parts.drop()
+            # Segment chunks are always deleted if ingest behavior runs without error.
+            with metrics.timer("replays.process_recording.store_recording.drop_segments"):
+                parts.drop()
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording_not_chunked")
-def ingest_recording_not_chunked(message_dict: RecordingMessage, transaction: Span) -> None:
+def ingest_recording_not_chunked(
+    message_dict: RecordingMessage, transaction: Span, current_hub: Hub
+) -> None:
     """Ingest non-chunked recording messages."""
-    with transaction.start_child(
-        op="replays.usecases.ingest.ingest_recording_not_chunked",
-        description="ingest_recording_not_chunked",
-    ):
-        message = RecordingIngestMessage(
-            replay_id=message_dict["replay_id"],
-            key_id=message_dict.get("key_id"),
-            org_id=message_dict["org_id"],
-            project_id=message_dict["project_id"],
-            received=message_dict["received"],
-            retention_days=message_dict["retention_days"],
-            payload_with_headers=message_dict["payload"],
-        )
-        ingest_recording(message, transaction)
+    with current_hub:
+        with transaction.start_child(
+            op="replays.usecases.ingest.ingest_recording_not_chunked",
+            description="ingest_recording_not_chunked",
+        ):
+            message = RecordingIngestMessage(
+                replay_id=message_dict["replay_id"],
+                key_id=message_dict.get("key_id"),
+                org_id=message_dict["org_id"],
+                project_id=message_dict["project_id"],
+                received=message_dict["received"],
+                retention_days=message_dict["retention_days"],
+                payload_with_headers=message_dict["payload"],
+            )
+            ingest_recording(message, transaction)
 
 
 def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None:
@@ -140,20 +144,6 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         headers, recording_segment = process_headers(message.payload_with_headers)
     except MissingRecordingSegmentHeaders:
         logger.warning(f"missing header on {message.replay_id}")
-        return None
-
-    with metrics.timer("replays.process_recording.store_recording.count_segments"):
-        count_existing_segments = ReplayRecordingSegmentModel.objects.filter(
-            replay_id=message.replay_id,
-            project_id=message.project_id,
-            segment_id=headers["segment_id"],
-        ).count()
-
-    if count_existing_segments > 0:
-        logging.warning(
-            "Recording segment was already processed.",
-            extra={"project_id": message.project_id, "replay_id": message.replay_id},
-        )
         return None
 
     # Normalize ingest data into a standardized ingest format.
@@ -168,6 +158,22 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     # within this scope.
     driver = make_storage_driver(message.org_id)
     driver.set(segment_data, recording_segment)
+
+    # Decompress and load the recording JSON. This is a performance test. We don't care about the
+    # result but knowing its performance characteristics and the failure rate of this operation
+    # will inform future releases.
+    try:
+        with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
+            json.loads(decompress(recording_segment))
+    except Exception:
+        logging.exception(
+            "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
+                message.org_id,
+                message.project_id,
+                message.replay_id,
+                headers["segment_id"],
+            )
+        )
 
     # The first segment records an accepted outcome. This is for billing purposes. Subsequent
     # segments are not billed.
@@ -203,22 +209,25 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_chunk")
-def ingest_chunk(message_dict: RecordingSegmentChunkMessage, transaction: Span) -> None:
+def ingest_chunk(
+    message_dict: RecordingSegmentChunkMessage, transaction: Span, current_hub: Hub
+) -> None:
     """Ingest chunked message part."""
-    with transaction.start_child(op="replays.process_recording.store_chunk"):
-        cache_prefix = replay_recording_segment_cache_id(
-            project_id=message_dict["project_id"],
-            replay_id=message_dict["replay_id"],
-            segment_id=message_dict["id"],
-        )
+    with current_hub:
+        with transaction.start_child(op="replays.process_recording.store_chunk"):
+            cache_prefix = replay_recording_segment_cache_id(
+                project_id=message_dict["project_id"],
+                replay_id=message_dict["replay_id"],
+                segment_id=message_dict["id"],
+            )
 
-        payload = message_dict["payload"]
-        payload = payload.encode("utf-8") if isinstance(payload, str) else payload
+            payload = message_dict["payload"]
+            payload = payload.encode("utf-8") if isinstance(payload, str) else payload
 
-        part = RecordingSegmentCache(cache_prefix)
-        part[message_dict["chunk_index"]] = payload
+            part = RecordingSegmentCache(cache_prefix)
+            part[message_dict["chunk_index"]] = payload
 
-    transaction.finish()
+        transaction.finish()
 
 
 @metrics.wraps("replays.usecases.ingest.collate_segment_chunks")
@@ -239,3 +248,11 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
+
+
+def decompress(data: bytes) -> bytes:
+    """Return decompressed bytes."""
+    if data.startswith(b"["):
+        return data
+    else:
+        return zlib.decompress(data, zlib.MAX_WBITS | 32)

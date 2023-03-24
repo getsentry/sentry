@@ -1,12 +1,13 @@
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 export enum ThreadStates {
-  RUNNABLE = 'RUNNABLE',
-  TIMED_WAITING = 'TIMED_WAITING',
-  BLOCKED = 'BLOCKED',
-  WAITING = 'WAITING',
-  NEW = 'NEW',
-  TERMINATED = 'TERMINATED',
+  RUNNABLE = 'Runnable',
+  TIMED_WAITING = 'Timed waiting',
+  BLOCKED = 'Blocked',
+  WAITING = 'Waiting',
+  NEW = 'New',
+  TERMINATED = 'Terminated',
 }
 
 type ThreadStatesMap = Record<string, ThreadStates>;
@@ -48,6 +49,30 @@ export const javaThreadStatesMap: ThreadStatesMap = {
   kNative: ThreadStates.RUNNABLE, // running in a JNI native method
   kSuspended: ThreadStates.RUNNABLE, // suspended by GC or debugger
 };
+
+export const THREAD_STATE_TERMS: Record<ThreadStates, string> = {
+  [ThreadStates.RUNNABLE]: t(
+    'A thread executing in the Java virtual machine is in this state.'
+  ),
+  [ThreadStates.WAITING]: t(
+    'A thread that is waiting indefinitely for another thread to perform a particular action is in this state.'
+  ),
+  [ThreadStates.TIMED_WAITING]: t(
+    'A thread that is waiting for another thread to perform an action for up to a specified waiting time is in this state.'
+  ),
+  [ThreadStates.BLOCKED]: t(
+    'A thread that is blocked waiting for a monitor lock is in this state.'
+  ),
+  [ThreadStates.NEW]: t('A thread that has not yet started is in this state.'),
+  [ThreadStates.TERMINATED]: t('A thread that has exited is in this state.'),
+};
+
+export function getThreadStateHelpText(state: keyof typeof THREAD_STATE_TERMS): string {
+  if (!THREAD_STATE_TERMS.hasOwnProperty(state)) {
+    return '';
+  }
+  return THREAD_STATE_TERMS[state];
+}
 
 export function getMappedThreadState(
   state: string | undefined | null
