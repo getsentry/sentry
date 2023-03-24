@@ -200,3 +200,37 @@ class MonitorConsumerTest(TestCase):
         assert monitor_environment.next_checkin == monitor.get_next_scheduled_checkin(
             checkin.date_added
         )
+
+    @pytest.mark.django_db
+    def test_monitor_create(self):
+        message = self.get_message(
+            "my-new-monitor",
+            monitor_config={"schedule": "5 * * * *", "schedule_type": "crontab"},
+        )
+        _process_message(message)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(slug="my-new-monitor")
+        assert monitor.status == MonitorStatus.OK
+        assert monitor.last_checkin == checkin.date_added
+        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
+
+    @pytest.mark.django_db
+    def test_monitor_update(self):
+        monitor = self._create_monitor(slug="my-monitor")
+        message = self.get_message(
+            "my-monitor",
+            monitor_config={"schedule": "13 * * * *", "schedule_type": "crontab"},
+        )
+        _process_message(message)
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+
+        monitor = Monitor.objects.get(id=monitor.id)
+        assert monitor.config["schedule"] == "13 * * * *"
+        assert monitor.status == MonitorStatus.OK
+        assert monitor.last_checkin == checkin.date_added
+        assert monitor.next_checkin == monitor.get_next_scheduled_checkin(checkin.date_added)
