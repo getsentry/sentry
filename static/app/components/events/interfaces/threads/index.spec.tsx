@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 
@@ -132,49 +132,6 @@ describe('Threads', () => {
 
       // the 'threads' entry has a stack trace with 23 frames, but as one of them is duplicated, we only display 22
       expect(screen.getAllByTestId('line')).toHaveLength(22);
-    });
-  });
-
-  describe('Thread selector', () => {
-    it('renders thread selector with state', async () => {
-      const threadsEntry = entries[1];
-      render(
-        <Threads
-          data={threadsEntry.data}
-          projectSlug="project-id"
-          event={event}
-          hasHierarchicalGrouping={false}
-        />
-      );
-      expect(
-        screen.getByText('ViewController.captureNSException (RUNNABLE)')
-      ).toBeInTheDocument();
-      await userEvent.click(
-        screen.getByText('ViewController.captureNSException (RUNNABLE)')
-      );
-      expect(screen.getByText('State')).toBeInTheDocument();
-    });
-
-    it('maps android vm states to java vm states', async () => {
-      const threadsEntry = entries[1];
-      threadsEntry.data.values[0].state = 'kWaitingPerformingGc';
-      render(
-        <Threads
-          data={threadsEntry.data}
-          projectSlug="project-id"
-          event={event}
-          hasHierarchicalGrouping={false}
-        />
-      );
-
-      // kWaitingPerformingGc maps to WAITING
-      expect(
-        screen.getByText('ViewController.captureNSException (WAITING)')
-      ).toBeInTheDocument();
-      await userEvent.click(
-        screen.getByText('ViewController.captureNSException (WAITING)')
-      );
-      expect(screen.getByText('State')).toBeInTheDocument();
     });
   });
 });

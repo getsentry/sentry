@@ -136,7 +136,6 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     "url": url_constructor.url_for_file_id(release_file.file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
-                    # FIXME: Should this be the `ReleaseFile.name` or `File.name`?
                     "abs_path": release_file.name,
                     # These headers should ideally include the `Sourcemap` reference
                     "headers": release_file.file.headers,

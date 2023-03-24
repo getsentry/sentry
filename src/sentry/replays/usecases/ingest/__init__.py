@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, Union
 
@@ -12,7 +13,6 @@ from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.replays.cache import RecordingSegmentCache, RecordingSegmentParts
 from sentry.replays.lib.storage import RecordingSegmentStorageMeta, make_storage_driver
-from sentry.replays.models import ReplayRecordingSegment as ReplayRecordingSegmentModel
 from sentry.replays.usecases.ingest.dom_index import parse_and_emit_replay_actions
 from sentry.signals import first_replay_received
 from sentry.utils import json, metrics
@@ -147,20 +147,6 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
         logger.warning(f"missing header on {message.replay_id}")
         return None
 
-    with metrics.timer("replays.process_recording.store_recording.count_segments"):
-        count_existing_segments = ReplayRecordingSegmentModel.objects.filter(
-            replay_id=message.replay_id,
-            project_id=message.project_id,
-            segment_id=headers["segment_id"],
-        ).count()
-
-    if count_existing_segments > 0:
-        logging.warning(
-            "Recording segment was already processed.",
-            extra={"project_id": message.project_id, "replay_id": message.replay_id},
-        )
-        return None
-
     # Normalize ingest data into a standardized ingest format.
     segment_data = RecordingSegmentStorageMeta(
         project_id=message.project_id,
@@ -255,3 +241,11 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
     return f"{project_id}:{replay_id}:{segment_id}"
+
+
+def decompress(data: bytes) -> bytes:
+    """Return decompressed bytes."""
+    if data.startswith(b"["):
+        return data
+    else:
+        return zlib.decompress(data, zlib.MAX_WBITS | 32)

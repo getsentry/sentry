@@ -5,7 +5,7 @@ from typing import Iterator, List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
-from sentry.utils import json, kafka_config
+from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
 replay_publisher: Optional[KafkaPublisher] = None
@@ -50,10 +50,11 @@ def parse_and_emit_replay_actions(
     retention_days: int,
     segment_bytes: bytes,
 ) -> None:
-    message = parse_replay_actions(project_id, replay_id, retention_days, segment_bytes)
-    if message is not None:
-        publisher = _initialize_publisher()
-        publisher.publish("ingest-replay-events", json.dumps(message))
+    with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
+        message = parse_replay_actions(project_id, replay_id, retention_days, segment_bytes)
+        if message is not None:
+            publisher = _initialize_publisher()
+            publisher.publish("ingest-replay-events", json.dumps(message))
 
 
 def parse_replay_actions(

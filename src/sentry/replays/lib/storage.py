@@ -65,6 +65,23 @@ class FilestoreBlob(Blob):
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
+        with metrics.timer("replays.process_recording.store_recording.count_segments"):
+            count_existing_segments = ReplayRecordingSegment.objects.filter(
+                replay_id=segment.replay_id,
+                project_id=segment.project_id,
+                segment_id=segment.segment_id,
+            ).count()
+
+        if count_existing_segments > 0:
+            logging.warning(
+                "Recording segment was already processed.",
+                extra={
+                    "project_id": segment.project_id,
+                    "replay_id": segment.replay_id,
+                },
+            )
+            return
+
         file = File.objects.create(name=make_filename(segment), type="replay.recording")
         file.putfile(BytesIO(value), blob_size=settings.SENTRY_ATTACHMENT_BLOB_SIZE)
 
@@ -102,7 +119,7 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         try:
             storage = get_storage(self._make_storage_options())
             blob = storage.open(self.make_key(segment))
@@ -110,7 +127,7 @@ class StorageBlob(Blob):
             blob.close()
         except Exception:
             logger.exception("Storage GET error.")
-            return b"[]"  # Return a default value if the storage does not exist.
+            return None
         else:
             return result
 

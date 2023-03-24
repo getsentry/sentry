@@ -52,7 +52,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         step = RunTaskInThreads(
             processing_function=move_replay_to_permanent_storage,
             concurrency=4,
-            max_pending_futures=16,
+            max_pending_futures=50,
             next_step=CommitOffsets(commit),
         )
 
