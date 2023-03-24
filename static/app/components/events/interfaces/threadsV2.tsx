@@ -266,7 +266,7 @@ export function ThreadsV2({
               )}
             </EventDataSection>
             {activeThread && activeThread.state && (
-              <EventDataSection type="thread-state" title={t('Thread State')}>
+              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
                 <ThreadStateWrapper>
                   {getThreadStateIcon(threadStateDisplay)}
                   <ThreadState>{threadStateDisplay}</ThreadState>
@@ -283,7 +283,7 @@ export function ThreadsV2({
               </EventDataSection>
             )}
           </Grid>
-          <EventDataSection type="thread-tags" title={t('Thread Tags')}>
+          <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
             {renderPills()}
           </EventDataSection>
         </Fragment>

@@ -262,6 +262,8 @@ export enum EntryType {
   HPKP = 'hpkp',
   BREADCRUMBS = 'breadcrumbs',
   THREADS = 'threads',
+  THREAD_STATE = 'thread-state',
+  THREAD_TAGS = 'thread-tags',
   DEBUGMETA = 'debugmeta',
   SPANS = 'spans',
   RESOURCES = 'resources',
