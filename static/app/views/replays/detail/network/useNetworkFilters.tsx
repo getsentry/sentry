@@ -62,7 +62,7 @@ function useNetworkFilters({networkSpans}: Options): Return {
   const getResourceTypes = useCallback(
     () =>
       Array.from(new Set(networkSpans.map(networkSpan => networkSpan.op).concat(type)))
-        .sort()
+        .sort((a, b) => ((a.split('.')?.[1] ?? a) < (b.split('.')?.[1] ?? b) ? -1 : 1))
         .map(value => ({
           value,
           label: value.split('.')?.[1] ?? value,
