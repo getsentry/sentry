@@ -56,10 +56,6 @@ export class FlamegraphRenderer2D extends FlamegraphRenderer {
     }
   }
 
-  setHighlightedFrames(_frames: FlamegraphFrame[] | null) {
-    throw new Error('Method `setHighlightedFrames` not implemented.');
-  }
-
   setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']

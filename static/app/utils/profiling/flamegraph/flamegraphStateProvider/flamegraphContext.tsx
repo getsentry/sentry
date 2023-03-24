@@ -13,7 +13,6 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   profiles: {
     selectedRoot: null,
     threadId: null,
-    highlightFrames: null,
   },
   position: {
     view: Rect.Empty(),
@@ -31,6 +30,7 @@ export const DEFAULT_FLAMEGRAPH_STATE: FlamegraphState = {
   },
   search: {
     index: null,
+    highlightFrames: null,
     results: {
       frames: new Map(),
       spans: new Map(),

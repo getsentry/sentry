@@ -101,8 +101,6 @@ export abstract class FlamegraphRenderer {
     return hoveredNode;
   }
 
-  abstract setHighlightedFrames(_frames: FlamegraphFrame[] | null);
-
   abstract setSearchResults(
     _query: string,
     _searchResults: FlamegraphSearch['results']['frames']
