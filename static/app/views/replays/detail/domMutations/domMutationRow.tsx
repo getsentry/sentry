@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback, useMemo} from 'react';
+import {CSSProperties, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -8,23 +8,30 @@ import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {space} from 'sentry/styles/space';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
+  isCurrent: boolean;
+  isHovered: boolean;
   mutation: Extraction;
   mutations: Extraction[];
   startTimestampMs: number;
   style: CSSProperties;
 };
 
-function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
+function DomMutationRow({
+  isCurrent,
+  isHovered,
+  mutation,
+  startTimestampMs,
+  style,
+}: Props) {
   const {html, crumb: breadcrumb} = mutation;
 
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -42,35 +49,8 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
     [handleMouseLeave, breadcrumb]
   );
 
-  const breadcrumbs = mutations.map(({crumb}) => crumb);
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentTime,
-        allowEqual: true,
-        allowExact: true,
-      }),
-    [breadcrumbs, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            items: breadcrumbs,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-            allowEqual: true,
-            allowExact: true,
-          })
-        : undefined,
-    [breadcrumbs, currentHoverTime, startTimestampMs]
-  );
-
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
 
   const {title} = getDetails(breadcrumb);
 

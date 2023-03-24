@@ -1,4 +1,4 @@
-import {CSSProperties, useCallback, useMemo} from 'react';
+import {CSSProperties, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -7,7 +7,6 @@ import {relativeTimeInMs} from 'sentry/components/replays/utils';
 import {IconFire, IconWarning} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import type {BreadcrumbTypeDefault, Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import MessageFormatter from 'sentry/views/replays/detail/console/messageFormatter';
 import {breadcrumbHasIssue} from 'sentry/views/replays/detail/console/utils';
@@ -17,13 +16,21 @@ import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 type Props = {
   breadcrumb: Extract<Crumb, BreadcrumbTypeDefault>;
   breadcrumbs: Extract<Crumb, BreadcrumbTypeDefault>[];
-  index: number;
+  isCurrent: boolean;
+  isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
+  breadcrumbIndex?: number[][];
 };
 
-function ConsoleLogRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
+function ConsoleLogRow({
+  breadcrumb,
+  isHovered,
+  isCurrent,
+  startTimestampMs,
+  style,
+}: Props) {
+  const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -41,34 +48,8 @@ function ConsoleLogRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props
     [handleMouseLeave, breadcrumb]
   );
 
-  const current = useMemo(
-    () =>
-      getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentTime,
-        allowEqual: true,
-        allowExact: true,
-      }),
-    [breadcrumbs, currentTime, startTimestampMs]
-  );
-
-  const hovered = useMemo(
-    () =>
-      currentHoverTime
-        ? getPrevReplayEvent({
-            items: breadcrumbs,
-            targetTimestampMs: startTimestampMs + currentHoverTime,
-            allowEqual: true,
-            allowExact: true,
-          })
-        : undefined,
-    [breadcrumbs, currentHoverTime, startTimestampMs]
-  );
-
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
 
   return (
     <ConsoleLog

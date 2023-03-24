@@ -44,28 +44,35 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
+  const itemLookup = useMemo(
+    () =>
+      items &&
+      items
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [items]
+  );
+
   const current = useMemo(
     () =>
       getPrevReplayEvent({
+        itemLookup,
         items,
         targetTimestampMs: startTimestampMs + currentTime,
-        allowEqual: true,
-        allowExact: true,
       }),
-    [items, currentTime, startTimestampMs]
+    [itemLookup, items, currentTime, startTimestampMs]
   );
 
   const hovered = useMemo(
     () =>
       currentHoverTime
         ? getPrevReplayEvent({
+            itemLookup,
             items,
             targetTimestampMs: startTimestampMs + currentHoverTime,
-            allowEqual: true,
-            allowExact: true,
           })
         : null,
-    [items, currentHoverTime, startTimestampMs]
+    [itemLookup, items, currentHoverTime, startTimestampMs]
   );
 
   const gridRef = useRef<MultiGrid>(null);
