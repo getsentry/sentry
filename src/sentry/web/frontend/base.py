@@ -82,9 +82,21 @@ class OrganizationMixin:
         active_organization, backup_organization = self._lookup_organizations(
             is_implicit, organization_slug, request
         )
+        logger.info(
+            "active_organiation.lookup",
+            extra={
+                "active": active_organization.organization.id if active_organization else None,
+                "backup": backup_organization.id if backup_organization else None,
+                "is_implict": is_implicit,
+                "organization_slug": organization_slug,
+                "user_id": request.user.id,
+                "subdomain": getattr(request, "subdomain"),
+            },
+        )
 
         if active_organization is None and backup_organization:
             if not is_implicit:
+                logger.info("active_organization.early_return")
                 self.active_organization = None
                 return
             active_organization = organization_service.get_organization_by_id(
@@ -95,6 +107,14 @@ class OrganizationMixin:
             auth.set_active_org(request, active_organization.organization.slug)
 
         self.active_organization = active_organization
+        logger.info(
+            "active_organization.found",
+            extra={
+                "organization_id": active_organization.organization.id
+                if active_organization
+                else None,
+            },
+        )
 
     def _lookup_organizations(
         self, is_implicit: bool, organization_slug: str | None, request: Request
@@ -132,13 +152,22 @@ class OrganizationMixin:
             if is_implicit:
                 session = request.session
                 if session and "activeorg" in session:
+                    logger.info("finding_org.notfound.remove-activeorg")
                     del session["activeorg"]
             backup_org = None
 
         if backup_org is not None:
+            logger.info(
+                "backup_org.found",
+                extra={
+                    "backup_org": backup_org.slug,
+                },
+            )
             return organization_service.get_organization_by_id(
                 id=backup_org.id, user_id=request.user.id
             )
+
+        logger.info("finding_org.notfound")
         return None
 
     def _try_superuser_org_lookup(
@@ -216,6 +245,7 @@ class OrganizationMixin:
                 url_prefix = generate_organization_url(request.subdomain)
                 url = absolute_uri(url, url_prefix=url_prefix)
         elif not features.has("organizations:create"):
+            logger.info("frontend.active_organiation.missing", extra={"user_id": request.user.id})
             return self.respond("sentry/no-organization-access.html", status=403)
         else:
             url = reverse("sentry-organization-create")

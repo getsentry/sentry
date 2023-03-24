@@ -1,3 +1,4 @@
+import logging
 from random import randint
 from typing import Optional
 
@@ -36,6 +37,8 @@ from sentry.utils.sdk import capture_exception
 from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm, RegistrationForm
 from sentry.web.frontend.base import BaseView
+
+logger = logging.getLogger(__name__)
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
 
@@ -297,6 +300,13 @@ class AuthLoginView(BaseView):
         return self.respond_login(request, context, **kwargs)
 
     def handle_authenticated(self, request: Request):
+        logger.info(
+            "auth_login.handle_authenticated",
+            extra={
+                "user_id": request.user.id,
+                "host": request.get_host(),
+            },
+        )
         next_uri = self.get_next_uri(request)
         if is_valid_redirect(next_uri, allowed_hosts=(request.get_host(),)):
             return self.redirect(next_uri)
@@ -311,6 +321,7 @@ class AuthLoginView(BaseView):
     def get(self, request: Request, **kwargs) -> Response:
         next_uri = self.get_next_uri(request)
         if request.user.is_authenticated:
+            logger.info("user.is_authenticated", extra={"user_id": request.user.id})
             return self.handle_authenticated(request)
 
         request.session.set_test_cookie()
