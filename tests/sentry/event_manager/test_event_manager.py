@@ -355,11 +355,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
 
-        # FIXME: *Full* downgrade does not yet work. We currently still need the
-        # hierarchical hash to find the proper group. We do not yet update that
-        # "hierarchical group" with new non-hierarchical hashes, and would not
-        # be able to find it anymore at all if we did not have hierarchical hashes.
-
         # After expiry, new events are still assigned to the same group:
         project.update_option("sentry:secondary_grouping_expiry", 0)
         event3 = save_event(4)
@@ -2375,6 +2370,8 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                {},
+                [],
             )
 
     @override_options({"performance.issues.all.problem-detection": 1.0})

@@ -14,8 +14,13 @@ from sentry.utils.safe import get_path
 from tests.symbolicator import normalize_native_exception
 
 # IMPORTANT:
-# For these tests to run, write `symbolicator.enabled: true` into your
-# `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to
+# either change `system.url-prefix` option override inside `initialize` fixture to `system.internal-url-prefix`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
 def get_unreal_crash_file():
@@ -27,21 +32,14 @@ def get_unreal_crash_apple_file():
 
 
 class SymbolicatorUnrealIntegrationTest(RelayStoreHelper, TransactionTestCase):
-    # For these tests to run, write `symbolicator.enabled: true` into your
-    # `~/.sentry/config.yml` and run `sentry devservices up`
-    # Also running locally, it might be necessary to set the
-    # `system.internal-url-prefix` option instead of `system.url-prefix`.
-
     @pytest.fixture(autouse=True)
     def initialize(self, live_server):
         self.project.update_option("sentry:builtin_symbol_sources", [])
-        new_prefix = live_server.url
 
         with patch("sentry.auth.system.is_internal_ip", return_value=True), self.options(
-            {"system.url-prefix": new_prefix}
+            {"system.url-prefix": live_server.url}
         ):
-
-            # Run test case:
+            # Run test case
             yield
 
     def upload_symbols(self):
