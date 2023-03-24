@@ -3,7 +3,14 @@ from datetime import datetime, timedelta
 from django.urls import reverse
 from freezegun import freeze_time
 
-from sentry.models import ArtifactBundle, ProjectArtifactBundle, ReleaseArtifactBundle
+from sentry.models import (
+    ArtifactBundle,
+    DebugIdArtifactBundle,
+    File,
+    ProjectArtifactBundle,
+    ReleaseArtifactBundle,
+    SourceFileType,
+)
 from sentry.testutils import APITestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -192,6 +199,18 @@ class ArtifactBundlesEndpointTest(APITestCase):
             project_id=project.id,
             artifact_bundle=artifact_bundle,
         )
+        ReleaseArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            release_name="1.0",
+            dist_name="android",
+            artifact_bundle=artifact_bundle,
+        )
+        DebugIdArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
+            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
+            artifact_bundle=artifact_bundle,
+        )
 
         url = reverse(
             "sentry-api-0-artifact-bundles",
@@ -206,3 +225,10 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert not ProjectArtifactBundle.objects.filter(
             artifact_bundle_id=artifact_bundle.id
         ).exists()
+        assert not ReleaseArtifactBundle.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
+        assert not DebugIdArtifactBundle.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
+        assert not File.objects.filter(id=artifact_bundle.file.id).exists()
