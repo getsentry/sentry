@@ -657,11 +657,10 @@ class QueryBuilder(BaseQueryBuilder):
         field = tag_match.group("tag") if tag_match else raw_field
 
         if field == "group_id":
-            # We don't expose group_id publically, so if a user requests it,
-            # we expect it is a custom tag, so we convert it to tags[group_id]
+            # We don't expose group_id publicly, so if a user requests it
+            # we expect it is a custom tag. Convert it to tags[group_id]
             # and ensure it queries tag data
             # These maps are updated so the response can be mapped back to group_id
-            # in the response
             self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
             self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
             raw_field = "tags[group_id]"
