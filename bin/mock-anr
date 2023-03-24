@@ -26,7 +26,7 @@ def send_event(event, project, project_key, event_type, event_id):
         ]
     payload = "\n".join(envelope)
 
-    host = "http://127.0.0.1:3001"
+    host = "http://127.0.0.1:8000"
 
     url = f"{host}/api/{project.id}/envelope/?sentry_key={project_key.public_key}&sentry_version=7&sentry_client=sentry.curl/1.1.1"
     headers = {
