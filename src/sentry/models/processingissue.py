@@ -82,6 +82,9 @@ class ProcessingIssueManager(BaseManager):
 
     @staticmethod
     def is_release_newer(org_id, release, other_release):
+        if release == other_release:
+            return False
+
         if other_release is None:
             return True
 

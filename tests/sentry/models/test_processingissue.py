@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.models import (
     EventError,
     EventProcessingIssue,
@@ -159,3 +161,47 @@ class ProcessingIssueTest(TestCase):
             assert len(event_issues) == 1
 
             issue.delete()
+
+    @patch("sentry.models.processingissue.Release.objects.filter")
+    def test_with_release_dist_pair_and_previous_issue_with_same_release_dist(self, release_filter):
+        project = self.create_project(name="foo")
+        release = self.create_release(version="1.0", project=project)
+        dist = release.add_dist("android")
+
+        scope = "ab"
+        object = "cd"
+        checksum = get_processing_issue_checksum(scope=scope, object=object)
+
+        raw_event = RawEvent.objects.create(
+            project_id=project.id,
+            event_id="abc",
+            data=CanonicalKeyDict({"release": release.version, "dist": dist.name}),
+        )
+
+        ProcessingIssue.objects.create(
+            project_id=project.id,
+            checksum=checksum,
+            type=EventError.NATIVE_MISSING_DSYM,
+            data={"release": release.version, "dist": dist.name},
+        )
+
+        manager = ProcessingIssueManager()
+        manager.record_processing_issue(
+            raw_event=raw_event, scope=scope, object=object, type=EventError.NATIVE_MISSING_DSYM
+        )
+
+        release_filter.assert_not_called()
+
+        issues = ProcessingIssue.objects.filter(
+            project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+        )
+        assert len(issues) == 1
+        assert issues[0].data == {
+            "dist": dist.name,
+            "release": release.version,
+        }
+
+        event_issues = EventProcessingIssue.objects.filter(
+            raw_event=raw_event, processing_issue=issues[0]
+        )
+        assert len(event_issues) == 1
