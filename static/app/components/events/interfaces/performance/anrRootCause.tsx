@@ -40,7 +40,9 @@ export function AnrRootCause({organization}: Props) {
     <EventDataSection
       title={t('Suspect Root Issues')}
       type="suspect-anr-culprits"
-      help={t('Suspect ANR Culprits identifies potential root cause of this ANR.')}
+      help={t(
+        'Suspect Root Issues identifies potential Performance Issues that may be contributing to this ANR.'
+      )}
     >
       {quickTrace.trace[0].performance_issues.map(issue => {
         const project = projects.find(p => p.id === issue.project_id.toString());
