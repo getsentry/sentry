@@ -22,6 +22,7 @@ from sentry.models import (
 from sentry.models.releasefile import update_artifact_index
 from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
 
 # IMPORTANT:
@@ -381,6 +382,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
             == "foo: an unexpected failure occurred while trying to obtain metadata information"
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -477,6 +480,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
         # its raw and original form should be identical
         assert raw_frame_list[1] == frame_list[1]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_embedded_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -555,6 +560,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
         else:
             assert frame.post_context == ["}", ""]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_nofiles_source_expansion(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -620,6 +627,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
         else:
             assert frame.post_context == ["}", ""]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_indexed_sourcemap_source_expansion(self, process_with_symbolicator):
         self.project.update_option("sentry:scrape_javascript", False)
         release = Release.objects.create(
@@ -733,6 +742,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
             assert raw_frame.post_context == ["//# sourceMappingURL=indexed.sourcemap.js", ""]
         assert raw_frame.lineno == 2
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_expansion_via_debug(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -879,6 +890,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
             "\t\treturn multiply(add(a, b), a, b) / c;",
         ]
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_expansion_via_distribution_release_artifacts(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(organization_id=project.organization_id, version="abc")
@@ -1388,6 +1401,8 @@ class TestJavascriptIntegration(RelayStoreHelper):
     def test_expansion_via_release_archive_no_sourcemap_link(self):
         self._test_expansion_via_release_archive(link_sourcemaps=False)
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_node_processing(self, process_with_symbolicator):
         project = self.project
         release = Release.objects.create(

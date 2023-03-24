@@ -5,6 +5,7 @@ import pytest
 from sentry.models import File, Release, ReleaseFile
 from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_symbolicator
 
 # IMPORTANT:
 #
@@ -33,6 +34,8 @@ class TestExample(RelayStoreHelper):
         self.projectkey = default_projectkey
         self.project.update_option("sentry:scrape_javascript", False)
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_sourcemap_expansion(self, process_with_symbolicator):
         release = Release.objects.create(
             organization_id=self.project.organization_id, version="abc"

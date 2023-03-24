@@ -157,7 +157,7 @@ backend-typing:
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
-	pytest tests/relay_integration/lang/javascript/ -vv
+	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
 test-chartcuterie:
