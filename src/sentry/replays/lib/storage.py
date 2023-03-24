@@ -102,7 +102,7 @@ class StorageBlob(Blob):
         storage.delete(self.make_key(segment))
 
     @metrics.wraps("replays.lib.storage.StorageBlob.get")
-    def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
+    def get(self, segment: RecordingSegmentStorageMeta) -> Optional[bytes]:
         try:
             storage = get_storage(self._make_storage_options())
             blob = storage.open(self.make_key(segment))
@@ -110,7 +110,7 @@ class StorageBlob(Blob):
             blob.close()
         except Exception:
             logger.exception("Storage GET error.")
-            return b"[]"  # Return a default value if the storage does not exist.
+            return None
         else:
             return result
 
