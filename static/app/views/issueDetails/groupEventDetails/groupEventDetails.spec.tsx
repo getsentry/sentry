@@ -7,6 +7,7 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {EntryType, Event, Group, IssueCategory, IssueType} from 'sentry/types';
 import {Organization} from 'sentry/types/organization';
 import {Project} from 'sentry/types/project';
+import {QuickTraceEvent} from 'sentry/utils/performance/quickTrace/types';
 import GroupEventDetails, {
   GroupEventDetailsProps,
 } from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
@@ -34,7 +35,10 @@ const makeDefaultMockData = (
       dateCreated: '2019-03-20T00:00:00.000Z',
       errors: [],
       entries: [],
-      tags: [{key: 'environment', value: 'dev'}],
+      tags: [
+        {key: 'environment', value: 'dev'},
+        {key: 'mechanism', value: 'ANR'},
+      ],
       contexts: {
         trace: {
           trace_id: TRACE_ID,
@@ -78,55 +82,55 @@ const TestComponent = (props: Partial<GroupEventDetailsProps>) => {
 };
 
 const mockedTrace = (project: Project) => {
-  return [
-    {
-      event_id: '8806ea4691c24fc7b1c77ecd78df574f',
-      span_id: 'b0e6f15b45c36b12',
-      transaction: 'MainActivity.add_attachment',
-      'transaction.duration': 1000,
-      'transaction.op': 'navigation',
-      project_id: project.id,
-      project_slug: project.slug,
-      parent_span_id: null,
-      parent_event_id: null,
-      generation: 0,
-      errors: [
-        {
-          event_id: 'c6971a73454646338bc3ec80c70f8891',
-          issue_id: 104,
-          span: 'b0e6f15b45c36b12',
-          project_id: project.id,
-          project_slug: project.slug,
-          title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
-          level: 'error',
-        },
-      ],
-      performance_issues: [
-        {
-          event_id: '8806ea4691c24fc7b1c77ecd78df574f',
-          issue_id: 110,
-          issue_short_id: 'SENTRY-ANDROID-1R',
-          span: ['b0e6f15b45c36b12'],
-          suspect_spans: ['89930aab9a0314d4'],
-          project_id: project.id,
-          project_slug: project.slug,
-          title: 'File IO on Main Thread',
-          level: 'info',
-          culprit: 'MainActivity.add_attachment',
-        },
-      ],
-      timestamp: 1678290375.150561,
-      start_timestamp: 1678290374.150561,
-      children: [],
-    },
-  ];
+  return {
+    event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+    span_id: 'b0e6f15b45c36b12',
+    transaction: 'MainActivity.add_attachment',
+    'transaction.duration': 1000,
+    'transaction.op': 'navigation',
+    project_id: parseInt(project.id, 10),
+    project_slug: project.slug,
+    parent_span_id: null,
+    parent_event_id: null,
+    generation: 0,
+    errors: [
+      {
+        event_id: 'c6971a73454646338bc3ec80c70f8891',
+        issue_id: 104,
+        span: 'b0e6f15b45c36b12',
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'ApplicationNotResponding: ANR for at least 5000 ms.',
+        level: 'error',
+        issue: '',
+      },
+    ],
+    performance_issues: [
+      {
+        event_id: '8806ea4691c24fc7b1c77ecd78df574f',
+        issue_id: 110,
+        issue_short_id: 'SENTRY-ANDROID-1R',
+        span: ['b0e6f15b45c36b12'],
+        suspect_spans: ['89930aab9a0314d4'],
+        project_id: parseInt(project.id, 10),
+        project_slug: project.slug,
+        title: 'File IO on Main Thread',
+        level: 'info',
+        culprit: 'MainActivity.add_attachment',
+      },
+    ],
+    timestamp: 1678290375.150561,
+    start_timestamp: 1678290374.150561,
+    children: [],
+  } as QuickTraceEvent;
 };
 
 const mockGroupApis = (
   organization: Organization,
   project: Project,
   group: Group,
-  event: Event
+  event: Event,
+  trace?: QuickTraceEvent
 ) => {
   MockApiClient.addMockResponse({
     url: `/issues/${group.id}/`,
@@ -160,12 +164,12 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace/${TRACE_ID}/`,
-    body: mockedTrace(project),
+    body: trace ? [trace] : [],
   });
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-trace-light/${TRACE_ID}/`,
-    body: mockedTrace(project),
+    body: trace ? [trace] : [],
   });
 
   MockApiClient.addMockResponse({
@@ -566,5 +570,68 @@ describe('Platform Integrations', () => {
     });
 
     expect(componentsRequest).toHaveBeenCalled();
+  });
+
+  describe('ANR Root Cause', () => {
+    beforeEach(() => {
+      MockApiClient.clearMockResponses();
+    });
+    it('shows anr root cause', async () => {
+      const {organization} = initializeOrg();
+      const props = makeDefaultMockData({
+        ...organization,
+        features: ['anr-improvements'],
+      });
+      mockGroupApis(
+        props.organization,
+        props.project,
+        props.group,
+        props.event,
+        mockedTrace(props.project)
+      );
+      const routerContext = TestStubs.routerContext();
+      await act(async () => {
+        render(<TestComponent group={props.group} event={props.event} />, {
+          organization: props.organization,
+          context: routerContext,
+        });
+        await tick();
+      });
+
+      expect(
+        screen.getByRole('heading', {
+          name: /suspect root issues/i,
+        })
+      ).toBeInTheDocument();
+      expect(screen.getByText('File IO on Main Thread')).toBeInTheDocument();
+    });
+
+    it('does not render root issues section if related perf issues do not exist', async () => {
+      const {organization} = initializeOrg();
+      const props = makeDefaultMockData({
+        ...organization,
+        features: ['anr-improvements'],
+      });
+      const trace = mockedTrace(props.project);
+      mockGroupApis(props.organization, props.project, props.group, props.event, {
+        ...trace,
+        performance_issues: [],
+      });
+      const routerContext = TestStubs.routerContext();
+      await act(async () => {
+        render(<TestComponent group={props.group} event={props.event} />, {
+          organization: props.organization,
+          context: routerContext,
+        });
+        await tick();
+      });
+
+      expect(
+        screen.queryByRole('heading', {
+          name: /suspect root issues/i,
+        })
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('File IO on Main Thread')).not.toBeInTheDocument();
+    });
   });
 });
