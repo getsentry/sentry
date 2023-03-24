@@ -69,7 +69,7 @@ QueueSet = QueueSetType()
 
 def kafka_options(
     consumer_group: str,
-    allow_force_cluster: bool = False,
+    allow_force_cluster: bool = True,
     include_batching_options: bool = False,
     default_max_batch_size: Optional[int] = None,
     default_max_batch_time_ms: Optional[int] = 1000,
