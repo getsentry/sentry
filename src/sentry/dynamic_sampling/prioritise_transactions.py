@@ -401,6 +401,8 @@ def next_totals(
 
     """
     current: List[Optional[ProjectTransactionsTotals]] = [None]
+    # protection for the case when the caller passes a list instead of an iterator
+    totals = iter(totals)
 
     def inner(match: ProjectIdentity) -> Optional[ProjectTransactionsTotals]:
         if is_same_project(current[0], match):
