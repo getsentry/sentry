@@ -81,40 +81,49 @@ class ProcessingIssueManager(BaseManager):
         return rv, has_more
 
     @staticmethod
-    def is_release_newer(project_id, release, other_release):
+    def is_release_newer(org_id, release, other_release):
         if other_release is None:
             return True
 
-        try:
-            # TODO: we would need the organization to efficiently query the release.
-            release = Release.objects.get(projects__id=project_id, version=release)
-            other_release = Release.objects.get(projects__id=project_id, version=other_release)
-
-            return float(release.date_added.timestamp()) > float(
-                other_release.date_added.timestamp()
+        releases = {
+            release.version: float(release.date_added.timestamp())
+            for release in Release.objects.filter(
+                organization_id=org_id, version__in=[release, other_release]
             )
-        except Release.DoesNotExist:
-            return False
+        }
+        release_date = releases.get(release)
+        other_release_date = releases.get(other_release)
+
+        if release_date is not None and other_release_date is not None:
+            return release_date > other_release_date
+
+        return False
 
     def record_processing_issue(self, raw_event, scope, object, type, data=None):
         """Records a new processing issue for the given raw event."""
         checksum = get_processing_issue_checksum(scope, object)
 
+        release = raw_event.data.get("release")
+        dist = raw_event.data.get("dist")
+
         data = dict(data or {})
         data["_scope"] = scope
         data["_object"] = object
+        if release is not None:
+            data["release"] = release
+        if dist is not None:
+            data["dist"] = dist
 
         issue, created = ProcessingIssue.objects.get_or_create(
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
         )
-
         issue.datetime = timezone.now()
 
-        release = raw_event.data.get("release")
-        dist = raw_event.data.get("dist")
-
-        def update_issue(is_valid_release):
-            if is_valid_release():
+        if not created:
+            prev_release = issue.data.get("release")
+            if release is not None and self.is_release_newer(
+                raw_event.project.organization.id, release, prev_release
+            ):
                 issue.data["release"] = release
 
                 # In case we have a dist, we want to remove it, since we are changing release. Then in the next step
@@ -126,15 +135,6 @@ class ProcessingIssueManager(BaseManager):
 
                 if dist is not None:
                     issue.data["dist"] = dist
-
-        if created:
-            update_issue(lambda: release is not None)
-        else:
-            prev_release = issue.data.get("release")
-            update_issue(
-                lambda: release is not None
-                and self.is_release_newer(raw_event.project_id, release, prev_release)
-            )
 
         # We want to save the updated data.
         issue.save()
