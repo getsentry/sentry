@@ -96,18 +96,6 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     </Fragment>
   );
 }
-function tryParseData(
-  data: string | undefined
-): undefined | string | Record<string, unknown> {
-  if (data === undefined || typeof data !== 'string') {
-    return data;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return data;
-  }
-}
 
 function getData(
   span: NetworkSpan | null
@@ -120,10 +108,10 @@ function getData(
   return {
     request: {
       [t('Query String Parameters')]: queryParams,
-      [t('Request Payload')]: tryParseData(span.data?.request?.body),
+      [t('Request Payload')]: span.data?.request?.body,
     },
     response: {
-      [t('Response Body')]: tryParseData(span.data?.response?.body),
+      [t('Response Body')]: span.data?.response?.body,
     },
   };
 }
