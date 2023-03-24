@@ -70,12 +70,14 @@ export function AnrRootCause({organization}: Props) {
                 </Fragment>
               </TitleWithLink>
             </Title>
-            <ShortId
-              shortId={issue.issue_short_id}
-              avatar={
-                project && <ProjectBadge project={project} hideName avatarSize={12} />
-              }
-            />
+            {issue.issue_short_id && (
+              <ShortId
+                shortId={issue.issue_short_id}
+                avatar={
+                  project && <ProjectBadge project={project} hideName avatarSize={12} />
+                }
+              />
+            )}
           </IssueSummary>
         );
       })}
