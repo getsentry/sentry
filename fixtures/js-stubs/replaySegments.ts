@@ -106,6 +106,7 @@ export function ReplaySegmentNavigation({
   return ReplaySegmentBreadcrumb({
     timestamp,
     payload: {
+      timestamp: timestamp.getTime() / 1000, // sentry data inside rrweb is in seconds
       type: 'default',
       category: 'navigation',
       data: {
