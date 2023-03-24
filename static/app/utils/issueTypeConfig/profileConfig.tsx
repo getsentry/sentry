@@ -46,7 +46,7 @@ const profileConfig: IssueCategoryConfigMapping = {
   [IssueType.PROFILE_JSON_DECODE_MAIN_THREAD]: {
     resources: {
       description: t(
-        'Decoding a JSON blob into a data structure can be a long running operation, especially for large blobs, and can cause frames to drop or the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
+        'Decoding a JSON blob into a data structure can be a long running operation, especially for large blobs, and can cause slow app performance and UI jank while scrolling. To learn more about how to fix calls that block the main thread, check out these resources:'
       ),
       links: [
         {
@@ -60,7 +60,7 @@ const profileConfig: IssueCategoryConfigMapping = {
   [IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD]: {
     resources: {
       description: t(
-        'Decoding a compressed image from a format such as JPEG or PNG into a bitmap can be a long running operation, especially for large images, and can cause frames to drop or the app to crash. To learn more about how to fix calls that block the main thread, check out these resources:'
+        'Decoding a compressed image from a format such as JPEG or PNG into a bitmap can be a long running operation, especially for large images, and can cause slow app performance and UI jank while scrolling. To learn more about how to fix calls that block the main thread, check out these resources:'
       ),
       links: [
         {
