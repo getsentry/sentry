@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,6 +7,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {decodeList} from 'sentry/utils/queryString';
 import useRouter from 'sentry/utils/useRouter';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
@@ -18,11 +19,7 @@ export enum PRODUCT {
 
 export function ProductSelection() {
   const router = useRouter();
-  const products = useMemo(() => {
-    return Array.isArray(router.location.query.product)
-      ? router.location.query.product
-      : [router.location.query.product];
-  }, [router.location.query.product]);
+  const products = decodeList(router.location.query.product);
 
   const handleClickProduct = useCallback(
     (product: PRODUCT) => {
