@@ -149,9 +149,9 @@ def get_internal_source(project):
     }
 
 
-def get_internal_release_file_source(project, release):
+def get_internal_artifact_lookup_source(project):
     """
-    Returns the source configuration for a Sentry project's release files.
+    Returns the source configuration for the Sentry artifact-lookup API.
     """
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
@@ -165,11 +165,10 @@ def get_internal_release_file_source(project, release):
     sentry_source_url = "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
-            "sentry-api-0-project-release-files",
+            "sentry-api-0-project-artifact-lookup",
             kwargs={
                 "organization_slug": project.organization.slug,
                 "project_slug": project.slug,
-                "version": release,
             },
         ),
     )
