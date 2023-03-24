@@ -125,7 +125,10 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
         <Cell {...columnProps} numeric>
           <TimestampButton
             format="mm:ss.SSS"
-            onClick={() => handleClick(span)}
+            onClick={(event: MouseEvent) => {
+              event.stopPropagation();
+              handleClick(span);
+            }}
             startTimestampMs={startTimestampMs}
             timestampMs={startMs}
           />
@@ -177,7 +180,7 @@ const Cell = styled('div')<{
   isHovered: boolean;
   isStatusError: boolean;
   numeric?: boolean;
-  onClick?: any;
+  onClick?: undefined | (() => void);
 }>`
   display: flex;
   align-items: center;

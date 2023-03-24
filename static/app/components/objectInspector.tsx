@@ -1,13 +1,15 @@
-import {useMemo} from 'react';
-import {chromeDark, chromeLight, ObjectInspector} from 'react-inspector';
+import {ComponentPropsWithoutRef, useMemo} from 'react';
+import {
+  chromeDark,
+  chromeLight,
+  ObjectInspector as OrigObjectInspector,
+} from 'react-inspector';
 
 import ConfigStore from 'sentry/stores/configStore';
 
-type Props = {
-  data: any;
-};
+type Props = Omit<ComponentPropsWithoutRef<typeof OrigObjectInspector>, 'theme'>;
 
-function JSONBlock({data}: Props) {
+function ObjectInspector({data}: Props) {
   const isDark = ConfigStore.get('theme') === 'dark';
 
   const INSPECTOR_THEME = useMemo(
@@ -20,7 +22,7 @@ function JSONBlock({data}: Props) {
   );
 
   return (
-    <ObjectInspector
+    <OrigObjectInspector
       data={data}
       // @ts-expect-error
       theme={INSPECTOR_THEME}
@@ -28,4 +30,4 @@ function JSONBlock({data}: Props) {
   );
 }
 
-export default JSONBlock;
+export default ObjectInspector;

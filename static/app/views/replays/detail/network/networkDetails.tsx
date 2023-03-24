@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import queryString from 'query-string';
 
 import {Button} from 'sentry/components/button';
-import JSONBlock from 'sentry/components/jsonBlock';
+import ObjectInspector from 'sentry/components/objectInspector';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,9 +11,9 @@ import {space} from 'sentry/styles/space';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 import useUrlParams from 'sentry/utils/useUrlParams';
 import SplitDivider from 'sentry/views/replays/detail/layout/splitDivider';
-import NetworkRequestTabs, {
+import NetworkDetailsTabs, {
   TabKey,
-} from 'sentry/views/replays/detail/network/networkRequestTabs';
+} from 'sentry/views/replays/detail/network/networkDetailsTabs';
 import type {NetworkSpan} from 'sentry/views/replays/types';
 
 type Props = {
@@ -26,7 +26,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
     'n_detail_row',
     ''
   );
-  const {getParamValue: getDetailTab} = useUrlParams('n_details_tab', '');
+  const {getParamValue: getDetailTab} = useUrlParams('n_details_tab', 'request');
   const itemIndex = getDetailRow();
 
   const item = itemIndex ? (items[itemIndex] as NetworkSpan) : null;
@@ -61,11 +61,12 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
   }
 
   const visibleTab = getDetailTab();
-  const tabSections = data[visibleTab];
+  const tabSections = data[visibleTab] ?? data.request;
+
   return (
     <Fragment>
       <StyledStacked>
-        <StyledNetworkRequestTabs underlined={false} />
+        <StyledNetworkDetailsTabs underlined={false} />
         <StyledSplitDivider
           isHeld={isHeld}
           onDoubleClick={onDoubleClick}
@@ -87,7 +88,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
           <Fragment key={label}>
             <SectionTitle>{label}</SectionTitle>
             <SectionData>
-              <JSONBlock data={sectionData} />
+              <ObjectInspector data={sectionData} />
             </SectionData>
           </Fragment>
         ))}
@@ -98,7 +99,7 @@ function NetworkRequestDetails({initialHeight = 100, items}: Props) {
 function tryParseData(
   data: string | undefined
 ): undefined | string | Record<string, unknown> {
-  if (data === undefined) {
+  if (data === undefined || typeof data !== 'string') {
     return data;
   }
   try {
@@ -133,7 +134,7 @@ const StyledStacked = styled(Stacked)`
   border-bottom: 1px solid ${p => p.theme.border};
 `;
 
-const StyledNetworkRequestTabs = styled(NetworkRequestTabs)`
+const StyledNetworkDetailsTabs = styled(NetworkDetailsTabs)`
   /*
   Use padding instead of margin so all the <li> will cover the <SplitDivider>
   without taking 100% width.

@@ -10,11 +10,11 @@ import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
 } from 'sentry/views/replays/detail/network/networkHeaderCell';
-import NetworkRequestDetails from 'sentry/views/replays/detail/network/networkRequestDetails';
 import NetworkTableCell from 'sentry/views/replays/detail/network/networkTableCell';
 import useNetworkFilters from 'sentry/views/replays/detail/network/useNetworkFilters';
 import useSortNetwork from 'sentry/views/replays/detail/network/useSortNetwork';
@@ -171,10 +171,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
             organization={organization}
             renderDisabled={false}
           >
-            <NetworkRequestDetails
-              initialHeight={initialRequestDetailsHeight}
-              items={items}
-            />
+            <NetworkDetails initialHeight={initialRequestDetailsHeight} items={items} />
           </Feature>
         </FluidHeight>
       </NetworkTable>
