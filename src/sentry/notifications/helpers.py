@@ -269,6 +269,7 @@ def get_scope_type(type: NotificationSettingTypes) -> NotificationScopeType:
 def get_scope(
     user: User | None = None,
     team: Team | None = None,
+    actor: RpcActor | None = None,
     project: Project | None = None,
     organization: Organization | None = None,
 ) -> tuple[NotificationScopeType, int]:
@@ -276,30 +277,24 @@ def get_scope(
     Figure out the scope from parameters and return it as a tuple.
     TODO(mgaeta): Make sure the user/team is in the project/organization.
     """
-
     if project:
         return NotificationScopeType.PROJECT, project.id
 
     if organization:
         return NotificationScopeType.ORGANIZATION, organization.id
 
-    if team:
-        return NotificationScopeType.TEAM, team.id
+    if user is not None:
+        actor = RpcActor.from_object(user)
+    if team is not None:
+        actor = RpcActor.from_object(team)
 
-    if user:
-        return NotificationScopeType.USER, user.id
+    if actor:
+        if actor.actor_type == ActorType.TEAM:
+            return NotificationScopeType.TEAM, team.id
+        else:
+            return NotificationScopeType.USER, user.id
 
     raise Exception("scope must be either user, team, organization, or project")
-
-
-def get_target_id(user: User | None = None, team: Team | None = None) -> int:
-    """:returns the actor ID from a User or Team."""
-    if user:
-        return int(user.actor_id)
-    if team:
-        return int(team.actor_id)
-
-    raise Exception("target must be either a user or a team")
 
 
 def get_subscription_from_attributes(
