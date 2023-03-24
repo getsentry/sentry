@@ -178,7 +178,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     def _has_sso_enabled(self):
         org = self.context["organization"]
-        return AuthProvider.objects.filter(organization=org).exists()
+        return AuthProvider.objects.filter(organization_id=org.id).exists()
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]

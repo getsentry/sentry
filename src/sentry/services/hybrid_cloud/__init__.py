@@ -327,3 +327,21 @@ class RpcPaginationResult:
             next=RpcCursorState.from_cursor(cursor_result.next),
             prev=RpcCursorState.from_cursor(cursor_result.prev),
         )
+
+
+def coerce_id_from(m: object | int | None) -> int | None:
+    if m is None:
+        return None
+    if isinstance(m, int):
+        return m
+    if hasattr(m, "id"):
+        return m.id  # type: ignore
+    raise ValueError(f"Cannot coerce {m!r} into id!")
+
+
+def extract_id_from(m: object | int) -> int:
+    if isinstance(m, int):
+        return m
+    if hasattr(m, "id"):
+        return m.id  # type: ignore
+    raise ValueError(f"Cannot extract {m!r} from id!")

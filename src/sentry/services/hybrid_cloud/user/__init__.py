@@ -88,9 +88,6 @@ class RpcUser(RpcModel):
     def get_full_name(self) -> str:
         return self.name
 
-    def get_short_name(self) -> str:
-        return self.username
-
     def get_avatar_type(self) -> str:
         if self.avatar is not None:
             return self.avatar.avatar_type
