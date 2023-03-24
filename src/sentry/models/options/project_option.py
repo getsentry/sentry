@@ -53,6 +53,7 @@ OPTION_KEYS = frozenset(
         "sentry:span_attributes",
         "sentry:performance_issue_creation_rate",
         "sentry:performance_issue_send_to_issues_platform",
+        "sentry:performance_issue_create_issue_through_plaform",
         "sentry:transaction_name_cluster_rules",
         "quotas:spike-protection-disabled",
         "feedback:branding",
