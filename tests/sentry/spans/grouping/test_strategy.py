@@ -163,23 +163,7 @@ def test_loose_normalized_db_span_in_condition_strategy(
 
 @pytest.mark.parametrize(
     "query,fingerprint",
-    [  # mssql parameters
-        (
-            "SELECT [t][column1], [t][column2] FROM t WHERE [t][id] = @column_id",
-            ["SELECT [t][column1], [t][column2] FROM t WHERE [t][id] = %s"],
-        ),
-        (
-            "SELECT [t][column1] FROM t WHERE [t][id] = @__column_id",
-            ["SELECT [t][column1] FROM t WHERE [t][id] = %s"],
-        ),
-        (
-            "SELECT [t][column1] FROM t WHERE [t][id] = @__column_id ORDER BY [t][date] OFFSET @p_2",
-            ["SELECT [t][column1] FROM t WHERE [t][id] = %s ORDER BY [t][date] OFFSET %s"],
-        ),
-        (
-            "EXEC @returnValue = [t].[column] @tableId, @userId",
-            ["EXEC %s = [t].[column] %s, %s"],
-        ),
+    [
         # parametrizes numbers
         ("SELECT * FROM table WHERE id = 1", ["SELECT * FROM table WHERE id = %s"]),
         ("SELECT * FROM table LIMIT 1", ["SELECT * FROM table LIMIT %s"]),

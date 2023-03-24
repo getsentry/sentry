@@ -160,7 +160,6 @@ def join_regexes(regexes: Sequence[str]) -> str:
 DB_PARAMETRIZATION_PATTERN = re.compile(
     join_regexes(
         [
-            r"(?<=\s)\@([A-z]|[0-9])*",  # mssql @xxxx paramerization
             r"'(?:[^']|'')*?(?:\\'.*|'(?!'))",  # single-quoted strings
             r"-?\b(?:[0-9]+\.)?[0-9]+(?:[eE][+-]?[0-9]+)?\b",  # numbers
             r"\b(?:true|false)\b",  # booleans
