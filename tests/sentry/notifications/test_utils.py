@@ -12,7 +12,6 @@ from sentry.notifications.helpers import (
     get_scope_type,
     get_settings_by_provider,
     get_subscription_from_attributes,
-    get_target_id,
     get_values_by_provider_by_type,
     validate,
 )
@@ -153,10 +152,6 @@ class NotificationHelpersTest(TestCase):
             not get_scope_type(NotificationSettingTypes.ISSUE_ALERTS)
             == NotificationScopeType.ORGANIZATION
         )
-
-    def test_get_target_id(self):
-        assert get_target_id(self.user) == self.user.actor_id
-        assert get_target_id(self.team) == self.team.actor_id
 
     def test_get_subscription_from_attributes(self):
         attrs = {"subscription": (True, True, None)}
