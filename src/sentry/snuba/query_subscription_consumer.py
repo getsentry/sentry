@@ -3,7 +3,6 @@ import time
 from random import random
 from typing import Callable, Dict, Iterable, List, Mapping, Optional, cast
 
-import jsonschema
 import pytz
 import sentry_sdk
 from arroyo import Topic, configure_metrics
@@ -17,6 +16,8 @@ from arroyo.processing.strategies import (
     ProcessingStrategyFactory,
     RunTask,
 )
+from arroyo.processing.strategies.decoder.base import ValidationError
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
@@ -73,11 +74,12 @@ def parse_message_value(value: str, topic: str) -> PayloadV3:
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
         wrapper: SubscriptionResults = json.loads(value)
+        jsoncodec = JsonCodec(get_schema(topic)["schema"])
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
-            jsonschema.validate(wrapper, get_schema(topic)["schema"])
-        except jsonschema.ValidationError:
+            jsoncodec.validate(wrapper)
+        except ValidationError:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
             raise InvalidSchemaError("Message wrapper does not match schema")
 
