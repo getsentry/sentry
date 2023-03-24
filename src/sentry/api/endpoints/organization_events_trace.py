@@ -90,7 +90,7 @@ class TraceError(TypedDict):
 class TracePerformanceIssue(TypedDict):
     event_id: str
     issue_id: int
-    short_issue_id: str
+    issue_short_id: str
     span: List[str]
     suspect_spans: List[str]
     project_id: int
