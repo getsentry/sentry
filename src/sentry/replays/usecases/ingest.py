@@ -263,4 +263,4 @@ def decompress(data: bytes) -> bytes:
 
 def _report_size_metrics(size_compressed: int, size_uncompressed: int) -> None:
     metrics.timing("replays.usecases.ingest.size_compressed", size_compressed)
-    metrics.timing("replays.usecases.ingest.size_compressed", size_uncompressed)
+    metrics.timing("replays.usecases.ingest.size_uncompressed", size_uncompressed)
