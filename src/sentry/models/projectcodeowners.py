@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 1_000_000
+HIGHER_MAX_RAW_LENGTH = 3_000_000
 
 
 @region_silo_only_model
@@ -87,7 +88,7 @@ class ProjectCodeOwners(DefaultFieldsModel):
 
         return merged_code_owners
 
-    def update_schema(self, raw: str | None = None) -> None:
+    def update_schema(self, raw: str | None = None, higher_max_raw_length: bool = False) -> None:
         """
         Updating the schema goes through the following steps:
         1. parsing the original codeowner file to get the associations
@@ -102,8 +103,9 @@ class ProjectCodeOwners(DefaultFieldsModel):
         if not self.raw:
             return
 
-        if len(self.raw) > MAX_RAW_LENGTH:
-            logger.warning({"raw": f"Raw needs to be <= {MAX_RAW_LENGTH} characters in length"})
+        max_length = HIGHER_MAX_RAW_LENGTH if higher_max_raw_length else MAX_RAW_LENGTH
+        if len(self.raw) > max_length:
+            logger.warning({"raw": f"Raw needs to be <= {max_length} characters in length"})
             return
 
         associations, _ = validate_codeowners_associations(self.raw, self.project)

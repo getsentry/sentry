@@ -15,6 +15,7 @@ from sentry.utils import metrics
 
 # Max accepted string length of the CODEOWNERS file
 MAX_RAW_LENGTH = 1_000_000
+HIGHER_MAX_RAW_LENGTH = 3_000_000
 
 
 class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
@@ -27,6 +28,11 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
         fields = ["raw", "code_mapping_id", "organization_integration_id"]
 
     def get_max_length(self) -> int:
+        if features.has(
+            "organizations:scaleable-codeowners-search",
+            self.context["project"].organization,
+        ):
+            return HIGHER_MAX_RAW_LENGTH
         return MAX_RAW_LENGTH
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:

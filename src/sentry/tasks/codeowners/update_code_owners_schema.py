@@ -34,8 +34,11 @@ def update_code_owners_schema(organization, integration=None, projects=None, **k
                 repository_project_path_config__in=code_mapping_ids
             )
 
+        higher_max_raw_length = features.has(
+            "organizations:scaleable-codeowners-search", organization
+        )
         for code_owner in code_owners:
-            code_owner.update_schema()
+            code_owner.update_schema(higher_max_raw_length=higher_max_raw_length)
 
     # TODO(nisanthan): May need to add logging  for the cases where we might want to have more information if something fails
     except (RepositoryProjectPathConfig.DoesNotExist, ProjectCodeOwners.DoesNotExist):

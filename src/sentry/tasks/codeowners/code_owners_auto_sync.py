@@ -1,5 +1,6 @@
 from rest_framework.exceptions import NotFound
 
+from sentry import features
 from sentry.models import Commit, ProjectCodeOwners, ProjectOwnership, RepositoryProjectPathConfig
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
 from sentry.tasks.base import instrumented_task, retry
@@ -69,6 +70,12 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 
-        codeowners.update_schema(codeowner_contents["raw"])
+        higher_max_raw_length = features.has(
+            "organizations:scaleable-codeowners-search",
+            code_mapping.organization_integration.organization,
+        )
+        codeowners.update_schema(
+            raw=codeowner_contents["raw"], higher_max_raw_length=higher_max_raw_length
+        )
 
         # TODO(Nisanthan): Record analytics on auto-sync success
