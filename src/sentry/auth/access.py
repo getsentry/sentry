@@ -339,13 +339,12 @@ class DbAccess(Access):
             return True
 
         membership = self._team_memberships.get(team)
-        if membership is not None and scope in membership.get_scopes():
+        if membership and scope in membership.get_scopes():
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": membership.role, "scope": scope},
             )
             return True
-
         return False
 
     def get_team_role(self, team: Team) -> TeamRole | None:
@@ -384,7 +383,6 @@ class DbAccess(Access):
                             tags={"team_role": membership.role, "scope": scope},
                         )
                         return True
-
         return False
 
 
@@ -530,14 +528,12 @@ class RpcBackedAccess(Access):
             return False
 
         team_membership = self.get_team_membership(team.id)
-
         if team_membership and scope in team_membership.scopes:
             metrics.incr(
                 "team_roles.pass_by_team_scope",
                 tags={"team_role": f"{team_membership.role}", "scope": scope},
             )
             return True
-
         return False
 
     def get_team_role(self, team: Team) -> TeamRole | None:
@@ -558,26 +554,43 @@ class RpcBackedAccess(Access):
         return project.id in self.project_ids_with_team_membership
 
     def has_any_project_scope(self, project: Project, scopes: Collection[str]) -> bool:
+        """
+        Represent if a user should have access with any one of the given scopes to
+        information for the given project.
+
+        For performance's sake, prefer this over multiple calls to `has_project_scope`.
+        """
         if not self.has_project_access(project):
             return False
-
         if any(self.has_scope(scope) for scope in scopes):
             return True
 
         if self.rpc_user_organization_context.member and features.has(
             "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
-            memberships = self.rpc_user_organization_context.member.member_teams
-            for membership in memberships:
-                team_scopes = membership.scopes
+            with sentry_sdk.start_span(op="check_access_for_all_project_teams") as span:
+                project_teams_id = [p.id for p in project.teams.all()]
+                orgmember_teams = self.rpc_user_organization_context.member.member_teams
+                span.set_tag("organization", self.rpc_user_organization_context.organization.id)
+                span.set_tag(
+                    "organization.slug", self.rpc_user_organization_context.organization.slug
+                )
+                span.set_data("membership_count", len(orgmember_teams))
+
+            for member_team in orgmember_teams:
+                if not member_team.role:
+                    continue
+                if member_team.team_id not in project_teams_id:
+                    continue
+
+                team_scopes = member_team.role.scopes
                 for scope in scopes:
                     if scope in team_scopes:
                         metrics.incr(
                             "team_roles.pass_by_project_scope",
-                            tags={"team_role": f"{membership.role}", "scope": scope},
+                            tags={"team_role": f"{member_team.role.id}", "scope": scope},
                         )
                         return True
-
         return False
 
 
