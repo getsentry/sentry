@@ -23,13 +23,8 @@ def schedule_organizations(dry_run=False) -> None:
     features independently of the auto-enablement.
     """
     logger.info("Starting task for sentry.tasks.auto_enable_codecov.schedule_organizations")
-
-    organizations = Organization.objects.filter(status=OrganizationStatus.ACTIVE)
-    logger.info(
-        "Processing organizations for codecov auto-enable", extra={"count": len(organizations)}
-    )
-    for _, organization in enumerate(
-        RangeQuerySetWrapper(organizations, step=1000, result_value_getter=lambda item: item.id)
+    for organization in RangeQuerySetWrapper(
+        Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
         codecov_enabled = features.has("organizations:codecov-stacktrace-integration", organization)
         should_auto_enable = features.has("organizations:auto-enable-codecov", organization)
