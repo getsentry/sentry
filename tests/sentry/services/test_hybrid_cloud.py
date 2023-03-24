@@ -1,5 +1,6 @@
 from collections import deque
 
+from sentry.models import Authenticator
 from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.testutils import TestCase
@@ -26,6 +27,10 @@ class RpcModelTest(TestCase):
 
     def test_rpc_model_equals_method(self):
         orm_user = self.create_user()
+        Authenticator.objects.create(user=orm_user, type=1)
+
         user1 = user_service.get_user(orm_user.id)
         user2 = user_service.get_user(orm_user.id)
-        assert user1 == user2  # This has regressed to raise an exception at least once
+
+        # This has previously raised an exception due to nested frozensets of RpcModels
+        assert user1 == user2

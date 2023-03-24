@@ -216,18 +216,16 @@ def serialize_rpc_user(user: User) -> RpcUser:
         roles = frozenset(flatten(user.roles))
     args["roles"] = roles
 
-    useremails: FrozenSet[RpcUserEmail] = frozenset({})
+    useremails: List[RpcUserEmail] = []
     if hasattr(user, "useremails") and user.useremails is not None:
-        useremails = frozenset(
-            {
-                RpcUserEmail(
-                    id=e["id"],
-                    email=e["email"],
-                    is_verified=e["is_verified"],
-                )
-                for e in user.useremails
-            }
-        )
+        useremails = [
+            RpcUserEmail(
+                id=e["id"],
+                email=e["email"],
+                is_verified=e["is_verified"],
+            )
+            for e in user.useremails
+        ]
     args["useremails"] = useremails
     avatar = user.avatar.first()
     if avatar is not None:
@@ -238,9 +236,9 @@ def serialize_rpc_user(user: User) -> RpcUser:
             avatar_type=avatar.get_avatar_type_display(),
         )
     args["avatar"] = avatar
-    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
+    authenticators: List[RpcAuthenticator] = []
     if hasattr(user, "authenticators") and user.authenticators is not None:
-        authenticators = frozenset(
+        authenticators = [
             RpcAuthenticator(
                 id=a["id"],
                 user_id=a["user_id"],
@@ -250,7 +248,7 @@ def serialize_rpc_user(user: User) -> RpcUser:
                 config=a["config"],
             )
             for a in user.authenticators
-        )
+        ]
     args["authenticators"] = authenticators
 
     return RpcUser(**args)
