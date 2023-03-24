@@ -14,8 +14,8 @@ from .models import Monitor, MonitorCheckIn, MonitorEnvironment
 class MonitorEnvironmentSerializer(Serializer):
     def serialize(self, obj, attrs, user):
         return {
-            "status": obj.get_status_display(),
             "name": obj.environment.name,
+            "status": obj.get_status_display(),
             "lastCheckIn": obj.last_checkin,
             "nextCheckIn": obj.next_checkin,
             "dateCreated": obj.monitor.date_added,
@@ -50,6 +50,7 @@ class MonitorSerializer(Serializer):
             for monitor_environment in MonitorEnvironment.objects.filter(
                 monitor__in=item_list, environment__in=self.environments
             ).select_related("environment"):
+                # individually serialize as related objects are prefetched
                 monitor_environments.setdefault(monitor_environment.monitor_id, []).append(
                     serialize(
                         monitor_environment,
@@ -57,7 +58,9 @@ class MonitorSerializer(Serializer):
                     )
                 )
 
-            environment_data = {str(item.id): monitor_environments[item.id] for item in item_list}
+            environment_data = {
+                str(item.id): monitor_environments.get(item.id) for item in item_list
+            }
 
         return {
             item: {
@@ -103,24 +106,16 @@ class MonitorSerializerResponse(TypedDict):
 @register(MonitorCheckIn)
 class MonitorCheckInSerializer(Serializer):
     def get_attrs(self, item_list, user, **kwargs):
+        # prefetch monitor environment data
         prefetch_related_objects(item_list, "monitor_environment__environment")
-        environments = {
-            str(i.id): i.monitor_environment.environment.name
-            for i in item_list
-            if i.monitor_environment
-        }
-
-        return {
-            item: {
-                "environment": environments[str(item.id)] if item.monitor_environment else None,
-            }
-            for item in item_list
-        }
+        return {}
 
     def serialize(self, obj, attrs, user):
         return {
             "id": str(obj.guid),
-            "environment": attrs["environment"],
+            "environment": obj.monitor_environment.environment.name
+            if obj.monitor_environment
+            else None,
             "status": obj.get_status_display(),
             "duration": obj.duration,
             "dateCreated": obj.date_added,
