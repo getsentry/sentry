@@ -158,13 +158,13 @@ function App({children, params}: Props) {
   const newsletterConsentPrompt = config.user?.flags?.newsletter_consent_prompt;
 
   function renderBody() {
-    if (needsUpgrade) {
-      return (
-        <Suspense fallback={null}>
-          <InstallWizard onConfigured={clearUpgrade} />;
-        </Suspense>
-      );
-    }
+    // if (needsUpgrade) {
+    //   return (
+    //     <Suspense fallback={null}>
+    //       <InstallWizard onConfigured={clearUpgrade} />;
+    //     </Suspense>
+    //   );
+    // }
 
     if (newsletterConsentPrompt) {
       return (

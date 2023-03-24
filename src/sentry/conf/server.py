@@ -1333,7 +1333,7 @@ SENTRY_FEATURES = {
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable OpenAI suggestions in the issue details page
-    "organizations:open-ai-suggestion": False,
+    "organizations:open-ai-suggestion": True,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
