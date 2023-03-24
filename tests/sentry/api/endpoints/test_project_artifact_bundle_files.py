@@ -223,7 +223,7 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "files": [
                 {
                     "debugId": None,
-                    "filePath": "files/_/_/bundle1.js",
+                    "filePath": "~/bundle1.js",
                     "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
                     "fileSize": 71,
                     "fileType": 0,
@@ -242,21 +242,21 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "files": [
                 {
                     "debugId": None,
-                    "filePath": "files/_/_/bundle1.js",
+                    "filePath": "~/bundle1.js",
                     "id": "ZmlsZXMvXy9fL2J1bmRsZTEuanM=",
                     "fileSize": 71,
                     "fileType": 0,
                 },
                 {
                     "debugId": None,
-                    "filePath": "files/_/_/bundle1.min.js",
+                    "filePath": "~/bundle1.min.js",
                     "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpz",
                     "fileSize": 63,
                     "fileType": 2,
                 },
                 {
                     "debugId": None,
-                    "filePath": "files/_/_/bundle1.min.js.map",
+                    "filePath": "~/bundle1.min.js.map",
                     "fileSize": 139,
                     "fileType": 0,
                     "id": "ZmlsZXMvXy9fL2J1bmRsZTEubWluLmpzLm1hcA==",
@@ -275,14 +275,14 @@ class ProjectArtifactBundleFilesEndpointTest(APITestCase):
             "files": [
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                    "filePath": "files/_/_/index.js.map",
+                    "filePath": "~/index.js.map",
                     "id": "ZmlsZXMvXy9fL2luZGV4LmpzLm1hcA==",
                     "fileSize": 1804,
                     "fileType": 3,
                 },
                 {
                     "debugId": "eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-                    "filePath": "files/_/_/index.min.js",
+                    "filePath": "~/index.min.js",
                     "id": "ZmlsZXMvXy9fL2luZGV4Lm1pbi5qcw==",
                     "fileSize": 1676,
                     "fileType": 2,
