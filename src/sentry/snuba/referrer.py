@@ -465,6 +465,7 @@ class ReferrerBase(Enum):
     )
     REPLAYS_QUERY_QUERY_REPLAYS_COUNT = "replays.query.query_replays_count"
     REPLAYS_QUERY_QUERY_REPLAYS_DATASET = "replays.query.query_replays_dataset"
+    REPLAYS_QUERY_QUERY_REPLAYS_DATASET_SUBQUERY = "replays.query.query_replays_dataset_subquery"
     REPORTS_KEY_ERRORS = "reports.key_errors"
     REPORTS_KEY_PERFORMANCE_ISSUES = "reports.key_performance_issues"
     REPORTS_KEY_TRANSACTIONS_P95 = "reports.key_transactions.p95"

@@ -9,7 +9,9 @@ from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.silo import region_silo_test
 from sentry.utils.cursors import Cursor
 
-REPLAYS_FEATURES = {"organizations:session-replay": True}
+REPLAYS_FEATURES = {
+    "organizations:session-replay": True,
+}
 
 
 @region_silo_test
@@ -862,3 +864,11 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
             )
             assert response.status_code == 200
             assert len(response.json()["data"]) == 0
+
+
+@region_silo_test
+@apply_feature_flag_on_cls("organizations:global-views")
+@apply_feature_flag_on_cls("organizations:session-replay-index-subquery")
+class OrganizationReplayIndexTestSubQueryOptimized(OrganizationReplayIndexTest):
+    # run the same tests except with the subquery optimization applied
+    pass

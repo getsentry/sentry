@@ -21,7 +21,9 @@ from snuba_sdk import (
 from snuba_sdk.expressions import Expression
 from snuba_sdk.orderby import Direction, OrderBy
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchConfig, SearchFilter
+from sentry.models.organization import Organization
 from sentry.replays.lib.query import (
     ListField,
     Number,
@@ -52,9 +54,24 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
-    tenant_ids: dict[str, Any] | None = None,
+    organization: Organization,
 ) -> dict:
     """Query aggregated replay collection."""
+
+    tenant_ids = {"organization_id": organization.id}
+
+    def _should_use_subquery():
+        # TODO: determine what orderings are subquery eligible
+        # TODO: determine what conditions/search filters are subquery eligible
+        # TODO: determine how/if we can handle offsetting correctly with subquerying.
+        return (
+            len(search_filters) == 0
+            and sort is None
+            and len(conditions) == 0
+            and paginators.offset == 0
+            and features.has("organizations:session-replay-index-subquery", organization)
+        )
+
     conditions = []
     if environment:
         conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
@@ -66,18 +83,29 @@ def query_replays_collection(
     )
     paginators = make_pagination_values(limit, offset)
 
-    response = query_replays_dataset(
-        project_ids=project_ids,
-        start=start,
-        end=end,
-        where=[],
-        having=conditions,
-        fields=fields,
-        sorting=sort_ordering,
-        pagination=paginators,
-        search_filters=search_filters,
-        tenant_ids=tenant_ids,
-    )
+    if _should_use_subquery():
+        response = query_replays_dataset_with_subquery(
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            fields=fields,
+            sorting=sort_ordering,
+            pagination=paginators,
+            tenant_ids=tenant_ids,
+        )
+    else:
+        response = query_replays_dataset(
+            project_ids=project_ids,
+            start=start,
+            end=end,
+            where=[],
+            having=conditions,
+            fields=fields,
+            sorting=sort_ordering,
+            pagination=paginators,
+            search_filters=search_filters,
+            tenant_ids=tenant_ids,
+        )
     return response["data"]
 
 
@@ -162,6 +190,84 @@ def query_replays_dataset(
             groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
+        ),
+        tenant_ids=tenant_ids,
+    )
+    return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
+
+
+def query_replays_dataset_with_subquery(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    sorting: List[OrderBy],
+    fields: List[str],
+    pagination: Optional[Paginators],
+    tenant_ids: dict[str, Any] | None = None,
+):
+    # simply get the eligible replay_ids, only look at segment_0
+    # TODO: make sure timestamp end is current now.
+    subquery_snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Column("replay_id"),
+                Function(
+                    "identity", parameters=[Column("replay_start_timestamp")], alias="started_at"
+                ),
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("segment_id"), Op.EQ, 0),
+            ],
+            orderby=sorting,
+            granularity=Granularity(3600),
+            limit=Limit(pagination.limit),
+            offset=Offset(pagination.offset),
+        ),
+        tenant_ids=tenant_ids,
+    )
+
+    replay_ids_to_filter_results = raw_snql_query(
+        subquery_snuba_request, "replays.query.query_replays_dataset_subquery"
+    )
+
+    replay_ids_to_filter = [r["replay_id"] for r in replay_ids_to_filter_results["data"]]
+
+    # do the full query to get all aggregated fields
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=make_select_statement(fields, sorting, []),
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("replay_id"), Op.IN, replay_ids_to_filter),
+            ],
+            having=[
+                # Must include the first sequence otherwise the replay is too old.
+                Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Make sure we're not too old.
+                Condition(Column("started_at"), Op.LT, end),
+                # TODO: talk about changing semantics default "end sort" to use started_at instead of finished at
+                # Require non-archived replays.
+                Condition(Column("isArchived"), Op.EQ, 0),
+                # User conditions.
+                *generate_valid_conditions([], query_config=ReplayQueryConfig()),
+                # Other conditions.
+            ],
+            orderby=sorting,
+            groupby=[Column("project_id"), Column("replay_id")],
+            granularity=Granularity(3600),
+            limit=Limit(pagination.limit),
+            offset=Offset(pagination.offset),
         ),
         tenant_ids=tenant_ids,
     )
