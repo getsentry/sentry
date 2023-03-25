@@ -1595,6 +1595,8 @@ def _save_aggregate(
     else:
         new_hashes = []
 
+    skip_regression_check = False
+
     if new_hashes:
         # There may still be secondary hashes that we did not use to find an
         # existing group. A classic example is when grouping makes changes to
@@ -1637,12 +1639,20 @@ def _save_aggregate(
                 GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
                     state=GroupHash.State.LOCKED_IN_MIGRATION
                 ).update(group=group)
+            except OperationalError:
+                metrics.incr(
+                    "group_hash_association.timeout",
+                    tags={"platform": event.platform or "unknown"},
+                )
+                sentry_sdk.capture_message("group_hash_association.timeout")
+                # Better not regress on a hash we did not manage to associate
+                skip_regression_check = True
             finally:
                 if statement_timeout is not None:
                     cur.execute("set local statement_timeout = %s", [statement_timeout])
                 cur.close()
 
-    is_regression = _process_existing_aggregate(
+    is_regression = not skip_regression_check and _process_existing_aggregate(
         group=group, event=event, data=kwargs, release=release
     )
 
