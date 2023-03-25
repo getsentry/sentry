@@ -4,6 +4,11 @@ from rest_framework.request import Request
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.api.bases.organization import OrganizationIntegrationsPermission
 from sentry.models import Integration, OrganizationIntegration
+from sentry.services.hybrid_cloud.integration import (
+    RpcIntegration,
+    RpcOrganizationIntegration,
+    integration_service,
+)
 
 
 class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
@@ -66,3 +71,50 @@ class OrganizationIntegrationBaseEndpoint(IntegrationEndpoint):
             )
         except Integration.DoesNotExist:
             raise Http404
+
+
+class RegionOrganizationIntegrationBaseEndpoint(OrganizationIntegrationBaseEndpoint):
+    """
+    OrganizationIntegrationBaseEndpoints expect both Integration and
+    OrganizationIntegration DB entries to exist for a given organization and
+    integration_id.
+    """
+
+    permission_classes = (OrganizationIntegrationsPermission,)
+
+    @staticmethod
+    def get_organization_integration(
+        organization_id: int, integration_id: int
+    ) -> RpcOrganizationIntegration:
+        """
+        Get just the cross table entry.
+        Note: This will still return organization integrations that are pending deletion.
+
+        :param organization:
+        :param integration_id:
+        :return:
+        """
+        org_integration = integration_service.get_organization_integration(
+            integration_id=integration_id, organization_id=organization_id
+        )
+        if not org_integration:
+            raise Http404
+        return org_integration
+
+    @staticmethod
+    def get_integration(organization_id: int, integration_id: int) -> RpcIntegration:
+        """
+        Note: The integration may still exist even when the
+        OrganizationIntegration cross table entry has been deleted.
+
+        :param organization:
+        :param integration_id:
+        :return:
+        """
+        integration, org_integration = integration_service.get_organization_context(
+            organization_id=organization_id, integration_id=integration_id
+        )
+        if not integration or not org_integration:
+            raise Http404
+
+        return integration

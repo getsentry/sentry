@@ -3,8 +3,8 @@ from typing import Optional, TypedDict
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.api.base import control_silo_endpoint
-from sentry.api.bases.organization_integrations import OrganizationIntegrationBaseEndpoint
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.integrations.mixins import RepositoryMixin
@@ -18,8 +18,8 @@ class IntegrationRepository(TypedDict):
     defaultBranch: Optional[str]
 
 
-@control_silo_endpoint
-class OrganizationIntegrationReposEndpoint(OrganizationIntegrationBaseEndpoint):
+@region_silo_endpoint
+class OrganizationIntegrationReposEndpoint(RegionOrganizationIntegrationBaseEndpoint):
     def get(self, request: Request, organization, integration_id) -> Response:
         """
         Get the list of repositories available in an integration
