@@ -180,6 +180,8 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             raise serializers.ValidationError(
                 {"target_display": "Did not receive a slack user or channel name."}
             )
+
+        generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
             _prefix, channel_id, timed_out, = get_channel_id(
                 organization=self.context["organization"],
@@ -187,15 +189,15 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 channel_name=channel_name,
             )
         except Exception:
-            raise serializers.ValidationError(
-                {
-                    "target_display": f"Could not fetch channel id from Slack for {channel_name}. Try providing the channel id, or try again later."
-                }
-            )
+            raise serializers.ValidationError({"target_display": generic_error_message})
+
+        if not channel_id:
+            raise serializers.ValidationError({"target_display": generic_error_message})
+
         if timed_out:
             raise serializers.ValidationError(
                 {
-                    "target_identifier": "Please provide a slack channel id, we encountered a timeout searching for it via the channel name."
+                    "target_identifier": "Please provide a slack channel id, we encountered an error while earching for it via the channel name."
                 }
             )
         data["target_identifier"] = channel_id
@@ -235,15 +237,16 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
                 id=service_id,
                 organization_integration__organization_id=self.context["organization"].id,
                 organization_integration__integration_id=self.integration.id,
-            ).values("id", "service_name")
+            )
         except PagerDutyService.DoesNotExist:
             raise serializers.ValidationError(
                 {
                     "target_identifier": f"Could not find associated PagerDuty service for the '{self.integration.name}' account. If it exists, ensure Sentry has access."
                 }
             )
-        data["target_display"] = pds["service_name"]
-        data["target_identifier"] = pds["id"]
+        data["target_display"] = pds.service_name
+        data["target_identifier"] = pds.id
+        return data
 
     def validate(self, data: NotificationActionInputData) -> NotificationActionInputData:
         self.validate_integration_and_service(data)
