@@ -10,7 +10,16 @@ import HookOrDefault from 'sentry/components/hookOrDefault';
 import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PanelItem} from 'sentry/components/panels';
-import {IconCheckmark, IconClose, IconFlag, IconMail, IconSubtract} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {
+  IconCheckmark,
+  IconClose,
+  IconFlag,
+  IconInfo,
+  IconMail,
+  IconSad,
+  IconSubtract,
+} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {AvatarUser, Member, Organization} from 'sentry/types';
@@ -79,32 +88,69 @@ export default class OrganizationMemberRow extends PureComponent<Props, State> {
 
   renderMemberRole() {
     const {member, organization} = this.props;
-    const {orgRole, pending, expired, orgRolesFromTeams} = member;
+    const {pending, expired, orgRole, orgRolesFromTeams, roleName} = member;
     const {orgRoleList} = organization;
-
-    const allOrgRoleNames =
-      orgRolesFromTeams?.filter(obj => obj.role !== null).map(obj => obj.role.id) ?? [];
-    allOrgRoleNames?.push(orgRole);
-    const orgRoleNames = uniq(allOrgRoleNames);
-
-    const orgRoleNamesString = sortOrgRoles(orgRoleNames, orgRoleList ?? [])
-      .map(roleName => capitalize(roleName))
-      .join(', ');
 
     if (isMemberDisabledFromLimit(member)) {
       return <DisabledMemberTooltip>{t('Deactivated')}</DisabledMemberTooltip>;
     }
+
     if (pending) {
       return (
         <InvitedRole>
-          <IconMail size="md" />
-          {expired
-            ? t('Expired Invite')
-            : tct('Invited [orgRoleNamesString]', {orgRoleNamesString})}
+          {expired ? (
+            <Fragment>
+              <IconSad size="md" /> {t('Invite Expired')}
+            </Fragment>
+          ) : (
+            <Fragment>
+              <IconMail size="md" /> {tct('Invited [roleName]', {roleName})}
+            </Fragment>
+          )}
         </InvitedRole>
       );
     }
-    return orgRoleNamesString;
+
+    if (!orgRolesFromTeams || orgRolesFromTeams.length === 0) {
+      return roleName;
+    }
+
+    const node = (
+      <RoleTooltip>
+        <div>This user inherited org-level roles from several sources.</div>
+
+        <RoleRowWrapper>
+          <div>
+            <a href="">User-specific</a>: {roleName}
+          </div>
+
+          <br />
+          <div>From Teams:</div>
+          {orgRolesFromTeams.map(r => (
+            <div key={r.teamSlug}>
+              <a href="">
+                <strong>#{r.teamSlug}</strong>
+              </a>
+              : {r.role.name}
+            </div>
+          ))}
+        </RoleRowWrapper>
+
+        <div>
+          Sentry will grant them permissions equivalent to their highest org-level role.{' '}
+          <a href="">See docs here</a>.
+        </div>
+      </RoleTooltip>
+    );
+
+    return (
+      <Fragment>
+        {roleName}
+        <Tooltip title={node} isHoverable>
+          <IconInfo />
+        </Tooltip>
+      </Fragment>
+    );
   }
 
   render() {
@@ -303,6 +349,16 @@ const InvitedRole = styled(Section)``;
 const LoadingContainer = styled('div')`
   margin-top: 0;
   margin-bottom: ${space(1.5)};
+`;
+
+const RoleTooltip = styled('div')`
+  min-width: 200px;
+  display: grid;
+  row-gap: ${space(1.5)};
+  text-align: left;
+`;
+const RoleRowWrapper = styled('div')`
+  display: block;
 `;
 
 const AuthStatus = styled(Section)``;
