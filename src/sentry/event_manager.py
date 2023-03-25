@@ -30,7 +30,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, connections, transaction
+from django.db import IntegrityError, OperationalError, connection, connections, router, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
@@ -1622,8 +1622,9 @@ def _save_aggregate(
         # _save_aggregate had races around group creation which made this race
         # more user visible. For more context, see 84c6f75a and d0e22787, as
         # well as GH-5085.
-        with transaction.atomic(using="default"):
-            cur = connections["default"].cursor()
+        using = router.db_for_write(GroupHash)
+        with transaction.atomic(using=using):
+            cur = connections[using].cursor()
             statement_timeout = None
             try:
                 # This is a hacky way to prevent contention on the group hash locks.  Workaround
