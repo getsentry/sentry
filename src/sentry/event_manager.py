@@ -30,7 +30,7 @@ import sentry_sdk
 from django.conf import settings
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError, OperationalError, connection, transaction
+from django.db import IntegrityError, OperationalError, connection, connections, transaction
 from django.db.models import Func
 from django.utils.encoding import force_text
 from pytz import UTC
@@ -1620,9 +1620,27 @@ def _save_aggregate(
         # _save_aggregate had races around group creation which made this race
         # more user visible. For more context, see 84c6f75a and d0e22787, as
         # well as GH-5085.
-        GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
-            state=GroupHash.State.LOCKED_IN_MIGRATION
-        ).update(group=group)
+        with transaction.atomic(using="default"):
+            cur = connections["default"].cursor()
+            statement_timeout = None
+            try:
+                # This is a hacky way to prevent contention on the group hash locks.  Workaround
+                # for INC-377 related to how we already have a statement timeout for project
+                # counters.  See SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT for related issue.
+                if settings.SENTRY_GROUP_HASH_ASSOCIATION_STATEMENT_TIMEOUT is not None:
+                    cur.execute("show statement_timeout")
+                    statement_timeout = cur.fetchone()[0]
+                    cur.execute(
+                        "set local statement_timeout = %s",
+                        [settings.SENTRY_GROUP_HASH_ASSOCIATION_STATEMENT_TIMEOUT],
+                    )
+                GroupHash.objects.filter(id__in=[h.id for h in new_hashes]).exclude(
+                    state=GroupHash.State.LOCKED_IN_MIGRATION
+                ).update(group=group)
+            finally:
+                if statement_timeout is not None:
+                    cur.execute("set local statement_timeout = %s", [statement_timeout])
+                cur.close()
 
     is_regression = _process_existing_aggregate(
         group=group, event=event, data=kwargs, release=release

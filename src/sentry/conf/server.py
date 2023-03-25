@@ -2983,6 +2983,14 @@ SENTRY_METRICS_INDEXER_REDIS_CLUSTER = "default"
 # Value is in milliseconds. Set to `None` to disable.
 SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 
+# Statement timeout for group hash association.
+# In case of contention around group hash association this times out the statement
+# which has the effect that some groups end up orphaned.  This can cause groups to
+# be over-created however has the advantage that we are not contending on those
+# locks.
+# Value is in milliseconds. Set to `None` to disable.
+SENTRY_GROUP_HASH_ASSOCIATION_STATEMENT_TIMEOUT = 1000
+
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS = None
 
