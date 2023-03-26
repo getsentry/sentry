@@ -2,7 +2,9 @@ import logging
 import random
 from typing import Callable, Mapping
 
+import sentry_kafka_schemas
 import sentry_sdk
+from arroyo.processing.strategies.decoder.json import JsonCodec
 from arroyo.types import Message
 from django.conf import settings
 
@@ -24,6 +26,8 @@ STORAGE_TO_INDEXER: Mapping[IndexerStorage, Callable[[], StringIndexer]] = {
     IndexerStorage.POSTGRES: PostgresIndexer,
     IndexerStorage.MOCK: MockIndexer,
 }
+
+_INGEST_SCHEMA = JsonCodec(sentry_kafka_schemas.get_schema("ingest-metrics")["schema"])
 
 
 class MessageProcessor:
@@ -81,8 +85,16 @@ class MessageProcessor:
         )
         is_output_sliced = self._config.is_output_sliced or False
 
+        arroyo_input_codec_should_sample = (
+            0.0 < options.get(self._config.input_schema_validation_option_name) < random.random()
+        )
+
         batch = IndexerBatch(
-            self._config.use_case_id, outer_message, should_index_tag_values, is_output_sliced
+            self._config.use_case_id,
+            outer_message,
+            should_index_tag_values=should_index_tag_values,
+            is_output_sliced=is_output_sliced,
+            arroyo_input_codec=_INGEST_SCHEMA if arroyo_input_codec_should_sample else None,
         )
 
         sdk.set_measurement("indexer_batch.payloads.len", len(batch.parsed_payloads_by_offset))

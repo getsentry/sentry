@@ -43,6 +43,9 @@ class MetricsIngestConfiguration:
     writes_limiter_namespace: str
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
+
+    input_schema_validation_option_name: str
+
     index_tag_values_option_name: Optional[str] = None
     is_output_sliced: Optional[bool] = False
 
@@ -74,6 +77,7 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS,
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
             )
         )
 
@@ -91,6 +95,7 @@ def get_ingest_config(
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 index_tag_values_option_name="sentry-metrics.performance.index-tag-values",
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.performance.rollout-rate",
             )
         )
 
@@ -107,6 +112,7 @@ def get_ingest_config(
                 writes_limiter_namespace=RELEASE_HEALTH_CS_NAMESPACE,
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
             )
         )
 
@@ -124,6 +130,7 @@ def get_ingest_config(
                 cardinality_limiter_cluster_options=settings.SENTRY_METRICS_INDEXER_CARDINALITY_LIMITER_OPTIONS_PERFORMANCE,
                 cardinality_limiter_namespace=PERFORMANCE_PG_NAMESPACE,
                 is_output_sliced=settings.SENTRY_METRICS_INDEXER_ENABLE_SLICED_PRODUCER,
+                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.performance.rollout-rate",
             )
         )
 
@@ -140,6 +147,7 @@ def get_ingest_config(
                 writes_limiter_namespace="test-namespace",
                 cardinality_limiter_cluster_options={},
                 cardinality_limiter_namespace=RELEASE_HEALTH_PG_NAMESPACE,
+                input_schema_validation_option_name="sentry-metrics.consumer-schema-validation.release-health.rollout-rate",
             )
         )
 
