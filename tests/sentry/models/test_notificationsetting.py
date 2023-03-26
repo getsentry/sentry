@@ -1,4 +1,5 @@
 from sentry.models import NotificationSetting
+from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
 from sentry.testutils import TestCase
 from sentry.types.integrations import ExternalProviders
@@ -25,6 +26,9 @@ class NotificationSettingTest(TestCase):
     def test_remove_for_user(self):
         create_setting(user=self.user)
 
+        # Refresh user for actor
+        self.user = User.objects.get(id=self.user.id)
+
         # Deletion is deferred and tasks aren't run in tests.
         self.user.delete()
         self.user.actor.delete()
@@ -36,7 +40,6 @@ class NotificationSettingTest(TestCase):
 
         # Deletion is deferred and tasks aren't run in tests.
         self.team.delete()
-        self.team.actor.delete()
 
         assert_no_notification_settings()
 
