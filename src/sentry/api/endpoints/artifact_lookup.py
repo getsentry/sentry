@@ -115,7 +115,9 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
 
         bundle_file_ids = collect_artifact_bundles_containing_debug_ids(debug_ids, project)
         individual_files = try_resolve_urls(urls, project, release_name, dist_name, bundle_file_ids)
-        base_url = get_internal_artifact_lookup_source_url(project)
+
+        # Then: Construct our response
+        url_constructor = UrlConstructor(project)
 
         found_artifacts = []
         for file_id in bundle_file_ids:
@@ -123,7 +125,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 {
                     "id": str(file_id),
                     "type": "bundle",
-                    "url": f"{base_url}?download={file_id}",
+                    "url": url_constructor.url_for_file_id(file_id),
                 }
             )
 
@@ -132,7 +134,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 {
                     "id": str(release_file.file.id),
                     "type": "file",
-                    "url": f"{base_url}?download={release_file.file_id}",
+                    "url": url_constructor.url_for_file_id(release_file.file.id),
                     # The `name` is the url/abs_path of the file,
                     # as in: `"~/path/to/file.min.js"`.
                     "abs_path": release_file.name,
@@ -321,3 +323,17 @@ def find_file_in_archive_index(archive_index: dict, url: str) -> Optional[File]:
         return None
     except Exception:
         return None
+
+
+class UrlConstructor:
+    def __init__(self, project: Project):
+        self.base_url = get_internal_artifact_lookup_source_url(project)
+
+    def url_for_file_id(self, file_id: int) -> str:
+        # NOTE: Returning a self-route that requires authentication (via Bearer token)
+        # is not really forward compatible with a pre-signed URL that does not
+        # require any authentication or headers whatsoever.
+        # This also requires a workaround in Symbolicator, as its generic http
+        # downloader blocks "internal" IPs, whereas the internal Sentry downloader
+        # is explicitly exempt.
+        return f"{self.base_url}?download={file_id}"
