@@ -65,6 +65,7 @@ mmh3==3.0.0
 msgpack==1.0.4
 natsort==8.1.0
 oauthlib==3.1.0
+openai==0.27.0
 outcome==1.2.0
 packaging==21.3
 parsimonious==0.8.0
