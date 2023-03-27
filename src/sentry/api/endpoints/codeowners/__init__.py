@@ -31,8 +31,9 @@ class ProjectCodeOwnerSerializer(CamelSnakeModelSerializer):  # type: ignore
             "organizations:scaleable-codeowners-search",
             self.context["project"].organization,
         ):
-            return HIGHER_MAX_RAW_LENGTH
-        return MAX_RAW_LENGTH
+            return int(HIGHER_MAX_RAW_LENGTH)
+        # typecast needed for typing, though these will always be ints
+        return int(MAX_RAW_LENGTH)
 
     def validate(self, attrs: Mapping[str, Any]) -> Mapping[str, Any]:
         # If it already exists, set default attrs with existing values
