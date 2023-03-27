@@ -10,6 +10,7 @@ import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholde
 import ShareButton from 'sentry/components/replays/shareButton';
 import {CrumbWalker} from 'sentry/components/replays/walker/urlWalker';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Crumb} from 'sentry/types/breadcrumbs';
 import ReplayMetaData from 'sentry/views/replays/detail/replayMetaData';
@@ -41,7 +42,9 @@ function Page({children, crumbs, orgSlug, replayRecord}: Props) {
         <UserBadge
           avatarSize={32}
           displayName={
-            <Layout.Title>{replayRecord.user.display_name || ''}</Layout.Title>
+            <Layout.Title>
+              {replayRecord.user.display_name || t('Unknown User')}
+            </Layout.Title>
           }
           user={{
             name: replayRecord.user.display_name || '',
