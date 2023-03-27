@@ -342,8 +342,8 @@ const customMeasurements: Record<
       return undefined;
     }
     return {
-      value: span?.endTimestamp - span?.startTimestamp,
-      unit: 'seconds',
+      value: (span?.endTimestamp - span?.startTimestamp) / 1000,
+      unit: 'millisecond',
     };
   },
   /**
@@ -359,10 +359,10 @@ const customMeasurements: Record<
     if (!vcdSpan?.endTimestamp) {
       return undefined;
     }
-    const value = vcdSpan?.endTimestamp - transactionStart;
+    const value = (vcdSpan?.endTimestamp - transactionStart) / 1000;
     return {
       value,
-      unit: 'seconds',
+      unit: 'millisecond',
     };
   },
 
@@ -382,8 +382,8 @@ const customMeasurements: Record<
     }
     const timestamp = bundleSpan?.endTimestamp || 0; // Default to 0 so this works for navigations.
     return {
-      value: vcdSpan.endTimestamp - timestamp,
-      unit: 'seconds',
+      value: (vcdSpan.endTimestamp - timestamp) / 1000,
+      unit: 'millisecond',
     };
   },
 };
