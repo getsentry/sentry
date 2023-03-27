@@ -60,11 +60,11 @@ def enable_for_organization(organization_id: int, dry_run=False) -> None:
             extra={"organization_id": organization_id},
         )
         organization = Organization.objects.get(id=organization_id)
-        has_integration, _ = has_codecov_integration(organization)
+        has_integration, error = has_codecov_integration(organization)
         if not has_integration:
             logger.warning(
                 "No codecov integration exists for organization",
-                extra={"organization_id": organization.id},
+                extra={"organization_id": organization.id, "error": error},
             )
             return
 
