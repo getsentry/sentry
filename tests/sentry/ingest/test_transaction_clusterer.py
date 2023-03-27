@@ -238,41 +238,6 @@ def test_run_clusterer_task(cluster_projects_delay, default_organization):
         }
 
 
-@mock.patch("django.conf.settings.SENTRY_TRANSACTION_CLUSTERER_RUN", True)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 2)
-@pytest.mark.django_db
-@pytest.mark.parametrize("use_larger", (False, True))
-def test_larger_threshold_and_sample_size(default_organization, use_larger):
-    with Feature(
-        {
-            "organizations:transaction-name-clusterer": True,
-            "organizations:transaction-name-clusterer-2x": use_larger,
-        }
-    ):
-        project = Project(id=123, name="project1", organization_id=default_organization.id)
-        project.save()
-        _store_transaction_name(project, "/foo/foo")
-        _store_transaction_name(project, "/foo/bar")
-        _store_transaction_name(project, "/foo/baz")
-
-        cluster_projects([project])
-
-        rules = set(_get_rules(project).keys())
-        if use_larger:
-            assert rules == set()
-        else:
-            assert rules == {"/foo/*/**"}
-
-        # Add another one, now the rule should be there:
-        _store_transaction_name(project, "/foo/foo")
-        _store_transaction_name(project, "/foo/bar")
-        _store_transaction_name(project, "/foo/baz")
-        _store_transaction_name(project, "/foo/zap")
-        cluster_projects([project])
-        assert set(_get_rules(project).keys()) == {"/foo/*/**"}
-
-
 @pytest.mark.django_db
 def test_get_deleted_project():
     deleted_project = Project(pk=666, organization=Organization(pk=666))
