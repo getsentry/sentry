@@ -10,6 +10,7 @@ export interface FlamegraphFrame {
   node: CallTreeNode;
   parent: FlamegraphFrame | null;
   start: number;
+  collapsed?: number;
   processId?: number;
   profileIds?: string[];
   threadId?: number;
