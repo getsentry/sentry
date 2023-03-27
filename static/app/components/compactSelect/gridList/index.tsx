@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import {AriaGridListOptions, useGridList} from '@react-aria/gridlist';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
@@ -7,7 +7,6 @@ import {Node} from '@react-types/shared';
 import domId from 'sentry/utils/domId';
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
 import {ListLabel, ListSeparator, ListWrap} from '../styles';
 
 import {GridListOption} from './option';
@@ -77,34 +76,32 @@ function GridList({
     [keyDownHandler, gridProps]
   );
 
-  const {overlayIsOpen} = useContext(SelectContext);
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel id={labelId}>{label}</ListLabel>}
       <ListWrap {...mergeProps(gridProps, props)} onKeyDown={onKeyDown} ref={ref}>
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <GridListSection
-                  key={item.key}
-                  node={item}
-                  listState={listState}
-                  size={size}
-                />
-              );
-            }
-
+        {listItems.map(item => {
+          if (item.type === 'section') {
             return (
-              <GridListOption
+              <GridListSection
                 key={item.key}
                 node={item}
                 listState={listState}
                 size={size}
               />
             );
-          })}
+          }
+
+          return (
+            <GridListOption
+              key={item.key}
+              node={item}
+              listState={listState}
+              size={size}
+            />
+          );
+        })}
       </ListWrap>
     </Fragment>
   );

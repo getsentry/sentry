@@ -171,16 +171,16 @@ describe('OrganizationStats', function () {
   it('pushes state changes to the route', async () => {
     render(<OrganizationStats {...defaultProps} />, {context: routerContext});
 
-    await userEvent.click(screen.getByText('Category'));
-    await userEvent.click(screen.getByText('Attachments'));
+    await userEvent.click(screen.getByRole('button', {name: 'Category Errors'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Attachments'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {dataCategory: DATA_CATEGORY_INFO.attachment.plural},
       })
     );
 
-    await userEvent.click(screen.getByText('Periodic'));
-    await userEvent.click(screen.getByText('Cumulative'));
+    await userEvent.click(screen.getByRole('button', {name: 'Type Periodic'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Cumulative'}));
     expect(router.push).toHaveBeenCalledWith(
       expect.objectContaining({
         query: {transform: ChartDataTransform.CUMULATIVE},

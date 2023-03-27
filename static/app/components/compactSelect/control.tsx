@@ -374,11 +374,7 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        <StyledPositionWrapper
-          zIndex={theme.zIndex.tooltip}
-          visible={overlayIsOpen}
-          {...overlayProps}
-        >
+        <StyledPositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
@@ -387,6 +383,10 @@ export function Control({
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}
             data-menu-has-footer={!!menuFooter}
+            // Control visibility directly via the style attribute, instead of an
+            // emotion style prop, to ensure that RTL's .toBeVisible() assertions will
+            // work correctly.
+            style={{display: overlayIsOpen ? 'block' : 'none'}}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
@@ -556,11 +556,8 @@ const StyledOverlay = styled(Overlay, {
       : withUnits(p.maxHeightProp)};
 `;
 
-const StyledPositionWrapper = styled(PositionWrapper, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{visible?: boolean}>`
+const StyledPositionWrapper = styled(PositionWrapper)`
   min-width: 100%;
-  display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
 const OptionsWrap = styled('div')`

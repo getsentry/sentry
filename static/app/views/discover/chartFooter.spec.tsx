@@ -123,8 +123,8 @@ describe('Discover > ChartFooter', function () {
 
     render(chartFooter);
 
-    await userEvent.click(screen.getByText('count()'));
-    await userEvent.click(screen.getByText('failure_count()'));
+    await userEvent.click(screen.getByRole('button', {name: 'Y-Axis count()'}));
+    await userEvent.click(screen.getByRole('option', {name: 'failure_count()'}));
     expect(yAxis).toEqual(['count()', 'failure_count()']);
   });
 });

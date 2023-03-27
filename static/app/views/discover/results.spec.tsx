@@ -1230,8 +1230,8 @@ describe('Results', function () {
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByText('Total Period'));
-      await userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByRole('button', {name: 'Display Total Period'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Previous Period'}));
 
       const rerenderData = initializeOrg({
         ...initializeOrg(),
@@ -1250,7 +1250,7 @@ describe('Results', function () {
           router={rerenderData.router}
         />
       );
-      screen.getByText('Previous Period');
+      screen.getByRole('button', {name: 'Display Previous Period'});
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 
@@ -1298,8 +1298,8 @@ describe('Results', function () {
       await userEvent.click(screen.getByText('Set as Default'));
       expect(await screen.findByText('Remove Default')).toBeInTheDocument();
 
-      await userEvent.click(screen.getByText('Total Period'));
-      await userEvent.click(screen.getByText('Previous Period'));
+      await userEvent.click(screen.getByRole('button', {name: 'Display Total Period'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Previous Period'}));
       const rerenderData = initializeOrg({
         ...initializeOrg(),
         organization,
@@ -1317,7 +1317,7 @@ describe('Results', function () {
           setSavedQuery={jest.fn()}
         />
       );
-      screen.getByText('Previous Period');
+      screen.getByRole('button', {name: 'Display Previous Period'});
       expect(await screen.findByText('Set as Default')).toBeInTheDocument();
     });
 

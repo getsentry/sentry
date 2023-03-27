@@ -124,15 +124,19 @@ describe('AlertRulesList', () => {
   it('displays team dropdown context if unassigned', async () => {
     createWrapper();
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = within(assignee).getAllByRole('button')[0];
+    const btn = within(assignee).getByRole('button', {expanded: false});
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
     await userEvent.click(btn, {skipHover: true});
 
-    expect(screen.getByText('#team-slug')).toBeInTheDocument();
-    expect(within(assignee).getByText('Unassigned')).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {name: 'team slug #team-slug'})
+    ).toBeInTheDocument();
+    expect(
+      within(assignee).getByRole('option', {name: 'Unassigned'})
+    ).toBeInTheDocument();
   });
 
   it('assigns rule to team from unassigned', async () => {
@@ -143,13 +147,13 @@ describe('AlertRulesList', () => {
     });
     createWrapper();
     const assignee = (await screen.findAllByTestId('alert-row-assignee'))[0];
-    const btn = within(assignee).getAllByRole('button')[0];
+    const btn = within(assignee).getByRole('button', {expanded: false});
 
     expect(assignee).toBeInTheDocument();
     expect(btn).toBeInTheDocument();
 
     await userEvent.click(btn, {skipHover: true});
-    await userEvent.click(screen.getByText('#team-slug'));
+    await userEvent.click(screen.getByRole('option', {name: 'team slug #team-slug'}));
 
     expect(assignMock).toHaveBeenCalledWith(
       '/projects/org-slug/earth/rules/123/',

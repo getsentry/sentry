@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useContext, useRef} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import {AriaListBoxOptions, useListBox} from '@react-aria/listbox';
 import {mergeProps} from '@react-aria/utils';
 import {ListState} from '@react-stately/list';
@@ -6,7 +6,6 @@ import {Node} from '@react-types/shared';
 
 import {FormSize} from 'sentry/utils/theme';
 
-import {SelectContext} from '../control';
 import {ListLabel, ListSeparator, ListWrap} from '../styles';
 
 import {ListBoxOption} from './option';
@@ -88,34 +87,27 @@ function ListBox({
     [keyDownHandler, listBoxProps]
   );
 
-  const {overlayIsOpen} = useContext(SelectContext);
   return (
     <Fragment>
       {listItems.length !== 0 && <ListSeparator role="separator" />}
       {listItems.length !== 0 && label && <ListLabel {...labelProps}>{label}</ListLabel>}
       <ListWrap {...mergeProps(listBoxProps, props)} onKeyDown={onKeyDown} ref={ref}>
-        {overlayIsOpen &&
-          listItems.map(item => {
-            if (item.type === 'section') {
-              return (
-                <ListBoxSection
-                  key={item.key}
-                  item={item}
-                  listState={listState}
-                  size={size}
-                />
-              );
-            }
-
+        {listItems.map(item => {
+          if (item.type === 'section') {
             return (
-              <ListBoxOption
+              <ListBoxSection
                 key={item.key}
                 item={item}
                 listState={listState}
                 size={size}
               />
             );
-          })}
+          }
+
+          return (
+            <ListBoxOption key={item.key} item={item} listState={listState} size={size} />
+          );
+        })}
       </ListWrap>
     </Fragment>
   );

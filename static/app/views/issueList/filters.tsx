@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import ProjectPageFilter from 'sentry/components/projectPageFilter';
+import {ProjectPageFilter} from 'sentry/components/projectPageFilterV2';
 import {space} from 'sentry/styles/space';
 import {IssueSearchWithSavedSearches} from 'sentry/views/issueList/issueSearchWithSavedSearches';
 

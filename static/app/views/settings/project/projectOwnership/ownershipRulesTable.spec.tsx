@@ -34,7 +34,11 @@ describe('OwnershipRulesTable', () => {
 
     expect(screen.getByText('path')).toBeInTheDocument();
     expect(screen.getByText('pattern')).toBeInTheDocument();
-    expect(screen.getByText(user1.name)).toBeInTheDocument();
+
+    // First result is a filter option — it should be invisible as the menu is not open
+    expect(screen.getAllByText(user1.name)[0]).not.toBeVisible();
+    // Second result is what we're looking for in the Owner column, user1.name
+    expect(screen.getAllByText(user1.name)[1]).toBeVisible();
   });
 
   it('should render multiple project owners', () => {
@@ -53,7 +57,11 @@ describe('OwnershipRulesTable', () => {
     expect(screen.getByText('path')).toBeInTheDocument();
     expect(screen.getByText('pattern')).toBeInTheDocument();
     expect(screen.getByText(`${user1.name} and 1 other`)).toBeInTheDocument();
-    expect(screen.queryByText(user2.name)).not.toBeInTheDocument();
+
+    // First result is a filter option — it should be invisible as the menu is not open
+    expect(screen.queryAllByText(user2.name)[0]).not.toBeVisible();
+    // There should be no other result (i.e. no user2.name in the Owner column)
+    expect(screen.queryAllByText(user2.name).length).toEqual(1);
   });
 
   it('should filter by rule type and pattern', async () => {

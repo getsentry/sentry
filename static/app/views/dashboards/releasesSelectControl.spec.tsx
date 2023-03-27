@@ -47,31 +47,40 @@ describe('Dashboards > ReleasesSelectControl', function () {
   it('updates menu title with selection', async function () {
     renderReleasesSelect({});
 
-    expect(screen.getByText('All Releases')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('All Releases'));
-    expect(screen.getByText('Latest Release(s)')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
+    await userEvent.click(screen.getByRole('button', {name: 'All Releases'}));
+    expect(screen.getByRole('option', {name: 'Latest Release(s)'})).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('option', {name: 'sentry-android-shop@1.2.0'})
+    );
 
     await userEvent.click(document.body);
 
-    expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
-    expect(screen.queryByText('+1')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'sentry-android-shop@1.2.0'})
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /\+1/})).not.toBeInTheDocument();
   });
 
   it('updates menu title with multiple selections', async function () {
     renderReleasesSelect({});
 
-    expect(screen.getByText('All Releases')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'All Releases'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByText('All Releases'));
-    await userEvent.click(screen.getByText('sentry-android-shop@1.2.0'));
-    await userEvent.click(screen.getByText('sentry-android-shop@1.4.0'));
+    await userEvent.click(screen.getByRole('button', {name: 'All Releases'}));
+    await userEvent.click(
+      screen.getByRole('option', {name: 'sentry-android-shop@1.2.0'})
+    );
+    await userEvent.click(
+      screen.getByRole('option', {name: 'sentry-android-shop@1.4.0'})
+    );
 
     await userEvent.click(document.body);
 
-    expect(screen.getByText('sentry-android-shop@1.2.0')).toBeInTheDocument();
-    expect(screen.getByText('+1')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'sentry-android-shop@1.2.0 +1'})
+    ).toBeInTheDocument();
   });
 
   it('calls onSearch when filtering by releases', async function () {

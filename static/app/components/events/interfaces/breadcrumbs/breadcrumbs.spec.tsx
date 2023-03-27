@@ -143,7 +143,7 @@ describe('Breadcrumbs', () => {
 
       // breadcrumbs + filter item
       // TODO(Priscila): Filter should not render in the dom if not open
-      expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(5);
+      expect(screen.getAllByText(textWithMarkupMatcher('Warning'))).toHaveLength(6);
     });
 
     it('should filter crumbs based on crumb category', async function () {
@@ -324,7 +324,7 @@ describe('Breadcrumbs', () => {
       expect(within(breadcrumbsBefore[2]).getByText('hey')).toBeInTheDocument();
       expect(within(breadcrumbsBefore[3]).getByText('sup')).toBeInTheDocument();
 
-      await selectEvent.select(screen.getByText(/newest/i), /oldest/i);
+      await selectEvent.select(screen.getByRole('button', {name: /newest/i}), /oldest/i);
 
       // Now should be sorted oldest -> newest
       const breadcrumbsAfter = screen.getAllByTestId(/crumb/i);

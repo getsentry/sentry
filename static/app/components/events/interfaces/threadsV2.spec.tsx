@@ -253,16 +253,16 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Sort by options
-        expect(screen.getByText('Newest')).toBeInTheDocument();
-        expect(screen.queryByText('Oldest')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Newest'})).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Oldest'})).not.toBeInTheDocument();
 
         // Switch to recent last
-        await userEvent.click(screen.getByText('Newest'));
-        await userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByRole('button', {name: 'Newest'}));
+        await userEvent.click(screen.getByRole('option', {name: 'Oldest'}));
 
         // Recent last is checked
-        expect(screen.getByText('Oldest')).toBeInTheDocument();
-        expect(screen.queryByText('Newest')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Oldest'})).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Newest'})).not.toBeInTheDocument();
 
         // Last frame is the first on the list
         expect(
@@ -272,8 +272,8 @@ describe('ThreadsV2', function () {
         ).toBeInTheDocument();
 
         // Click on recent first
-        await userEvent.click(screen.getByText('Oldest'));
-        await userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
+        await userEvent.click(screen.getByRole('option', {name: 'Newest'}));
 
         // First frame is the first on the list
         expect(
@@ -292,11 +292,11 @@ describe('ThreadsV2', function () {
 
         Object.entries(displayOptions).forEach(([key, value]) => {
           if (key === 'minified' || key === 'raw-stack-trace') {
-            expect(screen.getByText(value)).toBeInTheDocument();
+            expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
             return;
           }
 
-          expect(screen.queryByText(value)).not.toBeInTheDocument();
+          expect(screen.queryByRole('option', {name: value})).not.toBeInTheDocument();
         });
 
         // Hover over the Minified option
@@ -1014,8 +1014,8 @@ describe('ThreadsV2', function () {
         await userEvent.click(screen.getByRole('button', {name: 'Newest'}));
 
         // Sort by options
-        expect(screen.getAllByText('Newest')).toHaveLength(2);
-        expect(screen.getByText('Oldest')).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'Newest'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'Oldest'})).toBeInTheDocument();
 
         // Recent first is checked by default
         expect(screen.getByRole('option', {name: 'Newest'})).toHaveAttribute(
@@ -1024,11 +1024,11 @@ describe('ThreadsV2', function () {
         );
 
         // Click on recent last
-        await userEvent.click(screen.getByText('Oldest'));
+        await userEvent.click(screen.getByRole('option', {name: 'Oldest'}));
 
         // Recent last is enabled
-        expect(screen.queryByText('Newest')).not.toBeInTheDocument();
-        expect(screen.getByText('Oldest')).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Newest'})).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Oldest'})).toBeInTheDocument();
 
         // Last frame is the first on the list
         expect(
@@ -1037,7 +1037,7 @@ describe('ThreadsV2', function () {
 
         // Switch back to recent first
         await userEvent.click(screen.getByRole('button', {name: 'Oldest'}));
-        await userEvent.click(screen.getByText('Newest'));
+        await userEvent.click(screen.getByRole('option', {name: 'Newest'}));
 
         // First frame is the first on the list
         expect(

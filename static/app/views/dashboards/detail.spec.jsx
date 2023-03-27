@@ -447,20 +447,23 @@ describe('Dashboards > Detail', function () {
     });
 
     it('shows add widget option', async function () {
-      render(
-        <OrganizationContext.Provider value={initialData.organization}>
-          <ViewEditDashboard
-            organization={initialData.organization}
-            params={{orgId: 'org-slug', dashboardId: '1'}}
-            router={initialData.router}
-            location={initialData.router.location}
-          />
-        </OrganizationContext.Provider>,
-        {context: initialData.routerContext}
-      );
+      await act(async () => {
+        render(
+          <OrganizationContext.Provider value={initialData.organization}>
+            <ViewEditDashboard
+              organization={initialData.organization}
+              params={{orgId: 'org-slug', dashboardId: '1'}}
+              router={initialData.router}
+              location={initialData.router.location}
+            />
+          </OrganizationContext.Provider>,
+          {context: initialData.routerContext}
+        );
 
-      // Enter edit mode.
-      await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
+        // Enter edit mode.
+        await userEvent.click(screen.getByRole('button', {name: 'Edit Dashboard'}));
+      });
+
       expect(await screen.findByRole('button', {name: 'Add widget'})).toBeInTheDocument();
     });
 
@@ -882,21 +885,25 @@ describe('Dashboards > Detail', function () {
           }),
         ],
       });
-      render(
-        <CreateDashboard
-          organization={initialData.organization}
-          params={{orgId: 'org-slug', templateId: 'default-template'}}
-          router={initialData.router}
-          location={initialData.router.location}
-        />,
-        {
-          context: initialData.routerContext,
-          organization: initialData.organization,
-        }
-      );
 
-      await userEvent.click(await screen.findByText('24H'));
-      await userEvent.click(screen.getByText('Last 7 days'));
+      await act(async () => {
+        render(
+          <CreateDashboard
+            organization={initialData.organization}
+            params={{orgId: 'org-slug', templateId: 'default-template'}}
+            router={initialData.router}
+            location={initialData.router.location}
+          />,
+          {
+            context: initialData.routerContext,
+            organization: initialData.organization,
+          }
+        );
+
+        await userEvent.click(await screen.findByText('24H'));
+        await userEvent.click(screen.getByText('Last 7 days'));
+      });
+
       await screen.findByText('7D');
 
       expect(screen.queryByText('Cancel')).not.toBeInTheDocument();
@@ -1003,9 +1010,11 @@ describe('Dashboards > Detail', function () {
       );
 
       await screen.findByText('7D');
-      await userEvent.click(await screen.findByText('sentry-android-shop@1.2.0'));
-      await userEvent.click(screen.getByText('Clear'));
-      screen.getByText('All Releases');
+      await userEvent.click(
+        screen.getByRole('button', {name: 'sentry-android-shop@1.2.0'})
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+      screen.getByRole('button', {name: 'All Releases'});
       await userEvent.click(document.body);
 
       expect(browserHistory.push).toHaveBeenCalledWith(
@@ -1253,7 +1262,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      await screen.findByText(/not-selected-1/);
+      await screen.findByRole('button', {name: /not-selected-1/});
       screen.getByText('Save');
       screen.getByText('Cancel');
     });
@@ -1297,7 +1306,7 @@ describe('Dashboards > Detail', function () {
         {context: testData.routerContext, organization: testData.organization}
       );
 
-      await screen.findByText(/not-selected-1/);
+      await screen.findByRole('button', {name: /not-selected-1/});
       await userEvent.click(screen.getByText('Cancel'));
 
       // release isn't used in the redirect
@@ -1398,19 +1407,20 @@ describe('Dashboards > Detail', function () {
           location: TestStubs.location(),
         },
       });
-      render(
-        <ViewEditDashboard
-          organization={testData.organization}
-          params={{orgId: 'org-slug', dashboardId: '1'}}
-          router={testData.router}
-          location={testData.router.location}
-        />,
-        {context: testData.routerContext, organization: testData.organization}
-      );
 
-      await userEvent.click(await screen.findByText('All Releases'));
-      await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
       await act(async () => {
+        render(
+          <ViewEditDashboard
+            organization={testData.organization}
+            params={{orgId: 'org-slug', dashboardId: '1'}}
+            router={testData.router}
+            location={testData.router.location}
+          />,
+          {context: testData.routerContext, organization: testData.organization}
+        );
+
+        await userEvent.click(await screen.findByText('All Releases'));
+        await userEvent.type(screen.getByPlaceholderText('Search\u2026'), 's');
         await userEvent.click(await screen.findByRole('option', {name: 'search-result'}));
       });
 

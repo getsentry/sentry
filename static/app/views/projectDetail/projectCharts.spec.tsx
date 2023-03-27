@@ -74,8 +74,10 @@ describe('ProjectDetail > ProjectCharts', () => {
       screen.getByRole('button', {name: 'Display Crash Free Sessions'})
     );
 
-    expect(screen.queryByText('Foreground ANR Rate')).not.toBeInTheDocument();
-    expect(screen.queryByText('ANR Rate')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Foreground ANR Rate'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'ANR Rate'})).not.toBeInTheDocument();
   });
 
   it('makes the right ANR sessions request', async () => {
@@ -117,7 +119,7 @@ describe('ProjectDetail > ProjectCharts', () => {
       body: responseBody,
     });
     renderProjectCharts(['anr-rate'], 'android', 'anr_rate');
-    expect(screen.getByText('ANR Rate')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Display ANR Rate'})).toBeInTheDocument();
 
     await waitFor(() =>
       expect(mockSessions).toHaveBeenCalledWith(

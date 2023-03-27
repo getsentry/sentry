@@ -439,7 +439,7 @@ describe('CompactSelect', function () {
       );
 
       // click on the trigger button
-      await userEvent.click(screen.getByRole('button'));
+      await userEvent.click(screen.getByRole('button', {expanded: false}));
       await waitFor(() =>
         expect(screen.getByRole('row', {name: 'Option One'})).toHaveFocus()
       );

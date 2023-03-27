@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import {DISPLAY_MODE_OPTIONS, DisplayModes} from 'sentry/utils/discover/types';
@@ -125,11 +125,14 @@ describe('Discover > ResultsChart', function () {
       {context: initialData.routerContext}
     );
 
-    await userEvent.click(await screen.findByText(/Y-Axis/));
+    await userEvent.click(await screen.findByRole('button', {name: /Y-Axis/}));
 
-    expect(screen.getAllByRole('option')).toHaveLength(2);
+    const listBox = screen.getByRole('listbox', {name: /Y-Axis/});
+    expect(within(listBox).getAllByRole('option')).toHaveLength(2);
 
-    expect(screen.getByRole('option', {name: 'count()'})).toBeEnabled();
-    expect(screen.getByRole('option', {name: 'count_unique(user)'})).toBeEnabled();
+    expect(within(listBox).getByRole('option', {name: 'count()'})).toBeEnabled();
+    expect(
+      within(listBox).getByRole('option', {name: 'count_unique(user)'})
+    ).toBeEnabled();
   });
 });

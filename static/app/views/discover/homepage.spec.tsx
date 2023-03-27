@@ -115,7 +115,7 @@ describe('Discover > Homepage', () => {
 
     // Only the environment field
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
-    screen.getByText('Previous Period');
+    screen.getByRole('button', {name: 'Display Previous Period'});
     screen.getByText('event.type:error');
   });
 
