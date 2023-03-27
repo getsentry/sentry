@@ -11,12 +11,13 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     Integration,
-    NotificationSetting,
     OrganizationMember,
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -127,7 +128,9 @@ class SlackLinkTeamView(BaseView):
         if not Identity.objects.filter(idp=idp, external_id=params["slack_id"]).exists():
             return render_error_page(request, body_text="HTTP 403: User identity does not exist")
 
-        install = integration.get_installation(team.organization.id)
+        install = integration_service.get_installation(
+            integration=integration, organization_id=team.organization_id
+        )
         external_team, created = ExternalActor.objects.get_or_create(
             actor_id=team.actor_id,
             organization=team.organization,
@@ -148,7 +151,13 @@ class SlackLinkTeamView(BaseView):
 
         if not created:
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
-            install.send_message(channel_id=channel_id, message=message)
+
+            integration_service.send_message(
+                integration_id=integration.id,
+                organization_id=team.organization_id,
+                channel=channel_id,
+                message=message,
+            )
             return render_to_response(
                 "sentry/integrations/slack/post-linked-team.html",
                 request=request,
@@ -161,11 +170,11 @@ class SlackLinkTeamView(BaseView):
             )
 
         # Turn on notifications for all of a team's projects.
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.SLACK,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            team=team,
+        notifications_service.update_settings(
+            external_provider=ExternalProviders.SLACK,
+            notification_type=NotificationSettingTypes.ISSUE_ALERTS,
+            setting_option=NotificationSettingOptionValues.ALWAYS,
+            actor=RpcActor.from_orm_team(team),
         )
         message = SUCCESS_LINKED_MESSAGE.format(slug=team.slug, channel_name=channel_name)
         install.send_message(channel_id=channel_id, message=message)

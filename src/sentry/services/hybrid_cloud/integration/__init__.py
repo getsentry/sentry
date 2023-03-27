@@ -146,6 +146,17 @@ class IntegrationService(InterfaceWithLifecycle):
         pass
 
     @abstractmethod
+    def send_message(
+        self,
+        *,
+        integration_id: int,
+        organization_id: int,
+        channel: str,
+        message: str,
+    ) -> bool:
+        pass
+
+    @abstractmethod
     def get_organization_integrations(
         self,
         *,
