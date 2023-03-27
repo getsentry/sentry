@@ -22,7 +22,6 @@ class RpcServiceTest(TestCase):
         with override_settings(SILO_MODE=SiloMode.CONTROL):
             service = OrganizationService.create_delegation()
 
-            # TODO: Handle forward refs in service method definitions
             service.add_organization_member(
                 organization=serial_org,
                 user=serial_user,
