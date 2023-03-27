@@ -111,7 +111,7 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_fix_suggestion'
+      | 'open_ai_suggested_fix'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -419,7 +419,8 @@ class Actions extends Component<Props> {
                   <FeatureBadge type="experimental" noTooltip />
                 </Tooltip>
               ),
-              onAction: () => this.trackIssueAction('open_in_discover'),
+              onAction: () => this.trackIssueAction('open_ai_suggested_fix'),
+              hidden: !orgFeatures.has('open-ai-suggestion'),
             },
             {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
@@ -508,7 +509,7 @@ class Actions extends Component<Props> {
               size="sm"
               disabled={disabled}
               groupId={group.id}
-              onClick={() => this.trackIssueAction('open_ai_fix_suggestion')}
+              onClick={() => this.trackIssueAction('open_ai_suggested_fix')}
             />
           </GuideAnchor>
         </Feature>
