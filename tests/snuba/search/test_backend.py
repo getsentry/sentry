@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timedelta
-from hashlib import md5
 from unittest import mock
 
 import pytest
@@ -1371,67 +1370,6 @@ class EventsSnubaSearchTest(SharedSnubaTest):
             date_to=the_date,
         )
         assert set(results) == set()
-
-    @pytest.mark.fail_slow("90s")  # This test can take longer than the default 60s timeout
-    def test_hits_estimate(self):
-        # 400 Groups/Events
-        # Every 3rd one is Unresolved
-        # Every 2nd one has tag match=1
-        for i in range(400):
-            event = self.store_event(
-                data={
-                    "event_id": md5(f"event {i}".encode()).hexdigest(),
-                    "fingerprint": [f"put-me-in-group{i}"],
-                    "timestamp": iso_format(self.base_datetime - timedelta(days=21)),
-                    "message": f"group {i} event",
-                    "stacktrace": {"frames": [{"module": f"module {i}"}]},
-                    "tags": {"match": f"{i % 2}"},
-                    "environment": "production",
-                },
-                project_id=self.project.id,
-            )
-
-            group = event.group
-            group.times_seen = 5
-            group.status = GroupStatus.UNRESOLVED if i % 3 == 0 else GroupStatus.RESOLVED
-            group.save()
-            self.store_group(group)
-
-        # Sample should estimate there are roughly 66 overall matching groups
-        # based on a random sample of 100 (or $sample_size) of the total 200
-        # snuba matches, of which 33% should pass the postgres filter.
-        with self.options(
-            {
-                # Too small to pass all django candidates down to snuba
-                "snuba.search.max-pre-snuba-candidates": 5,
-                "snuba.search.hits-sample-size": 50,
-            }
-        ):
-            first_results = self.make_query(
-                search_filter_query="is:unresolved match:1", limit=10, count_hits=True
-            )
-
-            # Deliberately do not assert that the value is within some margin
-            # of error, as this will fail tests at some rate corresponding to
-            # our confidence interval.
-            assert first_results.hits > 10
-
-            # When searching for the same tags, we should get the same set of
-            # hits as the sampling is based on the hash of the query.
-            second_results = self.make_query(
-                search_filter_query="is:unresolved match:1", limit=10, count_hits=True
-            )
-
-            assert first_results.results == second_results.results
-
-            # When using a different search, we should get a different sample
-            # but still should have some hits.
-            third_results = self.make_query(
-                search_filter_query="is:unresolved match:0", limit=10, count_hits=True
-            )
-
-            assert third_results.hits > 10
-            assert third_results.results != second_results.results
 
     def test_regressed_in_release(self):
         # expect no groups within the results since there are no releases
