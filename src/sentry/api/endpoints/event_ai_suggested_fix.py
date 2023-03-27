@@ -178,14 +178,10 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         This endpoint returns a JSON response that provides helpful suggestions about how to
         understand or resolve an event.
         """
-        # print(
-        #     "LADY",
-        #     features.has(
-        #         "organizations:open-ai-suggestion", project.organization, actor=request.user
-        #     ),
-        # )
         # To use this feature you need the feature enabled and openai needs to be configured
-        if not settings.OPENAI_API_KEY:
+        if not settings.OPENAI_API_KEY or not features.has(
+            "organizations:open-ai-suggestion", project.organization, actor=request.user
+        ):
             raise ResourceDoesNotExist
 
         event = eventstore.get_event_by_id(project.id, event_id)
