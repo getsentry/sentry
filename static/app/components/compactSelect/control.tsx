@@ -28,7 +28,6 @@ export interface SelectContextValue {
    * automatically updated based on the current search string.
    */
   filterOption: (opt: SelectOption<React.Key>) => boolean;
-  overlayIsOpen: boolean;
   /**
    * Function to be called once when a list is initialized, to register its state in
    * SelectContext. In composite selectors, where there can be multiple lists, the
@@ -56,7 +55,6 @@ export const SelectContext = createContext<SelectContextValue>({
   registerListState: () => {},
   saveSelectedOptions: () => {},
   filterOption: () => true,
-  overlayIsOpen: false,
 });
 
 export interface ControlProps extends UseOverlayProps {
@@ -360,10 +358,9 @@ export function Control({
       registerListState,
       saveSelectedOptions,
       overlayState,
-      overlayIsOpen,
       filterOption,
     }),
-    [registerListState, saveSelectedOptions, overlayState, overlayIsOpen, filterOption]
+    [registerListState, saveSelectedOptions, overlayState, filterOption]
   );
 
   const theme = useTheme();
