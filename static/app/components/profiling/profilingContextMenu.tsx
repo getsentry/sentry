@@ -134,7 +134,7 @@ const MenuButton = styled('button')`
   }
 `;
 
-const MenuLeadingItem = styled('div')`
+const MenuLeadingItem = styled('span')`
   display: flex;
   align-items: center;
   height: 1.4em;

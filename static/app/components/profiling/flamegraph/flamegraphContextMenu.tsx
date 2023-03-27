@@ -1,8 +1,10 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {usePopper} from 'react-popper';
+import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Flex} from 'sentry/components/profiling/flex';
 import {
   ProfilingContextMenu,
@@ -14,8 +16,6 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {IconChevron, IconCopy, IconGithub, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {RequestState} from 'sentry/types';
-import {StacktraceLinkResult} from 'sentry/types/integrations';
 import {defined} from 'sentry/utils';
 import {getShortEventId} from 'sentry/utils/events';
 import {
@@ -32,9 +32,10 @@ import {
   generateProfileFlamechartRoute,
   generateProfileFlamechartRouteWithHighlightFrame,
 } from 'sentry/utils/profiling/routes';
-import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+
+import {useSourceCodeLink} from './useSourceLink';
 
 const FLAMEGRAPH_COLOR_CODINGS: FlamegraphColorCodings = [
   'by system vs application frame',
@@ -71,68 +72,32 @@ function isSupportedPlatformForGitHubLink(platform: string | undefined): boolean
 }
 
 export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
-  const api = useApi();
   const {projects} = useProjects();
   const organization = useOrganization();
   const preferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
 
-  const [githubLink, setGithubLinkState] = useState<RequestState<StacktraceLinkResult>>({
-    type: 'initial',
-  });
-
   const project = projects.find(
     p => p.id === String(props.profileGroup?.metadata?.projectID)
   );
 
-  useEffect(() => {
-    if (!props.hoveredNode || !props.profileGroup) {
-      return setGithubLinkState({type: 'initial'});
-    }
-
-    if (!isSupportedPlatformForGitHubLink(props.profileGroup.metadata.platform)) {
-      return undefined;
-    }
-
-    if (!project || !props.hoveredNode) {
-      return undefined;
-    }
-
-    const metadata = props.profileGroup.metadata;
-    const commitId = metadata.release?.lastCommit?.id;
-    const platform = metadata.platform;
-
-    const frame = props.hoveredNode.frame;
-
-    setGithubLinkState({type: 'loading'});
-
-    api
-      .requestPromise(`/projects/${organization.slug}/${project.slug}/stacktrace-link/`, {
-        query: {
-          file: frame.file,
-          platform,
-          commitId,
-          ...(frame.path && {absPath: frame.path}),
-        },
-      })
-      .then(response => {
-        setGithubLinkState({type: 'resolved', data: response});
-      });
-
-    return () => {
-      api.clear();
-    };
-  }, [props.hoveredNode, api, project, organization, props.profileGroup]);
+  const sourceCodeLink = useSourceCodeLink({
+    project,
+    organization,
+    commitId: props.profileGroup?.metadata?.release?.lastCommit?.id,
+    platform: props.profileGroup?.metadata?.platform,
+    frame: {file: props.hoveredNode?.frame.file, path: props.hoveredNode?.frame.path},
+  });
 
   // @TODO: this only works for github right now, other providers will not work
   const onOpenInGithubClick = useCallback(() => {
-    if (githubLink.type !== 'resolved') {
+    if (sourceCodeLink.type !== 'resolved') {
       return;
     }
 
     if (
-      !githubLink.data.sourceUrl ||
-      githubLink.data.config?.provider?.key !== 'github'
+      !sourceCodeLink.data.sourceUrl ||
+      sourceCodeLink.data.config?.provider?.key !== 'github'
     ) {
       return;
     }
@@ -140,11 +105,11 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     // make a best effort to link to the exact line if we can
     const url =
       defined(props.hoveredNode) && defined(props.hoveredNode.frame.line)
-        ? `${githubLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
-        : githubLink.data.sourceUrl;
+        ? `${sourceCodeLink.data.sourceUrl}#L${props.hoveredNode.frame.line}`
+        : sourceCodeLink.data.sourceUrl;
 
     window.open(url, '_blank', 'noopener,noreferrer');
-  }, [props.hoveredNode, githubLink]);
+  }, [props.hoveredNode, sourceCodeLink]);
 
   return props.contextMenu.open ? (
     <Fragment>
@@ -195,22 +160,30 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
             </ProfilingContextMenuItemButton>
             <ProfilingContextMenuItemButton
               disabled={
-                githubLink.type !== 'resolved' ||
-                !(githubLink.type === 'resolved' && githubLink.data.sourceUrl)
+                sourceCodeLink.type !== 'resolved' ||
+                !(sourceCodeLink.type === 'resolved' && sourceCodeLink.data.sourceUrl)
               }
               tooltip={
                 !isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? t('Open in GitHub is not yet supported for this platform')
-                  : githubLink.type === 'resolved' &&
-                    (!githubLink.data.sourceUrl ||
-                      githubLink.data.config?.provider?.key !== 'github')
+                  ? t('Open in GitHub is not supported for this platform')
+                  : sourceCodeLink.type === 'loading'
+                  ? 'Resolving link'
+                  : sourceCodeLink.type === 'resolved' &&
+                    (!sourceCodeLink.data.sourceUrl ||
+                      sourceCodeLink.data.config?.provider?.key !== 'github')
                   ? t('Could not find source code location in GitHub')
                   : undefined
               }
               {...props.contextMenu.getMenuItemProps({
                 onClick: onOpenInGithubClick,
               })}
-              icon={<IconGithub size="xs" />}
+              icon={
+                sourceCodeLink.type === 'loading' ? (
+                  <StyledLoadingIndicator size={8} hideMessage />
+                ) : (
+                  <IconGithub size="xs" />
+                )
+              }
             >
               {t('Open in GitHub')}
             </ProfilingContextMenuItemButton>
@@ -271,6 +244,11 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
     </Fragment>
   ) : null;
 }
+
+const StyledLoadingIndicator = styled(LoadingIndicator)`
+  margin: 0;
+  transform: translateX(-2px);
+`;
 
 function ProfileIdsSubMenu(props: {
   contextMenu: FlamegraphContextMenuProps['contextMenu'];
