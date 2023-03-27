@@ -448,9 +448,9 @@ class ProjectStracktraceLinkTestCodecov(BaseProjectStacktraceLink):
 
         assert self._caplog.record_tuples == [
             (
-                "sentry.api.endpoints.project_stacktrace_link",
+                "sentry.integrations.utils.codecov",
                 logging.ERROR,
-                "Something unexpected happened. Continuing execution.",
+                "Expecting value: line 1 column 1 (char 0). Continuing execution.",
             )
         ]
 

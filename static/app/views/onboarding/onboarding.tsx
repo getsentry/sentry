@@ -360,6 +360,7 @@ function Onboarding(props: Props) {
                 router={props.router}
                 location={props.location}
                 jumpToSetupProject={jumpToSetupProject}
+                selectedProjectSlug={selectedProjectSlug}
                 {...{
                   genSkipOnboardingLink,
                 }}
