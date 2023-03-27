@@ -149,8 +149,8 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
     def validate_slack_channel(self, data: NotificationActionInputData):
         """
         Validates assuming that SPECIFIC targets for SLACK service has the following target data:
-            target_display: Slack channel id (optional)
-            target_identifier: Slack channel name
+            target_display: Slack channel name
+            target_identifier: Slack channel id (optional)
         NOTE: Reaches out to via slack integration to verify channel
         """
         if (
