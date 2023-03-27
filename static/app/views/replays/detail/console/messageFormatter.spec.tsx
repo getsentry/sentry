@@ -160,7 +160,7 @@ describe('MessageFormatter', () => {
   it('Should print console message correctly when it is an Error object', () => {
     render(<MessageFormatter breadcrumb={breadcrumbs[2]} />);
 
-    expect(screen.getByText('Error: this is my error message')).toBeInTheDocument();
+    expect(screen.getByText('this is my error message')).toBeInTheDocument();
   });
 
   it('Should print empty object in case there is no message prop', () => {

@@ -1,15 +1,15 @@
 import {ComponentProps, useMemo} from 'react';
+import {useTheme} from '@emotion/react';
 import {
   chromeDark,
   chromeLight,
   ObjectInspector as OrigObjectInspector,
-} from 'react-inspector';
-import {useTheme} from '@emotion/react';
+} from '@sentry-internal/react-inspector';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
-type Props = Omit<ComponentProps<typeof ReactObjectInspector>, 'theme'> & {
+type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   theme?: Record<string, any>;
 };
 
