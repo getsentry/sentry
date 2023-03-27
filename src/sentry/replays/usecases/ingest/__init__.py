@@ -180,12 +180,16 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
             _report_size_metrics(len(recording_segment), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
-        parse_and_emit_replay_actions(
-            retention_days=message.retention_days,
-            project_id=message.project_id,
-            replay_id=message.replay_id,
-            segment_data=parsed_segment_data,
-        )
+        with transaction.start_child(
+            op="replays.usecases.ingest.parse_and_emit_replay_actions",
+            description="parse_and_emit_replay_actions",
+        ):
+            parse_and_emit_replay_actions(
+                retention_days=message.retention_days,
+                project_id=message.project_id,
+                replay_id=message.replay_id,
+                segment_data=parsed_segment_data,
+            )
     except Exception:
         logging.exception(
             "Failed to parse recording org={}, project={}, replay={}, segment={}".format(
