@@ -6010,3 +6010,25 @@ class OrganizationEventsEndpointTest(APITestCase, SnubaTestCase, SearchIssueTest
         data = response.data["data"]
         assert len(data) == 1
         assert data[0]["count()"] == 1
+
+    def test_group_id_as_custom_tag(self):
+        project1 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "poof",
+                "timestamp": self.ten_mins_ago_iso,
+                "user": {"email": self.user.email},
+                "tags": {"group_id": "this should just get returned"},
+            },
+            project_id=project1.id,
+        )
+        query = {
+            "field": ["group_id"],
+            "query": "",
+            "orderby": "group_id",
+            "statsPeriod": "24h",
+        }
+        response = self.do_request(query)
+        assert response.status_code == 200, response.content
+        assert response.data["data"][0]["group_id"] == "this should just get returned"

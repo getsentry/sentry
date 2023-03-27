@@ -545,8 +545,11 @@ class Factories:
     @classmethod
     @exempt_from_silo_limits()
     def create_artifact_bundle(
-        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids"
+        cls, org, artifact_count=0, fixture_path="artifact_bundle_debug_ids", date_uploaded=None
     ):
+        if date_uploaded is None:
+            date_uploaded = timezone.now()
+
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
         file_ = File.objects.create(name="artifact-bundle.zip")
         file_.putfile(ContentFile(bundle))
@@ -557,6 +560,7 @@ class Factories:
             bundle_id=uuid4(),
             file=file_,
             artifact_count=artifact_count,
+            date_uploaded=date_uploaded,
         )
         return artifact_bundle
 

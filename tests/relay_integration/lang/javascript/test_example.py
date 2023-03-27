@@ -1,13 +1,24 @@
 import os
 
-import responses
+import pytest
 
-from sentry.testutils import RelayStoreHelper, TransactionTestCase
+from sentry.models import File, Release, ReleaseFile
+from sentry.testutils import RelayStoreHelper
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.skips import requires_symbolicator
+
+# IMPORTANT:
+#
+# This test suite requires Symbolicator in order to run correctly.
+# Set `symbolicator.enabled: true` in your `~/.sentry/config.yml` and run `sentry devservices up`
+#
+# If you are using a local instance of Symbolicator, you need to either change `system.url-prefix` to `system.internal-url-prefix`
+# inside `process_with_symbolicator` fixture inside `src/sentry/utils/pytest/fixtures.py`,
+# or add `127.0.0.1 host.docker.internal` entry to your `/etc/hosts`
 
 
 def get_fixture_path(name):
-    return os.path.join(os.path.dirname(__file__), "fixtures", name)
+    return os.path.join(os.path.dirname(__file__), "fixtures/example", name)
 
 
 def load_fixture(name):
@@ -15,35 +26,43 @@ def load_fixture(name):
         return f.read()
 
 
-class ExampleTestCase(RelayStoreHelper, TransactionTestCase):
-    @responses.activate
-    def test_sourcemap_expansion(self):
-        responses.add(
-            responses.GET,
-            "http://example.com/test.js",
-            body=load_fixture("example/test.js"),
-            content_type="application/javascript",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/test.min.js",
-            body=load_fixture("example/test.min.js"),
-            content_type="application/javascript",
-        )
-        responses.add(
-            responses.GET,
-            "http://example.com/test.min.js.map",
-            body=load_fixture("example/test.min.js.map"),
-            content_type="application/json",
-        )
-        responses.add(responses.GET, "http://example.com/index.html", body="Not Found", status=404)
+@pytest.mark.django_db(transaction=True)
+class TestExample(RelayStoreHelper):
+    @pytest.fixture(autouse=True)
+    def initialize(self, default_projectkey, default_project):
+        self.project = default_project
+        self.projectkey = default_projectkey
+        self.project.update_option("sentry:scrape_javascript", False)
 
-        min_ago = iso_format(before_now(minutes=1))
+    @requires_symbolicator
+    @pytest.mark.symbolicator
+    def test_sourcemap_expansion(self, process_with_symbolicator):
+        release = Release.objects.create(
+            organization_id=self.project.organization_id, version="abc"
+        )
+        release.add_project(self.project)
+
+        for file in ["test.min.js", "test.js", "test.min.js.map"]:
+            with open(get_fixture_path(file), "rb") as f:
+                f1 = File.objects.create(
+                    name=file,
+                    type="release.file",
+                    headers={},
+                )
+                f1.putfile(f)
+
+            ReleaseFile.objects.create(
+                name=f"http://example.com/{f1.name}",
+                release_id=release.id,
+                organization_id=self.project.organization_id,
+                file=f1,
+            )
 
         data = {
-            "timestamp": min_ago,
+            "timestamp": iso_format(before_now(minutes=1)),
             "message": "hello",
             "platform": "javascript",
+            "release": "abc",
             "exception": {
                 "values": [
                     {
