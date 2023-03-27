@@ -19,6 +19,7 @@ from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.superuser import Superuser
 from sentry.models import Authenticator, Organization
 from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
@@ -210,10 +211,16 @@ class AuthIndexEndpoint(Endpoint):
 
             if not DISABLE_SSO_CHECK_SU_FORM_FOR_LOCAL_DEV and not is_self_hosted():
                 if Superuser.org_id:
-                    superuser_org = Organization.objects.get(id=Superuser.org_id)
+                    superuser_org = organization_service.get_organization_by_id(id=Superuser.org_id)
 
-                    verify_authenticator = features.has(
-                        "organizations:u2f-superuser-form", superuser_org, actor=request.user
+                    verify_authenticator = (
+                        False
+                        if superuser_org is None
+                        else features.has(
+                            "organizations:u2f-superuser-form",
+                            superuser_org.organization,
+                            actor=request.user,
+                        )
                     )
 
                 if verify_authenticator:

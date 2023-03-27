@@ -1,5 +1,6 @@
 __all__ = ["Feature", "with_feature", "apply_feature_flag_on_cls"]
 
+import functools
 import logging
 from collections.abc import Mapping
 from contextlib import contextmanager
@@ -114,6 +115,7 @@ def with_feature(feature):
             with Feature(feature):
                 return func(self, *args, **kwargs)
 
+        functools.update_wrapper(wrapped, func)
         return wrapped
 
     return decorator
