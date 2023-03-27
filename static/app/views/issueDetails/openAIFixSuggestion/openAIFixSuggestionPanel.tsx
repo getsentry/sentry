@@ -57,7 +57,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
           url: window.location.href, // gives the full url (origin + pathname)
         },
         tags: {
-          featureName: 'openai-suggestion',
+          featureName: 'open-ai-suggestion',
         },
         user,
         level: 'info',

@@ -15,17 +15,11 @@ import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import ActionButton from 'sentry/components/actions/button';
 import IgnoreActions, {getIgnoreActions} from 'sentry/components/actions/ignore';
-import {
-  OpenAIFixSuggestionButton,
-  suggestedFixButtonTooltip,
-} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionButton';
 import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import EnvironmentPageFilter from 'sentry/components/environmentPageFilter';
-import FeatureBadge from 'sentry/components/featureBadge';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCheckmark,
   IconEllipsis,
@@ -113,7 +107,6 @@ class Actions extends Component<Props> {
       | 'mark_reviewed'
       | 'discarded'
       | 'open_in_discover'
-      | 'open_ai_fix_suggestion'
       | ResolutionStatus
   ) {
     const {group, project, organization, query = {}} = this.props;
@@ -410,20 +403,6 @@ class Actions extends Component<Props> {
               onAction: () => this.trackIssueAction('open_in_discover'),
             },
             {
-              key: 'suggested-fix',
-              className: 'hidden-sm hidden-md hidden-lg',
-              label: (
-                <Tooltip
-                  title={suggestedFixButtonTooltip}
-                  containerDisplayMode="inline-flex"
-                >
-                  {t('Suggested Fix')}
-                  <FeatureBadge type="experimental" noTooltip />
-                </Tooltip>
-              ),
-              onAction: () => this.trackIssueAction('open_in_discover'),
-            },
-            {
               key: group.isSubscribed ? 'unsubscribe' : 'subscribe',
               className: 'hidden-sm hidden-md hidden-lg',
               label: group.isSubscribed ? t('Unsubscribe') : t('Subscribe'),
@@ -502,17 +481,6 @@ class Actions extends Component<Props> {
           >
             <GuideAnchor target="open_in_discover">{t('Open in Discover')}</GuideAnchor>
           </ActionButton>
-        </Feature>
-        <Feature features={['open-ai-suggestion']} organization={organization}>
-          <GuideAnchor target="suggested-fix" position="bottom" offset={20}>
-            <OpenAIFixSuggestionButton
-              className="hidden-xs"
-              size="sm"
-              disabled={disabled}
-              groupId={group.id}
-              onClick={() => this.trackIssueAction('open_ai_fix_suggestion')}
-            />
-          </GuideAnchor>
         </Feature>
         {isResolved || isIgnored ? (
           <ActionButton
