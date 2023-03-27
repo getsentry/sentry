@@ -214,4 +214,4 @@ class UserService(RpcService):
             return None
 
 
-user_service: UserService = cast(UserService, UserService.resolve_to_delegation())
+user_service: UserService = cast(UserService, UserService.create_delegation())

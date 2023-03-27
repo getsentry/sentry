@@ -295,4 +295,4 @@ class OrganizationService(RpcService):
         pass
 
 
-organization_service = cast(OrganizationService, OrganizationService.resolve_to_delegation())
+organization_service = cast(OrganizationService, OrganizationService.create_delegation())

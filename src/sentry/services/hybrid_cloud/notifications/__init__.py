@@ -87,5 +87,5 @@ class NotificationsService(RpcService):
 
 
 notifications_service: NotificationsService = cast(
-    NotificationsService, NotificationsService.resolve_to_delegation()
+    NotificationsService, NotificationsService.create_delegation()
 )

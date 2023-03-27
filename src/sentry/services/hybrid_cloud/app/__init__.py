@@ -232,4 +232,4 @@ class AppService(RpcService):
         pass
 
 
-app_service = cast(AppService, AppService.resolve_to_delegation())
+app_service = cast(AppService, AppService.create_delegation())

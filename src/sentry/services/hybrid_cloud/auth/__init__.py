@@ -364,4 +364,4 @@ class AuthService(RpcService):
         pass
 
 
-auth_service: AuthService = cast(AuthService, AuthService.resolve_to_delegation())
+auth_service: AuthService = cast(AuthService, AuthService.create_delegation())

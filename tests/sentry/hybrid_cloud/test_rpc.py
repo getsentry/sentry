@@ -20,7 +20,7 @@ class RpcServiceTest(TestCase):
         serial_org = DatabaseBackedOrganizationService.serialize_organization(organization)
 
         with override_settings(SILO_MODE=SiloMode.CONTROL):
-            service = OrganizationService.resolve_to_delegation()
+            service = OrganizationService.create_delegation()
 
             # TODO: Handle forward refs in service method definitions
             service.add_organization_member(
@@ -44,5 +44,5 @@ class RpcServiceTest(TestCase):
         )
 
         with override_settings(SILO_MODE=SiloMode.REGION):
-            service = OrganizationService.resolve_to_delegation()
+            service = OrganizationService.create_delegation()
             dispatch_to_local_service(service.name, "add_organization_member", serial_arguments)

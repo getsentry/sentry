@@ -110,5 +110,5 @@ class OrganizationMappingService(RpcService):
 
 
 organization_mapping_service: OrganizationMappingService = cast(
-    OrganizationMappingService, OrganizationMappingService.resolve_to_delegation()
+    OrganizationMappingService, OrganizationMappingService.create_delegation()
 )

@@ -99,4 +99,4 @@ class IdentityService(RpcService):
         pass
 
 
-identity_service: IdentityService = cast(IdentityService, IdentityService.resolve_to_delegation())
+identity_service: IdentityService = cast(IdentityService, IdentityService.create_delegation())

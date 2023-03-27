@@ -56,5 +56,5 @@ class RpcLostPasswordHash(RpcModel):
 
 
 lost_password_hash_service: LostPasswordHashService = cast(
-    LostPasswordHashService, LostPasswordHashService.resolve_to_delegation()
+    LostPasswordHashService, LostPasswordHashService.create_delegation()
 )

@@ -93,5 +93,5 @@ class UserOptionService(RpcService):
 
 
 user_option_service: UserOptionService = cast(
-    UserOptionService, UserOptionService.resolve_to_delegation()
+    UserOptionService, UserOptionService.create_delegation()
 )

@@ -298,5 +298,5 @@ class IntegrationService(RpcService):
 
 
 integration_service: IntegrationService = cast(
-    IntegrationService, IntegrationService.resolve_to_delegation()
+    IntegrationService, IntegrationService.create_delegation()
 )

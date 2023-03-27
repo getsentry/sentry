@@ -110,6 +110,11 @@ class DelegatingRpcService(DelegatedBySiloMode["RpcService"]):
 
 
 def rpc_method(method: Callable[..., _T]) -> Callable[..., _T]:
+    """Decorate methods to be exposed as part of the RPC interface.
+
+    May be applied only to an abstract method of an RpcService subclass.
+    """
+
     if not getattr(method, "__isabstractmethod__", False):
         raise RpcServiceSetupException("`@rpc_method` may only decorate abstract methods")
     setattr(method, _IS_RPC_METHOD_ATTR, True)
@@ -120,6 +125,17 @@ _global_service_registry: Dict[str, DelegatingRpcService] = {}
 
 
 class RpcService(InterfaceWithLifecycle):
+    """A set of methods to be exposed as part of the RPC interface.
+
+    Extend this class to declare a "base service" where the methhod interfaces are
+    declared and decorated by `@rpc_service`. Then extend that base service class
+    with the local (database-backed) implementation.
+
+    The base service should provide two class-level constants: `name` (the slug that
+    maps to the service in a URL) and `local_mode` (the silo mode in which to use the
+    local implementation).
+    """
+
     name: str
     local_mode: SiloMode
 
@@ -192,9 +208,9 @@ class RpcService(InterfaceWithLifecycle):
             try:
                 signature = RpcMethodSignature(cls, base_method)
             except Exception as e:
-                # To temporarily unblock development, swallow these errors and leave
-                # empty spots in the parameter model table. This would cause an error
-                # down the road if the method is called.
+                # While remote services are under development, swallow these errors
+                # and leave empty spots in the parameter model table. This will cause
+                # an RpcServiceUnimplementedException when the method is called.
                 # TODO: Make this a hard failure when all parameter models are stable
                 logger.warning(
                     f"Error on parameter model for {cls.__name__}.{base_method.__name__}: {e}"
@@ -204,7 +220,7 @@ class RpcService(InterfaceWithLifecycle):
         return model_table
 
     @classmethod
-    def _create_remote_delegation(cls) -> RpcService:
+    def _create_remote_implementation(cls) -> RpcService:
         """Create a service object that makes remote calls to another silo."""
 
         def create_remote_method(method_name: str) -> Callable[..., Any]:
@@ -253,12 +269,13 @@ class RpcService(InterfaceWithLifecycle):
         return cast(RpcService, remote_service_class())
 
     @classmethod
-    def resolve_to_delegation(cls) -> DelegatingRpcService:
+    def create_delegation(cls) -> DelegatingRpcService:
+        """Instantiate a base service class for the current mode."""
         constructors = {
             mode: (
                 cls.get_local_implementation
                 if mode == SiloMode.MONOLITH or mode == cls.local_mode
-                else cls._create_remote_delegation
+                else cls._create_remote_implementation
             )
             for mode in SiloMode
         }

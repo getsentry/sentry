@@ -48,5 +48,5 @@ class ProjectKeyService(RpcService):
 
 
 project_key_service: ProjectKeyService = cast(
-    ProjectKeyService, ProjectKeyService.resolve_to_delegation()
+    ProjectKeyService, ProjectKeyService.create_delegation()
 )
