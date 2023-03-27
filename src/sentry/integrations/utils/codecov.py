@@ -44,13 +44,6 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    codecov_token = options.get("codecov.client-secret")
-    if not codecov_token:
-        logger.info(
-            "codecov.get_token", extra={"error": "Missing codecov token", "org_id": organization.id}
-        )
-        return False, CodecovIntegrationError.MISSING_TOKEN.value
-
     integrations = Integration.objects.filter(organizations=organization.id, provider="github")
     if not integrations.exists():
         logger.info(
