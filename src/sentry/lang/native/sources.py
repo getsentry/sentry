@@ -149,9 +149,9 @@ def get_internal_source(project):
     }
 
 
-def get_internal_artifact_lookup_source(project):
+def get_internal_artifact_lookup_source_url(project):
     """
-    Returns the source configuration for the Sentry artifact-lookup API.
+    Returns the url used as a part of source configuration for the Sentry artifact-lookup API.
     """
     internal_url_prefix = options.get("system.internal-url-prefix")
     if not internal_url_prefix:
@@ -162,7 +162,7 @@ def get_internal_artifact_lookup_source(project):
             ).replace("127.0.0.1", "host.docker.internal")
 
     assert internal_url_prefix
-    sentry_source_url = "{}{}".format(
+    return "{}{}".format(
         internal_url_prefix.rstrip("/"),
         reverse(
             "sentry-api-0-project-artifact-lookup",
@@ -173,10 +173,15 @@ def get_internal_artifact_lookup_source(project):
         ),
     )
 
+
+def get_internal_artifact_lookup_source(project):
+    """
+    Returns the source configuration for the Sentry artifact-lookup API.
+    """
     return {
         "type": "sentry",
         "id": INTERNAL_SOURCE_NAME,
-        "url": sentry_source_url,
+        "url": get_internal_artifact_lookup_source_url(project),
         "token": get_system_token(),
     }
 
