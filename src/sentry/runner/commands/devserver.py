@@ -355,6 +355,13 @@ and run `sentry devservices up kafka zookeeper`.
             ("https", ["https", "-host", https_host, "-listen", host + ":" + https_port, bind])
         ]
 
+    # Create all topics if the Kafka eventstream is selected
+    if settings.SENTRY_EVENTSTREAM == "sentry.eventstream.kafka.KafkaEventStream":
+        from sentry.utils.batching_kafka_consumer import create_topics
+
+        for (topic_name, topic_data) in settings.KAFKA_TOPICS:
+            create_topics(topic_data["cluster"], [topic_name])
+
     from sentry.runner.commands.devservices import _prepare_containers
 
     for name, container_options in _prepare_containers("sentry", silent=True).items():
