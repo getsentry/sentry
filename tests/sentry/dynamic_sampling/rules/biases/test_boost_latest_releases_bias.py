@@ -6,9 +6,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
-from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
-    BoostLatestReleasesRulesGenerator,
-)
+from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import BoostLatestReleasesBias
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
 MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
@@ -54,7 +52,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "boostedReleases": boosted_releases,
     }
 
-    rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostLatestReleasesBias(data_provider).generate_rules(MagicMock())
     assert rules == [
         {
             "condition": {
@@ -110,5 +108,5 @@ def test_generate_bias_rules_with_no_boosted_releases(data_provider, default_pro
         "boostedReleases": [],
     }
 
-    rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostLatestReleasesBias(data_provider).generate_rules(MagicMock())
     assert rules == []

@@ -3,9 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.dynamic_sampling import ENVIRONMENT_GLOBS
-from sentry.dynamic_sampling.rules.biases.boost_environments_bias import (
-    BoostEnvironmentsRulesGenerator,
-)
+from sentry.dynamic_sampling.rules.biases.boost_environments_bias import BoostEnvironmentsBias
 
 
 @pytest.mark.django_db
@@ -17,7 +15,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "id": rule_id,
     }
 
-    rules = BoostEnvironmentsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostEnvironmentsBias(data_provider).generate_rules(MagicMock())
     assert rules == [
         {
             "condition": {

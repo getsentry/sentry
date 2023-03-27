@@ -2,9 +2,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import (
-    IgnoreHealthChecksRulesGenerator,
-)
+from sentry.dynamic_sampling.rules.biases.ignore_health_checks_bias import IgnoreHealthChecksBias
 
 
 @pytest.mark.django_db
@@ -22,7 +20,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "healthCheckGlobs": health_check_globs,
     }
 
-    rules = IgnoreHealthChecksRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = IgnoreHealthChecksBias(data_provider).generate_rules(MagicMock())
     assert rules == [
         {
             "condition": {

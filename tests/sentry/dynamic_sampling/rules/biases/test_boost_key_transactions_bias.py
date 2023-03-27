@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from sentry.dynamic_sampling.rules.biases.boost_key_transactions_bias import (
-    BoostKeyTransactionsRulesGenerator,
+    BoostKeyTransactionsBias,
 )
 
 
@@ -22,7 +22,7 @@ def test_generate_bias_rules_v2(data_provider, default_project):
         "keyTransactions": key_transactions,
     }
 
-    rules = BoostKeyTransactionsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostKeyTransactionsBias(data_provider).generate_rules(MagicMock())
     assert rules == [
         {
             "condition": {
@@ -54,5 +54,5 @@ def test_generate_bias_rules_with_no_key_transactions(data_provider, default_pro
         "keyTransactions": [],
     }
 
-    rules = BoostKeyTransactionsRulesGenerator(data_provider).generate_bias_rules(MagicMock())
+    rules = BoostKeyTransactionsBias(data_provider).generate_rules(MagicMock())
     assert rules == []
