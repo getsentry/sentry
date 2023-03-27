@@ -1,5 +1,9 @@
 import sentry_relay
 
+# Max accepted string length of the CODEOWNERS file
+MAX_RAW_LENGTH = 1_000_000
+HIGHER_MAX_RAW_LENGTH = 3_000_000
+
 
 def codeowners_match(value, pat):
     """A beefed up version of fnmatch.fnmatch"""
