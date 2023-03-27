@@ -307,7 +307,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_integration(
             organization=self.organization, provider="github", external_id="extid"
         )
-        sentry_options.set("codecov.client-secret", "supersecrettoken")
         responses.add(
             responses.GET,
             "https://api.codecov.io/api/v2/github/testgit",

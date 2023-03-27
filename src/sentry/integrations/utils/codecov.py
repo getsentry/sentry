@@ -44,13 +44,6 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    codecov_token = options.get("codecov.client-secret")
-    if not codecov_token:
-        logger.info(
-            "codecov.get_token", extra={"error": "Missing codecov token", "org_id": organization.id}
-        )
-        return False, CodecovIntegrationError.MISSING_TOKEN.value
-
     integrations = Integration.objects.filter(organizations=organization.id, provider="github")
     if not integrations.exists():
         logger.info(
@@ -70,7 +63,7 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
         owner_username, _ = repos[0].get("full_name").split("/")
         url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
-        response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
+        response = requests.get(url)
         if response.status_code == 200:
             logger.info(
                 "codecov.check_integration_success",

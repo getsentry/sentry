@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import responses
 
-from sentry import audit_log, options
+from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
 from sentry.tasks.auto_enable_codecov import enable_for_organization, schedule_organizations
@@ -21,7 +21,6 @@ class AutoEnableCodecovTest(TestCase):
             provider="github",
             external_id="id",
         )
-        options.set("codecov.client-secret", "supersecrettoken")
 
         responses.add(
             responses.GET,
