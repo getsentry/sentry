@@ -34,15 +34,6 @@ def schedule_organizations(dry_run=False) -> None:
                 extra={"organization_id": organization.id},
             )
             enable_for_organization(organization.id)
-        else:
-            logger.warning(
-                "Skipping organization: feature flag is False",
-                extra={
-                    "organization_id": organization.id,
-                    "codecov_integration_enabled": codecov_enabled,
-                    "should_auto_enable": should_auto_enable,
-                },
-            )
 
 
 @instrumented_task(  # type: ignore
