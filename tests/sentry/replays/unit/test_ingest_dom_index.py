@@ -3,7 +3,7 @@ import zlib
 from sentry.utils import json
 from src.sentry.replays.usecases.ingest.dom_index import (
     decompress,
-    iter_user_actions,
+    get_user_actions,
     parse_replay_actions,
 )
 
@@ -17,8 +17,8 @@ def test_decompress():
     assert decompress(compressed_data) == data
 
 
-def test_iter_user_actions():
-    """Test "iter_user_actions" function."""
+def test_get_user_actions():
+    """Test "get_user_actions" function."""
     data = [
         {
             "type": 5,
@@ -52,7 +52,7 @@ def test_iter_user_actions():
         }
     ]
 
-    user_actions = list(iter_user_actions(zlib.compress(json.dumps(data).encode())))
+    user_actions = get_user_actions(zlib.compress(json.dumps(data).encode()))
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"

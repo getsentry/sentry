@@ -1,7 +1,7 @@
 import time
 import uuid
 import zlib
-from typing import Iterator, List, Literal, Optional, TypedDict
+from typing import List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
@@ -64,7 +64,7 @@ def parse_replay_actions(
     segment_bytes: bytes,
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = list(iter_user_actions(segment_bytes))
+    actions = get_user_actions(segment_bytes)
     if len(actions) == 0:
         return None
 
@@ -99,9 +99,10 @@ def create_replay_actions_payload(
     }
 
 
-def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsEventPayloadClick]:
+def get_user_actions(segment_data: bytes) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
     events = json.loads(decompress(segment_data))
+    result = []
 
     for event in events:
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
@@ -109,20 +110,24 @@ def iter_user_actions(segment_data: bytes) -> Iterator[ReplayActionsEventPayload
             if payload.get("category") == "ui.click":
                 node = payload.get("data", {}).get("node", {})
                 attributes = node.get("attributes", {})
-                yield {
-                    "node_id": node["id"],
-                    "tag": node["tagName"],
-                    "id": attributes.get("id", ""),
-                    "class": attributes.get("class", "").split(" "),
-                    "text": node["textContent"],
-                    "role": attributes.get("role", ""),
-                    "alt": attributes.get("alt", ""),
-                    "testid": attributes.get("testid", ""),
-                    "aria_label": attributes.get("aria-label", ""),
-                    "title": attributes.get("title", ""),
-                    "timestamp": int(payload["timestamp"]),
-                    "event_hash": uuid.uuid4().hex,
-                }
+                result.append(
+                    {
+                        "node_id": node["id"],
+                        "tag": node["tagName"],
+                        "id": attributes.get("id", ""),
+                        "class": attributes.get("class", "").split(" "),
+                        "text": node["textContent"],
+                        "role": attributes.get("role", ""),
+                        "alt": attributes.get("alt", ""),
+                        "testid": attributes.get("testid", ""),
+                        "aria_label": attributes.get("aria-label", ""),
+                        "title": attributes.get("title", ""),
+                        "timestamp": int(payload["timestamp"]),
+                        "event_hash": uuid.uuid4().hex,
+                    }
+                )
+
+    return result
 
 
 def decompress(data: bytes) -> bytes:
