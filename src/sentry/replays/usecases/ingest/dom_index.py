@@ -115,15 +115,15 @@ def get_user_actions(
                 result.append(
                     {
                         "node_id": node["id"],
-                        "tag": node["tagName"],
-                        "id": attributes.get("id", ""),
-                        "class": attributes.get("class", "").split(" "),
-                        "text": node["textContent"],
-                        "role": attributes.get("role", ""),
-                        "alt": attributes.get("alt", ""),
-                        "testid": attributes.get("testid", ""),
-                        "aria_label": attributes.get("aria-label", ""),
-                        "title": attributes.get("title", ""),
+                        "tag": node["tagName"][:32],
+                        "id": attributes.get("id", "")[:64],
+                        "class": attributes.get("class", "").split(" ")[:10],
+                        "text": node["textContent"][:1024],
+                        "role": attributes.get("role", "")[:32],
+                        "alt": attributes.get("alt", "")[:64],
+                        "testid": attributes.get("testid", "")[:64],
+                        "aria_label": attributes.get("aria-label", "")[:64],
+                        "title": attributes.get("title", "")[:64],
                         "timestamp": int(payload["timestamp"]),
                         "event_hash": encode_as_uuid(
                             "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
