@@ -35,7 +35,7 @@ export function OpenAIFixSuggestionButton({
   const handleShowAISuggestion = useCallback(() => {
     router.push({
       pathname: `/issues/${groupId}/`,
-      query: {...router.location.query, openSuggestedFix: true},
+      query: {...router.location.query, showSuggestedFix: true},
     });
   }, [router, groupId]);
 
@@ -43,7 +43,7 @@ export function OpenAIFixSuggestionButton({
     setAgreedForwardDataToOpenAI(true);
     router.push({
       pathname: `/issues/${groupId}/`,
-      query: {...router.location.query, openSuggestedFix: true},
+      query: {...router.location.query, showSuggestedFix: true},
     });
   }, [router, groupId, setAgreedForwardDataToOpenAI]);
 
