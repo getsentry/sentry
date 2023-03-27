@@ -2,7 +2,7 @@ from typing import Any, Sequence
 
 from django import forms
 from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
+from django.http import Http404, HttpResponse
 from rest_framework.request import Request
 
 from sentry import analytics
@@ -16,6 +16,7 @@ from sentry.models import (
     Team,
 )
 from sentry.notifications.types import NotificationSettingOptionValues, NotificationSettingTypes
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.signing import unsign
 from sentry.web.decorators import transaction_start
@@ -74,7 +75,10 @@ class SlackLinkTeamView(BaseView):
                 request=request,
             )
 
-        integration = Integration.objects.get(id=params["integration_id"])
+        integration = integration_service.get_integration(integration_id=params["integration_id"])
+        if not integration:
+            raise Http404
+
         organization_memberships = OrganizationMember.objects.get_for_integration(
             integration, request.user
         )

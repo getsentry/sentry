@@ -34,7 +34,7 @@ class PagerDutyClientTest(APITestCase):
         self.service = PagerDutyService.objects.create(
             service_name=SERVICES[0]["service_name"],
             integration_key=SERVICES[0]["integration_key"],
-            organization_integration=self.integration.organizationintegrations.first(),
+            organization_integration=self.integration.organizationintegration_set.first(),
         )
         self.installation = self.integration.get_installation(self.organization.id)
         self.min_ago = iso_format(before_now(minutes=1))

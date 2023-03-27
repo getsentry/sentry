@@ -182,7 +182,7 @@ class OrganizationAuthSettingsView(OrganizationView):
             "auth_provider": auth_provider,
             "provider_name": provider.name,
             "scim_api_token": auth_provider.get_scim_token(),
-            "scim_url": auth_provider.get_scim_url(),
+            "scim_url": get_scim_url(auth_provider, organization),
             "content": response,
         }
 
