@@ -146,7 +146,9 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             )
         registration.validate_action(data=data)
 
-    def validate_slack_channel(self, data: NotificationActionInputData):
+    def validate_slack_channel(
+        self, data: NotificationActionInputData
+    ) -> NotificationActionInputData:
         """
         Validates assuming that SPECIFIC targets for SLACK service has the following target data:
             target_display: Slack channel name
@@ -203,7 +205,9 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         data["target_identifier"] = channel_id
         return data
 
-    def validate_pagerduty_service(self, data: NotificationActionInputData):
+    def validate_pagerduty_service(
+        self, data: NotificationActionInputData
+    ) -> NotificationActionInputData:
         """
         Validates assuming that SPECIFIC targets for PAGERDUTY service has the following target data:
             target_display: PagerDutyService.service_name
