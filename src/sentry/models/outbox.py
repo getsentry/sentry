@@ -176,9 +176,11 @@ class OutboxBase(Model):
         yield coalesced
         if coalesced is not None:
             first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
-            _, deleted = self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            deleted_count, _ = (
+                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            )
             tags = {"category": OutboxCategory(self.category).name}
-            metrics.incr("outbox.processed", deleted, tags=tags)
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
             metrics.timing(
                 "outbox.processing_lag",
                 datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
@@ -258,7 +260,7 @@ class RegionOutbox(OutboxBase):
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
 
-# Outboxes bound from region silo -> control silo
+# Outboxes bound from control silo -> region silo
 @control_silo_only_model
 class ControlOutbox(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
