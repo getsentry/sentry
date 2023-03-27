@@ -567,7 +567,7 @@ class RpcBackedAccess(Access):
             return True
 
         if self.rpc_user_organization_context.member and features.has(
-            "organizations:team-roles", self.rpc_user_organization_context.organization.id
+            "organizations:team-roles", self.rpc_user_organization_context.organization
         ):
             memberships = self.rpc_user_organization_context.member.member_teams
             for membership in memberships:
