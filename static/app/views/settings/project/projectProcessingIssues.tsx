@@ -21,8 +21,10 @@ import {
   PanelTable,
 } from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
+import Tag from 'sentry/components/tag';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import TimeSince from 'sentry/components/timeSince';
+import Version from 'sentry/components/version';
 import formGroups from 'sentry/data/forms/processingIssues';
 import {IconQuestion} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
@@ -299,6 +301,7 @@ class ProjectProcessingIssues extends Component<Props, State> {
   }
 
   renderDetails(item: ProcessingIssueItem) {
+    const {release, dist} = item.data;
     let dsymUUID: React.ReactNode = null;
     let dsymName: React.ReactNode = null;
     let dsymArch: React.ReactNode = null;
@@ -320,6 +323,14 @@ class ProjectProcessingIssues extends Component<Props, State> {
         {dsymUUID && <span> {dsymUUID}</span>}
         {dsymArch && <span> {dsymArch}</span>}
         {dsymName && <span> (for {dsymName})</span>}
+        {(release || dist) && (
+          <div>
+            <Tag tooltipText={t('Latest Release')}>
+              {release ? <Version version={release} /> : t('none')}
+            </Tag>{' '}
+            <Tag tooltipText={t('Latest Distribution')}>{dist || t('none')}</Tag>
+          </div>
+        )}
       </span>
     );
   }
