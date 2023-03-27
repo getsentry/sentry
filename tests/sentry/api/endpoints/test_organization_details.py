@@ -31,7 +31,6 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.signals import project_created
 from sentry.silo import SiloMode
 from sentry.testutils import APITestCase, TwoFactorAPITestCase, pytest
-from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 
@@ -300,7 +299,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
         AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
@@ -386,7 +384,6 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["eventsMemberAdmin"]) in log.data["eventsMemberAdmin"]
         assert "to {}".format(data["alertsMemberWrite"]) in log.data["alertsMemberWrite"]
 
-    @with_feature("organizations:codecov-stacktrace-integration-v2")
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
