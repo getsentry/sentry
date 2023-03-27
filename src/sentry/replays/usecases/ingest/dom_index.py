@@ -140,8 +140,7 @@ def _initialize_publisher() -> KafkaPublisher:
     if replay_publisher is None:
         config = settings.KAFKA_TOPICS[settings.KAFKA_INGEST_REPLAY_EVENTS]
         replay_publisher = KafkaPublisher(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-            asynchronous=False,
+            kafka_config.get_kafka_producer_cluster_options(config["cluster"])
         )
 
     return replay_publisher
