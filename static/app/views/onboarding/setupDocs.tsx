@@ -120,11 +120,14 @@ function ProjectDocs(props: {
   );
 }
 
-function SetupDocs({search, route, router, location}: Props) {
+function SetupDocs({search, route, router, location, ...props}: Props) {
   const api = useApi();
   const organization = useOrganization();
   const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const [selectedProjectSlug, _setSelectedProjectSlug] = useState(
+    props.selectedProjectSlug
+  );
 
   const {logExperiment, experimentAssignment} = useExperiment(
     'OnboardingNewFooterExperiment',
@@ -176,7 +179,8 @@ function SetupDocs({search, route, router, location}: Props) {
   const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
-  const project = projects[projectIndex];
+  const project =
+    projects[projectIndex] ?? rawProjects.find(p => p.slug === selectedProjectSlug);
 
   // find the next project that doesn't have a first event
   const nextProject = projects.find(
@@ -201,7 +205,7 @@ function SetupDocs({search, route, router, location}: Props) {
       return;
     }
 
-    let platform = String(project.platform);
+    let loadPlatform = String(project.platform);
     if (
       organization.features?.includes('onboarding-docs-with-product-selection') &&
       project.platform === 'javascript-react'
@@ -214,13 +218,13 @@ function SetupDocs({search, route, router, location}: Props) {
         products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
         products.includes(PRODUCT.SESSION_REPLAY)
       ) {
-        platform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
+        loadPlatform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
       } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
-        platform = ReactDocVariant.ErrorMonitoringAndPerformance;
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndPerformance;
       } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
-        platform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
       } else {
-        platform = ReactDocVariant.ErrorMonitoring;
+        loadPlatform = ReactDocVariant.ErrorMonitoring;
       }
     }
 
@@ -229,7 +233,7 @@ function SetupDocs({search, route, router, location}: Props) {
         api,
         orgSlug: organization.slug,
         projectSlug: project.slug,
-        platform: platform as PlatformKey,
+        platform: loadPlatform as PlatformKey,
       });
       setPlatformDocs(loadedDocs);
       setLoadedPlatform(project.platform);
@@ -239,9 +243,11 @@ function SetupDocs({search, route, router, location}: Props) {
       throw error;
     }
   }, [
-    project,
+    project?.slug,
+    project?.platform,
     api,
-    organization,
+    organization.slug,
+    organization.features,
     integrationSlug,
     integrationUseManualSetup,
     location.query.product,
@@ -249,7 +255,7 @@ function SetupDocs({search, route, router, location}: Props) {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData, location.query.product]);
+  }, [fetchData, location.query.product, project?.platform]);
 
   // log experiment on mount if feature enabled
   useEffect(() => {
