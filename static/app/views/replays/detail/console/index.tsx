@@ -1,4 +1,4 @@
-import {memo, useCallback, useEffect, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -33,14 +33,9 @@ const cellMeasurer = {
 
 function Console({breadcrumbs, startTimestampMs}: Props) {
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
-  const {searchTerm, logLevel, items, setSearchTerm} = filterProps;
+  const {expandPaths, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {currentTime, currentHoverTime} = useReplayContext();
-  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
-  // by log row, so they they can be restored as the Console pane is scrolling.
-  // Due to virtualization, components can be unmounted as the user scrolls, so
-  // state needs to be remembered.
-  const expandPaths = useRef(new Map<number, Set<string>>());
 
   const listRef = useRef<ReactVirtualizedList>(null);
   const itemLookup = useMemo(
@@ -59,21 +54,16 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     deps,
   });
 
-  // Need to reset `expandPaths` if items changes (e.g. when filtering)
-  useEffect(() => {
-    expandPaths.current = new Map();
-  }, [cache, items]);
-
   const handleDimensionChange = useCallback(
     (index: number, path: string, expandedState: Record<string, boolean>) => {
-      const rowState = expandPaths.current.get(index) || new Set();
+      const rowState = expandPaths.get(index) || new Set();
       if (expandedState[path]) {
         rowState.add(path);
       } else {
         // Collapsed, i.e. its default state, so no need to store state
         rowState.delete(path);
       }
-      expandPaths.current.set(index, rowState);
+      expandPaths.set(index, rowState);
       cache.clear(index, 0);
       listRef.current?.recomputeGridSize({rowIndex: index});
       listRef.current?.forceUpdateGrid();
@@ -125,7 +115,7 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           index={index}
           startTimestampMs={startTimestampMs}
           style={style}
-          expandPaths={Array.from(expandPaths.current.get(index) || [])}
+          expandPaths={Array.from(expandPaths.get(index) || [])}
           onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
