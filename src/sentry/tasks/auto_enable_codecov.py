@@ -29,22 +29,11 @@ def schedule_organizations(dry_run=False) -> None:
         codecov_enabled = features.has("organizations:codecov-stacktrace-integration", organization)
         should_auto_enable = features.has("organizations:auto-enable-codecov", organization)
         if codecov_enabled and should_auto_enable:
-            logger.warning(
+            logger.info(
                 "Processing organization",
-                extra={
-                    "organization_id": organization.id,
-                },
+                extra={"organization_id": organization.id},
             )
             enable_for_organization(organization.id)
-        else:
-            logger.warning(
-                "Skipping organization: feature flag is False",
-                extra={
-                    "organization_id": organization.id,
-                    "codecov_integration_enabled": codecov_enabled,
-                    "should_auto_enable": should_auto_enable,
-                },
-            )
 
 
 @instrumented_task(  # type: ignore
@@ -57,22 +46,38 @@ def enable_for_organization(organization_id: int, dry_run=False) -> None:
     Set the codecov_access flag to True for organizations with a valid Codecov integration.
     """
     try:
-        logger.info(f"Attempting to enable codecov for organization {organization_id}")
+        logger.info(
+            "Attempting to enable codecov for organization",
+            extra={"organization_id": organization_id},
+        )
         organization = Organization.objects.get(id=organization_id)
-        has_integration, _ = has_codecov_integration(organization)
+        has_integration, error = has_codecov_integration(organization)
         if not has_integration:
-            logger.warning(f"No codecov integration exists for organization {organization_id}")
+            logger.warning(
+                "No codecov integration exists for organization",
+                extra={"organization_id": organization.id, "error": error},
+            )
             return
 
         if organization.flags.codecov_access.is_set:
             logger.warning(
-                f"Codecov Access flag already set to {organization.flags.codecov_access}"
+                "Codecov Access flag already set.",
+                extra={
+                    "organization_id": organization.id,
+                    "codecov_access": organization.flags.codecov_access,
+                },
             )
             return
 
         organization.flags.codecov_access = True
-        logger.info(f"Setting Codecov Access flag for organization {organization_id}")
         organization.save()
+        logger.info(
+            "Enabled Codecov Access flag for organization",
+            extra={
+                "organization_id": organization.id,
+                "codecov_access": organization.flags.codecov_access,
+            },
+        )
 
         create_system_audit_entry(
             organization=organization,
