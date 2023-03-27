@@ -50,7 +50,12 @@ function renderDebugIdBundlesMockRequests({
     body: empty ? [] : TestStubs.SourceMapsDebugIDBundles(),
   });
 
-  return {artifactBundles};
+  const artifactBundlesDeletion = MockApiClient.addMockResponse({
+    url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
+    method: 'DELETE',
+  });
+
+  return {artifactBundles, artifactBundlesDeletion};
 }
 
 describe('ProjectSourceMaps', function () {
@@ -291,7 +296,17 @@ describe('ProjectSourceMaps', function () {
         )
       ).toBeInTheDocument();
       // Close modal
-      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
+      await waitFor(() => {
+        expect(mockRequests.artifactBundlesDeletion).toHaveBeenLastCalledWith(
+          '/projects/org-slug/project-slug/files/artifact-bundles/',
+          expect.objectContaining({
+            query: expect.objectContaining({
+              bundleId: 'b916a646-2c6b-4e45-af4c-409830a44e0e',
+            }),
+          })
+        );
+      });
 
       // Switch tab
       await userEvent.click(screen.getByRole('link', {name: 'Release Bundles'}));

@@ -149,13 +149,15 @@ class GroupDetails extends Component<Props, State> {
   trackView(project: Project) {
     const {group, event} = this.state;
     const {location, organization, router} = this.props;
-    const {alert_date, alert_rule_id, alert_type} = location.query;
+    const {alert_date, alert_rule_id, alert_type, ref_fallback, stream_index} =
+      location.query;
 
     this.props.setEventNames('issue_details.viewed', 'Issue Details: Viewed');
     this.props.setRouteAnalyticsParams({
       ...getAnalyticsDataForGroup(group),
       ...getAnalyticsDataForEvent(event),
       ...getAnalyicsDataForProject(project),
+      stream_index: typeof stream_index === 'string' ? Number(stream_index) : undefined,
       // Alert properties track if the user came from email/slack alerts
       alert_date:
         typeof alert_date === 'string' ? getUtcDateString(Number(alert_date)) : undefined,
@@ -166,6 +168,7 @@ class GroupDetails extends Component<Props, State> {
         router.location.query.project,
         event
       ),
+      ref_fallback,
       // Will be updated by StacktraceLink if there is a stacktrace link
       stacktrace_link_viewed: false,
     });
@@ -661,7 +664,15 @@ class GroupDetails extends Component<Props, State> {
               <StyledLoadingError message={t('Error loading the specified project')} />
             ) : (
               // TODO(ts): Update renderContent function to deal with empty group
-              this.renderContent(projects[0], group!)
+              // Search for the slug in the projects list if possible. This is because projects
+              // is just a complete list of stored projects and the first element may not be
+              // the expected project.
+              this.renderContent(
+                (project?.slug
+                  ? projects.find(({slug}) => slug === project?.slug)
+                  : undefined) ?? projects[0],
+                group!
+              )
             )
           ) : (
             <LoadingIndicator />

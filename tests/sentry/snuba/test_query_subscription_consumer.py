@@ -11,12 +11,11 @@ from arroyo.types import BrokerValue, Message, Partition, Topic
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
-from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import SnubaQuery
 from sentry.snuba.query_subscription_consumer import (
     InvalidMessageError,
     InvalidSchemaError,
-    QuerySubscriptionConsumer,
     QuerySubscriptionStrategyFactory,
     parse_message_value,
     register_subscriber,
@@ -31,10 +30,6 @@ class BaseQuerySubscriptionTest:
     @cached_property
     def topic(self):
         return settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS
-
-    @cached_property
-    def consumer(self):
-        return QuerySubscriptionConsumer("hello")
 
     @cached_property
     def valid_wrapper(self):
@@ -115,63 +110,6 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
             )
         )
 
-        data = deepcopy(data)
-        data["payload"]["values"] = data["payload"]["result"]
-        data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(
-            tzinfo=pytz.utc
-        )
-        mock_callback.assert_called_once_with(data["payload"], sub)
-
-    def test_no_subscription(self):
-        with mock.patch("sentry.snuba.tasks._snuba_pool") as pool:
-            pool.urlopen.return_value.status = 202
-
-            self.consumer.handle_message(
-                self.build_mock_message(self.valid_wrapper, topic=self.topic), self.topic
-            )
-            pool.urlopen.assert_called_once_with(
-                "DELETE",
-                "/{}/{}/subscriptions/{}".format(
-                    Dataset.Metrics.value,
-                    EntityKey.MetricsCounters.value,
-                    self.valid_payload["subscription_id"],
-                ),
-            )
-        self.metrics.incr.assert_called_once_with(
-            "snuba_query_subscriber.subscription_doesnt_exist"
-        )
-
-    def test_subscription_not_registered(self):
-        sub = QuerySubscription.objects.create(
-            project=self.project, type="unregistered", subscription_id="an_id"
-        )
-        data = self.valid_wrapper
-        data["payload"]["subscription_id"] = sub.subscription_id
-        self.consumer.handle_message(self.build_mock_message(data), self.topic)
-        self.metrics.incr.assert_called_once_with(
-            "snuba_query_subscriber.subscription_type_not_registered"
-        )
-
-    def test_subscription_registered(self):
-        registration_key = "registered_test"
-        mock_callback = mock.Mock()
-        register_subscriber(registration_key)(mock_callback)
-        with self.tasks():
-            snuba_query = create_snuba_query(
-                SnubaQuery.Type.ERROR,
-                Dataset.Events,
-                "hello",
-                "count()",
-                timedelta(minutes=10),
-                timedelta(minutes=1),
-                None,
-            )
-            sub = create_snuba_subscription(self.project, registration_key, snuba_query)
-        sub.refresh_from_db()
-
-        data = self.valid_wrapper
-        data["payload"]["subscription_id"] = sub.subscription_id
-        self.consumer.handle_message(self.build_mock_message(data), self.topic)
         data = deepcopy(data)
         data["payload"]["values"] = data["payload"]["result"]
         data["payload"]["timestamp"] = parse_date(data["payload"]["timestamp"]).replace(

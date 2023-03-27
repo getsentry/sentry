@@ -30,6 +30,7 @@ logger = logging.getLogger(__name__)
 class MessageContext:
     message: Dict[str, Any]
     transaction: Span
+    current_hub: sentry_sdk.Hub
 
     # The message attribute can cause large log messages to be emitted which can pin the CPU
     # to 100.
@@ -51,7 +52,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         step = RunTaskInThreads(
             processing_function=move_replay_to_permanent_storage,
             concurrency=4,
-            max_pending_futures=16,
+            max_pending_futures=50,
             next_step=CommitOffsets(commit),
         )
 
@@ -74,13 +75,14 @@ def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageConte
         sampled=random.random()
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
+    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
 
     message_dict = msgpack.unpackb(message.payload.value)
 
     if message_dict["type"] == "replay_recording_chunk":
-        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction)
+        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction, current_hub)
 
-    return MessageContext(message_dict, transaction)
+    return MessageContext(message_dict, transaction, current_hub)
 
 
 def is_capstone_message(message: Message[MessageContext]) -> Any:
@@ -96,8 +98,12 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_type = message_dict["type"]
 
     if message_type == "replay_recording_not_chunked":
-        ingest_recording_not_chunked(cast(RecordingMessage, message_dict), context.transaction)
+        ingest_recording_not_chunked(
+            cast(RecordingMessage, message_dict), context.transaction, context.current_hub
+        )
     elif message_type == "replay_recording":
-        ingest_recording_chunked(cast(RecordingSegmentMessage, message_dict), context.transaction)
+        ingest_recording_chunked(
+            cast(RecordingSegmentMessage, message_dict), context.transaction, context.current_hub
+        )
     else:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")

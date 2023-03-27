@@ -33,9 +33,10 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphProfiles';
+import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
+import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
@@ -45,13 +46,13 @@ import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
-  Rect,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
 import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {formatTo, ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
@@ -126,7 +127,7 @@ type FlamegraphCandidate = {
 
 function findLongestMatchingFrame(
   flamegraph: FlamegraphModel,
-  focusFrame: FlamegraphProfiles['highlightFrames']
+  focusFrame: FlamegraphSearchType['highlightFrames']
 ): FlamegraphFrame | null {
   if (focusFrame === null) {
     return null;
@@ -139,9 +140,9 @@ function findLongestMatchingFrame(
     const frame = frames.pop()!;
     if (
       focusFrame.name === frame.frame.name &&
-      // the image name on a frame is optional,
-      // treat it the same as the empty string
-      focusFrame.package === (frame.frame.image || '') &&
+      // the image name on a frame is optional treat it the same as the empty string
+      (focusFrame.package === (frame.frame.package || '') ||
+        focusFrame.package === (frame.frame.module || '')) &&
       (longestFrame?.node?.totalWeight || 0) < frame.node.totalWeight
     ) {
       longestFrame = frame;
@@ -174,7 +175,8 @@ function Flamegraph(): ReactElement {
   const position = useFlamegraphZoomPosition();
   const profiles = useFlamegraphProfiles();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
-  const {threadId, selectedRoot, highlightFrames} = useFlamegraphProfiles();
+  const {highlightFrames} = useFlamegraphSearch();
+  const {threadId, selectedRoot} = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -353,11 +355,26 @@ function Flamegraph(): ReactElement {
             previousView.configView.withHeight(newView.configView.height)
           );
         }
-      } else if (defined(highlightFrames)) {
-        const frames = flamegraph.findAllMatchingFrames(
+      }
+
+      if (defined(highlightFrames)) {
+        let frames = flamegraph.findAllMatchingFrames(
           highlightFrames.name,
           highlightFrames.package
         );
+
+        if (
+          !frames.length &&
+          !highlightFrames.package &&
+          highlightFrames.name &&
+          profileGroup.metadata.platform === 'node'
+        ) {
+          // there is a chance that the reason we did not find any frames is because
+          // for node, we try to infer some package from the frontend code.
+          // If that happens, we'll try and just do a search by name. This logic
+          // is duplicated in flamegraphZoomView.tsx and should be kept in sync
+          frames = flamegraph.findAllMatchingFramesBy(highlightFrames.name, ['name']);
+        }
 
         if (frames.length > 0) {
           const rectFrames = frames.map(

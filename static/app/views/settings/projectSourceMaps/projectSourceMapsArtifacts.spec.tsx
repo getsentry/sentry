@@ -45,17 +45,12 @@ function renderDebugIdBundlesMockRequests({
   projectSlug: string;
   empty?: boolean;
 }) {
-  const artifactBundles = MockApiClient.addMockResponse({
-    url: `/projects/${orgSlug}/${projectSlug}/files/artifact-bundles/`,
-    body: empty ? [] : TestStubs.SourceMapsDebugIDBundles(),
-  });
-
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
-    body: empty ? [] : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
+    body: empty ? {} : TestStubs.SourceMapsDebugIDBundlesArtifacts(),
   });
 
-  return {artifactBundlesFiles, artifactBundles};
+  return {artifactBundlesFiles};
 }
 
 describe('ProjectSourceMapsArtifacts', function () {
@@ -212,10 +207,14 @@ describe('ProjectSourceMapsArtifacts', function () {
       expect(
         screen.getByText('7227e105-744e-4066-8c69-3e5e344723fc')
       ).toBeInTheDocument();
-      // Chip
-      await userEvent.hover(await screen.findByText('none'));
+      // Chips
+      await userEvent.hover(await screen.findByText('2.0'));
       expect(
-        await screen.findByText('Not associated with a release or distribution')
+        await screen.findByText('Associated with release "2.0"')
+      ).toBeInTheDocument();
+      await userEvent.hover(await screen.findByText('android'));
+      expect(
+        await screen.findByText('Associated with distribution "android"')
       ).toBeInTheDocument();
 
       // Search bar
@@ -223,7 +222,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       // Path
       expect(await screen.findByText('files/_/_/main.js')).toBeInTheDocument();
-      // Bundle Id
+      // Debug Id
       expect(
         screen.getByText('69ac68eb-cc62-44c0-a5dc-b67f219a3696')
       ).toBeInTheDocument();

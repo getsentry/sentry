@@ -12,8 +12,9 @@ import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {formatColorForFrame, Rect} from 'sentry/utils/profiling/gl/utils';
+import {formatColorForFrame} from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphRenderer} from 'sentry/utils/profiling/renderers/flamegraphRenderer';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function formatWeightToProfileDuration(
   frame: CallTreeNode,
@@ -82,6 +83,9 @@ export function FlamegraphTooltip(props: FlamegraphTooltipProps) {
             {t('source')}:{formatFileNameAndLineColumn(props.frame)}
           </Fragment>
         )}
+        <FlamegraphTooltipTimelineInfo>
+          {props.frame.frame.is_application ? t('application frame') : t('system frame')}
+        </FlamegraphTooltipTimelineInfo>
       </FlamegraphTooltipTimelineInfo>
       {!isCount && (
         <FlamegraphTooltipTimelineInfo>

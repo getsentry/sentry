@@ -9,7 +9,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventTransaction, Frame, PlatformType} from 'sentry/types/event';
+import {EntryType, EventTransaction, Frame, PlatformType} from 'sentry/types/event';
 import {STACK_VIEW} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import {formatPercentage} from 'sentry/utils/formatters';
@@ -24,7 +24,7 @@ import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {SpanType} from './types';
 
-const MAX_STACK_DEPTH = 16;
+const MAX_STACK_DEPTH = 8;
 const MAX_TOP_NODES = 5;
 const MIN_TOP_NODES = 3;
 const TOP_NODE_MIN_COUNT = 3;
@@ -40,6 +40,17 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
   const project = projects.find(p => p.id === event.projectID);
 
   const profileGroup = useProfileGroup();
+
+  const processedEvent = useMemo(() => {
+    const entries: EventTransaction['entries'] = [...(event.entries || [])];
+    if (profileGroup.images) {
+      entries.push({
+        data: {images: profileGroup.images},
+        type: EntryType.DEBUGMETA,
+      });
+    }
+    return {...event, entries};
+  }, [event, profileGroup]);
 
   // TODO: Pick another thread if it's more relevant.
   const threadId = useMemo(
@@ -70,7 +81,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
       profile.unit
     );
 
-    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp);
+    return getTopNodes(profile, relativeStartTimestamp, relativeStopTimestamp).filter(
+      hasApplicationFrame
+    );
   }, [profile, span, event]);
 
   const [index, setIndex] = useState(0);
@@ -108,32 +121,22 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
     };
   }, [index, maxNodes, event, nodes]);
 
-  const profileTarget =
-    project &&
-    profileGroup &&
-    profile &&
-    generateProfileFlamechartRouteWithQuery({
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      profileId: profileGroup.traceID,
-      query: {tid: String(profile.threadId)},
-    });
-
   const spanTarget =
     project &&
     profileGroup &&
+    profileGroup.metadata.profileID &&
     profile &&
     generateProfileFlamechartRouteWithQuery({
       orgSlug: organization.slug,
       projectSlug: project.slug,
-      profileId: profileGroup.traceID,
+      profileId: profileGroup.metadata.profileID,
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
       },
     });
 
-  if (!defined(profile) || !defined(profileTarget) || !defined(spanTarget)) {
+  if (!defined(profile) || !defined(spanTarget)) {
     return null;
   }
 
@@ -187,9 +190,9 @@ export function SpanProfileDetails({event, span}: SpanProfileDetailsProps) {
         </SpanDetailsItem>
       </SpanDetails>
       <StackTrace
-        event={event}
-        hasHierarchicalGrouping
-        newestFirst={false}
+        event={processedEvent}
+        hasHierarchicalGrouping={false}
+        newestFirst
         platform={event.platform || 'other'}
         stacktrace={{
           framesOmitted: null,
@@ -218,14 +221,14 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
     duration += profile.weights[i];
 
-    if (sample.isRoot() || !inRange) {
+    if (sample.isRoot || !inRange) {
       continue;
     }
 
     const stack: CallTreeNode[] = [sample];
     let node: CallTreeNode | null = sample;
 
-    while (node && !node.isRoot()) {
+    while (node && !node.isRoot) {
       stack.push(node);
       node = node.parent;
     }
@@ -249,7 +252,7 @@ function getTopNodes(profile: Profile, startTimestamp, stopTimestamp): CallTreeN
 
       // make sure to increment the count/weight so it can be sorted later
       last.count += node.count;
-      last.addToSelfWeight(node.selfWeight);
+      last.selfWeight += node.selfWeight;
 
       tree = last;
     }
@@ -283,10 +286,20 @@ function sortByCount(a: CallTreeNode, b: CallTreeNode) {
   return b.count - a.count;
 }
 
+function hasApplicationFrame(node: CallTreeNode | null) {
+  while (node && !node.isRoot) {
+    if (node.frame.is_application) {
+      return true;
+    }
+    node = node.parent;
+  }
+  return false;
+}
+
 function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame[] {
   const frames: Frame[] = [];
 
-  while (node && !node.isRoot()) {
+  while (node && !node.isRoot) {
     const frame = {
       absPath: node.frame.path ?? null,
       colNo: node.frame.column ?? null,
@@ -295,15 +308,15 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
       filename: node.frame.file ?? null,
       function: node.frame.name ?? null,
       inApp: node.frame.is_application,
-      instructionAddr: null,
+      instructionAddr: node.frame.instructionAddr ?? null,
       lineNo: node.frame.line ?? null,
-      // TODO: distinguish between module/package
-      module: node.frame.image ?? null,
-      package: null,
+      module: node.frame.module ?? null,
+      package: node.frame.package ?? null,
       platform,
       rawFunction: null,
-      symbol: null,
-      symbolAddr: null,
+      symbol: node.frame.symbol ?? null,
+      symbolAddr: node.frame.symbolAddr ?? null,
+      symbolicatorStatus: node.frame.symbolicatorStatus,
       trust: null,
       vars: null,
     };
@@ -312,7 +325,10 @@ function extractFrames(node: CallTreeNode | null, platform: PlatformType): Frame
     node = node.parent;
   }
 
-  return frames;
+  // Profile stacks start from the inner most frame, while error stacks
+  // start from the outer most frame. Reverse the order here to match
+  // the convention on errors.
+  return frames.reverse();
 }
 
 const SpanDetails = styled('div')`

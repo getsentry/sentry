@@ -161,6 +161,9 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
             if payload.get("event_id"):
                 occurrence_data["event_id"] = UUID(payload["event_id"]).hex
 
+            if payload.get("culprit"):
+                occurrence_data["culprit"] = payload["culprit"]
+
             if "event" in payload:
                 event_payload = payload["event"]
                 if payload["project_id"] != event_payload.get("project_id"):
@@ -229,7 +232,7 @@ def _validate_event_data(event_data: Mapping[str, Any]) -> None:
         jsonschema.validate(event_data, EVENT_PAYLOAD_SCHEMA)
     except jsonschema.exceptions.ValidationError:
         metrics.incr("occurrence_ingest.event_payload_invalid")
-        raise InvalidEventPayloadError("Event payload does not match schema")
+        raise
 
 
 def _process_message(

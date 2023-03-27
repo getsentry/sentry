@@ -1,8 +1,7 @@
 import logging
 import re
-import time
 from random import random
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, cast
+from typing import Any, Callable, Dict, Mapping
 
 import jsonschema
 import pytz
@@ -19,9 +18,6 @@ from arroyo.processing.strategies import (
     RunTask,
 )
 from arroyo.types import BrokerValue, Commit, Message, Partition
-from confluent_kafka import OFFSET_INVALID, Consumer, KafkaException
-from confluent_kafka import Message as KafkaMessage
-from confluent_kafka import TopicPartition
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 
@@ -32,7 +28,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.snuba.tasks import _delete_from_snuba
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.arroyo import MetricsWrapper
-from sentry.utils.batching_kafka_consumer import create_topics
 
 logger = logging.getLogger(__name__)
 
@@ -43,8 +38,9 @@ subscriber_registry: Dict[str, TQuerySubscriptionCallable] = {}
 topic_to_dataset: Dict[str, Dataset] = {
     settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: Dataset.Events,
     settings.KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: Dataset.Transactions,
-    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
-    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,
+    settings.KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
+    settings.KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: Dataset.PerformanceMetrics,  # TODO: Remove once we switch onto KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS
     settings.KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: Dataset.Sessions,
     settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
 }
@@ -102,7 +98,11 @@ def parse_message_value(value: str) -> Dict[str, Any]:
 
 
 def handle_message(
-    message_value: str, message_offset: int, message_partition: int, topic: str
+    message_value: str,
+    message_offset: int,
+    message_partition: int,
+    topic: str,
+    dataset: str,
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
@@ -113,7 +113,9 @@ def handle_message(
     """
     with sentry_sdk.push_scope() as scope:
         try:
-            with metrics.timer("snuba_query_subscriber.parse_message_value"):
+            with metrics.timer(
+                "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
+            ):
                 contents = parse_message_value(message_value)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
@@ -130,7 +132,9 @@ def handle_message(
         scope.set_tag("query_subscription_id", contents["subscription_id"])
 
         try:
-            with metrics.timer("snuba_query_subscriber.fetch_subscription"):
+            with metrics.timer(
+                "snuba_query_subscriber.fetch_subscription", tags={"dataset": dataset}
+            ):
                 subscription: QuerySubscription = QuerySubscription.objects.get_from_cache(
                     subscription_id=contents["subscription_id"]
                 )
@@ -138,7 +142,9 @@ def handle_message(
                     metrics.incr("snuba_query_subscriber.subscription_inactive")
                     return
         except QuerySubscription.DoesNotExist:
-            metrics.incr("snuba_query_subscriber.subscription_doesnt_exist")
+            metrics.incr(
+                "snuba_query_subscriber.subscription_doesnt_exist", tags={"dataset": dataset}
+            )
             logger.warning(
                 "Received subscription update, but subscription does not exist",
                 extra={
@@ -154,6 +160,7 @@ def handle_message(
                     # XXX(ahmed): Remove this logic. This was kept here as backwards compat
                     # for subscription updates with schema version `2`. However schema version 3
                     # sends the "entity" in the payload
+                    metrics.incr("query_subscription_consumer.message_value.v2")
                     entity_regex = r"^(MATCH|match)[ ]*\(([^)]+)\)"
                     entity_match = re.match(entity_regex, contents["request"]["query"])
                     if not entity_match:
@@ -178,7 +185,9 @@ def handle_message(
             return
 
         if subscription.type not in subscriber_registry:
-            metrics.incr("snuba_query_subscriber.subscription_type_not_registered")
+            metrics.incr(
+                "snuba_query_subscriber.subscription_type_not_registered", tags={"dataset": dataset}
+            )
             logger.error(
                 "Received subscription update, but no subscription handler registered",
                 extra={
@@ -194,7 +203,9 @@ def handle_message(
 
         callback = subscriber_registry[subscription.type]
         with sentry_sdk.start_span(op="process_message") as span, metrics.timer(
-            "snuba_query_subscriber.callback.duration", instance=subscription.type
+            "snuba_query_subscriber.callback.duration",
+            instance=subscription.type,
+            tags={"dataset": dataset},
         ):
             span.set_data("payload", contents)
             span.set_data("subscription_dataset", subscription.snuba_query.dataset)
@@ -220,6 +231,7 @@ class InvalidSchemaError(InvalidMessageError):
 class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self, topic: str):
         self.topic = topic
+        self.dataset = topic_to_dataset[self.topic]
 
     def create_with_partitions(
         self,
@@ -231,7 +243,9 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 op="handle_message",
                 name="query_subscription_consumer_process_message",
                 sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer("snuba_query_subscriber.handle_message"):
+            ), metrics.timer(
+                "snuba_query_subscriber.handle_message", tags={"dataset": self.dataset.value}
+            ):
                 value = message.value
                 assert isinstance(value, BrokerValue)
                 offset = value.offset
@@ -243,6 +257,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                         offset,
                         partition,
                         self.topic,
+                        self.dataset.value,
                     )
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
@@ -284,196 +299,3 @@ def get_query_subscription_consumer(
         processor_factory=QuerySubscriptionStrategyFactory(topic),
         commit_policy=ONCE_PER_SECOND,
     )
-
-
-class QuerySubscriptionConsumer:
-    """
-    A Kafka consumer that processes query subscription update messages. Each message has
-    a related subscription id and the latest values related to the subscribed query.
-    These values are passed along to a callback associated with the subscription.
-    """
-
-    def __init__(
-        self,
-        group_id: str,
-        topic: Optional[str] = None,
-        commit_batch_size: int = 100,
-        commit_batch_timeout_ms: int = 5000,
-        initial_offset_reset: str = "earliest",
-        force_offset_reset: Optional[str] = None,
-    ):
-        self.group_id = group_id
-        if not topic:
-            # TODO(typing): Need a way to get the actual value of settings to avoid this
-            topic = cast(str, settings.KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS)
-
-        self.topic = topic
-        self.cluster_name: str = settings.KAFKA_TOPICS[topic]["cluster"]
-        self.commit_batch_size = commit_batch_size
-
-        # Adding time based commit behaviour
-        self.commit_batch_timeout_ms: int = commit_batch_timeout_ms
-        self.__batch_deadline: Optional[float] = None
-
-        self.initial_offset_reset = initial_offset_reset
-        self.offsets: Dict[int, Optional[int]] = {}
-        self.consumer: Consumer = None
-        self.cluster_options = kafka_config.get_kafka_consumer_cluster_options(
-            self.cluster_name,
-            {
-                "group.id": self.group_id,
-                "session.timeout.ms": 6000,
-                "auto.offset.reset": self.initial_offset_reset,
-                "enable.auto.commit": "false",
-                "enable.auto.offset.store": "false",
-                "enable.partition.eof": "false",
-                "default.topic.config": {"auto.offset.reset": self.initial_offset_reset},
-            },
-        )
-        self.resolve_partition_force_offset = self.offset_reset_name_to_func(force_offset_reset)
-        self.__shutdown_requested = False
-
-    def offset_reset_name_to_func(
-        self, offset_reset: Optional[str]
-    ) -> Optional[Callable[[TopicPartition], TopicPartition]]:
-        if offset_reset in {"smallest", "earliest", "beginning"}:
-            return self.resolve_partition_offset_earliest
-        elif offset_reset in {"largest", "latest", "end"}:
-            return self.resolve_partition_offset_latest
-        return None
-
-    def resolve_partition_offset_earliest(self, partition: TopicPartition) -> TopicPartition:
-        low, high = self.consumer.get_watermark_offsets(partition)
-        return TopicPartition(partition.topic, partition.partition, low)
-
-    def resolve_partition_offset_latest(self, partition: TopicPartition) -> TopicPartition:
-        low, high = self.consumer.get_watermark_offsets(partition)
-        return TopicPartition(partition.topic, partition.partition, high)
-
-    def run(self) -> None:
-        logger.debug("Starting snuba query subscriber")
-        self.offsets.clear()
-
-        def on_assign(consumer: Consumer, partitions: List[TopicPartition]) -> None:
-            updated_partitions: List[TopicPartition] = []
-            for partition in partitions:
-                if self.resolve_partition_force_offset:
-                    partition = self.resolve_partition_force_offset(partition)
-                    updated_partitions.append(partition)
-
-                if partition.offset == OFFSET_INVALID:
-                    updated_offset = None
-                else:
-                    updated_offset = partition.offset
-                self.offsets[partition.partition] = updated_offset
-            if updated_partitions:
-                self.consumer.assign(updated_partitions)
-            logger.info(
-                "query-subscription-consumer.on_assign",
-                extra={
-                    "offsets": str(self.offsets),
-                    "partitions": str(partitions),
-                },
-            )
-
-        def on_revoke(consumer: Consumer, partitions: List[TopicPartition]) -> None:
-            partition_numbers = [partition.partition for partition in partitions]
-            self.commit_offsets(partition_numbers)
-            for partition_number in partition_numbers:
-                self.offsets.pop(partition_number, None)
-            logger.info(
-                "query-subscription-consumer.on_revoke",
-                extra={
-                    "offsets": str(self.offsets),
-                    "partitions": str(partitions),
-                },
-            )
-
-        self.consumer = Consumer(self.cluster_options)
-        self.__shutdown_requested = False
-
-        create_topics(self.cluster_name, [self.topic])
-
-        self.consumer.subscribe([self.topic], on_assign=on_assign, on_revoke=on_revoke)
-
-        i = 0
-        while not self.__shutdown_requested:
-            message = self.consumer.poll(0.1)
-            if message is None:
-                continue
-
-            error = message.error()
-            if error is not None:
-                raise KafkaException(error)
-
-            i = i + 1
-
-            with sentry_sdk.start_transaction(
-                op="handle_message",
-                name="query_subscription_consumer_process_message",
-                sampled=random() <= options.get("subscriptions-query.sample-rate"),
-            ), metrics.timer("snuba_query_subscriber.handle_message"):
-                try:
-                    self.handle_message(message, self.topic)
-                except Exception:
-                    # This is a failsafe to make sure that no individual message will block this
-                    # consumer. If we see errors occurring here they need to be investigated to
-                    # make sure that we're not dropping legitimate messages.
-                    logger.exception(
-                        "Unexpected error while handling message in QuerySubscriptionConsumer. Skipping message.",
-                        extra={
-                            "offset": message.offset(),
-                            "partition": message.partition(),
-                            "value": message.value(),
-                        },
-                    )
-
-            # Track latest completed message here, for use in `shutdown` handler.
-            self.offsets[message.partition()] = message.offset() + 1
-
-            batch_by_size: bool = i % self.commit_batch_size == 0
-            batch_by_time: bool = (
-                self.__batch_deadline is not None and time.time() > self.__batch_deadline
-            )
-
-            if batch_by_time or batch_by_size:
-                logger.debug("Committing offsets")
-                self.commit_offsets()
-
-        logger.debug("Committing offsets and closing consumer")
-        self.commit_offsets()
-        self.consumer.close()
-
-    def _reset_batch(self) -> None:
-        self.__batch_deadline = None
-
-    def commit_offsets(self, partitions: Optional[Iterable[int]] = None) -> None:
-        logger.info(
-            "query-subscription-consumer.commit_offsets",
-            extra={"offsets": str(self.offsets), "partitions": str(partitions)},
-        )
-
-        if self.offsets and self.consumer:
-            if partitions is None:
-                partitions = self.offsets.keys()
-            to_commit = []
-            for partition in partitions:
-                offset = self.offsets.get(partition)
-                if offset is None:
-                    # Skip partitions that have no offset
-                    continue
-                to_commit.append(TopicPartition(self.topic, partition, offset))
-
-            self.consumer.commit(offsets=to_commit)
-
-        self._reset_batch()
-
-    def signal_shutdown(self) -> None:
-        self.__shutdown_requested = True
-
-    def handle_message(self, message: KafkaMessage, topic: str) -> None:
-        # set a commit time deadline only after the first message for this batch is seen
-        if not self.__batch_deadline:
-            self.__batch_deadline = self.commit_batch_timeout_ms / 1000.0 + time.time()
-
-        handle_message(message.value(), message.offset(), message.partition(), topic)
