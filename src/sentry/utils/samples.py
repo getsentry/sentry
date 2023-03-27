@@ -350,8 +350,29 @@ def create_n_plus_one_issue(data):
     )
 
 
+def create_db_main_thread_issue(data):
+    timestamp = datetime.fromtimestamp(data["start_timestamp"])
+    span_duration = timedelta(milliseconds=100)
+    parent_span_id = data["spans"][0]["parent_span_id"]
+    trace_id = data["contexts"]["trace"]["trace_id"]
+    data["spans"].append(
+        {
+            "timestamp": (timestamp + span_duration).timestamp(),
+            "start_timestamp": (timestamp + timedelta(milliseconds=10)).timestamp(),
+            "description": "SELECT `books_book`.`id`, `books_book`.`title`, `books_book`.`author_id` FROM `books_book` ORDER BY `books_book`.`id` DESC LIMIT 10",
+            "op": "db",
+            "parent_span_id": parent_span_id,
+            "span_id": uuid4().hex[:16],
+            "hash": "858fea692d4d93e8",
+            "trace_id": trace_id,
+            "data": {"blocked_main_thread": True},
+        }
+    )
+
+
 PERFORMANCE_ISSUE_CREATORS = {
     "n+1": create_n_plus_one_issue,
+    "db-main-thread": create_db_main_thread_issue,
 }
 
 
