@@ -1331,7 +1331,7 @@ SENTRY_FEATURES = {
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
     # Enable OpenAI suggestions in the issue details page
-    "organizations:open-ai-suggestion": False,
+    "organizations:open-ai-suggestion": True,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -1762,6 +1762,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
+
+# Secret key for OpenAI
+OPENAI_API_KEY = "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"
 
 SENTRY_SCOPES = {
     "org:read",
