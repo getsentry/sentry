@@ -341,6 +341,20 @@ export function Control({
     },
   });
 
+  const positionWrapperProps = useMemo(
+    () => ({
+      ...overlayProps,
+      style: {
+        ...overlayProps.style,
+        // Control the menu's visibility directly via the style attribute, instead of an
+        // emotion style prop, to ensure that RTL's .toBeVisible() assertions will
+        // function correctly.
+        display: overlayIsOpen ? 'block' : 'none',
+      },
+    }),
+    [overlayIsOpen, overlayProps]
+  );
+
   const contextValue = useMemo(
     () => ({
       registerListState,
@@ -374,7 +388,7 @@ export function Control({
             {triggerLabel}
           </DropdownButton>
         )}
-        <StyledPositionWrapper zIndex={theme.zIndex.tooltip} {...overlayProps}>
+        <StyledPositionWrapper zIndex={theme.zIndex.tooltip} {...positionWrapperProps}>
           <StyledOverlay
             width={menuWidth ?? menuFullWidth}
             maxWidth={maxMenuWidth}
@@ -383,10 +397,6 @@ export function Control({
             data-menu-has-header={!!menuTitle || clearable}
             data-menu-has-search={searchable}
             data-menu-has-footer={!!menuFooter}
-            // Control visibility directly via the style attribute, instead of an
-            // emotion style prop, to ensure that RTL's .toBeVisible() assertions will
-            // work correctly.
-            style={{display: overlayIsOpen ? 'block' : 'none'}}
           >
             <FocusScope contain={overlayIsOpen}>
               {(menuTitle || clearable) && (
