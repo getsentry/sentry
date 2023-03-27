@@ -1,5 +1,11 @@
+import uuid
+
 from sentry.utils import json
-from src.sentry.replays.usecases.ingest.dom_index import get_user_actions, parse_replay_actions
+from src.sentry.replays.usecases.ingest.dom_index import (
+    encode_as_uuid,
+    get_user_actions,
+    parse_replay_actions,
+)
 
 
 def test_get_user_actions():
@@ -37,7 +43,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(events)
+    user_actions = get_user_actions(uuid.uuid4().hex, events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -113,3 +119,10 @@ def test_parse_replay_actions():
     assert action["title"] == "3"
     assert action["timestamp"] == 1
     assert len(action["event_hash"]) == 32
+
+
+def test_encode_as_uuid():
+    a = encode_as_uuid("hello,world!")
+    b = encode_as_uuid("hello,world!")
+    assert a == b
+    assert isinstance(uuid.UUID(a), uuid.UUID)

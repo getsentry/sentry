@@ -1,5 +1,6 @@
 import time
 import uuid
+from hashlib import md5
 from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from django.conf import settings
@@ -63,7 +64,7 @@ def parse_replay_actions(
     segment_data: List[Dict[str, Any]],
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(segment_data)
+    actions = get_user_actions(replay_id, segment_data)
     if len(actions) == 0:
         return None
 
@@ -98,7 +99,10 @@ def create_replay_actions_payload(
     }
 
 
-def get_user_actions(events: List[Dict[str, Any]]) -> List[ReplayActionsEventPayloadClick]:
+def get_user_actions(
+    replay_id: str,
+    events: List[Dict[str, Any]],
+) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
     result = []
     for event in events:
@@ -107,6 +111,7 @@ def get_user_actions(events: List[Dict[str, Any]]) -> List[ReplayActionsEventPay
             if payload.get("category") == "ui.click":
                 node = payload.get("data", {}).get("node", {})
                 attributes = node.get("attributes", {})
+
                 result.append(
                     {
                         "node_id": node["id"],
@@ -120,7 +125,9 @@ def get_user_actions(events: List[Dict[str, Any]]) -> List[ReplayActionsEventPay
                         "aria_label": attributes.get("aria-label", ""),
                         "title": attributes.get("title", ""),
                         "timestamp": int(payload["timestamp"]),
-                        "event_hash": uuid.uuid4().hex,
+                        "event_hash": encode_as_uuid(
+                            "{}{}{}".format(replay_id, str(payload["timestamp"]), str(node["id"]))
+                        ),
                     }
                 )
 
@@ -138,3 +145,7 @@ def _initialize_publisher() -> KafkaPublisher:
         )
 
     return replay_publisher
+
+
+def encode_as_uuid(message: str) -> str:
+    return uuid.UUID(md5(message.encode()).hexdigest()).hex
