@@ -8,7 +8,7 @@ import requests
 from rest_framework import status
 from sentry_sdk import configure_scope
 
-from sentry import features, options
+from sentry import options
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 
@@ -30,12 +30,8 @@ class CodecovIntegrationError(Enum):
     )
 
 
-def codecov_enabled(organization: Organization, user: Any) -> bool:
-    flag_enabled = features.has(
-        "organizations:codecov-stacktrace-integration", organization, actor=user
-    )
-    setting_enabled = organization.flags.codecov_access
-    return bool(flag_enabled and setting_enabled)
+def codecov_enabled(organization: Organization) -> bool:
+    return organization.flags.codecov_access
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:

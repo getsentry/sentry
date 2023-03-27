@@ -26,9 +26,8 @@ def schedule_organizations(dry_run=False) -> None:
     for organization in RangeQuerySetWrapper(
         Organization.objects.filter(status=OrganizationStatus.ACTIVE)
     ):
-        codecov_enabled = features.has("organizations:codecov-stacktrace-integration", organization)
         should_auto_enable = features.has("organizations:auto-enable-codecov", organization)
-        if codecov_enabled and should_auto_enable:
+        if should_auto_enable:
             logger.warning(
                 "Processing organization",
                 extra={
@@ -41,7 +40,6 @@ def schedule_organizations(dry_run=False) -> None:
                 "Skipping organization: feature flag is False",
                 extra={
                     "organization_id": organization.id,
-                    "codecov_integration_enabled": codecov_enabled,
                     "should_auto_enable": should_auto_enable,
                 },
             )
