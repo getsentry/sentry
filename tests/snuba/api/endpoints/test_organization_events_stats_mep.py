@@ -601,6 +601,7 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTestWithMetricLay
     def setUp(self):
         super().setUp()
         self.features["organizations:use-metrics-layer"] = True
+        self.features["organizations:discover-mep-top-n"] = True
 
     def create_top_metrics(self):
         environments = ["prod", "staging"]

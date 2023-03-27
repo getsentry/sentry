@@ -1263,84 +1263,61 @@ class TopEventsMetricQueryBuilder(TimeseriesMetricQueryBuilder):
         return final_condition
 
     def run_query(self, referrer: str, use_cache: bool = False) -> Any:
-        if self.use_metrics_layer:
-            from sentry.snuba.metrics.datasource import get_series
-            from sentry.snuba.metrics.mqb_query_transformer import (
-                transform_mqb_query_to_metrics_query,
-            )
+        from sentry.snuba.metrics.datasource import get_series
+        from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
 
-            snuba_query = self.get_snql_query()[0].query
+        snuba_query = self.get_snql_query()[0].query
 
-            # Unnest And conditions. We might have And conditions due to groupbys.
-            # There should only be one level of and conditions, so don't need to do recursion.
-            for condition in snuba_query.where:
-                if isinstance(condition, And):
-                    snuba_query.where.extend(condition.conditions)
-                # Currently don't support Or conditions in metrics query transform.
-                if isinstance(condition, Or):
-                    return {"data": []}
-            snuba_query.where[:] = [
-                condition for condition in snuba_query.where if not isinstance(condition, And)
-            ]
+        # Unnest And conditions. We might have And conditions due to groupbys.
+        # There should only be one level of and conditions, so don't need to do recursion.
+        for condition in snuba_query.where:
+            if isinstance(condition, And):
+                snuba_query.where.extend(condition.conditions)
+            # Currently don't support Or conditions in metrics query transform.
+            if isinstance(condition, Or):
+                return {"data": []}
+        snuba_query.where[:] = [
+            condition for condition in snuba_query.where if not isinstance(condition, And)
+        ]
 
-            try:
-                with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
-                    metric_query = transform_mqb_query_to_metrics_query(
-                        snuba_query, self.is_alerts_query
-                    )
-                with sentry_sdk.start_span(op="metric_layer", description="run_query"):
-                    metrics_data = get_series(
-                        projects=self.params.projects,
-                        metrics_query=metric_query,
-                        use_case_id=UseCaseKey.PERFORMANCE
-                        if self.is_performance
-                        else UseCaseKey.RELEASE_HEALTH,
-                        include_meta=True,
-                        tenant_ids=self.tenant_ids,
-                    )
-            except Exception as err:
-                raise IncompatibleMetricsQuery(err)
-            with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
-                metric_layer_result: Any = {
-                    "data": [],
-                    "meta": metrics_data["meta"],
-                }
-                for group in metrics_data.get("groups", []):
-                    # metric layer adds bucketed time automatically but doesn't remove it
+        try:
+            with sentry_sdk.start_span(op="metric_layer", description="transform_query"):
+                metric_query = transform_mqb_query_to_metrics_query(
+                    snuba_query, self.is_alerts_query
+                )
+            with sentry_sdk.start_span(op="metric_layer", description="run_query"):
+                metrics_data = get_series(
+                    projects=self.params.projects,
+                    metrics_query=metric_query,
+                    use_case_id=UseCaseKey.PERFORMANCE
+                    if self.is_performance
+                    else UseCaseKey.RELEASE_HEALTH,
+                    include_meta=True,
+                    tenant_ids=self.tenant_ids,
+                )
+        except Exception as err:
+            raise IncompatibleMetricsQuery(err)
+        with sentry_sdk.start_span(op="metric_layer", description="transform_results"):
+            metric_layer_result: Any = {
+                "data": [],
+                "meta": metrics_data["meta"],
+            }
+            for group in metrics_data.get("groups", []):
+                # metric layer adds bucketed time automatically but doesn't remove it
+                for meta in metric_layer_result["meta"]:
+                    if meta["name"] == "bucketed_time":
+                        meta["name"] = "time"
+                for index, interval in enumerate(metrics_data["intervals"]):
+                    # the metric layer changes the intervals to datetime objects when we want the isoformat
+                    data = {self.time_alias: interval.isoformat()}
+                    for key, value_list in group.get("series", {}).items():
+                        data[key] = value_list[index]
+                    # add group bys to the data
+                    for key, value in group.get("by", {}).items():
+                        data[key] = value
+                    metric_layer_result["data"].append(data)
                     for meta in metric_layer_result["meta"]:
-                        if meta["name"] == "bucketed_time":
-                            meta["name"] = "time"
-                    for index, interval in enumerate(metrics_data["intervals"]):
-                        # the metric layer changes the intervals to datetime objects when we want the isoformat
-                        data = {self.time_alias: interval.isoformat()}
-                        for key, value_list in group.get("series", {}).items():
-                            data[key] = value_list[index]
-                        # add group bys to the data
-                        for key, value in group.get("by", {}).items():
-                            data[key] = value
-                        metric_layer_result["data"].append(data)
-                        for meta in metric_layer_result["meta"]:
-                            if meta["name"] not in data:
-                                data[meta["name"]] = self.get_default_value(meta["type"])
+                        if meta["name"] not in data:
+                            data[meta["name"]] = self.get_default_value(meta["type"])
 
-                return metric_layer_result
-
-        queries = self.get_snql_query()
-        if queries:
-            results = bulk_snql_query(queries, referrer, use_cache)
-        else:
-            results = []
-
-        time_map: Dict[str, Dict[str, Any]] = defaultdict(dict)
-        meta_dict = {}
-        for current_result in results:
-            # there's only 1 thing in the groupby which is time
-            for row in current_result["data"]:
-                time_map[row[self.time_alias]].update(row)
-            for meta in current_result["meta"]:
-                meta_dict[meta["name"]] = meta["type"]
-
-        return {
-            "data": list(time_map.values()),
-            "meta": [{"name": key, "type": value} for key, value in meta_dict.items()],
-        }
+            return metric_layer_result

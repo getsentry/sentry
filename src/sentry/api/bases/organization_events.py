@@ -300,7 +300,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             fields_meta = meta.get("fields", {})
 
             if standard_meta:
-                isMetricsData = meta.pop("isMetricsData", False)
+                isMetricsData = meta.get("isMetricsData", False)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
