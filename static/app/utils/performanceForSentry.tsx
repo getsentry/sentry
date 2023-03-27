@@ -425,3 +425,24 @@ export const setGroupedEntityTag = (
   groups = [...groups, +Infinity];
   setTag(`${tagName}.grouped`, `<=${groups.find(g => n <= g)}`);
 };
+
+/**
+ * A temporary util function used for interaction transactions that will attach a tag to the transaction, indicating the element
+ * that was interacted with. This will allow for querying for transactions by a specific element. This is a high cardinality tag, but
+ * it is only temporary for an experiment
+ */
+export const addUIElementTag = (transaction: TransactionEvent) => {
+  if (!transaction || transaction.contexts?.trace?.op !== 'ui.action.click') {
+    return;
+  }
+
+  if (!transaction.tags) {
+    return;
+  }
+
+  const interactionSpan = transaction.spans?.find(
+    span => span.op === 'ui.interaction.click'
+  );
+
+  transaction.tags.interactionElement = interactionSpan?.description;
+};
