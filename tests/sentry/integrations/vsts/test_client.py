@@ -26,7 +26,7 @@ class VstsApiClientTest(VstsIntegrationTestCase):
 
         # Make a request with expired token
         integration.get_installation(
-            integration.organizations.first().id
+            integration.organizationintegrations.first().organization_id
         ).get_client().get_projects(self.vsts_base_url)
 
         # Second to last request, before the Projects request, was to refresh
@@ -71,7 +71,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         )
 
         projects = (
-            integration.get_installation(integration.organizations.first().id)
+            integration.get_installation(
+                integration.organizationintegrations.first().organization_id
+            )
             .get_client()
             .get_projects(self.vsts_base_url)
         )

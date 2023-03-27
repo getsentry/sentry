@@ -177,7 +177,7 @@ class OrganizationTest(TestCase):
 
         assert OrganizationAvatar.objects.filter(id=from_avatar.id, organization=to_org).exists()
         assert OrganizationIntegration.objects.filter(
-            integration=integration, organization=to_org
+            integration=integration, organization_id=to_org.id
         ).exists()
 
     def test_get_default_owner(self):
@@ -458,7 +458,7 @@ class Require2fa(TestCase):
 
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             api_key = ApiKey.objects.create(
-                organization=self.org,
+                organization_id=self.org.id,
                 scope_list=["org:read", "org:write", "member:read", "member:write"],
             )
             request = copy.deepcopy(self.request)
