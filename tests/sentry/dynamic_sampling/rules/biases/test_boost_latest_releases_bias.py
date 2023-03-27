@@ -1,5 +1,5 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from django.utils import timezone
@@ -15,17 +15,12 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 @freeze_time(MOCK_DATETIME)
 @pytest.mark.django_db
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.BoostLatestReleasesDataProvider"
+    "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
-def test_generate_bias_rules_v2(data_provider, default_project):
+def test_generate_bias_rules_v2(get_boosted_releases, default_project):
     now = timezone.now()
-
-    factor = 1.5
-    decayed_factor = 1.0
     platform = "python"
-
     default_project.update(platform=platform)
-
     boosted_releases = [
         ExtendedBoostedRelease(
             id=12345,
@@ -44,15 +39,9 @@ def test_generate_bias_rules_v2(data_provider, default_project):
             platform=Platform(platform),
         ),
     ]
+    get_boosted_releases.return_value = boosted_releases
 
-    data_provider.get_bias_data.return_value = {
-        "id": 1000,
-        "factor": factor,
-        "decayedFactor": decayed_factor,
-        "boostedReleases": boosted_releases,
-    }
-
-    rules = BoostLatestReleasesBias(data_provider).generate_rules(MagicMock())
+    rules = BoostLatestReleasesBias().generate_rules(project=default_project, base_sample_rate=0.0)
     assert rules == [
         {
             "condition": {
@@ -62,15 +51,15 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 ],
                 "op": "and",
             },
-            "id": 1000,
-            "samplingValue": {"type": "factor", "value": factor},
+            "id": 1500,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
                 .isoformat()
                 .replace("+00:00", "Z"),
                 "start": now.isoformat().replace("+00:00", "Z"),
             },
-            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
             "type": "trace",
         },
         {
@@ -81,15 +70,15 @@ def test_generate_bias_rules_v2(data_provider, default_project):
                 ],
                 "op": "and",
             },
-            "id": 1001,
-            "samplingValue": {"type": "factor", "value": factor},
+            "id": 1501,
+            "samplingValue": {"type": "factor", "value": 1.5},
             "timeRange": {
                 "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
                 .isoformat()
                 .replace("+00:00", "Z"),
                 "start": now.isoformat().replace("+00:00", "Z"),
             },
-            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
+            "decayingFn": {"type": "linear", "decayedValue": 1.0},
             "type": "trace",
         },
     ]
@@ -97,16 +86,12 @@ def test_generate_bias_rules_v2(data_provider, default_project):
 
 @pytest.mark.django_db
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.BoostLatestReleasesDataProvider"
+    "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.ProjectBoostedReleases.get_extended_boosted_releases"
 )
-def test_generate_bias_rules_with_no_boosted_releases(data_provider, default_project):
+def test_generate_bias_rules_with_no_boosted_releases(get_boosted_releases, default_project):
     default_project.update(platform="python")
+    boosted_releases = []
+    get_boosted_releases.return_value = boosted_releases
 
-    data_provider.get_bias_data.return_value = {
-        "id": 1000,
-        "sampleRate": 0.7,
-        "boostedReleases": [],
-    }
-
-    rules = BoostLatestReleasesBias(data_provider).generate_rules(MagicMock())
+    rules = BoostLatestReleasesBias().generate_rules(project=default_project, base_sample_rate=0.0)
     assert rules == []

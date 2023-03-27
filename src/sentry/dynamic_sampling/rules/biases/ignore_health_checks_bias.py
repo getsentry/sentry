@@ -23,7 +23,7 @@ HEALTH_CHECK_GLOBS = [
 
 
 class IgnoreHealthChecksBias(Bias):
-    def generate_rules(self, _: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
         return [
             {
                 "samplingValue": {
