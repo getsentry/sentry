@@ -207,8 +207,13 @@ class GitHubClientMixin(ApiClient):  # type: ignore
 
         return repositories
 
-    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> None:
+    def _populate_trees_process_error(self, error: ApiError, extra: Dict[str, str]) -> bool:
+        """
+        Log different messages based on the error received. Returns a boolean indicating whether
+        the error should count towards the connection errors tally.
+        """
         msg = "Continuing execution."
+        should_count_error = False
         txt = error.text
         if error.json:
             json_data: JSONData = error.json
@@ -224,14 +229,18 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.warning(f"Github has blocked the repository. {msg}", extra=extra)
         elif txt == "Server Error":
             logger.warning(f"Github failed to respond. {msg}.", extra=extra)
+            should_count_error = True
         elif txt == "Bad credentials":
             logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
         elif txt == "Connection reset by peer":
             logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+            should_count_error = True
         elif txt == "Connection broken: invalid chunk length":
             logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
+            should_count_error = True
         elif txt.startswith("Unable to reach host:"):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
+            should_count_error = True
         elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
             logger.warning("Github has blocked this org. We will not continue.", extra=extra)
             # Raising the error will be handled at the task level
@@ -242,6 +251,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.exception(
                 f"Investigate if to raise error. An error happened. {msg}", extra=extra
             )
+
+        return should_count_error
 
     def _populate_trees(self, repositories: List[Dict[str, str]]) -> Dict[str, RepoTree]:
         """
