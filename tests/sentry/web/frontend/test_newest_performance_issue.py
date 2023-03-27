@@ -28,10 +28,10 @@ nplus_one_no_timestamp = {**get_event("n-plus-one-in-django-index-view")}
 del nplus_one_no_timestamp["timestamp"]
 
 
-class NewestPerformanceIssueViewTest(TestCase):
+class NewestIssueViewTest(TestCase):
     @cached_property
     def path(self):
-        return reverse("sentry-organization-newest-performance-issue", args=[self.org.slug])
+        return reverse("sentry-organization-newest-issue", args=[self.org.slug, "performance"])
 
     def setUp(self):
         super().setUp()
