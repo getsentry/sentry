@@ -1,11 +1,9 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 
 import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
 import FeatureBadge from 'sentry/components/featureBadge';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
 import {IssueCategory} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -111,20 +109,13 @@ function IssueCategoryFilter({
       data-test-id="issue-category-filter"
       options={options}
       value={selectedOption.value}
-      triggerLabel={
-        <React.Fragment>
-          <Icon /> {renderLabel(selectedOption.value as IssueCategory, true)}
-        </React.Fragment>
-      }
+      triggerProps={{icon: <IconStack />}}
+      triggerLabel={renderLabel(selectedOption.value as IssueCategory, true)}
       onChange={handleChange}
       menuWidth={250}
       size="md"
     />
   );
 }
-
-const Icon = styled(IconStack)`
-  margin-right: ${space(1)};
-`;
 
 export default IssueCategoryFilter;
