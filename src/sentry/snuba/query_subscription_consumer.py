@@ -51,6 +51,14 @@ topic_to_dataset: Dict[str, Dataset] = {
     settings.KAFKA_METRICS_SUBSCRIPTIONS_RESULTS: Dataset.Metrics,
 }
 
+dataset_to_logical_topic = {
+    Dataset.Events: "events-subscription-results",
+    Dataset.Transactions: "transactions-subscription-results",
+    Dataset.PerformanceMetrics: "generic-metrics-subscription-results",
+    Dataset.Sessions: "sessions-subscription-results",
+    Dataset.Metrics: "metrics-subscription-results",
+}
+
 
 def register_subscriber(
     subscriber_key: str,
@@ -263,12 +271,13 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 offset = value.offset
                 partition = value.partition.index
                 message_value = value.payload.value
+                logical_topic = dataset_to_logical_topic[self.dataset]
                 try:
                     handle_message(
                         message_value,
                         offset,
                         partition,
-                        self.topic,
+                        logical_topic,
                         self.dataset.value,
                     )
                 except Exception:
