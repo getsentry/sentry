@@ -7,9 +7,7 @@ type Opts = {
   ref: RefObject<List>;
 };
 function useVirtualizedList({cellMeasurer, deps, ref}: Opts) {
-  const cache = useMemo(() => {
-    return new CellMeasurerCache(cellMeasurer);
-  }, [cellMeasurer]);
+  const cache = useMemo(() => new CellMeasurerCache(cellMeasurer), [cellMeasurer]);
 
   const updateList = useCallback(() => {
     cache.clearAll();
