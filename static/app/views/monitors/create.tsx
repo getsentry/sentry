@@ -52,7 +52,7 @@ function CreateMonitor({}: Props) {
             apiMethod="POST"
             apiEndpoint={`/organizations/${orgSlug}/monitors/`}
             onSubmitSuccess={onSubmitSuccess}
-            submitLabel={t('Next Steps')}
+            submitLabel={t('Next')}
           />
         </Layout.Main>
       </Layout.Body>
