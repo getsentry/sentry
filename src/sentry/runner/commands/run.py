@@ -472,12 +472,6 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Force subscriptions to start from a particular offset",
 )
-@click.option(
-    "--use-arroyo-consumer",
-    default=True,
-    is_flag=True,
-    help="Switches to the new arroyo consumer implementation.",
-)
 @strict_offset_reset_option()
 @log_options()
 @configuration
