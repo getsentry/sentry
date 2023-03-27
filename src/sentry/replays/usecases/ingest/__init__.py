@@ -176,7 +176,7 @@ def ingest_recording(message: RecordingIngestMessage, transaction: Span) -> None
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(recording_segment)
-            parsed_segment_data = json.loads(decompressed_segment)
+            parsed_segment_data = json.loads(decompressed_segment, use_rapid_json=True)
             _report_size_metrics(len(recording_segment), len(decompressed_segment))
 
         # Emit DOM search metadata to Clickhouse.
@@ -268,7 +268,7 @@ def process_headers(bytes_with_headers: bytes) -> tuple[RecordingSegmentHeaders,
     except ValueError:
         raise MissingRecordingSegmentHeaders
     else:
-        return json.loads(recording_headers), recording_segment
+        return json.loads(recording_headers, use_rapid_json=True), recording_segment
 
 
 def replay_recording_segment_cache_id(project_id: int, replay_id: str, segment_id: str) -> str:
