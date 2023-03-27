@@ -104,7 +104,7 @@ def get_user_actions(
     events: List[Dict[str, Any]],
 ) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
-    result = []
+    result: List[ReplayActionsEventPayloadClick] = []
     for event in events:
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
