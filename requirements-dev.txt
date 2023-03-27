@@ -12,7 +12,7 @@ pytest-rerunfailures>=11
 pytest-sentry>=0.1.11
 pytest-xdist>=3
 responses>=0.21.0
-sentry-cli
+sentry-cli>=2.16.0
 
 # pre-commit dependencies
 pre-commit>=2.18.1
