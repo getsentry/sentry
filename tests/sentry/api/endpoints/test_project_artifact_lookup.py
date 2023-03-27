@@ -3,7 +3,6 @@ from datetime import datetime, timezone
 from io import BytesIO
 from uuid import uuid4
 
-import pytest
 from django.urls import reverse
 
 from sentry.models import ArtifactBundle, DebugIdArtifactBundle, File, ReleaseFile, SourceFileType
@@ -291,9 +290,6 @@ class ArtifactLookupTest(APITestCase):
         assert response[0]["headers"] == file_headers
         self.assert_download_matches_file(response[0]["url"], file)
 
-    @pytest.mark.skip(
-        reason="flakey: https://sentry.sentry.io/issues/4024152695/?cursor=0%3A200%3A0&project=2423079"
-    )
     def test_query_by_url_from_artifact_index(self):
         self.login_as(user=self.user)
 
