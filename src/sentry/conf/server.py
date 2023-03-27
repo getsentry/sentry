@@ -1033,8 +1033,6 @@ SENTRY_FEATURES = {
     "organizations:javascript-console-error-tag": False,
     # Enables codecov integration for stacktrace highlighting.
     "organizations:codecov-stacktrace-integration": False,
-    # Enables V2 for codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration-v2": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
