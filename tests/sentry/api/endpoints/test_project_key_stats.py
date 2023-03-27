@@ -1,4 +1,5 @@
 import freezegun
+import pytest
 
 from sentry.constants import DataCategory
 from sentry.models import ProjectKey
@@ -126,6 +127,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         response = self.client.get(url)
         assert response.status_code == 400
 
+    @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/46402")
     def test_date_conditions(self):
         self.store_outcomes(
             {
