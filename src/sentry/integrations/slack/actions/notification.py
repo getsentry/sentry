@@ -12,6 +12,7 @@ from sentry.notifications.additional_attachment_manager import get_additional_at
 from sentry.rules import EventState
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
+from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.types.rules import RuleFuture
 from sentry.utils import json, metrics
@@ -20,7 +21,7 @@ from sentry.utils import json, metrics
 class SlackNotifyServiceAction(IntegrationEventAction):
     id = "sentry.integrations.slack.notify_action.SlackNotifyServiceAction"
     form_cls = SlackNotifyServiceForm
-    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}){tags}"
+    label = "Send a notification to the {workspace} Slack workspace to {channel} (optionally, an ID: {channel_id}) and show tags {tags} in notification"
     prompt = "Send a Slack notification"
     provider = "slack"
     integration_key = "workspace"
@@ -41,11 +42,13 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         channel = self.get_option("channel_id")
         tags = set(self.get_tags_list())
 
-        try:
-            integration = self.get_integration()
-        except Integration.DoesNotExist:
+        i = self.get_integration()
+        if not i:
             # Integration removed, rule still active.
             return
+
+        # integration is captured in a closure, type assert the None case is handled.
+        integration: RpcIntegration = i
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
@@ -90,9 +93,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
             workspace=self.get_integration_name(),
             channel=self.get_option("channel"),
             channel_id=self.get_option("channel_id"),
-            tags=" and show tags " + "[{}]".format(", ".join(tags)) + " in notification"
-            if tags != [""]
-            else "",
+            tags="[{}]".format(", ".join(tags)),
         )
 
     def get_tags_list(self) -> Sequence[str]:

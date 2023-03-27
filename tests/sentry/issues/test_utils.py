@@ -2,18 +2,18 @@ import uuid
 from dataclasses import replace
 from datetime import datetime, timedelta
 from hashlib import md5
-from typing import Any, Optional, Sequence, Tuple
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 from django.utils import timezone
 
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence, IssueOccurrenceData
 from sentry.models import Group
 from sentry.testutils import SnubaTestCase
 from sentry.testutils.helpers.datetime import iso_format
-from sentry.types.issues import GroupType
 
 
 class OccurrenceTestMixin:
@@ -32,17 +32,19 @@ class OccurrenceTestMixin:
     def build_occurrence_data(self, **overrides: Any) -> IssueOccurrenceData:
         kwargs: IssueOccurrenceData = {
             "id": uuid.uuid4().hex,
+            "project_id": 1,
             "event_id": uuid.uuid4().hex,
             "fingerprint": ["some-fingerprint"],
             "issue_title": "something bad happened",
             "subtitle": "it was bad",
+            "culprit": "api/123",
             "resource_id": "1234",
             "evidence_data": {"Test": 123},
             "evidence_display": [
                 {"name": "hi", "value": "bye", "important": True},
                 {"name": "what", "value": "where", "important": False},
             ],
-            "type": GroupType.PROFILE_BLOCKED_THREAD.value,
+            "type": ProfileFileIOGroupType.type_id,
             "detection_time": datetime.now().timestamp(),
             "level": "warning",
         }
@@ -70,6 +72,7 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         insert_time: Optional[datetime] = None,
         tags: Optional[Sequence[Tuple[str, Any]]] = None,
         release: Optional[str] = None,
+        user: Optional[Dict[str, Any]] = None,
     ) -> Tuple[Event, IssueOccurrence, Optional[GroupInfo]]:
         from sentry.utils import snuba
 
@@ -82,6 +85,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         }
         if tags:
             event_data["tags"].extend(tags)
+
+        if user:
+            event_data["user"] = user
 
         if environment:
             event_data["environment"] = environment
@@ -124,7 +130,9 @@ class SearchIssueTestMixin(OccurrenceTestMixin):
         assert len(result["data"]) == 1
         assert result["data"][0]["project_id"] == project_id
         assert result["data"][0]["group_id"] == group_info.group.id if group_info else None
-        assert result["data"][0]["tags[sentry:user]"] == user_id_val
+        assert (
+            result["data"][0]["tags[sentry:user]"] == user_id_val if not user else f"id:{user_id}"
+        )
         assert result["data"][0]["environment"] == environment
         assert result["data"][0]["timestamp"] == insert_timestamp.isoformat()
 

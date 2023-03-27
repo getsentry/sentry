@@ -8,7 +8,7 @@ type Props = Pick<
   ExceptionProps,
   | 'stackType'
   | 'stackView'
-  | 'projectId'
+  | 'projectSlug'
   | 'event'
   | 'newestFirst'
   | 'groupingCurrentLevel'
@@ -23,7 +23,7 @@ function CrashContent({
   stackView,
   stackType,
   newestFirst,
-  projectId,
+  projectSlug,
   groupingCurrentLevel,
   hasHierarchicalGrouping,
   exception,
@@ -36,7 +36,7 @@ function CrashContent({
       <Exception
         stackType={stackType}
         stackView={stackView}
-        projectId={projectId}
+        projectSlug={projectSlug}
         newestFirst={newestFirst}
         event={event}
         platform={platform}

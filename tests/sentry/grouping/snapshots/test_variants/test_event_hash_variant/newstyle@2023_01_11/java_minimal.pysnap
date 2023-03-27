@@ -1,6 +1,4 @@
 ---
-created: '2023-01-11T11:41:26.953332Z'
-creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
@@ -9,378 +7,378 @@ app:
     app (exception of system takes precedence)
       exception (ignored because this variant does not have a contributing stacktrace, but the system variant does)
         stacktrace
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "runWorker"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.tomcat.util.net.SocketProcessorBase"
             filename (module takes precedence)
               "socketprocessorbase.java"
             function*
               "run"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.tomcat.util.net.NioEndpoint$SocketProcessor"
             filename (module takes precedence)
               "nioendpoint.java"
             function*
               "doRun"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.coyote.AbstractProtocol$ConnectionHandler"
             filename (module takes precedence)
               "abstractprotocol.java"
             function*
               "process"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.coyote.AbstractProcessorLight"
             filename (module takes precedence)
               "abstractprocessorlight.java"
             function*
               "process"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.coyote.http11.Http11Processor"
             filename (module takes precedence)
               "http11processor.java"
             function*
               "service"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.connector.CoyoteAdapter"
             filename (module takes precedence)
               "coyoteadapter.java"
             function*
               "service"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.StandardEngineValve"
             filename (module takes precedence)
               "standardenginevalve.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.valves.ErrorReportValve"
             filename (module takes precedence)
               "errorreportvalve.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.StandardHostValve"
             filename (module takes precedence)
               "standardhostvalve.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.authenticator.AuthenticatorBase"
             filename (module takes precedence)
               "authenticatorbase.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.StandardContextValve"
             filename (module takes precedence)
               "standardcontextvalve.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.StandardWrapperValve"
             filename (module takes precedence)
               "standardwrappervalve.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.CharacterEncodingFilter"
             filename (module takes precedence)
               "characterencodingfilter.java"
             function*
               "doFilterInternal"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.HiddenHttpMethodFilter"
             filename (module takes precedence)
               "hiddenhttpmethodfilter.java"
             function*
               "doFilterInternal"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.HttpPutFormContentFilter"
             filename (module takes precedence)
               "httpputformcontentfilter.java"
             function*
               "doFilterInternal"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.OncePerRequestFilter"
             filename (module takes precedence)
               "onceperrequestfilter.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.filter.RequestContextFilter"
             filename (module takes precedence)
               "requestcontextfilter.java"
             function*
               "doFilterInternal"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.tomcat.websocket.server.WsFilter"
             filename (module takes precedence)
               "wsfilter.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "doFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.catalina.core.ApplicationFilterChain"
             filename (module takes precedence)
               "applicationfilterchain.java"
             function*
               "internalDoFilter"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:javax.* -app))
             module*
               "javax.servlet.http.HttpServlet"
             filename (module takes precedence)
               "httpservlet.java"
             function*
               "service"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "service"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:javax.* -app))
             module*
               "javax.servlet.http.HttpServlet"
             filename (module takes precedence)
               "httpservlet.java"
             function*
               "service"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "doGet"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.FrameworkServlet"
             filename (module takes precedence)
               "frameworkservlet.java"
             function*
               "processRequest"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doService"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.DispatcherServlet"
             filename (module takes precedence)
               "dispatcherservlet.java"
             function*
               "doDispatch"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.mvc.method.AbstractHandlerMethodAdapter"
             filename (module takes precedence)
               "abstracthandlermethodadapter.java"
             function*
               "handle"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "handleInternal"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter"
             filename (module takes precedence)
               "requestmappinghandleradapter.java"
             function*
               "invokeHandlerMethod"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.servlet.mvc.method.annotation.ServletInvocableHandlerMethod"
             filename (module takes precedence)
               "servletinvocablehandlermethod.java"
             function*
               "invokeAndHandle"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
               "invocablehandlermethod.java"
             function*
               "invokeForRequest"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:org.springframework.* -app))
             module*
               "org.springframework.web.method.support.InvocableHandlerMethod"
             filename (module takes precedence)
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)
               "method.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:jdk.* -app))
             module*
               "jdk.internal.reflect.DelegatingMethodAccessorImpl"
             filename (module takes precedence)
               "delegatingmethodaccessorimpl.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:jdk.* -app))
             module*
               "jdk.internal.reflect.NativeMethodAccessorImpl"
             filename (module takes precedence)
               "nativemethodaccessorimpl.java"
             function*
               "invoke"
-          frame (non app frame)
+          frame (marked out of app by stack trace rule (module:jdk.* -app))
             module*
               "jdk.internal.reflect.NativeMethodAccessorImpl"
             filename (module takes precedence)
@@ -407,33 +405,33 @@ default:
         "Servlet.service() for servlet [dispatcherServlet] in context with path [] threw exception [Request processing failed; nested exception is java.lang.ArithmeticException: / by zero] with root cause"
 --------------------------------------------------------------------------
 system:
-  hash: "ec87dd10e4f7512ecccb4a068c5774ae"
+  hash: "12f3d3df2e7804af98f4b56c602d17b0"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.Thread"
             filename (module takes precedence)
               "thread.java"
             function*
               "run"
-          frame*
+          frame (marked out of app by stack trace rule (module:org.apache.* -app))
             module*
               "org.apache.tomcat.util.threads.TaskThread$WrappingRunnable"
             filename (module takes precedence)
               "taskthread.java"
             function*
               "run"
-          frame*
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.util.concurrent.ThreadPoolExecutor$Worker"
             filename (module takes precedence)
               "threadpoolexecutor.java"
             function*
               "run"
-          frame*
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.util.concurrent.ThreadPoolExecutor"
             filename (module takes precedence)
@@ -762,7 +760,7 @@ system:
               "invocablehandlermethod.java"
             function*
               "doInvoke"
-          frame*
+          frame (marked out of app by stack trace rule (module:java.* -app))
             module*
               "java.lang.reflect.Method"
             filename (module takes precedence)

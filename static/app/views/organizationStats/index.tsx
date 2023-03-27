@@ -1,4 +1,4 @@
-import {Component, Fragment} from 'react';
+import {Component} from 'react';
 import {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import {LocationDescriptorObject} from 'history';
@@ -7,7 +7,7 @@ import pick from 'lodash/pick';
 import moment from 'moment';
 
 import {DateTimeObject} from 'sentry/components/charts/utils';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DatePageFilter from 'sentry/components/datePageFilter';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import HookOrDefault from 'sentry/components/hookOrDefault';
@@ -21,14 +21,20 @@ import PageTimeRangeSelector from 'sentry/components/pageTimeRangeSelector';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {
-  DATA_CATEGORY_NAMES,
+  DATA_CATEGORY_INFO,
   DEFAULT_RELATIVE_PERIODS,
   DEFAULT_STATS_PERIOD,
 } from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {DataCategory, DateString, Organization, PageFilters, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {
+  DataCategoryInfo,
+  DateString,
+  Organization,
+  PageFilters,
+  Project,
+} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import HeaderTabs from 'sentry/views/organizationStats/header';
@@ -65,25 +71,38 @@ type Props = {
   selection: PageFilters;
 } & RouteComponentProps<{}, {}>;
 
+const UsageStatsOrganization = HookOrDefault({
+  hookName: 'component:enhanced-org-stats',
+  defaultComponent: UsageStatsOrg,
+});
+
 export class OrganizationStats extends Component<Props> {
-  get dataCategory(): DataCategory {
+  get dataCategory(): DataCategoryInfo['plural'] {
     const dataCategory = this.props.location?.query?.dataCategory;
 
     switch (dataCategory) {
-      case DataCategory.ERRORS:
-      case DataCategory.TRANSACTIONS:
-      case DataCategory.ATTACHMENTS:
-      case DataCategory.PROFILES:
-      case DataCategory.REPLAYS:
-        return dataCategory as DataCategory;
+      case DATA_CATEGORY_INFO.error.plural:
+      case DATA_CATEGORY_INFO.transaction.plural:
+      case DATA_CATEGORY_INFO.attachment.plural:
+      case DATA_CATEGORY_INFO.profile.plural:
+      case DATA_CATEGORY_INFO.replay.plural:
+        return dataCategory;
       default:
-        return DataCategory.ERRORS;
+        return DATA_CATEGORY_INFO.error.plural;
     }
   }
 
+  get dataCategoryInfo(): DataCategoryInfo {
+    const dataCategoryPlural = this.props.location?.query?.dataCategory;
+    const dataCategoryInfo =
+      Object.values(DATA_CATEGORY_INFO).find(
+        categoryInfo => categoryInfo.plural === dataCategoryPlural
+      ) ?? DATA_CATEGORY_INFO.error;
+    return dataCategoryInfo;
+  }
+
   get dataCategoryName(): string {
-    const dataCategory = this.dataCategory;
-    return DATA_CATEGORY_NAMES[dataCategory] ?? t('Unknown Data Category');
+    return this.dataCategoryInfo.titleName ?? t('Unknown Data Category');
   }
 
   get dataDatetime(): DateTimeObject {
@@ -156,15 +175,12 @@ export class OrganizationStats extends Component<Props> {
   }
 
   /**
-   * Note: For now, we're checking for both project-stats and global-views to enable this new UI
-   * This may change once we GA the project-stats feature flag. These are the planned scenarios:
-   *  - w/o global-views: Project Selector defaults to first project, hence no more 'Org Stats' w/o global-views
-   *  - w/ global-views: Project Selector defaults to 'My Projects', behaviour for 'Org Stats' is preserved
+   * Note: Since we're not checking for 'global-views', orgs without that flag will only ever get
+   * the single project view. This is a trade-off of using the global project header, but creates
+   * product consistency, since multi-project selection should be controlled by this flag.
    */
   get hasProjectStats(): boolean {
-    return ['project-stats', 'global-views'].every(flag =>
-      this.props.organization.features.includes(flag)
-    );
+    return this.props.organization.features.includes('project-stats');
   }
 
   getNextLocations = (project: Project): Record<string, LocationDescriptorObject> => {
@@ -205,7 +221,7 @@ export class OrganizationStats extends Component<Props> {
   setStateOnUrl = (
     nextState: {
       cursor?: string;
-      dataCategory?: DataCategory;
+      dataCategory?: DataCategoryInfo['plural'];
       // TODO(Leander): Remove date selector props once project-stats flag is GA
       pageEnd?: DateString;
       pageStart?: DateString;
@@ -247,10 +263,12 @@ export class OrganizationStats extends Component<Props> {
       return null;
     }
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+      : CHART_OPTIONS_DATACATEGORY.filter(
+          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
+        );
 
     return (
       <PageControl>
@@ -260,9 +278,7 @@ export class OrganizationStats extends Component<Props> {
             triggerProps={{prefix: t('Category')}}
             value={this.dataCategory}
             options={options}
-            onChange={opt =>
-              this.setStateOnUrl({dataCategory: opt.value as DataCategory})
-            }
+            onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
           />
           <DatePageFilter alignDropdown="left" />
         </PageFilterBar>
@@ -302,18 +318,20 @@ export class OrganizationStats extends Component<Props> {
 
     const {start, end, period, utc} = this.dataDatetime;
 
-    const hasReplay = organization.features.includes('session-replay-ui');
+    const hasReplay = organization.features.includes('session-replay');
     const options = hasReplay
       ? CHART_OPTIONS_DATACATEGORY
-      : CHART_OPTIONS_DATACATEGORY.filter(opt => opt.value !== DataCategory.REPLAYS);
+      : CHART_OPTIONS_DATACATEGORY.filter(
+          opt => opt.value !== DATA_CATEGORY_INFO.replay.plural
+        );
 
     return (
-      <Fragment>
+      <SelectorGrid>
         <DropdownDataCategory
           triggerProps={{prefix: t('Category')}}
           value={this.dataCategory}
           options={options}
-          onChange={opt => this.setStateOnUrl({dataCategory: opt.value as DataCategory})}
+          onChange={opt => this.setStateOnUrl({dataCategory: String(opt.value)})}
         />
 
         <StyledPageTimeRangeSelector
@@ -325,7 +343,7 @@ export class OrganizationStats extends Component<Props> {
           onUpdate={this.handleUpdateDatetime}
           relativeOptions={omit(DEFAULT_RELATIVE_PERIODS, ['1h'])}
         />
-      </Fragment>
+      </SelectorGrid>
     );
   };
 
@@ -333,11 +351,9 @@ export class OrganizationStats extends Component<Props> {
     const {organization} = this.props;
     const hasTeamInsights = organization.features.includes('team-insights');
 
-    // We only show UsageProjectStats if multiple projects are selected
-    const shouldRenderProjectStats = this.hasProjectStats
-      ? this.projectIds.includes(-1) || this.projectIds.length !== 1
-      : // Always render if they don't have the proper flags
-        true;
+    const isSingleProject = this.hasProjectStats
+      ? this.projectIds.length === 1 && !this.projectIds.includes(-1)
+      : false;
 
     return (
       <SentryDocumentTitle title="Usage Stats">
@@ -363,10 +379,10 @@ export class OrganizationStats extends Component<Props> {
             <Layout.Main fullWidth>
               <HookHeader organization={organization} />
               {this.renderProjectPageControl()}
-              <PageGrid>
-                {this.renderPageControl()}
+              {this.renderPageControl()}
+              <div>
                 <ErrorBoundary mini>
-                  <UsageStatsOrg
+                  <UsageStatsOrganization
                     organization={organization}
                     dataCategory={this.dataCategory}
                     dataCategoryName={this.dataCategoryName}
@@ -374,25 +390,25 @@ export class OrganizationStats extends Component<Props> {
                     chartTransform={this.chartTransform}
                     handleChangeState={this.setStateOnUrl}
                     projectIds={this.projectIds}
+                    isSingleProject={isSingleProject}
                   />
                 </ErrorBoundary>
-              </PageGrid>
-              {shouldRenderProjectStats && (
-                <ErrorBoundary mini>
-                  <UsageStatsProjects
-                    organization={organization}
-                    dataCategory={this.dataCategory}
-                    dataCategoryName={this.dataCategoryName}
-                    projectIds={this.projectIds}
-                    dataDatetime={this.dataDatetime}
-                    tableSort={this.tableSort}
-                    tableQuery={this.tableQuery}
-                    tableCursor={this.tableCursor}
-                    handleChangeState={this.setStateOnUrl}
-                    getNextLocations={this.getNextLocations}
-                  />
-                </ErrorBoundary>
-              )}
+              </div>
+              <ErrorBoundary mini>
+                <UsageStatsProjects
+                  organization={organization}
+                  dataCategory={this.dataCategory}
+                  dataCategoryName={this.dataCategoryName}
+                  isSingleProject={isSingleProject}
+                  projectIds={this.projectIds}
+                  dataDatetime={this.dataDatetime}
+                  tableSort={this.tableSort}
+                  tableQuery={this.tableQuery}
+                  tableCursor={this.tableCursor}
+                  handleChangeState={this.setStateOnUrl}
+                  getNextLocations={this.getNextLocations}
+                />
+              </ErrorBoundary>
             </Layout.Main>
           </Body>
         </PageFiltersContainer>
@@ -403,11 +419,11 @@ export class OrganizationStats extends Component<Props> {
 
 export default withPageFilters(withOrganization(OrganizationStats));
 
-const PageGrid = styled('div')`
+const SelectorGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr;
   gap: ${space(2)};
-
+  margin-bottom: ${space(2)};
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -417,6 +433,8 @@ const PageGrid = styled('div')`
 `;
 
 const DropdownDataCategory = styled(CompactSelect)`
+  width: auto;
+  position: relative;
   grid-column: auto / span 1;
 
   button[aria-haspopup='listbox'] {
@@ -429,6 +447,18 @@ const DropdownDataCategory = styled(CompactSelect)`
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     grid-column: auto / span 1;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+    box-shadow: inset 0 0 0 1px ${p => p.theme.border};
+    border-radius: ${p => p.theme.borderRadius};
   }
 `;
 

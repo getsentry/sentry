@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -10,13 +10,14 @@ import {
   usePromptsCheck,
 } from 'sentry/actionCreators/prompts';
 import {Button} from 'sentry/components/button';
+import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import type {PlatformKey} from 'sentry/data/platformCategories';
 import {IconClose, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   CodecovStatusCode,
   Event,
@@ -25,22 +26,26 @@ import {
   Project,
   StacktraceLinkResult,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {StacktraceLinkEvents} from 'sentry/utils/analytics/integrations/stacktraceLinkAnalyticsEvents';
-import {getAnalyicsDataForEvent} from 'sentry/utils/events';
+import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import {
   getIntegrationIcon,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {isMobilePlatform} from 'sentry/utils/platform';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import {useQueryClient} from 'sentry/utils/queryClient';
+import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
-import {OpenInContainer} from './openInContextLine';
 import StacktraceLinkModal from './stacktraceLinkModal';
 import useStacktraceLink from './useStacktraceLink';
+
+const HookCodecovStacktraceLink = HookOrDefault({
+  hookName: 'component:codecov-integration-stacktrace-link',
+});
 
 const supportedStacktracePlatforms: PlatformKey[] = [
   'go',
@@ -87,15 +92,15 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       }
     );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_cta_dismissed', {
+    trackIntegrationAnalytics(StacktraceLinkEvents.DISMISS_CTA, {
       view: 'stacktrace_issue_details',
       organization,
-      ...getAnalyicsDataForEvent(event),
+      ...getAnalyticsDataForEvent(event),
     });
   };
 
   return (
-    <CodeMappingButtonContainer columnQuantity={2}>
+    <StacktraceLinkWrapper>
       <StyledLink to={`/settings/${organization.slug}/integrations/`}>
         <StyledIconWrapper>{getIntegrationIcon('github', 'sm')}</StyledIconWrapper>
         {t('Add the GitHub or GitLab integration to jump straight to your source code')}
@@ -103,11 +108,11 @@ function StacktraceLinkSetup({organization, project, event}: StacktraceLinkSetup
       <CloseButton priority="link" onClick={dismissPrompt}>
         <IconClose size="xs" aria-label={t('Close')} />
       </CloseButton>
-    </CodeMappingButtonContainer>
+    </StacktraceLinkWrapper>
   );
 }
 
-function shouldshowCodecovFeatures(
+function shouldShowCodecovFeatures(
   organization: Organization,
   match: StacktraceLinkResult
 ) {
@@ -115,21 +120,38 @@ function shouldshowCodecovFeatures(
     organization.features.includes('codecov-stacktrace-integration') &&
     organization.codecovAccess;
 
-  const validStatus = [
-    CodecovStatusCode.COVERAGE_EXISTS,
-    CodecovStatusCode.NO_COVERAGE_DATA,
-  ].includes(match.codecovStatusCode!);
+  const codecovStatus = match.codecov?.status;
+  const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
   return enabled && validStatus && match.config?.provider.key === 'github';
 }
 
-interface CodecovLinkProps {
-  sourceUrl: string | undefined;
-  codecovStatusCode?: CodecovStatusCode;
+function shouldShowCodecovPrompt(
+  organization: Organization,
+  match: StacktraceLinkResult
+) {
+  const enabled =
+    organization.features.includes('codecov-integration') &&
+    organization.features.includes('codecov-stacktrace-integration-v2') &&
+    !organization.codecovAccess;
+
+  return enabled && match.config?.provider.key === 'github';
 }
 
-function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
-  if (codecovStatusCode === CodecovStatusCode.NO_COVERAGE_DATA) {
+interface CodecovLinkProps {
+  event: Event;
+  organization: Organization;
+  coverageUrl?: string;
+  status?: CodecovStatusCode;
+}
+
+function CodecovLink({
+  coverageUrl,
+  status = CodecovStatusCode.COVERAGE_EXISTS,
+  organization,
+  event,
+}: CodecovLinkProps) {
+  if (status === CodecovStatusCode.NO_COVERAGE_DATA) {
     return (
       <CodecovWarning>
         {t('Code Coverage not found')}
@@ -138,23 +160,25 @@ function CodecovLink({sourceUrl, codecovStatusCode}: CodecovLinkProps) {
     );
   }
 
-  if (codecovStatusCode === CodecovStatusCode.COVERAGE_EXISTS) {
-    if (!sourceUrl) {
-      return null;
-    }
-    const codecovUrl = sourceUrl.replaceAll(
-      new RegExp('github.com/.[^/]*', 'g'),
-      'app.codecov.io/gh'
-    );
-
-    return (
-      <OpenInLink href={codecovUrl} openInNewTab>
-        {t('View Coverage Tests on Codecov')}
-        <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
-      </OpenInLink>
-    );
+  if (status !== CodecovStatusCode.COVERAGE_EXISTS || !coverageUrl) {
+    return null;
   }
-  return null;
+
+  const onOpenCodecovLink = () => {
+    trackIntegrationAnalytics(StacktraceLinkEvents.CODECOV_LINK_CLICKED, {
+      view: 'stacktrace_issue_details',
+      organization,
+      group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+      ...getAnalyticsDataForEvent(event),
+    });
+  };
+
+  return (
+    <OpenInLink href={coverageUrl} openInNewTab onClick={onOpenCodecovLink}>
+      <StyledIconWrapper>{getIntegrationIcon('codecov', 'sm')}</StyledIconWrapper>
+      {t('Open in Codecov')}
+    </OpenInLink>
+  );
 }
 
 interface StacktraceLinkProps {
@@ -164,15 +188,6 @@ interface StacktraceLinkProps {
    * The line of code being linked
    */
   line: string;
-}
-
-export function isMobileLanguage(event: Event) {
-  return (
-    isMobilePlatform(event.platform) ||
-    (event.platform === 'other' &&
-      isMobilePlatform(event.release?.projects?.[0].platform)) ||
-    (event.platform === 'java' && isMobilePlatform(event.release?.projects?.[0].platform))
-  );
 }
 
 export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
@@ -195,43 +210,36 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         })
       : false;
 
-  const isMobile = isMobileLanguage(event);
-
   const {
     data: match,
     isLoading,
     refetch,
-  } = useStacktraceLink({
-    event,
-    frame,
-    orgSlug: organization.slug,
-    projectSlug: project?.slug,
-  });
-
-  useEffect(() => {
-    if (isLoading || prompt.isLoading || !match) {
-      return;
+  } = useStacktraceLink(
+    {
+      event,
+      frame,
+      orgSlug: organization.slug,
+      projectSlug: project?.slug,
+    },
+    {
+      enabled: defined(project),
     }
+  );
 
-    trackIntegrationAnalytics('integrations.stacktrace_link_viewed', {
-      view: 'stacktrace_issue_details',
-      organization,
-      platform: project?.platform,
-      project_id: project?.id,
-      state:
-        // Should follow the same logic in render
-        match.sourceUrl
-          ? 'match'
-          : match.error || match.integrations.length > 0
-          ? 'no_match'
-          : !isPromptDismissed
-          ? 'prompt'
-          : 'empty',
-      ...getAnalyicsDataForEvent(event),
-    });
-    // excluding isPromptDismissed because we want this only to record once
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, prompt.isLoading, match, organization, project, event]);
+  useRouteAnalyticsParams(
+    match
+      ? {
+          stacktrace_link_viewed: true,
+          stacktrace_link_status: match.sourceUrl
+            ? 'match'
+            : match.error || match.integrations.length
+            ? 'no_match'
+            : !isPromptDismissed
+            ? 'prompt'
+            : 'empty',
+        }
+      : {}
+  );
 
   const onOpenLink = () => {
     const provider = match!.config?.provider;
@@ -242,7 +250,8 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           view: 'stacktrace_issue_details',
           provider: provider.key,
           organization,
-          ...getAnalyicsDataForEvent(event),
+          group_id: event.groupID ? parseInt(event.groupID, 10) : -1,
+          ...getAnalyticsDataForEvent(event),
         },
         {startSession: true}
       );
@@ -253,23 +262,18 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
     refetch();
   };
 
-  // Temporarily prevent mobile platforms from showing stacktrace link
-  if (isMobile) {
-    return null;
-  }
-
   if (isLoading || !match) {
     return (
-      <CodeMappingButtonContainer columnQuantity={2}>
-        <Placeholder height="24px" width="60px" />
-      </CodeMappingButtonContainer>
+      <StacktraceLinkWrapper>
+        <Placeholder height="24px" width="120px" />
+      </StacktraceLinkWrapper>
     );
   }
 
   // Match found - display link to source
   if (match.config && match.sourceUrl) {
     return (
-      <CodeMappingButtonContainer columnQuantity={2}>
+      <StacktraceLinkWrapper>
         <OpenInLink
           onClick={onOpenLink}
           href={`${match!.sourceUrl}#L${frame.lineNo}`}
@@ -280,13 +284,17 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           </StyledIconWrapper>
           {t('Open this line in %s', match.config.provider.name)}
         </OpenInLink>
-        {shouldshowCodecovFeatures(organization, match) && (
+        {shouldShowCodecovFeatures(organization, match) ? (
           <CodecovLink
-            sourceUrl={match.sourceUrl}
-            codecovStatusCode={match.codecovStatusCode}
+            coverageUrl={`${match.codecov?.coverageUrl}#L${frame.lineNo}`}
+            status={match.codecov?.status}
+            organization={organization}
+            event={event}
           />
-        )}
-      </CodeMappingButtonContainer>
+        ) : shouldShowCodecovPrompt(organization, match) ? (
+          <HookCodecovStacktraceLink organization={organization} />
+        ) : null}
+      </StacktraceLinkWrapper>
     );
   }
 
@@ -309,7 +317,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
       ['github', 'gitlab'].includes(integration.provider?.key)
     );
     return (
-      <CodeMappingButtonContainer columnQuantity={2}>
+      <StacktraceLinkWrapper>
         <FixMappingButton
           priority="link"
           icon={
@@ -319,12 +327,12 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
           }
           onClick={() => {
             trackIntegrationAnalytics(
-              'integrations.stacktrace_start_setup',
+              StacktraceLinkEvents.START_SETUP,
               {
                 view: 'stacktrace_issue_details',
                 platform: event.platform,
                 organization,
-                ...getAnalyicsDataForEvent(event),
+                ...getAnalyticsDataForEvent(event),
               },
               {startSession: true}
             );
@@ -342,7 +350,7 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
         >
           {t('Tell us where your source code is')}
         </FixMappingButton>
-      </CodeMappingButtonContainer>
+      </StacktraceLinkWrapper>
     );
   }
 
@@ -357,8 +365,15 @@ export function StacktraceLink({frame, event, line}: StacktraceLinkProps) {
   );
 }
 
-export const CodeMappingButtonContainer = styled(OpenInContainer)`
-  justify-content: space-between;
+const StacktraceLinkWrapper = styled('div')`
+  display: flex;
+  gap: ${space(2)};
+  color: ${p => p.theme.subText};
+  background-color: ${p => p.theme.background};
+  font-family: ${p => p.theme.text.family};
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: ${space(0.25)} ${space(3)};
+  box-shadow: ${p => p.theme.dropShadowLight};
   min-height: 28px;
 `;
 

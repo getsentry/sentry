@@ -2,25 +2,18 @@ import re
 from collections import namedtuple
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
-from django.conf import settings
 from pytz import UTC
 
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
-from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT
+from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
 from sentry.models import Project, Release
-from sentry.utils import redis
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
     r"^ds::r:(?P<release_id>\d+)(:e:(?P<environment>.+))?$"
 )
-
-
-def get_redis_client_for_ds() -> Any:
-    cluster_key = getattr(settings, "SENTRY_DYNAMIC_SAMPLING_RULES_REDIS_CLUSTER", "default")
-    return redis.redis_clusters.get(cluster_key)
 
 
 def _get_environment_cache_key(environment: Optional[str]) -> str:
@@ -337,7 +330,8 @@ class LatestReleaseBias:
             # release with a different environment.
             #
             # In theory we could add a check that verifies whether the incoming release is already being boosted and
-            # only has a different environment and in this case use only the > but it adds complexity for no big benefit.
+            # only has a different environment and in this case use only the > but it adds complexity for no big
+            # benefit.
             if latest_release_date is None or incoming_release_date >= latest_release_date:
                 self._update_latest_release_date(timestamp=incoming_release_date)
                 return True

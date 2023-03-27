@@ -13,8 +13,6 @@ from sentry.ingest.transaction_clusterer.tree import TreeClusterer
 
 @region_silo_endpoint
 class ProjectTransactionNamesCluster(ProjectEndpoint):
-    private = True
-
     def get(self, request: Request, project) -> Response:
         """Run the transaction name clusterer and return its output.
 

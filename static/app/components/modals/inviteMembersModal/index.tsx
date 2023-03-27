@@ -3,15 +3,16 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import Alert from 'sentry/components/alert';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {Button} from 'sentry/components/button';
+import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import QuestionTooltip from 'sentry/components/questionTooltip';
 import {ORG_ROLES} from 'sentry/constants';
 import {IconAdd, IconCheckmark, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {uniqueId} from 'sentry/utils/guid';
@@ -323,28 +324,16 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
     // eslint-disable-next-line react/prop-types
     const hookRenderer: InviteModalRenderFunc = ({sendInvites, canSend, headerInfo}) => (
       <Fragment>
-        <Heading>
-          {t('Invite New Members')}
-          {!this.willInvite && (
-            <QuestionTooltip
-              title={t(
-                `You do not have permission to directly invite members. Email
-                 addresses entered here will be forwarded to organization
-                 managers and owners; they will be prompted to approve the
-                 invitation.`
-              )}
-              size="sm"
-              position="bottom"
-            />
-          )}
-        </Heading>
-        <Subtext>
-          {this.willInvite
-            ? t('Invite new members by email to join your organization.')
-            : t(
-                `You don’t have permission to directly invite users, but we'll send a request to your organization owner and manager for review.`
-              )}
-        </Subtext>
+        <Heading>{t('Invite New Members')}</Heading>
+        {this.willInvite ? (
+          <Subtext>{t('Invite new members by email to join your organization.')}</Subtext>
+        ) : (
+          <Alert type="warning" showIcon>
+            {t(
+              'You can’t invite users directly, but we’ll forward your request to an org owner or manager for approval.'
+            )}
+          </Alert>
+        )}
 
         {headerInfo}
 
@@ -388,47 +377,49 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
           <FooterContent>
             <div>{this.statusMessage}</div>
 
-            {complete ? (
-              <Fragment>
-                <Button data-test-id="send-more" size="sm" onClick={this.reset}>
-                  {t('Send more invites')}
-                </Button>
-                <Button
-                  data-test-id="close"
-                  priority="primary"
-                  size="sm"
-                  onClick={() => {
-                    trackAdvancedAnalyticsEvent('invite_modal.closed', {
-                      organization: this.props.organization,
-                      modal_session: this.sessionId,
-                    });
-                    closeModal();
-                  }}
-                >
-                  {t('Close')}
-                </Button>
-              </Fragment>
-            ) : (
-              <Fragment>
-                <Button
-                  data-test-id="cancel"
-                  size="sm"
-                  onClick={closeModal}
-                  disabled={disableInputs}
-                >
-                  {t('Cancel')}
-                </Button>
-                <Button
-                  size="sm"
-                  data-test-id="send-invites"
-                  priority="primary"
-                  disabled={!canSend || !this.isValidInvites || disableInputs}
-                  onClick={sendInvites}
-                >
-                  {this.inviteButtonLabel}
-                </Button>
-              </Fragment>
-            )}
+            <ButtonBar gap={1}>
+              {complete ? (
+                <Fragment>
+                  <Button data-test-id="send-more" size="sm" onClick={this.reset}>
+                    {t('Send more invites')}
+                  </Button>
+                  <Button
+                    data-test-id="close"
+                    priority="primary"
+                    size="sm"
+                    onClick={() => {
+                      trackAdvancedAnalyticsEvent('invite_modal.closed', {
+                        organization: this.props.organization,
+                        modal_session: this.sessionId,
+                      });
+                      closeModal();
+                    }}
+                  >
+                    {t('Close')}
+                  </Button>
+                </Fragment>
+              ) : (
+                <Fragment>
+                  <Button
+                    data-test-id="cancel"
+                    size="sm"
+                    onClick={closeModal}
+                    disabled={disableInputs}
+                  >
+                    {t('Cancel')}
+                  </Button>
+                  <Button
+                    size="sm"
+                    data-test-id="send-invites"
+                    priority="primary"
+                    disabled={!canSend || !this.isValidInvites || disableInputs}
+                    onClick={sendInvites}
+                  >
+                    {this.inviteButtonLabel}
+                  </Button>
+                </Fragment>
+              )}
+            </ButtonBar>
           </FooterContent>
         </Footer>
       </Fragment>
@@ -447,10 +438,6 @@ class InviteMembersModal extends AsyncComponent<Props, State> {
 }
 
 const Heading = styled('h1')`
-  display: inline-grid;
-  gap: ${space(1.5)};
-  grid-auto-flow: column;
-  align-items: center;
   font-weight: 400;
   font-size: ${p => p.theme.headerFontSize};
   margin-top: 0;
@@ -494,15 +481,15 @@ const AddButton = styled(Button)`
 `;
 
 const FooterContent = styled('div')`
-  width: 100%;
-  display: grid;
-  grid-template-columns: 1fr max-content max-content;
+  display: flex;
   gap: ${space(1)};
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
 `;
 
 const StatusMessage = styled('div')<{status?: 'success' | 'error'}>`
-  display: grid;
-  grid-template-columns: max-content max-content;
+  display: flex;
   gap: ${space(1)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeMedium};

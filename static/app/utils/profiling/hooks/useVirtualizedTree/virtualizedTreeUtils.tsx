@@ -2,7 +2,7 @@ import {Theme} from '@emotion/react';
 
 import {
   TreeLike,
-  UseVirtualizedListProps,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
@@ -32,7 +32,7 @@ export function updateGhostRow({
   element.style.height = `${rowHeight}px`;
   element.style.position = 'absolute';
   element.style.backgroundColor =
-    interaction === 'clicked' ? theme.blue300 : theme.surface100;
+    interaction === 'clicked' ? theme.blue300 : theme.surface200;
   element.style.pointerEvents = 'none';
   element.style.willChange = 'transform, opacity';
   element.style.transform = `translateY(${rowHeight * selectedNodeIndex - scrollTop}px)`;
@@ -190,8 +190,8 @@ export function findRenderedItems<T extends TreeLike>({
   scrollTop,
 }: {
   items: VirtualizedTreeNode<T>[];
-  overscroll: NonNullable<UseVirtualizedListProps<T>['overscroll']>;
-  rowHeight: UseVirtualizedListProps<T>['rowHeight'];
+  overscroll: NonNullable<UseVirtualizedTreeProps<T>['overscroll']>;
+  rowHeight: UseVirtualizedTreeProps<T>['rowHeight'];
   scrollHeight: VirtualizedState<T>['scrollHeight'];
   scrollTop: number;
 }) {
@@ -270,9 +270,11 @@ export function computeVirtualizedTreeNodeScrollTop(
     rowHeight,
     scrollHeight,
     currentScrollTop,
+    maxScrollableHeight,
   }: {
     currentScrollTop: number;
     index: number;
+    maxScrollableHeight: number;
     rowHeight: number;
     scrollHeight: number;
   },
@@ -285,7 +287,18 @@ export function computeVirtualizedTreeNodeScrollTop(
   }
 
   if (block === 'center') {
-    return newPosition - scrollHeight / 2 + rowHeight;
+    // The return value is bounded between 0 and the maximum scroll
+    // distance from the top (calculated by subtracting the max scroll
+    // height from the total height of the scrollable area). This is
+    // to ensure that the scroll position is never negative or greater
+    // than allowed.
+    return Math.max(
+      Math.min(
+        newPosition - scrollHeight / 2 + rowHeight,
+        maxScrollableHeight - scrollHeight
+      ),
+      0
+    );
   }
 
   if (block === 'end') {

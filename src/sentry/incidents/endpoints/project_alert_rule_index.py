@@ -94,6 +94,7 @@ class ProjectAlertRuleIndexEndpoint(ProjectEndpoint):
                 "organization": project.organization,
                 "access": request.access,
                 "user": request.user,
+                "ip_address": request.META.get("REMOTE_ADDR"),
             },
             data=data,
         )

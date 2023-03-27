@@ -23,7 +23,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import {DropdownItem, SectionSubtext} from 'sentry/components/quickTrace/styles';
 import Truncate from 'sentry/components/truncate';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';

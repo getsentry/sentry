@@ -6,7 +6,7 @@ import {LocationDescriptor} from 'history';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import Link, {LinkProps} from 'sentry/components/links/link';
 import {IconChevron} from 'sentry/icons';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import BreadcrumbDropdown, {
   BreadcrumbDropdownProps,
 } from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbDropdown';

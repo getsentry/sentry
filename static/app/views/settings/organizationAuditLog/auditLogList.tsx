@@ -9,15 +9,15 @@ import Link from 'sentry/components/links/link';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels';
 import Tag from 'sentry/components/tag';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {AuditLog, Organization, User} from 'sentry/types';
 import {shouldUse24Hours} from 'sentry/utils/dates';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {knowDynamicSamplingBiases} from 'sentry/views/settings/project/dynamicSampling/dynamicSampling';
+import {retentionPrioritiesLabels} from 'sentry/views/settings/projectPerformance/projectPerformance';
 
 const avatarStyle = {
   width: 36,
@@ -113,46 +113,36 @@ function AuditNote({
     );
   }
 
-  if (
-    entry.event === 'sampling_priority.enabled' &&
-    knowDynamicSamplingBiases[entry.data.name]
-  ) {
+  if (entry.event === 'sampling_priority.enabled') {
     return (
       <Note>
         {tct(
-          'Enabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          'Enabled retention priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
           {
             samplingInProjectSettingsLink: (
-              <Link
-                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
-              >
+              <Link to={`/settings/${orgSlug}/projects/${project.slug}/performance/`}>
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>
     );
   }
 
-  if (
-    entry.event === 'sampling_priority.disabled' &&
-    knowDynamicSamplingBiases[entry.data.name]
-  ) {
+  if (entry.event === 'sampling_priority.disabled') {
     return (
       <Note>
         {tct(
-          'Disabled dynamic sampling priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
+          'Disabled retention priority "[biasLabel]" in project [samplingInProjectSettingsLink]',
           {
             samplingInProjectSettingsLink: (
-              <Link
-                to={`/settings/${orgSlug}/projects/${project.slug}/dynamic-sampling/`}
-              >
+              <Link to={`/settings/${orgSlug}/projects/${project.slug}/performance/`}>
                 {entry.data.slug}
               </Link>
             ),
-            biasLabel: knowDynamicSamplingBiases[entry.data.name].label,
+            biasLabel: retentionPrioritiesLabels[entry.data.name],
           }
         )}
       </Note>

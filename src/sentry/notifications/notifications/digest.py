@@ -28,12 +28,12 @@ from sentry.notifications.utils.digest import (
     send_as_alert_notification,
     should_send_as_alert_notification,
 )
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
 from sentry.utils.dates import to_timestamp
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Organization, Project, Team, User
+    from sentry.models import Organization, Project
 
 logger = logging.getLogger(__name__)
 
@@ -72,22 +72,24 @@ class DigestNotification(ProjectNotification):
     ) -> str:
         if not context:
             return "Digest Report"
+        project = context["group"].project
+        organization = project.organization
 
         return "<!date^{:.0f}^{count} {noun} detected {date} in| Digest Report for> <{project_link}|{project_name}>".format(
             to_timestamp(context["start"]),
             count=len(context["counts"]),
             noun="issue" if len(context["counts"]) == 1 else "issues",
-            project_link=absolute_uri(
-                f'/organizations/{context["group"].project.organization.slug}/projects/{context["group"].project.slug}/'
+            project_link=organization.absolute_url(
+                f"/organizations/{organization.slug}/projects/{project.slug}/"
             ),
-            project_name=context["group"].project.name,
+            project_name=project.name,
             date="{date_pretty}",
         )
 
-    def get_title_link(self, recipient: Team | User, provider: ExternalProviders) -> str | None:
+    def get_title_link(self, recipient: RpcActor, provider: ExternalProviders) -> str | None:
         return None
 
-    def build_attachment_title(self, recipient: Team | User) -> str:
+    def build_attachment_title(self, recipient: RpcActor) -> str:
         return ""
 
     @property
@@ -124,7 +126,7 @@ class DigestNotification(ProjectNotification):
     def get_extra_context(
         self,
         participants_by_provider_by_event: Mapping[
-            Event, Mapping[ExternalProviders, set[Team | User]]
+            Event, Mapping[ExternalProviders, set[RpcActor]]
         ],
     ) -> Mapping[int, Mapping[str, Any]]:
         personalized_digests = get_personalized_digests(

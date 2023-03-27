@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from rest_framework.request import Request
@@ -45,14 +47,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
             queryset = Release.objects.none()
             environment = None
         else:
-            queryset = (
-                Release.objects.filter(
-                    projects=project,
-                    organization_id=project.organization_id,
-                )
-                .filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
-                .select_related("owner")
-            )
+            queryset = Release.objects.filter(
+                projects=project,
+                organization_id=project.organization_id,
+            ).filter(Q(status=ReleaseStatus.OPEN) | Q(status=None))
             if environment is not None:
                 queryset = queryset.filter(
                     releaseprojectenvironment__project=project,
@@ -120,6 +118,10 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
 
                 # release creation is idempotent to simplify user
                 # experiences
+                owner_id: int | None = None
+                if owner := result.get("owner"):
+                    owner_id = owner.id
+
                 try:
                     with transaction.atomic():
                         release, created = (
@@ -128,7 +130,7 @@ class ProjectReleasesEndpoint(ProjectEndpoint, EnvironmentMixin):
                                 version=result["version"],
                                 ref=result.get("ref"),
                                 url=result.get("url"),
-                                owner=result.get("owner"),
+                                owner_id=owner_id,
                                 date_released=result.get("dateReleased"),
                                 status=new_status or ReleaseStatus.OPEN,
                                 user_agent=request.META.get("HTTP_USER_AGENT", ""),

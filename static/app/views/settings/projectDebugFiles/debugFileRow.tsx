@@ -10,13 +10,13 @@ import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Tag from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDelete, IconDownload} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DebugFile} from 'sentry/types/debugFiles';
 
-import {getFeatureTooltip, getFileType} from './utils';
+import {getFeatureTooltip, getPrettyFileType} from './utils';
 
 type Props = {
   debugFile: DebugFile;
@@ -35,19 +35,8 @@ const DebugFileRow = ({
   onDelete,
   orgSlug,
 }: Props) => {
-  const {
-    id,
-    data,
-    debugId,
-    uuid,
-    size,
-    dateCreated,
-    objectName,
-    cpuName,
-    symbolType,
-    codeId,
-  } = debugFile;
-  const fileType = getFileType(debugFile);
+  const {id, data, debugId, uuid, size, dateCreated, objectName, symbolType, codeId} =
+    debugFile;
   const {features} = data || {};
 
   return (
@@ -71,11 +60,7 @@ const DebugFileRow = ({
             : objectName}
         </Name>
         <Description>
-          <DescriptionText>
-            {symbolType === 'proguard' && cpuName === 'any'
-              ? t('proguard mapping')
-              : `${cpuName} (${symbolType}${fileType ? ` ${fileType}` : ''})`}
-          </DescriptionText>
+          <DescriptionText>{getPrettyFileType(debugFile)}</DescriptionText>
 
           {features && (
             <FeatureTags>

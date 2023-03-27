@@ -1,8 +1,14 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytz
+from snuba_sdk import Limit
 
+from sentry.issues.grouptype import (
+    PerformanceNPlusOneGroupType,
+    PerformanceRenderBlockingAssetSpanGroupType,
+    ProfileFileIOGroupType,
+)
 from sentry.models import Environment, Group, GroupRelease, Release
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
@@ -10,7 +16,6 @@ from sentry.testutils.performance_issues.store_transaction import PerfIssueTrans
 from sentry.testutils.silo import region_silo_test
 from sentry.tsdb.base import TSDBModel
 from sentry.tsdb.snuba import SnubaTSDB
-from sentry.types.issues import GroupType
 from sentry.utils.dates import to_datetime, to_timestamp
 from sentry.utils.snuba import aliased_query
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
@@ -484,26 +489,37 @@ class SnubaTSDBTest(TestCase, SnubaTestCase):
 
     def test_calculated_limit(self):
 
-        with patch("sentry.tsdb.snuba.snuba") as snuba:
+        with patch("sentry.tsdb.snuba.raw_snql_query") as snuba:
             # 24h test
             rollup = 3600
             end = self.now
             start = end + timedelta(days=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 120
+
+            assert snuba.call_args.args[0].query.limit == Limit(120)
 
             # 14 day test
             rollup = 86400
             start = end + timedelta(days=-14, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 70
+            assert snuba.call_args.args[0].query.limit == Limit(70)
 
             # 1h test
             rollup = 3600
             end = self.now
             start = end + timedelta(hours=-1, seconds=rollup)
             self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
-            assert snuba.query.call_args[1]["limit"] == 5
+            assert snuba.call_args.args[0].query.limit == Limit(5)
+
+    @patch("sentry.utils.snuba.OVERRIDE_OPTIONS", new={"consistent": True})
+    def test_tsdb_with_consistent(self):
+        with patch("sentry.utils.snuba._apply_cache_and_build_results") as snuba:
+            rollup = 3600
+            end = self.now
+            start = end + timedelta(days=-1, seconds=rollup)
+            self.db.get_data(TSDBModel.group, [1, 2, 3, 4, 5], start, end, rollup=rollup)
+            assert snuba.call_args.args[0][0][0].query.limit == Limit(120)
+            assert snuba.call_args.args[0][0][0].flags.consistent is True
 
 
 @region_silo_test
@@ -525,8 +541,8 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group1"
-        group2_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group2"
+        group1_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group1"
+        group2_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group2"
 
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
             event = self.store_transaction(
@@ -551,7 +567,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group3"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group3"
 
         # not sure what's going on here, but `times=1,2,3,4` work fine
         # fails with anything above 4
@@ -639,7 +655,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value}-group4"
+        group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group4"
         ids = ["a", "b", "c", "d", "e", "f", "1", "2", "3", "4", "5"]
         events = []
         for i, _ in enumerate(ids):
@@ -673,7 +689,7 @@ class SnubaTSDBGroupPerformanceTest(TestCase, SnubaTestCase, PerfIssueTransactio
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PERFORMANCE_RENDER_BLOCKING_ASSET_SPAN.value}-group5"
+        group_fingerprint = f"{PerformanceRenderBlockingAssetSpanGroupType.type_id}-group5"
         # for r in range(0, 14400, 600):  # Every 10 min for 4 hours
         # for r in [1, 2, 3, 4, 5, 6, 7, 8]:
         ids = ["a", "b", "c", "d", "e"]  # , "f"]
@@ -756,8 +772,8 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         )[0]
         defaultenv = ""
 
-        group1_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group1"
-        group2_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group2"
+        group1_fingerprint = f"{ProfileFileIOGroupType.type_id}-group1"
+        group2_fingerprint = f"{ProfileFileIOGroupType.type_id}-group2"
 
         groups = {}
         for r in range(0, 14400, 600):  # Every 10 min for 4 hours
@@ -778,13 +794,55 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         self.proj1group2 = all_groups[1]
         self.defaultenv = Environment.objects.get(name=defaultenv)
 
+    def test_range_group_manual_group_time_rollup(self):
+        project = self.create_project()
+
+        # these are the only granularities/rollups that be actually be used
+        GRANULARITIES = [
+            (10, timedelta(seconds=10), 5),
+            (60 * 60, timedelta(hours=1), 6),
+            (60 * 60 * 24, timedelta(days=1), 15),
+        ]
+
+        start = (datetime.now(timezone.utc) - timedelta(days=15)).replace(
+            hour=0, minute=0, second=0
+        )
+
+        for step, delta, times in GRANULARITIES:
+            series = [start + (delta * i) for i in range(times)]
+            series_ts = [int(to_timestamp(ts)) for ts in series]
+
+            assert self.db.get_optimal_rollup(series[0], series[-1]) == step
+
+            assert self.db.get_optimal_rollup_series(series[0], end=series[-1], rollup=None) == (
+                step,
+                series_ts,
+            )
+
+            for time_step in series:
+                _, _, group_info = self.store_search_issue(
+                    project_id=project.id,
+                    user_id=0,
+                    fingerprints=[f"test_range_group_manual_group_time_rollup-{step}"],
+                    environment=None,
+                    insert_time=time_step,
+                )
+
+            assert self.db.get_range(
+                TSDBModel.group_generic,
+                [group_info.group.id],
+                series[0],
+                series[-1],
+                rollup=None,
+            ) == {group_info.group.id: [(ts, 1) for ts in series_ts]}
+
     def test_range_groups_mult(self):
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
         dts = [now + timedelta(hours=i) for i in range(4)]
         project = self.create_project()
-        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group4"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group4"
         groups = []
         for i in range(0, 11):
             _, _, group_info = self.store_search_issue(
@@ -818,7 +876,7 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
         now = (datetime.utcnow() - timedelta(days=1)).replace(
             hour=10, minute=0, second=0, microsecond=0, tzinfo=pytz.UTC
         )
-        group_fingerprint = f"{GroupType.PROFILE_BLOCKED_THREAD.value}-group5"
+        group_fingerprint = f"{ProfileFileIOGroupType.type_id}-group5"
         ids = [1, 2, 3, 4, 5]
         groups = []
         for r in ids:
@@ -916,6 +974,39 @@ class SnubaTSDBGroupProfilingTest(TestCase, SnubaTestCase, SearchIssueTestMixin)
             start=self.now,
             end=self.now + timedelta(hours=4),
         ) == {self.proj1group1.id: 12, self.proj1group2.id: 12}
+
+    def test_get_data_or_conditions_parsed(self):
+        """
+        Verify parsing the legacy format with nested OR conditions works
+        """
+
+        conditions = [
+            # or conditions in the legacy format needs open and close brackets for precedence
+            # there's some special casing when parsing conditions that specifically handles this
+            [
+                [["isNull", ["environment"]], "=", 1],
+                ["environment", "IN", [self.env1.name]],
+            ]
+        ]
+
+        data1 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            conditions=conditions,
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+        data2 = self.db.get_data(
+            model=TSDBModel.group_generic,
+            keys=[self.proj1group1.id, self.proj1group2.id],
+            start=self.now,
+            end=self.now + timedelta(hours=4),
+        )
+
+        # the above queries should return the same data since all groups either have:
+        # environment=None or environment=test
+        # so the condition really shouldn't be filtering anything
+        assert data1 == data2
 
 
 class AddJitterToSeriesTest(TestCase):

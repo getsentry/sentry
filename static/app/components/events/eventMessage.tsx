@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import ErrorLevel from 'sentry/components/events/errorLevel';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Level} from 'sentry/types';
 
 type Props = {

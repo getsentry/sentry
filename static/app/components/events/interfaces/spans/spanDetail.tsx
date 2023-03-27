@@ -30,7 +30,7 @@ import {
 import {ALL_ACCESS_PROJECTS, PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconLink} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {assert} from 'sentry/types/utils';
@@ -45,7 +45,9 @@ import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSum
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 import * as SpanEntryContext from './context';
+import {GapSpanDetails} from './gapSpanDetails';
 import InlineDocs from './inlineDocs';
+import {SpanProfileDetails} from './spanProfileDetails';
 import {ParsedTraceType, ProcessedSpanType, rawSpanKeys, RawSpanType} from './types';
 import {
   getCumulativeAlertLevelFromErrors,
@@ -73,6 +75,7 @@ type Props = {
   isRoot: boolean;
   organization: Organization;
   relatedErrors: TraceError[] | null;
+  resetCellMeasureCache: () => void;
   scrollToHash: (hash: string) => void;
   span: Readonly<ProcessedSpanType>;
   trace: Readonly<ParsedTraceType>;
@@ -336,17 +339,36 @@ function SpanDetail(props: Props) {
     };
   }
 
+  function renderProfileMessage() {
+    const {organization, span, event} = props;
+
+    if (!organization.features.includes('profiling-span-previews') || isGapSpan(span)) {
+      return null;
+    }
+
+    return <SpanProfileDetails span={span} event={event} />;
+  }
+
   function renderSpanDetails() {
-    const {span, event, organization, scrollToHash} = props;
+    const {span, event, organization, resetCellMeasureCache, scrollToHash} = props;
 
     if (isGapSpan(span)) {
       return (
         <SpanDetails>
-          <InlineDocs
-            platform={event.sdk?.name || ''}
-            orgSlug={organization.slug}
-            projectSlug={event?.projectSlug ?? ''}
-          />
+          {organization.features.includes('profiling-previews') ? (
+            <GapSpanDetails
+              event={event}
+              span={span}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          ) : (
+            <InlineDocs
+              orgSlug={organization.slug}
+              platform={event.sdk?.name || ''}
+              projectSlug={event?.projectSlug ?? ''}
+              resetCellMeasureCache={resetCellMeasureCache}
+            />
+          )}
         </SpanDetails>
       );
     }
@@ -369,14 +391,11 @@ function SpanDetail(props: Props) {
       value => value === 0
     );
 
-    const flamechartSpanFeatureEnabled = organization.features.includes(
-      'profiling-flamechart-spans'
-    );
-
     return (
       <Fragment>
         {renderOrphanSpanMessage()}
         {renderSpanErrorMessage()}
+        {renderProfileMessage()}
         <SpanDetails>
           <table className="table key-value">
             <tbody>
@@ -414,7 +433,7 @@ function SpanDetail(props: Props) {
               <Row title="Trace ID" extra={renderTraceButton()}>
                 {span.trace_id}
               </Row>
-              {flamechartSpanFeatureEnabled && profileId && event.projectSlug && (
+              {profileId && event.projectSlug && (
                 <Row
                   title="Profile ID"
                   extra={
@@ -660,7 +679,7 @@ const ValueRow = styled('div')`
   gap: ${space(1)};
 
   border-radius: 4px;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   margin: 2px;
 `;
 

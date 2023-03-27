@@ -4,7 +4,7 @@
 from typing import Literal, Sequence, TypedDict
 
 #: The maximum number of custom measurements to be extracted from transactions.
-CUSTOM_MEASUREMENT_LIMIT = 5
+CUSTOM_MEASUREMENT_LIMIT = 10
 
 # Relay defines more units than this, but let's keep it simple for now.
 # See https://github.com/getsentry/relay/blob/1a7d016f8bc871e8f482611d6a31a01834e678e6/relay-common/src/constants.rs#L600-L627
@@ -43,6 +43,8 @@ BUILTIN_MEASUREMENTS: Sequence[BuiltinMeasurementKey] = [
     {"name": "stall_total_time", "unit": "millisecond"},
     {"name": "ttfb.requesttime", "unit": "millisecond"},
     {"name": "ttfb", "unit": "millisecond"},
+    {"name": "time_to_full_display", "unit": "millisecond"},
+    {"name": "time_to_initial_display", "unit": "millisecond"},
 ]
 
 

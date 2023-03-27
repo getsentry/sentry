@@ -1,3 +1,165 @@
+23.3.1
+------
+
+### Various fixes & improvements
+
+- fix(dynamic-sampling):Set low volume transaction boost default to True (#46179) by @RaduW
+- feat(replays): Add backend support for `session-replay-network-details` feature (#46200) by @ryan953
+- fix(roles): check for existence of org roles from team (#46197) by @cathteng
+- feat(escalating-issues): Add escalating group status (#45965) by @NisanthanNanthakumar
+- feat: Add a simple endpoint to lookup artifacts (#45757) by @Swatinem
+- fix(profiling): fix profiling timeout (#46193) by @JonasBa
+- fix(db-issue): Add db detector (#46154) by @wmak
+- chore(hybrid-cloud): Add outbox_runner to outbox tests (#46155) by @dashed
+- chore(hybrid-cloud): Update user type for sync_assignee_outbound (#46160) by @dashed
+- ref(profiling): Replace DataDog metric by a Sentry tag (#46156) by @phacops
+- fix(dashboards): Clear GroupStore when unmounting dashboard (#46189) by @edwardgou-sentry
+- fix(profiling): Show p75 only for suspect functions table (#46140) by @Zylphrex
+- feat(flag): Add flag for onboarding product selection - (#46184) by @priscilawebdev
+- ref(sourcemaps): Add date_uploaded field to bundle (#46172) by @iambriccardo
+- fix(sourcemaps): Change reverse sql type (#46180) by @iambriccardo
+- ref(sourcemaps): Remove date_last_accessed field from db (#46118) by @iambriccardo
+- chore(oss): add license to api docs spectacular ports (#46164) by @JoshFerge
+- fix(test): fix flake when time rolls to the next day (#46166) by @barkbarkimashark
+- feat(issue-platform): Hook up noise reduction config to occurrence ingestion (#46159) by @wedamija
+- chore(issue-platform): Remove unused features (#46161) by @wedamija
+- fix(codecov): Change endpoint for has_integration check (#46127) by @snigdhas
+- fix(profiling): Typo in format name sampled vs sample (#46150) by @Zylphrex
+- chore: Add missing license for jsonfield (#46148) by @markstory
+- fix(workflow): Add `ref_fallback` to issue details analytics (#46125) by @scttcper
+
+_Plus 233 more_
+
+23.3.0
+------
+
+### Stacktrace Codecov V2 (ongoing)
+
+This is the work post-MVP release.
+
+By: @armenzg (#44827)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44496)
+
+### Various fixes & improvements
+
+- fix(ecosystem): Preserve codeowners filters on update (#45810) by @scttcper
+- chore(trace_view): Add perf issues to the mock trace (#45794) by @wmak
+- feat(dynamic-sampling): Add prioritise low volume transaction rules [TET-736] (#45635) by @RaduW
+- ref(onboarding): Update experiment segments (#45843) by @priscilawebdev
+- ref(onboarding): Update copy (#45830) by @priscilawebdev
+- ref(dynamic-sampling): Update Health Check copy (#45826) by @ale-cota
+- chore(commit-context): Flag cleanup (#45804) by @snigdhas
+- ref(compactSelect): Maintain menu width while searching (#45356) by @vuluongj20
+- ref(outcomes) Add methods to build outcomes queries without django (#45730) by @markstory
+- feat(compactSelect): Add optional menu footer (#45339) by @vuluongj20
+- ref(dynamic-sampling): Add onboarding experiement to the ds page (temp test) -  (#45827) by @priscilawebdev
+- chore(view-hierarchy): Remove frontend feature flags (#45761) by @narsaynorath
+- chore(dashboards): Reintroduce release widget feature flag (#45791) by @shruthilayaj
+- fix (dyn-sampling): Change schedule interval for prioritise by project task [TET-788] (#45821) by @andriisoldatenko
+- chore(hybrid-cloud): Deprecate mediator destroyers (#45656) by @corps
+- feat(onboarding): Add view sample error button new design - (#45820) by @priscilawebdev
+- feat(onboarding): Add feature flag to control the View Sample Error button - (#45818) by @priscilawebdev
+- fix(onboarding): Fix issue when first error sent (#45817) by @priscilawebdev
+-  feat(source-maps): Add debug ids UI - (#45711) by @priscilawebdev
+- feat(sourcemaps): Add endpoint for listing all artifact bundles of a project (#45751) by @iambriccardo
+- chore(hybrid-cloud): Backfill installation_id to service hooks (#45800) by @corps
+- fix(issue-platform): Explicitly pass `culprit` as part of the occurrence, and store `subtitle` correctly (#45809) by @wedamija
+- feat(crons): Explain crontab syntax in monitor form (#45801) by @davidenwang
+- ref(hybrid-cloud): Denormalize user avatars 1/3 (#45685) by @mikejihbe
+
+_Plus 792 more_
+
+23.2.0
+------
+
+### Stacktrace Codecov MVP
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43819, #43667, #43675), @jangjodi (#43746)
+
+### JavaScript SDK Dynamic Loader (ongoing)
+
+By: @AbhiPrasad (#44492, #44346, #44228)
+
+### Various fixes & improvements
+
+- perf(sentry): Add optional referrer to query.search for granularity (#44585) by @k-fish
+- bug(replay): Do not render the list page until project data has loaded (#44623) by @ryan953
+- fix(ui) Fix navigation between customer-domain accounts (#44625) by @markstory
+- feat(codeowners): [BE] Allow project members to edit project owner rules (#44508) by @jangjodi
+- ref(heartbeat): Update modal copy (#44658) by @priscilawebdev
+- Reverts for INC-307 (#44654) by @beezz
+- bump(dynamic-sampling): Bump sentry-relay to 0.8.18 (#44648) by @iambriccardo
+- feat(contexts): Add OpenTelemetry context (#44605) by @AbhiPrasad
+- fix: Avoid logging a `bad_report` for .NET events (#44291) by @Swatinem
+- chore(hybrid-cloud): Api* => Rpc* (#44646) by @corps
+- ref(hybrid-cloud): Isolate alert rules functionality by silo (#44644) by @mikejihbe
+- fix(api): Don't try and convert_args when http_method_not_allowed (#44635) by @evanpurkhiser
+- ref(api): Consistent relative endpoints import (#44640) by @evanpurkhiser
+- feat(profile-issues): Add profile category/type to search autocomplete (#44548) by @malwilley
+- fix(ui): Bring back Australia timezone (#44634) by @evanpurkhiser
+- feat: Deprecate legacy post process forwarder (#44631) by @lynnagara
+- fix(api): Remove inclusion of CHECKIN_ID in monitor check-in POST (#44630) by @evanpurkhiser
+- fix(source-maps): fixes too many values to unpack error in ArtifactSource (#44624) by @roggenkemper
+- ref(rules): Catch environment not existing (#44553) by @ceorourke
+- feat(analytics): improve analytics for soure map debugging (#44626) by @scefali
+- ref(tabs): Export `Item` as property of `TabList` & `TabPanels` (#44620) by @vuluongj20
+- feat(ui): Switch translate tct return type to react element (#44610) by @scttcper
+- feat: adds tracking for setup wizard (#44619) by @scefali
+- feat(team-roles): Amend PUT on OrganizationMemberDetailsEndpoint (#44599) by @leedongwei
+
+_Plus 637 more_
+
+23.1.1
+------
+
+### Post-GA fixes and improvements for derived code mappings
+
+This will track work that are known issues that will be handled after the GA.
+
+See related RFC: https://github.com/getsentry/rfcs/blob/main/text/0016-auto-code-mappings.md
+
+By: @armenzg (#43323, #43325, #43310)
+
+### Stacktrace Codecov MVP (ongoing)
+
+Related to https://github.com/getsentry/sentry/discussions/42399
+
+By: @snigdhas (#43650, #43649, #43404, #43353, #43201), @jangjodi (#43032, #43517, #43407, #43116)
+
+### Various fixes & improvements
+
+- ci(acceptance): Replace selenium finalizer with yield (#43711) by @mattgauntseo-sentry
+- test(profiles): test sample stats and raw weights across formats (#43685) by @JonasBa
+- fix(release_health) : bad granularity was causing limit validation error in MetricsLayer (#43729) by @RaduW
+- ref: upgrade structlog (#43680) by @asottile-sentry
+- ref(ui) Remove error for missing router context (#43693) by @markstory
+- ref(perf-issues): Increase unc asset duration threshold (#43722) by @k-fish
+- hotfix: handle empty series returns from get_series. (#43721) by @RaduW
+- Revert "feat(codecov): Get commit sha from Git blame  (#42978)" (7d918eb7) by @getsentry-bot
+- feat(perf-issues) Add project options for consecutive db (#43701) by @DominikB2014
+- fix(perf-issues): ensure php is not allowed to detect issues (#43694) by @DominikB2014
+- feat(codecov): Get commit sha from Git blame  (#42978) by @jangjodi
+- ref(mep): Allow up to 10 custom measurements (#43719) by @jan-auer
+- (perf-issues) Add detection rate project option to UI (#43698) by @DominikB2014
+- fix(txnames): Skip deleted projects (#43716) by @jjbayer
+- feat(release-health): Switch release health backend to MetricsLayer (#43545) by @RaduW
+- chore(hybrid-cloud): remove region to control, use outbox (#43361) by @corps
+- feat(hc): Use hybrid cloud services in AuthIdentityHandler (#43035) by @RyanSkonnord
+- fix(sourcemaps): ease check on valid url and add data for invalid url issue (#43709) by @roggenkemper
+- test(acceptance): Reduce flakiness by waiting for requests to complete (#43486) by @mattgauntseo-sentry
+- ref(hybrid-cloud): test for both urls in MonitorCheckinDetails (#43690) by @cathyteng17
+- ui(codecov): Fix codecov legend border (#43704) by @snigdhas
+- fix(tasks): Do not ignore exception by default (#43696) by @Zylphrex
+- ref: retry on 500s in docker pulls (#43700) by @asottile-sentry
+- Revert "CI(dispatch): Switch to merge commit sha where possible (#43570)" (f2dd50ad) by @getsentry-bot
+
+_Plus 285 more_
+
 23.1.0
 ------
 

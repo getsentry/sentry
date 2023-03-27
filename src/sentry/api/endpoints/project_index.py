@@ -71,6 +71,8 @@ class ProjectIndexEndpoint(Endpoint):
                             "project_id"
                         )
                     )
+                elif key == "dsn":
+                    queryset = queryset.filter(key_set__public_key__in=value)
                 elif key == "id":
                     queryset = queryset.filter(id__in=value)
                 else:

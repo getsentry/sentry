@@ -2,9 +2,9 @@ import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
 type Props = {

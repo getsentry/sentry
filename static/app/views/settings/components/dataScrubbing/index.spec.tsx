@@ -161,7 +161,7 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]);
 
       expect(
         await screen.findByText('Are you sure you wish to delete this rule?')
@@ -185,14 +185,14 @@ describe('Data Scrubbing', function () {
         </Fragment>
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
 
       expect(
         await screen.findByText('Add an advanced data scrubbing rule')
       ).toBeInTheDocument();
     });
 
-    it('Open Edit Rule Modal', function () {
+    it('Open Edit Rule Modal', async function () {
       const {organization, router, project} = initializeOrg();
 
       render(
@@ -210,7 +210,7 @@ describe('Data Scrubbing', function () {
         {router}
       );
 
-      userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
+      await userEvent.click(screen.getAllByRole('button', {name: 'Edit Rule'})[0]);
 
       // Verify the router to open the modal was called
       expect(router.push).toHaveBeenCalledWith(

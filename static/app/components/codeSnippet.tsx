@@ -1,26 +1,34 @@
-import 'prism-sentry/index.css';
-
-import {Fragment, useEffect, useRef, useState} from 'react';
-import styled from '@emotion/styled';
+// Prism components need to be imported after Prism
+// eslint-disable-next-line simple-import-sort/imports
 import Prism from 'prismjs';
+import 'prismjs/components/prism-bash.min';
 
-import Tooltip from 'sentry/components/tooltip';
+import {useEffect, useRef, useState} from 'react';
+import styled from '@emotion/styled';
+
+import {Button} from 'sentry/components/button';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 interface CodeSnippetProps {
   children: string;
-  language: string;
+  language: keyof typeof Prism.languages;
+  className?: string;
+  dark?: boolean;
   filename?: string;
-  hideActionBar?: boolean;
+  hideCopyButton?: boolean;
+  onCopy?: (copiedCode: string) => void;
 }
 
 export function CodeSnippet({
   children,
   language,
+  dark,
   filename,
-  hideActionBar,
+  hideCopyButton,
+  onCopy,
+  className,
 }: CodeSnippetProps) {
   const ref = useRef<HTMLModElement | null>(null);
 
@@ -31,13 +39,16 @@ export function CodeSnippet({
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(children);
-      setTooltipState('copied');
-    } catch (err) {
-      setTooltipState('error');
-    }
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(children)
+      .then(() => {
+        setTooltipState('copied');
+      })
+      .catch(() => {
+        setTooltipState('error');
+      });
+    onCopy?.(children);
   };
 
   const tooltipTitle =
@@ -48,71 +59,88 @@ export function CodeSnippet({
       : t('Unable to copy');
 
   return (
-    <Fragment>
-      {!hideActionBar && (
-        <CodeContainerActionBar>
-          {filename && <span>{filename}</span>}
-          <Tooltip delay={0} isHoverable={false} title={tooltipTitle} position="bottom">
-            <UnstyledButton
-              type="button"
-              onClick={handleCopy}
-              onMouseLeave={() => setTooltipState('copy')}
-            >
-              <IconCopy />
-            </UnstyledButton>
-          </Tooltip>
-        </CodeContainerActionBar>
-      )}
+    <Wrapper className={`${dark ? 'prism-dark ' : ''}${className ?? ''}`}>
+      <Header hasFileName={!!filename}>
+        {filename && <FileName>{filename}</FileName>}
+        {!hideCopyButton && (
+          <CopyButton
+            type="button"
+            size="xs"
+            translucentBorder
+            borderless={!!filename}
+            onClick={handleCopy}
+            title={tooltipTitle}
+            tooltipProps={{delay: 0, isHoverable: false, position: 'left'}}
+            onMouseLeave={() => setTooltipState('copy')}
+          >
+            <IconCopy size="xs" />
+          </CopyButton>
+        )}
+      </Header>
 
-      <PreContainer unsetBorderRadiusTop={!hideActionBar}>
-        <code ref={ref} className={`language-${language}`}>
+      <pre className={`language-${String(language)}`}>
+        <code ref={ref} className={`language-${String(language)}`}>
           {children}
         </code>
-      </PreContainer>
-    </Fragment>
+      </pre>
+    </Wrapper>
   );
 }
 
-const PreContainer = styled('pre')<{unsetBorderRadiusTop?: boolean}>`
-  overflow-x: scroll;
-  ${p =>
-    p.unsetBorderRadiusTop
-      ? `
-  border-top-left-radius: 0px;
-  border-top-right-radius: 0px;
-  `
-      : null}
+const Wrapper = styled('div')`
+  position: relative;
+  background: ${p => p.theme.backgroundSecondary};
+  border-radius: ${p => p.theme.borderRadius};
 
-  word-break: break-all;
-  white-space: pre-wrap;
-
-  code {
-    white-space: pre;
+  pre {
+    margin: 0;
   }
 `;
 
-const UnstyledButton = styled('button')`
-  all: unset;
-  cursor: pointer;
+const Header = styled('div')<{hasFileName: boolean}>`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  font-family: ${p => p.theme.text.familyMono};
+  font-size: ${p => p.theme.codeFontSize};
+  color: ${p => p.theme.headingColor};
+  font-weight: 600;
+  z-index: 2;
+
+  ${p =>
+    p.hasFileName
+      ? `
+      padding: ${space(0.5)} 0;
+      margin: 0 ${space(0.5)} 0 ${space(2)};
+      border-bottom: solid 1px ${p.theme.innerBorder};
+    `
+      : `
+      justify-content: flex-end;
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: max-content;
+      height: max-content;
+      max-height: 100%;
+      padding: ${space(1)};
+    `}
 `;
 
-// code blocks are globally styled by `prism-sentry`
-// its design tokens are slightly different than the app
-// so we've left it in charge of colors while overriding
-// css that breaks the experience
-const CodeContainerActionBar = styled(({children, ...props}) => (
-  <div {...props}>
-    <pre className="language-">{children}</pre>
-  </div>
-))`
-  pre.language- {
-    display: flex;
-    justify-content: end;
-    gap: ${space(1)};
-    padding: ${space(1.5)};
-    margin-bottom: 0px;
-    border-bottom: 1px solid ${p => p.theme.purple200};
-    border-radius: ${p => p.theme.borderRadiusTop};
-    font-size: ${p => p.theme.fontSizeSmall};
+const FileName = styled('p')`
+  ${p => p.theme.overflowEllipsis}
+  margin: 0;
+`;
+
+const CopyButton = styled(Button)`
+  color: ${p => p.theme.subText};
+
+  transition: opacity 0.1s ease-out;
+  opacity: 0;
+
+  p + &, /* if preceded by FileName */
+  div:hover > div > &, /* if Wrapper is hovered */
+  &.focus-visible {
+    opacity: 1;
   }
 `;

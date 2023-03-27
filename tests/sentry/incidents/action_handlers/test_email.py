@@ -26,8 +26,8 @@ from sentry.notifications.types import NotificationSettingOptionValues, Notifica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.testutils import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 from . import FireTest
 
@@ -125,7 +125,7 @@ class EmailActionHandlerGetTargetsTest(TestCase):
     def test_user_email_routing(self):
         new_email = "marcos@sentry.io"
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=new_email
+            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
         )
 
         useremail = UserEmail.objects.get(email=self.user.email)
@@ -150,10 +150,10 @@ class EmailActionHandlerGetTargetsTest(TestCase):
         useremail.save()
 
         UserOption.objects.create(
-            user=self.user, project=self.project, key="mail:email", value=new_email
+            user=self.user, project_id=self.project.id, key="mail:email", value=new_email
         )
         UserOption.objects.create(
-            user=new_user, project=self.project, key="mail:email", value=new_email
+            user=new_user, project_id=self.project.id, key="mail:email", value=new_email
         )
 
         self.create_team_membership(team=self.team, user=new_user)
@@ -170,23 +170,23 @@ class EmailActionHandlerGetTargetsTest(TestCase):
 
 @freeze_time()
 class EmailActionHandlerGenerateEmailContextTest(TestCase):
-    def test(self):
+    def test_simple(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
         action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
         aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
         expected = {
-            "link": absolute_uri(
+            "link": self.organization.absolute_url(
                 reverse(
                     "sentry-metric-alert",
                     kwargs={
                         "organization_slug": incident.organization.slug,
                         "incident_id": incident.identifier,
                     },
-                )
-                + "?referrer=alert_email"
+                ),
+                query="referrer=alert_email",
             ),
-            "rule_link": absolute_uri(
+            "rule_link": self.organization.absolute_url(
                 reverse(
                     "sentry-alert-rule",
                     kwargs={
@@ -220,6 +220,37 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             trigger_status,
             IncidentStatus(incident.status),
         )
+
+    @with_feature("organizations:customer-domains")
+    def test_links_customer_domains(self):
+        trigger_status = TriggerStatus.ACTIVE
+        incident = self.create_incident()
+        action = self.create_alert_rule_trigger_action(triggered_for_incident=incident)
+        result = generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+        path = reverse(
+            "sentry-metric-alert",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "incident_id": incident.identifier,
+            },
+        )
+        assert self.organization.absolute_url(path) in result["link"]
+
+        path = reverse(
+            "sentry-alert-rule",
+            kwargs={
+                "organization_slug": self.organization.slug,
+                "project_slug": self.project.slug,
+                "alert_rule_id": action.alert_rule_trigger.alert_rule_id,
+            },
+        )
+        assert self.organization.absolute_url(path) in result["rule_link"]
 
     def test_resolve(self):
         status = TriggerStatus.RESOLVED

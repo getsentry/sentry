@@ -16,7 +16,7 @@ import PickProjectToContinue from 'sentry/components/pickProjectToContinue';
 import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {IconInfo} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {
   Deploy,
   Organization,
@@ -205,8 +205,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
     }
 
     return (
-      <NoProjectMessage organization={organization}>
-        <Layout.Page>
+      <Layout.Page>
+        <NoProjectMessage organization={organization}>
           <ReleaseHeader
             location={location}
             organization={organization}
@@ -229,8 +229,8 @@ class ReleasesDetail extends AsyncView<Props, State> {
           >
             {this.props.children}
           </ReleaseContext.Provider>
-        </Layout.Page>
-      </NoProjectMessage>
+        </NoProjectMessage>
+      </Layout.Page>
     );
   }
 }

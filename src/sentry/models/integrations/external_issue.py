@@ -17,16 +17,16 @@ from sentry.db.models import (
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
-    from sentry.models import Integration
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 
 class ExternalIssueManager(BaseManager):
     def get_for_integration(
-        self, integration: Integration, external_issue_key: str | None = None
+        self, integration: RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet:
         kwargs = dict(
-            integration=integration,
-            organization__organizationintegration__integration=integration,
+            integration_id=integration.id,
+            organization__organizationintegration__integration_id=integration.id,
         )
 
         if external_issue_key is not None:
@@ -34,7 +34,9 @@ class ExternalIssueManager(BaseManager):
 
         return self.filter(**kwargs)
 
-    def get_linked_issues(self, event: Event, integration: Integration) -> QuerySet[ExternalIssue]:
+    def get_linked_issues(
+        self, event: Event, integration: RpcIntegration
+    ) -> QuerySet[ExternalIssue]:
         from sentry.models import GroupLink
 
         return self.filter(
@@ -46,10 +48,10 @@ class ExternalIssueManager(BaseManager):
             integration_id=integration.id,
         )
 
-    def get_linked_issue_ids(self, event: Event, integration: Integration) -> Sequence[str]:
+    def get_linked_issue_ids(self, event: Event, integration: RpcIntegration) -> Sequence[str]:
         return self.get_linked_issues(event, integration).values_list("key", flat=True)
 
-    def has_linked_issue(self, event: Event, integration: Integration) -> bool:
+    def has_linked_issue(self, event: Event, integration: RpcIntegration) -> bool:
         return self.get_linked_issues(event, integration).exists()
 
 

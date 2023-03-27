@@ -37,7 +37,7 @@ function ReplayDetails({
   params: {replaySlug},
 }: Props) {
   useReplayPageview('replay.details-time-spent');
-  const orgSlug = useOrganization().slug;
+  const {slug: orgSlug} = useOrganization();
 
   const {fetching, onRetry, replay, replayRecord, fetchError} = useReplayData({
     replaySlug,
@@ -46,7 +46,7 @@ function ReplayDetails({
 
   const startTimestampMs = replayRecord?.started_at.getTime() ?? 0;
 
-  if (!fetching && !replay && fetchError) {
+  if (fetchError) {
     if (fetchError.statusText === 'Not Found') {
       return (
         <Page orgSlug={orgSlug} replayRecord={replayRecord}>
@@ -58,8 +58,9 @@ function ReplayDetails({
     }
 
     const reasons = [
-      t('The Replay is still processing and is on its way'),
-      t('There is an internal systems error or active issue'),
+      t('The replay is still processing'),
+      t('The replay has been deleted by a member in your organization'),
+      t('There is an internal systems error'),
     ];
     return (
       <Page orgSlug={orgSlug} replayRecord={replayRecord}>
@@ -70,7 +71,7 @@ function ReplayDetails({
             heading={t('There was an error while fetching this Replay')}
             message={
               <Fragment>
-                <p>{t('This could be due to a couple of reasons:')}</p>
+                <p>{t('This could be due to these reasons:')}</p>
                 <List symbol="bullet">
                   {reasons.map((reason, i) => (
                     <ListItem key={i}>{reason}</ListItem>
@@ -107,6 +108,7 @@ function ReplayDetails({
 
   return (
     <ReplayContextProvider
+      isFetching={fetching}
       replay={replay}
       initialTimeOffset={getInitialTimeOffset({
         eventTimestamp,

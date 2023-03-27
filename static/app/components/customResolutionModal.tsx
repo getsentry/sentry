@@ -7,7 +7,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import configStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {Release} from 'sentry/types';
 
 interface CustomResolutionModalProps extends ModalRenderProps {
@@ -32,6 +32,7 @@ function CustomResolutionModal(props: CustomResolutionModalProps) {
       return {
         item: release.version,
         label: <Version version={release.version} anchor={false} />,
+        plainTextLabel: release.versionInfo.description ?? release.version,
         details: (
           <span>
             {t('Created')} <TimeSince date={release.dateCreated} />

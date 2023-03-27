@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from datetime import datetime
 from typing import Any, Dict, Generator, List, Optional, Union
@@ -26,6 +28,8 @@ from sentry.replays.lib.query import (
     QueryConfig,
     String,
     Tag,
+    UUIDField,
+    all_values_for_tag_key,
     generate_valid_conditions,
     get_valid_sort_commands,
 )
@@ -48,11 +52,12 @@ def query_replays_collection(
     limit: Optional[str],
     offset: Optional[str],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ) -> dict:
     """Query aggregated replay collection."""
     conditions = []
     if environment:
-        conditions.append(Condition(Column("environment"), Op.IN, environment))
+        conditions.append(Condition(Column("agg_environment"), Op.IN, environment))
 
     sort_ordering = get_valid_sort_commands(
         sort,
@@ -65,11 +70,13 @@ def query_replays_collection(
         project_ids=project_ids,
         start=start,
         end=end,
-        where=conditions,
+        where=[],
+        having=conditions,
         fields=fields,
         sorting=sort_ordering,
         pagination=paginators,
         search_filters=search_filters,
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -79,6 +86,7 @@ def query_replay_instance(
     replay_id: str,
     start: datetime,
     end: datetime,
+    tenant_ids: dict[str, Any],
 ):
     """Query aggregated replay instance."""
     response = query_replays_dataset(
@@ -88,10 +96,12 @@ def query_replay_instance(
         where=[
             Condition(Column("replay_id"), Op.EQ, replay_id),
         ],
+        having=[],
         fields=[],
         sorting=[],
         pagination=None,
         search_filters=[],
+        tenant_ids=tenant_ids,
     )
     return response["data"]
 
@@ -101,10 +111,12 @@ def query_replays_dataset(
     start: datetime,
     end: datetime,
     where: List[Condition],
+    having: List[Condition],
     fields: List[str],
     sorting: List[OrderBy],
     pagination: Optional[Paginators],
     search_filters: List[SearchFilter],
+    tenant_ids: dict[str, Any] | None = None,
 ):
     query_options = {}
 
@@ -119,25 +131,39 @@ def query_replays_dataset(
         query=Query(
             match=Entity("replays"),
             select=make_select_statement(fields, sorting, search_filters),
+            # Be careful adding conditions to this query.  You must only filter by columns that
+            # are true for every column in the set!
             where=[
                 Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
+                # We don't actually know when a replay is finished ingesting until we reach the
+                # end of the dataset.  For this reason we scan to the end and then in the having
+                # clause we ask if the replay is in range.  This is more expensive but is required
+                # to ensure correct operation and is especially pertinent in the case where an
+                # archive request was submitted.
+                #
+                # Hard deletes may be more appropriate for replays than archival records.
+                Condition(Column("timestamp"), Op.LT, datetime.now()),
                 Condition(Column("timestamp"), Op.GTE, start),
                 *where,
             ],
             having=[
                 # Must include the first sequence otherwise the replay is too old.
                 Condition(Function("min", parameters=[Column("segment_id")]), Op.EQ, 0),
+                # Make sure we're not too old.
+                Condition(Column("finished_at"), Op.LT, end),
                 # Require non-archived replays.
                 Condition(Column("isArchived"), Op.EQ, 0),
                 # User conditions.
                 *generate_valid_conditions(search_filters, query_config=ReplayQueryConfig()),
+                # Other conditions.
+                *having,
             ],
             orderby=sorting,
-            groupby=[Column("replay_id")],
+            groupby=[Column("project_id"), Column("replay_id")],
             granularity=Granularity(3600),
             **query_options,
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(snuba_request, "replays.query.query_replays_dataset")
 
@@ -147,6 +173,7 @@ def query_replays_count(
     start: datetime,
     end: datetime,
     replay_ids: List[str],
+    tenant_ids: dict[str, Any],
 ):
 
     snuba_request = Request(
@@ -157,8 +184,8 @@ def query_replays_count(
             select=[
                 _strip_uuid_dashes("replay_id", Column("replay_id")),
                 Function(
-                    "notEmpty",
-                    parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+                    "any",
+                    parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
                     alias="is_archived",
                 ),
             ],
@@ -178,13 +205,72 @@ def query_replays_count(
             groupby=[Column("replay_id")],
             granularity=Granularity(3600),
         ),
+        tenant_ids=tenant_ids,
     )
     return raw_snql_query(
         snuba_request, referrer="replays.query.query_replays_count", use_cache=True
     )
 
 
-# Select.
+def query_replays_dataset_tagkey_values(
+    project_ids: List[str],
+    start: datetime,
+    end: datetime,
+    environment: str | None,
+    tag_key: str,
+    tenant_ids: dict[str, Any] | None,
+):
+    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+
+    where = []
+
+    if environment:
+        where.append(Condition(Column("environment"), Op.IN, environment))
+
+    grouped_column = TAG_QUERY_ALIAS_COLUMN_MAP.get(tag_key)
+    if grouped_column is None:
+        # see https://clickhouse.com/docs/en/sql-reference/functions/array-join/
+        # for arrayJoin behavior. we use it to return a flattened
+        # row for each value in the tags.value array
+        aggregated_column = Function(
+            "arrayJoin",
+            parameters=[all_values_for_tag_key(tag_key, Column("tags.key"), Column("tags.value"))],
+            alias="tag_value",
+        )
+        grouped_column = Column("tag_value")
+
+    else:
+        # using identity to alias the column
+        aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
+
+    snuba_request = Request(
+        dataset="replays",
+        app_id="replay-backend-web",
+        query=Query(
+            match=Entity("replays"),
+            select=[
+                Function("uniq", parameters=[Column("replay_id")], alias="times_seen"),
+                Function("min", parameters=[Column("timestamp")], alias="first_seen"),
+                Function("max", parameters=[Column("timestamp")], alias="last_seen"),
+                aggregated_column,
+            ],
+            where=[
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Condition(Column("is_archived"), Op.IS_NULL),
+                *where,
+            ],
+            orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
+            groupby=[grouped_column],
+            granularity=Granularity(3600),
+            limit=Limit(1000),
+        ),
+        tenant_ids=tenant_ids,
+    )
+    return raw_snql_query(
+        snuba_request, referrer="replays.query.query_replays_dataset_tagkey_values", use_cache=True
+    )
 
 
 def make_select_statement(
@@ -233,17 +319,19 @@ def _grouped_unique_values(
     )
 
 
-def _grouped_unique_scalar_value(
-    column_name: str, alias: Optional[str] = None, aliased: bool = True
+def take_any_from_aggregation(
+    column_name: str,
+    alias: Optional[str] = None,
+    aliased: bool = True,
 ) -> Function:
-    """Returns the first value of a unique array.
-
-    E.g.
-        [1, 2, 2, 3, 3, 3, null] => [1, 2, 3] => 1
+    """Returns any value of a non group-by field. in our case, they are always the same,
+    so the value should be consistent.
     """
     return Function(
-        "arrayElement",
-        parameters=[_grouped_unique_values(column_name), 1],
+        "any",
+        parameters=[
+            Column(column_name),
+        ],
         alias=alias or column_name if aliased else None,
     )
 
@@ -302,17 +390,17 @@ class ReplayQueryConfig(QueryConfig):
     activity = Number()
 
     # String filters.
-    replay_id = String(field_alias="id")
+    replay_id = UUIDField(field_alias="id")
     replay_type = String(query_alias="replay_type")
     platform = String()
     releases = ListField()
     release = ListField(query_alias="releases")
     dist = String()
-    error_ids = ListField(query_alias="error_ids", is_uuid=True)
-    error_id = ListField(query_alias="error_ids", is_uuid=True)
-    trace_ids = ListField(query_alias="trace_ids", is_uuid=True)
-    trace_id = ListField(query_alias="trace_ids", is_uuid=True)
-    trace = ListField(query_alias="trace_ids", is_uuid=True)
+    error_ids = ListField(query_alias="errorIds")
+    error_id = ListField(query_alias="errorIds")
+    trace_ids = ListField(query_alias="traceIds")
+    trace_id = ListField(query_alias="traceIds")
+    trace = ListField(query_alias="traceIds")
     urls = ListField(query_alias="urls_sorted")
     url = ListField(query_alias="urls_sorted")
     user_id = String(field_alias="user.id", query_alias="user_id")
@@ -330,6 +418,14 @@ class ReplayQueryConfig(QueryConfig):
     sdk_name = String(field_alias="sdk.name", query_alias="sdk_name")
     sdk_version = String(field_alias="sdk.version", query_alias="sdk_version")
 
+    # These are object-type fields.  User's who query by these fields are likely querying by
+    # the "name" value.
+    user = String(field_alias="user", query_alias="user_name")
+    os = String(field_alias="os", query_alias="os_name")
+    browser = String(field_alias="browser", query_alias="browser_name")
+    device = String(field_alias="device", query_alias="device_name")
+    sdk = String(field_alias="sdk", query_alias="sdk_name")
+
     # Tag
     tags = Tag(field_alias="*")
 
@@ -338,8 +434,8 @@ class ReplayQueryConfig(QueryConfig):
     started_at = String(is_filterable=False)
     finished_at = String(is_filterable=False)
     # Dedicated url parameter should be used.
-    project_id = String(query_alias="projectId", is_filterable=False)
-    project = String(query_alias="projectId", is_filterable=False)
+    project_id = String(query_alias="project_id", is_filterable=False)
+    project = String(query_alias="project_id", is_filterable=False)
 
 
 # Pagination.
@@ -384,20 +480,8 @@ def _activity_score():
     #  score = (count_errors * 25 + pagesVisited * 5 ) / 10;
     #  score = Math.floor(Math.min(10, Math.max(1, score)));
 
-    error_weight = Function(
-        "multiply",
-        parameters=[Column("count_errors"), 25],
-    )
-    pages_visited_weight = Function(
-        "multiply",
-        parameters=[
-            Function(
-                "length",
-                parameters=[Column("urls_sorted")],
-            ),
-            5,
-        ],
-    )
+    error_weight = Function("multiply", parameters=[Column("count_errors"), 25])
+    pages_visited_weight = Function("multiply", parameters=[Column("count_urls"), 5])
 
     combined_weight = Function(
         "plus",
@@ -466,16 +550,16 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
     "urls": ["urls_sorted", "agg_urls"],
     "url": ["urls_sorted", "agg_urls"],
     "count_errors": ["count_errors"],
-    "count_urls": ["count_urls", "urls_sorted", "agg_urls"],
+    "count_urls": ["count_urls"],
     "count_segments": ["count_segments"],
     "is_archived": ["is_archived"],
-    "activity": ["activity", "count_errors", "urls_sorted", "agg_urls"],
+    "activity": ["activity", "count_errors", "count_urls"],
     "user": ["user_id", "user_email", "user_name", "user_ip"],
     "os": ["os_name", "os_version"],
     "browser": ["browser_name", "browser_version"],
     "device": ["device_name", "device_brand", "device_family", "device_model"],
     "sdk": ["sdk_name", "sdk_version"],
-    "tags": ["tags.key", "tags.value"],
+    "tags": ["tk", "tv"],
     # Nested fields.  Useful for selecting searchable fields.
     "user.id": ["user_id"],
     "user.email": ["user_email"],
@@ -498,19 +582,8 @@ FIELD_QUERY_ALIAS_MAP: Dict[str, List[str]] = {
 # match the column's query alias.
 
 QUERY_ALIAS_COLUMN_MAP = {
-    "replay_id": _strip_uuid_dashes("replay_id", Column("replay_id")),
-    "replay_type": _grouped_unique_scalar_value(column_name="replay_type", alias="replay_type"),
-    "project_id": Function(
-        "toString",
-        parameters=[_grouped_unique_scalar_value(column_name="project_id", alias="agg_pid")],
-        alias="projectId",
-    ),
-    "platform": _grouped_unique_scalar_value(column_name="platform"),
-    "agg_environment": _grouped_unique_scalar_value(
-        column_name="environment", alias="agg_environment"
-    ),
-    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
-    "dist": _grouped_unique_scalar_value(column_name="dist"),
+    "replay_id": Column("replay_id"),
+    "project_id": Column("project_id"),
     "trace_ids": Function(
         "arrayMap",
         parameters=[
@@ -540,6 +613,7 @@ QUERY_ALIAS_COLUMN_MAP = {
         "min", parameters=[Column("replay_start_timestamp")], alias="started_at"
     ),
     "finished_at": Function("max", parameters=[Column("timestamp")], alias="finished_at"),
+    # Because duration considers the max timestamp, archive requests can alter the duration.
     "duration": Function(
         "dateDiff",
         parameters=["second", Column("started_at"), Column("finished_at")],
@@ -553,53 +627,82 @@ QUERY_ALIAS_COLUMN_MAP = {
     ),
     "count_segments": Function("count", parameters=[Column("segment_id")], alias="count_segments"),
     "count_errors": Function(
-        "uniqArray",
-        parameters=[Column("error_ids")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("error_ids")])],
         alias="count_errors",
     ),
     "count_urls": Function(
-        "length",
-        parameters=[Column("urls_sorted")],
+        "sum",
+        parameters=[Function("length", parameters=[Column("urls")])],
         alias="count_urls",
     ),
     "is_archived": Function(
-        "notEmpty",
-        parameters=[Function("groupArray", parameters=[Column("is_archived")])],
+        "any",
+        parameters=[Function("isNotNull", parameters=[Column("is_archived")])],
         alias="isArchived",
     ),
     "activity": _activity_score(),
-    "user_id": _grouped_unique_scalar_value(column_name="user_id"),
-    "user_email": _grouped_unique_scalar_value(column_name="user_email"),
-    "user_name": _grouped_unique_scalar_value(column_name="user_name"),
+    "releases": _grouped_unique_values(column_name="release", alias="releases", aliased=True),
+    "replay_type": take_any_from_aggregation(column_name="replay_type", alias="replay_type"),
+    "platform": take_any_from_aggregation(column_name="platform"),
+    "agg_environment": take_any_from_aggregation(
+        column_name="environment", alias="agg_environment"
+    ),
+    "dist": take_any_from_aggregation(column_name="dist"),
+    "user_id": take_any_from_aggregation(column_name="user_id"),
+    "user_email": take_any_from_aggregation(column_name="user_email"),
+    "user_name": take_any_from_aggregation(column_name="user_name"),
     "user_ip": Function(
         "IPv4NumToString",
-        parameters=[
-            _grouped_unique_scalar_value(
-                column_name="ip_address_v4",
-                aliased=False,
-            )
-        ],
+        parameters=[take_any_from_aggregation(column_name="ip_address_v4", aliased=False)],
         alias="user_ip",
     ),
-    "os_name": _grouped_unique_scalar_value(column_name="os_name"),
-    "os_version": _grouped_unique_scalar_value(column_name="os_version"),
-    "browser_name": _grouped_unique_scalar_value(column_name="browser_name"),
-    "browser_version": _grouped_unique_scalar_value(column_name="browser_version"),
-    "device_name": _grouped_unique_scalar_value(column_name="device_name"),
-    "device_brand": _grouped_unique_scalar_value(column_name="device_brand"),
-    "device_family": _grouped_unique_scalar_value(column_name="device_family"),
-    "device_model": _grouped_unique_scalar_value(column_name="device_model"),
-    "sdk_name": _grouped_unique_scalar_value(column_name="sdk_name"),
-    "sdk_version": _grouped_unique_scalar_value(column_name="sdk_version"),
+    "os_name": take_any_from_aggregation(column_name="os_name"),
+    "os_version": take_any_from_aggregation(column_name="os_version"),
+    "browser_name": take_any_from_aggregation(column_name="browser_name"),
+    "browser_version": take_any_from_aggregation(column_name="browser_version"),
+    "device_name": take_any_from_aggregation(column_name="device_name"),
+    "device_brand": take_any_from_aggregation(column_name="device_brand"),
+    "device_family": take_any_from_aggregation(column_name="device_family"),
+    "device_model": take_any_from_aggregation(column_name="device_model"),
+    "sdk_name": take_any_from_aggregation(column_name="sdk_name"),
+    "sdk_version": take_any_from_aggregation(column_name="sdk_version"),
     "tk": Function("groupArrayArray", parameters=[Column("tags.key")], alias="tk"),
     "tv": Function("groupArrayArray", parameters=[Column("tags.value")], alias="tv"),
 }
 
 
+TAG_QUERY_ALIAS_COLUMN_MAP = {
+    "replay_type": Column("replay_type"),
+    "platform": Column("platform"),
+    "environment": Column("environment"),
+    "release": Column("release"),
+    "dist": Column("dist"),
+    "url": Function("arrayJoin", parameters=[Column("urls")]),
+    "user.id": Column("user_id"),
+    "user.username": Column("user_name"),
+    "user.email": Column("user_email"),
+    "user.ip": Function(
+        "IPv4NumToString",
+        parameters=[Column("ip_address_v4")],
+    ),
+    "sdk.name": Column("sdk_name"),
+    "sdk.version": Column("sdk_version"),
+    "os.name": Column("os_name"),
+    "os.version": Column("os_version"),
+    "browser.name": Column("browser_name"),
+    "browser.version": Column("browser_version"),
+    "device.name": Column("device_name"),
+    "device.brand": Column("device_brand"),
+    "device.family": Column("device_family"),
+    "device.model_id": Column("device_model"),
+}
+
+
 def collect_aliases(fields: List[str]) -> List[str]:
     """Return a unique list of aliases required to satisfy the fields."""
-    # is_archived is a required field.  It must always be selected.
-    result = {"is_archived"}
+    # Required fields.
+    result = {"is_archived", "finished_at", "agg_environment"}
 
     saw_tags = False
     for field in fields:

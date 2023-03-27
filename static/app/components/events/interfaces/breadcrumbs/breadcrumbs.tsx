@@ -9,16 +9,18 @@ import {
 import styled from '@emotion/styled';
 
 import {PanelTable} from 'sentry/components/panels';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EntryType} from 'sentry/types';
 import {Crumb} from 'sentry/types/breadcrumbs';
+import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
 
 import {Breadcrumb} from './breadcrumb';
 
-const PANEL_MAX_HEIGHT = 400;
+const PANEL_MIN_HEIGHT = 200;
+const PANEL_INITIAL_HEIGHT = 400;
 
 const cache = new CellMeasurerCache({
   fixedWidth: true,
@@ -66,6 +68,18 @@ function Breadcrumbs({
     updateGrid();
   }, [breadcrumbs, updateGrid]);
 
+  const {
+    size: containerSize,
+    isHeld,
+    onMouseDown,
+    onDoubleClick,
+  } = useResizableDrawer({
+    direction: 'down',
+    onResize: () => void 0,
+    initialSize: PANEL_INITIAL_HEIGHT,
+    min: PANEL_MIN_HEIGHT,
+  });
+
   function renderRow({index, key, parent, style}: ListRowProps) {
     const breadcrumb = breadcrumbs[index];
     const isLastItem = breadcrumbs[0].id === breadcrumb.id;
@@ -92,9 +106,7 @@ function Breadcrumbs({
             displayRelativeTime={displayRelativeTime}
             height={height ? String(height) : undefined}
             scrollbarSize={
-              (contentRef?.current?.offsetHeight ?? 0) < PANEL_MAX_HEIGHT
-                ? scrollbarSize
-                : 0
+              (contentRef?.current?.offsetHeight ?? 0) < containerSize ? scrollbarSize : 0
             }
           />
         )}
@@ -103,52 +115,64 @@ function Breadcrumbs({
   }
 
   return (
-    <StyledPanelTable
-      scrollbarSize={scrollbarSize}
-      headers={[
-        t('Type'),
-        t('Category'),
-        t('Description'),
-        t('Level'),
-        <Time key="time" onClick={onSwitchTimeFormat}>
-          <Tooltip
-            containerDisplayMode="inline-flex"
-            title={
-              displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
-            }
-          >
-            <StyledIconSort size="xs" rotated />
-          </Tooltip>
+    <Wrapper>
+      <StyledPanelTable
+        scrollbarSize={scrollbarSize}
+        headers={[
+          t('Type'),
+          t('Category'),
+          t('Description'),
+          t('Level'),
+          <Time key="time" onClick={onSwitchTimeFormat}>
+            <Tooltip
+              containerDisplayMode="inline-flex"
+              title={
+                displayRelativeTime ? t('Switch to absolute') : t('Switch to relative')
+              }
+            >
+              <StyledIconSort size="xs" rotated />
+            </Tooltip>
 
-          {t('Time')}
-        </Time>,
-        '',
-      ]}
-      isEmpty={!breadcrumbs.length}
-      {...emptyMessage}
-    >
-      <Content ref={contentRef}>
-        <AutoSizer disableHeight onResize={updateGrid}>
-          {({width}) => (
-            <StyledList
-              ref={listRef}
-              deferredMeasurementCache={cache}
-              height={PANEL_MAX_HEIGHT}
-              overscanRowCount={5}
-              rowCount={breadcrumbs.length}
-              rowHeight={cache.rowHeight}
-              rowRenderer={renderRow}
-              width={width}
-              onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
-            />
-          )}
-        </AutoSizer>
-      </Content>
-    </StyledPanelTable>
+            {t('Time')}
+          </Time>,
+          // Space for the scrollbar
+          '',
+        ]}
+        isEmpty={!breadcrumbs.length}
+        {...emptyMessage}
+      >
+        <Content ref={contentRef}>
+          <AutoSizer disableHeight onResize={updateGrid}>
+            {({width}) => (
+              <StyledList
+                ref={listRef}
+                deferredMeasurementCache={cache}
+                height={containerSize}
+                overscanRowCount={5}
+                rowCount={breadcrumbs.length}
+                rowHeight={cache.rowHeight}
+                rowRenderer={renderRow}
+                width={width}
+                onScrollbarPresenceChange={({size}) => setScrollbarSize(size)}
+              />
+            )}
+          </AutoSizer>
+        </Content>
+      </StyledPanelTable>
+      <PanelDragHandle
+        onMouseDown={onMouseDown}
+        onDoubleClick={onDoubleClick}
+        className={isHeld ? 'is-held' : undefined}
+      />
+    </Wrapper>
   );
 }
 
 export default Breadcrumbs;
+
+const Wrapper = styled('div')`
+  position: relative;
+`;
 
 const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
   display: grid;
@@ -165,6 +189,11 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       :nth-child(6n-5) {
         text-align: center;
       }
+    }
+
+    /* Scroll bar header */
+    :nth-child(6) {
+      padding: 0;
     }
 
     /* Content */
@@ -196,8 +225,6 @@ const StyledPanelTable = styled(PanelTable)<{scrollbarSize: number}>`
       }
     }
   }
-
-  overflow: hidden;
 `;
 
 const Time = styled('div')`
@@ -215,8 +242,31 @@ const StyledIconSort = styled(IconSort)`
 `;
 
 const Content = styled('div')`
-  max-height: ${PANEL_MAX_HEIGHT}px;
   overflow: hidden;
+`;
+
+const PanelDragHandle = styled('div')`
+  position: absolute;
+  bottom: -1px;
+  left: 1px;
+  right: 1px;
+  height: 10px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+
+  &::after {
+    content: '';
+    height: 5px;
+    width: 100%;
+    border-radius: ${p => p.theme.borderRadiusBottom};
+    transition: background 100ms ease-in-out;
+  }
+
+  &:hover::after,
+  &.is-held:after {
+    background: ${p => p.theme.purple300};
+  }
 `;
 
 // XXX(ts): Emotion11 has some trouble with List's defaultProps

@@ -114,7 +114,7 @@ function formatForReact(formatString: string, args: FormatArg[]): React.ReactNod
       // array with two items in.
       match[2] = null;
       match[1] = 1;
-      nodes.push(<span key={idx++}>{sprintf.format([match], [null, arg])}</span>);
+      nodes.push(<Fragment key={idx++}>{sprintf.format([match], [null, arg])}</Fragment>);
     }
   });
 
@@ -241,7 +241,7 @@ export function renderTemplate(
 
     for (const item of group) {
       if (isString(item)) {
-        children.push(<span key={idx++}>{item}</span>);
+        children.push(<Fragment key={idx++}>{item}</Fragment>);
       } else {
         children.push(renderGroup(item.group));
       }
@@ -249,10 +249,10 @@ export function renderTemplate(
 
     // In case we cannot find our component, we call back to an empty
     // span so that stuff shows up at least.
-    let reference = components[groupKey] ?? <span key={idx++} />;
+    let reference = components[groupKey] ?? <Fragment key={idx++} />;
 
     if (!isValidElement(reference)) {
-      reference = <span key={idx++}>{reference}</span>;
+      reference = <Fragment key={idx++}>{reference}</Fragment>;
     }
 
     const element = reference as React.ReactElement;
@@ -271,9 +271,9 @@ export function renderTemplate(
  * NOTE: This is a no-op and will return the node if LOCALE_DEBUG is not
  * currently enabled. See setLocaleDebug and toggleLocaleDebug.
  */
-function mark(node: React.ReactNode): string {
+function mark<T extends React.ReactNode>(node: T): T {
   if (!LOCALE_DEBUG) {
-    return node as string;
+    return node;
   }
 
   // TODO(epurkhiser): Explain why we manually create a react node and assign
@@ -281,7 +281,7 @@ function mark(node: React.ReactNode): string {
   // require some understanding of reacts internal types.
   const proxy = {
     $$typeof: Symbol.for('react.element'),
-    type: 'span',
+    type: Symbol.for('react.fragment'),
     key: null,
     ref: null,
     props: {
@@ -293,7 +293,7 @@ function mark(node: React.ReactNode): string {
   };
 
   proxy.toString = () => '✅' + node + '✅';
-  return proxy as unknown as string;
+  return proxy as T;
 }
 
 /**
@@ -330,7 +330,7 @@ export function gettext(string: string, ...args: FormatArg[]): string {
   // XXX(ts): It IS possible to use gettext in such a way that it will return a
   // React.ReactNodeArray, however we currently rarely (if at all) use it in
   // this way, and usually just expect strings back.
-  return mark(format(val, args));
+  return mark(format(val, args) as string);
 }
 
 /**
@@ -390,9 +390,9 @@ export function ngettext(singular: string, plural: string, ...args: FormatArg[])
 export function gettextComponentTemplate(
   template: string,
   components: ComponentMap
-): string {
+): JSX.Element {
   const parsedTemplate = parseComponentTemplate(getClient().gettext(template));
-  return mark(renderTemplate(parsedTemplate, components));
+  return mark(renderTemplate(parsedTemplate, components) as JSX.Element);
 }
 
 /**

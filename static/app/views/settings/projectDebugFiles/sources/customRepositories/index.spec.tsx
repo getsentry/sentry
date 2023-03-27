@@ -1,14 +1,7 @@
 import {InjectedRouter} from 'react-router';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  waitForElementToBeRemoved,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import * as indicators from 'sentry/actionCreators/indicator';
@@ -136,21 +129,21 @@ describe('Custom Repositories', function () {
     expect(screen.getByText('No custom repositories configured')).toBeInTheDocument();
 
     // Choose an App Store Connect source
-    userEvent.click(screen.getByText('Add Repository'));
+    await userEvent.click(screen.getByText('Add Repository'));
 
-    userEvent.click(screen.getByText('App Store Connect'));
+    await userEvent.click(screen.getByText('App Store Connect'));
 
     // Display modal content
     // A single instance of App Store Connect is available on free plans
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
 
     // Close Modal
-    userEvent.click(screen.getByLabelText('Close Modal'));
+    await userEvent.click(screen.getByLabelText('Close Modal'));
 
     // Choose another source
-    userEvent.click(screen.getByText('Add Repository'));
+    await userEvent.click(screen.getByText('Add Repository'));
 
-    userEvent.click(screen.getByText('Amazon S3'));
+    await userEvent.click(screen.getByText('Amazon S3'));
 
     // Feature disabled warning
     expect(
@@ -165,11 +158,11 @@ describe('Custom Repositories', function () {
     ).toBeInTheDocument();
 
     // Close Modal
-    userEvent.click(screen.getByLabelText('Close Modal'));
+    await userEvent.click(screen.getByLabelText('Close Modal'));
 
-    await waitForElementToBeRemoved(() =>
-      screen.queryByText('This feature is not enabled on your Sentry installation.')
-    );
+    await waitFor(() => {
+      expect(screen.queryByText('App Store Connect credentials')).not.toBeInTheDocument();
+    });
 
     // Renders disabled repository list
     rerender(
@@ -195,9 +188,9 @@ describe('Custom Repositories', function () {
 
     // A new App Store Connect instance is not available on free plans
     // Choose an App Store Connect source
-    userEvent.click(screen.getByText('Add Repository'));
+    await userEvent.click(screen.getByText('Add Repository'));
 
-    userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
+    await userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
 
     // Feature disabled warning
     expect(
@@ -231,9 +224,9 @@ describe('Custom Repositories', function () {
     expect(screen.getByText('No custom repositories configured')).toBeInTheDocument();
 
     // Choose a source
-    userEvent.click(screen.getByText('Add Repository'));
+    await userEvent.click(screen.getByText('Add Repository'));
 
-    userEvent.click(screen.getByText('Amazon S3'));
+    await userEvent.click(screen.getByText('Amazon S3'));
 
     // Display modal content
     expect(
@@ -241,7 +234,7 @@ describe('Custom Repositories', function () {
     ).toBeInTheDocument();
 
     // Close Modal
-    userEvent.click(screen.getByLabelText('Close Modal'));
+    await userEvent.click(screen.getByLabelText('Close Modal'));
 
     // Renders enabled repository list
     rerender(
@@ -304,16 +297,16 @@ describe('Custom Repositories', function () {
     // Enabled button
     expect(screen.getByText('Add Repository').closest('button')).toBeEnabled();
 
-    userEvent.click(screen.getByText('Add Repository'));
+    await userEvent.click(screen.getByText('Add Repository'));
 
-    userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
+    await userEvent.click(screen.getByRole('button', {name: 'App Store Connect'}));
 
     // Display modal content
     // A new App Store Connect instance is available
     expect(await screen.findByText('App Store Connect credentials')).toBeInTheDocument();
 
     // Close Modal
-    userEvent.click(screen.getByLabelText('Close Modal'));
+    await userEvent.click(screen.getByLabelText('Close Modal'));
   });
 
   it('renders with custom-symbol-sources and app-store-connect-multiple features enabled', function () {
@@ -373,7 +366,7 @@ describe('Custom Repositories', function () {
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
       expect(syncNowButton).toBeEnabled();
 
-      userEvent.click(syncNowButton);
+      await userEvent.click(syncNowButton);
 
       await waitFor(() => expect(refreshMockSuccess).toHaveBeenCalledTimes(1));
 
@@ -398,7 +391,7 @@ describe('Custom Repositories', function () {
         />
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Sync Now'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Sync Now'}));
 
       await waitFor(() => expect(refreshMockFail).toHaveBeenCalledTimes(1));
 
@@ -427,7 +420,7 @@ describe('Custom Repositories', function () {
       const syncNowButton = screen.getByRole('button', {name: 'Sync Now'});
       expect(syncNowButton).toBeDisabled();
 
-      userEvent.hover(syncNowButton);
+      await userEvent.hover(syncNowButton);
 
       expect(
         await screen.findByText(
@@ -435,7 +428,7 @@ describe('Custom Repositories', function () {
         )
       ).toBeInTheDocument();
 
-      userEvent.click(syncNowButton);
+      await userEvent.click(syncNowButton);
 
       await waitFor(() => expect(refreshMock).toHaveBeenCalledTimes(0));
     });
@@ -509,7 +502,7 @@ describe('Custom Repositories', function () {
         await screen.findByText('App Store Connect credentials')
       ).toBeInTheDocument();
 
-      userEvent.click(screen.getByText('Update'));
+      await userEvent.click(screen.getByText('Update'), {delay: null});
 
       await waitFor(() => expect(updateMockSucceeds).toHaveBeenCalledTimes(1));
       expect(updateCredentialsMockSucceeds).toHaveBeenCalledTimes(1);
@@ -518,9 +511,8 @@ describe('Custom Repositories', function () {
         'Successfully updated custom repository'
       );
 
-      act(() => {
-        jest.runAllTimers();
-      });
+      act(() => jest.runAllTimers());
+      jest.useRealTimers();
     });
 
     it('credentials not authorized for the application', async function () {
@@ -553,12 +545,12 @@ describe('Custom Repositories', function () {
       ).toBeInTheDocument();
 
       // Type invalid key
-      userEvent.type(
+      await userEvent.type(
         screen.getByPlaceholderText('(Private Key unchanged)'),
         'invalid key{enter}'
       );
 
-      userEvent.click(screen.getByText('Update'));
+      await userEvent.click(screen.getByText('Update'));
 
       await waitFor(() => expect(updateCredentialsMockFails).toHaveBeenCalledTimes(1));
 

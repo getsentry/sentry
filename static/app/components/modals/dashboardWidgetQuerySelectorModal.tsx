@@ -1,5 +1,4 @@
 import {Component, Fragment} from 'react';
-import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -7,15 +6,16 @@ import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import Input from 'sentry/components/input';
+import Link from 'sentry/components/links/link';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import withApi from 'sentry/utils/withApi';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {Widget} from 'sentry/views/dashboardsV2/types';
-import {getWidgetDiscoverUrl} from 'sentry/views/dashboardsV2/utils';
+import {Widget} from 'sentry/views/dashboards/types';
+import {getWidgetDiscoverUrl} from 'sentry/views/dashboards/utils';
 
 export type DashboardWidgetQuerySelectorModalOptions = {
   organization: Organization;

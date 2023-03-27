@@ -1,6 +1,4 @@
 ---
-created: '2022-07-28T11:40:41.659077Z'
-creator: sentry
 source: tests/symbolicator/test_payload_full.py
 ---
 contexts: null
@@ -17,7 +15,7 @@ debug_meta:
           has_symbols: true
           has_unwind_info: false
         status: ok
-      location: sentry://project_debug_file/6
+      location: sentry://project_debug_file/x
       source: sentry:project
       source_name: Sentry
     code_file: Foo.app/Contents/Foo

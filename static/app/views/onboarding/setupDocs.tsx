@@ -1,35 +1,36 @@
-import 'prism-sentry/index.css';
-
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import {browserHistory} from 'react-router';
-import {css, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 import * as qs from 'query-string';
 
 import {loadDocs} from 'sentry/actionCreators/projects';
-import {Alert, alertStyles} from 'sentry/components/alert';
+import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingError from 'sentry/components/loadingError';
+import {DocumentationWrapper} from 'sentry/components/onboarding/documentationWrapper';
+import {Footer} from 'sentry/components/onboarding/footer';
+import {FooterWithViewSampleErrorButton} from 'sentry/components/onboarding/footerWithViewSampleErrorButton';
+import {PRODUCT, ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {PlatformKey} from 'sentry/data/platformCategories';
-import platforms from 'sentry/data/platforms';
+import platforms, {ReactDocVariant} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {platformToIntegrationMap} from 'sentry/utils/integrationUtil';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import withProjects from 'sentry/utils/withProjects';
+import {useExperiment} from 'sentry/utils/useExperiment';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
+import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
 
 import FirstEventFooter from './components/firstEventFooter';
-import FullIntroduction from './components/fullIntroduction';
 import ProjectSidebarSection from './components/projectSidebarSection';
 import IntegrationSetup from './integrationSetup';
 import {StepProps} from './types';
 import {usePersistedOnboardingState} from './utils';
-
 /**
  * The documentation will include the following string should it be missing the
  * verification example, which currently a lot of docs are.
@@ -39,14 +40,13 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 type PlatformDoc = {html: string; link: string};
 
 type Props = {
-  projects: Project[];
   search: string;
-  loadingProjects?: boolean;
 } & StepProps;
 
-function ProjecDocs(props: {
+function ProjectDocs(props: {
   hasError: boolean;
   onRetry: () => void;
+  organization: Organization;
   platform: PlatformKey | null;
   platformDocs: PlatformDoc | null;
   project: Project;
@@ -82,7 +82,7 @@ function ProjecDocs(props: {
 
   const docs = props.platformDocs !== null && (
     <DocsWrapper key={props.platformDocs.html}>
-      <Content dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
+      <DocumentationWrapper dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
       {missingExampleWarning()}
     </DocsWrapper>
   );
@@ -98,9 +98,20 @@ function ProjecDocs(props: {
   );
 
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
+
   return (
     <Fragment>
-      <FullIntroduction currentPlatform={currentPlatform} />
+      <SetupIntroduction
+        stepHeaderText={t(
+          'Configure %s SDK',
+          platforms.find(p => p.id === currentPlatform)?.name ?? ''
+        )}
+        platform={currentPlatform}
+      />
+      {currentPlatform === 'javascript-react' &&
+        props.organization.features?.includes(
+          'onboarding-docs-with-product-selection'
+        ) && <ProductSelection />}
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -109,14 +120,30 @@ function ProjecDocs(props: {
   );
 }
 
-function SetupDocs({
-  organization,
-  projects: rawProjects,
-  search,
-  loadingProjects,
-}: Props) {
+function SetupDocs({search, route, router, location, ...props}: Props) {
   const api = useApi();
+  const organization = useOrganization();
+  const {projects: rawProjects} = useProjects();
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const [selectedProjectSlug, _setSelectedProjectSlug] = useState(
+    props.selectedProjectSlug
+  );
+
+  const {logExperiment, experimentAssignment} = useExperiment(
+    'OnboardingNewFooterExperiment',
+    {
+      logExperimentOnMount: false,
+    }
+  );
+
+  const singleSelectPlatform = !!organization?.features.includes(
+    'onboarding-remove-multiselect-platform'
+  );
+
+  const heartbeatFooter = !!organization?.features.includes(
+    'onboarding-heartbeat-footer'
+  );
+
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const platformToProjectIdMap = clientState?.platformToProjectIdMap || {};
   // id is really slug here
@@ -134,6 +161,7 @@ function SetupDocs({
   const [hasError, setHasError] = useState(false);
   const [platformDocs, setPlatformDocs] = useState<PlatformDoc | null>(null);
   const [loadedPlatform, setLoadedPlatform] = useState<PlatformKey | null>(null);
+
   // store what projects have sent first event in state based project.firstEvent
   const [hasFirstEventMap, setHasFirstEventMap] = useState<Record<string, boolean>>(
     projects.reduce((accum, project: Project) => {
@@ -141,18 +169,19 @@ function SetupDocs({
       return accum;
     }, {} as Record<string, boolean>)
   );
+
   const checkProjectHasFirstEvent = (project: Project) => {
     return !!hasFirstEventMap[project.id];
   };
 
   const {project_id: rawProjectId} = qs.parse(search);
   const rawProjectIndex = projects.findIndex(p => p.id === rawProjectId);
-  const firstProjectNoError = projects.findIndex(
-    p => selectedProjectsSet.has(p.slug) && !checkProjectHasFirstEvent(p)
-  );
+  const firstProjectNoError = projects.findIndex(p => selectedProjectsSet.has(p.slug));
   // Select a project based on search params. If non exist, use the first project without first event.
   const projectIndex = rawProjectIndex >= 0 ? rawProjectIndex : firstProjectNoError;
-  const project = projects[projectIndex];
+  const project =
+    projects[projectIndex] ?? rawProjects.find(p => p.slug === selectedProjectSlug);
+
   // find the next project that doesn't have a first event
   const nextProject = projects.find(
     (p, i) => i > projectIndex && !checkProjectHasFirstEvent(p)
@@ -161,28 +190,6 @@ function SetupDocs({
   const integrationSlug = project?.platform && platformToIntegrationMap[project.platform];
   const [integrationUseManualSetup, setIntegrationUseManualSetup] = useState(false);
 
-  useEffect(() => {
-    // should not redirect if we don't have an active client state or projects aren't loaded
-    if (!clientState || loadingProjects) {
-      return;
-    }
-    if (
-      // If no projects remaining, then we can leave
-      !project
-    ) {
-      // marke onboarding as complete
-      setClientState({
-        ...clientState,
-        state: 'finished',
-      });
-      browserHistory.push(
-        normalizeUrl(
-          `/organizations/${organization.slug}/issues/?referrer=onboarding-setup-docs-on-complete`
-        )
-      );
-    }
-  });
-
   const currentPlatform = loadedPlatform ?? project?.platform ?? 'other';
 
   const fetchData = useCallback(async () => {
@@ -190,19 +197,44 @@ function SetupDocs({
     if (!project?.platform) {
       return;
     }
+
     if (integrationSlug && !integrationUseManualSetup) {
       setLoadedPlatform(project.platform);
       setPlatformDocs(null);
       setHasError(false);
       return;
     }
+
+    let loadPlatform = String(project.platform);
+    if (
+      organization.features?.includes('onboarding-docs-with-product-selection') &&
+      project.platform === 'javascript-react'
+    ) {
+      // This is an experiment we are doing with react.
+      // In this experiment we let the user choose which Sentry product he would like to have in his `Sentry.Init()`
+      // and the docs will reflect that.
+      const products = location.query.product ?? [];
+      if (
+        products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+        products.includes(PRODUCT.SESSION_REPLAY)
+      ) {
+        loadPlatform = ReactDocVariant.ErrorMonitoringPerformanceAndReplay;
+      } else if (products.includes(PRODUCT.PERFORMANCE_MONITORING)) {
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndPerformance;
+      } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
+        loadPlatform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
+      } else {
+        loadPlatform = ReactDocVariant.ErrorMonitoring;
+      }
+    }
+
     try {
-      const loadedDocs = await loadDocs(
+      const loadedDocs = await loadDocs({
         api,
-        organization.slug,
-        project.slug,
-        project.platform
-      );
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        platform: loadPlatform as PlatformKey,
+      });
       setPlatformDocs(loadedDocs);
       setLoadedPlatform(project.platform);
       setHasError(false);
@@ -210,11 +242,27 @@ function SetupDocs({
       setHasError(error);
       throw error;
     }
-  }, [project, api, organization, integrationSlug, integrationUseManualSetup]);
+  }, [
+    project?.slug,
+    project?.platform,
+    api,
+    organization.slug,
+    organization.features,
+    integrationSlug,
+    integrationUseManualSetup,
+    location.query.product,
+  ]);
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, location.query.product, project?.platform]);
+
+  // log experiment on mount if feature enabled
+  useEffect(() => {
+    if (heartbeatFooter) {
+      logExperiment();
+    }
+  }, [logExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -250,19 +298,21 @@ function SetupDocs({
   return (
     <Fragment>
       <Wrapper>
-        <SidebarWrapper>
-          <ProjectSidebarSection
-            projects={projects}
-            selectedPlatformToProjectIdMap={Object.fromEntries(
-              selectedPlatforms.map(platform => [
-                platform,
-                platformToProjectIdMap[platform],
-              ])
-            )}
-            activeProject={project}
-            {...{checkProjectHasFirstEvent, selectProject}}
-          />
-        </SidebarWrapper>
+        {!singleSelectPlatform && (
+          <SidebarWrapper>
+            <ProjectSidebarSection
+              projects={projects}
+              selectedPlatformToProjectIdMap={Object.fromEntries(
+                selectedPlatforms.map(platform => [
+                  platform,
+                  platformToProjectIdMap[platform],
+                ])
+              )}
+              activeProject={project}
+              {...{checkProjectHasFirstEvent, selectProject}}
+            />
+          </SidebarWrapper>
+        )}
         <MainContent>
           {integrationSlug && !integrationUseManualSetup ? (
             <IntegrationSetup
@@ -273,18 +323,75 @@ function SetupDocs({
               }}
             />
           ) : (
-            <ProjecDocs
+            <ProjectDocs
               platform={loadedPlatform}
               project={project}
               hasError={hasError}
               platformDocs={platformDocs}
               onRetry={fetchData}
+              organization={organization}
             />
           )}
         </MainContent>
       </Wrapper>
 
-      {project && (
+      {heartbeatFooter ? (
+        experimentAssignment === 'variant2' ? (
+          <FooterWithViewSampleErrorButton
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : experimentAssignment === 'variant1' ? (
+          <Footer
+            projectSlug={project.slug}
+            projectId={project.id}
+            route={route}
+            router={router}
+            location={location}
+            newOrg
+          />
+        ) : (
+          <FirstEventFooter
+            project={project}
+            organization={organization}
+            isLast={!nextProject}
+            hasFirstEvent={checkProjectHasFirstEvent(project)}
+            onClickSetupLater={() => {
+              const orgIssuesURL = `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-setup-docs`;
+              trackAdvancedAnalyticsEvent(
+                'growth.onboarding_clicked_setup_platform_later',
+                {
+                  organization,
+                  platform: currentPlatform,
+                  project_index: projectIndex,
+                }
+              );
+              if (!project.platform || !clientState) {
+                browserHistory.push(orgIssuesURL);
+                return;
+              }
+              // if we have a next project, switch to that
+              if (nextProject) {
+                setNewProject(nextProject.id);
+              } else {
+                setClientState({
+                  ...clientState,
+                  state: 'finished',
+                });
+                browserHistory.push(orgIssuesURL);
+              }
+            }}
+            handleFirstIssueReceived={() => {
+              const newHasFirstEventMap = {...hasFirstEventMap, [project.id]: true};
+              setHasFirstEventMap(newHasFirstEventMap);
+            }}
+          />
+        )
+      ) : (
         <FirstEventFooter
           project={project}
           organization={organization}
@@ -301,7 +408,7 @@ function SetupDocs({
               }
             );
             if (!project.platform || !clientState) {
-              browserHistory.push(normalizeUrl(orgIssuesURL));
+              browserHistory.push(orgIssuesURL);
               return;
             }
             // if we have a next project, switch to that
@@ -325,20 +432,7 @@ function SetupDocs({
   );
 }
 
-export default withProjects(SetupDocs);
-
-type AlertType = React.ComponentProps<typeof Alert>['type'];
-
-const getAlertSelector = (type: AlertType) =>
-  type === 'muted' ? null : `.alert[level="${type}"], .alert-${type}`;
-
-const mapAlertStyles = (p: {theme: Theme}, type: AlertType) =>
-  css`
-    ${getAlertSelector(type)} {
-      ${alertStyles({theme: p.theme, type})};
-      display: block;
-    }
-  `;
+export default SetupDocs;
 
 const AnimatedContentWrapper = styled(motion.div)`
   overflow: hidden;
@@ -354,51 +448,6 @@ AnimatedContentWrapper.defaultProps = {
     height: 0,
   },
 };
-
-const Content = styled(motion.div)`
-  h1,
-  h2,
-  h3,
-  h4,
-  h5,
-  h6,
-  p {
-    margin-bottom: 18px;
-  }
-
-  div[data-language] {
-    margin-bottom: ${space(2)};
-  }
-
-  code {
-    font-size: 87.5%;
-    color: ${p => p.theme.pink400};
-  }
-
-  pre code {
-    color: inherit;
-    font-size: inherit;
-    white-space: pre;
-  }
-
-  h2 {
-    font-size: 1.4em;
-  }
-
-  .alert h5 {
-    font-size: 1em;
-    margin-bottom: 0.625rem;
-  }
-
-  /**
-   * XXX(epurkhiser): This comes from the doc styles and avoids bottom margin issues in alerts
-   */
-  .content-flush-bottom *:last-child {
-    margin-bottom: 0;
-  }
-
-  ${p => Object.keys(p.theme.alert).map(type => mapAlertStyles(p, type as AlertType))}
-`;
 
 const DocsWrapper = styled(motion.div)``;
 

@@ -6,6 +6,7 @@ from django.core.cache import cache
 from django.db.models import ProtectedError
 from django.utils import timezone
 
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models import (
     Group,
@@ -19,8 +20,8 @@ from sentry.models import (
 from sentry.models.release import _get_cache_key
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
-from sentry.types.issues import GroupType
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -242,6 +243,20 @@ class GroupTest(TestCase, SnubaTestCase):
         url = f"http://testserver/organizations/{project.organization.slug}/issues/{group.id}/events/{event.event_id}/"
         assert url == group.get_absolute_url(event_id=event.event_id)
 
+    @with_feature("organizations:customer-domains")
+    def test_get_absolute_url_customer_domains(self):
+        project = self.create_project()
+        event = self.store_event(
+            data={"fingerprint": ["group1"], "timestamp": self.min_ago}, project_id=project.id
+        )
+        org = self.organization
+        group = event.group
+        expected = f"http://{org.slug}.testserver/issues/{group.id}/events/{event.event_id}/"
+        assert expected == group.get_absolute_url(event_id=event.event_id)
+
+        expected = f"http://{org.slug}.testserver/issues/{group.id}/"
+        assert expected == group.get_absolute_url()
+
     def test_get_releases(self):
         now = timezone.now().replace(microsecond=0)
         project = self.create_project()
@@ -348,8 +363,8 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         assert group_event.occurrence is None
 
     def test_get_latest_event_occurrence(self):
-        occurrence_data = self.build_occurrence_data()
         event_id = uuid.uuid4().hex
+        occurrence_data = self.build_occurrence_data(event_id=event_id, project_id=self.project.id)
         occurrence = process_event_and_issue_occurrence(
             occurrence_data,
             {
@@ -361,7 +376,7 @@ class GroupGetLatestEventTest(TestCase, OccurrenceTestMixin):
         )[0]
 
         group = Group.objects.first()
-        group.update(type=GroupType.PROFILE_BLOCKED_THREAD.value)
+        group.update(type=ProfileFileIOGroupType.type_id)
 
         group_event = group.get_latest_event()
         assert group_event.event_id == event_id

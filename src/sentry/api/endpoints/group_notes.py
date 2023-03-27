@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.group import GroupEndpoint
+from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
 from sentry.api.serializers.rest_framework.mentions import extract_user_ids_from_mentions
@@ -14,21 +15,18 @@ from sentry.models import Activity, GroupSubscription
 from sentry.notifications.types import GroupSubscriptionReason
 from sentry.signals import comment_created
 from sentry.types.activity import ActivityType
-from sentry.utils.functional import extract_lazy_object
 
 
 @region_silo_endpoint
 class GroupNotesEndpoint(GroupEndpoint):
     def get(self, request: Request, group) -> Response:
-        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value).select_related(
-            "user"
-        )
+        notes = Activity.objects.filter(group=group, type=ActivityType.NOTE.value)
 
         return self.paginate(
             request=request,
             queryset=notes,
-            # TODO(dcramer): we want to sort by datetime
-            order_by="-id",
+            paginator_cls=DateTimePaginator,
+            order_by="-datetime",
             on_results=lambda x: serialize(x, request.user),
         )
 
@@ -77,7 +75,7 @@ class GroupNotesEndpoint(GroupEndpoint):
         )
 
         activity = Activity.objects.create_group_activity(
-            group, ActivityType.NOTE, user=extract_lazy_object(request.user), data=data
+            group, ActivityType.NOTE, user_id=request.user.id, data=data
         )
 
         self.create_external_comment(request, group, activity)

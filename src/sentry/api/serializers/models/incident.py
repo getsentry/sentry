@@ -44,9 +44,7 @@ class IncidentSerializer(Serializer):
 
         if "seen_by" in self.expand:
             incident_seen_list = list(
-                IncidentSeen.objects.filter(incident__in=item_list)
-                .select_related("user")
-                .order_by("-last_seen")
+                IncidentSeen.objects.filter(incident__in=item_list).order_by("-last_seen")
             )
             incident_seen_dict = defaultdict(list)
             for incident_seen, serialized_seen_by in zip(
@@ -108,9 +106,9 @@ class DetailedIncidentSerializer(IncidentSerializer):
         subscribed_incidents = set()
         if user.is_authenticated:
             subscribed_incidents = set(
-                IncidentSubscription.objects.filter(incident__in=item_list, user=user).values_list(
-                    "incident_id", flat=True
-                )
+                IncidentSubscription.objects.filter(
+                    incident__in=item_list, user_id=user.id
+                ).values_list("incident_id", flat=True)
             )
 
         for item in item_list:

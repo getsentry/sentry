@@ -1,3 +1,5 @@
+import styled from '@emotion/styled';
+
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {PlatformType} from 'sentry/types';
 import {Event} from 'sentry/types/event';
@@ -15,6 +17,8 @@ type Props = Pick<React.ComponentProps<typeof ContentV2>, 'groupingCurrentLevel'
   newestFirst: boolean;
   platform: PlatformType;
   stacktrace: StacktraceType;
+  inlined?: boolean;
+  maxDepth?: number;
   meta?: Record<any, any>;
   nativeV2?: boolean;
   stackView?: STACK_VIEW;
@@ -29,7 +33,9 @@ function StackTrace({
   hasHierarchicalGrouping,
   groupingCurrentLevel,
   nativeV2,
+  maxDepth,
   meta,
+  inlined,
 }: Props) {
   if (stackView === STACK_VIEW.RAW) {
     return (
@@ -44,7 +50,7 @@ function StackTrace({
   if (nativeV2 && isNativePlatform(platform)) {
     return (
       <ErrorBoundary mini>
-        <ContentV3
+        <StyledContentV3
           data={stacktrace}
           includeSystemFrames={stackView === STACK_VIEW.FULL}
           platform={platform}
@@ -52,6 +58,9 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
+          hideIcon={inlined}
+          inlined={inlined}
+          maxDepth={maxDepth}
         />
       </ErrorBoundary>
     );
@@ -60,7 +69,7 @@ function StackTrace({
   if (hasHierarchicalGrouping) {
     return (
       <ErrorBoundary mini>
-        <ContentV2
+        <StyledContentV2
           data={stacktrace}
           className="no-exception"
           includeSystemFrames={stackView === STACK_VIEW.FULL}
@@ -69,6 +78,9 @@ function StackTrace({
           newestFirst={newestFirst}
           groupingCurrentLevel={groupingCurrentLevel}
           meta={meta}
+          hideIcon={inlined}
+          inlined={inlined}
+          maxDepth={maxDepth}
         />
       </ErrorBoundary>
     );
@@ -76,7 +88,7 @@ function StackTrace({
 
   return (
     <ErrorBoundary mini>
-      <Content
+      <StyledContent
         data={stacktrace}
         className="no-exception"
         includeSystemFrames={stackView === STACK_VIEW.FULL}
@@ -84,9 +96,30 @@ function StackTrace({
         event={event}
         newestFirst={newestFirst}
         meta={meta}
+        hideIcon={inlined}
+        inlined={inlined}
+        maxDepth={maxDepth}
       />
     </ErrorBoundary>
   );
 }
+
+const inlinedStyles = `
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+`;
+
+const StyledContentV3 = styled(ContentV3)<{inlined?: boolean}>`
+  ${p => p.inlined && inlinedStyles}
+`;
+
+const StyledContentV2 = styled(ContentV2)<{inlined?: boolean}>`
+  ${p => p.inlined && inlinedStyles}
+`;
+
+const StyledContent = styled(Content)<{inlined?: boolean}>`
+  ${p => p.inlined && inlinedStyles}
+`;
 
 export default StackTrace;

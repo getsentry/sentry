@@ -1,6 +1,7 @@
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import {Event} from 'sentry/types/event';
+import {objectIsEmpty} from 'sentry/utils';
 
 import KeyValueList from './interfaces/keyValueList';
 
@@ -16,6 +17,10 @@ export function EventDevice({event}: Props) {
     subject: key,
     isContextData: true,
   }));
+
+  if (objectIsEmpty(event.device)) {
+    return null;
+  }
 
   return (
     <EventDataSection type="device" title={t('Device')}>

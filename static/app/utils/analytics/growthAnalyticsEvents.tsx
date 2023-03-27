@@ -1,4 +1,4 @@
-import {PlatformKey} from 'sentry/data/platformCategories';
+import type {PlatformKey} from 'sentry/data/platformCategories';
 
 type MobilePromptBannerParams = {
   matchedUserAgentString: string;
@@ -44,6 +44,10 @@ type SampleEvent = {
   project_id: string;
   retries: number;
   source: string;
+};
+
+type SetupWizard = {
+  project_platform?: string;
 };
 
 // define the event key to payload mappings
@@ -140,6 +144,10 @@ export type GrowthEventParameters = {
   'sdk_updates.clicked': {};
   'sdk_updates.seen': {};
   'sdk_updates.snoozed': {};
+  'setup_wizard.clicked_viewed_docs': SetupWizard;
+  'setup_wizard.clicked_viewed_issues': SetupWizard;
+  'setup_wizard.complete': SetupWizard;
+  'setup_wizard.viewed': SetupWizard;
 };
 
 type GrowthAnalyticsKey = keyof GrowthEventParameters;
@@ -208,4 +216,8 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.end_modal_restart_tours': 'Growth: End Modal Restart Tours',
   'growth.end_modal_close': 'Growth: End Modal Close',
   'growth.end_modal_signup': 'Growth: End Modal Signup',
+  'setup_wizard.viewed': 'Setup Wizard: Viewed',
+  'setup_wizard.complete': 'Setup Wizard: Complete',
+  'setup_wizard.clicked_viewed_issues': 'Setup Wizard: Clicked Viewed Issues',
+  'setup_wizard.clicked_viewed_docs': 'SetupW izard: Clicked Viewed Docs',
 };

@@ -1,6 +1,6 @@
 import pytest
 
-from sentry.lang.native.symbolicator import filter_ignored_sources
+from sentry.lang.native.sources import filter_ignored_sources
 from sentry.testutils.helpers import override_options
 
 

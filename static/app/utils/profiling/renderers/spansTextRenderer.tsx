@@ -4,16 +4,16 @@ import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStat
 import {
   computeHighlightedBounds,
   ELLIPSIS,
-  findRangeBinarySearch,
   getContext,
-  Rect,
+  lowerBound,
   resizeCanvasToDisplaySize,
-  trimTextCenter,
+  upperBound,
 } from 'sentry/utils/profiling/gl/utils';
 import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 
 import {FlamegraphTheme} from '../flamegraph/flamegraphTheme';
+import {findRangeBinarySearch, Rect, trimTextCenter} from '../speedscope';
 
 class SpansTextRenderer extends TextRenderer {
   spanChart: SpanChart;
@@ -60,15 +60,19 @@ class SpansTextRenderer extends TextRenderer {
     // This allows us to do a couple optimizations that improve our best case performance.
     // 1. We can skip drawing the entire tree if the root frame is not visible
     // 2. We can skip drawing and
+    // Find the upper and lower bounds of the frames we need to draw so we dont end up
+    // iterating over all of the root frames and avoid creating shallow copies if we dont need to.
+    // Populate the initial set of frames to draw
+
+    // Note: we cannot apply the same optimization to the roots as we can to the children, because
+    // the root spans are not sorted by start time, so we cannot use binary search to find the
+    // upper and lower bounds. The reason they are not sorted is that they contain all tree roots,
+    // including the overlapping trees. The only case where it does work is if we only have a single tree root
+    // because we then know that all spans are non-overlapping and we have only one range tree
     const spans: SpanChartNode[] = [...this.spanChart.root.children];
 
     while (spans.length > 0) {
       const span = spans.pop()!;
-
-      // Check if our rect overlaps with the current viewport and skip rendering if it does not.
-      if (span.end < configView.left || span.start > configView.right) {
-        continue;
-      }
 
       if (span.depth > BOTTOM_BOUNDARY) {
         continue;
@@ -93,7 +97,8 @@ class SpansTextRenderer extends TextRenderer {
         continue;
       }
 
-      for (let i = 0; i < span.children.length; i++) {
+      const endChild = upperBound(configView.right, span.children);
+      for (let i = lowerBound(configView.left, span.children); i < endChild; i++) {
         spans.push(span.children[i]);
       }
 
@@ -139,19 +144,22 @@ class SpansTextRenderer extends TextRenderer {
         if (frameResults) {
           this.context.fillStyle = HIGHLIGHT_BACKGROUND_COLOR;
 
-          const highlightedBounds = computeHighlightedBounds(frameResults.match, trim);
+          for (let i = 0; i < frameResults.match.length; i++) {
+            const match = frameResults.match[i];
+            const highlightedBounds = computeHighlightedBounds(match, trim);
 
-          const frontMatter = trim.text.slice(0, highlightedBounds[0]);
-          const highlightWidth = this.measureAndCacheText(
-            trim.text.substring(highlightedBounds[0], highlightedBounds[1])
-          ).width;
+            const frontMatter = trim.text.slice(0, highlightedBounds[0]);
+            const highlightWidth = this.measureAndCacheText(
+              trim.text.substring(highlightedBounds[0], highlightedBounds[1])
+            ).width;
 
-          this.context.fillRect(
-            x + this.measureAndCacheText(frontMatter).width,
-            y + TEXT_Y_POSITION,
-            highlightWidth,
-            FONT_SIZE
-          );
+            this.context.fillRect(
+              x + this.measureAndCacheText(frontMatter).width,
+              y + TEXT_Y_POSITION,
+              highlightWidth,
+              FONT_SIZE
+            );
+          }
         }
       }
 

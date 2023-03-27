@@ -153,9 +153,11 @@ backend-typing:
 	mypy --strict --warn-unreachable --config-file mypy.ini
 	@echo ""
 
+# JavaScript relay tests are meant to be run within Symbolicator test suite, as they are parametrized to verify both processing pipelines during migration process.
 test-symbolicator:
 	@echo "--> Running symbolicator tests"
 	pytest tests/symbolicator -vv --cov . --cov-report="xml:.artifacts/symbolicator.coverage.xml"
+	pytest tests/relay_integration/lang/javascript/ -vv -m symbolicator
 	@echo ""
 
 test-chartcuterie:
@@ -171,13 +173,6 @@ test-acceptance: node-version-check
 test-plugins:
 	@echo "--> Running plugin tests"
 	pytest tests/sentry_plugins -vv --cov . --cov-report="xml:.artifacts/plugins.coverage.xml"
-	@echo ""
-
-test-region-to-control-integration:
-	@echo "--> Running Region to Control consumer integration tests"
-	pytest \
-		tests/sentry/region_to_control/test_region_to_control_kafka.py \
-		-vv --cov . --cov-report="xml:.artifacts/region-to-control.coverage.xml"
 	@echo ""
 
 test-relay-integration:

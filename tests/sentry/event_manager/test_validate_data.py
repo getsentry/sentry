@@ -200,8 +200,13 @@ def test_release_as_non_string():
 def test_distribution_too_long():
     dist_len = 201
     data = validate_and_normalize({"release": "a" * 62, "dist": "b" * dist_len})
-
-    assert len(data.get("dist")) == dist_len - 1
+    # max dist length since relay-python 0.8.16 = 64 chars, and they started
+    # return an error instead of truncating
+    assert not data.get("dist")
+    assert len(data["errors"]) == 1
+    assert data.get("errors")[0]["type"] == "value_too_long"
+    assert data.get("errors")[0]["name"] == "dist"
+    assert data.get("errors")[0]["value"] == "b" * dist_len
 
 
 def test_distribution_bad_char():

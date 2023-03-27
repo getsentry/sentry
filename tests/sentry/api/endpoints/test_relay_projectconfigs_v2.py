@@ -157,11 +157,9 @@ def test_internal_relays_should_receive_full_configs(
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubDefaults") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "scrubIpAddresses") is True
     assert safe.get_path(cfg, "config", "datascrubbingSettings", "sensitiveFields") == []
-    assert safe.get_path(cfg, "config", "quotas") == []
-
-    # Event retention depends on settings, so assert the actual value. Likely
-    # `None` in dev, but must not be missing.
-    assert cfg["config"]["eventRetention"] == quotas.get_event_retention(
+    assert safe.get_path(cfg, "config", "quotas") is None
+    # Event retention depends on settings, so assert the actual value.
+    assert safe.get_path(cfg, "config", "eventRetention") == quotas.get_event_retention(
         default_project.organization
     )
 
@@ -187,7 +185,7 @@ def test_relays_dyamic_sampling(
             "config",
             "dynamicSampling",
         )
-        assert dynamic_sampling == {"rules": []}
+        assert dynamic_sampling == {"rules": [], "rulesV2": []}
 
 
 @pytest.mark.django_db
@@ -391,18 +389,18 @@ def test_session_metrics_extraction(call_endpoint, task_runner, drop_sessions):
 def test_session_metrics_abnormal_mechanism_tag_extraction(
     call_endpoint, task_runner, set_sentry_option, abnormal_mechanism_rollout
 ):
-    set_sentry_option(
+    with set_sentry_option(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate",
         abnormal_mechanism_rollout,
-    )
-    with Feature({"organizations:metrics-extraction": True}):
-        with task_runner():
-            result, status_code = call_endpoint(full_config=True)
-            assert status_code < 400
+    ):
+        with Feature({"organizations:metrics-extraction": True}):
+            with task_runner():
+                result, status_code = call_endpoint(full_config=True)
+                assert status_code < 400
 
-        for config in result["configs"].values():
-            config = config["config"]
-            assert config["sessionMetrics"] == {
-                "version": 2 if abnormal_mechanism_rollout else 1,
-                "drop": False,
-            }
+            for config in result["configs"].values():
+                config = config["config"]
+                assert config["sessionMetrics"] == {
+                    "version": 2 if abnormal_mechanism_rollout else 1,
+                    "drop": False,
+                }

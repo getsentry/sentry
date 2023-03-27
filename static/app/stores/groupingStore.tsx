@@ -129,6 +129,15 @@ type InternalDefinition = {
   api: Client;
 };
 
+type UnmergeResponse = Pick<
+  State,
+  | 'unmergeDisabled'
+  | 'unmergeState'
+  | 'unmergeList'
+  | 'enableFingerprintCompare'
+  | 'unmergeLastCollapsed'
+>;
+
 interface GroupingStoreDefinition
   extends CommonStoreDefinition<State>,
     InternalDefinition {
@@ -159,7 +168,7 @@ interface GroupingStoreDefinition
     errorMessage?: string;
     loadingMessage?: string;
     successMessage?: string;
-  }): void;
+  }): Promise<UnmergeResponse>;
   setStateForId(
     map: Map<string, IdState>,
     idOrIds: Array<string> | string,
@@ -178,14 +187,7 @@ interface GroupingStoreDefinition
     | 'error'
   >;
   triggerMergeState(): Pick<State, 'mergeState' | 'mergeDisabled' | 'mergeList'>;
-  triggerUnmergeState(): Pick<
-    State,
-    | 'unmergeDisabled'
-    | 'unmergeState'
-    | 'unmergeList'
-    | 'enableFingerprintCompare'
-    | 'unmergeLastCollapsed'
-  >;
+  triggerUnmergeState(): UnmergeResponse;
 }
 
 const storeConfig: GroupingStoreDefinition = {

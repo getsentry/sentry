@@ -12,7 +12,7 @@ export function selectNearestFrame(frame: FlamegraphFrame, direction: Direction)
     const parent = frame.parent;
 
     // sentry root is a virtual root that should not be selectable
-    if (parent?.frame.isRoot()) {
+    if (parent?.frame.isRoot) {
       return frame;
     }
 
@@ -148,10 +148,6 @@ const keyDirectionMap: Record<string, Direction> = {
   ArrowRight: 'right',
   Tab: 'down',
   'Shift+Tab': 'up',
-  w: 'up',
-  s: 'down',
-  a: 'left',
-  d: 'right',
 } as const;
 
 export function handleFlamegraphKeyboardNavigation(

@@ -81,6 +81,7 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
+      type: 'flamechart',
     });
 
     // Frames
@@ -116,6 +117,7 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
+      type: 'flamechart',
     });
 
     // Frames
@@ -157,6 +159,7 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
+      type: 'flamechart',
     });
 
     // Instantiate frames
@@ -197,6 +200,7 @@ describe('Profile', () => {
       name: 'profile',
       unit: 'ms',
       threadId: 0,
+      type: 'flamechart',
     });
 
     // Instantiate frames

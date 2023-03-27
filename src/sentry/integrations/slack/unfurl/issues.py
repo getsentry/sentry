@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from typing import List, Optional
 
@@ -6,7 +8,7 @@ from django.http.request import HttpRequest
 from sentry import eventstore
 from sentry.integrations.slack.message_builder.issues import build_group_attachment
 from sentry.models import Group, Project, User
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -20,9 +22,9 @@ map_issue_args = make_type_coercer(
 
 def unfurl_issues(
     request: HttpRequest,
-    integration: APIIntegration,
+    integration: RpcIntegration,
     links: List[UnfurlableUrl],
-    user: Optional["User"] = None,
+    user: Optional[User] = None,
 ) -> UnfurledUrl:
     """
     Returns a map of the attachments used in the response we send to Slack
@@ -63,10 +65,16 @@ def unfurl_issues(
     return out
 
 
+issue_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/organizations/(?#organization_slug)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
+)
+
+customer_domain_issue_link_regex = re.compile(
+    r"^https?\://(?#url_prefix)[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
+)
+
 handler: Handler = Handler(
     fn=unfurl_issues,
-    matcher=re.compile(
-        r"^https?\://[^/]+/[^/]+/[^/]+/issues/(?P<issue_id>\d+)(?:/events/(?P<event_id>\w+))?"
-    ),
+    matcher=[issue_link_regex, customer_domain_issue_link_regex],
     arg_mapper=map_issue_args,
 )

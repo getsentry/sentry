@@ -6,9 +6,10 @@ import type {
   INSTALLED,
   NOT_INSTALLED,
   PENDING,
-} from 'sentry/views/organizationIntegrations/constants';
+} from 'sentry/views/settings/organizationIntegrations/constants';
 
 import type {Avatar, Choice, Choices, ObjectStatus, Scope} from './core';
+import type {ParsedOwnershipRule} from './group';
 import type {BaseRelease} from './release';
 import type {User} from './user';
 
@@ -81,6 +82,18 @@ export type Repository = {
   url: string;
 };
 
+/**
+ * Integration Repositories from OrganizationIntegrationReposEndpoint
+ */
+export type IntegrationRepository = {
+  /**
+   * ex - getsentry/sentry
+   */
+  identifier: string;
+  name: string;
+  defaultBranch?: string | null;
+};
+
 export type Commit = {
   dateCreated: string;
   id: string;
@@ -89,6 +102,7 @@ export type Commit = {
   author?: User;
   pullRequest?: PullRequest | null;
   repository?: Repository;
+  suspectCommitType?: string;
 };
 
 export type Committer = {
@@ -145,10 +159,12 @@ export type SentryAppSchemaStacktraceLink = {
 };
 
 export enum Coverage {
-  NOT_COVERED = 0,
-  COVERED = 1,
+  NOT_APPLICABLE = -1,
+  COVERED = 0,
+  NOT_COVERED = 1,
   PARTIAL = 2,
 }
+export type LineCoverage = [lineNo: number, coverage: Coverage];
 
 export enum CodecovStatusCode {
   COVERAGE_EXISTS = 200,
@@ -156,18 +172,19 @@ export enum CodecovStatusCode {
   NO_COVERAGE_DATA = 400,
 }
 
-export type LineCoverage = {
-  coverage: Coverage;
-  lineNo: number;
-};
+export interface CodecovResponse {
+  status: CodecovStatusCode;
+  attemptedUrl?: string;
+  coverageUrl?: string;
+  lineCoverage?: LineCoverage[];
+}
 
 export type StacktraceLinkResult = {
   integrations: Integration[];
   attemptedUrl?: string;
-  codecovStatusCode?: CodecovStatusCode;
+  codecov?: CodecovResponse;
   config?: RepositoryProjectPathConfigWithIntegration;
   error?: StacktraceErrorMessage;
-  lineCoverage?: LineCoverage[];
   sourceUrl?: string;
 };
 
@@ -502,6 +519,11 @@ export type ServiceHook = {
  */
 export type CodeOwner = {
   codeMappingId: string;
+  /**
+   * Link to the CODEOWNERS file in source control
+   * 'unknown' if the api fails to fetch the file
+   */
+  codeOwnersUrl: string | 'unknown';
   dateCreated: string;
   dateUpdated: string;
   errors: {
@@ -516,6 +538,7 @@ export type CodeOwner = {
   raw: string;
   codeMapping?: RepositoryProjectPathConfig;
   ownershipSyntax?: string;
+  schema?: {rules: ParsedOwnershipRule[]; version: number};
 };
 
 export type CodeownersFile = {

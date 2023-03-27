@@ -4,12 +4,12 @@ import styled from '@emotion/styled';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
-import {Input} from 'sentry/components/inputGroup';
+import Input from 'sentry/components/input';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconUpload} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {formatSecondsToClock, parseClockToSeconds} from 'sentry/utils/formatters';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import {useRoutes} from 'sentry/utils/useRoutes';
@@ -70,8 +70,8 @@ function ShareButton() {
 
   return (
     <Button
-      size="xs"
-      icon={<IconUpload size="xs" />}
+      size="sm"
+      icon={<IconUpload size="sm" />}
       onClick={() =>
         openModal(deps => <ShareModal currentTimeSec={currentTimeSec} {...deps} />)
       }

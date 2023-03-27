@@ -48,9 +48,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
 
-        dashboards = Dashboard.objects.filter(organization_id=organization.id).select_related(
-            "created_by"
-        )
+        dashboards = Dashboard.objects.filter(organization_id=organization.id)
         query = request.GET.get("query")
         if query:
             dashboards = dashboards.filter(title__icontains=query)

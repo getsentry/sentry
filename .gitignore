@@ -1,7 +1,6 @@
 .env
 .cache/
 .coverage
-.storybook-out/
 .DS_Store
 .venv
 *.egg-info

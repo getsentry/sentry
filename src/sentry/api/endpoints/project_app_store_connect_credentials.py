@@ -51,7 +51,7 @@ from sentry.api.exceptions import (
 )
 from sentry.api.fields.secret import SecretField, validate_secret
 from sentry.lang.native import appconnect
-from sentry.lang.native.symbolicator import redact_source_secrets, secret_fields
+from sentry.lang.native.sources import redact_source_secrets, secret_fields
 from sentry.models import AppConnectBuild, LatestAppConnectBuildsCheck, Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.tasks.app_store_connect import dsym_download
@@ -346,7 +346,7 @@ class AppStoreConnectRefreshEndpoint(ProjectEndpoint):  # type: ignore
     """
 
     permission_classes = [StrictProjectPermission]
-    private = True
+
     enforce_rate_limit = True
 
     # At the time of writing the App Store Connect API has a rate limit of 3600 requests/h

@@ -28,8 +28,10 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         if event_type == "performance":
             event = self.create_performance_issue()
         elif event_type == "generic":
-            occurrence_data = self.build_occurrence_data()
             event_id = uuid.uuid4().hex
+            occurrence_data = self.build_occurrence_data(
+                event_id=event_id, project_id=self.project.id
+            )
             occurrence, group_info = process_event_and_issue_occurrence(
                 occurrence_data,
                 {

@@ -1,0 +1,122 @@
+---
+source: tests/sentry/grouping/test_variants.py
+---
+app-depth-1:
+  hash: "57958669377d6be331a0c56cc4bc7560"
+  tree_label: "sent"
+  component:
+    app-depth-1*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-2:
+  hash: "42bdc7750c733827975e9e89086d3a5d"
+  tree_label: "sent | listener"
+  component:
+    app-depth-2*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-3:
+  hash: "838d9553ed824c45d9125f42ec408472"
+  tree_label: "sent | listener"
+  component:
+    app-depth-3*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+app-depth-max:
+  hash: "838d9553ed824c45d9125f42ec408472"
+  tree_label: "sent | listener"
+  component:
+    app-depth-max*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"
+--------------------------------------------------------------------------
+system:
+  hash: "838d9553ed824c45d9125f42ec408472"
+  tree_label: "sent | listener"
+  component:
+    system*
+      exception*
+        stacktrace*
+          frame*
+            module*
+              "@babel/runtime/helpers/asyncToGenerator"
+            function (ignored unknown function name)
+              "<anonymous>"
+          frame*
+            module*
+              "core-js/internals/task"
+            function*
+              "listener"
+          frame*
+            module*
+              "tslib/tslib.es6"
+            function* (trimmed javascript function)
+              "sent"
+        type*
+          "Error"
+        value (ignored because stacktrace takes precedence)
+          "bad"

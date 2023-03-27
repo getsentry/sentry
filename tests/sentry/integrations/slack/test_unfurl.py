@@ -33,7 +33,25 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
         ),
         (
+            "https://org1.sentry.io/issues/12345/",
+            (LinkType.ISSUES, {"issue_id": 12345, "event_id": None}),
+        ),
+        (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/alerts/rules/details/12345/",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -61,7 +79,35 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
+            "https://org1.sentry.io/alerts/rules/details/12345/?alert=1337",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": 1337,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
             "https://sentry.io/organizations/org1/alerts/rules/details/12345/?period=14d",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": "14d",
+                    "start": None,
+                    "end": None,
+                },
+            ),
+        ),
+        (
+            "https://org1.sentry.io/alerts/rules/details/12345/?period=14d",
             (
                 LinkType.METRIC_ALERT,
                 {
@@ -89,7 +135,28 @@ INTERVALS_PER_DAY = int(60 * 60 * 24 / INTERVAL_COUNT)
             ),
         ),
         (
+            "https://org1.sentry.io/alerts/rules/details/12345/?end=2022-05-05T06%3A05%3A52&start=2022-05-04T00%3A46%3A19",
+            (
+                LinkType.METRIC_ALERT,
+                {
+                    "alert_rule_id": 12345,
+                    "incident_id": None,
+                    "org_slug": "org1",
+                    "period": None,
+                    "start": "2022-05-04T00:46:19",
+                    "end": "2022-05-05T06:05:52",
+                },
+            ),
+        ),
+        (
             "https://sentry.io/organizations/org1/discover/results/?project=1&yAxis=count()",
+            (
+                LinkType.DISCOVER,
+                {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
+            ),
+        ),
+        (
+            "https://org1.sentry.io/discover/results/?project=1&yAxis=count()",
             (
                 LinkType.DISCOVER,
                 {"org_slug": "org1", "query": QueryDict("project=1&yAxis=count()")},
@@ -518,7 +585,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -582,7 +649,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -759,7 +826,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,
@@ -1025,7 +1092,7 @@ class UnfurlTest(TestCase):
         }
         saved_query = DiscoverSavedQuery.objects.create(
             organization=self.organization,
-            created_by=self.user,
+            created_by_id=self.user.id,
             name="Test query",
             query=query,
             version=2,

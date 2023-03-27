@@ -34,20 +34,6 @@ updates:
       - dependency-name: '@babel/preset-typescript'
       - dependency-name: '@babel/runtime'
 
-      # Storybook updates should all happen in unison, same as above we ignore
-      # all but one as a reminder.
-      #
-      # - dependency-name: "@storybook/react"
-      - dependency-name: '@storybook/addon-a11y'
-      - dependency-name: '@storybook/addon-actions'
-      - dependency-name: '@storybook/addon-essentials'
-      - dependency-name: '@storybook/addon-storysource'
-      - dependency-name: '@storybook/addon-docs'
-      - dependency-name: '@storybook/addons'
-      - dependency-name: '@storybook/builder-webpack5'
-      - dependency-name: '@storybook/manager-webpack5'
-      - dependency-name: '@storybook/theming'
-
       # Sentry updates should all happen in unison, same as above we ignore
       # all but one as a reminder.
       # - dependency-name: "@sentry/react"
@@ -74,19 +60,12 @@ updates:
       - dependency-name: 'reflux'
       - dependency-name: 'sprintf-js'
       - dependency-name: 'u2f-api'
-
-  - package-ecosystem: pip
-    open-pull-requests-limit: 10
-    directory: '/'
+  - package-ecosystem: 'docker'
+    directory: 'docker/'
     schedule:
-      # Going to start with a high interval, and then tone it back
-      interval: daily
-      timezone: America/Los_Angeles
-      time: '09:00'
+      interval: 'daily'
     reviewers:
-      - '@getsentry/team-web-backend'
-    labels:
-      - 'dependencies'
-      - 'Scope: Backend'
-    allow:
-      - dependency-name: 'sentry-sdk'
+      - '@getsentry/open-source'
+      - '@getsentry/security'
+    # security only updates
+    open-pull-requests-limit: 0

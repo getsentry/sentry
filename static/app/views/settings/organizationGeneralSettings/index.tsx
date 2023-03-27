@@ -16,6 +16,7 @@ import {Panel, PanelHeader} from 'sentry/components/panels';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {Organization, Project} from 'sentry/types';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProjects from 'sentry/utils/withProjects';
@@ -75,6 +76,13 @@ function OrganizationGeneralSettings(props: Props) {
         browserHistory.replace(`/settings/${updated.slug}/`);
       }
     } else {
+      if (prevData.codecovAccess !== updated.codecovAccess) {
+        trackAdvancedAnalyticsEvent('organization_settings.codecov_access_updated', {
+          organization: updated,
+          has_access: updated.codecovAccess,
+        });
+      }
+
       // This will update OrganizationStore (as well as OrganizationsStore
       // which is slightly incorrect because it has summaries vs a detailed org)
       updateOrganization(updated);

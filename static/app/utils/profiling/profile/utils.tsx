@@ -18,9 +18,18 @@ export function createSentrySampleProfileFrameIndex(
 
     frameIndex[i] = new Frame({
       key: i,
+      is_application: frame.in_app,
+      file: frame.filename,
+      path: frame.abs_path,
+      module: frame.module,
+      package: frame.package,
       name: frame.function ?? 'unknown',
       line: frame.lineno,
       column: frame.colno,
+      instructionAddr: frame.instruction_addr,
+      symbol: frame.symbol,
+      symbolAddr: frame.sym_addr,
+      symbolicatorStatus: frame.status,
     });
   }
 
@@ -29,17 +38,17 @@ export function createSentrySampleProfileFrameIndex(
 
 export function createFrameIndex(
   type: 'mobile' | 'node' | 'web',
-  frames: Profiling.Schema['shared']['frames']
+  frames: Readonly<Profiling.Schema['shared']['frames']>
 ): FrameIndex;
 export function createFrameIndex(
   type: 'mobile' | 'node' | 'web',
-  frames: JSSelfProfiling.Frame[],
-  trace: JSSelfProfiling.Trace
+  frames: Readonly<JSSelfProfiling.Frame[]>,
+  trace: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex;
 export function createFrameIndex(
   type: 'mobile' | 'node' | 'web',
-  frames: Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[],
-  trace?: JSSelfProfiling.Trace
+  frames: Readonly<Profiling.Schema['shared']['frames'] | JSSelfProfiling.Frame[]>,
+  trace?: Readonly<JSSelfProfiling.Trace>
 ): FrameIndex {
   if (trace) {
     return (frames as JSSelfProfiling.Frame[]).reduce((acc, frame, index) => {
@@ -98,12 +107,14 @@ export function memoizeByReference<Arguments, Value>(
   };
 }
 
-export function memoizeVariadicByReference<Arguments, Value>(
-  fn: (...args: ReadonlyArray<Arguments>) => Value
-): (...t: ReadonlyArray<Arguments>) => Value {
-  let cache: Cache<ReadonlyArray<Arguments>, Value> | null = null;
+type Arguments<F extends Function> = F extends (...args: infer A) => any ? A : never;
 
-  return function memoizeByReferenceCallback(...args: ReadonlyArray<Arguments>) {
+export function memoizeVariadicByReference<T extends (...args) => V, V = ReturnType<T>>(
+  fn: T
+): (...t: Arguments<T>) => V {
+  let cache: Cache<Arguments<T>, V> | null = null;
+
+  return function memoizeByReferenceCallback(...args: Arguments<T>): V {
     // If this is the first run then eval the fn and cache the result
     if (!cache) {
       cache = {args, value: fn(...args)};
@@ -151,7 +162,7 @@ export const isApplicationCall = (node: CallTreeNode): boolean => {
 };
 
 function indexNodeToParents(
-  roots: FlamegraphFrame[],
+  roots: Readonly<FlamegraphFrame[]>,
   map: Record<string, FlamegraphFrame[]>,
   leafs: FlamegraphFrame[]
 ) {
@@ -193,7 +204,7 @@ function indexNodeToParents(
 }
 
 function reverseTrail(
-  nodes: FlamegraphFrame[],
+  nodes: Readonly<FlamegraphFrame[]>,
   parentMap: Record<string, FlamegraphFrame[]>
 ): FlamegraphFrame[] {
   const splits: FlamegraphFrame[] = [];
@@ -219,7 +230,7 @@ function reverseTrail(
   return splits;
 }
 
-export const invertCallTree = (roots: FlamegraphFrame[]): FlamegraphFrame[] => {
+export const invertCallTree = (roots: Readonly<FlamegraphFrame[]>): FlamegraphFrame[] => {
   const nodeToParentIndex: Record<string, FlamegraphFrame[]> = {};
   const leafNodes: FlamegraphFrame[] = [];
 
@@ -227,3 +238,12 @@ export const invertCallTree = (roots: FlamegraphFrame[]): FlamegraphFrame[] => {
   const reversed = reverseTrail(leafNodes, nodeToParentIndex);
   return reversed;
 };
+
+export function resolveFlamegraphSamplesProfileIds(
+  samplesProfiles: Readonly<number[][]>,
+  profileIds: Readonly<string[]>
+): string[][] {
+  return samplesProfiles.map(profileIdIndices => {
+    return profileIdIndices.map(i => profileIds[i]);
+  });
+}

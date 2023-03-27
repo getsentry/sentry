@@ -240,9 +240,7 @@ def configure_structlog() -> None:
     from sentry import options
     from sentry.logging import LoggingFormat
 
-    WrappedDictClass = structlog.threadlocal.wrap_dict(dict)
     kwargs: dict[str, Any] = {
-        "context_class": WrappedDictClass,
         "wrapper_class": structlog.stdlib.BoundLogger,
         "cache_logger_on_first_use": True,
         "processors": [
@@ -308,7 +306,7 @@ def show_big_error(message: str | list[str]) -> None:
 def initialize_app(config: dict[str, Any], skip_service_validation: bool = False) -> None:
     settings = config["settings"]
 
-    if settings.DEBUG:
+    if settings.DEBUG and hasattr(sys.stderr, "fileno"):
         # Enable line buffering for stderr, TODO(py3.9) can be removed after py3.9, see bpo-13601
         sys.stderr = os.fdopen(sys.stderr.fileno(), "w", 1)
         sys.stdout = os.fdopen(sys.stdout.fileno(), "w", 1)

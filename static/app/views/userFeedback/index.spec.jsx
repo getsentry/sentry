@@ -1,11 +1,11 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import UserFeedback from 'sentry/views/userFeedback';
 
 describe('UserFeedback', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router, routerContext} = initializeOrg();
   const pageLinks =
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
@@ -106,10 +106,34 @@ describe('UserFeedback', function () {
     render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
+  });
 
-    expect(screen.getByRole('button', {name: 'All Issues'})).toHaveAttribute(
-      'href',
-      'sentry?project=112&status='
+  it('renders issue status filter', async function () {
+    const params = {
+      organization: TestStubs.Organization({
+        projects: [TestStubs.Project({isMember: true})],
+      }),
+      location: router.location,
+      params: {
+        orgId: organization.slug,
+      },
+      router,
+    };
+    render(<UserFeedback {...params} />, {context: routerContext});
+
+    // "Unresolved"  is selected by default
+    const unresolved = screen.getByRole('radio', {name: 'Unresolved'});
+    expect(unresolved).toBeInTheDocument();
+    expect(unresolved).toBeChecked();
+
+    // Select "All Issues"
+    const all = screen.getByRole('radio', {name: 'All Issues'});
+    expect(all).toBeInTheDocument();
+    expect(all).not.toBeChecked();
+    await userEvent.click(all);
+
+    expect(router.replace).toHaveBeenCalledWith(
+      expect.objectContaining({query: {status: ''}})
     );
   });
 
@@ -131,10 +155,5 @@ describe('UserFeedback', function () {
     render(<UserFeedback {...params} />, {context: routerContext});
 
     expect(screen.getByTestId('user-feedback-empty')).toBeInTheDocument();
-
-    expect(screen.getByRole('button', {name: 'All Issues'})).toHaveAttribute(
-      'href',
-      'sentry?project=112&project=113&status='
-    );
   });
 });

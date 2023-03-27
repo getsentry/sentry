@@ -19,6 +19,7 @@ from snuba_sdk import (
 
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.grouptype import GroupCategory
 from sentry.models import Group, Project
 from sentry.models.transaction_threshold import (
     TRANSACTION_METRICS,
@@ -30,6 +31,7 @@ from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
     DEFAULT_PROJECT_THRESHOLD_METRIC,
+    DEVICE_CLASS_ALIAS,
     EQUALITY_OPERATORS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
@@ -88,8 +90,8 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.filter import to_list, translate_transaction_status
 from sentry.search.events.types import SelectType, WhereType
+from sentry.search.utils import DEVICE_CLASS
 from sentry.snuba.referrer import Referrer
-from sentry.types.issues import GroupCategory
 from sentry.utils.numbers import format_grouped_length
 
 
@@ -150,6 +152,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             MEASUREMENTS_STALL_PERCENTAGE: self._resolve_measurements_stall_percentage,
             HTTP_STATUS_CODE_ALIAS: self._resolve_http_status_code,
             TOTAL_COUNT_ALIAS: self._resolve_total_count,
+            DEVICE_CLASS_ALIAS: self._resolve_device_class,
         }
 
     @property
@@ -581,6 +584,15 @@ class DiscoverDatasetConfig(DatasetConfig):
                     required_args=[NumericColumn("column1"), NumericColumn("column2")],
                     snql_aggregate=lambda args, alias: Function(
                         "corr", [args["column1"], args["column2"]], alias
+                    ),
+                    default_result_type="number",
+                    redundant_grouping=True,
+                ),
+                SnQLFunction(
+                    "linear_regression",
+                    required_args=[NumericColumn("column1"), NumericColumn("column2")],
+                    snql_aggregate=lambda args, alias: Function(
+                        "simpleLinearRegression", [args["column1"], args["column2"]], alias
                     ),
                     default_result_type="number",
                     redundant_grouping=True,
@@ -1233,6 +1245,35 @@ class DiscoverDatasetConfig(DatasetConfig):
             return Function("toUInt64", [0], alias)
         self.total_count = results["data"][0]["count"]
         return Function("toUInt64", [self.total_count], alias)
+
+    def _resolve_device_class(self, _: str) -> SelectType:
+        return Function(
+            "multiIf",
+            [
+                Function(
+                    "in", [self.builder.column("tags[device.class]"), list(DEVICE_CLASS["low"])]
+                ),
+                "low",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["medium"]),
+                    ],
+                ),
+                "medium",
+                Function(
+                    "in",
+                    [
+                        self.builder.column("tags[device.class]"),
+                        list(DEVICE_CLASS["high"]),
+                    ],
+                ),
+                "high",
+                None,
+            ],
+            DEVICE_CLASS_ALIAS,
+        )
 
     # Functions
     def _resolve_apdex_function(self, args: Mapping[str, str], alias: str) -> SelectType:

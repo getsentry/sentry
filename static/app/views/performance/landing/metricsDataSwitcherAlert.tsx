@@ -4,7 +4,6 @@ import {Location} from 'history';
 
 import {updateProjects} from 'sentry/actionCreators/pageFilters';
 import {Alert} from 'sentry/components/alert';
-import {GlobalSdkUpdateAlert} from 'sentry/components/globalSdkUpdateAlert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
@@ -93,7 +92,7 @@ export function MetricsDataSwitcherAlert(
 
   if (!props.shouldNotifyUnnamedTransactions && !props.shouldWarnIncompatibleSDK) {
     // Control showing generic sdk-alert here since stacking alerts is noisy.
-    return <GlobalSdkUpdateAlert />;
+    return null;
   }
 
   const discoverTarget = createUnnamedTransactionsDiscoverTarget(props);

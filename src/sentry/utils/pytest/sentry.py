@@ -119,6 +119,7 @@ def pytest_configure(config):
     settings.CELERY_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.PICKLED_OBJECT_FIELD_COMPLAIN_ABOUT_BAD_USE_OF_PICKLE = True
     settings.CELERY_EAGER_PROPAGATES_EXCEPTIONS = True
+    settings.SENTRY_METRICS_DISALLOW_BAD_TAGS = True
 
     settings.DEBUG_VIEWS = True
     settings.SERVE_UPLOADED_FILES = True
@@ -136,6 +137,8 @@ def pytest_configure(config):
 
     settings.SENTRY_RATELIMITER = "sentry.ratelimits.redis.RedisRateLimiter"
     settings.SENTRY_RATELIMITER_OPTIONS = {}
+
+    settings.SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 1
 
     if not hasattr(settings, "SENTRY_OPTIONS"):
         settings.SENTRY_OPTIONS = {}
@@ -393,3 +396,8 @@ def pytest_collection_modifyitems(config, items):
     # This only needs to be done if there are items to be de-selected
     if len(discard) > 0:
         config.hook.pytest_deselected(items=discard)
+
+
+def pytest_xdist_setupnodes():
+    # prevent out-of-order django initialization
+    os.environ.pop("DJANGO_SETTINGS_MODULE", None)

@@ -12,7 +12,7 @@ type Props = {
   onNext: ReactEventHandler;
   onPrevious: ReactEventHandler;
   previousDisabled: boolean;
-  headerText?: string;
+  headerText?: React.ReactNode;
 };
 
 const ScreenshotPagination = ({

@@ -1,7 +1,7 @@
 import selectEvent from 'react-select-event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -12,6 +12,8 @@ import AlertBuilderProjectProvider from 'sentry/views/alerts/builder/projectProv
 import ProjectAlertsCreate from 'sentry/views/alerts/create';
 
 jest.unmock('sentry/utils/recreateRoute');
+// updateOnboardingTask triggers an out of band state update
+jest.mock('sentry/actionCreators/onboardingTasks');
 jest.mock('sentry/actionCreators/members', () => ({
   fetchOrgMembers: jest.fn(() => Promise.resolve([])),
   indexMembersByProject: jest.fn(() => {
@@ -134,16 +136,16 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add a filter and remove it
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue is older or newer than...',
       ]);
 
-      userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getByLabelText('Delete Node'));
 
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -156,15 +158,12 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     it('can remove triggers', async function () {
@@ -176,14 +175,14 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add a trigger and remove it
       await selectEvent.select(screen.getByText('Add optional trigger...'), [
         'A new issue is created',
       ]);
 
-      userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getByLabelText('Delete Node'));
 
       await waitFor(() => {
         expect(trackAdvancedAnalyticsEvent).toHaveBeenCalledWith(
@@ -197,7 +196,7 @@ describe('ProjectAlertsCreate', function () {
         );
       });
 
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -210,15 +209,12 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     it('can remove actions', async function () {
@@ -230,16 +226,16 @@ describe('ProjectAlertsCreate', function () {
       });
 
       // Change name of alert rule
-      userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+      await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
       // Add an action and remove it
       await selectEvent.select(screen.getByText('Add action...'), [
         'Send a notification to all legacy integrations',
       ]);
 
-      userEvent.click(screen.getByLabelText('Delete Node'));
+      await userEvent.click(screen.getByLabelText('Delete Node'));
 
-      userEvent.click(screen.getByText('Save Rule'));
+      await userEvent.click(screen.getByText('Save Rule'));
 
       await waitFor(() => {
         expect(mock).toHaveBeenCalledWith(
@@ -252,15 +248,12 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
         );
       });
-
-      // updateOnboardingTask triggers an out of band state update
-      await act(tick);
     });
 
     describe('updates and saves', function () {
@@ -278,7 +271,7 @@ describe('ProjectAlertsCreate', function () {
         jest.clearAllMocks();
       });
 
-      it('environment, action and filter match', async function () {
+      it('environment, async action and filter match', async function () {
         const wrapper = createWrapper();
 
         // Change target environment
@@ -291,9 +284,9 @@ describe('ProjectAlertsCreate', function () {
         await selectEvent.select(allDropdowns[1], ['any']);
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
-        userEvent.click(screen.getByText('Save Rule'));
+        await userEvent.click(screen.getByText('Save Rule'));
 
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
@@ -306,7 +299,7 @@ describe('ProjectAlertsCreate', function () {
               filters: [],
               environment: 'production',
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -324,18 +317,21 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
+        await userEvent.paste('myname');
 
         // Add another condition
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           "The event's tags match {key} {match} {value}",
         ]);
         // Edit new Condition
-        userEvent.paste(screen.getByPlaceholderText('key'), 'conditionKey');
-        userEvent.paste(screen.getByPlaceholderText('value'), 'conditionValue');
+        await userEvent.click(screen.getByPlaceholderText('key'));
+        await userEvent.paste('conditionKey');
+        await userEvent.click(screen.getByPlaceholderText('value'));
+        await userEvent.paste('conditionValue');
         await selectEvent.select(screen.getByText('contains'), ['does not equal']);
 
-        userEvent.click(screen.getByText('Save Rule'));
+        await userEvent.click(screen.getByText('Save Rule'));
 
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
@@ -354,7 +350,7 @@ describe('ProjectAlertsCreate', function () {
                 },
               ],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -372,15 +368,17 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.click(screen.getByPlaceholderText('Enter Alert Name'));
+        await userEvent.paste('myname');
 
         // Add a new filter
         await selectEvent.select(screen.getByText('Add optional filter...'), [
           'The issue is older or newer than...',
         ]);
-        userEvent.paste(screen.getByPlaceholderText('10'), '12');
+        await userEvent.click(screen.getByPlaceholderText('10'));
+        await userEvent.paste('12');
 
-        userEvent.click(screen.getByText('Save Rule'));
+        await userEvent.click(screen.getByText('Save Rule'));
 
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
@@ -399,7 +397,7 @@ describe('ProjectAlertsCreate', function () {
               actions: [],
               conditions: [],
               frequency: 60 * 24,
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -417,7 +415,7 @@ describe('ProjectAlertsCreate', function () {
         const wrapper = createWrapper();
 
         // Change name of alert rule
-        userEvent.paste(screen.getByPlaceholderText('Enter Alert Name'), 'My Rule Name');
+        await userEvent.type(screen.getByPlaceholderText('Enter Alert Name'), 'myname');
 
         // Add a new action
         await selectEvent.select(screen.getByText('Add action...'), [
@@ -427,7 +425,7 @@ describe('ProjectAlertsCreate', function () {
         // Update action interval
         await selectEvent.select(screen.getByText('24 hours'), ['60 minutes']);
 
-        userEvent.click(screen.getByText('Save Rule'));
+        await userEvent.click(screen.getByText('Save Rule'));
 
         expect(mock).toHaveBeenCalledWith(
           expect.any(String),
@@ -441,7 +439,7 @@ describe('ProjectAlertsCreate', function () {
               filterMatch: 'all',
               filters: [],
               frequency: '60',
-              name: 'My Rule Name',
+              name: 'myname',
               owner: null,
             },
           })
@@ -494,7 +492,9 @@ describe('ProjectAlertsCreate', function () {
         );
       });
       expect(
-        screen.getByText('issues would have triggered this rule in the past 14 days')
+        screen.getByText('4 issues would have triggered this rule in the past 14 days', {
+          exact: false,
+        })
       ).toBeInTheDocument();
       for (const group of groups) {
         expect(screen.getByText(group.shortId)).toBeInTheDocument();
@@ -580,7 +580,7 @@ describe('ProjectAlertsCreate', function () {
         'true'
       );
 
-      userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[0]);
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });
 
@@ -596,8 +596,8 @@ describe('ProjectAlertsCreate', function () {
         'The issue is older or newer than...',
       ]);
 
-      userEvent.paste(screen.getByPlaceholderText('10'), '10');
-      userEvent.click(document.body);
+      await userEvent.type(screen.getByPlaceholderText('10'), '10');
+      await userEvent.click(document.body);
 
       await selectEvent.select(screen.getByText('Add optional filter...'), [
         'The issue has happened at least {x} times (Note: this is approximate)',
@@ -605,9 +605,9 @@ describe('ProjectAlertsCreate', function () {
 
       expect(screen.getByText(errorText)).toBeInTheDocument();
 
-      userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
-      userEvent.clear(screen.getByDisplayValue('10'));
-      userEvent.click(document.body);
+      await userEvent.click(screen.getAllByLabelText('Delete Node')[1]);
+      await userEvent.clear(screen.getByDisplayValue('10'));
+      await userEvent.click(document.body);
 
       expect(screen.queryByText(errorText)).not.toBeInTheDocument();
     });

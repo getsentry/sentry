@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {openCreateOwnershipRule} from 'sentry/actionCreators/modal';
+import {openIssueOwnershipRuleModal} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import {Button} from 'sentry/components/button';
@@ -11,17 +11,18 @@ import {IconAdd, IconSettings, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
-import type {Actor, Group, Organization, Project} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import type {Actor, Event, Group, Organization, Project} from 'sentry/types';
 import {buildTeamId} from 'sentry/utils';
 
 interface OwnedByProps {
   group: Group;
   organization: Organization;
   project: Project;
+  event?: Event;
 }
 
-function OwnedBy({group, project, organization}: OwnedByProps) {
+function OwnedBy({group, project, organization, event}: OwnedByProps) {
   const memberList = useLegacyStore(MemberListStore);
   const owner = group.owners?.find(({type}) =>
     ['codeowners', 'ownershipRule'].includes(type)
@@ -71,7 +72,12 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           <Access access={['project:write']}>
             <Button
               onClick={() => {
-                openCreateOwnershipRule({project, organization, issueId: group.id});
+                openIssueOwnershipRuleModal({
+                  project,
+                  organization,
+                  issueId: group.id,
+                  eventData: event,
+                });
               }}
               aria-label={t('Create Ownership Rule')}
               icon={<IconAdd />}
@@ -105,7 +111,7 @@ function OwnedBy({group, project, organization}: OwnedByProps) {
           <ActorName>
             {currentOwner?.type === 'team'
               ? `#${currentOwner?.name}`
-              : currentOwner?.name ?? t('No-one')}
+              : currentOwner?.name ?? t('No one')}
           </ActorName>
         </ActorWrapper>
       </SidebarSection.Content>

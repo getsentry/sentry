@@ -12,9 +12,8 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.filter import FilterStep
 from arroyo.types import Commit, Message, Partition
 from django.conf import settings
-from sentry_sdk.tracing import Transaction
+from sentry_sdk.tracing import Span
 
-from sentry.replays.lib.consumer import LogExceptionStep
 from sentry.replays.usecases.ingest import (
     RecordingMessage,
     RecordingSegmentChunkMessage,
@@ -30,7 +29,13 @@ logger = logging.getLogger(__name__)
 @dataclasses.dataclass
 class MessageContext:
     message: Dict[str, Any]
-    transaction: Transaction
+    transaction: Span
+    current_hub: sentry_sdk.Hub
+
+    # The message attribute can cause large log messages to be emitted which can pin the CPU
+    # to 100.
+    def __repr__(self) -> str:
+        return f"MessageContext(message_dict=..., transaction={repr(self.transaction)})"
 
 
 class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
@@ -44,21 +49,21 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
         commit: Commit,
         partitions: Mapping[Partition, int],
     ) -> Any:
-        return LogExceptionStep(
-            message="Invalid recording specified.",
-            logger=logger,
-            next_step=TransformStep(
-                function=move_chunks_to_cache_or_skip,
-                next_step=FilterStep(
-                    function=is_capstone_message,
-                    next_step=RunTaskInThreads(
-                        processing_function=move_replay_to_permanent_storage,
-                        concurrency=16,
-                        max_pending_futures=32,
-                        next_step=CommitOffsets(commit),
-                    ),
-                ),
-            ),
+        step = RunTaskInThreads(
+            processing_function=move_replay_to_permanent_storage,
+            concurrency=4,
+            max_pending_futures=50,
+            next_step=CommitOffsets(commit),
+        )
+
+        step2: FilterStep[MessageContext] = FilterStep(
+            function=is_capstone_message,
+            next_step=step,
+        )
+
+        return TransformStep(
+            function=move_chunks_to_cache_or_skip,
+            next_step=step2,
         )
 
 
@@ -70,13 +75,14 @@ def move_chunks_to_cache_or_skip(message: Message[KafkaPayload]) -> MessageConte
         sampled=random.random()
         < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
     )
+    current_hub = sentry_sdk.Hub(sentry_sdk.Hub.current)
 
     message_dict = msgpack.unpackb(message.payload.value)
 
     if message_dict["type"] == "replay_recording_chunk":
-        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction)
+        ingest_chunk(cast(RecordingSegmentChunkMessage, message_dict), transaction, current_hub)
 
-    return MessageContext(message_dict, transaction)
+    return MessageContext(message_dict, transaction, current_hub)
 
 
 def is_capstone_message(message: Message[MessageContext]) -> Any:
@@ -92,8 +98,12 @@ def move_replay_to_permanent_storage(message: Message[MessageContext]) -> Any:
     message_type = message_dict["type"]
 
     if message_type == "replay_recording_not_chunked":
-        ingest_recording_not_chunked(cast(RecordingMessage, message_dict), context.transaction)
+        ingest_recording_not_chunked(
+            cast(RecordingMessage, message_dict), context.transaction, context.current_hub
+        )
     elif message_type == "replay_recording":
-        ingest_recording_chunked(cast(RecordingSegmentMessage, message_dict), context.transaction)
+        ingest_recording_chunked(
+            cast(RecordingSegmentMessage, message_dict), context.transaction, context.current_hub
+        )
     else:
         raise ValueError(f"Invalid replays recording message type specified: {message_type}")

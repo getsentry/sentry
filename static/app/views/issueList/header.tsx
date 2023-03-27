@@ -9,28 +9,19 @@ import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingA
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import QueryCount from 'sentry/components/queryCount';
-import {Item, TabList, Tabs} from 'sentry/components/tabs';
-import Tooltip from 'sentry/components/tooltip';
+import {TabList, Tabs} from 'sentry/components/tabs';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
-import {IconPause, IconPlay, IconStar} from 'sentry/icons';
+import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {Organization, SavedSearch} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {Organization} from 'sentry/types';
 import {trackAnalyticsEvent} from 'sentry/utils/analytics';
-import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useProjects from 'sentry/utils/useProjects';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
 
-import {
-  getTabs,
-  IssueSortOptions,
-  Query,
-  QueryCounts,
-  SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-  TAB_MAX_COUNT,
-} from './utils';
+import {getTabs, IssueSortOptions, Query, QueryCounts, TAB_MAX_COUNT} from './utils';
 
 type IssueListHeaderProps = {
   displayReprocessingTab: boolean;
@@ -40,7 +31,6 @@ type IssueListHeaderProps = {
   queryCounts: QueryCounts;
   realtimeActive: boolean;
   router: InjectedRouter;
-  savedSearch: SavedSearch | null;
   selectedProjectIds: number[];
   sort: string;
   queryCount?: number;
@@ -86,38 +76,22 @@ function IssueListHeader({
   organization,
   query,
   sort,
-  queryCount,
   queryCounts,
   realtimeActive,
   onRealtimeChange,
-  savedSearch,
   router,
   displayReprocessingTab,
   selectedProjectIds,
 }: IssueListHeaderProps) {
-  const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useSyncedLocalStorageState(
-    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-    false
-  );
   const {projects} = useProjects();
   const tabs = getTabs(organization);
   const visibleTabs = displayReprocessingTab
     ? tabs
     : tabs.filter(([tab]) => tab !== Query.REPROCESSING);
-  const savedSearchTabActive = !visibleTabs.some(([tabQuery]) => tabQuery === query);
   // Remove cursor and page when switching tabs
   const {cursor: _, page: __, ...queryParms} = router?.location?.query ?? {};
   const sortParam =
     queryParms.sort === IssueSortOptions.INBOX ? undefined : queryParms.sort;
-
-  function onSavedSearchesToggleClicked() {
-    const newOpenState = !isSavedSearchesOpen;
-    trackAdvancedAnalyticsEvent('search.saved_search_sidebar_toggle_clicked', {
-      organization,
-      open: newOpenState,
-    });
-    setIsSavedSearchesOpen(newOpenState);
-  }
 
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
@@ -139,7 +113,7 @@ function IssueListHeader({
     : t('Enable real-time updates');
 
   return (
-    <Layout.Header>
+    <Layout.Header noActionWrap>
       <Layout.HeaderContent>
         <Layout.Title>
           {t('Issues')}
@@ -156,13 +130,6 @@ function IssueListHeader({
           <IssueListSetAsDefault {...{sort, query, organization}} />
           <Button
             size="sm"
-            icon={<IconStar size="sm" isSolid={isSavedSearchesOpen} />}
-            onClick={onSavedSearchesToggleClicked}
-          >
-            {isSavedSearchesOpen ? t('Hide Searches') : t('Saved Searches')}
-          </Button>
-          <Button
-            size="sm"
             data-test-id="real-time"
             title={realtimeTitle}
             aria-label={realtimeTitle}
@@ -176,7 +143,7 @@ function IssueListHeader({
         onSelectionChange={key =>
           trackTabClick(key === EXTRA_TAB_KEY ? query : key.toString())
         }
-        selectedKey={savedSearchTabActive ? EXTRA_TAB_KEY : query}
+        selectedKey={query}
       >
         <TabList hideBorder>
           {[
@@ -193,7 +160,7 @@ function IssueListHeader({
                 });
 
                 return (
-                  <Item key={tabQuery} to={to} textValue={queryName}>
+                  <TabList.Item key={tabQuery} to={to} textValue={queryName}>
                     <IssueListHeaderTabContent
                       tooltipTitle={tooltipTitle}
                       tooltipHoverable={tooltipHoverable}
@@ -202,22 +169,10 @@ function IssueListHeader({
                       hasMore={queryCounts[tabQuery]?.hasMore}
                       query={tabQuery}
                     />
-                  </Item>
+                  </TabList.Item>
                 );
               }
             ),
-            <Item
-              hidden={!savedSearchTabActive}
-              key={EXTRA_TAB_KEY}
-              to={{query: queryParms, pathname: location.pathname}}
-              textValue={savedSearch?.name ?? t('Custom Search')}
-            >
-              <IssueListHeaderTabContent
-                name={savedSearch?.name ?? t('Custom Search')}
-                count={queryCount}
-                query={query}
-              />
-            </Item>,
           ]}
         </TabList>
       </StyledTabs>

@@ -19,9 +19,8 @@ import {
 import * as indicators from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import {FeedbackModal} from 'sentry/components/featureFeedback/feedbackModal';
+import {TextField} from 'sentry/components/forms';
 import {RouteContext} from 'sentry/views/routeContext';
-
-import {TextField} from '../forms';
 
 function ComponentProviders({children}: {children: React.ReactNode}) {
   const {router} = initializeOrg();
@@ -70,16 +69,14 @@ describe('FeatureFeedback', function () {
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
       // User enters additional feedback message
-      userEvent.paste(
-        screen.getByPlaceholderText('What did you expect?'),
-        'this is a feedback message'
-      );
-      userEvent.keyboard('{enter}');
+      await userEvent.click(screen.getByPlaceholderText(/what did you expect/i));
+      await userEvent.paste('this is a feedback message');
+      await userEvent.keyboard('{enter}');
 
       // Submit button is still disabled
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText("I don't like this feature")).toBeInTheDocument();
@@ -87,12 +84,12 @@ describe('FeatureFeedback', function () {
       expect(screen.getByText('I like this feature')).toBeInTheDocument();
 
       // Select feedback type
-      userEvent.click(screen.getByText('I like this feature'));
+      await userEvent.click(screen.getByText('I like this feature'));
 
       // Submit button is now enabled because the required field was selected
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
 
-      userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
       await waitFor(() =>
         expect(feedbackClient.captureEvent).toHaveBeenCalledWith(
@@ -109,7 +106,7 @@ describe('FeatureFeedback', function () {
       );
     });
 
-    it('renders provided feedbackTypes', function () {
+    it('renders provided feedbackTypes', async function () {
       renderGlobalModal();
 
       act(() =>
@@ -124,17 +121,17 @@ describe('FeatureFeedback', function () {
         ))
       );
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText('Custom feedback type A')).toBeInTheDocument();
       expect(screen.getByText('Custom feedback type B')).toBeInTheDocument();
 
       // Close modal
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
 
-    it('renders an arbitrary secondary action', function () {
+    it('renders an arbitrary secondary action', async function () {
       renderGlobalModal();
 
       act(() =>
@@ -149,18 +146,18 @@ describe('FeatureFeedback', function () {
         ))
       );
 
-      userEvent.click(screen.getByText('Select type of feedback'));
+      await userEvent.click(screen.getByText('Select type of feedback'));
 
       // Available feedback types
       expect(screen.getByText('Test Secondary Action Link')).toBeInTheDocument();
 
       // Close modal
-      userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     });
   });
 
   describe('custom', function () {
-    it('renders custom feedback form', function () {
+    it('renders custom feedback form', async function () {
       jest.spyOn(indicators, 'addSuccessMessage');
 
       // Mock implementation of the Sentry Browser SDK
@@ -228,36 +225,36 @@ describe('FeatureFeedback', function () {
 
       // Change form field
       expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-      userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new value');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'new value');
       expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('new value');
 
       // Go to next step
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       // Next step is rendered
       expect(screen.getByRole('heading', {name: 'Last Step'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Back'})).toBeInTheDocument();
 
       // Go to previous step
-      userEvent.click(screen.getByRole('button', {name: 'Back'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
 
       // Previous step is rendered
       expect(screen.getByRole('heading', {name: 'First Step'})).toBeInTheDocument();
 
       // Go to next step
-      userEvent.click(screen.getByRole('button', {name: 'Next'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
       // Next step is rendered
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeDisabled();
 
       // Change form field
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('');
-      userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
+      await userEvent.type(screen.getByRole('textbox', {name: 'Surname'}), 'new value');
       expect(screen.getByRole('textbox', {name: 'Surname'})).toHaveValue('new value');
 
       expect(screen.getByRole('button', {name: 'Submit Feedback'})).toBeEnabled();
 
-      userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Submit Feedback'}));
 
       expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
         'Thanks for taking the time to provide us feedback!'

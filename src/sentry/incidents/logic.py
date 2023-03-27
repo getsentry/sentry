@@ -11,7 +11,7 @@ from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry import analytics, audit_log, features, quotas
 from sentry.auth.access import SystemAccess
-from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS, SentryAppInstallationStatus
+from sentry.constants import CRASH_RATE_ALERT_AGGREGATE_ALIAS
 from sentry.incidents import tasks
 from sentry.incidents.models import (
     AlertRule,
@@ -33,9 +33,10 @@ from sentry.incidents.models import (
     IncidentTrigger,
     TriggerStatus,
 )
-from sentry.models import Integration, PagerDutyService, Project, SentryApp
+from sentry.models import Integration, PagerDutyService, Project
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import resolve_field
+from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import DuplicateDisplayNameError
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -159,7 +160,7 @@ def update_incident_status(
             comment=comment,
         )
         if user:
-            subscribe_to_incident(incident, user)
+            subscribe_to_incident(incident, user.id)
 
         prev_status = incident.status
         kwargs = {"status": status.value, "status_method": status_method.value}
@@ -202,13 +203,17 @@ def set_incident_seen(incident, user=None):
         for incident_project in IncidentProject.objects.filter(incident=incident).select_related(
             "project"
         ):
-            if incident_project.project.member_set.filter(user=user).exists():
+            if incident_project.project.member_set.filter(
+                user_id=user.id if user else None
+            ).exists():
                 is_project_member = True
                 break
 
         if is_project_member:
             incident_seen, created = IncidentSeen.objects.create_or_update(
-                incident=incident, user=user, values={"last_seen": timezone.now()}
+                incident=incident,
+                user_id=user.id if user else None,
+                values={"last_seen": timezone.now()},
             )
             return incident_seen
 
@@ -227,7 +232,7 @@ def create_incident_activity(
     date_added=None,
 ):
     if activity_type == IncidentActivityType.COMMENT and user:
-        subscribe_to_incident(incident, user)
+        subscribe_to_incident(incident, user.id)
     value = str(value) if value is not None else value
     previous_value = str(previous_value) if previous_value is not None else previous_value
     kwargs = {}
@@ -236,7 +241,7 @@ def create_incident_activity(
     activity = IncidentActivity.objects.create(
         incident=incident,
         type=activity_type.value,
-        user=user,
+        user_id=user.id if user else None,
         value=value,
         previous_value=previous_value,
         comment=comment,
@@ -395,12 +400,12 @@ def get_incident_aggregates(
     return aggregated_result[0]
 
 
-def subscribe_to_incident(incident, user):
-    return IncidentSubscription.objects.get_or_create(incident=incident, user=user)
+def subscribe_to_incident(incident, user_id):
+    return IncidentSubscription.objects.get_or_create(incident=incident, user_id=user_id)
 
 
-def unsubscribe_from_incident(incident, user):
-    return IncidentSubscription.objects.filter(incident=incident, user=user).delete()
+def unsubscribe_from_incident(incident, user_id):
+    return IncidentSubscription.objects.filter(incident=incident, user_id=user_id).delete()
 
 
 def get_incident_subscribers(incident):
@@ -408,7 +413,7 @@ def get_incident_subscribers(incident):
 
 
 def get_incident_activity(incident):
-    return IncidentActivity.objects.filter(incident=incident).select_related("user", "incident")
+    return IncidentActivity.objects.filter(incident=incident).select_related("incident")
 
 
 class AlertRuleNameAlreadyUsedError(Exception):
@@ -521,6 +526,7 @@ def create_alert_rule(
         if user:
             create_audit_entry_from_user(
                 user,
+                ip_address=kwargs.get("ip_address") if kwargs else None,
                 organization_id=organization.id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
@@ -541,7 +547,9 @@ def create_alert_rule(
         subscribe_projects_to_alert_rule(alert_rule, projects)
 
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.CREATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.CREATED.value,
         )
 
     return alert_rule
@@ -564,7 +572,7 @@ def snapshot_alert_rule(alert_rule, user=None):
         AlertRuleActivity.objects.create(
             alert_rule=alert_rule_snapshot,
             previous_alert_rule=alert_rule,
-            user=user,
+            user_id=user.id if user else None,
             type=AlertRuleActivityType.SNAPSHOT.value,
         )
 
@@ -684,7 +692,9 @@ def update_alert_rule(
             snapshot_alert_rule(alert_rule, user)
         alert_rule.update(**updated_fields)
         AlertRuleActivity.objects.create(
-            alert_rule=alert_rule, user=user, type=AlertRuleActivityType.UPDATED.value
+            alert_rule=alert_rule,
+            user_id=user.id if user else None,
+            type=AlertRuleActivityType.UPDATED.value,
         )
 
         if updated_query_fields or environment != alert_rule.snuba_query.environment:
@@ -770,6 +780,7 @@ def update_alert_rule(
     if user:
         create_audit_entry_from_user(
             user,
+            ip_address=kwargs.get("ip_address") if kwargs else None,
             organization_id=alert_rule.organization_id,
             target_object=alert_rule.id,
             data=alert_rule.get_audit_log_data(),
@@ -805,7 +816,7 @@ def disable_alert_rule(alert_rule):
         bulk_disable_snuba_subscriptions(alert_rule.snuba_query.subscriptions.all())
 
 
-def delete_alert_rule(alert_rule, user=None):
+def delete_alert_rule(alert_rule, user=None, ip_address=None):
     """
     Marks an alert rule as deleted and fires off a task to actually delete it.
     :param alert_rule:
@@ -817,6 +828,7 @@ def delete_alert_rule(alert_rule, user=None):
         if user:
             create_audit_entry_from_user(
                 user,
+                ip_address=ip_address,
                 organization_id=alert_rule.organization_id,
                 target_object=alert_rule.id,
                 data=alert_rule.get_audit_log_data(),
@@ -828,7 +840,9 @@ def delete_alert_rule(alert_rule, user=None):
         if incidents.exists():
             alert_rule.update(status=AlertRuleStatus.SNAPSHOT.value)
             AlertRuleActivity.objects.create(
-                alert_rule=alert_rule, user=user, type=AlertRuleActivityType.DELETED.value
+                alert_rule=alert_rule,
+                user_id=user.id if user else None,
+                type=AlertRuleActivityType.DELETED.value,
             )
         else:
             alert_rule.delete()
@@ -1091,6 +1105,9 @@ def create_alert_rule_trigger_action(
     :return: The created action
     """
     target_display = None
+    if type.value in AlertRuleTriggerAction.EXEMPT_SERVICES:
+        raise InvalidTriggerActionError("Selected notification service is exempt from alert rules")
+
     if type.value in AlertRuleTriggerAction.INTEGRATION_TYPES:
         if target_type != AlertRuleTriggerAction.TargetType.SPECIFIC:
             raise InvalidTriggerActionError("Must specify specific target type")
@@ -1219,9 +1236,8 @@ def get_alert_rule_trigger_action_slack_channel_id(
 ):
     from sentry.integrations.slack.utils import get_channel_id
 
-    try:
-        integration = Integration.objects.get(id=integration_id)
-    except Integration.DoesNotExist:
+    integration = integration_service.get_integration(integration_id=integration_id)
+    if integration is None:
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
@@ -1286,18 +1302,13 @@ def get_alert_rule_trigger_action_pagerduty_service(
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id):
-    try:
-        # query for the sentry app but make sure it's installed on that org
-        sentry_app = SentryApp.objects.get(
-            installations__organization_id=organization.id,
-            installations__status=SentryAppInstallationStatus.INSTALLED,
-            installations__date_deleted=None,
-            id=sentry_app_id,
-        )
-    except SentryApp.DoesNotExist:
-        raise InvalidTriggerActionError("No SentryApp found.")
+    from sentry.services.hybrid_cloud.app import app_service
 
-    return sentry_app.id, sentry_app.name
+    for installation in app_service.get_installed_for_organization(organization_id=organization.id):
+        if installation.sentry_app.id == sentry_app_id:
+            return sentry_app_id, installation.sentry_app.name
+
+    raise InvalidTriggerActionError("No SentryApp found.")
 
 
 def delete_alert_rule_trigger_action(trigger_action):

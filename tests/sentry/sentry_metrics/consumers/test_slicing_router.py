@@ -16,6 +16,7 @@ from sentry.sentry_metrics.consumers.indexer.slicing_router import (
     MissingOrgInRoutingHeader,
     SlicingConfigurationException,
     SlicingRouter,
+    _validate_slicing_config,
     _validate_slicing_consumer_config,
 )
 
@@ -175,3 +176,36 @@ def test_validate_slicing_consumer_config(monkeypatch) -> None:
         _validate_slicing_consumer_config("sliceable")
     except SlicingConfigurationException as e:
         assert False, f"Should not raise exception: {e}"
+
+
+def test_validate_slicing_config(monkeypatch) -> None:
+    # Valid setup(s)
+    monkeypatch.setitem(
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 128): 0, (128, 256): 1}  # type: ignore
+    )
+    _validate_slicing_config()
+
+    monkeypatch.setitem(
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 64): 0, (64, 66): 1, (66, 100): 0, (100, 256): 1}  # type: ignore
+    )
+    _validate_slicing_config()
+
+    # Assign a given logical partition to two slices
+    monkeypatch.setitem(
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 129): 0, (128, 256): 1}  # type: ignore
+    )
+    with pytest.raises(
+        SlicingConfigurationException,
+        match=r"'sliceable' has two assignments to logical partition 128",
+    ):
+        _validate_slicing_config()
+
+    # Fail to assign a logical partition to a slice
+    monkeypatch.setitem(
+        SENTRY_SLICING_CONFIG, "sliceable", {(0, 127): 0, (128, 256): 1}  # type: ignore
+    )
+    with pytest.raises(
+        SlicingConfigurationException,
+        match=r"'sliceable' is missing logical partition assignments: \{127\}",
+    ):
+        _validate_slicing_config()

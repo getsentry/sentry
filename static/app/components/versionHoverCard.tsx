@@ -14,7 +14,7 @@ import TimeSince from 'sentry/components/timeSince';
 import Version from 'sentry/components/version';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Deploy, Organization, Release, Repository} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import withApi from 'sentry/utils/withApi';

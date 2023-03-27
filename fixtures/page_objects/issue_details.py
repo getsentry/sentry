@@ -1,4 +1,6 @@
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.ui import WebDriverWait
 
 from .base import BasePage
 from .global_selection import GlobalSelectionPage
@@ -76,6 +78,11 @@ class IssueDetailsPage(BasePage):
         assignee.find_element(
             by=By.CSS_SELECTOR, value='[data-test-id="assignee-selector"]'
         ).click()
+
+        # Wait for the input to be loaded
+        wait = WebDriverWait(assignee, 10)
+        wait.until(expected_conditions.presence_of_element_located((By.TAG_NAME, "input")))
+
         assignee.find_element(by=By.TAG_NAME, value="input").send_keys(user)
 
         # Click the member/team
@@ -99,7 +106,7 @@ class IssueDetailsPage(BasePage):
 
     def wait_until_loaded(self):
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-        self.browser.wait_until_test_id("event-entries-loading-false")
+        self.browser.wait_until_not('[data-test-id="event-errors-loading"]')
         self.browser.wait_until_test_id("linked-issues")
         self.browser.wait_until_test_id("loaded-device-name")
         if self.browser.element_exists("#grouping-info"):

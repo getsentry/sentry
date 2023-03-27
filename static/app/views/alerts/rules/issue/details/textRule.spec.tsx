@@ -1,6 +1,9 @@
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {TextCondition} from 'sentry/views/alerts/rules/issue/details/textRule';
+import {
+  TextAction,
+  TextCondition,
+} from 'sentry/views/alerts/rules/issue/details/textRule';
 
 describe('AlertRuleDetails', () => {
   it('displays EventFrequencyCondition percentage', () => {
@@ -64,6 +67,44 @@ describe('AlertRuleDetails', () => {
     );
     expect(wrapper.container).toHaveTextContent(
       'Percent of sessions affected by an issue is 150% higher in 1h compared to 1h ago'
+    );
+  });
+  it('hides slack id and empty tags', () => {
+    const wrapper = render(
+      <TextAction
+        action={{
+          id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+          name: 'Send a notification to the Sentry Slack workspace to #my-channel (optionally, an ID: ) and show tags [] in notification',
+
+          // TODO(scttcper): label and prompt only exist in the type definition
+          label: '',
+          prompt: '',
+        }}
+        memberList={[]}
+        teams={[]}
+      />
+    );
+    expect(wrapper.container).toHaveTextContent(
+      'Send a notification to the Sentry Slack workspace to #my-channel'
+    );
+  });
+  it('shows slack tags', () => {
+    const wrapper = render(
+      <TextAction
+        action={{
+          id: 'sentry.integrations.slack.notify_action.SlackNotifyServiceAction',
+          name: 'Send a notification to the Sentry Slack workspace to #my-channel (optionally, an ID: ) and show tags [tag1, tag2] in notification',
+
+          // TODO(scttcper): label and prompt only exist in the type definition
+          label: '',
+          prompt: '',
+        }}
+        memberList={[]}
+        teams={[]}
+      />
+    );
+    expect(wrapper.container).toHaveTextContent(
+      'Send a notification to the Sentry Slack workspace to #my-channel and show tags [tag1, tag2] in notification'
     );
   });
 });

@@ -2,12 +2,9 @@ import {mat3, vec2} from 'gl-matrix';
 
 import {FlamegraphSearch} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {
-  getContext,
-  Rect,
-  resizeCanvasToDisplaySize,
-} from 'sentry/utils/profiling/gl/utils';
+import {getContext, resizeCanvasToDisplaySize} from 'sentry/utils/profiling/gl/utils';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {makeSpansColorMapByOpAndDescription} from '../colors/utils';
 
@@ -70,6 +67,8 @@ export class SpanChartRenderer2D {
   context: CanvasRenderingContext2D;
   colors: ReturnType<typeof makeSpansColorMapByOpAndDescription>;
 
+  isSearching = false;
+
   constructor(canvas: HTMLCanvasElement, spanChart: SpanChart, theme: FlamegraphTheme) {
     this.canvas = canvas;
     this.spanChart = spanChart;
@@ -100,11 +99,12 @@ export class SpanChartRenderer2D {
       return this.pattern;
     }
     return (
-      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_FALLBACK_COLOR
+      this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.FRAME_GRAYSCALE_COLOR
     );
   }
 
-  setSearchResults(searchResults: FlamegraphSearch['results']['spans']) {
+  setSearchResults(query: string, searchResults: FlamegraphSearch['results']['spans']) {
+    this.isSearching = query.length > 0;
     this.searchResults = searchResults;
   }
 
@@ -188,6 +188,10 @@ export class SpanChartRenderer2D {
       const color =
         this.colors.get(span.node.span.span_id) ?? this.theme.COLORS.SPAN_FALLBACK_COLOR;
 
+      // Reset any transforms that may have been applied before.
+      // If we dont do it, it sometimes causes the canvas to be drawn with a translation
+      this.context.setTransform(1, 0, 0, 1, 0, 0);
+
       if (span.node.span.op === 'missing instrumentation') {
         this.context.beginPath();
         this.context.rect(
@@ -201,10 +205,12 @@ export class SpanChartRenderer2D {
         this.context.fill();
       } else {
         this.context.beginPath();
-        this.context.setTransform(1, 0, 0, 1, 0, 0);
-        this.context.fillStyle = this.searchResults.has(span.node.span.span_id)
-          ? this.theme.COLORS.SEARCH_RESULT_SPAN_COLOR
-          : colorComponentsToRgba(color);
+
+        this.context.fillStyle =
+          this.isSearching && !this.searchResults.has(span.node.span.span_id)
+            ? colorComponentsToRgba(this.theme.COLORS.FRAME_GRAYSCALE_COLOR)
+            : colorComponentsToRgba(color);
+
         this.context.fillRect(
           rect.x + BORDER_WIDTH / 2,
           rect.y + BORDER_WIDTH / 2,

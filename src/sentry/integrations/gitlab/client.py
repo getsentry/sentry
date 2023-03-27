@@ -329,4 +329,4 @@ class GitLabApiClient(ApiClient):
             request_path, params={"ref": ref, "range[start]": lineno, "range[end]": lineno}
         )
 
-        return contents
+        return contents or []

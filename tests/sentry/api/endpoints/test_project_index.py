@@ -1,7 +1,8 @@
 from django.urls import reverse
 from rest_framework import status
 
-from sentry.models import Project, ProjectStatus, SentryAppInstallationToken
+from sentry.db.postgres.roles import in_test_psql_role_override
+from sentry.models import Project, ProjectKey, ProjectStatus, SentryAppInstallationToken
 from sentry.models.apitoken import ApiToken
 from sentry.testutils import APITestCase
 
@@ -27,7 +28,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["organization"]["id"] == str(org.id)
 
     def test_show_all_with_superuser(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=True)
 
@@ -42,7 +44,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 2
 
     def test_show_all_without_superuser(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user(is_superuser=False)
 
@@ -57,7 +60,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_status_filter(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -76,7 +80,8 @@ class ProjectsListTest(APITestCase):
         assert response.data[0]["id"] == str(project2.id)
 
     def test_query_filter(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -94,7 +99,8 @@ class ProjectsListTest(APITestCase):
         assert len(response.data) == 0
 
     def test_slug_query(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()
@@ -111,8 +117,29 @@ class ProjectsListTest(APITestCase):
         response = self.get_success_response(qs_params={"query": "slug:baz"})
         assert len(response.data) == 0
 
+    def test_dsn_filter(self):
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
+
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org, members=[user])
+        project1 = self.create_project(teams=[team])
+        key = ProjectKey.objects.get_or_create(project=project1)[0]
+        self.create_project(teams=[team])
+
+        self.login_as(user=user)
+
+        response = self.get_success_response(qs_params={"query": f"dsn:{key.public_key}"})
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(project1.id)
+
+        response = self.get_success_response(qs_params={"query": "dsn:nope"})
+        assert len(response.data) == 0
+
     def test_id_query(self):
-        Project.objects.all().delete()
+        with in_test_psql_role_override("postgres"):
+            Project.objects.all().delete()
 
         user = self.create_user()
         org = self.create_organization()

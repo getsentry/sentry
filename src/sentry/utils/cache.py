@@ -34,4 +34,4 @@ class memoize:
 
 
 def cache_key_for_event(data) -> str:
-    return "e:{1}:{0}".format(data["project"], data["event_id"])
+    return "e:{}:{}".format(data["event_id"], data["project"])

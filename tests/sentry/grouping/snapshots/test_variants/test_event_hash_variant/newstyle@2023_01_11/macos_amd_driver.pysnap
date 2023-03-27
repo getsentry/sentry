@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:27.628443Z'
+created: '2023-02-01T08:22:01.017659Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -126,7 +126,7 @@ app:
           frame (non app frame)
             function*
               "code"
-          frame (non app frame)
+          frame (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
           frame (non app frame)
@@ -139,14 +139,14 @@ app:
           frame (non app frame)
             function*
               "gpusSubmitDataBuffers"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
           frame (non app frame)
             function*
               "gpusGenerateCrashLog"
           frame (non app frame)
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
           frame (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
@@ -158,12 +158,12 @@ app:
           "Fatal Error: <hex> / <hex>"
 --------------------------------------------------------------------------
 system:
-  hash: "6188cd480f18f1ce368de0500be00733"
+  hash: "b8baf791d22ac902d5f59a7eedd844fd"
   component:
     system*
       exception*
         stacktrace*
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
           frame*
@@ -208,19 +208,19 @@ system:
           frame*
             function*
               "-[NSRunLoop(NSRunLoop) runMode:beforeDate:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSources0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoSource0"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_A_SOURCE0_PERFORM_FUNCTION__"
           frame*
@@ -280,30 +280,30 @@ system:
           frame (ignored due to recursion)
             function*
               "code"
-          frame*
+          frame* (marked as sentinel frame by stack trace rule (category:gl +sentinel))
             function*
               "glTexSubImage2D"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "glTexSubImage2D_Exec"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gleTextureImagePut"
           frame
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "gpusSubmitDataBuffers"
-          frame
-          frame*
+          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (ignored by stack trace rule (category:telemetry -group))
             function*
               "gpusGenerateCrashLog"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "gpusGenerateCrashLog.cold.1"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame* (marked as prefix frame by stack trace rule (category:throw +prefix ^-group))
             function*
               "abort"
-          frame* (marked out of app by stack trace rule (family:native package:/usr/lib/** -app))
+          frame (ignored by stack trace rule (category:throw +prefix ^-group))
             function*
               "__pthread_kill"
         type (ignored because exception is synthetic)

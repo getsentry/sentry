@@ -186,8 +186,9 @@
     <td class="project-breakdown-graph-cell errors">
     <h4 class="total-count-title">Total Project Errors</h4>
     <h1 style="margin: 0;" class="total-count">{{ trends.total_error_count|small_count:1 }}</h1>
-    {% url 'sentry-organization-issue-list' organization.slug as issue_list%}
-    <a href="{% absolute_uri issue_list %}?referrer=weekly-email" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
+    {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
+    <a href="{% org_url organization issue_list query="referrer=weekly-email" %}"
+       style="font-size: 12px; margin-bottom: 16px; display: block;">View All Errors</a>
 
     <table class="graph">
       <tr>
@@ -221,7 +222,9 @@
     <td class="project-breakdown-graph-cell transactions">
       <h4 class="total-count-title">Total Project Transactions</h4>
       <h1 style="margin: 0;" class="total-count">{{ trends.total_transaction_count|small_count:1 }}</h1>
-      <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_view_all' organization.slug %}" style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
+      {% url 'sentry-organization-perfomance' organization.slug as performance_landing %}
+      <a href="{% org_url organization performance_landing query='referrer=weekly_email_view_all' %}"
+         style="font-size: 12px; margin-bottom: 16px; display: block;">View All Transactions</a>
       <table class="graph">
         <tr>
           {% for timestamp, project_values in trends.series %}
@@ -255,7 +258,9 @@
           <img src="{% absolute_asset_url 'sentry' 'images/email/icon-circle-lightning.png' %}" width="32px" height="32px" alt="Sentry">
           <h1 style="font-weight: bold; font-size: 17px;">Something slow?</h1>
           <p style="font-size: 11px;">Trace those 10-second page loads to poor-performing API calls.</p>
-          <a href="{% absolute_uri '/organizations/{}/performance/?referrer=weekly_email_upsell' organization.slug %}" class="btn" style="margin-top: 8px;">Set Up Performance</a>
+          {% url 'sentry-organization-performance' organization.slug as performance_landing %}
+          <a href="{% org_url organization performance_landing query='referrer=weekly_email_upsell' %}"
+             class="btn" style="margin-top: 8px;">Set Up Performance</a>
         </div>
       </td>
     {% endif %}
@@ -329,7 +334,7 @@
 
   </div>
 
-  {%if key_errors|length > 0 %}
+  {% if key_errors|length > 0 %}
   <div id="key-errors">
     <h4>Issues with the most errors</h4>
     {% for a in key_errors %}
@@ -337,7 +342,8 @@
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}?referrer=weekly-email">{{a.group.message}}</a>
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;"
+           href="{% org_url organization issue_detail query='referrer=weekly-email' %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.project.name}}</div>
       </div>
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
@@ -345,7 +351,7 @@
     {% endfor %}
   </div>
   {% endif %}
-  {%if key_performance_issues|length > 0 %}
+  {% if key_performance_issues|length > 0 %}
   <div id="key-performance-issues">
     <h4>Most frequent performance issues</h4>
     {% for a in key_performance_issues %}
@@ -353,7 +359,8 @@
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
         {% url 'sentry-organization-issue-detail' issue_id=a.group.id organization_slug=organization.slug as issue_detail %}
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;" href="{% absolute_uri issue_detail %}?referrer=weekly-email">{{a.group.message}}</a>
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px; height: 24px;"
+           href="{% org_url organization issue_detail query="referrer=weekly-email" %}">{{a.group.message}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.group.get_type_display}}</div>
       </div>
       <span style="background-color: {{a.status_color}}; border-radius: 8px; font-size: 12px; align-self: center; padding: 2px 10px; margin-left: auto; height: 100%;">{{a.status}}</span>
@@ -361,14 +368,17 @@
     {% endfor %}
   </div>
   {% endif %}
-  {%if key_transactions|length > 0 %}
+  {% if key_transactions|length > 0 %}
   <div id="key-transactions">
     <h4>Most frequent transactions</h4>
     {% for a in key_transactions %}
     <div style="display: flex; flex-direction: row; margin-bottom: 8px; align-items: flex-start;">
       <div style="width: 10%; font-size: 17px;">{{a.count|small_count:1}}</div>
       <div style="width: 65%;">
-        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;" href="{% absolute_uri '/organizations/{}/performance/summary/?project={}&transaction={}&referrer=weekly_report' organization.slug a.project.id a.name %}">{{a.name}}</a>
+        {% querystring project=a.project.id transaction=a.name referrer="weekly_report" as query %}
+        {% url 'sentry-organization-performance-summary' organization.slug as performance_summary %}
+        <a style="display: block; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-size: 17px;"
+           href="{% org_url organization performance_summary query=query %}">{{a.name}}</a>
         <div style="font-size: 12px; color: #80708F;">{{a.project.name}}</div>
       </div>
       <div style="font-size: 14px; margin-left: auto; display: flex;">

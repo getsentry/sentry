@@ -1,5 +1,5 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {
@@ -25,7 +25,8 @@ jest.mock('sentry/utils/useMedia', () => ({
   default: jest.fn(() => true),
 }));
 
-const mockUrl = '/organizations/org-slug/replays/';
+const mockEventsUrl = '/organizations/org-slug/events/';
+const mockReplaysUrl = '/organizations/org-slug/replays/';
 
 let mockRouterContext: {
   childContextTypes?: any;
@@ -34,7 +35,7 @@ let mockRouterContext: {
 
 const getComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay-ui']},
+  organizationProps = {features: ['performance-view', 'session-replay']},
 }: InitializeOrgProps) => {
   const {router, organization, routerContext} = initializeOrg({
     organization: {
@@ -52,7 +53,7 @@ const getComponent = ({
         pathname: '/organizations/org-slug/replays/',
         query: {
           project: '1',
-          transaction: 'transaction',
+          transaction: 'Settings Page',
         },
         ...location,
       },
@@ -74,7 +75,7 @@ const getComponent = ({
           routes: router.routes,
         }}
       >
-        <TransactionReplays location={router.location} organization={organization} />
+        <TransactionReplays />
       </RouteContext.Provider>
     </OrganizationContext.Provider>
   );
@@ -123,25 +124,25 @@ describe('TransactionReplays', () => {
     renderComponent();
 
     await waitFor(() => {
-      expect(eventsMockApi).toHaveBeenCalled();
       expect(eventsMockApi).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
+            cursor: undefined,
             statsPeriod: '14d',
             project: ['1'],
             environment: [],
             field: expect.arrayContaining([
               'replayId',
               'count()',
-              ...SPAN_OP_BREAKDOWN_FIELDS,
-              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
               'transaction.duration',
               'trace',
               'timestamp',
+              ...SPAN_OP_BREAKDOWN_FIELDS,
+              SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
             ]),
             per_page: 50,
-            query: 'event.type:transaction transaction:transaction !replayId:""',
+            query: 'event.type:transaction transaction:"Settings Page" !replayId:""',
           }),
         })
       );
@@ -150,7 +151,7 @@ describe('TransactionReplays', () => {
 
   it('should snapshot empty state', async () => {
     MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       body: {
         data: [],
       },
@@ -175,7 +176,7 @@ describe('TransactionReplays', () => {
 
   it('should show loading indicator when loading replays', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockEventsUrl,
       statusCode: 200,
       body: {
         data: [],
@@ -192,50 +193,40 @@ describe('TransactionReplays', () => {
 
   it('should show a list of replays and have the correct values', async () => {
     const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
+      url: mockReplaysUrl,
       statusCode: 200,
       body: {
         data: [
           {
+            ...TestStubs.ReplayList()[0],
             count_errors: 1,
             duration: 52346,
-            finished_at: '2022-09-15T06:54:00+00:00',
+            finished_at: new Date('2022-09-15T06:54:00+00:00'),
             id: '346789a703f6454384f1de473b8b9fcc',
-            project_id: '2',
-            started_at: '2022-09-15T06:50:03+00:00',
+            started_at: new Date('2022-09-15T06:50:00+00:00'),
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/',
               '/organizations/sentry-emerging-tech/replays/?project=2',
             ],
-            user: {
-              id: '147086',
-              name: '',
-              email: '',
-              ip: '127.0.0.1',
-              display_name: 'testDisplayName',
-            },
           },
           {
+            ...TestStubs.ReplayList()[0],
             count_errors: 4,
             duration: 400,
-            finished_at: '2022-09-21T21:40:38+00:00',
+            finished_at: new Date('2022-09-21T21:40:38+00:00'),
             id: 'b05dae9b6be54d21a4d5ad9f8f02b780',
-            project_id: '2',
-            started_at: '2022-09-21T21:30:44+00:00',
+            started_at: new Date('2022-09-21T21:30:44+00:00'),
             urls: [
               'https://dev.getsentry.net:7999/organizations/sentry-emerging-tech/replays/?project=2&statsPeriod=24h',
               '/organizations/sentry-emerging-tech/issues/',
               '/organizations/sentry-emerging-tech/issues/?project=2',
             ],
-            user: {
-              id: '147086',
-              name: '',
-              email: '',
-              ip: '127.0.0.1',
-              display_name: 'testDisplayName',
-            },
           },
-        ],
+        ].map(hydrated => ({
+          ...hydrated,
+          started_at: hydrated.started_at.toString(),
+          finished_at: hydrated.finished_at.toString(),
+        })),
       },
     });
 
@@ -266,10 +257,10 @@ describe('TransactionReplays', () => {
     );
 
     // Expect the first row to have the correct duration
-    expect(screen.getByText('14hr 32min 26s')).toBeInTheDocument();
+    expect(screen.getByText('14:32:26')).toBeInTheDocument();
 
     // Expect the second row to have the correct duration
-    expect(screen.getByText('6min 40s')).toBeInTheDocument();
+    expect(screen.getByText('06:40')).toBeInTheDocument();
 
     // Expect the first row to have the correct errors
     expect(screen.getAllByTestId('replay-table-count-errors')[0]).toHaveTextContent('1');
@@ -282,246 +273,6 @@ describe('TransactionReplays', () => {
 
     // Expect the second row to have the correct date
     expect(screen.getByText('7 days ago')).toBeInTheDocument();
-  });
-
-  it('should be able to click the `Start Time` column and request data sorted by started_at query', async () => {
-    const {rerender} = renderComponent();
-
-    await waitFor(() => {
-      expect(replaysMockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-started_at',
-          }),
-        })
-      );
-    });
-
-    // Click on the start time header and expect the sort to be started_at
-    userEvent.click(screen.getByRole('columnheader', {name: 'Start Time'}));
-
-    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/replays/',
-      query: {
-        sort: 'started_at',
-        project: '1',
-        transaction: 'transaction',
-      },
-    });
-
-    // Need to simulate a rerender to get the new sort
-    act(() => {
-      rerender(
-        getComponent({
-          location: {
-            query: {
-              sort: 'started_at',
-              project: '1',
-              transaction: 'transaction',
-            },
-          },
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(replaysMockApi).toHaveBeenCalledTimes(2);
-      expect(replaysMockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: 'started_at',
-          }),
-        })
-      );
-    });
-  });
-
-  it('should be able to click the `Duration` column and request data sorted by duration query', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    const {rerender} = renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-started_at',
-          }),
-        })
-      );
-    });
-
-    // Click on the duration header and expect the sort to be duration
-    userEvent.click(screen.getByRole('columnheader', {name: 'Duration'}));
-
-    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/replays/',
-      query: {
-        sort: '-duration',
-        project: '1',
-        transaction: 'transaction',
-      },
-    });
-
-    // Need to simulate a rerender to get the new sort
-    act(() => {
-      rerender(
-        getComponent({
-          location: {
-            query: {
-              sort: '-duration',
-              project: '1',
-              transaction: 'transaction',
-            },
-          },
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(2);
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-duration',
-          }),
-        })
-      );
-    });
-  });
-
-  it('should be able to click the `Errors` column and request data sorted by count_errors query', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    const {rerender} = renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-started_at',
-          }),
-        })
-      );
-    });
-
-    // Click on the errors header and expect the sort to be count_errors
-    userEvent.click(screen.getByRole('columnheader', {name: 'Errors'}));
-
-    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/replays/',
-      query: {
-        sort: '-count_errors',
-        project: '1',
-        transaction: 'transaction',
-      },
-    });
-
-    // Need to simulate a rerender to get the new sort
-    act(() => {
-      rerender(
-        getComponent({
-          location: {
-            query: {
-              sort: '-count_errors',
-              project: '1',
-              transaction: 'transaction',
-            },
-          },
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(2);
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-count_errors',
-          }),
-        })
-      );
-    });
-  });
-
-  it('should be able to click the `Activity` column and request data sorted by started_at query', async () => {
-    const mockApi = MockApiClient.addMockResponse({
-      url: mockUrl,
-      body: {
-        data: [],
-      },
-      statusCode: 200,
-    });
-
-    const {rerender} = renderComponent();
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-started_at',
-          }),
-        })
-      );
-    });
-
-    // Click on the activity header and expect the sort to be activity
-    userEvent.click(screen.getByRole('columnheader', {name: 'Activity'}));
-
-    expect(mockRouterContext.context.router.push).toHaveBeenCalledWith({
-      pathname: '/organizations/org-slug/replays/',
-      query: {
-        sort: '-activity',
-        project: '1',
-        transaction: 'transaction',
-      },
-    });
-
-    // Need to simulate a rerender to get the new sort
-    act(() => {
-      rerender(
-        getComponent({
-          location: {
-            query: {
-              sort: '-activity',
-              project: '1',
-              transaction: 'transaction',
-            },
-          },
-        })
-      );
-    });
-
-    await waitFor(() => {
-      expect(mockApi).toHaveBeenCalledTimes(2);
-      expect(mockApi).toHaveBeenCalledWith(
-        mockUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({
-            sort: '-activity',
-          }),
-        })
-      );
-    });
   });
 
   it("should show a message when the organization doesn't have access to the replay feature", async () => {

@@ -1,6 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {RadioGroupRating, RadioGroupRatingProps} from './radioGroupRating';
+import {
+  RadioGroupRating,
+  RadioGroupRatingProps,
+} from 'sentry/components/radioGroupRating';
 
 const options: RadioGroupRatingProps['options'] = {
   0: {
@@ -23,7 +26,7 @@ const options: RadioGroupRatingProps['options'] = {
 };
 
 describe('RadioGroupRating', function () {
-  it('render numerical labels', function () {
+  it('render numerical labels', async function () {
     const handleChange = jest.fn();
 
     render(
@@ -54,7 +57,7 @@ describe('RadioGroupRating', function () {
     });
 
     // Click on the first option
-    userEvent.click(screen.getByLabelText(`Select option ${options[0].label}`));
+    await userEvent.click(screen.getByLabelText(`Select option ${options[0].label}`));
     expect(handleChange).toHaveBeenCalledWith('0');
   });
 });

@@ -12,7 +12,6 @@ from sentry.api.event_search import parse_search_query
 from sentry.api.helpers.group_index import build_query_params_from_request
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group import GroupSerializer
-from sentry.snuba import discover
 
 
 @region_silo_endpoint
@@ -23,8 +22,10 @@ class OrganizationEventsMetaEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response({"count": 0})
 
+        dataset = self.get_dataset(request)
+
         with self.handle_query_errors():
-            result = discover.query(
+            result = dataset.query(
                 selected_columns=["count()"],
                 params=params,
                 query=request.query_params.get("query"),
@@ -76,6 +77,8 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase, En
                     query_kwargs["search_filters"].extend(parsed_terms)
                 else:
                     query_kwargs["search_filters"] = parsed_terms
+
+                query_kwargs["actor"] = request.user
 
             with sentry_sdk.start_span(op="discover.endpoint", description="issue_search"):
                 results = search.query(**query_kwargs)

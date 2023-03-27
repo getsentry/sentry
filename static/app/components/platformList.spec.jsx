@@ -22,7 +22,7 @@ describe('PlatformList', function () {
 
     // Check tooltip content,
     const extra = screen.getByText('2');
-    userEvent.hover(extra);
+    await userEvent.hover(extra);
     expect(await screen.findByText('2 other platforms')).toBeInTheDocument();
   });
 

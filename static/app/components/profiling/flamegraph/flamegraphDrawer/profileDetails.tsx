@@ -6,34 +6,40 @@ import OrganizationAvatar from 'sentry/components/avatar/organizationAvatar';
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import Version from 'sentry/components/version';
 import {t} from 'sentry/locale';
-import OrganizationsStore from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
+import {Organization, Project} from 'sentry/types';
+import {DeviceContextKey, EventTransaction} from 'sentry/types/event';
 import {formatVersion} from 'sentry/utils/formatters';
+import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
 import {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphPreferences';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
+import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {makeFormatter} from 'sentry/utils/profiling/units/units';
+import useOrganization from 'sentry/utils/useOrganization';
+import useProjects from 'sentry/utils/useProjects';
 import {
   useResizableDrawer,
   UseResizableDrawerOptions,
-} from 'sentry/utils/profiling/hooks/useResizableDrawer';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
-import {makeFormatter} from 'sentry/utils/profiling/units/units';
-import useProjects from 'sentry/utils/useProjects';
+} from 'sentry/utils/useResizableDrawer';
+import {QuickContextHoverWrapper} from 'sentry/views/discover/table/quickContext/quickContextWrapper';
+import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 
 import {ProfilingDetailsFrameTabs, ProfilingDetailsListItem} from './flamegraphDrawer';
 
 function renderValue(
   key: string,
   value: number | string | undefined,
-  profileGroup: ProfileGroup
+  profileGroup?: ProfileGroup
 ) {
   if (key === 'durationNS' && typeof value === 'number') {
     return nsFormatter(value);
   }
-  if (key === 'threads') {
-    return profileGroup.profiles.length;
+  if (key === 'threads' && value === undefined) {
+    return profileGroup?.profiles.length;
   }
   if (key === 'received') {
     return <DateTime date={value} />;
@@ -47,13 +53,18 @@ function renderValue(
 
 interface ProfileDetailsProps {
   profileGroup: ProfileGroup;
+  projectId: string;
+  transaction: EventTransaction | null;
 }
 
 export function ProfileDetails(props: ProfileDetailsProps) {
   const [detailsTab, setDetailsTab] = useState<'device' | 'transaction'>('transaction');
 
-  const organizations = useLegacyStore(OrganizationsStore);
+  const organization = useOrganization();
   const {projects} = useProjects();
+  const project = projects.find(
+    p => p.id === String(props.profileGroup.metadata.projectID)
+  );
 
   const onDeviceTabClick = useCallback(() => {
     setDetailsTab('device');
@@ -100,11 +111,7 @@ export function ProfileDetails(props: ProfileDetailsProps) {
     };
   }, [flamegraphPreferences.layout]);
 
-  const {onMouseDown} = useResizableDrawer(resizableOptions);
-
-  const organization = organizations.find(
-    o => o.id === String(props.profileGroup.metadata.organizationID)
-  );
+  const {onMouseDown, onDoubleClick} = useResizableDrawer(resizableOptions);
 
   return (
     <ProfileDetailsBar ref={detailsBarRef} layout={flamegraphPreferences.layout}>
@@ -141,114 +148,329 @@ export function ProfileDetails(props: ProfileDetailsProps) {
             cursor: isResizableDetailsBar ? 'ns-resize' : undefined,
           }}
           onMouseDown={isResizableDetailsBar ? onMouseDown : undefined}
+          onDoubleClick={isResizableDetailsBar ? onDoubleClick : undefined}
         />
       </ProfilingDetailsFrameTabs>
 
-      {detailsTab === 'device' ? (
-        <DetailsContainer>
-          {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
-            const value = props.profileGroup.metadata[key];
-            return (
-              <DetailsRow key={key}>
-                <strong>{label}:</strong>
-                <span>{renderValue(key, value, props.profileGroup)}</span>
-              </DetailsRow>
-            );
-          })}
-        </DetailsContainer>
-      ) : (
-        <DetailsContainer>
-          {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
-            const value = props.profileGroup.metadata[key];
-
-            if (key === 'organizationID') {
-              if (organization) {
-                return (
-                  <DetailsRow key={key}>
-                    <strong>{label}:</strong>
-                    <Link to={`/organizations/${organization.slug}/projects/`}>
-                      <span>
-                        <OrganizationAvatar size={12} organization={organization} />{' '}
-                        {organization.name}
-                      </span>
-                    </Link>
-                  </DetailsRow>
-                );
-              }
-            }
-            if (key === 'projectID') {
-              const project = projects.find(p => p.id === String(value));
-              if (project && organization) {
-                return (
-                  <DetailsRow key={key}>
-                    <strong>{label}:</strong>
-                    <Link
-                      to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
-                    >
-                      <FlexRow>
-                        <ProjectAvatar project={project} size={12} /> {project.slug}
-                      </FlexRow>
-                    </Link>
-                  </DetailsRow>
-                );
-              }
-            }
-
-            if (key === 'release' && value) {
-              const release = value;
-
-              // If a release only contains a version key, then we cannot link to it and
-              // fallback to just displaying the raw version value.
-              if (
-                !organization ||
-                (Object.keys(release).length <= 1 && release.version)
-              ) {
-                return (
-                  <DetailsRow key={key}>
-                    <strong>{label}:</strong>
-                    <span>{formatVersion(release.version)}</span>
-                  </DetailsRow>
-                );
-              }
-              return (
-                <DetailsRow key={key}>
-                  <strong>{label}:</strong>
-                  <Link
-                    to={{
-                      pathname: `/organizations/${
-                        organization.slug
-                      }/releases/${encodeURIComponent(release.version)}/`,
-                      query: {
-                        project: props.profileGroup.metadata.projectID,
-                      },
-                    }}
-                  >
-                    {formatVersion(release.version)}
-                  </Link>
-                </DetailsRow>
-              );
-            }
-
-            // This final fallback is only capabable of rendering a string/undefined/null.
-            // If the value is some other type, make sure not to let it reach here.
-            return (
-              <DetailsRow key={key}>
-                <strong>{label}:</strong>
-                <span>
-                  {key === 'platform' ? (
-                    <Fragment>
-                      <PlatformIcon size={12} platform={value ?? 'unknown'} />{' '}
-                    </Fragment>
-                  ) : null}
-                  {renderValue(key, value, props.profileGroup)}
-                </span>
-              </DetailsRow>
-            );
-          })}
-          <DetailsRow />
-        </DetailsContainer>
+      {!props.transaction && detailsTab === 'device' && (
+        <ProfileDeviceDetails profileGroup={props.profileGroup} />
+      )}
+      {!props.transaction && detailsTab === 'transaction' && (
+        <ProfileEventDetails
+          organization={organization}
+          profileGroup={props.profileGroup}
+          project={project}
+          transaction={props.transaction}
+        />
+      )}
+      {props.transaction && detailsTab === 'device' && (
+        <TransactionDeviceDetails
+          transaction={props.transaction}
+          profileGroup={props.profileGroup}
+        />
+      )}
+      {props.transaction && detailsTab === 'transaction' && (
+        <TransactionEventDetails
+          organization={organization}
+          profileGroup={props.profileGroup}
+          project={project}
+          transaction={props.transaction}
+        />
       )}
     </ProfileDetailsBar>
+  );
+}
+
+function TransactionDeviceDetails({
+  profileGroup,
+  transaction,
+}: {
+  profileGroup: ProfileGroup;
+  transaction: EventTransaction;
+}) {
+  const deviceDetails = useMemo(() => {
+    const profileMetadata = profileGroup.metadata;
+    const deviceContext = transaction.contexts.device;
+    const clientOsContext = transaction.contexts.client_os;
+    const osContext = transaction.contexts.os;
+
+    const details: {
+      key: string;
+      label: string;
+      value: React.ReactNode;
+    }[] = [
+      {
+        key: 'model',
+        label: t('Model'),
+        value: deviceContext?.[DeviceContextKey.MODEL] ?? profileMetadata.deviceModel,
+      },
+      {
+        key: 'manufacturer',
+        label: t('Manufacturer'),
+        value:
+          deviceContext?.[DeviceContextKey.MANUFACTURER] ??
+          profileMetadata.deviceManufacturer,
+      },
+      {
+        key: 'classification',
+        label: t('Classification'),
+        value: profileMetadata.deviceClassification,
+      },
+      {
+        key: 'name',
+        label: t('OS'),
+        value: clientOsContext?.name ?? osContext?.name ?? profileMetadata.deviceOSName,
+      },
+      {
+        key: 'version',
+        label: t('OS Version'),
+        value:
+          clientOsContext?.version ??
+          osContext?.version ??
+          profileMetadata.deviceOSVersion,
+      },
+      {
+        key: 'locale',
+        label: t('Locale'),
+        value: profileMetadata.deviceLocale,
+      },
+    ];
+
+    return details;
+  }, [profileGroup, transaction]);
+
+  return (
+    <DetailsContainer>
+      {deviceDetails.map(({key, label, value}) => (
+        <DetailsRow key={key}>
+          <strong>{label}:</strong>
+          <span>{value || t('unknown')}</span>
+        </DetailsRow>
+      ))}
+    </DetailsContainer>
+  );
+}
+
+function TransactionEventDetails({
+  organization,
+  profileGroup,
+  project,
+  transaction,
+}: {
+  organization: Organization;
+  profileGroup: ProfileGroup;
+  project: Project | undefined;
+  transaction: EventTransaction;
+}) {
+  const transactionDetails = useMemo(() => {
+    const profileMetadata = profileGroup.metadata;
+
+    const transactionTarget =
+      transaction.id && project && organization
+        ? getTransactionDetailsUrl(organization.slug, `${project.slug}:${transaction.id}`)
+        : null;
+
+    const details: {
+      key: string;
+      label: string;
+      value: React.ReactNode;
+    }[] = [
+      {
+        key: 'transaction',
+        label: t('Transaction'),
+        value: transactionTarget ? (
+          <Link to={transactionTarget}>{transaction.title}</Link>
+        ) : (
+          transaction.title
+        ),
+      },
+      {
+        key: 'timestamp',
+        label: t('Timestamp'),
+        value: <DateTime date={transaction.startTimestamp * 1000} />,
+      },
+      {
+        key: 'project',
+        label: t('Project'),
+        value: project && <ProjectBadge project={project} avatarSize={12} />,
+      },
+      {
+        key: 'release',
+        label: t('Release'),
+        value: transaction.release && (
+          <QuickContextHoverWrapper
+            dataRow={{release: transaction.release.version}}
+            contextType={ContextType.RELEASE}
+            organization={organization}
+          >
+            <Version version={transaction.release.version} truncate />
+          </QuickContextHoverWrapper>
+        ),
+      },
+      {
+        key: 'environment',
+        label: t('Environment'),
+        value:
+          transaction.tags.find(({key}) => key === 'environment')?.value ??
+          profileMetadata.environment,
+      },
+      {
+        key: 'duration',
+        label: t('Duration'),
+        value: profileMetadata.durationNS && nsFormatter(profileMetadata.durationNS),
+      },
+      {
+        key: 'threads',
+        label: t('Threads'),
+        value: profileGroup.profiles.length,
+      },
+    ];
+
+    return details;
+  }, [organization, project, profileGroup, transaction]);
+
+  return (
+    <DetailsContainer>
+      {transactionDetails.map(({key, label, value}) => (
+        <DetailsRow key={key}>
+          <strong>{label}:</strong>
+          <span>{value || t('unknown')}</span>
+        </DetailsRow>
+      ))}
+    </DetailsContainer>
+  );
+}
+
+function ProfileDeviceDetails({profileGroup}: {profileGroup: ProfileGroup}) {
+  return (
+    <DetailsContainer>
+      {Object.entries(DEVICE_DETAILS_KEY).map(([label, key]) => {
+        const value = profileGroup.metadata[key];
+        return (
+          <DetailsRow key={key}>
+            <strong>{label}:</strong>
+            <span>{renderValue(key, value, profileGroup)}</span>
+          </DetailsRow>
+        );
+      })}
+    </DetailsContainer>
+  );
+}
+
+function ProfileEventDetails({
+  organization,
+  profileGroup,
+  project,
+  transaction,
+}: {
+  organization: Organization;
+  profileGroup: ProfileGroup;
+  project: Project | undefined;
+  transaction: EventTransaction | null;
+}) {
+  return (
+    <DetailsContainer>
+      {Object.entries(PROFILE_DETAILS_KEY).map(([label, key]) => {
+        const value = profileGroup.metadata[key];
+
+        if (key === 'organizationID') {
+          if (organization) {
+            return (
+              <DetailsRow key={key}>
+                <strong>{label}:</strong>
+                <Link to={`/organizations/${organization.slug}/projects/`}>
+                  <span>
+                    <OrganizationAvatar size={12} organization={organization} />{' '}
+                    {organization.name}
+                  </span>
+                </Link>
+              </DetailsRow>
+            );
+          }
+        }
+        if (key === 'transactionName') {
+          const transactionTarget =
+            project?.slug && transaction?.id && organization
+              ? getTransactionDetailsUrl(
+                  organization.slug,
+                  `${project.slug}:${transaction.id}`
+                )
+              : null;
+          if (transactionTarget) {
+            return (
+              <DetailsRow key={key}>
+                <strong>{label}:</strong>
+                <Link to={transactionTarget}>{value}</Link>
+              </DetailsRow>
+            );
+          }
+        }
+        if (key === 'projectID') {
+          if (project && organization) {
+            return (
+              <DetailsRow key={key}>
+                <strong>{label}:</strong>
+                <Link
+                  to={`/organizations/${organization.slug}/projects/${project.slug}/?project=${project.id}`}
+                >
+                  <FlexRow>
+                    <ProjectAvatar project={project} size={12} /> {project.slug}
+                  </FlexRow>
+                </Link>
+              </DetailsRow>
+            );
+          }
+        }
+
+        if (key === 'release' && value) {
+          const release = value;
+
+          // If a release only contains a version key, then we cannot link to it and
+          // fallback to just displaying the raw version value.
+          if (!organization || (Object.keys(release).length <= 1 && release.version)) {
+            return (
+              <DetailsRow key={key}>
+                <strong>{label}:</strong>
+                <span>{formatVersion(release.version)}</span>
+              </DetailsRow>
+            );
+          }
+          return (
+            <DetailsRow key={key}>
+              <strong>{label}:</strong>
+              <Link
+                to={{
+                  pathname: `/organizations/${
+                    organization.slug
+                  }/releases/${encodeURIComponent(release.version)}/`,
+                  query: {
+                    project: profileGroup.metadata.projectID,
+                  },
+                }}
+              >
+                {formatVersion(release.version)}
+              </Link>
+            </DetailsRow>
+          );
+        }
+
+        // This final fallback is only capabable of rendering a string/undefined/null.
+        // If the value is some other type, make sure not to let it reach here.
+        return (
+          <DetailsRow key={key}>
+            <strong>{label}:</strong>
+            <span>
+              {key === 'platform' ? (
+                <Fragment>
+                  <PlatformIcon size={12} platform={value ?? 'unknown'} />{' '}
+                </Fragment>
+              ) : null}
+              {renderValue(key, value, profileGroup)}
+            </span>
+          </DetailsRow>
+        );
+      })}
+    </DetailsContainer>
   );
 }
 

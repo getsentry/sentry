@@ -3,13 +3,15 @@ from __future__ import annotations
 import hashlib
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Mapping, Optional, Sequence, TypedDict, cast
+from typing import Any, Mapping, Optional, Sequence, Type, TypedDict, cast
 
 from django.utils.timezone import is_aware
 
 from sentry import nodestore
-from sentry.types.issues import GroupType
+from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.utils.dates import parse_timestamp
+
+DEFAULT_LEVEL = "info"
 
 
 class IssueEvidenceData(TypedDict):
@@ -20,6 +22,7 @@ class IssueEvidenceData(TypedDict):
 
 class IssueOccurrenceData(TypedDict):
     id: str
+    project_id: int
     event_id: str
     fingerprint: Sequence[str]
     issue_title: str
@@ -30,6 +33,7 @@ class IssueOccurrenceData(TypedDict):
     type: int
     detection_time: float
     level: Optional[str]
+    culprit: Optional[str]
 
 
 @dataclass(frozen=True)
@@ -62,6 +66,7 @@ class IssueOccurrence:
     """
 
     id: str
+    project_id: int
     # Event id pointing to an event in nodestore
     event_id: str
     fingerprint: Sequence[str]
@@ -76,9 +81,10 @@ class IssueOccurrence:
     # This should be human-readable. One of these entries should be marked as `important` for use
     # in more space restricted integrations.
     evidence_display: Sequence[IssueEvidence]
-    type: GroupType
+    type: Type[GroupType]
     detection_time: datetime
-    level: Optional[str] = None
+    level: str
+    culprit: str
 
     def __post_init__(self) -> None:
         if not is_aware(self.detection_time):
@@ -89,6 +95,7 @@ class IssueOccurrence:
     ) -> IssueOccurrenceData:
         return {
             "id": self.id,
+            "project_id": self.project_id,
             "event_id": self.event_id,
             "fingerprint": self.fingerprint,
             "issue_title": self.issue_title,
@@ -96,15 +103,24 @@ class IssueOccurrence:
             "resource_id": self.resource_id,
             "evidence_data": self.evidence_data,
             "evidence_display": [evidence.to_dict() for evidence in self.evidence_display],
-            "type": self.type.value,
+            "type": self.type.type_id,
             "detection_time": self.detection_time.timestamp(),
             "level": self.level,
+            "culprit": self.culprit,
         }
 
     @classmethod
     def from_dict(cls, data: IssueOccurrenceData) -> IssueOccurrence:
+        # Backwards compatibility - we used to not require this field, so set a default when `None`
+        level = data.get("level")
+        if not level:
+            level = DEFAULT_LEVEL
+        culprit = data.get("culprit")
+        if not culprit:
+            culprit = ""
         return cls(
             data["id"],
+            data["project_id"],
             # We'll always have an event id when loading an issue occurrence
             data["event_id"],
             data["fingerprint"],
@@ -116,9 +132,10 @@ class IssueOccurrence:
                 IssueEvidence(evidence["name"], evidence["value"], evidence["important"])
                 for evidence in data["evidence_display"]
             ],
-            GroupType(data["type"]),
+            get_group_type_by_type_id(data["type"]),
             cast(datetime, parse_timestamp(data["detection_time"])),
-            data.get("level"),
+            level,
+            culprit,
         )
 
     @property
@@ -145,8 +162,8 @@ class IssueOccurrence:
         identifier = hashlib.md5(f"{id_}::{project_id}".encode()).hexdigest()
         return f"i-o:{identifier}"
 
-    def save(self, project_id: int) -> None:
-        nodestore.set(self.build_storage_identifier(self.id, project_id), self.to_dict())
+    def save(self) -> None:
+        nodestore.set(self.build_storage_identifier(self.id, self.project_id), self.to_dict())
 
     @classmethod
     def fetch(cls, id_: str, project_id: int) -> Optional[IssueOccurrence]:

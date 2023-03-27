@@ -1,7 +1,6 @@
-from unittest import mock
-
 from django.core import mail
 
+from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.mail.actions import NotifyEmailAction, NotifyEmailForm
 from sentry.models import OrganizationMember, OrganizationMemberTeam, ProjectOwnership, Rule
 from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
@@ -255,7 +254,9 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
             project=event.project, data={"conditions": [condition_data], "actions": [action_data]}
         )
 
-        with self.tasks():
+        with self.tasks(), self.feature(
+            PerformanceNPlusOneGroupType.build_post_process_group_feature_name()
+        ):
             post_process_group(
                 is_new=True,
                 is_regression=False,
@@ -275,16 +276,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         sent = mail.outbox[0]
         assert sent.to == [self.user.email]
         assert "N+1 Query" in sent.subject
-
-    # XXX(gilbert): remove this later one
-    @mock.patch("sentry.mail.actions.determine_eligible_recipients")
-    def test_release_note_target_type(self, mock_eligible_recipients):
-        mock_eligible_recipients.return_value = [self.user]
-        event = self.get_event()
-        rule = self.get_rule(data={"targetType": ActionTargetType.RELEASE_MEMBERS.value})
-
-        results = list(rule.after(event=event, state=self.get_state()))
-        assert len(results) == 1
 
     def test_hack_mail_workflow(self):
         gil_workflow = self.create_user(email="gilbert@workflow.com", is_active=True)

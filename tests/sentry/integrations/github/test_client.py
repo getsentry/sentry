@@ -76,7 +76,7 @@ class GitHubAppsClientTest(TestCase):
             assert gh_rate_limit.used == 7
             assert gh_rate_limit.next_window() == "17:39:49"
 
-    def test_get_rate_limit_specific_resouces(self):
+    def test_get_rate_limit_non_existant_resouce(self):
         with pytest.raises(AssertionError):
             self.client.get_rate_limit("foo")
 
@@ -176,6 +176,18 @@ class GitHubAppsClientTest(TestCase):
         )
         self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
         assert len(responses.calls) == 5
+        assert responses.calls[1].response.status_code == 200
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @responses.activate
+    def test_get_with_pagination_only_one_page(self, get_jwt):
+        url = f"https://api.github.com/repos/{self.repo.name}/assignees?per_page={self.client.page_size}"
+
+        # No link in the headers because there are no more pages
+        responses.add(method=responses.GET, url=url, json={}, headers={})
+        self.client.get_with_pagination(f"/repos/{self.repo.name}/assignees")
+        # One call is for getting the token for the installation
+        assert len(responses.calls) == 2
         assert responses.calls[1].response.status_code == 200
 
     @mock.patch(

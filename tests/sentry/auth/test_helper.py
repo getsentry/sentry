@@ -20,8 +20,9 @@ from sentry.models import (
     OrganizationMemberTeam,
     UserEmail,
 )
+from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
 from sentry.testutils import TestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, exempt_from_silo_limits
 from sentry.utils import json
 from sentry.utils.redis import clusters
 
@@ -33,6 +34,7 @@ def _set_up_request():
     return request
 
 
+@control_silo_test
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -56,10 +58,14 @@ class AuthIdentityHandlerTest(TestCase):
         return self._handler_with(self.identity)
 
     def _handler_with(self, identity):
+        with exempt_from_silo_limits():
+            rpc_organization = DatabaseBackedOrganizationService.serialize_organization(
+                self.organization
+            )
         return AuthIdentityHandler(
             self.auth_provider,
             DummyProvider(self.provider),
-            self.organization,
+            rpc_organization,
             self.request,
             identity,
         )
@@ -107,7 +113,10 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
         ]
 
     def test_associated_existing_member_invite_by_email(self):
-        member = OrganizationMember.objects.create(organization=self.organization, email=self.email)
+        with exempt_from_silo_limits():
+            member = OrganizationMember.objects.create(
+                organization=self.organization, email=self.email
+            )
 
         auth_identity = self.handler.handle_new_user()
 
@@ -137,9 +146,10 @@ class HandleNewUserTest(AuthIdentityHandlerTest):
     def test_associate_pending_invite(self):
         # The org member invite should have a non matching email, but the
         # member id and token will match from the session, allowing association
-        member = OrganizationMember.objects.create(
-            organization=self.organization, email="different.email@example.com", token="abc"
-        )
+        with exempt_from_silo_limits():
+            member = OrganizationMember.objects.create(
+                organization=self.organization, email="different.email@example.com", token="abc"
+            )
 
         self.request.session["invite_member_id"] = member.id
         self.request.session["invite_token"] = member.token
@@ -220,7 +230,7 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
             ).exists()
 
         assert AuditLogEntry.objects.filter(
-            organization=self.organization,
+            organization_id=self.organization.id,
             target_object=auth_identity.id,
             event=audit_log.get_event_id("SSO_IDENTITY_LINK"),
             data=auth_identity.get_audit_log_data(),
@@ -233,15 +243,19 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
     @mock.patch("sentry.auth.helper.messages")
     def test_new_identity_with_existing_om(self, mock_messages):
         user = self.set_up_user()
-        existing_om = OrganizationMember.objects.create(user=user, organization=self.organization)
+        with exempt_from_silo_limits():
+            existing_om = OrganizationMember.objects.create(
+                user=user, organization=self.organization
+            )
 
         auth_identity = self.handler.handle_attach_identity()
         assert auth_identity.ident == self.identity["id"]
         assert auth_identity.data == self.identity["data"]
 
-        persisted_om = OrganizationMember.objects.get(id=existing_om.id)
-        assert getattr(persisted_om.flags, "sso:linked")
-        assert not getattr(persisted_om.flags, "sso:invalid")
+        with exempt_from_silo_limits():
+            persisted_om = OrganizationMember.objects.get(id=existing_om.id)
+            assert getattr(persisted_om.flags, "sso:linked")
+            assert not getattr(persisted_om.flags, "sso:invalid")
 
         mock_messages.add_message.assert_called_with(
             self.request, mock_messages.SUCCESS, OK_LINK_IDENTITY
@@ -262,7 +276,8 @@ class HandleAttachIdentityTest(AuthIdentityHandlerTest):
         AuthIdentity.objects.create(
             user=other_user, auth_provider=self.auth_provider, ident=self.identity["id"]
         )
-        OrganizationMember.objects.create(user=other_user, organization=self.organization)
+        with exempt_from_silo_limits():
+            OrganizationMember.objects.create(user=other_user, organization=self.organization)
 
         returned_identity = self.handler.handle_attach_identity()
         assert returned_identity.user == request_user
@@ -298,7 +313,9 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         assert request is self.request
         assert status == 200
 
-        assert context["organization"] is self.organization
+        expected_org = DatabaseBackedOrganizationService.serialize_organization(self.organization)
+
+        assert context["organization"] == expected_org
         assert context["identity"] == self.identity
         assert context["provider"] == self.auth_provider.get_provider().name
         assert context["identity_display_name"] == self.identity["name"]
@@ -334,10 +351,15 @@ class HandleUnknownIdentityTest(AuthIdentityHandlerTest):
         existing_user.update(password="")
 
         context = self._test_simple(mock_render, "sentry/auth-confirm-account.html")
-        mock_create_key.assert_called_with(
-            existing_user, self.organization, self.auth_provider, self.email, "1234"
-        )
-        assert context["existing_user"] == existing_user
+        assert mock_create_key.call_count == 1
+        (user, org, provider, email, identity_id) = mock_create_key.call_args.args
+        assert user.id == existing_user.id
+        assert org.id == self.organization.id
+        assert provider.id == self.auth_provider.id
+        assert email == self.email
+        assert identity_id == self.identity["id"]
+
+        assert context["existing_user"].id == existing_user.id
         assert "login_form" in context
 
     @mock.patch("sentry.auth.helper.render_to_response")

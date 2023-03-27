@@ -50,11 +50,7 @@ default_manager.add(
         event_id=20, name="TEAM_ADD", api_name="team.create", template="created team {slug}"
     )
 )
-default_manager.add(
-    AuditLogEvent(
-        event_id=21, name="TEAM_EDIT", api_name="team.edit", template="edited team {slug}"
-    )
-)
+default_manager.add(events.TeamEditAuditLogEvent())
 default_manager.add(
     AuditLogEvent(
         event_id=22, name="TEAM_REMOVE", api_name="team.remove", template="removed team {slug}"
@@ -315,5 +311,29 @@ default_manager.add(
         name="SAMPLING_BIAS_DISABLED",
         api_name="sampling_priority.disabled",
         template='disabled dynamic sampling priority "{name}"',
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=165,
+        name="NOTIFICATION_ACTION_ADD",
+        api_name="notification_action.create",
+        template="added an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=166,
+        name="NOTIFICATION_ACTION_EDIT",
+        api_name="notification_action.edit",
+        template="edited an action with the '{trigger}' trigger",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=167,
+        name="NOTIFICATION_ACTION_REMOVE",
+        api_name="notification_action.remove",
+        template="removed an action with the '{trigger}' trigger",
     )
 )

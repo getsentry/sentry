@@ -1,10 +1,10 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectIssues from 'sentry/views/projectDetail/projectIssues';
 
 describe('ProjectDetail > ProjectIssues', function () {
-  let endpointMock, filteredEndpointMock;
+  let endpointMock, filteredEndpointMock, newIssuesEndpointMock;
   const {organization, router, routerContext} = initializeOrg({
     organization: {
       features: ['discover-basic'],
@@ -19,6 +19,11 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     filteredEndpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/?environment=staging&limit=5&query=error.unhandled%3Atrue%20is%3Aunresolved&sort=freq&statsPeriod=7d`,
+      body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
+    });
+
+    newIssuesEndpointMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/?limit=5&query=is%3Aunresolved%20is%3Afor_review&sort=freq&statsPeriod=14d`,
       body: [TestStubs.Group(), TestStubs.Group({id: '2'})],
     });
 
@@ -46,7 +51,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     expect(await screen.findAllByTestId('group')).toHaveLength(2);
   });
 
-  it('renders a link to Issues', function () {
+  it('renders a link to Issues', async function () {
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
       organization,
@@ -54,7 +59,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: '/organizations/org-slug/issues/',
@@ -67,7 +72,29 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('renders a link to Discover', function () {
+  it('renders a segmented control', async function () {
+    render(<ProjectIssues organization={organization} location={router.location} />, {
+      context: routerContext,
+      organization,
+    });
+
+    // "Unhandled" segment is selected
+    const unhandledSegment = screen.getByRole('radio', {name: 'Unhandled 0'});
+    expect(unhandledSegment).toBeInTheDocument();
+    expect(unhandledSegment).toBeChecked();
+
+    // Select "New Issues" segment
+    const newIssuesSegment = screen.getByRole('radio', {name: 'New Issues 0'});
+    expect(newIssuesSegment).toBeInTheDocument();
+    expect(newIssuesSegment).not.toBeChecked();
+
+    await userEvent.click(newIssuesSegment);
+    await waitFor(() => expect(newIssuesSegment).toBeChecked());
+
+    expect(newIssuesEndpointMock).toHaveBeenCalled();
+  });
+
+  it('renders a link to Discover', async function () {
     render(<ProjectIssues organization={organization} location={router.location} />, {
       context: routerContext,
       organization,
@@ -75,7 +102,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Discover');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/discover/results/`,
@@ -90,7 +117,7 @@ describe('ProjectDetail > ProjectIssues', function () {
     });
   });
 
-  it('changes according to global header', function () {
+  it('changes according to global header', async function () {
     render(
       <ProjectIssues
         organization={organization}
@@ -106,7 +133,7 @@ describe('ProjectDetail > ProjectIssues', function () {
 
     const link = screen.getByLabelText('Open in Issues');
     expect(link).toBeInTheDocument();
-    userEvent.click(link);
+    await userEvent.click(link);
 
     expect(router.push).toHaveBeenCalledWith({
       pathname: `/organizations/${organization.slug}/issues/`,

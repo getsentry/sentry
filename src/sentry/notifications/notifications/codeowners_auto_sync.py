@@ -1,17 +1,14 @@
 from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Iterable, Mapping, MutableMapping
-from urllib.parse import urljoin
 
 from sentry.notifications.notifications.base import ProjectNotification
 from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.db.models import Model
-    from sentry.models import Team, User
 
 
 class AutoSyncNotification(ProjectNotification):
@@ -19,8 +16,8 @@ class AutoSyncNotification(ProjectNotification):
     notification_setting_type = NotificationSettingTypes.DEPLOY
     template_path = "sentry/emails/codeowners-auto-sync-failure"
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
-        return self.organization.get_owners()  # type: ignore
+    def determine_recipients(self) -> Iterable[RpcActor]:
+        return [RpcActor.from_rpc_user(owner) for owner in self.organization.get_owners()]
 
     @property
     def reference(self) -> Model | None:
@@ -37,15 +34,11 @@ class AutoSyncNotification(ProjectNotification):
         return {"project_name": self.project.name}
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
-        context["url"] = str(
-            urljoin(
-                absolute_uri(
-                    f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/"
-                ),
-                self.get_sentry_query_params(ExternalProviders.EMAIL, recipient),
-            )
+        context["url"] = self.organization.absolute_url(
+            f"/settings/{self.organization.slug}/projects/{self.project.slug}/ownership/",
+            query=self.get_sentry_query_params(ExternalProviders.EMAIL, recipient),
         )
         return context

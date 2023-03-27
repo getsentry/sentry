@@ -1,19 +1,21 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {
-  UseVirtualizedListProps,
   useVirtualizedTree,
+  UseVirtualizedTreeProps,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
 import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 
 import {FrameCallersTableCell} from './flamegraphDrawer';
 import {FlamegraphTreeContextMenu} from './flamegraphTreeContextMenu';
@@ -134,12 +136,17 @@ export function FlamegraphTreeTable({
     }
 
     canvasPoolManager.dispatch('highlight frame', [
-      flamegraph.findAllMatchingFrames(clickedContextMenuNode.node),
+      flamegraph.findAllMatchingFrames(
+        clickedContextMenuNode.node.frame.name,
+        clickedContextMenuNode.node.frame.package ??
+          clickedContextMenuNode.node.frame.module ??
+          ''
+      ),
       'selected',
     ]);
   }, [canvasPoolManager, clickedContextMenuNode, flamegraph]);
 
-  const renderRow: UseVirtualizedListProps<FlamegraphFrame>['renderRow'] = useCallback(
+  const renderRow: UseVirtualizedTreeProps<FlamegraphFrame>['renderRow'] = useCallback(
     (
       r,
       {
@@ -175,6 +182,42 @@ export function FlamegraphTreeTable({
     [contextMenu, formatDuration, referenceNode, getFrameColor]
   );
 
+  // This is slighlty unfortunate and ugly, but because our two columns are sticky
+  // we need to scroll the container to the left when we scroll to a node. This
+  // should be resolved when we split the virtualization between containers and sync scroll,
+  // but is a larger undertaking and will take a bit longer
+  const onScrollToNode: UseVirtualizedTreeProps<FlamegraphFrame>['onScrollToNode'] =
+    useCallback(
+      (
+        node: VirtualizedTreeRenderedRow<FlamegraphFrame> | undefined,
+        scrollContainer: HTMLElement | null,
+        coordinates?: {depth: number; top: number}
+      ) => {
+        if (node) {
+          const lastCell = node.ref?.lastChild?.firstChild as
+            | HTMLElement
+            | null
+            | undefined;
+          if (lastCell) {
+            lastCell.scrollIntoView({
+              block: 'nearest',
+            });
+
+            const left = -328 + (node.item.depth * 14 + 8);
+            scrollContainer?.scrollBy({
+              left,
+            });
+          }
+        } else if (coordinates) {
+          const left = -328 + (coordinates.depth * 14 + 8);
+          scrollContainer?.scrollBy({
+            left,
+          });
+        }
+      },
+      []
+    );
+
   const {
     renderedItems,
     scrollContainerStyles,
@@ -187,6 +230,7 @@ export function FlamegraphTreeTable({
     expanded,
     skipFunction: recursion === 'collapsed' ? skipRecursiveNodes : undefined,
     sortFunction,
+    onScrollToNode,
     renderRow,
     scrollContainer: scrollContainerRef,
     rowHeight: 24,
@@ -222,6 +266,7 @@ export function FlamegraphTreeTable({
         <FrameCallersTableHeader>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('self weight')}>
+              <InteractionStateLayer />
               <span>
                 {t('Self Time')}{' '}
                 <QuestionTooltip
@@ -239,6 +284,7 @@ export function FlamegraphTreeTable({
           </FrameWeightCell>
           <FrameWeightCell>
             <TableHeaderButton onClick={() => onSortChange('total weight')}>
+              <InteractionStateLayer />
               <span>
                 {t('Total Time')}{' '}
                 <QuestionTooltip
@@ -256,6 +302,7 @@ export function FlamegraphTreeTable({
           </FrameWeightCell>
           <FrameNameCell>
             <TableHeaderButton onClick={() => onSortChange('name')}>
+              <InteractionStateLayer />
               {t('Frame')}{' '}
               {sort === 'name' ? (
                 <IconArrow direction={direction === 'desc' ? 'down' : 'up'} />
@@ -323,13 +370,9 @@ const TableHeaderButton = styled('button')`
   justify-content: space-between;
   padding: 0 ${space(1)};
   border: none;
-  background-color: ${props => props.theme.surface100};
+  background-color: ${props => props.theme.surface200};
   transition: background-color 100ms ease-in-out;
   line-height: 24px;
-
-  &:hover {
-    background-color: ${props => props.theme.surface400};
-  }
 
   svg {
     width: 10px;
@@ -341,7 +384,7 @@ const FrameBar = styled('div')`
   overflow: auto;
   width: 100%;
   position: relative;
-  background-color: ${p => p.theme.surface100};
+  background-color: ${p => p.theme.surface200};
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
   grid-area: table;

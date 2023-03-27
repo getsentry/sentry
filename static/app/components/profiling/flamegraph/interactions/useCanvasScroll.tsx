@@ -1,14 +1,15 @@
 import {useCallback} from 'react';
-import {mat3, vec2} from 'gl-matrix';
 
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import {getTranslationMatrixFromPhysicalSpace} from 'sentry/utils/profiling/gl/utils';
 
 export function useCanvasScroll(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
-  canvasPoolManager: CanvasPoolManager
+  canvasPoolManager: CanvasPoolManager,
+  disablePanX: boolean = false
 ) {
   const onCanvasScroll = useCallback(
     (evt: WheelEvent) => {
@@ -16,31 +17,38 @@ export function useCanvasScroll(
         return;
       }
 
-      {
-        const physicalDelta = vec2.fromValues(evt.deltaX * 0.8, evt.deltaY);
-        const physicalToConfig = mat3.invert(
-          mat3.create(),
-          view.fromConfigView(canvas.physicalSpace)
-        );
-        const [m00, m01, m02, m10, m11, m12] = physicalToConfig;
+      const direction =
+        Math.abs(evt.deltaY) > Math.abs(evt.deltaX) ? 'vertical' : 'horizontal';
+      const scrollDirection = evt.deltaY > 0 ? 'down' : 'up';
 
-        const configDelta = vec2.transformMat3(vec2.create(), physicalDelta, [
-          m00,
-          m01,
-          m02,
-          m10,
-          m11,
-          m12,
-          0,
-          0,
-          0,
-        ]);
-
-        const translate = mat3.fromTranslation(mat3.create(), configDelta);
-        canvasPoolManager.dispatch('transform config view', [translate, view]);
+      if (
+        view.isViewAtTopEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'up'
+      ) {
+        return;
       }
+      if (
+        view.isViewAtBottomEdgeOf(view.configSpace) &&
+        direction === 'vertical' &&
+        scrollDirection === 'down'
+      ) {
+        return;
+      }
+
+      // Prevent scrolling the page and only scroll the canvas
+      evt.preventDefault();
+      canvasPoolManager.dispatch('transform config view', [
+        getTranslationMatrixFromPhysicalSpace(
+          disablePanX ? 0 : evt.deltaX,
+          evt.deltaY,
+          view,
+          canvas
+        ),
+        view,
+      ]);
     },
-    [canvas, view, canvasPoolManager]
+    [canvas, view, canvasPoolManager, disablePanX]
   );
 
   return onCanvasScroll;

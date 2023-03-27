@@ -1,14 +1,12 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime
 from time import sleep, time
 from typing import Any, List, Mapping, MutableMapping, Optional, Tuple
 
 import sentry_sdk
-from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
-from arroyo.types import Topic
 from django.conf import settings
-from django.utils import timezone
 from pytz import UTC
 from symbolic import ProguardMapper  # type: ignore
 
@@ -21,13 +19,11 @@ from sentry.profiles.utils import get_from_profiling_service
 from sentry.signals import first_profile_received
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.symbolication import RetrySymbolication
-from sentry.utils import json, kafka_config, metrics
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome, track_outcome
 
 Profile = MutableMapping[str, Any]
 CallTrees = Mapping[str, List[Any]]
-
-_profiles_kafka_producer = None
 
 
 class VroomTimeout(Exception):
@@ -49,126 +45,43 @@ def process_profile_task(
     profile: Profile,
     **kwargs: Any,
 ) -> None:
+    organization = Organization.objects.get_from_cache(id=profile["organization_id"])
+
+    sentry_sdk.set_tag("organization", organization.id)
+    sentry_sdk.set_tag("organization.slug", organization.slug)
+
     project = Project.objects.get_from_cache(id=profile["project_id"])
+
+    sentry_sdk.set_tag("project", project.id)
+    sentry_sdk.set_tag("project.slug", project.slug)
+
     event_id = profile["event_id"] if "event_id" in profile else profile["profile_id"]
 
     sentry_sdk.set_context(
-        "profile",
+        "profile_metadata",
         {
             "organization_id": profile["organization_id"],
             "project_id": profile["project_id"],
             "profile_id": event_id,
         },
     )
+
     sentry_sdk.set_tag("platform", profile["platform"])
+    sentry_sdk.set_tag("format", "sample" if "version" in profile else "legacy")
 
-    try:
-        if _should_symbolicate(profile):
-            if "debug_meta" not in profile or not profile["debug_meta"]:
-                metrics.incr(
-                    "process_profile.missing_keys.debug_meta",
-                    tags={"platform": profile["platform"]},
-                    sample_rate=1.0,
-                )
-                return
-
-            raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
-            modules, stacktraces = _symbolicate(
-                project=project,
-                profile_id=event_id,
-                modules=raw_modules,
-                stacktraces=raw_stacktraces,
-            )
-
-            _process_symbolicator_results(profile=profile, modules=modules, stacktraces=stacktraces)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_symbolication",
-        )
+    if not _symbolicate_profile(profile, project, event_id):
         return
 
-    try:
-        if _should_deobfuscate(profile):
-            if "profile" not in profile or not profile["profile"]:
-                metrics.incr(
-                    "process_profile.missing_keys.profile",
-                    tags={"platform": profile["platform"]},
-                    sample_rate=1.0,
-                )
-                return
-
-            _deobfuscate(profile=profile, project=project)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_deobfuscation",
-        )
+    if not _deobfuscate_profile(profile, project):
         return
 
-    organization = Organization.objects.get_from_cache(id=project.organization_id)
-
-    try:
-        _normalize(profile=profile, organization=organization)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_normalization",
-        )
+    if not _normalize_profile(profile, organization, project):
         return
 
-    if not _insert_vroom_profile(profile=profile):
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="profiling_failed_vroom_insertion",
-        )
-        return
-
-    _initialize_producer()
-
-    try:
-        _insert_eventstream_call_tree(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-functions",
-        )
-        return
-
-    try:
-        _insert_eventstream_profile(profile=profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        _track_outcome(
-            profile=profile,
-            project=project,
-            outcome=Outcome.INVALID,
-            reason="failed-to-produce-metadata",
-        )
+    if not _push_profile_to_vroom(profile, project):
         return
 
     _track_outcome(profile=profile, project=project, outcome=Outcome.ACCEPTED)
-
-    metrics.gauge(
-        "process_profile.kafka_producer.queue.size",
-        len(_profiles_kafka_producer._KafkaProducer__producer),  # type: ignore
-        sample_rate=1.0,
-    )
 
 
 SHOULD_SYMBOLICATE = frozenset(["cocoa", "rust"])
@@ -177,17 +90,108 @@ SHOULD_DEOBFUSCATE = frozenset(["android"])
 
 def _should_symbolicate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in SHOULD_SYMBOLICATE
+    return platform in SHOULD_SYMBOLICATE and not profile.get("symbolicated", False)
 
 
 def _should_deobfuscate(profile: Profile) -> bool:
     platform: str = profile["platform"]
-    return platform in SHOULD_DEOBFUSCATE
+    return platform in SHOULD_DEOBFUSCATE and not profile.get("deobfuscated", False)
+
+
+def _symbolicate_profile(profile: Profile, project: Project, event_id: str) -> bool:
+    if not _should_symbolicate(profile):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.symbolicate"):
+        try:
+            if "debug_meta" not in profile or not profile["debug_meta"]:
+                metrics.incr(
+                    "process_profile.missing_keys.debug_meta",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
+                return True
+
+            # WARNING(loewenheim): This function call may mutate `profile`'s frame list!
+            # See comments in the function for why this happens.
+            raw_modules, raw_stacktraces = _prepare_frames_from_profile(profile)
+            modules, stacktraces, success = _symbolicate(
+                project=project,
+                profile_id=event_id,
+                modules=raw_modules,
+                stacktraces=raw_stacktraces,
+            )
+
+            if success:
+                _process_symbolicator_results(
+                    profile=profile, modules=modules, stacktraces=stacktraces
+                )
+
+            profile["symbolicated"] = True
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            metrics.incr("process_profile.symbolicate.error", sample_rate=1.0)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_symbolication",
+            )
+            return False
+
+
+def _deobfuscate_profile(profile: Profile, project: Project) -> bool:
+    if not _should_deobfuscate(profile):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.deobfuscate"):
+        try:
+            if "profile" not in profile or not profile["profile"]:
+                metrics.incr(
+                    "process_profile.missing_keys.profile",
+                    tags={"platform": profile["platform"]},
+                    sample_rate=1.0,
+                )
+                return True
+
+            _deobfuscate(profile=profile, project=project)
+            profile["deobfuscated"] = True
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_deobfuscation",
+            )
+            return False
+
+
+def _normalize_profile(profile: Profile, organization: Organization, project: Project) -> bool:
+    if profile.get("normalized", False):
+        return True
+
+    with sentry_sdk.start_span(op="task.profiling.normalize"):
+        try:
+            _normalize(profile=profile, organization=organization)
+            profile["normalized"] = True
+            return True
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            _track_outcome(
+                profile=profile,
+                project=project,
+                outcome=Outcome.INVALID,
+                reason="profiling_failed_normalization",
+            )
+            return False
 
 
 @metrics.wraps("process_profile.normalize")
 def _normalize(profile: Profile, organization: Organization) -> None:
-    profile["retention_days"] = quotas.get_event_retention(organization=organization)
+    profile["retention_days"] = quotas.get_event_retention(organization=organization) or 90
 
     if profile["platform"] in {"cocoa", "android"}:
         classification_options = dict()
@@ -223,34 +227,63 @@ def _normalize(profile: Profile, organization: Organization) -> None:
 
 
 def _prepare_frames_from_profile(profile: Profile) -> Tuple[List[Any], List[Any]]:
-    modules = profile["debug_meta"]["images"]
+    with sentry_sdk.start_span(op="task.profiling.symbolicate.prepare_frames"):
+        modules = profile["debug_meta"]["images"]
 
-    # in the sample format, we have a frames key containing all the frames
-    if "version" in profile:
-        stacktraces = [{"registers": {}, "frames": profile["profile"]["frames"]}]
-    # in the original format, we need to gather frames from all samples
-    else:
-        stacktraces = [
-            {
-                "registers": {},
-                "frames": s["frames"],
-            }
-            for s in profile["sampled_profile"]["samples"]
-        ]
-    return (modules, stacktraces)
+        # NOTE: the usage of `adjust_instruction_addr` assumes that all
+        # the profilers on all the platforms are walking stacks right from a
+        # suspended threads cpu context
+
+        # in the sample format, we have a frames key containing all the frames
+        if "version" in profile:
+            frames = profile["profile"]["frames"]
+
+            for stack in profile["profile"]["stacks"]:
+                if len(stack) > 0:
+                    # Make a deep copy of the leaf frame with adjust_instruction_addr = False
+                    # and append it to the list. This ensures correct behavior
+                    # if the leaf frame also shows up in the middle of another stack.
+                    first_frame_idx = stack[0]
+                    frame = deepcopy(frames[first_frame_idx])
+                    frame["adjust_instruction_addr"] = False
+                    frames.append(frame)
+                    stack[0] = len(frames) - 1
+
+            stacktraces = [{"registers": {}, "frames": frames}]
+        # in the original format, we need to gather frames from all samples
+        else:
+            stacktraces = []
+            for s in profile["sampled_profile"]["samples"]:
+                frames = s["frames"]
+
+                if len(frames) > 0:
+                    frames[0]["adjust_instruction_addr"] = False
+
+                stacktraces.append(
+                    {
+                        "registers": {},
+                        "frames": frames,
+                    }
+                )
+        return (modules, stacktraces)
 
 
 @metrics.wraps("process_profile.symbolicate.request")
 def _symbolicate(
     project: Project, profile_id: str, modules: List[Any], stacktraces: List[Any]
-) -> Tuple[List[Any], List[Any]]:
+) -> Tuple[List[Any], List[Any], bool]:
     symbolicator = Symbolicator(project=project, event_id=profile_id)
     symbolication_start_time = time()
 
     while True:
         try:
-            response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
-            return (response.get("modules", modules), response.get("stacktraces", stacktraces))
+            with sentry_sdk.start_span(op="task.profiling.symbolicate.process_payload"):
+                response = symbolicator.process_payload(stacktraces=stacktraces, modules=modules)
+                return (
+                    response.get("modules", modules),
+                    response.get("stacktraces", stacktraces),
+                    True,
+                )
         except RetrySymbolication as e:
             if (
                 time() - symbolication_start_time
@@ -267,27 +300,28 @@ def _symbolicate(
                 continue
 
     # returns the unsymbolicated data to avoid errors later
-    return (modules, stacktraces)
+    return (modules, stacktraces, False)
 
 
 @metrics.wraps("process_profile.symbolicate.process")
 def _process_symbolicator_results(
     profile: Profile, modules: List[Any], stacktraces: List[Any]
 ) -> None:
-    # update images with status after symbolication
-    profile["debug_meta"]["images"] = modules
+    with sentry_sdk.start_span(op="task.profiling.symbolicate.process_results"):
+        # update images with status after symbolication
+        profile["debug_meta"]["images"] = modules
 
-    if "version" in profile:
-        _process_symbolicator_results_for_sample(profile, stacktraces)
-        return
+        if "version" in profile:
+            _process_symbolicator_results_for_sample(profile, stacktraces)
+            return
 
-    if profile["platform"] == "rust":
-        _process_symbolicator_results_for_rust(profile, stacktraces)
-    elif profile["platform"] == "cocoa":
-        _process_symbolicator_results_for_cocoa(profile, stacktraces)
+        if profile["platform"] == "rust":
+            _process_symbolicator_results_for_rust(profile, stacktraces)
+        elif profile["platform"] == "cocoa":
+            _process_symbolicator_results_for_cocoa(profile, stacktraces)
 
-    # rename the profile key to suggest it has been processed
-    profile["profile"] = profile.pop("sampled_profile")
+        # rename the profile key to suggest it has been processed
+        profile["profile"] = profile.pop("sampled_profile")
 
 
 def _process_symbolicator_results_for_sample(profile: Profile, stacktraces: List[Any]) -> None:
@@ -435,46 +469,51 @@ def _deobfuscate(profile: Profile, project: Project) -> None:
     if debug_file_id is None or debug_file_id == "":
         return
 
-    dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [debug_file_id], features=["mapping"])
-    debug_file_path = dif_paths.get(debug_file_id)
-    if debug_file_path is None:
-        return
-
-    mapper = ProguardMapper.open(debug_file_path)
-    if not mapper.has_line_info:
-        return
-
-    for method in profile["profile"]["methods"]:
-        mapped = mapper.remap_frame(
-            method["class_name"], method["name"], method["source_line"] or 0
+    with sentry_sdk.start_span(op="proguard.fetch_debug_files"):
+        dif_paths = ProjectDebugFile.difcache.fetch_difs(
+            project, [debug_file_id], features=["mapping"]
         )
-        if len(mapped) == 1:
-            new_frame = mapped[0]
-            method.update(
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": new_frame.file,
-                    "source_line": new_frame.line,
-                }
+        debug_file_path = dif_paths.get(debug_file_id)
+        if debug_file_path is None:
+            return
+
+    with sentry_sdk.start_span(op="proguard.open"):
+        mapper = ProguardMapper.open(debug_file_path)
+        if not mapper.has_line_info:
+            return
+
+    with sentry_sdk.start_span(op="proguard.remap"):
+        for method in profile["profile"]["methods"]:
+            mapped = mapper.remap_frame(
+                method["class_name"], method["name"], method["source_line"] or 0
             )
-        elif len(mapped) > 1:
-            bottom_class = mapped[-1].class_name
-            method["inline_frames"] = [
-                {
-                    "class_name": new_frame.class_name,
-                    "name": new_frame.method,
-                    "source_file": method["source_file"]
-                    if bottom_class == new_frame.class_name
-                    else None,
-                    "source_line": new_frame.line,
-                }
-                for new_frame in mapped
-            ]
-        else:
-            mapped = mapper.remap_class(method["class_name"])
-            if mapped:
-                method["class_name"] = mapped
+            if len(mapped) == 1:
+                new_frame = mapped[0]
+                method.update(
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": new_frame.file,
+                        "source_line": new_frame.line,
+                    }
+                )
+            elif len(mapped) > 1:
+                bottom_class = mapped[-1].class_name
+                method["inline_frames"] = [
+                    {
+                        "class_name": new_frame.class_name,
+                        "name": new_frame.method,
+                        "source_file": method["source_file"]
+                        if bottom_class == new_frame.class_name
+                        else None,
+                        "source_line": new_frame.line,
+                    }
+                    for new_frame in mapped
+                ]
+            else:
+                mapped = mapper.remap_class(method["class_name"])
+                if mapped:
+                    method["class_name"] = mapped
 
 
 @metrics.wraps("process_profile.track_outcome")
@@ -505,150 +544,43 @@ def _track_outcome(
     )
 
 
-@metrics.wraps("process_profile.initialize_producer")
-def _initialize_producer() -> None:
-    global _profiles_kafka_producer
-
-    if _profiles_kafka_producer is None:
-        config = settings.KAFKA_TOPICS[settings.KAFKA_PROFILES]
-        _profiles_kafka_producer = KafkaProducer(
-            kafka_config.get_kafka_producer_cluster_options(config["cluster"]),
-        )
-
-
-@metrics.wraps("process_profile.insert_eventstream.profile")
-def _insert_eventstream_profile(profile: Profile) -> None:
-    """
-    TODO: This function directly publishes the profile to kafka.
-    We'll want to look into the existing eventstream abstraction
-    so we can take advantage of nodestore at some point for single
-    profile access.
-    """
-
-    # just a guard as this should always be initialized already
-    if _profiles_kafka_producer is None:
-        return
-
-    f = _profiles_kafka_producer.produce(
-        Topic(name="processed-profiles"),
-        KafkaPayload(key=None, value=json.dumps(profile).encode("utf-8"), headers=[]),
-    )
-    f.exception()
-
-
-@metrics.wraps("process_profile.insert_eventstream.call_tree")
-def _insert_eventstream_call_tree(profile: Profile) -> None:
-    # just a guard as this should always be initialized already
-    if _profiles_kafka_producer is None:
-        return
-
-    # call_trees is empty because of an error earlier, skip aggregation
-    if not profile.get("call_trees"):
-        return
-
-    try:
-        if "version" in profile:
-            event = _get_event_instance_for_sample(profile)
-        else:
-            event = _get_event_instance_for_legacy(profile)
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        return
-    finally:
-        # Assumes that the call tree is inserted into the
-        # event stream before the profile is inserted into
-        # the event stream.
-        #
-        # After inserting the call tree, we no longer need
-        # it, but if we don't delete it here, it will be
-        # inserted in the profile payload making it larger
-        # and slower.
-        del profile["call_trees"]
-
-    f = _profiles_kafka_producer.produce(
-        Topic(name="profiles-call-tree"),
-        KafkaPayload(key=None, value=json.dumps(event).encode("utf-8"), headers=[]),
-    )
-    f.exception()
-
-
-@metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance_for_sample(profile: Profile) -> Any:
-    return {
-        "call_trees": profile["call_trees"],
-        "environment": profile.get("environment"),
-        "os_name": profile["os"]["name"],
-        "os_version": profile["os"]["version"],
-        "platform": profile["platform"],
-        "profile_id": profile["event_id"],
-        "project_id": profile["project_id"],
-        "release": profile["release"],
-        "retention_days": profile["retention_days"],
-        "timestamp": profile["received"],
-        "transaction_name": profile["transactions"][0]["name"],
-    }
-
-
-@metrics.wraps("process_profile.get_event_instance")
-def _get_event_instance_for_legacy(profile: Profile) -> Any:
-    return {
-        "call_trees": profile["call_trees"],
-        "environment": profile.get("environment"),
-        "os_name": profile["device_os_name"],
-        "os_version": profile["device_os_version"],
-        "platform": profile["platform"],
-        "profile_id": profile["profile_id"],
-        "project_id": profile["project_id"],
-        "release": f"{profile['version_name']} ({profile['version_code']})"
-        if profile["version_code"]
-        else profile["version_name"],
-        "retention_days": profile["retention_days"],
-        "timestamp": profile["received"],
-        "transaction_name": profile["transaction_name"],
-    }
-
-
 @metrics.wraps("process_profile.insert_vroom_profile")
 def _insert_vroom_profile(profile: Profile) -> bool:
-    original_timestamp = profile["received"]
+    with sentry_sdk.start_span(op="task.profiling.insert_vroom"):
+        try:
+            response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
 
-    try:
-        profile["received"] = (
-            datetime.utcfromtimestamp(profile["received"]).replace(tzinfo=timezone.utc).isoformat()
-        )
-
-        response = get_from_profiling_service(method="POST", path="/profile", json_data=profile)
-
-        if response.status == 204:
-            profile["call_trees"] = {}
-        elif response.status == 200:
-            profile["call_trees"] = json.loads(response.data, use_rapid_json=True)["call_trees"]
-        elif response.status == 429:
-            raise VroomTimeout
-        else:
+            if response.status == 204:
+                return True
+            elif response.status == 429:
+                raise VroomTimeout
+            else:
+                metrics.incr(
+                    "process_profile.insert_vroom_profile.error",
+                    tags={"platform": profile["platform"], "reason": "bad status"},
+                    sample_rate=1.0,
+                )
+                return False
+        except VroomTimeout:
+            raise
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
             metrics.incr(
                 "process_profile.insert_vroom_profile.error",
-                tags={"platform": profile["platform"], "reason": "bad status"},
+                tags={"platform": profile["platform"], "reason": "encountered error"},
                 sample_rate=1.0,
             )
             return False
-        return True
-    except RecursionError as e:
-        sentry_sdk.capture_exception(e)
-        return True
-    except VroomTimeout:
-        raise
-    except Exception as e:
-        sentry_sdk.capture_exception(e)
-        metrics.incr(
-            "process_profile.insert_vroom_profile.error",
-            tags={"platform": profile["platform"], "reason": "encountered error"},
-            sample_rate=1.0,
-        )
-        return False
-    finally:
-        profile["received"] = original_timestamp
 
-        # remove keys we don't need anymore for snuba
-        for k in {"profile", "debug_meta"}:
-            profile.pop(k, None)
+
+def _push_profile_to_vroom(profile: Profile, project: Project) -> bool:
+    if _insert_vroom_profile(profile=profile):
+        return True
+
+    _track_outcome(
+        profile=profile,
+        project=project,
+        outcome=Outcome.INVALID,
+        reason="profiling_failed_vroom_insertion",
+    )
+    return False

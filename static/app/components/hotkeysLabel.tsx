@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 import toArray from 'sentry/utils/toArray';
 

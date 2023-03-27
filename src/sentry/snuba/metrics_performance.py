@@ -124,7 +124,16 @@ def timeseries_query(
                 params["end"],
                 rollup,
             )
-    return SnubaTSResult()
+    return SnubaTSResult(
+        {
+            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            if zerofill_results
+            else [],
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
 
 
 def histogram_query(

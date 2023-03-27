@@ -1,29 +1,36 @@
 import {CSSProperties, useCallback} from 'react';
 import styled from '@emotion/styled';
+import beautify from 'js-beautify';
 
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import BreadcrumbIcon from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/type/icon';
-import HTMLCode from 'sentry/components/htmlCode';
 import {getDetails} from 'sentry/components/replays/breadcrumbs/utils';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
-import {SVGIconProps} from 'sentry/icons/svgIcon';
-import space from 'sentry/styles/space';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
+import {space} from 'sentry/styles/space';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {Extraction} from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
+import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type Props = {
+  isCurrent: boolean;
+  isHovered: boolean;
   mutation: Extraction;
-  mutations: Extraction[];
   startTimestampMs: number;
   style: CSSProperties;
 };
 
-function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
+function DomMutationRow({
+  isCurrent,
+  isHovered,
+  mutation,
+  startTimestampMs,
+  style,
+}: Props) {
   const {html, crumb: breadcrumb} = mutation;
 
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
 
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -41,27 +48,8 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
     [handleMouseLeave, breadcrumb]
   );
 
-  const breadcrumbs = mutations.map(({crumb}) => crumb);
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
-
   const hasOccurred =
     currentTime >= relativeTimeInMs(breadcrumb.timestamp || 0, startTimestampMs);
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
 
   const {title} = getDetails(breadcrumb);
 
@@ -87,7 +75,9 @@ function DomMutationRow({mutation, mutations, startTimestampMs, style}: Props) {
         </Row>
         <Selector>{breadcrumb.message}</Selector>
         <CodeContainer>
-          <HTMLCode code={html} />
+          <CodeSnippet language="html" hideCopyButton>
+            {beautify.html(html, {indent_size: 2})}
+          </CodeSnippet>
         </CodeContainer>
       </List>
     </MutationListItem>
@@ -151,26 +141,6 @@ const List = styled('div')`
 const Row = styled('div')`
   display: flex;
   flex-direction: row;
-`;
-
-/**
- * Taken `from events/interfaces/.../breadcrumbs/types`
- */
-const IconWrapper = styled('div')<
-  {hasOccurred: boolean} & Required<Pick<SVGIconProps, 'color'>>
->`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  min-width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  color: ${p => p.theme.white};
-  background: ${p => (p.hasOccurred ? p.theme[p.color] ?? p.color : p.theme.purple200)};
-
-  /* Make sure the icon is above the line through the back */
-  z-index: ${p => p.theme.zIndex.initial};
 `;
 
 const Title = styled('span')<{hasOccurred?: boolean}>`

@@ -1,14 +1,13 @@
-import {ChromeTraceProfile} from 'sentry/utils/profiling/profile/chromeTraceProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
-  importDroppedProfile,
   importProfile,
+  parseDroppedProfile,
 } from 'sentry/utils/profiling/profile/importProfile';
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
 import {SentrySampledProfile} from './sentrySampledProfile';
-import {makeSentrySampledProfile} from './sentrySampledProfile.specutil';
+import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
 
 describe('importProfile', () => {
   it('imports evented profile', () => {
@@ -33,7 +32,8 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(EventedProfile);
@@ -61,36 +61,11 @@ describe('importProfile', () => {
         },
         metadata: {} as Profiling.Schema['metadata'],
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports typescript profile', () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const imported = importProfile(typescriptProfile, '');
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
   it('imports JS self profile from schema', () => {
     const jsSelfProfile: JSSelfProfiling.Trace = {
@@ -99,6 +74,7 @@ describe('importProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -123,7 +99,8 @@ describe('importProfile', () => {
           frames: [],
         },
       },
-      ''
+      '',
+      'flamechart'
     );
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
@@ -136,6 +113,7 @@ describe('importProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -149,7 +127,7 @@ describe('importProfile', () => {
       ],
     };
 
-    const imported = importProfile(jsSelfProfile, 'profile');
+    const imported = importProfile(jsSelfProfile, 'profile', 'flamechart');
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });
@@ -157,7 +135,7 @@ describe('importProfile', () => {
   it('imports sentry sampled profile', () => {
     const sentrySampledProfile = makeSentrySampledProfile();
 
-    const imported = importProfile(sentrySampledProfile, 'profile');
+    const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
   });
@@ -167,13 +145,14 @@ describe('importProfile', () => {
       importProfile(
         // @ts-ignore
         {name: 'profile', activeProfileIndex: 0, profiles: [{type: 'unrecognized'}]},
-        ''
+        '',
+        'flamechart'
       )
     ).toThrow();
   });
 });
 
-describe('importDroppedProfile', () => {
+describe('parseDroppedProfile', () => {
   beforeEach(() => {
     jest.restoreAllMocks();
   });
@@ -192,7 +171,7 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
@@ -211,18 +190,18 @@ describe('importDroppedProfile', () => {
       reader.dispatchEvent(loadEvent);
     });
 
-    await expect(importDroppedProfile(file)).rejects.toEqual(
+    await expect(parseDroppedProfile(file)).rejects.toEqual(
       'Failed to read string contents of input file'
     );
   });
 
   it('throws if contents are not valid JSON', async () => {
     const file = new File(['{"json": true'], 'test.tsx');
-    await expect(importDroppedProfile(file)).rejects.toBeInstanceOf(Error);
+    await expect(parseDroppedProfile(file)).rejects.toBeInstanceOf(Error);
   });
 
   it('imports dropped schema file', async () => {
-    const schema: Profiling.Schema = {
+    const schema: Readonly<Profiling.Schema> = {
       activeProfileIndex: 0,
       profileID: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       profiles: [
@@ -244,37 +223,13 @@ describe('importDroppedProfile', () => {
       metadata: {} as Profiling.Schema['metadata'],
     };
     const file = new File([JSON.stringify(schema)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = importProfile(
+      await parseDroppedProfile(file),
+      file.name,
+      'flamechart'
+    );
 
     expect(imported.profiles[0]).toBeInstanceOf(SampledProfile);
-  });
-
-  it('imports dropped typescript profile', async () => {
-    const typescriptProfile: ChromeTrace.ArrayFormat = [
-      {
-        ph: 'B',
-        ts: 1000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-      {
-        ph: 'E',
-        ts: 2000,
-        cat: 'program',
-        pid: 0,
-        tid: 0,
-        name: 'createProgram',
-        args: {configFilePath: '/Users/jonasbadalic/Work/sentry/tsconfig.json'},
-      },
-    ];
-
-    const file = new File([JSON.stringify(typescriptProfile)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
-
-    expect(imported.profiles[0]).toBeInstanceOf(ChromeTraceProfile);
   });
 
   it('imports dropped JS self profile', async () => {
@@ -284,6 +239,7 @@ describe('importDroppedProfile', () => {
       samples: [
         {
           timestamp: 0,
+          stackId: 0,
         },
         {
           timestamp: 1000,
@@ -298,7 +254,11 @@ describe('importDroppedProfile', () => {
     };
 
     const file = new File([JSON.stringify(jsSelfProfile)], 'test.tsx');
-    const imported = await importDroppedProfile(file);
+    const imported = importProfile(
+      await parseDroppedProfile(file),
+      file.name,
+      'flamechart'
+    );
 
     expect(imported.profiles[0]).toBeInstanceOf(JSSelfProfile);
   });

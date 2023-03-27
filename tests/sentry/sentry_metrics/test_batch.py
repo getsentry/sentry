@@ -475,6 +475,146 @@ def test_all_resolved_with_routing_information(caplog, settings):
     ]
 
 
+def test_all_resolved_retention_days_honored(caplog, settings):
+    """
+    Tests that the indexer batch honors the incoming retention_days values
+    from Relay or falls back to 90.
+    """
+
+    distribution_payload_modified = distribution_payload.copy()
+    distribution_payload_modified["retention_days"] = 30
+
+    settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
+    outer_message = _construct_outer_message(
+        [
+            (counter_payload, []),
+            (distribution_payload_modified, []),
+            (set_payload, []),
+        ]
+    )
+
+    batch = IndexerBatch(UseCaseKey.PERFORMANCE, outer_message, True, False)
+    assert batch.extract_strings() == (
+        {
+            1: {
+                "c:sessions/session@none",
+                "d:sessions/duration@second",
+                "environment",
+                "errored",
+                "healthy",
+                "init",
+                "production",
+                "s:sessions/error@none",
+                "session.status",
+            }
+        }
+    )
+
+    caplog.set_level(logging.ERROR)
+    snuba_payloads = batch.reconstruct_messages(
+        {
+            1: {
+                "c:sessions/session@none": 1,
+                "d:sessions/duration@second": 2,
+                "environment": 3,
+                "errored": 4,
+                "healthy": 5,
+                "init": 6,
+                "production": 7,
+                "s:sessions/error@none": 8,
+                "session.status": 9,
+            }
+        },
+        {
+            1: {
+                "c:sessions/session@none": Metadata(id=1, fetch_type=FetchType.CACHE_HIT),
+                "d:sessions/duration@second": Metadata(id=2, fetch_type=FetchType.CACHE_HIT),
+                "environment": Metadata(id=3, fetch_type=FetchType.CACHE_HIT),
+                "errored": Metadata(id=4, fetch_type=FetchType.DB_READ),
+                "healthy": Metadata(id=5, fetch_type=FetchType.HARDCODED),
+                "init": Metadata(id=6, fetch_type=FetchType.HARDCODED),
+                "production": Metadata(id=7, fetch_type=FetchType.CACHE_HIT),
+                "s:sessions/error@none": Metadata(id=8, fetch_type=FetchType.CACHE_HIT),
+                "session.status": Metadata(id=9, fetch_type=FetchType.CACHE_HIT),
+            }
+        },
+    )
+
+    assert _get_string_indexer_log_records(caplog) == []
+    assert _deconstruct_messages(snuba_payloads) == [
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "1": "c:sessions/session@none",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"6": "init"},
+                },
+                "metric_id": 1,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 6},
+                "timestamp": ts,
+                "type": "c",
+                "use_case_id": "performance",
+                "value": 1.0,
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "c")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "2": "d:sessions/duration@second",
+                        "3": "environment",
+                        "7": "production",
+                        "9": "session.status",
+                    },
+                    "h": {"5": "healthy"},
+                },
+                "metric_id": 2,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 30,
+                "tags": {"3": 7, "9": 5},
+                "timestamp": ts,
+                "type": "d",
+                "unit": "seconds",
+                "use_case_id": "performance",
+                "value": [4, 5, 6],
+            },
+            [("mapping_sources", b"ch"), ("metric_type", "d")],
+        ),
+        (
+            {
+                "mapping_meta": {
+                    "c": {
+                        "3": "environment",
+                        "7": "production",
+                        "8": "s:sessions/error@none",
+                        "9": "session.status",
+                    },
+                    "d": {"4": "errored"},
+                },
+                "metric_id": 8,
+                "org_id": 1,
+                "project_id": 3,
+                "retention_days": 90,
+                "tags": {"3": 7, "9": 4},
+                "timestamp": ts,
+                "type": "s",
+                "use_case_id": "performance",
+                "value": [3],
+            },
+            [("mapping_sources", b"cd"), ("metric_type", "s")],
+        ),
+    ]
+
+
 def test_batch_resolve_with_values_not_indexed(caplog, settings):
     """
     Tests that the indexer batch skips resolving tag values for indexing and

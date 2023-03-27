@@ -16,7 +16,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconChevron, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Config, Organization, Project, User} from 'sentry/types';
 import withApi from 'sentry/utils/withApi';
 import withProjects from 'sentry/utils/withProjects';

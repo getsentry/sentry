@@ -11,9 +11,14 @@ import {generatePerformanceEventView} from 'sentry/views/performance/data';
 import {PerformanceLanding} from 'sentry/views/performance/landing';
 
 const WrappedComponent = ({data, withStaticFilters = true}) => {
-  const eventView = generatePerformanceEventView(data.router.location, data.projects, {
-    withStaticFilters,
-  });
+  const eventView = generatePerformanceEventView(
+    data.router.location,
+    data.projects,
+    {
+      withStaticFilters,
+    },
+    data.organization
+  );
 
   const client = new QueryClient();
 
@@ -112,10 +117,7 @@ describe('Performance > Landing > MetricsDataSwitcher', function () {
 
   afterEach(function () {
     MockApiClient.clearMockResponses();
-
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
 
     if (wrapper) {
       wrapper.unmount();

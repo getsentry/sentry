@@ -3,9 +3,8 @@ from __future__ import annotations
 import abc
 import contextlib
 import datetime
-import sys
 from enum import IntEnum
-from typing import Any, Generator, Iterable, List, Mapping, Set
+from typing import Any, Generator, Iterable, List, Mapping, Type, TypeVar
 
 from django.db import connections, models, router, transaction
 from django.db.models import Max
@@ -21,15 +20,23 @@ from sentry.db.models import (
     region_silo_only_model,
     sane_repr,
 )
+from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 from sentry.silo import SiloMode
+from sentry.utils import metrics
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=timezone.utc)
+
+_T = TypeVar("_T")
 
 
 class OutboxScope(IntEnum):
     ORGANIZATION_SCOPE = 0
     USER_SCOPE = 1
     WEBHOOK_SCOPE = 2
+    AUDIT_LOG_SCOPE = 3
+    USER_IP_SCOPE = 4
+    INTEGRATION_SCOPE = 5
+    APP_SCOPE = 6
 
     def __str__(self):
         return self.name
@@ -44,6 +51,13 @@ class OutboxCategory(IntEnum):
     WEBHOOK_PROXY = 1
     ORGANIZATION_UPDATE = 2
     ORGANIZATION_MEMBER_UPDATE = 3
+    VERIFY_ORGANIZATION_MAPPING = 4
+    AUDIT_LOG_EVENT = 5
+    USER_IP_EVENT = 6
+    INTEGRATION_UPDATE = 7
+    PROJECT_UPDATE = 8
+    API_APPLICATION_UPDATE = 9
+    SENTRY_APP_INSTALLATION_UPDATE = 10
 
     @classmethod
     def as_choices(cls):
@@ -70,7 +84,7 @@ class OutboxBase(Model):
     coalesced_columns: Iterable[str]
 
     @classmethod
-    def _unique_object_identifier(cls):
+    def next_object_identifier(cls):
         using = router.db_for_write(cls)
         with transaction.atomic(using=using):
             with connections[using].cursor() as cursor:
@@ -147,6 +161,11 @@ class OutboxBase(Model):
     def next_schedule(self, now: datetime.datetime) -> datetime.datetime:
         return now + (self.last_delay() * 2)
 
+    def save(self, **kwds: Any):
+        tags = {"category": OutboxCategory(self.category).name}
+        metrics.incr("outbox.saved", 1, tags=tags)
+        super().save(**kwds)
+
     @contextlib.contextmanager
     def process_coalesced(self) -> Generator[OutboxBase | None, None, None]:
         # Do not, use a select for update here -- it is tempting, but a major performance issue.
@@ -156,12 +175,26 @@ class OutboxBase(Model):
         coalesced: OutboxBase | None = self.select_coalesced_messages().last()
         yield coalesced
         if coalesced is not None:
-            self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            first_coalesced: OutboxBase = self.select_coalesced_messages().first() or coalesced
+            deleted_count, _ = (
+                self.select_coalesced_messages().filter(id__lte=coalesced.id).delete()
+            )
+            tags = {"category": OutboxCategory(self.category).name}
+            metrics.incr("outbox.processed", deleted_count, tags=tags)
+            metrics.timing(
+                "outbox.processing_lag",
+                datetime.datetime.now().timestamp() - first_coalesced.scheduled_from.timestamp(),
+                tags=tags,
+            )
 
     def process(self) -> bool:
         with self.process_coalesced() as coalesced:
             if coalesced is not None:
-                coalesced.send_signal()
+                with metrics.timer(
+                    "outbox.send_signal.duration",
+                    tags={"category": OutboxCategory(coalesced.category).name},
+                ):
+                    coalesced.send_signal()
                 return True
         return False
 
@@ -183,9 +216,6 @@ class OutboxBase(Model):
             raise OutboxFlushError(
                 f"Could not flush items from shard {self.key_from(self.sharding_columns)!r}"
             )
-
-
-MONOLITH_REGION_NAME = "--monolith--"
 
 
 # Outboxes bound from region silo -> control silo
@@ -219,10 +249,18 @@ class RegionOutbox(OutboxBase):
             ("shard_scope", "shard_identifier", "id"),
         )
 
+    @classmethod
+    def for_shard(cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int) -> _T:
+        """
+        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
+        semantic of creating and instance to invoke `drain_shard` on.
+        """
+        return cls(shard_scope=shard_scope, shard_identifier=shard_identifier)
+
     __repr__ = sane_repr("shard_scope", "shard_identifier", "category", "object_identifier")
 
 
-# Outboxes bound from region silo -> control silo
+# Outboxes bound from control silo -> region silo
 @control_silo_only_model
 class ControlOutbox(OutboxBase):
     sharding_columns = ("region_name", "shard_scope", "shard_identifier")
@@ -234,11 +272,11 @@ class ControlOutbox(OutboxBase):
         "object_identifier",
     )
 
-    region_name = models.CharField(max_length=48)
+    region_name = models.CharField(max_length=REGION_NAME_LENGTH)
 
     def send_signal(self):
         process_control_outbox.send(
-            sender=self.category,
+            sender=OutboxCategory(self.category),
             payload=self.payload,
             region_name=self.region_name,
             object_identifier=self.object_identifier,
@@ -280,46 +318,23 @@ class ControlOutbox(OutboxBase):
             result = cls()
             result.shard_scope = OutboxScope.WEBHOOK_SCOPE
             result.shard_identifier = webhook_identifier.value
-            result.object_identifier = cls._unique_object_identifier()
+            result.object_identifier = cls.next_object_identifier()
             result.category = OutboxCategory.WEBHOOK_PROXY
             result.region_name = region_name
             result.payload = payload
             yield result
 
-
-def _find_orgs_for_user(user_id: int) -> Set[int]:
-    # TODO: This must be changed to the org member mapping in the control silo eventually.
-    from sentry.models import OrganizationMember
-
-    return {
-        m["organization_id"]
-        for m in OrganizationMember.objects.filter(user_id=user_id).values("organization_id")
-    }
-
-
-def find_regions_for_user(user_id: int) -> Set[str]:
-    from sentry.models import OrganizationMapping
-
-    org_ids: Set[int]
-    if "pytest" in sys.modules:
-        from sentry.testutils.silo import exempt_from_silo_limits
-
-        with exempt_from_silo_limits():
-            org_ids = _find_orgs_for_user(user_id)
-    else:
-        org_ids = _find_orgs_for_user(user_id)
-
-    if SiloMode.get_current_mode() == SiloMode.MONOLITH:
-        return {
-            MONOLITH_REGION_NAME,
-        }
-    else:
-        return {
-            t["region_name"]
-            for t in OrganizationMapping.objects.filter(organization_id__in=org_ids).values(
-                "region_name"
-            )
-        }
+    @classmethod
+    def for_shard(
+        cls: Type[_T], shard_scope: OutboxScope, shard_identifier: int, region_name: str
+    ) -> _T:
+        """
+        Logically, this is just an alias for the constructor of cls, but explicitly named to call out the intended
+        semantic of creating and instance to invoke `drain_shard` on.
+        """
+        return cls(
+            shard_scope=shard_scope, shard_identifier=shard_identifier, region_name=region_name
+        )
 
 
 def outbox_silo_modes() -> List[SiloMode]:

@@ -1,8 +1,7 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
-import math
 from collections.abc import Mapping
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from functools import cached_property
 from typing import Dict, Literal, Optional, Sequence, Set, Tuple, Union
 
@@ -16,7 +15,6 @@ from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics.fields import metric_object_factory
 from sentry.snuba.metrics.fields.base import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
-from sentry.utils.dates import to_timestamp
 
 # TODO: Add __all__ to be consistent with sibling modules
 from ...models import ONE_DAY
@@ -29,6 +27,7 @@ from .utils import (
     UNALLOWED_TAGS,
     DerivedMetricParseException,
     MetricOperationType,
+    get_num_intervals,
 )
 
 
@@ -281,55 +280,10 @@ class MetricsQuery(MetricsQueryValidationRunner):
 
         return action_by_str_fields
 
-    @staticmethod
-    def calculate_intervals_len(
-        end: Optional[datetime],
-        granularity: int,
-        start: Optional[datetime] = None,
-        interval: Optional[int] = None,
-    ) -> int:
-        if interval is None and end:
-            range_in_sec = (end - start).total_seconds() if start else to_timestamp(end)
-            denominator = granularity
-        else:
-            assert start and end and interval > 0  # type:ignore
-
-            start_in_seconds = start.timestamp()
-            end_in_seconds = end.timestamp()
-            # This condition is required because the formatting of `start` and `end` uses the `int()` function to
-            # convert which automatically cuts off any decimal digits resulting in certain cases in which `end` -
-            # `start` = 0. In order to avoid this problem entirely we must make sure that the integer value of
-            # `start` / `interval` and `end` / `interval` differ by at least 1.
-            #
-            # We can model it mathematically as:
-            # x = start time in seconds
-            # z = end time in seconds
-            # y = interval in seconds
-            # then want the following to hold true:
-            # (z / y) - (x / y) >= 1 which equals to (z - x) >= y which translated to code means that
-            # `end_in_seconds` - `start_in_seconds` >= `interval` must hold true for `range_in_sec` > 0.
-            if (end_in_seconds - start_in_seconds) < interval:  # type:ignore
-                raise InvalidParams(
-                    "The difference between start and end must be greater or equal than the interval"
-                )
-
-            # Format start and end
-            start = datetime.fromtimestamp(
-                int(start_in_seconds / interval) * interval, timezone.utc  # type:ignore
-            )
-            end = datetime.fromtimestamp(
-                int(end_in_seconds / interval) * interval, timezone.utc  # type:ignore
-            )
-
-            range_in_sec = (end - start).total_seconds()
-            denominator = interval  # type:ignore
-
-        return math.ceil(range_in_sec / denominator)
-
     def validate_limit(self) -> None:
         if self.limit is None:
             return
-        intervals_len = self.calculate_intervals_len(
+        intervals_len = get_num_intervals(
             end=self.end,
             start=self.start,
             granularity=self.granularity.granularity,
@@ -367,7 +321,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
     def get_default_limit(self) -> int:
         totals_limit: int = MAX_POINTS
         if self.start and self.end and self.include_series:
-            intervals_len = self.calculate_intervals_len(
+            intervals_len = get_num_intervals(
                 start=self.start,
                 end=self.end,
                 granularity=self.granularity.granularity,
@@ -414,7 +368,7 @@ class MetricsQuery(MetricsQueryValidationRunner):
         if ONE_DAY % self.granularity.granularity != 0:
             raise InvalidParams("The interval should divide one day without a remainder.")
 
-        if self.start and self.end:
+        if self.start and self.end and self.include_series:
             if (self.end - self.start).total_seconds() / self.granularity.granularity > MAX_POINTS:
                 raise InvalidParams(
                     "Your interval and date range would create too many results. "

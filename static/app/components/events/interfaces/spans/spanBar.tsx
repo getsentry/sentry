@@ -20,6 +20,7 @@ import {
   DividerLineGhostContainer,
   EmbeddedTransactionBadge,
   ErrorBadge,
+  ProfileBadge,
 } from 'sentry/components/performance/waterfall/rowDivider';
 import {
   RowTitle,
@@ -39,10 +40,10 @@ import {
   getHumanDuration,
   toPercent,
 } from 'sentry/components/performance/waterfall/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import {EventTransaction} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
@@ -55,6 +56,7 @@ import {
 import {QuickTraceEvent, TraceError} from 'sentry/utils/performance/quickTrace/types';
 import {isTraceFull} from 'sentry/utils/performance/quickTrace/utils';
 import {PerformanceInteraction} from 'sentry/utils/performanceForSentry';
+import {ProfileContext} from 'sentry/views/profiling/profilesProvider';
 
 import {
   MINIMAP_CONTAINER_HEIGHT,
@@ -75,6 +77,7 @@ import {
 } from './types';
 import {
   durationlessBrowserOps,
+  formatSpanTreeLabel,
   getMeasurementBounds,
   getMeasurements,
   getSpanID,
@@ -125,13 +128,14 @@ export type SpanBarProps = {
   organization: Organization;
   removeContentSpanBarRef: (instance: HTMLDivElement | null) => void;
   removeExpandedSpan: (span: Readonly<ProcessedSpanType>, callback?: () => void) => void;
+  resetCellMeasureCache: () => void;
   showEmbeddedChildren: boolean;
   showSpanTree: boolean;
   span: Readonly<ProcessedSpanType>;
   spanNumber: number;
   storeSpanBar: (spanBar: SpanBar) => void;
   toggleEmbeddedChildren:
-    | ((props: {eventSlug: string; orgSlug: string}) => void)
+    | (((orgSlug: string, eventSlugs: string[]) => void) | undefined)
     | undefined;
   toggleSpanGroup: (() => void) | undefined;
   toggleSpanTree: () => void;
@@ -304,6 +308,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
         childTransactions={transactions}
         relatedErrors={errors}
         scrollToHash={this.scrollIntoView}
+        resetCellMeasureCache={this.props.resetCellMeasureCache}
       />
     );
   }
@@ -574,8 +579,6 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
 
     titleFragments = titleFragments.flatMap(current => [current, ' \u2014 ']);
 
-    const description = span?.description ?? getSpanID(span);
-
     const left = treeDepth * (TOGGLE_BORDER_BOX / 2) + MARGIN_LEFT;
     const errored = Boolean(errors && errors.length > 0);
 
@@ -604,7 +607,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
             data-test-id={`row-title-content${spanBarType ? `-${spanBarType}` : ''}`}
           >
             <strong>{titleFragments}</strong>
-            {description}
+            {formatSpanTreeLabel(span)}
           </RowTitleContent>
         </RowTitle>
       </RowTitleContainer>
@@ -873,8 +876,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
   ): React.ReactNode {
     const {toggleEmbeddedChildren, organization, showEmbeddedChildren} = this.props;
 
-    if (transactions && transactions.length === 1) {
-      const transaction = transactions[0];
+    if (transactions && transactions.length >= 1) {
       return (
         <Tooltip
           title={
@@ -896,13 +898,14 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
                   : 'span_view.embedded_child.show';
                 trackAdvancedAnalyticsEvent(eventKey, {organization});
 
-                toggleEmbeddedChildren({
-                  orgSlug: organization.slug,
-                  eventSlug: generateEventSlug({
+                const eventSlugs = transactions.map(transaction =>
+                  generateEventSlug({
                     id: transaction.event_id,
                     project: transaction.project_slug,
-                  }),
-                });
+                  })
+                );
+
+                toggleEmbeddedChildren(organization.slug, eventSlugs);
               }
             }}
           />
@@ -910,6 +913,29 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
       );
     }
     return null;
+  }
+
+  renderMissingInstrumentationProfileBadge(): React.ReactNode {
+    const {organization, span} = this.props;
+
+    if (!organization.features.includes('profiling-previews')) {
+      return null;
+    }
+
+    if (!isGapSpan(span)) {
+      return null;
+    }
+
+    return (
+      <ProfileContext.Consumer>
+        {profiles => {
+          if (profiles?.type !== 'resolved') {
+            return null;
+          }
+          return <ProfileBadge />;
+        }}
+      </ProfileContext.Consumer>
+    );
   }
 
   renderWarningText() {
@@ -975,6 +1001,7 @@ export class SpanBar extends Component<SpanBarProps, SpanBarState> {
           {this.renderDivider(dividerHandlerChildrenProps)}
           {this.renderErrorBadge(errors)}
           {this.renderEmbeddedTransactionsBadge(transactions)}
+          {this.renderMissingInstrumentationProfileBadge()}
         </DividerContainer>
         <RowCell
           data-type="span-row-cell"

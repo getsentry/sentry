@@ -23,7 +23,7 @@ export interface TreeLike {
 
 const DEFAULT_OVERSCROLL_ITEMS = 5;
 
-export interface UseVirtualizedListProps<T extends TreeLike> {
+export interface UseVirtualizedTreeProps<T extends TreeLike> {
   renderRow: (
     item: VirtualizedTreeRenderedRow<T>,
     itemHandlers: {
@@ -41,21 +41,29 @@ export interface UseVirtualizedListProps<T extends TreeLike> {
   scrollContainer: HTMLElement | null;
   tree: T[];
   expanded?: boolean;
+  initialSelectedNodeIndex?: number;
+  onScrollToNode?: (
+    node: VirtualizedTreeRenderedRow<T>,
+    scrollContainer: HTMLElement | null,
+    coordinates?: {depth: number; top: number}
+  ) => void;
   overscroll?: number;
   skipFunction?: (node: VirtualizedTreeNode<T>) => boolean;
   sortFunction?: (a: VirtualizedTreeNode<T>, b: VirtualizedTreeNode<T>) => number;
 }
 
 export function useVirtualizedTree<T extends TreeLike>(
-  props: UseVirtualizedListProps<T>
+  props: UseVirtualizedTreeProps<T>
 ) {
+  const {onScrollToNode} = props;
+
   const theme = useTheme();
   const clickedGhostRowRef = useRef<HTMLDivElement | null>(null);
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
     roots: props.tree,
-    selectedNodeIndex: null,
+    selectedNodeIndex: props.initialSelectedNodeIndex ?? null,
     scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: props.scrollContainer?.getBoundingClientRect()?.height ?? 0,
@@ -199,12 +207,13 @@ export function useVirtualizedTree<T extends TreeLike>(
       });
     }
 
-    scrollContainer.addEventListener('scroll', handleScroll, {
+    const scrollListenerOptions: AddEventListenerOptions & EventListenerOptions = {
       passive: true,
-    });
+    };
+    scrollContainer.addEventListener('scroll', handleScroll, scrollListenerOptions);
 
     return () => {
-      scrollContainer.removeEventListener('scroll', handleScroll);
+      scrollContainer.removeEventListener('scroll', handleScroll, scrollListenerOptions);
     };
   }, [props.scrollContainer, props.rowHeight, theme]);
 
@@ -259,6 +268,12 @@ export function useVirtualizedTree<T extends TreeLike>(
       const element = latestItemsRef.current.find(item => item.key === index);
       if (element?.ref) {
         element.ref.dataset.hovered = 'true';
+        markRowAsHovered(index, latestItemsRef.current, {
+          ghostRowRef: hoveredGhostRowRef.current,
+          rowHeight: props.rowHeight,
+          scrollTop: latestStateRef.current.scrollTop,
+          theme,
+        });
       }
     };
 
@@ -439,7 +454,10 @@ export function useVirtualizedTree<T extends TreeLike>(
           const nextIndex = indexInVisibleItems + 1;
 
           // Bounds check if we are at end of list
-          if (nextIndex > latestTreeRef.current.flattened.length - 1) {
+          if (
+            latestStateRef.current.selectedNodeIndex ===
+            latestTreeRef.current.flattened.length - 1
+          ) {
             return;
           }
 
@@ -448,8 +466,16 @@ export function useVirtualizedTree<T extends TreeLike>(
             payload: latestItemsRef.current[nextIndex].key,
           });
 
-          latestItemsRef.current[nextIndex].ref?.focus({preventScroll: true});
-          latestItemsRef.current[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+          const node = latestItemsRef.current[nextIndex];
+          if (!node) {
+            throw new RangeError('Tree nextIndex is out of range of rendered items');
+          }
+          node.ref?.focus({preventScroll: true});
+          if (onScrollToNode) {
+            onScrollToNode(node, props.scrollContainer);
+          } else {
+            node.ref?.scrollIntoView({block: 'nearest'});
+          }
 
           markRowAsClicked(
             latestItemsRef.current[nextIndex].key,
@@ -506,12 +532,20 @@ export function useVirtualizedTree<T extends TreeLike>(
               theme,
             }
           );
-          latestItemsRef.current[nextIndex].ref?.focus({preventScroll: true});
-          latestItemsRef.current[nextIndex].ref?.scrollIntoView({block: 'nearest'});
+          const node = latestItemsRef.current[nextIndex];
+          if (!node) {
+            throw new RangeError('Tree nextIndex is out of range of rendered items');
+          }
+          node.ref?.focus({preventScroll: true});
+          if (onScrollToNode) {
+            onScrollToNode(node, props.scrollContainer);
+          } else {
+            node.ref?.scrollIntoView({block: 'nearest'});
+          }
         }
       }
     },
-    [handleExpandTreeNode, props.rowHeight, theme]
+    [handleExpandTreeNode, props.rowHeight, props.scrollContainer, onScrollToNode, theme]
   );
 
   const handleScrollTo = useCallback(
@@ -560,6 +594,7 @@ export function useVirtualizedTree<T extends TreeLike>(
           rowHeight: props.rowHeight,
           scrollHeight: latestStateRef.current.scrollHeight,
           currentScrollTop: latestStateRef.current.scrollTop,
+          maxScrollableHeight: newTree.flattened.length * props.rowHeight,
         },
         'center'
       );
@@ -599,9 +634,18 @@ export function useVirtualizedTree<T extends TreeLike>(
         props.scrollContainer.scrollTo({
           top: newScrollTop,
         });
+
+        if (onScrollToNode) {
+          onScrollToNode(
+            latestItemsRef.current[newlyVisibleIndex],
+            props.scrollContainer,
+            {top: newScrollTop, depth: node.depth}
+          );
+        }
       }
     },
-    [props.rowHeight, props.scrollContainer, theme]
+
+    [props.rowHeight, onScrollToNode, props.scrollContainer, theme]
   );
 
   // Basic required styles for the scroll container

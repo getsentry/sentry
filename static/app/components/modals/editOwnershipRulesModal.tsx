@@ -7,22 +7,22 @@ import {
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import theme from 'sentry/utils/theme';
-import OwnershipModal from 'sentry/views/settings/project/projectOwnership/editRulesModal';
+import {EditOwnershipRules} from 'sentry/views/settings/project/projectOwnership/editRulesModal';
 
 type Props = ModalRenderProps & EditOwnershipRulesModalOptions;
 
-const EditOwnershipRulesModal = ({Body, Header, onSave, ...props}: Props) => {
+function EditOwnershipRulesModal({Body, Header, onSave, closeModal, ...props}: Props) {
   return (
     <Fragment>
       <Header closeButton>
         <h4>{t('Edit Ownership Rules')}</h4>
       </Header>
       <Body>
-        <OwnershipModal {...props} onSave={onSave} />
+        <EditOwnershipRules {...props} onSave={onSave} onCancel={closeModal} />
       </Body>
     </Fragment>
   );
-};
+}
 
 export const modalCss = css`
   @media (min-width: ${theme.breakpoints.small}) {

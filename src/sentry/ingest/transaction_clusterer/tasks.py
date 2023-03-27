@@ -19,7 +19,7 @@ from .tree import TreeClusterer
 #: Minimum number of children in the URL tree which triggers a merge.
 #: See TreeClusterer for more information.
 #: NOTE: We could make this configurable through django settings or even per-project in the future.
-MERGE_THRESHOLD = 100
+MERGE_THRESHOLD = 200
 
 #: Number of projects to process in one celery task
 #: The number 100 was chosen at random and might still need tweaking.

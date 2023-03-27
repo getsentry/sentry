@@ -1,0 +1,157 @@
+{
+  "event_id": "bca1a939329f4c889721a97790d673ed",
+  "project": 3,
+  "release": null,
+  "dist": null,
+  "platform": "other",
+  "message": "",
+  "datetime": "2023-02-02T23:07:41.736703Z",
+  "tags": [
+    ["application", "countries"],
+    ["browser", "Python Requests 2.22"],
+    ["browser.name", "Python Requests"],
+    ["environment", "dev"],
+    ["level", "info"],
+    ["runtime", "CPython 3.7.3"],
+    ["runtime.name", "CPython"],
+    ["user", "username:saloni"],
+    ["transaction", "/consecutive-db/"],
+    ["url", "http://countries:8010/country_by_code/"]
+  ],
+  "_meta": {"platform": {"": {"val": "transaction"}}},
+  "_metrics": {"bytes.stored.event": 4374},
+  "breadcrumbs": {
+    "values": [
+      {
+        "timestamp": 1562681591.0,
+        "type": "default",
+        "category": "query",
+        "level": "info",
+        "message": "SELECT \"countries\".\"id\", \"countries\".\"name\", \"countries\".\"continent\", \"countries\".\"region\", \"countries\".\"surface_area\", \"coun...'CAN'"
+      }
+    ]
+  },
+  "breakdowns": {
+    "span_ops": {
+      "ops.browser": {"value": 633.474827},
+      "ops.db": {"value": 91.876},
+      "ops.http": {"value": 2039.16049},
+      "ops.resource": {"value": 2024.234772},
+      "total.time": {"value": 2875.570536}
+    }
+  },
+  "contexts": {
+    "browser": {"name": "Python Requests", "version": "2.22", "type": "browser"},
+    "runtime": {
+      "name": "CPython",
+      "version": "3.7.3",
+      "build": "3.7.3 (default, Jun 27 2019, 22:53:21) \n[GCC 8.3.0]",
+      "type": "runtime"
+    },
+    "trace": {
+      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
+      "span_id": "3421d10721df4382",
+      "parent_span_id": "f32e597a998a4e49",
+      "op": "http.server",
+      "status": "ok",
+      "hash": "629844b1c1f077db",
+      "type": "trace"
+    }
+  },
+  "culprit": "/country_by_code/",
+  "environment": "dev",
+  "hashes": ["d2a075f52f09ce129f132f65fc9f0b3e"],
+  "level": "info",
+  "location": "/consecutive-db/",
+  "logger": "",
+  "measurements": {
+    "cls": {"value": 0.0382, "unit": "none"},
+    "fcp": {"value": 2258.060000000114, "unit": "millisecond"},
+    "fid": {"value": 3.4900000027846545, "unit": "millisecond"},
+    "fp": {"value": 2258.060000000114, "unit": "millisecond"},
+    "lcp": {"value": 2807.335, "unit": "millisecond"},
+    "mark.fcp": {"value": 1675379263.695, "unit": "none"},
+    "mark.fid": {"value": 1675379261.44, "unit": "none"},
+    "mark.fp": {"value": 1675379263.695, "unit": "none"},
+    "mark.lcp": {"value": 1675379264.244, "unit": "none"}
+  },
+  "metadata": {"location": "/consecutive-db/", "title": "/consecutive-db/"},
+  "modules": {"my.package": "1.0.0"},
+  "nodestore_insert": 1675379263.836825,
+  "received": 1675379263.788509,
+  "request": {
+    "url": "http://countries:8010/country_by_code/",
+    "method": "GET",
+    "query_string": [["code", "CAN"]],
+    "headers": [
+      ["Accept", "*/*"],
+      ["Accept-Encoding", "gzip, deflate"],
+      ["Connection", "keep-alive"],
+      ["Content-Length", ""],
+      ["Content-Type", "text/plain"],
+      ["Host", "countries:8010"],
+      ["Referer", "fixtures.transaction"],
+      ["Sentry-Trace", "a7d67cf796774551a95be6543cacd459-8988cec7cc0779c1-1"],
+      ["User-Agent", "python-requests/2.22.0"]
+    ],
+    "env": {"SERVER_NAME": "a90286977562", "SERVER_PORT": "8010"},
+    "inferred_content_type": "text/plain"
+  },
+  "span_grouping_config": {"id": "default:2022-10-27"},
+  "spans": [
+    {
+      "timestamp": 1675379261.736703,
+      "start_timestamp": 1675379261.436703,
+      "description": "new",
+      "op": "django.view",
+      "span_id": "f32e597a998a4e49",
+      "parent_span_id": "4e3384c3c41c4f05",
+      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
+      "hash": "22af645d1859cb5c"
+    },
+    {
+      "timestamp": 1675379262.436703,
+      "start_timestamp": 1675379261.736703,
+      "description": "SELECT `customer`.`id` FROM `customers` WHERE `customer`.`name` = 'customerName'",
+      "op": "db",
+      "span_id": "77387b01ac144559",
+      "parent_span_id": "f32e597a998a4e49",
+      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
+      "hash": "f47131bf6c8aef6f"
+    },
+    {
+      "timestamp": 1675379263.436703,
+      "start_timestamp": 1675379262.436703,
+      "description": "SELECT COUNT(*) FROM `customers`",
+      "op": "db",
+      "span_id": "33f759e57af94520",
+      "parent_span_id": "f32e597a998a4e49",
+      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
+      "hash": "51dbf6dd9fe5b83f"
+    },
+    {
+      "timestamp": 1675379264.436703,
+      "start_timestamp": 1675379263.436703,
+      "description": "SELECT COUNT(*) FROM `items`",
+      "op": "db",
+      "span_id": "e179bfee853e4440",
+      "parent_span_id": "f32e597a998a4e49",
+      "trace_id": "9a2e3dbcabf2497b8dc79c5b7e4d0383",
+      "hash": "3f28575fcb3a4847"
+    }
+  ],
+  "start_timestamp": 1675379261.436703,
+  "timestamp": 1675379261.736703,
+  "title": "/consecutive-db/",
+  "transaction": "/consecutive-db/",
+  "transaction_info": {"source": "unknown"},
+  "type": "transaction",
+  "user": {
+    "email": "suser@example.com",
+    "ip_address": "236.50.145.105",
+    "username": "suser",
+    "name": "sentry user",
+    "geo": {"country_code": "US", "city": "San Francisco", "region": "CA"}
+  },
+  "version": "5"
+}

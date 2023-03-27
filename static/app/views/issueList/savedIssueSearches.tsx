@@ -6,15 +6,14 @@ import orderBy from 'lodash/orderBy';
 import {openModal} from 'sentry/actionCreators/modal';
 import {Button, ButtonLabel} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {CreateSavedSearchModal} from 'sentry/components/modals/savedSearchModal/createSavedSearchModal';
 import {EditSavedSearchModal} from 'sentry/components/modals/savedSearchModal/editSavedSearchModal';
 import {IconAdd, IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, SavedSearch, SavedSearchVisibility} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useMedia from 'sentry/utils/useMedia';
@@ -166,7 +165,7 @@ const SavedIssueSearches = ({
   sort,
 }: SavedIssueSearchesProps) => {
   const theme = useTheme();
-  const [isOpen, setIsOpen] = useSyncedLocalStorageState(
+  const [isOpen] = useSyncedLocalStorageState(
     SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
     false
   );
@@ -177,17 +176,9 @@ const SavedIssueSearches = ({
     isError,
     refetch,
   } = useFetchSavedSearchesForOrg({orgSlug: organization.slug});
-  const isAboveContent = useMedia(`(max-width: ${theme.breakpoints.small})`);
-  const onClickSavedSearch = (savedSearch: SavedSearch) => {
-    // On small screens, the sidebar appears above the issue list, so we
-    // will close it automatically for convenience.
-    if (isAboveContent) {
-      setIsOpen(false);
-    }
-    onSavedSearchSelect(savedSearch);
-  };
+  const isMobile = useMedia(`(max-width: ${theme.breakpoints.small})`);
 
-  if (!isOpen) {
+  if (!isOpen || isMobile) {
     return null;
   }
 
@@ -231,7 +222,7 @@ const SavedIssueSearches = ({
             <SavedSearchItem
               key={item.id}
               organization={organization}
-              onSavedSearchSelect={onClickSavedSearch}
+              onSavedSearchSelect={onSavedSearchSelect}
               savedSearch={item}
             />
           ))}
@@ -260,7 +251,7 @@ const SavedIssueSearches = ({
               <SavedSearchItem
                 key={item.id}
                 organization={organization}
-                onSavedSearchSelect={onClickSavedSearch}
+                onSavedSearchSelect={onSavedSearchSelect}
                 savedSearch={item}
               />
             ))}
@@ -325,7 +316,7 @@ const StyledItemButton = styled(Button)`
   }
 `;
 
-const OverflowMenu = styled(DropdownMenuControl)`
+const OverflowMenu = styled(DropdownMenu)`
   position: absolute;
   top: 12px;
   right: ${space(1)};

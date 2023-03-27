@@ -23,8 +23,9 @@ from sentry.models import (
     Repository,
     ScheduledDeletion,
 )
+from sentry.models.organizationmapping import OrganizationMapping
 from sentry.snuba.models import SnubaQuery
-from sentry.tasks.deletion import run_deletion
+from sentry.tasks.deletion.scheduled import run_deletion
 from sentry.testutils import TransactionTestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -33,7 +34,9 @@ from sentry.testutils.silo import region_silo_test
 class DeleteOrganizationTest(TransactionTestCase):
     def test_simple(self):
         org = self.create_organization(name="test")
+        org_mapping = self.create_organization_mapping(org)
         org2 = self.create_organization(name="test2")
+        org_mapping2 = self.create_organization_mapping(org2)
         self.create_team(organization=org, name="test1")
         self.create_team(organization=org, name="test2")
         release = Release.objects.create(version="a" * 32, organization_id=org.id)
@@ -51,7 +54,7 @@ class DeleteOrganizationTest(TransactionTestCase):
             organization_id=org.id, release=release, commit=commit, order=0
         )
 
-        env = Environment.objects.create(organization_id=org.id, project_id=4, name="foo")
+        env = Environment.objects.create(organization_id=org.id, name="foo")
         release_env = ReleaseEnvironment.objects.create(
             organization_id=org.id, project_id=4, release_id=release.id, environment_id=env.id
         )
@@ -61,7 +64,7 @@ class DeleteOrganizationTest(TransactionTestCase):
         )
 
         dashboard = Dashboard.objects.create(
-            organization_id=org.id, title="The Dashboard", created_by=self.user
+            organization_id=org.id, title="The Dashboard", created_by_id=self.user.id
         )
         widget_1 = DashboardWidget.objects.create(
             dashboard=dashboard,
@@ -95,8 +98,10 @@ class DeleteOrganizationTest(TransactionTestCase):
             run_deletion(deletion.id)
 
         assert Organization.objects.filter(id=org2.id).exists()
+        assert OrganizationMapping.objects.filter(id=org_mapping2.id).exists()
 
         assert not Organization.objects.filter(id=org.id).exists()
+        assert not OrganizationMapping.objects.filter(id=org_mapping.id).exists()
         assert not Environment.objects.filter(id=env.id).exists()
         assert not ReleaseEnvironment.objects.filter(id=release_env.id).exists()
         assert not Repository.objects.filter(id=repo.id).exists()

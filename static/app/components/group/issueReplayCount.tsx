@@ -3,10 +3,10 @@ import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
 import ReplayCountContext from 'sentry/components/replays/replayCountContext';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type Props = {
@@ -32,7 +32,7 @@ function IssueReplayCount({groupId}: Props) {
     count
   );
   return (
-    <StyledTooltip title={count > 50 ? titleOver50 : title50OrLess}>
+    <Tooltip title={count > 50 ? titleOver50 : title50OrLess}>
       <ReplayCountLink
         to={`/organizations/${organization.slug}/issues/${groupId}/replays/`}
         aria-label="replay-count"
@@ -40,14 +40,9 @@ function IssueReplayCount({groupId}: Props) {
         <IconPlay size="xs" />
         {countDisplay}
       </ReplayCountLink>
-    </StyledTooltip>
+    </Tooltip>
   );
 }
-
-const StyledTooltip = styled(Tooltip)`
-  display: flex;
-  align-items: center;
-`;
 
 const ReplayCountLink = styled(Link)`
   display: inline-flex;

@@ -9,11 +9,11 @@ import {Flamegraph} from '../flamegraph';
 import {FlamegraphSearch} from '../flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {LightFlamegraphTheme} from '../flamegraph/flamegraphTheme';
 import {FlamegraphFrame, getFlamegraphFrameSearchId} from '../flamegraphFrame';
-import {Rect, transformMatrixBetweenRect} from '../gl/utils';
+import {transformMatrixBetweenRect} from '../gl/utils';
 import androidTrace from '../profile/formats/android/trace.json';
 import ios from '../profile/formats/ios/trace.json';
-import typescriptTrace from '../profile/formats/typescript/trace.json';
 import {importProfile} from '../profile/importProfile';
+import {Rect} from '../speedscope';
 
 import {FlamegraphTextRenderer} from './flamegraphTextRenderer';
 
@@ -90,29 +90,23 @@ const makeDrawRightSideOfScreen = (
   };
 };
 
-const tsProfile = importProfile(typescriptTrace as any, '');
-const tsFlamegraph = new Flamegraph(tsProfile.profiles[0], 0, {
-  inverted: false,
-  leftHeavy: false,
-});
-
-const androidProfile = importProfile(androidTrace as any, '');
+const androidProfile = importProfile(androidTrace as any, '', 'flamechart');
 const androidFlamegraph = new Flamegraph(
   androidProfile.profiles[androidProfile.activeProfileIndex] as any,
   0,
   {
     inverted: false,
-    leftHeavy: false,
+    sort: 'call order',
   }
 );
 
-const iosProfile = importProfile(ios as any, '');
+const iosProfile = importProfile(ios as any, '', 'flamechart');
 const iosFlamegraph = new Flamegraph(
   iosProfile.profiles[iosProfile.activeProfileIndex] as any,
   0,
   {
     inverted: false,
-    leftHeavy: false,
+    sort: 'call order',
   }
 );
 
@@ -208,6 +202,5 @@ const suite = (
   );
 };
 
-suite('typescript', makeTextRenderer(tsFlamegraph), tsFlamegraph);
 suite('android', makeTextRenderer(androidFlamegraph), androidFlamegraph);
 suite('ios', makeTextRenderer(iosFlamegraph), iosFlamegraph);

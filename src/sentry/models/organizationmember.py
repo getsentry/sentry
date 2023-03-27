@@ -4,7 +4,7 @@ from collections import defaultdict
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
-from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping
+from typing import TYPE_CHECKING, FrozenSet, List, Mapping, MutableMapping, Set
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -18,7 +18,7 @@ from django.utils.translation import ugettext_lazy as _
 from structlog import get_logger
 
 from bitfield import BitField
-from sentry import features
+from sentry import features, roles
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
@@ -28,16 +28,18 @@ from sentry.db.models import (
 )
 from sentry.db.models.manager import BaseManager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
+from sentry.roles.manager import OrganizationRole
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import APIIntegration
-    from sentry.services.hybrid_cloud.user import APIUser
+    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 INVITE_DAYS_VALID = 30
 
@@ -46,6 +48,17 @@ class InviteStatus(Enum):
     APPROVED = 0
     REQUESTED_TO_BE_INVITED = 1
     REQUESTED_TO_JOIN = 2
+
+    @classmethod
+    def as_choices(cls):
+        return (
+            (InviteStatus.APPROVED.value, _("Approved")),
+            (
+                InviteStatus.REQUESTED_TO_BE_INVITED.value,
+                _("Organization member requested to invite user"),
+            ),
+            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
+        )
 
 
 invite_status_names = {
@@ -78,7 +91,7 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: APIIntegration, actor: APIUser) -> QuerySet:
+    def get_for_integration(self, integration: RpcIntegration, actor: RpcUser) -> QuerySet:
         return self.filter(
             user_id=actor.id,
             organization__organizationintegration__integration_id=integration.id,
@@ -100,6 +113,28 @@ class OrganizationMemberManager(BaseManager):
         for user_id, team_id in queryset:
             user_teams[user_id].append(team_id)
         return user_teams
+
+    def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
+        org_members = self.filter(user__email__iexact=email, user__is_active=True).values_list(
+            "id", flat=True
+        )
+
+        # may be empty
+        team_members = set(
+            OrganizationMemberTeam.objects.filter(
+                team_id__org_role=role,
+                organizationmember_id__in=org_members,
+            ).values_list("organizationmember_id", flat=True)
+        )
+
+        org_members = set(
+            self.filter(role=role, user__email__iexact=email, user__is_active=True).values_list(
+                "id", flat=True
+            )
+        )
+
+        # use union of sets because a subset may be empty
+        return self.filter(id__in=org_members.union(team_members))
 
 
 @region_silo_only_model
@@ -148,14 +183,7 @@ class OrganizationMember(Model):
         on_delete=models.SET_NULL,
     )
     invite_status = models.PositiveSmallIntegerField(
-        choices=(
-            (InviteStatus.APPROVED.value, _("Approved")),
-            (
-                InviteStatus.REQUESTED_TO_BE_INVITED.value,
-                _("Organization member requested to invite user"),
-            ),
-            (InviteStatus.REQUESTED_TO_JOIN.value, _("User requested to join organization")),
-        ),
+        choices=InviteStatus.as_choices(),
         default=InviteStatus.APPROVED.value,
         null=True,
     )
@@ -395,8 +423,36 @@ class OrganizationMember(Model):
         )
 
     def get_scopes(self) -> FrozenSet[str]:
-        role_obj = organization_roles.get(self.role)
-        return self.organization.get_scopes(role_obj)
+        # include org roles from team membership
+        all_org_roles = self.get_all_org_roles()
+        scopes = set()
+
+        for role in all_org_roles:
+            role_obj = organization_roles.get(role)
+            scopes.update(self.organization.get_scopes(role_obj))
+        return frozenset(scopes)
+
+    def get_org_roles_from_teams(self) -> Set[str]:
+        # results in an extra query when calling get_scopes()
+        return set(self.teams.all().exclude(org_role=None).values_list("org_role", flat=True))
+
+    def get_all_org_roles(self) -> List[str]:
+        all_org_roles = self.get_org_roles_from_teams()
+        all_org_roles.add(self.role)
+        return list(all_org_roles)
+
+    def get_org_roles_from_teams_by_source(self) -> List[tuple(str, OrganizationRole)]:
+        org_roles = list(self.teams.all().exclude(org_role=None).values_list("slug", "org_role"))
+
+        sorted_org_roles = sorted(
+            [(slug, organization_roles.get(role)) for slug, role in org_roles],
+            key=lambda r: r[1].priority,
+            reverse=True,
+        )
+        return sorted_org_roles
+
+    def get_all_org_roles_sorted(self) -> List[OrganizationRole]:
+        return organization_roles.get_sorted_roles(self.get_all_org_roles())
 
     def validate_invitation(self, user_to_approve, allowed_roles):
         """
@@ -414,9 +470,11 @@ class OrganizationMember(Model):
             raise UnableToAcceptMemberInvitationException(ERR_JOIN_REQUESTS_DISABLED)
 
         # members cannot invite roles higher than their own
-        if self.role not in {r.id for r in allowed_roles}:
+        all_org_roles = self.get_all_org_roles()
+        if not len(set(all_org_roles) & {r.id for r in allowed_roles}):
+            highest_role = organization_roles.get_sorted_roles(all_org_roles)[0].id
             raise UnableToAcceptMemberInvitationException(
-                f"You do not have permission approve a member invitation with the role {self.role}."
+                f"You do not have permission to approve a member invitation with the role {highest_role}."
             )
         return True
 
@@ -482,30 +540,25 @@ class OrganizationMember(Model):
         Return a list of org-level roles which that member could invite
         Must check if member member has member:admin first before checking
         """
+        highest_role_priority = self.get_all_org_roles_sorted()[0].priority
+
         if not features.has("organizations:team-roles", self.organization):
-            return [
-                r
-                for r in organization_roles.get_all()
-                if r.priority <= organization_roles.get(self.role).priority
-            ]
+            return [r for r in organization_roles.get_all() if r.priority <= highest_role_priority]
 
         return [
             r
             for r in organization_roles.get_all()
-            if r.priority <= organization_roles.get(self.role).priority and not r.is_retired
+            if r.priority <= highest_role_priority and not r.is_retired
         ]
 
     def is_only_owner(self) -> bool:
-        if self.role != organization_roles.get_top_dog().id:
+        if organization_roles.get_top_dog().id not in self.get_all_org_roles():
             return False
 
-        return (
-            not OrganizationMember.objects.filter(
-                organization=self.organization_id,
-                role=organization_roles.get_top_dog().id,
-                user__isnull=False,
-                user__is_active=True,
-            )
+        # check if any other member has the owner role, including through a team
+        is_only_owner = not (
+            self.organization.get_members_with_org_roles(roles=[roles.get_top_dog().id])
             .exclude(id=self.id)
             .exists()
         )
+        return is_only_owner

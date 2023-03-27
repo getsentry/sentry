@@ -33,8 +33,12 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
             return Response(serializer.errors, status=400)
 
         current_state = inbound_filters.get_filter_state(filter_id, project)
+        if isinstance(current_state, list):
+            current_state = set(current_state)
 
         new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
+        if isinstance(new_state, list):
+            new_state = set(new_state)
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state = None

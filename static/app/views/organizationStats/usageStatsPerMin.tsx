@@ -2,14 +2,15 @@ import styled from '@emotion/styled';
 
 import AsyncComponent from 'sentry/components/asyncComponent';
 import {t} from 'sentry/locale';
-import {DataCategory, Organization, Outcome} from 'sentry/types';
+import {DataCategoryInfo, Organization, Outcome} from 'sentry/types';
 
 import {UsageSeries} from './types';
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 type Props = {
-  dataCategory: DataCategory;
+  dataCategory: DataCategoryInfo['plural'];
   organization: Organization;
+  projectIds: number[];
 } & AsyncComponent['props'];
 
 type State = {
@@ -27,6 +28,13 @@ type State = {
  * as small as possible, this call is quite fast.
  */
 class UsageStatsPerMin extends AsyncComponent<Props, State> {
+  componentDidUpdate(prevProps: Props) {
+    const {projectIds} = this.props;
+    if (prevProps.projectIds !== projectIds) {
+      this.reloadData();
+    }
+  }
+
   getEndpoints(): ReturnType<AsyncComponent['getEndpoints']> {
     return [['orgStats', this.endpointPath, {query: this.endpointQuery}]];
   }
@@ -37,10 +45,12 @@ class UsageStatsPerMin extends AsyncComponent<Props, State> {
   }
 
   get endpointQuery() {
+    const {projectIds} = this.props;
     return {
       statsPeriod: '5m', // Any value <1h will return current hour's data
       interval: '1m',
       groupBy: ['category', 'outcome'],
+      project: projectIds,
       field: ['sum(quantity)'],
     };
   }

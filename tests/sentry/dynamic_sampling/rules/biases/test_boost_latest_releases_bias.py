@@ -5,11 +5,9 @@ import pytest
 from django.utils import timezone
 from freezegun import freeze_time
 
-from sentry.dynamic_sampling import (
-    LATEST_RELEASE_TTAS,
+from sentry.dynamic_sampling import LATEST_RELEASE_TTAS, ExtendedBoostedRelease, Platform
+from sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias import (
     BoostLatestReleasesRulesGenerator,
-    ExtendedBoostedRelease,
-    Platform,
 )
 
 ONE_DAY_AGO = timezone.now() - timedelta(days=1)
@@ -21,10 +19,11 @@ MOCK_DATETIME = ONE_DAY_AGO.replace(hour=10, minute=0, second=0, microsecond=0)
 @patch(
     "sentry.dynamic_sampling.rules.biases.boost_latest_releases_bias.BoostLatestReleasesDataProvider"
 )
-def test_generate_bias_rules(data_provider, default_project):
+def test_generate_bias_rules_v2(data_provider, default_project):
     now = timezone.now()
 
-    sample_rate = 0.7
+    factor = 1.5
+    decayed_factor = 1.0
     platform = "python"
 
     default_project.update(platform=platform)
@@ -50,14 +49,14 @@ def test_generate_bias_rules(data_provider, default_project):
 
     data_provider.get_bias_data.return_value = {
         "id": 1000,
-        "sampleRate": sample_rate,
+        "factor": factor,
+        "decayedFactor": decayed_factor,
         "boostedReleases": boosted_releases,
     }
 
     rules = BoostLatestReleasesRulesGenerator(data_provider).generate_bias_rules(MagicMock())
     assert rules == [
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["1.0"]},
@@ -66,15 +65,17 @@ def test_generate_bias_rules(data_provider, default_project):
                 "op": "and",
             },
             "id": 1000,
-            "sampleRate": sample_rate,
+            "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
-                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
-                "start": now.isoformat(" "),
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "start": now.isoformat().replace("+00:00", "Z"),
             },
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
         {
-            "active": True,
             "condition": {
                 "inner": [
                     {"name": "trace.release", "op": "eq", "value": ["2.0"]},
@@ -83,11 +84,14 @@ def test_generate_bias_rules(data_provider, default_project):
                 "op": "and",
             },
             "id": 1001,
-            "sampleRate": sample_rate,
+            "samplingValue": {"type": "factor", "value": factor},
             "timeRange": {
-                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform])).isoformat(" "),
-                "start": now.isoformat(" "),
+                "end": (now + timedelta(seconds=LATEST_RELEASE_TTAS[platform]))
+                .isoformat()
+                .replace("+00:00", "Z"),
+                "start": now.isoformat().replace("+00:00", "Z"),
             },
+            "decayingFn": {"type": "linear", "decayedValue": decayed_factor},
             "type": "trace",
         },
     ]

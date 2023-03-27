@@ -1,5 +1,5 @@
 ---
-created: '2023-01-11T11:41:28.417889Z'
+created: '2023-02-01T08:22:03.397605Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -18,40 +18,40 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
           frame (non app frame)
             function*
               "GSEventRunModal"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "objc_release"
         type*
           "EXC_BAD_ACCESS"
 --------------------------------------------------------------------------
 system:
-  hash: "b85897bf204fd8e90ff495b47502f281"
+  hash: "87497299851e09febfecf4e84e0d45ba"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "stripped_application_code"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:free +prefix))
             function*
               "objc_release"
         type*

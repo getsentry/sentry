@@ -1,39 +1,54 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
+import isEmpty from 'lodash/isEmpty';
 
+import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {getAttachmentUrl} from 'sentry/components/events/attachmentViewers/utils';
+import FeatureBadge from 'sentry/components/featureBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {tn} from 'sentry/locale';
-import {EventAttachment} from 'sentry/types';
+import {t} from 'sentry/locale';
+import {Event, IssueAttachment, Project} from 'sentry/types';
+import {defined} from 'sentry/utils';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {EventDataSection} from './eventDataSection';
 import {ViewHierarchy, ViewHierarchyData} from './viewHierarchy';
 
-const FIVE_SECONDS_IN_MS = 5 * 1000;
-
 type Props = {
-  projectSlug: string;
-  viewHierarchies: EventAttachment[];
+  event: Event;
+  project: Project;
 };
 
-function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
-  const [selectedViewHierarchy] = useState(0);
+function EventViewHierarchyContent({event, project}: Props) {
   const organization = useOrganization();
 
-  const hierarchyMeta = viewHierarchies[selectedViewHierarchy];
+  const {data: attachments} = useFetchEventAttachments(
+    {
+      orgSlug: organization.slug,
+      projectSlug: project.slug,
+      eventId: event.id,
+    },
+    {notifyOnChangeProps: ['data']}
+  );
+  const viewHierarchies =
+    attachments?.filter(attachment => attachment.type === 'event.view_hierarchy') ?? [];
+  const hierarchyMeta: IssueAttachment | undefined = viewHierarchies[0];
+
+  // There should be only one view hierarchy
   const {isLoading, data} = useQuery<string>(
     [
-      getAttachmentUrl({
-        attachment: hierarchyMeta,
-        eventId: hierarchyMeta.event_id,
-        orgId: organization.slug,
-        projectId: projectSlug,
-      }),
+      defined(hierarchyMeta)
+        ? getAttachmentUrl({
+            attachment: hierarchyMeta,
+            eventId: hierarchyMeta.event_id,
+            orgId: organization.slug,
+            projectSlug: project.slug,
+          })
+        : '',
     ],
-    {staleTime: FIVE_SECONDS_IN_MS, refetchOnWindowFocus: false}
+    {staleTime: Infinity, enabled: defined(hierarchyMeta)}
   );
 
   // Memoize the JSON parsing because downstream hooks depend on
@@ -51,6 +66,10 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
     }
   }, [data]);
 
+  if (isEmpty(viewHierarchies)) {
+    return null;
+  }
+
   // TODO(nar): This loading behaviour is subject to change
   if (isLoading || !data) {
     return <LoadingIndicator />;
@@ -59,13 +78,29 @@ function EventViewHierarchy({projectSlug, viewHierarchies}: Props) {
   return (
     <EventDataSection
       type="view_hierarchy"
-      title={tn('View Hierarchy', 'View Hierarchies', viewHierarchies.length)}
+      title={
+        <Fragment>
+          {t('View Hierarchy')}
+
+          <FeatureBadge type="new" />
+        </Fragment>
+      }
     >
       <ErrorBoundary mini>
-        <ViewHierarchy viewHierarchy={hierarchy} />
+        <ViewHierarchy viewHierarchy={hierarchy} project={project} />
       </ErrorBoundary>
     </EventDataSection>
   );
+}
+
+function EventViewHierarchy(props: Props) {
+  const organization = useOrganization();
+
+  if (!organization.features.includes('event-attachments')) {
+    return null;
+  }
+
+  return <EventViewHierarchyContent {...props} />;
 }
 
 export {EventViewHierarchy};

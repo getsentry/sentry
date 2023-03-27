@@ -10,6 +10,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.serializers import serialize
 from sentry.integrations import IntegrationFeatures
+from sentry.integrations.utils.codecov import codecov_enabled, fetch_codecov_data
 from sentry.models import Integration, Project, RepositoryProjectPathConfig
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import munged_filename_and_frames
@@ -47,6 +48,7 @@ def get_link(
         result["attemptedUrl"] = install.format_source_url(
             config.repository, formatted_path, config.default_branch
         )
+    result["sourcePath"] = formatted_path
 
     return result
 
@@ -62,6 +64,7 @@ def generate_context(parameters: Dict[str, Optional[str]]) -> Dict[str, Optional
         "abs_path": parameters.get("absPath"),
         "module": parameters.get("module"),
         "package": parameters.get("package"),
+        "line_no": parameters.get("lineNo"),
     }
 
 
@@ -214,13 +217,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
             for config in configs:
                 # If all code mappings fail to match a stack_root it means that there's no working code mapping
                 if not filepath.startswith(config.stack_root):
-                    # Later on, if there are matching code mappings this will be overwritten
+                    # This may be overwritten if a valid code mapping is found
                     result["error"] = "stack_root_mismatch"
                     continue
 
                 outcome = {}
                 munging_outcome = {}
-                # If the platform is a mobile language, get_link will never get the right URL without munging
+                # Munging is required for get_link to work with mobile platforms
                 if ctx["platform"] in ["java", "cocoa", "other"]:
                     munging_outcome = try_path_munging(config, filepath, ctx)
                 if not munging_outcome:
@@ -231,23 +234,26 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     if not outcome.get("sourceUrl"):
                         munging_outcome = try_path_munging(config, filepath, ctx)
                         if munging_outcome:
-                            # Let's send the error to Sentry in order to investigate
+                            # Report errors to Sentry for investigation
                             logger.error("We should never be able to reach this code.")
-                # If we failed to munge we should keep the original outcome
+                # Keep the original outcome if munging failed
                 if munging_outcome:
                     outcome = munging_outcome
                     scope.set_tag("stacktrace_link.munged", True)
 
-                current_config = {"config": serialize(config, request.user), "outcome": outcome}
+                current_config = {
+                    "config": serialize(config, request.user),
+                    "outcome": outcome,
+                    "repository": config.repository,
+                }
 
-                # use the provider key to be able to split up stacktrace
-                # link metrics by integration type
+                # Use the provider key to split up stacktrace-link metrics by integration type
                 provider = current_config["config"]["provider"]["key"]
                 scope.set_tag("integration_provider", provider)  # e.g. github
 
+                # Stop processing if a match is found
                 if outcome.get("sourceUrl") and outcome["sourceUrl"]:
                     result["sourceUrl"] = outcome["sourceUrl"]
-                    # if we found a match, we can break
                     break
 
             # Post-processing before exiting scope context
@@ -258,6 +264,13 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                     # When no code mapping have been matched we have not attempted a URL
                     if current_config["outcome"].get("attemptedUrl"):
                         result["attemptedUrl"] = current_config["outcome"]["attemptedUrl"]
+
+                should_get_coverage = codecov_enabled(project.organization, request.user)
+                scope.set_tag("codecov.enabled", should_get_coverage)
+                if should_get_coverage:
+                    codecov_data = fetch_codecov_data(config=current_config)
+                    if codecov_data:
+                        result["codecov"] = codecov_data
             try:
                 set_tags(scope, result)
             except Exception:

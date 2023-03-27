@@ -1,15 +1,27 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, List, Optional, Union, cast
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 from typing_extensions import TypedDict
 
-from sentry import features, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
 from sentry.api.serializers.models.role import (
@@ -28,7 +40,6 @@ from sentry.constants import (
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
-    ORGANIZATION_OPTIONS_AS_FEATURES,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -38,6 +49,7 @@ from sentry.constants import (
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
 )
+from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models import (
     Organization,
@@ -52,7 +64,7 @@ from sentry.models import (
     TeamStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import ApiOrganizationAuthConfig, auth_service
+from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.services.hybrid_cloud.user import user_service
 from sentry.utils.http import is_using_customer_domain
 
@@ -60,6 +72,23 @@ _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
 if TYPE_CHECKING:
     from sentry.api.serializers import UserSerializerResponse, UserSerializerResponseSelf
+
+# A mapping of OrganizationOption keys to a list of frontend features, and functions to apply the feature.
+# Enabling feature-flagging frontend components without an extra API call/endpoint to verify
+# the OrganizationOption.
+OptionFeature = Tuple[str, Callable[[OrganizationOption], bool]]
+ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, List[OptionFeature]] = {
+    "sentry:project-rate-limit": [
+        ("legacy-rate-limits", lambda opt: True),
+    ],
+    "sentry:account-rate-limit": [
+        ("legacy-rate-limits", lambda opt: True),
+    ],
+    "quotas:new-spike-protection": [
+        ("spike-projections", lambda opt: bool(opt.value)),
+        ("project-stats", lambda opt: bool(opt.value)),
+    ],
+}
 
 
 class BaseOrganizationSerializer(serializers.Serializer):  # type: ignore
@@ -174,7 +203,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
             for a in OrganizationAvatar.objects.filter(organization__in=item_list)
         }
 
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig] = {
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig] = {
             config.organization_id: config
             for config in auth_service.get_org_auth_config(
                 organization_ids=[o.id for o in item_list]
@@ -193,7 +222,7 @@ class OrganizationSerializer(Serializer):  # type: ignore
 
     def _serialize_auth_providers(
         self,
-        configs_by_org_id: Mapping[int, ApiOrganizationAuthConfig],
+        configs_by_org_id: Mapping[int, RpcOrganizationAuthConfig],
         item_list: Sequence[Organization],
         user: User,
     ) -> Mapping[int, Any]:
@@ -269,13 +298,9 @@ class OrganizationSerializer(Serializer):  # type: ignore
             organization=obj, key__in=ORGANIZATION_OPTIONS_AS_FEATURES.keys()
         )
         for option in options_as_features:
-            option_feature = ORGANIZATION_OPTIONS_AS_FEATURES.get(option.key)
-            if not option_feature:
-                continue
-            feature: str = option_feature[0]  # feature flag string
-            func: Callable[[OrganizationOption], bool] | None = option_feature[1]  # flag validator
-            if not callable(func) or func(option):
-                feature_list.add(feature)
+            for option_feature, option_function in ORGANIZATION_OPTIONS_AS_FEATURES[option.key]:
+                if option_function(option):
+                    feature_list.add(option_feature)
 
         if getattr(obj.flags, "allow_joinleave"):
             feature_list.add("open-membership")
@@ -327,12 +352,13 @@ class OnboardingTasksSerializerResponse(TypedDict):
     data: Any  # JSON object
 
 
+@register(OrganizationOnboardingTask)
 class OnboardingTasksSerializer(Serializer):  # type: ignore
     def get_attrs(
         self, item_list: OrganizationOnboardingTask, user: User, **kwargs: Any
     ) -> MutableMapping[OrganizationOnboardingTask, _OnboardingTasksAttrs]:
-        serialized_users = user_service.serialize_users(
-            user_ids=list({item.user_id for item in item_list if item.user_id})
+        serialized_users = user_service.serialize_many(
+            filter={"user_ids": list({item.user_id for item in item_list if item.user_id})}
         )
         user_map = {user["id"]: user for user in serialized_users}
 
@@ -403,9 +429,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
 
         from sentry import experiments
 
-        onboarding_tasks = list(
-            OrganizationOnboardingTask.objects.filter(organization=obj).select_related("user")
-        )
+        tasks_to_serialize = list(onboarding_tasks.fetch_onboarding_tasks(obj, user))
 
         experiment_assignments = experiments.all(org=obj, actor=user)
 
@@ -505,7 +529,7 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
-        context["onboardingTasks"] = serialize(onboarding_tasks, user, OnboardingTasksSerializer())
+        context["onboardingTasks"] = serialize(tasks_to_serialize, user)
         return context
 
 
@@ -549,7 +573,10 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
     def serialize(  # type: ignore
         self, obj: Organization, attrs: Mapping[str, Any], user: User, access: Access
     ) -> DetailedOrganizationSerializerWithProjectsAndTeamsResponse:
-        from sentry.api.serializers.models.project import ProjectSummarySerializer
+        from sentry.api.serializers.models.project import (
+            LATEST_DEPLOYS_KEY,
+            ProjectSummarySerializer,
+        )
         from sentry.api.serializers.models.team import TeamSerializer
 
         context = cast(
@@ -561,6 +588,18 @@ class DetailedOrganizationSerializerWithProjectsAndTeams(DetailedOrganizationSer
         project_list = self._project_list(obj, access)
 
         context["teams"] = serialize(team_list, user, TeamSerializer(access=access))
-        context["projects"] = serialize(project_list, user, ProjectSummarySerializer(access=access))
+
+        collapse_projects: Set[str] = set()
+        if killswitch_matches_context(
+            "api.organization.disable-last-deploys",
+            {
+                "organization_id": obj.id,
+            },
+        ):
+            collapse_projects = {LATEST_DEPLOYS_KEY}
+
+        context["projects"] = serialize(
+            project_list, user, ProjectSummarySerializer(access=access, collapse=collapse_projects)
+        )
 
         return context

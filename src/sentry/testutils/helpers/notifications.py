@@ -4,12 +4,12 @@ import uuid
 from datetime import datetime
 from typing import Any, Iterable, Mapping
 
+from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.models import Team, User
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.user import APIUser
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.integrations import ExternalProviders
-from sentry.types.issues import GroupType
 from sentry.utils.dates import ensure_aware
 
 
@@ -21,7 +21,7 @@ class DummyNotification(BaseNotification):
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         pass
 
-    def determine_recipients(self) -> Iterable[Team | APIUser]:
+    def determine_recipients(self) -> Iterable[Team | RpcUser]:
         return []
 
     def build_attachment_title(self, *args):
@@ -72,6 +72,7 @@ class DummyNotificationWithMoreFields(DummyNotification):
 
 TEST_ISSUE_OCCURRENCE = IssueOccurrence(
     uuid.uuid4().hex,
+    1,
     uuid.uuid4().hex,
     ["some-fingerprint"],
     "something bad happened",
@@ -83,6 +84,8 @@ TEST_ISSUE_OCCURRENCE = IssueOccurrence(
         IssueEvidence("Evidence 2", "Not important", False),
         IssueEvidence("Evidence 3", "Nobody cares about this", False),
     ],
-    GroupType.PROFILE_BLOCKED_THREAD,
+    ProfileFileIOGroupType,
     ensure_aware(datetime.now()),
+    "info",
+    "/api/123/",
 )

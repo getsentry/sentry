@@ -8,17 +8,22 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface ProfileFiltersOptions {
   query: string;
+  disabled?: boolean;
   selection?: PageFilters;
 }
 
-function useProfileFilters({query, selection}: ProfileFiltersOptions): TagCollection {
+function useProfileFilters({
+  query,
+  selection,
+  disabled,
+}: ProfileFiltersOptions): TagCollection {
   const api = useApi();
   const organization = useOrganization();
 
   const [profileFilters, setProfileFilters] = useState<TagCollection>({});
 
   useEffect(() => {
-    if (!selection) {
+    if (disabled || !selection) {
       return undefined;
     }
 
@@ -44,7 +49,7 @@ function useProfileFilters({query, selection}: ProfileFiltersOptions): TagCollec
     });
 
     return () => api.clear();
-  }, [api, organization, query, selection]);
+  }, [api, organization, query, selection, disabled]);
 
   return profileFilters;
 }

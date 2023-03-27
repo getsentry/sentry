@@ -1,5 +1,5 @@
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {SpanTree, SpanTreeNode} from 'sentry/utils/profiling/spanTree';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 import {
   makeFormatter,
   makeFormatTo,
@@ -88,8 +88,8 @@ class SpanChart {
       depthOffset === 0
         ? [[null, tree.root]]
         : [...tree.root.children.map(child => [null, child] as [null, SpanTreeNode])];
-    let depth = depthOffset;
 
+    let depth = 0;
     while (queue.length) {
       let children_at_depth = queue.length;
 
@@ -109,7 +109,7 @@ class SpanChart {
               ? node.span.op + ': ' + node.span.description
               : node.span.op || node.span.description || '<unknown span>',
           node,
-          depth,
+          depth: depth + depthOffset,
           parent,
           children: [],
         };
@@ -148,6 +148,7 @@ class SpanChart {
     for (let i = 0; i < this.spanTrees.length; i++) {
       depth += this.forEachSpanOfTree(this.spanTrees[i], depth, visit);
     }
+
     return nodes;
   }
 }

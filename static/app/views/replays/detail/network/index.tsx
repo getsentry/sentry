@@ -1,4 +1,4 @@
-import {useRef} from 'react';
+import {useMemo, useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
@@ -27,6 +27,12 @@ type Props = {
   startTimestampMs: number;
 };
 
+const cellMeasurer = {
+  defaultHeight: BODY_HEIGHT,
+  defaultWidth: 100,
+  fixedHeight: true,
+};
+
 function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -38,30 +44,41 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
-  const current = getPrevReplayEvent({
-    items,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
+  const itemLookup = useMemo(
+    () =>
+      items &&
+      items
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [items]
+  );
 
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
+  const current = useMemo(
+    () =>
+      getPrevReplayEvent({
+        itemLookup,
         items,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : null;
+        targetTimestampMs: startTimestampMs + currentTime,
+      }),
+    [itemLookup, items, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime
+        ? getPrevReplayEvent({
+            itemLookup,
+            items,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : null,
+    [itemLookup, items, currentHoverTime, startTimestampMs]
+  );
 
   const gridRef = useRef<MultiGrid>(null);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
-      cellMeasurer: {
-        defaultHeight: BODY_HEIGHT,
-        defaultWidth: 100,
-        fixedHeight: true,
-      },
+      cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
       dynamicColumnIndex: 1,
@@ -115,7 +132,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   };
 
   return (
-    <NetworkContainer>
+    <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
         {networkSpans ? (
@@ -126,8 +143,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
                 cellRenderer={cellRenderer}
                 columnCount={COLUMN_COUNT}
                 columnWidth={getColumnWidth(width)}
-                estimatedColumnSize={width}
-                estimatedRowSize={HEADER_HEIGHT + items.length * BODY_HEIGHT}
+                deferredMeasurementCache={cache}
+                estimatedColumnSize={100}
+                estimatedRowSize={BODY_HEIGHT}
                 fixedRowCount={1}
                 height={height}
                 noContentRenderer={() => (
@@ -151,13 +169,9 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
           <Placeholder height="100%" />
         )}
       </NetworkTable>
-    </NetworkContainer>
+    </FluidHeight>
   );
 }
-
-const NetworkContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const NetworkTable = styled('div')`
   position: relative;

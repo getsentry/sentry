@@ -10,7 +10,7 @@ import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
 import {ROOT_ELEMENT} from 'sentry/constants';
 import ModalStore from 'sentry/stores/modalStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
 
@@ -21,7 +21,7 @@ type ModalOptions = {
    * Set to `false` to disable the backdrop from being rendered.
    * Set to `true` (the default) to show a translucent backdrop.
    */
-  backdrop?: 'static' | boolean; // TODO(malwilley): Remove 'static' when no longer used in getsentry
+  backdrop?: boolean;
   /**
    * By default, the modal is closed when the backdrop is clicked or the
    * escape key is pressed. This prop allows you to modify that behavior.
@@ -187,8 +187,7 @@ function GlobalModal({onClose}: Props) {
   const backdrop = options.backdrop ?? true;
 
   const allowBackdropClickClose =
-    (closeEvents === 'all' || closeEvents === 'backdrop-click') &&
-    options.backdrop !== 'static';
+    closeEvents === 'all' || closeEvents === 'backdrop-click';
 
   // Only close when we directly click outside of the modal.
   const containerRef = useRef<HTMLDivElement>(null);
@@ -271,7 +270,7 @@ Modal.defaultProps = {
 
 const Content = styled('div')`
   background: ${p => p.theme.background};
-  border-radius: 8px;
+  border-radius: ${p => p.theme.modalBorderRadius};
   box-shadow: 0 0 0 1px ${p => p.theme.translucentBorder}, ${p => p.theme.dropShadowHeavy};
   position: relative;
   padding: ${space(4)} ${space(3)};

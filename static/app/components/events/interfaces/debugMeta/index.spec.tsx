@@ -19,7 +19,7 @@ describe('DebugMeta', function () {
         <GlobalModal />
         <DebugMeta
           organization={organization}
-          projectId={project.id}
+          projectSlug={project.slug}
           event={event}
           data={eventEntryDebugMeta.data}
           {...routerProps}
@@ -29,9 +29,9 @@ describe('DebugMeta', function () {
 
     await screen.findByRole('heading', {name: 'Images Loaded'});
 
-    userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show Details'}));
 
-    userEvent.click(screen.getByRole('button', {name: 'View'}));
+    await userEvent.click(screen.getByRole('button', {name: 'View'}));
 
     expect(
       await screen.findByText(getFileName(eventEntryDebugMeta.data.images[0].code_file)!)

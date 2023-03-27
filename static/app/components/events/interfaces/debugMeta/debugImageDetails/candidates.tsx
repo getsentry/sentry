@@ -5,11 +5,12 @@ import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import {Button} from 'sentry/components/button';
+import {SelectOption, SelectSection} from 'sentry/components/compactSelect';
 import ExternalLink from 'sentry/components/links/externalLink';
 import PanelTable from 'sentry/components/panels/panelTable';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
 import {CandidateDownloadStatus, Image, ImageStatus} from 'sentry/types/debugImage';
 import {defined} from 'sentry/utils';
@@ -24,10 +25,6 @@ const filterOptionCategories = {
   status: t('Status'),
   source: t('Source'),
 };
-
-type FilterOptions = NonNullable<
-  React.ComponentProps<typeof SearchBarAction>['filterOptions']
->;
 
 type ImageCandidates = Image['candidates'];
 
@@ -44,8 +41,8 @@ type Props = {
 };
 
 type State = {
-  filterOptions: FilterOptions;
-  filterSelections: FilterOptions;
+  filterOptions: SelectSection<string>[];
+  filterSelections: SelectOption<string>[];
   filteredCandidatesByFilter: ImageCandidates;
   filteredCandidatesBySearch: ImageCandidates;
   searchTerm: string;
@@ -138,7 +135,7 @@ class Candidates extends Component<Props, State> {
     const filterOptions = this.getFilterOptions(candidates);
 
     const defaultFilterSelections = (
-      filterOptions.find(section => section.value === 'status')?.options ?? []
+      filterOptions.find(section => section.key === 'status')?.options ?? []
     ).filter(
       opt =>
         opt.value !== `status-${CandidateDownloadStatus.NOT_FOUND}` ||
@@ -157,7 +154,7 @@ class Candidates extends Component<Props, State> {
   }
 
   getFilterOptions(candidates: ImageCandidates) {
-    const filterOptions: FilterOptions = [];
+    const filterOptions: SelectSection<string>[] = [];
 
     const candidateStatus = [
       ...new Set(candidates.map(candidate => candidate.download.status)),
@@ -165,10 +162,11 @@ class Candidates extends Component<Props, State> {
 
     if (candidateStatus.length > 1) {
       filterOptions.push({
-        value: 'status',
+        key: 'status',
         label: filterOptionCategories.status,
         options: candidateStatus.map(status => ({
           value: `status-${status}`,
+          textValue: status,
           label: <Status status={status} />,
         })),
       });
@@ -180,7 +178,7 @@ class Candidates extends Component<Props, State> {
 
     if (candidateSources.length > 1) {
       filterOptions.push({
-        value: 'source',
+        key: 'source',
         label: filterOptionCategories.source,
         options: candidateSources.map(sourceName => ({
           value: `source-${sourceName}`,
@@ -189,12 +187,12 @@ class Candidates extends Component<Props, State> {
       });
     }
 
-    return filterOptions as FilterOptions;
+    return filterOptions;
   }
 
   getFilteredCandidatedByFilter(
     candidates: ImageCandidates,
-    filterOptions: FilterOptions
+    filterOptions: SelectOption<string>[]
   ) {
     const checkedStatusOptions = new Set(
       filterOptions
@@ -264,7 +262,7 @@ class Candidates extends Component<Props, State> {
     this.setState({searchTerm});
   };
 
-  handleChangeFilter = (filterSelections: FilterOptions) => {
+  handleChangeFilter = (filterSelections: SelectOption<string>[]) => {
     const {filteredCandidatesBySearch} = this.state;
     const filteredCandidatesByFilter = this.getFilteredCandidatedByFilter(
       filteredCandidatesBySearch,

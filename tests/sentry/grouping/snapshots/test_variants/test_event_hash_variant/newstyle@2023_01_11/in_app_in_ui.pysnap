@@ -1,10 +1,10 @@
 ---
-created: '2023-01-11T11:41:29.813731Z'
+created: '2023-02-01T08:22:07.216273Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
 app:
-  hash: "9b037f38798ea127aac3e8b8e1e1024a"
+  hash: "5b032559156688c9eabe4e4bd5ae6bd4"
   component:
     app*
       exception*
@@ -12,7 +12,7 @@ app:
           frame (non app frame)
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
@@ -20,7 +20,7 @@ app:
           frame (non app frame)
             function*
               "UIApplicationMain"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
           frame (non app frame)
@@ -64,7 +64,7 @@ app:
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
-          frame (non app frame)
+          frame (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UITableView layoutSubviews]"
           frame (non app frame)
@@ -88,7 +88,7 @@ app:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -113,7 +113,7 @@ app:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -149,59 +149,59 @@ app:
           "autoplayOption"
 --------------------------------------------------------------------------
 system:
-  hash: "fe8b15fe322c91ede2fc48363fe43587"
+  hash: "1921b991270e24c19ea1ed6863892d71"
   component:
     system*
       exception*
         stacktrace*
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "start"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             filename*
               "main.m"
             function*
               "main"
-          frame*
+          frame (ignored by stack trace rule (category:threadbase -group v-group))
             function*
               "UIApplicationMain"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UIApplication _run]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "GSEventRunModal"
-          frame*
+          frame (ignored by stack trace rule (category:indirection -group))
             function*
               "CFRunLoopRunSpecific"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopRun"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRunLoopDoObservers"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CA::Transaction::observer_callback"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CA::Transaction::commit"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CA::Context::commit_transaction"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CA::Layer::layout_and_display_if_needed"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "CA::Layer::layout_if_needed"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[CALayer layoutSublayers]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UIView(CALayerDelegate) layoutSublayersOfLayer:]"
           frame*
@@ -209,13 +209,13 @@ system:
               "<compiler-generated>"
             function*
               "TableView.layoutSubviews"
-          frame*
+          frame* (marked as prefix frame by stack trace rule (category:ui +sentinel +prefix))
             function*
               "-[UITableView layoutSubviews]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UITableView _updateVisibleCellsNow:]"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             function*
               "-[UITableView _createPreparedCellForGlobalRow:withIndexPath:willDisplay:]"
           frame*
@@ -233,7 +233,7 @@ system:
               "anytableviewcontroller.swift"
             function*
               "AnyTableViewController.tableView"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*
@@ -258,7 +258,7 @@ system:
               "<compiler-generated>"
             function*
               "Sequence.compactMap<T>"
-          frame*
+          frame (ignored by stack trace rule (category:internals -group))
             filename*
               "<compiler-generated>"
             function*

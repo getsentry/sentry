@@ -8,43 +8,46 @@ import {
 } from 'sentry/components/assigneeSelectorDropdown';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
 import SuggestedAvatarStack from 'sentry/components/avatar/suggestedAvatarStack';
-import DropdownBubble from 'sentry/components/dropdownBubble';
 import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron, IconUser} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import GroupStore from 'sentry/stores/groupStore';
+import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import {space} from 'sentry/styles/space';
 import type {Actor, SuggestedOwnerReason} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface AssigneeSelectorProps
-  extends Omit<AssigneeSelectorDropdownProps, 'children' | 'organization'> {
+  extends Omit<
+    AssigneeSelectorDropdownProps,
+    'children' | 'organization' | 'assignedTo'
+  > {
   noDropdown?: boolean;
 }
 
-function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
-  const organization = useOrganization();
+function AssigneeAvatar({
+  assignedTo,
+  suggestedActors = [],
+}: {
+  assignedTo?: Actor;
+  suggestedActors?: SuggestedAssignee[];
+}) {
+  const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
+    suspectCommit: tct('Based on [commit:commit data]', {
+      commit: (
+        <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
+      ),
+    }),
+    ownershipRule: t('Matching Issue Owners Rule'),
+    projectOwnership: t('Matching Issue Owners Rule'),
+    codeowners: t('Matching Codeowners Rule'),
+  };
+  const assignedToSuggestion = suggestedActors.find(actor => actor.id === assignedTo?.id);
 
-  function getActorElement(
-    assignedTo?: Actor,
-    suggestedActors: SuggestedAssignee[] = []
-  ) {
-    const suggestedReasons: Record<SuggestedOwnerReason, React.ReactNode> = {
-      suspectCommit: tct('Based on [commit:commit data]', {
-        commit: (
-          <TooltipSubExternalLink href="https://docs.sentry.io/product/sentry-basics/integrate-frontend/configure-scms/" />
-        ),
-      }),
-      releaseCommit: '',
-      ownershipRule: t('Matching Issue Owners Rule'),
-      codeowners: t('Matching Codeowners Rule'),
-    };
-    const assignedToSuggestion = suggestedActors.find(
-      actor => actor.id === assignedTo?.id
-    );
-
-    return assignedTo ? (
+  if (assignedTo) {
+    return (
       <ActorAvatar
         actor={assignedTo}
         className="avatar"
@@ -63,7 +66,11 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
           </TooltipWrapper>
         }
       />
-    ) : suggestedActors && suggestedActors.length > 0 ? (
+    );
+  }
+
+  if (suggestedActors.length > 0) {
+    return (
       <SuggestedAvatarStack
         size={28}
         owners={suggestedActors}
@@ -86,36 +93,53 @@ function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
           </TooltipWrapper>
         }
       />
-    ) : (
-      <Tooltip
-        isHoverable
-        skipWrapper
-        title={
-          <TooltipWrapper>
-            <div>{t('Unassigned')}</div>
-            <TooltipSubtext>
-              {tct(
-                'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
-                {
-                  issueOwners: (
-                    <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
-                  ),
-                }
-              )}
-            </TooltipSubtext>
-          </TooltipWrapper>
-        }
-      >
-        <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
-      </Tooltip>
     );
   }
 
   return (
+    <Tooltip
+      isHoverable
+      skipWrapper
+      title={
+        <TooltipWrapper>
+          <div>{t('Unassigned')}</div>
+          <TooltipSubtext>
+            {tct(
+              'You can auto-assign issues by adding [issueOwners:Issue Owner rules].',
+              {
+                issueOwners: (
+                  <TooltipSubExternalLink href="https://docs.sentry.io/product/error-monitoring/issue-owners/" />
+                ),
+              }
+            )}
+          </TooltipSubtext>
+        </TooltipWrapper>
+      }
+    >
+      <StyledIconUser data-test-id="unassigned" size="md" color="gray400" />
+    </Tooltip>
+  );
+}
+
+function AssigneeSelector({noDropdown, ...props}: AssigneeSelectorProps) {
+  const organization = useOrganization();
+  const groups = useLegacyStore(GroupStore);
+  const group = groups.find(item => item.id === props.id);
+
+  return (
     <AssigneeWrapper>
-      <AssigneeSelectorDropdown organization={organization} {...props}>
-        {({loading, isOpen, assignedTo, getActorProps, suggestedAssignees}) => {
-          const avatarElement = getActorElement(assignedTo, suggestedAssignees);
+      <AssigneeSelectorDropdown
+        organization={organization}
+        assignedTo={group?.assignedTo}
+        {...props}
+      >
+        {({loading, isOpen, getActorProps, suggestedAssignees}) => {
+          const avatarElement = (
+            <AssigneeAvatar
+              assignedTo={group?.assignedTo}
+              suggestedActors={suggestedAssignees}
+            />
+          );
 
           return (
             <Fragment>
@@ -147,9 +171,6 @@ const AssigneeWrapper = styled('div')`
   justify-content: flex-end;
 
   /* manually align menu underneath dropdown caret */
-  ${DropdownBubble} {
-    right: -14px;
-  }
 `;
 
 const StyledIconUser = styled(IconUser)`

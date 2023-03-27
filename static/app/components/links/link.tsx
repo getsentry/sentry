@@ -1,7 +1,6 @@
-import {forwardRef, useContext, useEffect} from 'react';
+import {forwardRef, useContext} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import {Location, LocationDescriptor} from 'history';
 
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -15,7 +14,13 @@ export interface LinkProps
     'href' | 'target' | 'as' | 'css'
   > {
   /**
-   * The string path or LocationDescriptor object
+   * The string path or LocationDescriptor object.
+   *
+   * If your link target is a string literal or a `LocationDescriptor` with
+   * a literal `pathname`, you need to use the slug based URL
+   * e.g `/organizations/${slug}/issues/`. This ensures that your link will
+   * work in environments that do have customer-domains (saas) and those without
+   * customer-domains (single-tenant).
    */
   to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
   /**
@@ -39,15 +44,6 @@ export interface LinkProps
 function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
   const route = useContext(RouteContext);
   const location = route?.location;
-  useEffect(() => {
-    // check if the router is present
-    if (!(route && location)) {
-      Sentry.captureException(
-        new Error('The link component was rendered without being wrapped by a <Router />')
-      );
-    }
-  }, [route, location]);
-
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {

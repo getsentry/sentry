@@ -1,22 +1,25 @@
-import {CSSProperties, Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {Hovercard} from 'sentry/components/hovercard';
+import {Flex} from 'sentry/components/profiling/flex';
+import {
+  FunctionsMiniGrid,
+  FunctionsMiniGridEmptyState,
+  FunctionsMiniGridLoading,
+} from 'sentry/components/profiling/functionsMiniGrid';
+import {TextTruncateOverflow} from 'sentry/components/profiling/textTruncateOverflow';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project} from 'sentry/types';
-import {DURATION_UNITS} from 'sentry/utils/discover/fieldRenderers';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {getShortEventId} from 'sentry/utils/events';
-import {useFunctions} from 'sentry/utils/profiling/hooks/useFunctions';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {useProfilingTransactionQuickSummary} from 'sentry/utils/profiling/hooks/useProfilingTransactionQuickSummary';
 import {
   generateProfileFlamechartRouteWithQuery,
   generateProfileSummaryRouteWithQuery,
 } from 'sentry/utils/profiling/routes';
 import {useLocation} from 'sentry/utils/useLocation';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import {ContextTitle} from 'sentry/views/eventsV2/table/quickContext/styles';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 import {Button} from '../button';
 import Link from '../links/link';
@@ -40,18 +43,26 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
     transaction,
   });
 
-  const triggerLink = <Link to={linkToSummary}>{transaction}</Link>;
-
-  if (!organization.features.includes('profiling-dashboard-redesign')) {
-    return triggerLink;
-  }
+  const triggerLink = (
+    <Link
+      to={linkToSummary}
+      onClick={() =>
+        trackAdvancedAnalyticsEvent('profiling_views.go_to_transaction', {
+          organization,
+          source: 'transaction_hovercard.trigger',
+        })
+      }
+    >
+      {transaction}
+    </Link>
+  );
 
   return (
     <StyledHovercard
       delay={250}
       header={
         <Flex justify="space-between" align="center">
-          <TextTruncate title={transaction}>{transaction}</TextTruncate>
+          <TextTruncateOverflow>{transaction}</TextTruncateOverflow>
           <Button to={linkToSummary} size="xs">
             {t('View Profiles')}
           </Button>
@@ -71,53 +82,24 @@ export function ProfilingTransactionHovercard(props: ProfilingTransactionHoverca
   );
 }
 
-function ProfilingTransactionHovercardBody({
+export function ProfilingTransactionHovercardBody({
   transaction,
   project,
   organization,
 }: ProfilingTransactionHovercardProps) {
-  const {selection} = usePageFilters();
-
-  const baseQueryOptions = {
-    query: `transaction:"${transaction}"`,
-    fields: getProfilesTableFields(project.platform),
-    enabled: Boolean(transaction),
-    limit: 1,
-    referrer: 'api.profiling.profiling-transaction-hovercard',
-    refetchOnMount: false,
-    projects: [project.id],
-  };
-
-  const slowestProfileQuery = useProfileEvents({
-    ...baseQueryOptions,
-    sort: {
-      key: 'profile.duration',
-      order: 'desc',
-    },
-  });
-
-  const latestProfileQuery = useProfileEvents({
-    ...baseQueryOptions,
-    sort: {
-      key: 'timestamp',
-      order: 'desc',
-    },
-  });
-
-  const functions = useFunctions({
-    project,
-    query: '',
-    selection,
+  const {
+    slowestProfile,
+    slowestProfileQuery,
+    slowestProfileDurationMultiplier,
+    latestProfileQuery,
+    latestProfile,
+    functionsQuery,
+    functions,
+  } = useProfilingTransactionQuickSummary({
     transaction,
-    sort: '-p99',
-    functionType: 'application',
+    project,
+    referrer: 'api.profiling.profiling-transaction-hovercard',
   });
-
-  const slowestProfile = slowestProfileQuery?.data?.[0].data[0] ?? null;
-  const durationUnits = slowestProfileQuery.data?.[0].meta.units['profile.duration'];
-  const multiplier = durationUnits ? DURATION_UNITS[durationUnits] ?? 1 : 1;
-
-  const latestProfile = latestProfileQuery?.data?.[0].data[0] ?? null;
 
   const linkToFlamechartRoute = (
     profileId: string,
@@ -131,6 +113,12 @@ function ProfilingTransactionHovercardBody({
     });
   };
 
+  useEffect(() => {
+    trackAdvancedAnalyticsEvent('profiling_ui_events.transaction_hovercard_view', {
+      organization,
+    });
+  }, [organization]);
+
   return (
     <Flex gap={space(3)} column>
       <Flex justify="space-between">
@@ -139,8 +127,16 @@ function ProfilingTransactionHovercardBody({
           isLoading={latestProfileQuery.isLoading}
         >
           {latestProfile ? (
-            <Link to={linkToFlamechartRoute(String(latestProfile.id))}>
-              {getShortEventId(String(latestProfile!.id))}
+            <Link
+              to={linkToFlamechartRoute(String(latestProfile['profile.id']))}
+              onClick={() =>
+                trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                  organization,
+                  source: 'transaction_hovercard.latest_profile',
+                })
+              }
+            >
+              {getShortEventId(String(latestProfile!['profile.id']))}
             </Link>
           ) : (
             '-'
@@ -154,11 +150,22 @@ function ProfilingTransactionHovercardBody({
           {slowestProfile ? (
             <Flex gap={space(1)}>
               <PerformanceDuration
-                milliseconds={multiplier * (slowestProfile['profile.duration'] as number)}
+                milliseconds={
+                  slowestProfileDurationMultiplier *
+                  (slowestProfile['transaction.duration'] as number)
+                }
                 abbreviation
               />
-              <Link to={linkToFlamechartRoute(String(slowestProfile.id))}>
-                ({getShortEventId(String(slowestProfile?.id))})
+              <Link
+                to={linkToFlamechartRoute(String(slowestProfile['profile.id']))}
+                onClick={() =>
+                  trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+                    organization,
+                    source: 'transaction_hovercard.slowest_profile',
+                  })
+                }
+              >
+                ({getShortEventId(String(slowestProfile['profile.id']))})
               </Link>
             </Flex>
           ) : (
@@ -168,57 +175,38 @@ function ProfilingTransactionHovercardBody({
       </Flex>
 
       <Flex column h={125}>
-        <FunctionsMiniGrid>
-          <FunctionsMiniGridHeader>{t('Slowest app functions')}</FunctionsMiniGridHeader>
-          <FunctionsMiniGridHeader align="right">{t('P99')}</FunctionsMiniGridHeader>
-          <FunctionsMiniGridHeader align="right">{t('Count')}</FunctionsMiniGridHeader>
-
-          {functions.type === 'resolved' &&
-            functions.data.functions.map(f => {
-              const [exampleProfileIdRaw] = f.examples;
-              const exampleProfileId = exampleProfileIdRaw.replaceAll('-', '');
-              return (
-                <Fragment key={f.name}>
-                  <FunctionsMiniGridCell title={f.name}>
-                    <TextTruncate>
-                      <Link
-                        to={linkToFlamechartRoute(exampleProfileId, {
-                          frameName: f.name,
-                          framePackage: f.package,
-                        })}
-                      >
-                        {f.name}
-                      </Link>
-                    </TextTruncate>
-                  </FunctionsMiniGridCell>
-                  <FunctionsMiniGridCell align="right">
-                    <PerformanceDuration nanoseconds={f.p99} abbreviation />
-                  </FunctionsMiniGridCell>
-                  <FunctionsMiniGridCell align="right">
-                    <NumberContainer>{f.count}</NumberContainer>
-                  </FunctionsMiniGridCell>
-                </Fragment>
-              );
-            })}
-        </FunctionsMiniGrid>
-        {functions.type === 'loading' && (
-          <Flex align="stretch" justify="center" column h="100%">
-            <Flex align="center" justify="center">
-              <LoadingIndicator mini />
-            </Flex>
-          </Flex>
-        )}
-
-        {functions.type === 'resolved' && functions.data.functions.length === 0 && (
-          <Flex align="stretch" justify="center" column h="100%">
-            <Flex align="center" justify="center">
-              {t('No functions data')}
-            </Flex>
-          </Flex>
-        )}
+        <ProfilingTransactionHovercardFunctions
+          isLoading={functionsQuery.isLoading}
+          functions={functions ?? []}
+          organization={organization}
+          project={project}
+          onLinkClick={() =>
+            trackAdvancedAnalyticsEvent('profiling_views.go_to_flamegraph', {
+              organization,
+              source: 'transaction_hovercard.suspect_function',
+            })
+          }
+        />
       </Flex>
     </Flex>
   );
+}
+
+type ProfilingTransactionHovercardFunctionsProps = React.ComponentProps<
+  typeof FunctionsMiniGrid
+> & {isLoading: boolean};
+
+function ProfilingTransactionHovercardFunctions(
+  props: ProfilingTransactionHovercardFunctionsProps
+) {
+  if (props.isLoading) {
+    return <FunctionsMiniGridLoading />;
+  }
+
+  if (!props.functions || props.functions?.length === 0) {
+    return <FunctionsMiniGridEmptyState />;
+  }
+  return <FunctionsMiniGrid {...props} />;
 }
 
 interface ContextDetailProps {
@@ -231,7 +219,7 @@ function ContextDetail(props: ContextDetailProps) {
 
   return (
     <Flex column gap={space(1)}>
-      {title && <ContextTitle>{title}</ContextTitle>}
+      {title && <UppercaseTitle>{title}</UppercaseTitle>}
       <Fragment>
         {isLoading ? (
           <Flex align="center" justify="center" h="1em">
@@ -245,57 +233,13 @@ function ContextDetail(props: ContextDetailProps) {
   );
 }
 
-const px = (val: string | number | undefined) =>
-  typeof val === 'string' ? val : typeof val === 'number' ? val + 'px' : undefined;
-
-// TODO(@eliashussary): move to common folder / bring up in fe-tsc
-const Flex = styled('div')<{
-  align?: CSSProperties['alignItems'];
-  column?: boolean;
-  gap?: number | string;
-  h?: number | string;
-  justify?: CSSProperties['justifyContent'];
-  maxH?: number | string;
-  minH?: number | string;
-  w?: number | string;
-}>`
-  display: flex;
-  flex-direction: ${p => (p.column ? 'column' : 'row')};
-  justify-content: ${p => p.justify};
-  align-items: ${p => p.align};
-  gap: ${p => px(p.gap)};
-  height: ${p => px(p.h)};
-  width: ${p => px(p.w)};
-  min-height: ${p => px(p.minH)};
-`;
-
-const FunctionsMiniGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 60% 20% 20%;
-`;
-
-const FunctionsMiniGridHeader = styled('h6')<{align?: CSSProperties['textAlign']}>`
+const UppercaseTitle = styled('span')`
+  text-transform: uppercase;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  font-weight: 600;
   color: ${p => p.theme.subText};
-  text-align: ${p => p.align};
-`;
-
-const FunctionsMiniGridCell = styled('div')<{align?: CSSProperties['textAlign']}>`
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: ${p => p.align};
-  padding: ${space(0.5)} 0px;
-`;
-
-const NumberContainer = styled(`div`)`
-  text-align: right;
 `;
 
 const StyledHovercard = styled(Hovercard)`
   width: 400px;
-`;
-
-const TextTruncate = styled('div')`
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
 `;

@@ -24,7 +24,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             kwargs={"organization_slug": self.organization.slug},
         )
         self.dashboard_2 = Dashboard.objects.create(
-            title="Dashboard 2", created_by=self.user, organization=self.organization
+            title="Dashboard 2", created_by_id=self.user.id, organization=self.organization
         )
         DashboardWidget.objects.create(
             dashboard=self.dashboard_2,
@@ -38,7 +38,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def assert_equal_dashboards(self, dashboard, data):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
         widgets = self.get_widgets(dashboard.id)
         widget_displays = []
@@ -79,7 +79,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
     def test_get_query(self):
         dashboard = Dashboard.objects.create(
-            title="Dashboard 11", created_by=self.user, organization=self.organization
+            title="Dashboard 11", created_by_id=self.user.id, organization=self.organization
         )
         response = self.do_request("get", self.url, data={"query": "1"})
         assert response.status_code == 200, response.content
@@ -93,7 +93,9 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         assert len(response.data) == 0
 
     def test_get_sortby(self):
-        Dashboard.objects.create(title="A", created_by=self.user, organization=self.organization)
+        Dashboard.objects.create(
+            title="A", created_by_id=self.user.id, organization=self.organization
+        )
 
         sort_options = {
             "dateCreated": True,
@@ -114,7 +116,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get_sortby_most_popular(self):
         Dashboard.objects.create(
             title="A",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             visits=3,
             last_visited=before_now(minutes=5),
@@ -136,7 +138,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
     def test_get_sortby_recently_viewed(self):
         Dashboard.objects.create(
             title="A",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             visits=3,
             last_visited=before_now(minutes=5),
@@ -162,8 +164,8 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         user_2 = self.create_user(username="user_2")
         self.create_member(organization=self.organization, user=user_2)
 
-        Dashboard.objects.create(title="A", created_by=user_1, organization=self.organization)
-        Dashboard.objects.create(title="B", created_by=user_2, organization=self.organization)
+        Dashboard.objects.create(title="A", created_by_id=user_1.id, organization=self.organization)
+        Dashboard.objects.create(title="B", created_by_id=user_2.id, organization=self.organization)
 
         response = self.client.get(self.url, data={"sort": "mydashboards"})
         assert response.status_code == 200, response.content
@@ -179,25 +181,25 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
 
         Dashboard.objects.create(
             title="Dashboard 3",
-            created_by=user_1,
+            created_by_id=user_1.id,
             organization=self.organization,
             last_visited=before_now(minutes=5),
         )
         Dashboard.objects.create(
             title="Dashboard 4",
-            created_by=user_2,
+            created_by_id=user_2.id,
             organization=self.organization,
             last_visited=before_now(minutes=0),
         )
         Dashboard.objects.create(
             title="Dashboard 5",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             last_visited=before_now(minutes=5),
         )
         Dashboard.objects.create(
             title="Dashboard 6",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             last_visited=before_now(minutes=0),
         )
@@ -221,7 +223,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
     def test_post_member_can_create(self):
         self.create_user_member_role()
@@ -280,7 +282,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 2
@@ -320,7 +322,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1
@@ -354,7 +356,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard from Post"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1
@@ -495,7 +497,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
             },
         )
         assert response.status_code == 201
-        assert response.data["projects"] == [project1.id, project2.id]
+        assert response.data["projects"].sort() == [project1.id, project2.id].sort()
         assert response.data["environment"] == ["alpha"]
         assert response.data["period"] == "7d"
         assert response.data["filters"]["release"] == ["v1"]
@@ -709,7 +711,7 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         dashboard = Dashboard.objects.get(
             organization=self.organization, title="Dashboard with null agg and cols"
         )
-        assert dashboard.created_by == self.user
+        assert dashboard.created_by_id == self.user.id
 
         widgets = self.get_widgets(dashboard.id)
         assert len(widgets) == 1

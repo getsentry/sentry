@@ -3,13 +3,13 @@ import first from 'lodash/first';
 import last from 'lodash/last';
 
 import {Hovercard} from 'sentry/components/hovercard';
+import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {BreadcrumbTypeNavigation, Crumb} from 'sentry/types/breadcrumbs';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import BreadcrumbItem from 'sentry/views/replays/detail/breadcrumbs/breadcrumbItem';
 
 type MaybeOnClickHandler = null | ((crumb: Crumb) => void);
 
@@ -105,12 +105,12 @@ function SummarySegment({
         <li key={crumb.id || i}>
           <BreadcrumbItem
             crumb={crumb}
-            startTimestampMs={startTimestampMs}
+            isCurrent={false}
             isHovered={false}
-            isSelected={false}
+            onClick={handleOnClick}
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
-            onClick={handleOnClick}
+            startTimestampMs={startTimestampMs}
           />
         </li>
       ))}
@@ -135,15 +135,14 @@ const ScrollingList = styled('ul')`
 `;
 
 const Span = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 0;
-  max-width: 240px;
 `;
 
 const Link = styled('a')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray500};
+  font-size: ${p => p.theme.fontSizeMedium};
   line-height: 0;
   text-decoration: underline;
 `;

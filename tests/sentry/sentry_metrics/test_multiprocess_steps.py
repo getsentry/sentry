@@ -1,4 +1,5 @@
 import logging
+import pickle
 import time
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -504,48 +505,47 @@ def test_process_messages_cardinality_limited(
     settings.SENTRY_METRICS_INDEXER_DEBUG_LOG_SAMPLE_RATE = 1.0
 
     # set any limit at all to ensure we actually use the underlying rate limiter
-    set_sentry_option(
+    with set_sentry_option(
         "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
         [{"window_seconds": 3600, "granularity_seconds": 60, "limit": 0}],
-    )
-    set_sentry_option("sentry-metrics.cardinality-limiter.orgs-rollout-rate", 1.0)
+    ), set_sentry_option("sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate", 1.0):
 
-    class MockCardinalityLimiter(CardinalityLimiter):
-        def check_within_quotas(self, requested_quotas):
-            # Grant nothing, limit everything
-            return 123, []
+        class MockCardinalityLimiter(CardinalityLimiter):
+            def check_within_quotas(self, requested_quotas):
+                # Grant nothing, limit everything
+                return 123, []
 
-        def use_quotas(self, grants, timestamp):
-            pass
+            def use_quotas(self, grants, timestamp):
+                pass
 
-    monkeypatch.setitem(
-        cardinality_limiter_factory.rate_limiters,
-        "releasehealth",
-        TimeseriesCardinalityLimiter("releasehealth", MockCardinalityLimiter()),
-    )
-
-    message_payloads = [counter_payload, distribution_payload, set_payload]
-    message_batch = [
-        Message(
-            BrokerValue(
-                KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
-                Partition(Topic("topic"), 0),
-                i + 1,
-                datetime.now(),
-            )
+        monkeypatch.setitem(
+            cardinality_limiter_factory.rate_limiters,
+            "releasehealth",
+            TimeseriesCardinalityLimiter("releasehealth", MockCardinalityLimiter()),
         )
-        for i, payload in enumerate(message_payloads)
-    ]
 
-    last = message_batch[-1]
-    outer_message = Message(Value(message_batch, last.committable))
+        message_payloads = [counter_payload, distribution_payload, set_payload]
+        message_batch = [
+            Message(
+                BrokerValue(
+                    KafkaPayload(None, json.dumps(payload).encode("utf-8"), []),
+                    Partition(Topic("topic"), 0),
+                    i + 1,
+                    datetime.now(),
+                )
+            )
+            for i, payload in enumerate(message_payloads)
+        ]
 
-    with caplog.at_level(logging.ERROR):
-        new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
+        last = message_batch[-1]
+        outer_message = Message(Value(message_batch, last.committable))
 
-    compare_message_batches_ignoring_metadata(new_batch, [])
+        with caplog.at_level(logging.ERROR):
+            new_batch = MESSAGE_PROCESSOR.process_messages(outer_message=outer_message)
 
-    assert "dropped_message" in caplog.text
+        compare_message_batches_ignoring_metadata(new_batch, [])
+
+        assert "dropped_message" in caplog.text
 
 
 def test_valid_metric_name() -> None:
@@ -563,3 +563,8 @@ def test_invalid_metric_tags() -> None:
     assert invalid_metric_tags(tags) == [bad_tag]
     tags["release"] = None
     assert invalid_metric_tags(tags) == [None]
+
+
+def test_process_messages_is_pickleable():
+    # needed so that the parallel transform step starts up properly
+    pickle.dumps(MESSAGE_PROCESSOR.process_messages)

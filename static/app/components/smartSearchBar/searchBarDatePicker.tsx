@@ -3,13 +3,12 @@ import styled from '@emotion/styled';
 import format from 'date-fns/format';
 import type {Moment} from 'moment';
 
+import {DatePicker} from 'sentry/components/calendar';
+import Checkbox from 'sentry/components/checkbox';
 import {Overlay} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {DEFAULT_DAY_START_TIME, setDateToTime} from 'sentry/utils/dates';
-
-import {DatePicker} from '../calendar';
-import Checkbox from '../checkbox';
 
 type SearchBarDatePickerProps = {
   handleSelectDateTime: (value: string) => void;

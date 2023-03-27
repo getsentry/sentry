@@ -3,9 +3,9 @@ import {mat3, vec2} from 'gl-matrix';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   computeClampedConfigView,
-  Rect,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export class CanvasView<T extends {configSpace: Rect}> {
   configView: Rect = Rect.Empty();
@@ -16,12 +16,16 @@ export class CanvasView<T extends {configSpace: Rect}> {
   minWidth: number;
   depthOffset: number;
   barHeight: number;
+
   model: T;
+  canvas: FlamegraphCanvas;
+  mode: 'anchorTop' | 'anchorBottom' | 'stretchToFit' = 'anchorTop';
 
   constructor({
     canvas,
     options,
     model,
+    mode,
   }: {
     canvas: FlamegraphCanvas;
     model: T;
@@ -32,10 +36,13 @@ export class CanvasView<T extends {configSpace: Rect}> {
       inverted?: boolean;
       minWidth?: number;
     };
+    mode?: CanvasView<T>['mode'];
   }) {
+    this.mode = mode || this.mode;
     this.inverted = !!options.inverted;
     this.minWidth = options.minWidth ?? 0;
     this.model = model;
+    this.canvas = canvas;
     this.depthOffset = options.depthOffset ?? 0;
     this.barHeight = options.barHeight ? options.barHeight * window.devicePixelRatio : 0;
 
@@ -66,22 +73,66 @@ export class CanvasView<T extends {configSpace: Rect}> {
     this.minWidth = minWidth;
   }
 
+  isViewAtTopEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.bottom === this.configView.bottom
+      : space.top === this.configView.top;
+  }
+
+  isViewAtBottomEdgeOf(space: Rect): boolean {
+    return this.inverted
+      ? space.top === this.configView.top
+      : space.bottom === this.configView.bottom;
+  }
+
   private _initConfigSpace(canvas: FlamegraphCanvas): void {
-    this.configSpace = new Rect(
-      0,
-      0,
-      this.model.configSpace.width,
-      Math.max(
-        this.model.configSpace.height + this.depthOffset,
-        canvas.physicalSpace.height / this.barHeight
-      )
-    );
+    switch (this.mode) {
+      case 'stretchToFit': {
+        this.configSpace = new Rect(
+          0,
+          0,
+          this.model.configSpace.width,
+          this.model.configSpace.height + this.depthOffset
+        );
+        return;
+      }
+      case 'anchorBottom':
+      case 'anchorTop':
+      default: {
+        this.configSpace = new Rect(
+          0,
+          0,
+          this.model.configSpace.width,
+          Math.max(
+            this.model.configSpace.height + this.depthOffset,
+            canvas.physicalSpace.height / this.barHeight
+          )
+        );
+      }
+    }
   }
 
   private _initConfigView(canvas: FlamegraphCanvas, space: Rect): void {
-    this.configView = Rect.From(space).withHeight(
-      canvas.physicalSpace.height / this.barHeight
-    );
+    switch (this.mode) {
+      case 'stretchToFit': {
+        this.configView = Rect.From(space);
+        return;
+      }
+      case 'anchorBottom': {
+        const newHeight = canvas.physicalSpace.height / this.barHeight;
+        const newY = Math.max(0, Math.ceil(space.y - (newHeight - space.height)));
+        this.configView = Rect.From(space).withHeight(newHeight).withY(newY);
+        return;
+      }
+      case 'anchorTop': {
+        this.configView = Rect.From(space).withHeight(
+          canvas.physicalSpace.height / this.barHeight
+        );
+        return;
+      }
+      default:
+        throw new Error(`Unknown CanvasView mode: ${this.mode}`);
+    }
   }
 
   initConfigSpace(canvas: FlamegraphCanvas): void {

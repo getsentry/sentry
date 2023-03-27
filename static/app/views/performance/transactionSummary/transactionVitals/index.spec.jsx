@@ -154,9 +154,7 @@ describe('Performance > Web Vitals', function () {
   });
 
   afterEach(() => {
-    // @ts-ignore no-console
-    // eslint-disable-next-line no-console
-    console.error.mockRestore();
+    jest.restoreAllMocks();
   });
 
   it('render no access without feature', function () {
@@ -302,7 +300,7 @@ describe('Performance > Web Vitals', function () {
       expect(screen.getByRole('button', {name: 'Reset View'})).toBeEnabled();
     });
 
-    it('resets view properly', function () {
+    it('resets view properly', async function () {
       const {organization, router, routerContext} = initialize({
         query: {
           fidStart: '20',
@@ -319,7 +317,7 @@ describe('Performance > Web Vitals', function () {
         {context: routerContext}
       );
 
-      userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Reset View'}));
 
       expect(browserHistory.push).toHaveBeenCalledWith({
         query: expect.not.objectContaining(

@@ -1,4 +1,4 @@
-import {memo, useRef} from 'react';
+import {memo, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -8,7 +8,9 @@ import {
 import styled from '@emotion/styled';
 
 import Placeholder from 'sentry/components/placeholder';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
+import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useExtractedCrumbHtml from 'sentry/utils/replays/hooks/useExtractedCrumbHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomFilters from 'sentry/views/replays/detail/domMutations/domFilters';
@@ -23,19 +25,57 @@ type Props = {
   startTimestampMs: number;
 };
 
+// Ensure this object is created once as it is an input to
+// `useVirtualizedList`'s memoization
+const cellMeasurer = {
+  fixedWidth: true,
+  minHeight: 82,
+};
+
 function DomMutations({replay, startTimestampMs}: Props) {
   const {isLoading, actions} = useExtractedCrumbHtml({replay});
+  const {currentTime, currentHoverTime} = useReplayContext();
 
   const filterProps = useDomFilters({actions: actions || []});
   const {items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
 
   const listRef = useRef<ReactVirtualizedList>(null);
-  const {cache} = useVirtualizedList({
-    cellMeasurer: {
-      fixedWidth: true,
-      minHeight: 82,
-    },
+
+  const itemLookup = useMemo(
+    () =>
+      items &&
+      items
+        .map(({timestamp}, i) => [+new Date(timestamp || ''), i])
+        .sort(([a], [b]) => a - b),
+    [items]
+  );
+
+  const breadcrumbs = useMemo(() => items.map(({crumb}) => crumb), [items]);
+  const current = useMemo(
+    () =>
+      getPrevReplayEvent({
+        itemLookup,
+        items: breadcrumbs,
+        targetTimestampMs: startTimestampMs + currentTime,
+      }),
+    [itemLookup, breadcrumbs, currentTime, startTimestampMs]
+  );
+
+  const hovered = useMemo(
+    () =>
+      currentHoverTime
+        ? getPrevReplayEvent({
+            itemLookup,
+            items: breadcrumbs,
+            targetTimestampMs: startTimestampMs + currentHoverTime,
+          })
+        : null,
+    [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
+  );
+
+  const {cache, updateList} = useVirtualizedList({
+    cellMeasurer,
     ref: listRef,
     deps: [items],
   });
@@ -52,8 +92,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
         rowIndex={index}
       >
         <DomMutationRow
+          isCurrent={mutation.crumb.id === current?.id}
+          isHovered={mutation.crumb.id === hovered?.id}
           mutation={mutation}
-          mutations={items}
           startTimestampMs={startTimestampMs}
           style={style}
         />
@@ -62,13 +103,13 @@ function DomMutations({replay, startTimestampMs}: Props) {
   };
 
   return (
-    <MutationContainer>
+    <FluidHeight>
       <DomFilters actions={actions} {...filterProps} />
       <MutationItemContainer>
         {isLoading || !actions ? (
           <Placeholder height="100%" />
         ) : (
-          <AutoSizer>
+          <AutoSizer onResize={updateList}>
             {({width, height}) => (
               <ReactVirtualizedList
                 deferredMeasurementCache={cache}
@@ -92,13 +133,9 @@ function DomMutations({replay, startTimestampMs}: Props) {
           </AutoSizer>
         )}
       </MutationItemContainer>
-    </MutationContainer>
+    </FluidHeight>
   );
 }
-
-const MutationContainer = styled(FluidHeight)`
-  height: 100%;
-`;
 
 const MutationItemContainer = styled('div')`
   position: relative;

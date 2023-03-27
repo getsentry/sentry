@@ -3,19 +3,24 @@ import {mat3} from 'gl-matrix';
 
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 
-import {Rect} from './gl/utils';
 import {FlamegraphFrame} from './flamegraphFrame';
 import {SpanChartNode} from './spanChart';
+import {Rect} from './speedscope';
+import {UIFrameNode} from './uiFrames';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export interface FlamegraphEvents {
   ['highlight frame']: (
-    frame: FlamegraphFrame[] | null,
+    frames: FlamegraphFrame[] | null,
     mode: 'hover' | 'selected'
   ) => void;
-  ['highlight span']: (frame: SpanChartNode[] | null, mode: 'hover' | 'selected') => void;
+  ['highlight span']: (spans: SpanChartNode[] | null, mode: 'hover' | 'selected') => void;
+  ['highlight ui frame']: (
+    frames: UIFrameNode[] | null,
+    mode: 'hover' | 'selected'
+  ) => void;
   ['reset zoom']: () => void;
   ['set config view']: (configView: Rect, source: CanvasView<any>) => void;
   ['show in table view']: (frame: FlamegraphFrame) => void;
@@ -38,6 +43,7 @@ export class CanvasScheduler {
     ['reset zoom']: new Set<FlamegraphEvents['reset zoom']>(),
     ['highlight frame']: new Set<FlamegraphEvents['highlight frame']>(),
     ['highlight span']: new Set<FlamegraphEvents['highlight span']>(),
+    ['highlight ui frame']: new Set<FlamegraphEvents['highlight ui frame']>(),
     ['set config view']: new Set<FlamegraphEvents['set config view']>(),
     ['transform config view']: new Set<FlamegraphEvents['transform config view']>(),
     ['zoom at frame']: new Set<FlamegraphEvents['zoom at frame']>(),

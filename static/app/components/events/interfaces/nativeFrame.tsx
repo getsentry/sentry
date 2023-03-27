@@ -1,10 +1,10 @@
 import {Fragment, MouseEvent, useContext, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import scrollToElement from 'scroll-to-element';
 
 import {Button} from 'sentry/components/button';
 import {
+  getLeadHint,
   hasAssembly,
   hasContextRegisters,
   hasContextSource,
@@ -17,19 +17,20 @@ import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/u
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventDataSection';
 import StrictClick from 'sentry/components/strictClick';
-import Tooltip from 'sentry/components/tooltip';
+import Tag from 'sentry/components/tag';
+import {Tooltip} from 'sentry/components/tooltip';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
+import {IconCheckmark} from 'sentry/icons/iconCheckmark';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconInfo} from 'sentry/icons/iconInfo';
-import {IconQuestion} from 'sentry/icons/iconQuestion';
+import {IconFileBroken} from 'sentry/icons/iconFileBroken';
+import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Frame, PlatformType, SentryAppComponent} from 'sentry/types';
 import {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
-import {ColorOrAlias} from 'sentry/utils/theme';
 import withSentryAppComponents from 'sentry/utils/withSentryAppComponents';
 
 import DebugImage from './debugMeta/debugImage';
@@ -218,68 +219,52 @@ function NativeFrame({
   const status = getStatus();
 
   return (
-    <GridRow
-      inApp={frame.inApp}
-      expandable={expandable}
-      expanded={expanded}
-      className="frame"
-      data-test-id="stack-trace-frame"
-    >
+    <li data-test-id="stack-trace-frame">
       <StrictClick onClick={handleToggleContext}>
-        <StrictClickContent>
-          <StatusCell>
-            {(status === 'error' || status === undefined) &&
-              (packageClickable ? (
-                <PackageStatusButton
-                  onClick={handleGoToImagesLoaded}
-                  title={t('Go to images loaded')}
-                  aria-label={t('Go to images loaded')}
-                  icon={
-                    status === 'error' ? (
-                      <IconQuestion size="sm" color="errorText" />
-                    ) : (
-                      <IconWarning size="sm" color="errorText" />
-                    )
-                  }
-                  size="zero"
-                  borderless
-                />
-              ) : status === 'error' ? (
-                <IconQuestion size="sm" color="errorText" />
-              ) : (
-                <IconWarning size="sm" color="errorText" />
-              ))}
-          </StatusCell>
-          <PackageCell>
+        <RowHeader expandable={expandable} expanded={expanded}>
+          <div>
+            {status === 'error' ? (
+              <Tooltip
+                title={t(
+                  'This frame has missing debug files and could not be symbolicated'
+                )}
+              >
+                <IconFileBroken size="sm" color="errorText" />
+              </Tooltip>
+            ) : status === undefined ? (
+              <Tooltip
+                title={t(
+                  'This frame has an unknown problem and could not be symbolicated'
+                )}
+              >
+                <IconWarning size="sm" color="warningText" />
+              </Tooltip>
+            ) : (
+              <Tooltip title={t('This frame has been successfully symbolicated')}>
+                <IconCheckmark size="sm" color="successText" />
+              </Tooltip>
+            )}
+          </div>
+          <div>
             {!fullStackTrace && !expanded && leadsToApp && (
               <Fragment>
-                {!nextFrame ? t('Crashed in non-app') : t('Called from')}
-                {':'}&nbsp;
+                <PackageNote>
+                  {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+                </PackageNote>
               </Fragment>
             )}
-            <span>
-              <Tooltip
-                title={frame.package ?? t('Go to images loaded')}
-                delay={tooltipDelay}
-                disabled={frame.package ? false : !packageClickable}
-                containerDisplayMode="inline-flex"
-              >
-                <Package
-                  color={
-                    status === undefined || status === 'error'
-                      ? 'errorText'
-                      : packageClickable
-                      ? 'linkColor'
-                      : undefined
-                  }
-                  onClick={packageClickable ? handleGoToImagesLoaded : undefined}
-                >
-                  {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
-                </Package>
-              </Tooltip>
-            </span>
-          </PackageCell>
-          <AddressCell>
+            <Tooltip
+              title={frame.package ?? t('Go to images loaded')}
+              position="bottom"
+              containerDisplayMode="inline-flex"
+              delay={tooltipDelay}
+            >
+              <Package>
+                {frame.package ? trimPackage(frame.package) : `<${t('unknown')}>`}
+              </Package>
+            </Tooltip>
+          </div>
+          <AddressCell onClick={packageClickable ? handleGoToImagesLoaded : undefined}>
             <Tooltip
               title={addressTooltip}
               disabled={!(foundByStackScanning || inlineFrame)}
@@ -288,30 +273,17 @@ function NativeFrame({
               {!relativeAddress || absolute ? frame.instructionAddr : relativeAddress}
             </Tooltip>
           </AddressCell>
-          <GroupingCell>
-            {isUsedForGrouping && (
-              <Tooltip
-                title={t('This frame appears in all other events related to this issue')}
-                containerDisplayMode="inline-flex"
-              >
-                <IconInfo size="sm" color="subText" />
-              </Tooltip>
-            )}
-          </GroupingCell>
           <FunctionNameCell>
-            <FunctionName>
-              {functionName ? (
-                <AnnotatedText value={functionName.value} meta={functionName.meta} />
-              ) : (
-                `<${t('unknown')}>`
-              )}
-            </FunctionName>
+            {functionName ? (
+              <AnnotatedText value={functionName.value} meta={functionName.meta} />
+            ) : (
+              `<${t('unknown')}>`
+            )}
             {frame.filename && (
               <Tooltip
                 title={frame.absPath}
                 disabled={!(defined(frame.absPath) && frame.absPath !== frame.filename)}
                 delay={tooltipDelay}
-                containerDisplayMode="inline-flex"
               >
                 <FileName>
                   {'('}
@@ -322,6 +294,20 @@ function NativeFrame({
               </Tooltip>
             )}
           </FunctionNameCell>
+          <GroupingCell>
+            {isUsedForGrouping && (
+              <Tooltip title={t('This frame is repeated in every event of this issue')}>
+                <IconRefresh size="sm" color="textColor" />
+              </Tooltip>
+            )}
+          </GroupingCell>
+          <TypeCell>
+            {frame.inApp ? (
+              <Tag type="info">{t('In App')}</Tag>
+            ) : (
+              <Tag>{t('System')}</Tag>
+            )}
+          </TypeCell>
           <ExpandCell>
             {expandable && (
               <ToggleButton
@@ -336,95 +322,63 @@ function NativeFrame({
               />
             )}
           </ExpandCell>
-        </StrictClickContent>
+        </RowHeader>
       </StrictClick>
-      <RegistersCell>
-        {expanded && (
-          <Registers
-            frame={frame}
-            event={event}
-            registers={registers}
-            components={components}
-            hasContextSource={hasContextSource(frame)}
-            hasContextVars={hasContextVars(frame)}
-            hasContextRegisters={hasContextRegisters(registers)}
-            emptySourceNotation={emptySourceNotation}
-            hasAssembly={hasAssembly(frame, platform)}
-            expandable={expandable}
-            isExpanded={expanded}
-            registersMeta={registersMeta}
-            frameMeta={frameMeta}
-          />
-        )}
-      </RegistersCell>
-    </GridRow>
+      {expanded && (
+        <Registers
+          frame={frame}
+          event={event}
+          registers={registers}
+          components={components}
+          hasContextSource={hasContextSource(frame)}
+          hasContextVars={hasContextVars(frame)}
+          hasContextRegisters={hasContextRegisters(registers)}
+          emptySourceNotation={emptySourceNotation}
+          hasAssembly={hasAssembly(frame, platform)}
+          expandable={expandable}
+          isExpanded={expanded}
+          registersMeta={registersMeta}
+          frameMeta={frameMeta}
+        />
+      )}
+    </li>
   );
 }
 
 export default withSentryAppComponents(NativeFrame, {componentType: 'stacktrace-link'});
 
-const Cell = styled('div')`
-  padding: ${space(0.5)};
-  display: flex;
-  flex-wrap: wrap;
-  word-break: break-all;
-  align-items: flex-start;
+const AddressCell = styled('div')`
+  ${p => p.onClick && `cursor: pointer`};
+  ${p => p.onClick && `color:` + p.theme.linkColor};
 `;
 
-const StatusCell = styled(Cell)`
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 1/1;
-    grid-row: 1/1;
-  }
-`;
-
-const PackageCell = styled(Cell)`
-  color: ${p => p.theme.subText};
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/2;
-    grid-row: 1/1;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: repeat(2, auto);
-  }
-`;
-
-const AddressCell = styled(Cell)`
+const FunctionNameCell = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
+  word-break: break-all;
+
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 3/3;
-    grid-row: 1/1;
+    grid-column: 2/6;
   }
 `;
 
-const GroupingCell = styled(Cell)`
+const GroupingCell = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 1/1;
-    grid-row: 2/2;
+    grid-row: 2/3;
   }
 `;
 
-const FunctionNameCell = styled(Cell)`
-  color: ${p => p.theme.textColor};
+const TypeCell = styled('div')`
   @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-column: 2/-1;
-    grid-row: 2/2;
+    grid-column: 5/6;
+    grid-row: 1/2;
   }
 `;
 
-const ExpandCell = styled(Cell)``;
-
-const RegistersCell = styled('div')`
-  grid-column: 1/-1;
-  margin-left: -${space(0.5)};
-  margin-right: -${space(0.5)};
-  margin-bottom: -${space(0.5)};
-  cursor: default;
-`;
-
-const Registers = styled(Context)`
-  padding: 0;
-  margin: 0;
+const ExpandCell = styled('div')`
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    grid-column: 6/7;
+    grid-row: 1/2;
+  }
 `;
 
 const ToggleButton = styled(Button)`
@@ -432,15 +386,22 @@ const ToggleButton = styled(Button)`
   height: 16px;
 `;
 
-const Package = styled('span')<{color?: ColorOrAlias}>`
-  border-bottom: 1px dashed ${p => p.theme.border};
-  ${p => p.color && `color: ${p.theme[p.color]}`};
-  ${p => p.onClick && `cursor: pointer;`}
+const Registers = styled(Context)`
+  border-bottom: 1px solid ${p => p.theme.border};
+  padding: 0;
+  margin: 0;
 `;
 
-const FunctionName = styled('div')`
-  color: ${p => p.theme.headingColor};
-  margin-right: ${space(1)};
+const PackageNote = styled('div')`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+`;
+
+const Package = styled('span')`
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
 `;
 
 const FileName = styled('span')`
@@ -448,46 +409,25 @@ const FileName = styled('span')`
   border-bottom: 1px dashed ${p => p.theme.border};
 `;
 
-const PackageStatusButton = styled(Button)`
-  padding: 0;
-  border: none;
-`;
-
-const GridRow = styled('li')<{expandable: boolean; expanded: boolean; inApp: boolean}>`
-  ${p => p.expandable && `cursor: pointer;`};
-  ${p => p.inApp && `background: ${p.theme.bodyBackground};`};
-  ${p =>
-    !p.inApp &&
-    css`
-      color: ${p.theme.subText};
-      ${FunctionName} {
-        color: ${p.theme.subText};
-      }
-      ${FunctionNameCell} {
-        color: ${p.theme.subText};
-      }
-    `};
-
+const RowHeader = styled('span')<{expandable: boolean; expanded: boolean}>`
   display: grid;
-  align-items: flex-start;
-  padding: ${space(0.5)};
-  :not(:last-child) {
-    border-bottom: 1px solid ${p => p.theme.border};
+  grid-template-columns: repeat(2, auto) 1fr repeat(2, auto);
+  grid-template-rows: repeat(2, auto);
+  align-items: center;
+  align-content: center;
+  column-gap: ${space(1)};
+  border-bottom: 1px solid ${p => p.theme.border};
+  background-color: ${p => p.theme.bodyBackground};
+  font-size: ${p => p.theme.codeFontSize};
+  padding: ${space(1)};
+  ${p => p.expandable && `cursor: pointer;`};
+  ${p =>
+    p.expandable && `grid-template-columns: repeat(2, auto) 1fr repeat(2, auto) 16px;`};
+
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    grid-template-columns: auto 150px 120px 4fr auto auto;
+    ${p => p.expandable && `grid-template-columns: auto 150px 120px 4fr auto auto 16px;`};
+    padding: ${space(0.5)} ${space(1.5)};
+    min-height: 32px;
   }
-
-  && {
-    border-top: 0;
-  }
-
-  grid-template-columns: 24px 132px 138px 24px 1fr 24px;
-  grid-template-rows: 1fr;
-
-  @media (max-width: ${p => p.theme.breakpoints.small}) {
-    grid-template-columns: 24px auto minmax(138px, 1fr) 24px;
-    grid-template-rows: repeat(2, auto);
-  }
-`;
-
-const StrictClickContent = styled('div')`
-  display: contents;
 `;

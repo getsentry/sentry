@@ -2,6 +2,7 @@ from fnmatch import fnmatch
 
 from django.urls import URLResolver, get_resolver, reverse
 
+from sentry.models import OrganizationStatus
 from sentry.testutils import TestCase
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
@@ -113,9 +114,7 @@ class ReactPageViewTest(TestCase):
                 reverse("sentry-organization-issue-list", args=[org.slug]), follow=True
             )
             assert response.status_code == 200
-            assert response.redirect_chain == [
-                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302)
-            ]
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
 
             response = self.client.get(reverse("issues"), follow=True)
             assert response.status_code == 200
@@ -123,11 +122,9 @@ class ReactPageViewTest(TestCase):
 
             response = self.client.get("/", follow=True)
             assert response.status_code == 200
-            # TODO(alberto): follow up with patch to make /issues/ the default whenever customer domain feature is
-            #                enabled.
             assert response.redirect_chain == [
                 (f"/organizations/{org.slug}/issues/", 302),
-                (f"http://{org.slug}.testserver/organizations/{org.slug}/issues/", 302),
+                (f"http://{org.slug}.testserver/issues/", 302),
             ]
 
             # No redirect if customer domain is already being used
@@ -239,3 +236,103 @@ class ReactPageViewTest(TestCase):
         response = self.client.get(f"/settings/{org.slug}/projects/albertos-apples/keys/")
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    def test_customer_domain_non_member_org_superuser(self):
+        org = self.create_organization(owner=self.user)
+        other_org = self.create_organization()
+
+        self.login_as(self.user, superuser=True)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            # Induce activeorg
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+            assert self.client.session["activeorg"] == org.slug
+
+            # Access another org as superuser on non-customer domain
+            response = self.client.get(
+                reverse("sentry-organization-issue-list", args=[other_org.slug]),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+    def test_customer_domain_superuser(self):
+        org = self.create_organization(owner=self.user)
+        other_org = self.create_organization(slug="albertos-apples")
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            # Induce activeorg
+            response = self.client.get(
+                "/",
+                HTTP_HOST=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [(f"http://{org.slug}.testserver/issues/", 302)]
+            assert self.client.session["activeorg"] == org.slug
+
+            # Access another org as superuser on customer domain
+            response = self.client.get("/", HTTP_HOST=f"{other_org.slug}.testserver", follow=True)
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{other_org.slug}.testserver/issues/", 302),
+            ]
+
+    def test_customer_domain_loads(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.ACTIVE)
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+            )
+            assert response.status_code == 200
+            self.assertTemplateUsed(response, "sentry/base-react.html")
+            assert response.context["request"]
+            assert self.client.session["activeorg"] == org.slug
+
+    def test_customer_domain_org_pending_deletion(self):
+        org = self.create_organization(owner=self.user, status=OrganizationStatus.PENDING_DELETION)
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                (f"http://{org.slug}.testserver/restore/", 302),
+            ]
+            assert "activeorg" not in self.client.session
+
+    def test_customer_domain_org_deletion_in_progress(self):
+        org = self.create_organization(
+            owner=self.user, status=OrganizationStatus.DELETION_IN_PROGRESS
+        )
+
+        self.login_as(self.user)
+
+        with self.feature({"organizations:customer-domains": [org.slug]}):
+            response = self.client.get(
+                "/issues/",
+                SERVER_NAME=f"{org.slug}.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("http://testserver/organizations/new/", 302),
+            ]
+            assert "activeorg" not in self.client.session

@@ -1,17 +1,29 @@
 import {RouteComponentProps} from 'react-router';
+import styled from '@emotion/styled';
 import {Location} from 'history';
 import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
+import Feature from 'sentry/components/acl/feature';
+import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import AsyncComponent from 'sentry/components/asyncComponent';
 import AvatarChooser from 'sentry/components/avatarChooser';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import HookOrDefault from 'sentry/components/hookOrDefault';
+import {Hovercard} from 'sentry/components/hovercard';
+import Tag from 'sentry/components/tag';
 import organizationSettingsFields from 'sentry/data/forms/organizationGeneralSettings';
+import {IconCodecov, IconLock} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {Organization, Scope} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
+
+const HookCodecovSettingsLink = HookOrDefault({
+  hookName: 'component:codecov-integration-settings-link',
+});
 
 type Props = {
   access: Set<Scope>;
@@ -51,8 +63,43 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
         {
           name: 'codecovAccess',
           type: 'boolean',
-          label: t('Enable Codecov Access'),
-          help: t('Opt-in to connect your codecov account'),
+          disabled: !organization.features.includes('codecov-integration'),
+          label: (
+            <PoweredByCodecov>
+              {t('Enable Code Coverage Insights')}{' '}
+              <Feature
+                hookName="feature-disabled:codecov-integration-setting"
+                renderDisabled={p => (
+                  <Hovercard
+                    body={
+                      <FeatureDisabled
+                        features={p.features}
+                        hideHelpToggle
+                        featureName={t('Codecov Coverage')}
+                      />
+                    }
+                  >
+                    <Tag role="status" icon={<IconLock isSolid />}>
+                      {t('disabled')}
+                    </Tag>
+                  </Hovercard>
+                )}
+                features={['organizations:codecov-integration']}
+              >
+                {() => null}
+              </Feature>
+            </PoweredByCodecov>
+          ),
+          formatMessageValue: (value: boolean) => {
+            const onOff = value ? t('on') : t('off');
+            return t('Codecov access was turned %s', onOff);
+          },
+          help: (
+            <PoweredByCodecov>
+              {t('powered by')} <IconCodecov /> Codecov{' '}
+              <HookCodecovSettingsLink organization={organization} />
+            </PoweredByCodecov>
+          ),
         },
       ];
     }
@@ -88,3 +135,14 @@ class OrganizationSettingsForm extends AsyncComponent<Props, State> {
 }
 
 export default withOrganization(OrganizationSettingsForm);
+
+const PoweredByCodecov = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+
+  & > span {
+    display: flex;
+    align-items: center;
+  }
+`;

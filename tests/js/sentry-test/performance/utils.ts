@@ -12,26 +12,37 @@ export const EXAMPLE_TRANSACTION_TITLE = '/api/0/transaction-test-endpoint/';
 type AddSpanOpts = {
   endTimestamp: number;
   startTimestamp: number;
+  data?: Record<string, any>;
   description?: string;
+  hash?: string;
   op?: string;
-  problemSpan?: ProblemSpan;
+  problemSpan?: ProblemSpan | ProblemSpan[];
   status?: string;
 };
 
+interface TransactionSettings {
+  duration?: number;
+  fcp?: number;
+}
 export class TransactionEventBuilder {
   TRACE_ID = '8cbbc19c0f54447ab702f00263262726';
   ROOT_SPAN_ID = '0000000000000000';
   #event: EventTransaction;
   #spans: RawSpanType[] = [];
 
-  constructor(id?: string, title?: string, problemType?: IssueType) {
+  constructor(
+    id?: string,
+    title?: string,
+    problemType?: IssueType,
+    transactionSettings?: TransactionSettings
+  ) {
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       title: title ?? EXAMPLE_TRANSACTION_TITLE,
       type: EventOrGroupType.TRANSACTION,
       startTimestamp: 0,
-      endTimestamp: 0,
+      endTimestamp: transactionSettings?.duration ?? 0,
       contexts: {
         trace: {
           trace_id: this.TRACE_ID,
@@ -64,6 +75,12 @@ export class TransactionEventBuilder {
       fingerprints: [],
       location: null,
       message: '',
+      measurements: {
+        fcp: {
+          value: transactionSettings?.fcp ?? 0,
+          unit: 'millisecond',
+        },
+      },
       metadata: {
         current_level: undefined,
         current_tree_label: undefined,
@@ -109,19 +126,25 @@ export class TransactionEventBuilder {
 
       this.#spans.push(clonedSpan);
 
-      switch (mockSpan.problemSpan) {
-        case ProblemSpan.PARENT:
-          this.#event.perfProblem?.parentSpanIds.push(spanId);
-          break;
-        case ProblemSpan.OFFENDER:
-          this.#event.perfProblem?.offenderSpanIds.push(spanId);
-          break;
-        case ProblemSpan.CAUSE:
-          this.#event.perfProblem?.causeSpanIds.push(spanId);
-          break;
-        default:
-          break;
-      }
+      const problemSpans = Array.isArray(mockSpan.problemSpan)
+        ? mockSpan.problemSpan
+        : [mockSpan.problemSpan];
+
+      problemSpans.forEach(problemSpan => {
+        switch (problemSpan) {
+          case ProblemSpan.PARENT:
+            this.#event.perfProblem?.parentSpanIds.push(spanId);
+            break;
+          case ProblemSpan.OFFENDER:
+            this.#event.perfProblem?.offenderSpanIds.push(spanId);
+            break;
+          case ProblemSpan.CAUSE:
+            this.#event.perfProblem?.causeSpanIds.push(spanId);
+            break;
+          default:
+            break;
+        }
+      });
 
       if (clonedSpan.timestamp > this.#event.endTimestamp) {
         this.#event.endTimestamp = clonedSpan.timestamp;
@@ -144,7 +167,7 @@ export class TransactionEventBuilder {
 export class MockSpan {
   span: RawSpanType;
   children: MockSpan[] = [];
-  problemSpan: ProblemSpan | undefined;
+  problemSpan: ProblemSpan | ProblemSpan[] | undefined;
 
   /**
    *
@@ -158,15 +181,17 @@ export class MockSpan {
    * this will be handled automatically and you do not need to provide an ID. Defaults to the root span's ID.
    */
   constructor(opts: AddSpanOpts) {
-    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+    const {startTimestamp, endTimestamp, op, description, hash, status, problemSpan} =
+      opts;
 
     this.span = {
       start_timestamp: startTimestamp,
       timestamp: endTimestamp,
       op,
       description,
+      hash,
       status: status ?? 'ok',
-      data: {},
+      data: opts.data || {},
       // These values are automatically assigned by the TransactionEventBuilder when the spans are added
       span_id: '',
       trace_id: '',
@@ -181,7 +206,8 @@ export class MockSpan {
    * @param opts.numSpans If provided, will create the same span numSpan times
    */
   addChild(opts: AddSpanOpts, numSpans = 1) {
-    const {startTimestamp, endTimestamp, op, description, status, problemSpan} = opts;
+    const {startTimestamp, endTimestamp, op, description, hash, status, problemSpan} =
+      opts;
 
     for (let i = 0; i < numSpans; i++) {
       const span = new MockSpan({
@@ -189,6 +215,7 @@ export class MockSpan {
         endTimestamp,
         op,
         description,
+        hash,
         status,
         problemSpan,
       });

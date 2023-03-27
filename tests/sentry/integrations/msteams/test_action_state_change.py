@@ -221,7 +221,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert f"Assigned to {self.user.email}".encode() in responses.calls[0].request.body
@@ -241,7 +241,7 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "user_conversation_id" in responses.calls[0].request.url
@@ -255,7 +255,7 @@ class StatusActionTest(BaseEventTest):
         )
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
         assert b"Unassign" in responses.calls[0].request.body
         assert "some_channel_id" in responses.calls[0].request.url
@@ -290,7 +290,7 @@ class StatusActionTest(BaseEventTest):
         resp = self.post_webhook(action_type=ACTION_TYPE.ASSIGN, assign_input="ME")
 
         assert resp.status_code == 200, resp.content
-        assert GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
@@ -315,12 +315,12 @@ class StatusActionTest(BaseEventTest):
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
     def test_unassign_issue(self, verify):
-        GroupAssignee.objects.create(group=self.group1, project=self.project1, user=self.user)
+        GroupAssignee.objects.create(group=self.group1, project=self.project1, user_id=self.user.id)
         resp = self.post_webhook(action_type=ACTION_TYPE.UNASSIGN, resolve_input="resolved")
         self.group1 = Group.objects.get(id=self.group1.id)
 
         assert resp.status_code == 200, resp.content
-        assert not GroupAssignee.objects.filter(group=self.group1, user=self.user).exists()
+        assert not GroupAssignee.objects.filter(group=self.group1, user_id=self.user.id).exists()
         assert b"Assign" in responses.calls[0].request.body
 
     @responses.activate

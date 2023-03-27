@@ -41,6 +41,14 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
             }
         ]
 
+    def test_auth_url_absolute(self):
+        response = self.get_success_response(
+            self.project.organization.slug, self.project.slug, "asana"
+        )
+        assert response.data["id"] == "asana"
+        assert "http://testserver" in response.data["auth_url"]
+        assert "social/associate/asana" in response.data["auth_url"]
+
 
 @region_silo_test
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):

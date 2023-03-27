@@ -55,6 +55,8 @@ from sentry.snuba.metrics.fields.snql import (
     failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
+    max_timestamp,
+    min_timestamp,
     miserable_users,
     rate_snql_factory,
     satisfaction_count_transaction,
@@ -143,7 +145,12 @@ def run_metrics_query(
         + where,
         granularity=Granularity(GRANULARITY),
     )
-    request = Request(dataset=Dataset.Metrics.value, app_id="metrics", query=query)
+    request = Request(
+        dataset=Dataset.Metrics.value,
+        app_id="metrics",
+        query=query,
+        tenant_ids={"organization_id": org_id},
+    )
     result = raw_snql_query(request, referrer, use_cache=True)
     return cast(List[SnubaDataType], result["data"])
 
@@ -1390,11 +1397,30 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
             ),
         ),
         SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE.value,
+            metrics=[SessionMRI.ALL.value, SessionMRI.CRASHED.value],
+            unit="sessions",
+            snql=lambda all_count, crashed_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_count, crashed_count, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
             metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
             metrics=[SessionMRI.CRASH_USER_RATE.value],
             unit="percentage",
             snql=lambda crash_user_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
                 crash_user_rate_value, alias=alias
+            ),
+        ),
+        SingularEntityDerivedMetric(
+            metric_mri=SessionMRI.CRASH_FREE_USER.value,
+            metrics=[
+                SessionMRI.ALL_USER.value,
+                SessionMRI.CRASHED_USER.value,
+            ],
+            unit="users",
+            snql=lambda all_user_count, crashed_user_count, project_ids, org_id, metric_ids, alias=None: subtraction(
+                all_user_count, crashed_user_count, alias=alias
             ),
         ),
         SingularEntityDerivedMetric(
@@ -1582,7 +1608,6 @@ DERIVED_METRICS: Mapping[str, DerivedMetricExpression] = {
     ]
 }
 
-
 DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
     derived_op.op: derived_op
     for derived_op in [
@@ -1654,9 +1679,26 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
             snql_func=uniq_if_column_snql,
             default_null_value=0,
         ),
+        DerivedOp(
+            op="min_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=min_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
+        DerivedOp(
+            op="max_timestamp",
+            can_groupby=True,
+            can_orderby=True,
+            can_filter=True,
+            snql_func=max_timestamp,
+            meta_type="datetime",
+            default_null_value=None,
+        ),
     ]
 }
-
 
 DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
     derived_alias.metric_mri: derived_alias
@@ -1689,6 +1731,7 @@ def metric_object_factory(
     assert op is not None
 
     metric_operation = DERIVED_OPS[op] if op in DERIVED_OPS else RawOp(op=op)
+
     metric_object = (
         DERIVED_ALIASES[metric_mri] if metric_mri in DERIVED_ALIASES else RawMetric(metric_mri)
     )

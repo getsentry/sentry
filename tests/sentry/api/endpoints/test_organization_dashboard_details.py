@@ -78,7 +78,7 @@ class OrganizationDashboardDetailsTestCase(OrganizationDashboardWidgetTestCase):
     def assert_serialized_dashboard(self, data, dashboard):
         assert data["id"] == str(dashboard.id)
         assert data["title"] == dashboard.title
-        assert data["createdBy"]["id"] == str(dashboard.created_by.id)
+        assert data["createdBy"]["id"] == str(dashboard.created_by_id)
 
 
 @region_silo_test(stable=True)
@@ -143,7 +143,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         filters = {"environment": ["alpha"]}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             filters=filters,
         )
@@ -158,7 +158,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         filters = {"environment": ["alpha"], "period": "24hr", "release": ["test-release"]}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             filters=filters,
         )
@@ -176,7 +176,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         filters = {"start": start, "end": end, "utc": False}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             filters=filters,
         )
@@ -194,7 +194,7 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
         filters = {"start": start, "end": end}
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             filters=filters,
         )
@@ -322,7 +322,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
 
     def test_rename_dashboard_title_taken(self):
         Dashboard.objects.create(
-            title="Dashboard 2", created_by=self.user, organization=self.organization
+            title="Dashboard 2", created_by_id=self.user.id, organization=self.organization
         )
         response = self.do_request(
             "put", self.url(self.dashboard.id), data={"title": "Dashboard 2"}
@@ -1185,7 +1185,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         widget = DashboardWidget.objects.create(
             order=5,
             dashboard=Dashboard.objects.create(
-                organization=self.organization, title="Dashboard 2", created_by=self.user
+                organization=self.organization, title="Dashboard 2", created_by_id=self.user.id
             ),
             title="Widget 200",
             display_type=DashboardWidgetDisplayTypes.LINE_CHART,
@@ -1357,6 +1357,31 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         response = self.do_request("put", self.url(self.dashboard.id), data=data)
         assert response.status_code == 200, response.data
 
+    def test_add_discover_widget_using_total_count(self):
+        data = {
+            "title": "First dashboard",
+            "widgets": [
+                {"id": str(self.widget_1.id)},
+                {
+                    "title": "Issues",
+                    "displayType": "table",
+                    "widgetType": "discover",
+                    "interval": "5m",
+                    "queries": [
+                        {
+                            "name": "",
+                            "fields": ["count()", "total.count"],
+                            "columns": ["total.count"],
+                            "aggregates": ["count()"],
+                            "conditions": "",
+                        }
+                    ],
+                },
+            ],
+        }
+        response = self.do_request("put", self.url(self.dashboard.id), data=data)
+        assert response.status_code == 200, response.data
+
     def test_update_dashboard_with_filters(self):
         project1 = self.create_project(name="foo", organization=self.organization)
         project2 = self.create_project(name="bar", organization=self.organization)
@@ -1398,7 +1423,7 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
     def test_update_dashboard_with_my_projects_after_setting_all_projects(self):
         dashboard = Dashboard.objects.create(
             title="Dashboard With Filters",
-            created_by=self.user,
+            created_by_id=self.user.id,
             organization=self.organization,
             filters={"all_projects": True},
         )

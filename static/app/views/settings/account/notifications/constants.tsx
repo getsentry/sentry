@@ -29,7 +29,6 @@ export type NotificationSettingsObject = {
 
 export const NOTIFICATION_SETTINGS_TYPES = [
   'alerts',
-  'activeRelease',
   'workflow',
   'deploy',
   'approval',
@@ -44,12 +43,11 @@ export const SELF_NOTIFICATION_SETTINGS_TYPES = [
   'selfAssignOnResolve',
 ];
 
-// 'alerts' | 'activeRelease' | 'workflow' ...
-export type NotificationSettingsType = typeof NOTIFICATION_SETTINGS_TYPES[number];
+// 'alerts' | 'workflow' ...
+export type NotificationSettingsType = (typeof NOTIFICATION_SETTINGS_TYPES)[number];
 
 export const NOTIFICATION_SETTINGS_PATHNAMES: Record<NotificationSettingsType, string> = {
   alerts: 'alerts',
-  activeRelease: 'activeRelease',
   workflow: 'workflow',
   deploy: 'deploy',
   approval: 'approval',
@@ -75,6 +73,5 @@ export const CONFIRMATION_MESSAGE = (
 export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
   {
     quota: 'slack-overage-notifications',
-    activeRelease: 'active-release-monitor-alpha',
     spikeProtection: 'spike-projections',
   };

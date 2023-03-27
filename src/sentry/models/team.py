@@ -18,6 +18,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
+from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ class TeamManager(BaseManager):
     def get_for_user(
         self,
         organization: "Organization",
-        user: "User",
+        user: Union["User", RpcUser],
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
@@ -53,7 +54,7 @@ class TeamManager(BaseManager):
             team_list = list(base_team_qs)
         else:
             try:
-                om = OrganizationMember.objects.get(user=user, organization=organization)
+                om = OrganizationMember.objects.get(user_id=user.id, organization=organization)
             except OrganizationMember.DoesNotExist:
                 # User is not a member of the organization at all
                 return []
@@ -155,6 +156,7 @@ class Team(Model):
     )
     idp_provisioned = models.BooleanField(default=False)
     date_added = models.DateTimeField(default=timezone.now, null=True)
+    org_role = models.CharField(max_length=32, null=True)
 
     objects = TeamManager(cache_fields=("pk", "slug"))
 
@@ -287,7 +289,13 @@ class Team(Model):
                 cursor.close()
 
     def get_audit_log_data(self):
-        return {"id": self.id, "slug": self.slug, "name": self.name, "status": self.status}
+        return {
+            "id": self.id,
+            "slug": self.slug,
+            "name": self.name,
+            "status": self.status,
+            "org_role": self.org_role,
+        }
 
     def get_projects(self):
         from sentry.models import Project

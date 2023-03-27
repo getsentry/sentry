@@ -6,9 +6,9 @@ import {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Rect} from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {Rect} from 'sentry/utils/profiling/speedscope';
 
 export function useDrawSelectedBorderEffect({
   scheduler,
@@ -49,7 +49,7 @@ export function useDrawSelectedBorderEffect({
           }),
           {
             BORDER_COLOR: theme.COLORS.SELECTED_FRAME_BORDER_COLOR,
-            BORDER_WIDTH: theme.SIZES.FRAME_BORDER_WIDTH,
+            BORDER_WIDTH: theme.SIZES.HIGHLIGHTED_FRAME_BORDER_WIDTH,
           },
           view.fromTransformedConfigView(canvas.physicalSpace)
         );

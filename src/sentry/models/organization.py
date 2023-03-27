@@ -3,11 +3,12 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 from enum import IntEnum
-from typing import FrozenSet, Optional, Sequence
+from typing import Collection, FrozenSet, Optional, Sequence
 
 from django.conf import settings
 from django.db import IntegrityError, models, router, transaction
 from django.db.models import QuerySet
+from django.db.models.signals import post_delete
 from django.urls import NoReverseMatch, reverse
 from django.utils import timezone
 from django.utils.functional import cached_property
@@ -29,11 +30,14 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.utils import slugify_instance
+from sentry.db.postgres.roles import in_test_psql_role_override
 from sentry.locks import locks
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
+from sentry.models.team import Team
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.user import APIUser, user_service
+from sentry.services.hybrid_cloud.user import RpcUser, user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import SnowflakeIdMixin, generate_snowflake_id
@@ -119,6 +123,37 @@ class OrganizationManager(BaseManager):
             return [r.organization for r in results if scope in r.get_scopes()]
         return [r.organization for r in results]
 
+    def get_organizations_where_user_is_owner(self, user_id: int) -> QuerySet:
+        """
+        Returns a QuerySet of all organizations where a user has the top priority role.
+        The default top priority role in Sentry is owner.
+        """
+
+        orgs = Organization.objects.filter(
+            member_set__user_id=user_id,
+            status=OrganizationStatus.VISIBLE,
+        )
+
+        # get owners from orgs
+        owner_role_orgs = Organization.objects.filter(
+            member_set__user_id=user_id,
+            status=OrganizationStatus.VISIBLE,
+            member_set__role=roles.get_top_dog().id,
+        )
+
+        # get owner teams
+        owner_teams = Team.objects.filter(
+            organization__in=orgs, org_role=roles.get_top_dog().id
+        ).values_list("id", flat=True)
+
+        # get the orgs in which the user is a member of an owner team
+        owner_team_member_orgs = OrganizationMemberTeam.objects.filter(
+            team_id__in=owner_teams
+        ).values_list("organizationmember__organization_id", flat=True)
+
+        # use .union() (UNION) as opposed to | (OR) because it's faster
+        return self.filter(id__in=owner_team_member_orgs).union(owner_role_orgs)
+
 
 @region_silo_only_model
 class Organization(Model, SnowflakeIdMixin):
@@ -178,6 +213,9 @@ class Organization(Model, SnowflakeIdMixin):
 
     objects = OrganizationManager(cache_fields=("pk", "slug"))
 
+    # Not persisted. Getsentry fills this in in post-save hooks and we use it for synchronizing data across silos.
+    customer_id: Optional[str] = None
+
     class Meta:
         app_label = "sentry"
         db_table = "sentry_organization"
@@ -211,7 +249,7 @@ class Organization(Model, SnowflakeIdMixin):
         if slugify_target is not None:
             lock = locks.get("slug:organization", duration=5, name="organization_slug")
             with TimedRetryPolicy(10)(lock.acquire):
-                slugify_target = slugify_target.replace("_", "-").strip("-")
+                slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
 
         if SENTRY_USE_SNOWFLAKE:
@@ -234,7 +272,9 @@ class Organization(Model, SnowflakeIdMixin):
         # There is no foreign key relationship so we have to manually cascade.
         NotificationSetting.objects.remove_for_organization(self)
 
-        return super().delete(**kwargs)
+        with transaction.atomic(), in_test_psql_role_override("postgres"):
+            Organization.outbox_for_update(self.id).save()
+            return super().delete(**kwargs)
 
     @staticmethod
     def outbox_for_update(org_id: int) -> RegionOutbox:
@@ -245,6 +285,15 @@ class Organization(Model, SnowflakeIdMixin):
             object_identifier=org_id,
         )
 
+    @staticmethod
+    def outbox_to_verify_mapping(org_id: int) -> RegionOutbox:
+        return RegionOutbox(
+            shard_scope=OutboxScope.ORGANIZATION_SCOPE,
+            shard_identifier=org_id,
+            category=OutboxCategory.VERIFY_ORGANIZATION_MAPPING,
+            object_identifier=org_id,
+        )
+
     @cached_property
     def is_default(self):
         if not settings.SENTRY_SINGLE_ORGANIZATION:
@@ -252,7 +301,7 @@ class Organization(Model, SnowflakeIdMixin):
 
         return self == type(self).get_default()
 
-    def has_access(self, user: APIUser, access=None):
+    def has_access(self, user: RpcUser, access=None):
         queryset = self.member_set.filter(user_id=user.id)
         if access is not None:
             queryset = queryset.filter(type__lte=access)
@@ -269,14 +318,14 @@ class Organization(Model, SnowflakeIdMixin):
             "default_role": self.default_role,
         }
 
-    def get_owners(self) -> Sequence[APIUser]:
+    def get_owners(self) -> Sequence[RpcUser]:
+        owners = self.get_members_with_org_roles(roles=[roles.get_top_dog().id]).values_list(
+            "user_id", flat=True
+        )
 
-        owner_memberships = OrganizationMember.objects.filter(
-            role=roles.get_top_dog().id, organization=self
-        ).values_list("user_id", flat=True)
-        return user_service.get_many(owner_memberships)
+        return user_service.get_many(filter={"user_ids": owners})
 
-    def get_default_owner(self) -> APIUser:
+    def get_default_owner(self) -> RpcUser:
         if not hasattr(self, "_default_owner"):
             self._default_owner = self.get_owners()[0]
         return self._default_owner
@@ -295,12 +344,37 @@ class Organization(Model, SnowflakeIdMixin):
         return self._default_owner_id
 
     def has_single_owner(self):
-        from sentry.models import OrganizationMember
+        owners = list(
+            self.get_members_with_org_roles([roles.get_top_dog().id]).values_list("id", flat=True)
+        )
+        return len(owners[:2]) == 1
 
-        count = OrganizationMember.objects.filter(
-            organization=self, role=roles.get_top_dog().id, user__isnull=False, user__is_active=True
-        )[:2].count()
-        return count == 1
+    def get_members_with_org_roles(
+        self,
+        roles: Collection[str],
+        include_null_users: bool = False,
+    ):
+        members_with_role = self.member_set.filter(
+            role__in=roles,
+        )
+        if not include_null_users:
+            members_with_role = members_with_role.filter(user__isnull=False, user__is_active=True)
+
+        members_with_role = set(members_with_role.values_list("id", flat=True))
+
+        teams_with_org_role = self.get_teams_with_org_roles(roles).values_list("id", flat=True)
+
+        # may be empty
+        members_on_teams_with_role = set(
+            OrganizationMemberTeam.objects.filter(team_id__in=teams_with_org_role).values_list(
+                "organizationmember__id", flat=True
+            )
+        )
+
+        # use union of sets because a subset may be empty
+        return OrganizationMember.objects.filter(
+            id__in=members_with_role.union(members_on_teams_with_role)
+        )
 
     def merge_to(from_org, to_org):
         from sentry.models import (
@@ -461,8 +535,8 @@ class Organization(Model, SnowflakeIdMixin):
         )
 
         for model in INST_MODEL_LIST:
-            queryset = model.objects.filter(organization=from_org)
-            do_update(queryset, {"organization": to_org})
+            queryset = model.objects.filter(organization_id=from_org.id)
+            do_update(queryset, {"organization_id": to_org.id})
 
         for model in ATTR_MODEL_LIST:
             queryset = model.objects.filter(organization_id=from_org.id)
@@ -588,14 +662,19 @@ class Organization(Model, SnowflakeIdMixin):
             path = customer_domain_path(path)
             url_base = generate_organization_url(self.slug)
         uri = absolute_uri(path, url_prefix=url_base)
+        parts = [uri]
+        if query and not query.startswith("?"):
+            query = f"?{query}"
         if query:
-            uri = f"{uri}?{query}"
+            parts.append(query)
+        if fragment and not fragment.startswith("#"):
+            fragment = f"#{fragment}"
         if fragment:
-            uri = f"{uri}#{fragment}"
-        return uri
+            parts.append(fragment)
+        return "".join(parts)
 
     def get_scopes(self, role: Role) -> FrozenSet[str]:
-        if role.priority > 0:
+        if role.id != "member":
             return role.scopes
 
         scopes = set(role.scopes)
@@ -604,3 +683,26 @@ class Organization(Model, SnowflakeIdMixin):
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):
             scopes.discard("alerts:write")
         return frozenset(scopes)
+
+    def get_teams_with_org_roles(self, roles: Optional[Collection[str]]) -> QuerySet:
+        from sentry.models.team import Team
+
+        if roles is not None:
+            return Team.objects.filter(org_role__in=roles, organization=self)
+
+        return Team.objects.filter(organization=self).exclude(org_role=None)
+
+    # TODO(hybrid-cloud): Replace with Region tombstone when it's implemented
+    @classmethod
+    def remove_organization_mapping(cls, instance, **kwargs):
+        from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
+
+        organization_mapping_service.delete(instance.id)
+
+
+post_delete.connect(
+    Organization.remove_organization_mapping,
+    dispatch_uid="sentry.remove_organization_mapping",
+    sender=Organization,
+    weak=False,
+)

@@ -28,13 +28,14 @@ def parametrize_backend(cls):
     assert not hasattr(cls, "backend")
     cls.backend = SessionsReleaseHealthBackend()
 
-    class MetricsTest(BaseMetricsTestCase, cls):
-        __doc__ = f"Repeat tests from {cls} with metrics"
+    class MetricsLayerTest(BaseMetricsTestCase, cls):
+        __doc__ = f"Repeat tests from {cls} with metrics layer"
         backend = MetricsReleaseHealthBackend()
+        adjust_interval = True  # HACK interval adjustment for new MetricsLayer implementation
 
-    MetricsTest.__name__ = f"{cls.__name__}Metrics"
+    MetricsLayerTest.__name__ = f"{cls.__name__}MetricsLayer"
 
-    globals()[MetricsTest.__name__] = MetricsTest
+    globals()[MetricsLayerTest.__name__] = MetricsLayerTest
 
     return cls
 
@@ -45,12 +46,21 @@ def format_timestamp(dt):
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
 
 
-def make_24h_stats(ts):
-    return _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+def make_24h_stats(ts, adjust_start=False):
+    ret_val = _make_stats(datetime.utcfromtimestamp(ts).replace(tzinfo=pytz.utc), 3600, 24)
+
+    if adjust_start:
+        # HACK this adds another interval at the beginning in accordance with the new way of calculating intervals
+        # https://www.notion.so/sentry/Metrics-Layer-get_intervals-bug-dce140607d054201a5e6629b070cb969
+        ret_val.insert(0, [ret_val[0][0] - 3600, 0])
+
+    return ret_val
 
 
 @parametrize_backend
 class SnubaSessionsTest(TestCase, SnubaTestCase):
+    adjust_interval = False  # HACK interval adjustment for new MetricsLayer implementation
+
     def setUp(self):
         super().setUp()
         self.received = time.time()
@@ -309,7 +319,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="users",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
         stats[-1] = [stats[-1][0], 1]
         stats_ok = stats_crash = stats
 
@@ -363,7 +373,7 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
             stat="sessions",
         )
 
-        stats = make_24h_stats(self.received - (24 * 3600))
+        stats = make_24h_stats(self.received - (24 * 3600), adjust_start=self.adjust_interval)
 
         stats_ok = stats[:-1] + [[stats[-1][0], 2]]
         stats_crash = stats[:-1] + [[stats[-1][0], 1]]
@@ -487,39 +497,42 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
 
     def test_get_crash_free_breakdown(self):
         start = timezone.now() - timedelta(days=4)
-        data = self.backend.get_crash_free_breakdown(
-            project_id=self.project.id,
-            release=self.session_release,
-            start=start,
-            environments=["prod"],
-        )
 
-        # Last returned date is generated within function, should be close to now:
-        last_date = data[-1].pop("date")
-        assert timezone.now() - last_date < timedelta(seconds=1)
+        # it should work with and without environments
+        for environments in [None, ["prod"]]:
+            data = self.backend.get_crash_free_breakdown(
+                project_id=self.project.id,
+                release=self.session_release,
+                start=start,
+                environments=environments,
+            )
 
-        assert data == [
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=1),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": None,
-                "crash_free_users": None,
-                "date": start + timedelta(days=2),
-                "total_sessions": 0,
-                "total_users": 0,
-            },
-            {
-                "crash_free_sessions": 100.0,
-                "crash_free_users": 100.0,
-                "total_sessions": 2,
-                "total_users": 1,
-            },
-        ]
+            # Last returned date is generated within function, should be close to now:
+            last_date = data[-1].pop("date")
+            assert timezone.now() - last_date < timedelta(seconds=1)
+
+            assert data == [
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=1),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": None,
+                    "crash_free_users": None,
+                    "date": start + timedelta(days=2),
+                    "total_sessions": 0,
+                    "total_users": 0,
+                },
+                {
+                    "crash_free_sessions": 100.0,
+                    "crash_free_users": 100.0,
+                    "total_sessions": 2,
+                    "total_users": 1,
+                },
+            ]
 
         data = self.backend.get_crash_free_breakdown(
             project_id=self.project.id,
@@ -860,6 +873,112 @@ class SnubaSessionsTest(TestCase, SnubaTestCase):
                 "sessions_crashed": 1,
                 "sessions_errored": 0,
                 "sessions_healthy": 0,
+            },
+        )
+
+    def test_get_project_release_stats_no_sessions(self):
+        """
+        Test still returning correct data when no sessions are available
+        :return:
+        """
+        self._test_get_project_release_stats(
+            "sessions",
+            "INEXISTENT-RELEASE",
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "sessions": 0,
+                    "sessions_abnormal": 0,
+                    "sessions_crashed": 0,
+                    "sessions_errored": 0,
+                    "sessions_healthy": 0,
+                },
+            ],
+            {
+                "sessions": 0,
+                "sessions_abnormal": 0,
+                "sessions_crashed": 0,
+                "sessions_errored": 0,
+                "sessions_healthy": 0,
+            },
+        )
+
+    def test_get_project_release_stats_no_users(self):
+        self._test_get_project_release_stats(
+            "users",
+            "INEXISTENT-RELEASE",
+            [
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+                {
+                    "duration_p50": None,
+                    "duration_p90": None,
+                    "users": 0,
+                    "users_abnormal": 0,
+                    "users_crashed": 0,
+                    "users_errored": 0,
+                    "users_healthy": 0,
+                },
+            ],
+            {
+                "users": 0,
+                "users_abnormal": 0,
+                "users_crashed": 0,
+                "users_errored": 0,
+                "users_healthy": 0,
             },
         )
 

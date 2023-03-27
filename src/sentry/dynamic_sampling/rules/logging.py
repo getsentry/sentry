@@ -3,7 +3,14 @@ from typing import Dict, List, Union
 
 import sentry_sdk
 
-from sentry.dynamic_sampling.rules.utils import BaseRule, RuleType, get_rule_hash, get_rule_type
+from sentry.dynamic_sampling.rules.utils import (
+    DecayingFn,
+    PolymorphicRule,
+    RuleType,
+    get_rule_hash,
+    get_rule_type,
+    get_sampling_value,
+)
 
 logger = logging.getLogger("sentry.dynamic_sampling")
 
@@ -26,17 +33,22 @@ MAX_PROJECTS_IN_MEMORY = 1000
 active_rules: Dict[int, Dict[int, float]] = {}
 
 
-def should_log_rules_change(project_id: int, rules: List[BaseRule]) -> bool:
+def should_log_rules_change(project_id: int, rules: List[PolymorphicRule]) -> bool:
     active_rules_per_project = active_rules.get(project_id, None)
     new_rules_per_project = {}
 
     for rule in rules:
-        new_rules_per_project[get_rule_hash(rule)] = rule["sampleRate"]
+        if (sampling_value := get_sampling_value(rule)) is not None:
+            # Here for simplicity we don't make a difference between sampling value type. In case we will end up in a
+            # situation in which rules change their sampling value type and not value, we will need to address this
+            # here.
+            _, value = sampling_value
+            new_rules_per_project[get_rule_hash(rule)] = value
 
     should_log = new_rules_per_project != active_rules_per_project
     if should_log:
         _delete_active_rule_if_limit(active_rules_per_project is None)
-        active_rules[project_id] = new_rules_per_project  # type:ignore
+        active_rules[project_id] = new_rules_per_project
 
     return should_log
 
@@ -46,7 +58,7 @@ def _delete_active_rule_if_limit(is_new_project: bool) -> None:
         active_rules.popitem()
 
 
-def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
+def log_rules(org_id: int, project_id: int, rules: List[PolymorphicRule]) -> None:
     try:
         if should_log_rules_change(project_id, rules):
             logger.info(
@@ -64,33 +76,36 @@ def log_rules(org_id: int, project_id: int, rules: List[BaseRule]) -> None:
 
 
 def _format_rules(
-    rules: List[BaseRule],
+    rules: List[PolymorphicRule],
 ) -> List[Dict[str, Union[List[str], str, float, None]]]:
     formatted_rules = []
 
     for rule in rules:
         rule_type = get_rule_type(rule)
-        formatted_rules.append(
-            {
-                "id": rule["id"],
-                "type": rule_type.value if rule_type else "unknown_rule_type",
-                "sample_rate": rule["sampleRate"],
-                **_extract_info_from_rule(rule_type, rule),  # type:ignore
-            }
-        )
+        if (sampling_value := get_sampling_value(rule)) is not None:
+            value_type, value = sampling_value
+            formatted_rules.append(
+                {
+                    "id": rule["id"],
+                    "type": rule_type.value if rule_type else "unknown_rule_type",
+                    "samplingValue": {"type": value_type, "value": value},
+                    **_extract_info_from_rule(rule_type, rule),  # type:ignore
+                }
+            )
 
     return formatted_rules  # type:ignore
 
 
 def _extract_info_from_rule(
-    rule_type: RuleType, rule: BaseRule
-) -> Dict[str, Union[List[str], str, None]]:
+    rule_type: RuleType, rule: PolymorphicRule
+) -> Dict[str, Union[DecayingFn, List[str], str, None]]:
     if rule_type == RuleType.BOOST_ENVIRONMENTS_RULE:
         return {"environments": rule["condition"]["inner"][0]["value"]}
     elif rule_type == RuleType.BOOST_LATEST_RELEASES_RULE:
         return {
             "release": rule["condition"]["inner"][0]["value"],
             "environment": rule["condition"]["inner"][1]["value"],
+            "decayingFn": rule["decayingFn"],  # type:ignore
         }
     elif rule_type == RuleType.IGNORE_HEALTH_CHECKS_RULE:
         return {"healthChecks": rule["condition"]["inner"][0]["value"]}

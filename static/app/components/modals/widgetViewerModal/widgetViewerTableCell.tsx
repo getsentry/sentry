@@ -6,7 +6,7 @@ import trimStart from 'lodash/trimStart';
 import {GridColumnOrder} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {Organization, PageFilters} from 'sentry/types';
 import {defined} from 'sentry/utils';
@@ -30,11 +30,11 @@ import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
 } from 'sentry/utils/discover/urls';
-import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboardsV2/types';
-import {eventViewFromWidget} from 'sentry/views/dashboardsV2/utils';
-import {ISSUE_FIELDS} from 'sentry/views/dashboardsV2/widgetBuilder/issueWidget/fields';
-import TopResultsIndicator from 'sentry/views/eventsV2/table/topResultsIndicator';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
+import {DisplayType, Widget, WidgetType} from 'sentry/views/dashboards/types';
+import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {ISSUE_FIELDS} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
+import TopResultsIndicator from 'sentry/views/discover/table/topResultsIndicator';
+import {TableColumn} from 'sentry/views/discover/table/types';
 
 import {WidgetViewerQueryField} from './utils';
 // Dashboards only supports top 5 for now

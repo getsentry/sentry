@@ -114,13 +114,14 @@ describe('Exception Content', function () {
         event={event}
         values={event.entries[0].data.values}
         meta={event._meta.entries[0].data.values}
+        projectSlug={project.slug}
       />,
       {organization, router, context: routerContext}
     );
 
     expect(screen.getAllByText(/redacted/)).toHaveLength(2);
 
-    userEvent.hover(screen.getAllByText(/redacted/)[0]);
+    await userEvent.hover(screen.getAllByText(/redacted/)[0]);
 
     expect(
       await screen.findByText(

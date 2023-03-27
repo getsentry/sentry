@@ -11,11 +11,11 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
+from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.types.integrations import ExternalProviders
-from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
-    from sentry.models import Team, User
+    from sentry.models import User
 
 
 # Abstract class for invite and join requests to inherit from
@@ -28,16 +28,17 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
 
     @property
     def members_url(self) -> str:
-        url: str = absolute_uri(
-            reverse("sentry-organization-members", args=[self.organization.slug])
+        return str(
+            self.organization.absolute_url(
+                reverse("sentry-organization-members", args=[self.organization.slug])
+            )
         )
-        return url
 
     def get_subject(self, context: Mapping[str, Any] | None = None) -> str:
         return f"Access request to {self.organization.name}"
 
     def get_recipient_context(
-        self, recipient: Team | User, extra_context: Mapping[str, Any]
+        self, recipient: RpcActor, extra_context: Mapping[str, Any]
     ) -> MutableMapping[str, Any]:
         context = super().get_recipient_context(recipient, extra_context)
         context["email"] = self.pending_member.email
@@ -46,7 +47,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             ExternalProviders.EMAIL, recipient
         )
         if self.pending_member.requested_to_join:
-            context["settings_link"] = absolute_uri(
+            context["settings_link"] = self.organization.absolute_url(
                 reverse("sentry-organization-settings", args=[self.organization.slug])
             )
         else:
@@ -54,7 +55,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
         return context
 
     def get_message_actions(
-        self, recipient: Team | User, provider: ExternalProviders
+        self, recipient: RpcActor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         members_url = self.members_url + self.get_sentry_query_params(provider, recipient)
         return [
@@ -76,7 +77,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
     def get_callback_data(self) -> Mapping[str, Any]:
         return {"member_id": self.pending_member.id, "member_email": self.pending_member.email}
 
-    def get_log_params(self, recipient: Team | User) -> MutableMapping[str, Any]:
+    def get_log_params(self, recipient: RpcActor) -> MutableMapping[str, Any]:
         # TODO: figure out who the user should be when pending_member.inviter is None
         return {
             **super().get_log_params(recipient),

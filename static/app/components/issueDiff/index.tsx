@@ -4,12 +4,11 @@ import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
-import {Button} from 'sentry/components/button';
-import ButtonBar from 'sentry/components/buttonBar';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {SegmentedControl} from 'sentry/components/segmentedControl';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project} from 'sentry/types';
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 import withApi from 'sentry/utils/withApi';
@@ -82,11 +81,8 @@ class IssueDiff extends Component<Props, State> {
       });
   }
 
-  toggleDiffMode = () => {
-    this.setState(
-      state => ({groupingDiff: !state.groupingDiff, loading: true}),
-      this.fetchData
-    );
+  toggleDiffMode = (groupingDiff: boolean) => {
+    this.setState({groupingDiff, loading: true}, this.fetchData);
   };
 
   fetchEventData = async (issueId: string, eventId: string) => {
@@ -130,14 +126,19 @@ class IssueDiff extends Component<Props, State> {
         {loading && <LoadingIndicator />}
         {!loading && showDiffToggle && (
           <HeaderWrapper>
-            <ButtonBar merged active={groupingDiff ? 'grouping' : 'event'}>
-              <Button barId="event" size="sm" onClick={this.toggleDiffMode}>
+            <SegmentedControl
+              aria-label={t('Grouping')}
+              size="sm"
+              value={groupingDiff ? 'grouping' : 'event'}
+              onChange={key => this.toggleDiffMode(key === 'grouping')}
+            >
+              <SegmentedControl.Item key="event">
                 {t('Diff stack trace and message')}
-              </Button>
-              <Button barId="grouping" size="sm" onClick={this.toggleDiffMode}>
+              </SegmentedControl.Item>
+              <SegmentedControl.Item key="grouping">
                 {t('Diff grouping information')}
-              </Button>
-            </ButtonBar>
+              </SegmentedControl.Item>
+            </SegmentedControl>
           </HeaderWrapper>
         )}
         {!loading &&

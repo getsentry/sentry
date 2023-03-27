@@ -18,13 +18,15 @@ from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.testutils import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.silo import region_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
 from sentry.utils import json
 from tests.sentry.api.serializers.test_alert_rule import BaseAlertRuleSerializerTest
 
 pytestmark = [pytest.mark.sentry_metrics]
 
 
+@region_silo_test(stable=True)
 class AlertRuleListEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
 
@@ -73,6 +75,7 @@ class AlertRuleListEndpointTest(APITestCase):
         assert resp.status_code == 404
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class AlertRuleCreateEndpointTest(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
@@ -116,18 +119,27 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self.login_as(self.user)
 
     def test_simple(self):
-        with self.feature(["organizations:incidents", "organizations:performance-view"]):
-            resp = self.get_success_response(
-                self.organization.slug, self.project.slug, status_code=201, **self.valid_alert_rule
-            )
+        with outbox_runner():
+            with self.feature(["organizations:incidents", "organizations:performance-view"]):
+                resp = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    status_code=201,
+                    **self.valid_alert_rule,
+                )
         assert "id" in resp.data
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
 
-        audit_log_entry = AuditLogEntry.objects.filter(
-            event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
-        )
+        with exempt_from_silo_limits():
+            audit_log_entry = AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("ALERT_RULE_ADD"), target_object=alert_rule.id
+            )
         assert len(audit_log_entry) == 1
+        assert (
+            resp.renderer_context["request"].META["REMOTE_ADDR"]
+            == list(audit_log_entry)[0].ip_address
+        )
 
     @override_settings(MAX_QUERY_SUBSCRIPTIONS_PER_ORG=1)
     def test_enforce_max_subscriptions(self):
@@ -168,13 +180,14 @@ class AlertRuleCreateEndpointTest(APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         valid_alert_rule = {
             **self.valid_alert_rule,
             "triggers": [
@@ -229,13 +242,14 @@ class AlertRuleCreateEndpointTest(APITestCase):
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
         mock_uuid4.return_value = self.get_mock_uuid()
 
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         name = "MySpecialAsyncTestRule"
         test_params = {
             **self.valid_alert_rule,
@@ -465,7 +479,7 @@ class AlertRuleCreateEndpointTest(APITestCase):
         assert error_message in resp.data["sentry_app"]
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestCase):
     endpoint = "sentry-api-0-project-combined-rules"
 
@@ -663,6 +677,7 @@ class ProjectCombinedRuleIndexEndpointTest(BaseAlertRuleSerializerTest, APITestC
         self.assert_alert_rule_serialized(self.yet_another_alert_rule, result[1], skip_dates=True)
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
     endpoint = "sentry-api-0-project-alert-rules"
@@ -783,13 +798,14 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         self, mock_uuid4, mock_find_channel_id_for_alert_rule, mock_get_channel_id
     ):
         mock_uuid4.return_value = self.get_mock_uuid()
-        self.integration = Integration.objects.create(
-            provider="slack",
-            name="Team A",
-            external_id="TXXXXXXX1",
-            metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
-        )
-        self.integration.add_organization(self.organization, self.user)
+        with exempt_from_silo_limits():
+            self.integration = Integration.objects.create(
+                provider="slack",
+                name="Team A",
+                external_id="TXXXXXXX1",
+                metadata={"access_token": "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
+            )
+            self.integration.add_organization(self.organization, self.user)
         self.valid_alert_rule["triggers"] = [
             {
                 "label": "critical",
@@ -819,6 +835,7 @@ class AlertRuleCreateEndpointTestCrashRateAlert(APITestCase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
 
+@region_silo_test(stable=True)
 @freeze_time()
 class MetricsCrashRateAlertCreationTest(AlertRuleCreateEndpointTestCrashRateAlert):
     endpoint = "sentry-api-0-project-alert-rules"

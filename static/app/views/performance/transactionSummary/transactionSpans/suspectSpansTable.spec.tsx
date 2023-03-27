@@ -32,7 +32,7 @@ describe('SuspectSpansTable', () => {
         isLoading={false}
         suspectSpans={[suspectSpan]}
         totals={{'count()': 100}}
-        sort={SpanSortOthers.COUNT}
+        sort={SpanSortOthers.SUM_EXCLUSIVE_TIME}
       />,
       {context: initialData.routerContext}
     );

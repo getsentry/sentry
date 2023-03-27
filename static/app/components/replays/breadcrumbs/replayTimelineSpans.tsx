@@ -2,10 +2,10 @@ import {Fragment, memo} from 'react';
 import styled from '@emotion/styled';
 
 import {divide, flattenSpans} from 'sentry/components/replays/utils';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import useActiveReplayTab from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {ReplaySpan} from 'sentry/views/replays/types';
 

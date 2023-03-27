@@ -3,6 +3,7 @@ Metrics Service Layer Tests for Performance
 """
 import re
 from datetime import timedelta
+from datetime import timezone as datetime_timezone
 from unittest import mock
 
 import pytest
@@ -21,6 +22,7 @@ from sentry.models import (
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.snuba.metrics import (
+    MAX_POINTS,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
@@ -513,7 +515,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
         assert data["meta"] == sorted(
             [
                 {"name": "count(transaction.duration)", "type": "UInt64"},
-                {"name": "project_id", "type": "string"},
+                {"name": "project_id", "type": "UInt64"},
             ],
             key=lambda elem: elem["name"],
         )
@@ -1067,7 +1069,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 {"name": "bucketed_time", "type": "DateTime('Universal')"},
                 {"name": "p50_fcp", "type": "Float64"},
                 {"name": "p50_lcp", "type": "Float64"},
-                {"name": "project", "type": "string"},
+                {"name": "project", "type": "UInt64"},
                 {"name": "project_alias", "type": "string"},
                 {"name": "transaction_group", "type": "string"},
             ],
@@ -1281,8 +1283,12 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             use_case_id=UseCaseKey.PERFORMANCE,
         )
         assert data == {
-            "start": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 10, 30),
-            "end": FakeDatetime(day_ago.year, day_ago.month, day_ago.day, 16, 30),
+            "start": FakeDatetime(
+                day_ago.year, day_ago.month, day_ago.day, 10, 00, tzinfo=datetime_timezone.utc
+            ),
+            "end": FakeDatetime(
+                day_ago.year, day_ago.month, day_ago.day, 17, 00, tzinfo=datetime_timezone.utc
+            ),
             "intervals": [
                 FakeDatetime(
                     day_ago.year,
@@ -1290,16 +1296,16 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     day_ago.day,
                     hour,
                     0,
-                    tzinfo=timezone.utc,
+                    tzinfo=datetime_timezone.utc,
                 )
-                for hour in range(10, 16)
+                for hour in range(10, 17)
             ],
             "groups": [
                 {
                     "by": {},
                     "series": {
-                        "rate(transaction.duration)": [0.1, 0, 0.1, 0.05, 0, 0.05],
-                        "count(transaction.duration)": [6, 0, 6, 3, 0, 3],
+                        "rate(transaction.duration)": [0.1, 0, 0.1, 0.05, 0, 0.05, 0],
+                        "count(transaction.duration)": [6, 0, 6, 3, 0, 3, 0],
                     },
                     "totals": {
                         "rate(transaction.duration)": 0.3,
@@ -1753,7 +1759,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 value=value,
             )
 
-        for http_status_code, value in (
+        for os_name, value in (
             ("Mac OS 10.5", 0),
             ("Mac OS 10.6", 1),
             ("Mac OS 10.8", 2),
@@ -1764,7 +1770,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_performance_metric(
                 type="distribution",
                 name=TransactionMRI.DURATION.value,
-                tags={"os.name": http_status_code},
+                tags={"os.name": os_name},
                 value=value,
             )
 
@@ -1778,61 +1784,59 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ("os.name", "Windows *", 3),
             ("os.name", "*8", 2),
         ):
-            metrics_query = self.build_metrics_query(
-                before_now="1h",
-                granularity="1h",
-                select=[
-                    MetricField(
-                        op="count",
-                        metric_mri=TransactionMRI.DURATION.value,
-                        alias="duration_count",
-                    ),
-                ],
-                where=[
-                    Condition(
-                        lhs=Function(
-                            "match",
-                            parameters=[
-                                Column(name=f"tags[{tag_key}]"),
-                                f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
-                            ],
-                        ),
-                        op=Op.EQ,
-                        rhs=1,
-                    )
-                ],
-                limit=Limit(limit=50),
-                offset=Offset(offset=0),
-                include_series=False,
-            )
-            data = get_series(
-                [self.project],
-                metrics_query=metrics_query,
-                include_meta=True,
-                use_case_id=UseCaseKey.PERFORMANCE,
-            )
+            for use_if_null in [True, False]:
+                column = Column(name=f"tags[{tag_key}]")
 
-            assert data["groups"] == [
-                {
-                    "by": {},
-                    "totals": {"duration_count": expected_count},
-                },
-            ]
-            assert data["meta"] == sorted(
-                [
-                    {"name": "duration_count", "type": "UInt64"},
-                ],
-                key=lambda elem: elem["name"],
-            )
+                metrics_query = self.build_metrics_query(
+                    before_now="1h",
+                    granularity="1h",
+                    select=[
+                        MetricField(
+                            op="count",
+                            metric_mri=TransactionMRI.DURATION.value,
+                            alias="duration_count",
+                        ),
+                    ],
+                    where=[
+                        Condition(
+                            lhs=Function(
+                                "match",
+                                parameters=[
+                                    Function("ifNull", parameters=[column, ""])
+                                    if use_if_null
+                                    else column,
+                                    f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
+                                ],
+                            ),
+                            op=Op.EQ,
+                            rhs=1,
+                        )
+                    ],
+                    limit=Limit(limit=50),
+                    offset=Offset(offset=0),
+                    include_series=False,
+                )
+                data = get_series(
+                    [self.project],
+                    metrics_query=metrics_query,
+                    include_meta=True,
+                    use_case_id=UseCaseKey.PERFORMANCE,
+                )
+
+                assert data["groups"] == [
+                    {
+                        "by": {},
+                        "totals": {"duration_count": expected_count},
+                    },
+                ]
+                assert data["meta"] == sorted(
+                    [
+                        {"name": "duration_count", "type": "UInt64"},
+                    ],
+                    key=lambda elem: elem["name"],
+                )
 
     def test_wildcard_match_with_non_filterable_tags(self):
-        self.store_performance_metric(
-            type="distribution",
-            name=TransactionMRI.DURATION.value,
-            tags={"http_status_code": "200"},
-            value=0,
-        )
-
         with pytest.raises(InvalidParams):
             metrics_query = self.build_metrics_query(
                 before_now="1h",
@@ -1999,7 +2003,10 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             include_series=True,
             interval=3600,
         )
-        assert metrics_query.limit.limit == 1666
+        INTERVAL_LEN = 7  # 6 hours unaligned generate 7 1h intervals
+        EXPECTED_DEFAULT_LIMIT = MAX_POINTS // INTERVAL_LEN
+
+        assert metrics_query.limit.limit == EXPECTED_DEFAULT_LIMIT
 
     def test_high_limit_provided_not_raise_exception_when_high_interval_provided(self):
         # Each of these denotes how many events to create in each hour
@@ -2067,7 +2074,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "count",
                     "histogram",
                     "max",
+                    "max_timestamp",
                     "min",
+                    "min_timestamp",
                     "p50",
                     "p75",
                     "p90",
@@ -2119,7 +2128,9 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
                     "count",
                     "histogram",
                     "max",
+                    "max_timestamp",
                     "min",
+                    "min_timestamp",
                     "p50",
                     "p75",
                     "p90",

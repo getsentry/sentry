@@ -37,7 +37,10 @@ class ProjectGroupStatsEndpoint(ProjectEndpoint, EnvironmentMixin, StatsMixin):
             return Response(status=204)
 
         data = tsdb.get_range(
-            model=tsdb.models.group, keys=group_ids, **self._parse_args(request, environment_id)
+            model=tsdb.models.group,
+            keys=group_ids,
+            **self._parse_args(request, environment_id),
+            tenant_ids={"organization_id": project.organization_id},
         )
 
         return Response({str(k): v for k, v in data.items()})

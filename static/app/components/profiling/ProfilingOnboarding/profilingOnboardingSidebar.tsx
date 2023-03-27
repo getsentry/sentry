@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
@@ -19,7 +19,7 @@ import {CommonSidebarProps, SidebarPanelKey} from 'sentry/components/sidebar/typ
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import platforms from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Project, SelectValue} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import EventWaiter from 'sentry/utils/eventWaiter';
@@ -56,7 +56,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       }
 
       setCurrentProject(
-        unsupportedProjects.find(p => p.id === String(pageFilters.selection.projects[0]))
+        // there's an edge case where an org w/ a single project may be unsupported but for whatever reason there is no project selection so we can't select a project
+        // in those cases we'll simply default to the first unsupportedProject
+        unsupportedProjects.find(
+          p => p.id === String(pageFilters.selection.projects[0])
+        ) ?? unsupportedProjects[0]
       );
       return;
     }
@@ -83,11 +87,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
   }, [pageFilters.selection.projects, supportedProjects, unsupportedProjects]);
 
   const projectSelectOptions = useMemo(() => {
-    const supportedProjectItems: SelectValue<Project>[] = supportedProjects.map(
+    const supportedProjectItems: SelectValue<string>[] = supportedProjects.map(
       project => {
         return {
-          key: project.id,
-          value: project,
+          value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -95,11 +99,11 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       }
     );
 
-    const unsupportedProjectItems: SelectValue<Project>[] = unsupportedProjects.map(
+    const unsupportedProjectItems: SelectValue<string>[] = unsupportedProjects.map(
       project => {
         return {
-          key: project.id,
-          value: project,
+          value: project.id,
+          textValue: project.id,
           label: (
             <StyledIdBadge project={project} avatarSize={16} hideOverflow disableLink />
           ),
@@ -111,12 +115,10 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
       {
         label: t('Supported'),
         options: supportedProjectItems,
-        value: {} as any,
       },
       {
         label: t('Unsupported'),
         options: unsupportedProjectItems,
-        value: {},
       },
     ];
   }, [supportedProjects, unsupportedProjects]);
@@ -161,7 +163,8 @@ export function ProfilingOnboardingSidebar(props: CommonSidebarProps) {
                 t('Select a project')
               )
             }
-            onChange={option => setCurrentProject(option.value)}
+            value={currentProject?.id}
+            onChange={opt => setCurrentProject(projects.find(p => p.id === opt.value))}
             triggerProps={{'aria-label': currentProject?.slug}}
             options={projectSelectOptions}
             position="bottom-end"

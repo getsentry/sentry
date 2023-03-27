@@ -26,7 +26,6 @@ from sentry.models.user import User
 from sentry.types.integrations import ExternalProviders
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder, get_email_addresses
-from sentry.utils.http import absolute_uri
 
 
 class ActionHandler(metaclass=abc.ABCMeta):
@@ -241,22 +240,23 @@ def generate_incident_trigger_email_context(
         if user_option_tz is not None:
             tz = user_option_tz
 
+    organization = incident.organization
     return {
-        "link": absolute_uri(
+        "link": organization.absolute_url(
             reverse(
                 "sentry-metric-alert",
                 kwargs={
-                    "organization_slug": incident.organization.slug,
+                    "organization_slug": organization.slug,
                     "incident_id": incident.identifier,
                 },
-            )
-        )
-        + "?referrer=alert_email",
-        "rule_link": absolute_uri(
+            ),
+            query="referrer=alert_email",
+        ),
+        "rule_link": organization.absolute_url(
             reverse(
                 "sentry-alert-rule",
                 kwargs={
-                    "organization_slug": incident.organization.slug,
+                    "organization_slug": organization.slug,
                     "project_slug": project.slug,
                     "alert_rule_id": trigger.alert_rule_id,
                 },

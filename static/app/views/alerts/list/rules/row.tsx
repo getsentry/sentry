@@ -9,8 +9,7 @@ import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownBubble from 'sentry/components/dropdownBubble';
-import DropdownMenuControl from 'sentry/components/dropdownMenuControl';
-import {MenuItemProps} from 'sentry/components/dropdownMenuItem';
+import {DropdownMenu, MenuItemProps} from 'sentry/components/dropdownMenu';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Highlight from 'sentry/components/highlight';
 import IdBadge from 'sentry/components/idBadge';
@@ -18,10 +17,10 @@ import Link from 'sentry/components/links/link';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconEllipsis, IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Actor, Project} from 'sentry/types';
 import type {ColorOrAlias} from 'sentry/utils/theme';
 import {getThresholdUnits} from 'sentry/views/alerts/rules/metric/constants';
@@ -283,13 +282,8 @@ function RuleListRow({
       actor={assigneeTeamActor}
       className="avatar"
       size={24}
-      tooltip={
-        <TooltipWrapper>
-          {tct('Assigned to [name]', {
-            name: teamName && `#${teamName.name}`,
-          })}
-        </TooltipWrapper>
-      }
+      tooltipOptions={{overlayStyle: {textAlign: 'left'}}}
+      tooltip={tct('Assigned to [name]', {name: teamName && `#${teamName.name}`})}
     />
   ) : (
     <Tooltip isHoverable skipWrapper title={t('Unassigned')}>
@@ -316,7 +310,6 @@ function RuleListRow({
             <AlertBadge
               status={rule?.latestIncident?.status}
               isIssue={isIssueAlert(rule)}
-              hideText
             />
           </Tooltip>
         </FlexCenter>
@@ -385,14 +378,14 @@ function RuleListRow({
           </AssigneeWrapper>
         )}
       </FlexCenter>
-      <ActionsRow>
+      <ActionsColumn>
         <Access access={['alerts:write']}>
           {({hasAccess}) => (
-            <DropdownMenuControl
+            <DropdownMenu
               items={actions}
               position="bottom-end"
               triggerProps={{
-                'aria-label': t('Show more'),
+                'aria-label': t('Actions'),
                 size: 'xs',
                 icon: <IconEllipsis size="xs" />,
                 showChevron: false,
@@ -401,7 +394,7 @@ function RuleListRow({
             />
           )}
         </Access>
-      </ActionsRow>
+      </ActionsColumn>
     </ErrorBoundary>
   );
 }
@@ -411,14 +404,16 @@ const FlexCenter = styled('div')`
   align-items: center;
 `;
 
-const AlertNameWrapper = styled(FlexCenter)<{isIssueAlert?: boolean}>`
+const AlertNameWrapper = styled('div')<{isIssueAlert?: boolean}>`
+  display: flex;
+  align-items: center;
+  gap: ${space(2)};
   position: relative;
   ${p => p.isIssueAlert && `padding: ${space(3)} ${space(2)}; line-height: 2.4;`}
 `;
 
 const AlertNameAndStatus = styled('div')`
   ${p => p.theme.overflowEllipsis}
-  margin-left: ${space(2)};
   line-height: 1.35;
 `;
 
@@ -455,7 +450,9 @@ const TriggerText = styled('div')`
   font-variant-numeric: tabular-nums;
 `;
 
-const ActionsRow = styled(FlexCenter)`
+const ActionsColumn = styled('div')`
+  display: flex;
+  align-items: center;
   justify-content: center;
   padding: ${space(1)};
 `;
@@ -478,10 +475,6 @@ const DropdownButton = styled('div')`
 
 const StyledChevron = styled(IconChevron)`
   margin-left: ${space(1)};
-`;
-
-const TooltipWrapper = styled('div')`
-  text-align: left;
 `;
 
 const StyledIconUser = styled(IconUser)`

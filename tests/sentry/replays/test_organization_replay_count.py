@@ -101,6 +101,89 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
         assert response.status_code == 200, response.content
         assert response.data == expected
 
+    def test_simple_return_ids(self):
+        event_id_a = "a" * 32
+        event_id_b = "b" * 32
+        replay1_id = uuid.uuid4().hex
+        replay2_id = uuid.uuid4().hex
+        replay3_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay2_id,
+            )
+        )
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay3_id,
+            )
+        )
+        event_a = self.store_event(
+            data={
+                "event_id": event_id_a,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay1_id},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": uuid.uuid4().hex,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay2_id},
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": event_id_b,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": "z" * 32},  # a replay id that doesn't exist
+                "fingerprint": ["group-1"],
+            },
+            project_id=self.project.id,
+        )
+        event_c = self.store_event(
+            data={
+                "event_id": event_id_b,
+                "timestamp": iso_format(self.min_ago),
+                "tags": {"replayId": replay3_id},
+                "fingerprint": ["group-2"],
+            },
+            project_id=self.project.id,
+        )
+
+        query = {"query": f"issue.id:[{event_a.group.id}, {event_c.group.id}]", "returnIds": True}
+        with self.feature(self.features):
+            response = self.client.get(self.url, query, format="json")
+
+        expected = {
+            event_a.group.id: sorted([replay1_id, replay2_id]),
+            event_c.group.id: sorted([replay3_id]),
+        }
+        assert response.status_code == 200, response.content
+        self.assertCountEqual(
+            response.data[event_a.group.id],
+            expected[event_a.group.id],
+        )
+        self.assertCountEqual(
+            response.data[event_c.group.id],
+            expected[event_c.group.id],
+        )
+
     def test_one_replay_multiple_issues(self):
         event_id_a = "a" * 32
         event_id_b = "b" * 32
@@ -296,3 +379,24 @@ class OrganizationReplayCountEndpointTest(APITestCase, SnubaTestCase, ReplaysSnu
         expected = {replay1_id: 1, replay2_id: 1}
         assert response.status_code == 200, response.content
         assert response.data == expected
+
+    def test_replay_count_invalid_search_query(self):
+        replay1_id = uuid.uuid4().hex
+
+        self.store_replays(
+            mock_replay(
+                datetime.datetime.now() - datetime.timedelta(seconds=22),
+                self.project.id,
+                replay1_id,
+            )
+        )
+
+        with self.feature(self.features):
+            query = {"query": 'transaction:["root ("/")"]'}
+            response = self.client.get(self.url, query, format="json")
+
+        assert response.status_code == 400, response.content
+        assert response.content == (
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be '
+            b'escaped."}'
+        ), response.content

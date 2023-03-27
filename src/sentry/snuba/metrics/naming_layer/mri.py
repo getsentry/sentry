@@ -58,6 +58,7 @@ class SessionMRI(Enum):
     ERRORED_ALL = "e:sessions/all_errored@none"
     CRASHED_AND_ABNORMAL = "e:sessions/crashed_abnormal@none"
     CRASHED = "e:sessions/crashed@none"
+    CRASH_FREE = "e:sessions/crash_free@none"
     ABNORMAL = "e:sessions/abnormal@none"
     CRASH_RATE = "e:sessions/crash_rate@ratio"
     CRASH_FREE_RATE = "e:sessions/crash_free_rate@ratio"
@@ -67,6 +68,7 @@ class SessionMRI(Enum):
     ERRORED_USER_ALL = "e:sessions/user.all_errored@none"
     CRASHED_AND_ABNORMAL_USER = "e:sessions/user.crashed_abnormal@none"
     CRASHED_USER = "e:sessions/user.crashed@none"
+    CRASH_FREE_USER = "e:sessions/user.crash_free@none"
     ABNORMAL_USER = "e:sessions/user.abnormal@none"
     CRASH_USER_RATE = "e:sessions/user.crash_rate@ratio"
     CRASH_FREE_USER_RATE = "e:sessions/user.crash_free_rate@ratio"
@@ -81,6 +83,7 @@ class TransactionMRI(Enum):
     # Ingested
     USER = "s:transactions/user@none"
     DURATION = "d:transactions/duration@millisecond"
+    COUNT_PER_ROOT_PROJECT = "c:transactions/count_per_root_project@none"
     MEASUREMENTS_FCP = "d:transactions/measurements.fcp@millisecond"
     MEASUREMENTS_LCP = "d:transactions/measurements.lcp@millisecond"
     MEASUREMENTS_APP_START_COLD = "d:transactions/measurements.app_start_cold@millisecond"
@@ -93,6 +96,12 @@ class TransactionMRI(Enum):
     MEASUREMENTS_FRAMES_SLOW = "d:transactions/measurements.frames_slow@none"
     MEASUREMENTS_FRAMES_SLOW_RATE = "d:transactions/measurements.frames_slow_rate@ratio"
     MEASUREMENTS_FRAMES_TOTAL = "d:transactions/measurements.frames_total@none"
+    MEASUREMENTS_TIME_TO_INITIAL_DISPLAY = (
+        "d:transactions/measurements.time_to_initial_display@millisecond"
+    )
+    MEASUREMENTS_TIME_TO_FULL_DISPLAY = (
+        "d:transactions/measurements.time_to_full_display@millisecond"
+    )
     MEASUREMENTS_STALL_COUNT = "d:transactions/measurements.stall_count@none"
     MEASUREMENTS_STALL_LONGEST_TIME = "d:transactions/measurements.stall_longest_time@millisecond"
     MEASUREMENTS_STALL_PERCENTAGE = "d:transactions/measurements.stall_percentage@ratio"

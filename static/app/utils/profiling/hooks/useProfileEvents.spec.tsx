@@ -32,7 +32,7 @@ describe('useProfileEvents', function () {
   it('handles querying the api', async function () {
     const fields = ['count()'];
 
-    const body: EventsResults<typeof fields[number]> = {
+    const body: EventsResults<(typeof fields)[number]> = {
       data: [],
       meta: {fields: {}, units: {}},
     };

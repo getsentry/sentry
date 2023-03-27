@@ -14,6 +14,7 @@ import {IconArrow} from 'sentry/icons/iconArrow';
 import {t} from 'sentry/locale';
 import {PageFilters} from 'sentry/types';
 import {Organization, SessionApiResponse} from 'sentry/types/organization';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import {formatAbbreviatedNumber, formatPercentage} from 'sentry/utils/formatters';
 import {getPeriod} from 'sentry/utils/getPeriod';
 import useApi from 'sentry/utils/useApi';
@@ -119,11 +120,9 @@ export function ProjectAnrScoreCard({
     };
   }, [start, end, period, api, organization.slug, environments, projects, query]);
 
-  const value = sessionsData ? sessionsData.groups[0].totals['anr_rate()'] : null;
+  const value = sessionsData?.groups?.[0]?.totals['anr_rate()'] ?? null;
 
-  const previousValue = previousSessionData
-    ? previousSessionData.groups[0].totals['anr_rate()']
-    : null;
+  const previousValue = previousSessionData?.groups?.[0]?.totals['anr_rate()'] ?? null;
 
   const hasCurrentAndPrevious = previousValue && value;
   const trend = hasCurrentAndPrevious ? round(value - previousValue, 4) : null;
@@ -163,7 +162,16 @@ export function ProjectAnrScoreCard({
 
   function renderButton() {
     return (
-      <Button data-test-id="issues-open" size="xs" to={issueSearch}>
+      <Button
+        data-test-id="issues-open"
+        size="xs"
+        to={issueSearch}
+        onClick={() => {
+          trackAdvancedAnalyticsEvent('project_detail.open_anr_issues', {
+            organization,
+          });
+        }}
+      >
         {t('View Issues')}
       </Button>
     );

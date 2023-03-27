@@ -6,7 +6,7 @@ from django.urls import reverse
 
 import sentry
 from sentry.constants import ObjectStatus
-from sentry.integrations.github import API_ERRORS, GitHubIntegrationProvider
+from sentry.integrations.github import API_ERRORS, MINIMUM_REQUESTS, GitHubIntegrationProvider
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
 from sentry.models import Integration, OrganizationIntegration, Project, Repository
 from sentry.plugins.base import plugins
@@ -16,6 +16,7 @@ from sentry.testutils import IntegrationTestCase
 from sentry.utils.cache import cache
 
 TREE_RESPONSES = {
+    "xyz": {"status_code": 200, "body": {"tree": [{"path": "src/xyz.py", "type": "blob"}]}},
     "foo": {
         "status_code": 200,
         "body": {
@@ -50,13 +51,6 @@ TREE_RESPONSES = {
         "status_code": 404,
         "body": {"message": "Not Found"},
     },
-    "xyz": {
-        "status_code": 403,
-        "body": {
-            "message": "API rate limit exceeded for installation ID 123456.",
-            "documentation_url": "https://docs.github.com/rest/overview/resources-in-the-rest-api#rate-limiting",
-        },
-    },
 }
 
 
@@ -89,6 +83,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
     def _stub_github(self):
         """This stubs the calls related to a Github App"""
+        self.gh_org = "Test-Organization"
         sentry.integrations.github.integration.get_jwt = MagicMock(return_value="jwt_token_1")
         sentry.integrations.github.client.get_jwt = MagicMock(return_value="jwt_token_1")
         pp = 1
@@ -100,6 +95,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
         )
 
         repositories = {
+            "xyz": {
+                "full_name": "Test-Organization/xyz",
+                "default_branch": "master",
+            },
             "foo": {
                 "id": 1296269,
                 "name": "foo",
@@ -121,15 +120,12 @@ class GitHubIntegrationTest(IntegrationTestCase):
             "archived": {
                 "archived": True,
             },
-            "xyz": {
-                "full_name": "Test-Organization/xyz",
-                "default_branch": "master",
-            },
         }
         self.repositories = repositories
+        len_repos = len(repositories)
         api_url = f"{self.base_url}/installation/repositories"
         first = f'<{api_url}?per_page={pp}&page=1>; rel="first"'
-        last = f'<{api_url}?per_page={pp}&page={len(repositories)}>; rel="last"'
+        last = f'<{api_url}?per_page={pp}&page={len_repos}>; rel="last"'
 
         def gen_link(page: int, text: str) -> str:
             return f'<{api_url}?per_page={pp}&page={page}>; rel="{text}"'
@@ -138,21 +134,21 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET,
             url=api_url,
             match=[responses.matchers.query_param_matcher({"per_page": pp})],
-            json={"repositories": [repositories["foo"]]},
+            json={"total_count": len_repos, "repositories": [repositories["foo"]]},
             headers={"link": ", ".join([gen_link(2, "next"), last])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 2})],
-            json={"repositories": [repositories["bar"]]},
+            json={"total_count": len_repos, "repositories": [repositories["bar"]]},
             headers={"link": ", ".join([gen_link(1, "prev"), gen_link(3, "next"), last, first])},
         )
         responses.add(
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": pp, "page": 3})],
-            json={"repositories": [repositories["baz"]]},
+            json={"total_count": len_repos, "repositories": [repositories["baz"]]},
             headers={"link": ", ".join([gen_link(2, "prev"), first])},
         )
         # This is for when we're not testing the pagination logic
@@ -160,7 +156,10 @@ class GitHubIntegrationTest(IntegrationTestCase):
             responses.GET,
             url=self.base_url + "/installation/repositories",
             match=[responses.matchers.query_param_matcher({"per_page": 100})],
-            json={"repositories": [repo for repo in repositories.values()]},
+            json={
+                "total_count": len(repositories),
+                "repositories": [repo for repo in repositories.values()],
+            },
         )
 
         responses.add(
@@ -396,8 +395,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
             f"{self.base_url}/search/repositories?{querystring}",
             json={
                 "items": [
-                    {"name": "example", "full_name": "test/example"},
-                    {"name": "exhaust", "full_name": "test/exhaust"},
+                    {"name": "example", "full_name": "test/example", "default_branch": "master"},
+                    {"name": "exhaust", "full_name": "test/exhaust", "default_branch": "master"},
                 ]
             },
         )
@@ -406,8 +405,8 @@ class GitHubIntegrationTest(IntegrationTestCase):
         # This searches for any repositories matching the term 'ex'
         result = installation.get_repositories("ex")
         assert result == [
-            {"identifier": "test/example", "name": "example"},
-            {"identifier": "test/exhaust", "name": "exhaust"},
+            {"identifier": "test/example", "name": "example", "default_branch": "master"},
+            {"identifier": "test/exhaust", "name": "exhaust", "default_branch": "master"},
         ]
 
     @responses.activate
@@ -422,9 +421,9 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories(fetch_max_pages=True)
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo"},
-                {"name": "bar", "identifier": "Test-Organization/bar"},
-                {"name": "baz", "identifier": "Test-Organization/baz"},
+                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
+                {"name": "bar", "identifier": "Test-Organization/bar", "default_branch": "main"},
+                {"name": "baz", "identifier": "Test-Organization/baz", "default_branch": "master"},
             ]
 
     @responses.activate
@@ -439,7 +438,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
         with patch.object(sentry.integrations.github.client.GitHubClientMixin, "page_size", 1):
             result = installation.get_repositories()
             assert result == [
-                {"name": "foo", "identifier": "Test-Organization/foo"},
+                {"name": "foo", "identifier": "Test-Organization/foo", "default_branch": "master"},
             ]
 
     @responses.activate
@@ -591,6 +590,26 @@ class GitHubIntegrationTest(IntegrationTestCase):
             organization=self.organization, integration=integration
         ).exists()
 
+    def set_rate_limit(
+        self, remaining=MINIMUM_REQUESTS + 100, limit=5000, json_body=None, status=200
+    ):
+        """Helper class to set the rate limit.
+        A status code different than 200 requires a json_body
+        """
+        response_json = (
+            json_body
+            if status != 200
+            else {
+                "resources": {
+                    "core": {"limit": limit, "remaining": remaining, "used": "foo", "reset": 123}
+                }
+            }
+        )
+        # upsert: it calls add() if not existant, otherwise, it calls replace
+        responses.upsert(
+            responses.GET, "https://api.github.com/rate_limit", json=response_json, status=status
+        )
+
     def get_installation_helper(self):
         with self.tasks():
             self.assert_setup_flow()  # This somehow creates the integration
@@ -599,60 +618,127 @@ class GitHubIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
         return installation
 
-    @responses.activate
-    def test_get_trees_for_org_handles_rate_limit_reached(self):
-        """Test that we will not hit Github's API more than once when we reach the API rate limit"""
-        installation = self.get_installation_helper()
-        # This will force reaching for xyz before foo
-        cache.set(
-            "githubtrees:repositories:foo:Test-Organization",
-            [
-                {"full_name": "Test-Organization/bar", "default_branch": "main"},
-                {"full_name": "Test-Organization/xyz", "default_branch": "master"},
-                {"full_name": "Test-Organization/foo", "default_branch": "master"},
-            ],
-            3600,
-        )
-        trees = installation.get_trees_for_org()
-        key_prefix = "github:repo:Test-Organization"
-        bar_files = cache.get(f"{key_prefix}/bar:source-code")
-        assert bar_files == []
-        assert cache.get(f"{key_prefix}/xyz:source-code") is None  # Hit API rate limit
-        assert cache.get(f"{key_prefix}/foo:source-code") is None  # Never tried
-        assert len(trees.keys()) == 1
-        # Only the repos before the API rate limit will be in trees
-        assert trees["Test-Organization/bar"].files == []
-        assert "Test-Organization/foo" not in trees
+    def _expected_trees(self, repo_info_list=None):
+        result = {}
+        # bar and baz are defined to fail, thus, do not show up in the default case
+        list = repo_info_list or [
+            ("xyz", "master", ["src/xyz.py"]),
+            ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+        ]
+        for repo, branch, files in list:
+            result[f"{self.gh_org}/{repo}"] = RepoTree(Repo(f"{self.gh_org}/{repo}", branch), files)
+        return result
+
+    def _expected_cached_repos(self):
+        return [
+            {"full_name": f"{self.gh_org}/xyz", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/foo", "default_branch": "master"},
+            {"full_name": f"{self.gh_org}/bar", "default_branch": "main"},
+            {"full_name": f"{self.gh_org}/baz", "default_branch": "master"},
+        ]
 
     @responses.activate
-    def test_get_trees_for_org(self):
+    def test_get_trees_for_org_works(self):
         """Fetch the tree representation of a repo"""
         installation = self.get_installation_helper()
-        expected_trees = {
-            "Test-Organization/bar": RepoTree(Repo("Test-Organization/bar", "main"), []),
-            "Test-Organization/baz": RepoTree(Repo("Test-Organization/baz", "master"), []),
-            "Test-Organization/foo": RepoTree(
-                Repo("Test-Organization/foo", "master"),
-                ["src/sentry/api/endpoints/auth_login.py"],
-            ),
-        }
-
-        assert not cache.get("githubtrees:repositories:Test-Organization")
+        cache.clear()
+        self.set_rate_limit()
+        expected_trees = self._expected_trees()
+        repos_key = "githubtrees:repositories:Test-Organization"
+        repo_key = lambda x: f"github:repo:Test-Organization/{x}:source-code"
         # Check that the cache is clear
-        repo_key = "github:repo:Test-Organization/foo:source-code"
-        assert cache.get("githubtrees:repositories:foo:Test-Organization") is None
-        assert cache.get(repo_key) is None
+        assert cache.get(repos_key) is None
+        assert cache.get(repo_key("foo")) is None
+
         trees = installation.get_trees_for_org()
 
-        assert cache.get("githubtrees:repositories:foo:Test-Organization") == [
-            {"full_name": "Test-Organization/foo", "default_branch": "master"},
-            {"full_name": "Test-Organization/bar", "default_branch": "main"},
-            {"full_name": "Test-Organization/baz", "default_branch": "master"},
-            {"full_name": "Test-Organization/xyz", "default_branch": "master"},
-        ]
-        assert cache.get(repo_key) == ["src/sentry/api/endpoints/auth_login.py"]
+        assert cache.get(repos_key) == self._expected_cached_repos()
+        assert cache.get(repo_key("foo")) == ["src/sentry/api/endpoints/auth_login.py"]
         assert trees == expected_trees
 
         # Calling a second time should produce the same results
         trees = installation.get_trees_for_org()
         assert trees == expected_trees
+
+    @responses.activate
+    def test_get_trees_for_org_prevent_exhaustion_some_repos(self):
+        """Some repos will hit the network but the rest will grab from the cache."""
+        repos_key = "githubtrees:repositories:Test-Organization"
+        cache.clear()
+        installation = self.get_installation_helper()
+        expected_trees = self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                # foo will have no files because we will hit the minimum remaining requests floor
+                ("foo", "master", []),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        with patch("sentry.integrations.github.client.MINIMUM_REQUESTS", new=5, autospec=False):
+            # We start with one request left before reaching the minimum remaining requests floor
+            self.set_rate_limit(remaining=6)
+            assert cache.get(repos_key) is None
+            trees = installation.get_trees_for_org()
+
+            assert trees == expected_trees
+            assert cache.get(repos_key) == self._expected_cached_repos()
+
+            # Another call should not make us loose the files for xyz
+            self.set_rate_limit(remaining=5)
+            trees = installation.get_trees_for_org()
+            assert trees == expected_trees  # xyz will have files but not foo
+
+            # We reset the remaining values
+            self.set_rate_limit(remaining=20)
+            trees = installation.get_trees_for_org()
+            assert trees == self._expected_trees(
+                [
+                    ("xyz", "master", ["src/xyz.py"]),
+                    # Now that the rate limit is reset we should get files for foo
+                    ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ]
+            )
+
+    @responses.activate
+    def test_get_trees_for_org_rate_limit_401(self):
+        """Sometimes the rate limit API fails from the get go."""
+        # Generic test set up
+        cache.clear()  # TODO: Investigate why it did not work in the setUp method
+        installation = self.get_installation_helper()
+
+        # None of the repos will have any files since rate limit will fail
+        # with a 401 response (which makes no sense)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", []),
+                ("foo", "master", []),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )
+
+        # This time the rate limit will not fail, thus, it will fetch the trees
+        self.set_rate_limit()
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+            ]
+        )
+
+        # This time we will get a 401 but be will load from the cache (unlike the first time)
+        self.set_rate_limit(json_body={"message": "Bad credentials"}, status=401)
+        trees = installation.get_trees_for_org()
+        assert trees == self._expected_trees(
+            [
+                ("xyz", "master", ["src/xyz.py"]),
+                ("foo", "master", ["src/sentry/api/endpoints/auth_login.py"]),
+                ("bar", "main", []),
+                ("baz", "master", []),
+            ]
+        )

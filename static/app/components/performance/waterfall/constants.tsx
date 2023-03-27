@@ -7,6 +7,7 @@ export enum SpanBarType {
   GAP = 'gap',
   AFFECTED = 'affected',
   AUTOGROUPED = 'autogrouped',
+  AUTOGROUPED_AND_AFFECTED = 'autogrouped_and_affected',
 }
 
 type SpanBarColours = {
@@ -30,6 +31,12 @@ export function getSpanBarColours(
         primary: theme.blue300,
         alternate: '#d1dff9',
         insetTextColour: theme.gray300,
+      };
+    case SpanBarType.AUTOGROUPED_AND_AFFECTED:
+      return {
+        primary: '#f55459',
+        alternate: '#faa9ac',
+        insetTextColour: theme.white,
       };
     default:
       return {primary: '', alternate: '', insetTextColour: theme.white};

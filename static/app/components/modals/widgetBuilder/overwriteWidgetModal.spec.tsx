@@ -2,7 +2,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ModalRenderProps} from 'sentry/actionCreators/modal';
 import OverwriteWidgetModal from 'sentry/components/modals/widgetBuilder/overwriteWidgetModal';
-import {DisplayType} from 'sentry/views/dashboardsV2/types';
+import {DisplayType} from 'sentry/views/dashboards/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -33,7 +33,7 @@ describe('widget builder overwrite modal', () => {
     expect(screen.getByText('Test description')).toBeInTheDocument();
   });
 
-  it('calls the confirm handler and closes the modal when confirmed', () => {
+  it('calls the confirm handler and closes the modal when confirmed', async () => {
     const widget = {
       title: 'Test title',
       description: 'Test description',
@@ -56,7 +56,7 @@ describe('widget builder overwrite modal', () => {
       />
     );
 
-    userEvent.click(screen.getByText('Confirm'));
+    await userEvent.click(screen.getByText('Confirm'));
     expect(mockOnConfirm).toHaveBeenCalled();
 
     // Modal should close after confirming

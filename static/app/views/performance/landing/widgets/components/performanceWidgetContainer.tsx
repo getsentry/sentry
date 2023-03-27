@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Panel} from 'sentry/components/panels';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export type PerformanceWidgetContainerTypes = 'panel' | 'inline';
 

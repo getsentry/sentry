@@ -33,6 +33,7 @@ class MetricsDatasetConfig(DatasetConfig):
             "transaction": self._transaction_filter_converter,
             "tags[transaction]": self._transaction_filter_converter,
             constants.TITLE_ALIAS: self._transaction_filter_converter,
+            constants.RELEASE_ALIAS: self._release_filter_converter,
         }
 
     @property
@@ -688,7 +689,8 @@ class MetricsDatasetConfig(DatasetConfig):
     def _event_type_converter(self, search_filter: SearchFilter) -> Optional[WhereType]:
         """Not really a converter, check its transaction, error otherwise"""
         value = search_filter.value.value
-        if value == "transaction":
+        operator = search_filter.operator
+        if value == "transaction" and operator == "=":
             return None
 
         raise IncompatibleMetricsQuery("Can only filter event.type:transaction")

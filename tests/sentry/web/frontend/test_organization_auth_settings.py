@@ -16,6 +16,7 @@ from sentry.models import (
     SentryAppInstallationForProvider,
 )
 from sentry.testutils import AuthProviderTestCase, PermissionTestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import region_silo_test
 
 
@@ -196,6 +197,23 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         ).exists()
         assert not logger.info.called
 
+    @with_feature("organizations:customer-domains")
+    @patch("sentry.auth.helper.logger")
+    def test_basic_flow_customer_domain(self, logger):
+        organization, auth_provider = self.create_org_and_auth_provider()
+        self.create_om_and_link_sso(organization)
+
+        path = reverse("sentry-customer-domain-organization-auth-provider-settings")
+        self.login_as(self.user, organization_id=organization.id)
+
+        with self.feature("organizations:sso-basic"):
+            resp = self.client.get(path, SERVER_NAME=f"{organization.slug}.testserver")
+
+        content = resp.content.decode("utf-8")
+        assert f"http://{organization.slug}.testserver" in content
+        assert f"http://{organization.slug}.testserver/issues" in content
+        assert f"/organziations/{organization.slug}/issues" not in content
+
     @patch("sentry.auth.helper.logger")
     @patch("sentry.auth.providers.dummy.DummyProvider.build_identity")
     def test_basic_flow_error(self, build_identity, logger):
@@ -296,7 +314,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "owner"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -326,7 +344,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -356,7 +374,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "owner"
 
         result = AuditLogEntry.objects.filter(
-            organization=organization,
+            organization_id=organization.id,
             target_object=auth_provider.id,
             event=audit_log.get_event_id("SSO_EDIT"),
             actor=self.user,
@@ -386,7 +404,7 @@ class OrganizationAuthSettingsTest(AuthProviderTestCase):
         assert organization.default_role == "member"
 
         assert not AuditLogEntry.objects.filter(
-            organization=organization, event=audit_log.get_event_id("SSO_EDIT")
+            organization_id=organization.id, event=audit_log.get_event_id("SSO_EDIT")
         ).exists()
 
     def test_edit_sso_settings__scim(self):

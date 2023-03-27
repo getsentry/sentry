@@ -14,11 +14,11 @@ from sentry.models import (
     User,
 )
 from sentry.services.hybrid_cloud.organization import (
-    ApiOrganization,
-    ApiOrganizationMember,
-    ApiProject,
-    ApiTeam,
-    ApiTeamMember,
+    RpcOrganization,
+    RpcOrganizationMember,
+    RpcProject,
+    RpcTeam,
+    RpcTeamMember,
     organization_service,
 )
 from sentry.services.hybrid_cloud.organization.impl import unescape_flag_name
@@ -57,8 +57,22 @@ def basic_filled_out_org() -> Tuple[Organization, Sequence[User]]:
     return org, [owner, other_user]
 
 
+def org_with_owner_team() -> Tuple[Organization, Sequence[User]]:
+    org, users = basic_filled_out_org()
+    other_user = Factories.create_user()
+    users.append(other_user)
+    Factories.create_team(org, members=[users[1], other_user], org_role="owner")
+    Factories.create_team(org, members=[users[1]], org_role="manager")
+
+    return org, users
+
+
 def parameterize_with_orgs(f: Callable):
     return pytest.mark.parametrize("org_factory", [pytest.param(basic_filled_out_org)])(f)
+
+
+def parameterize_with_orgs_with_owner_team(f: Callable):
+    return pytest.mark.parametrize("org_factory", [pytest.param(org_with_owner_team)])(f)
 
 
 def find_ordering(list_of_things: List[Any], e: Any) -> int:
@@ -80,14 +94,15 @@ def assert_for_list(a: List[Any], b: List[Any], assertion: Callable) -> None:
         assertion(a_thing, b_thing)
 
 
-def assert_team_equals(orm_team: Team, team: ApiTeam):
+def assert_team_equals(orm_team: Team, team: RpcTeam):
     assert team.id == orm_team.id
     assert team.slug == orm_team.slug
     assert team.status == orm_team.status
     assert team.organization_id == orm_team.organization_id
+    assert team.org_role == orm_team.org_role
 
 
-def assert_project_equals(orm_project: Project, project: ApiProject):
+def assert_project_equals(orm_project: Project, project: RpcProject):
     assert project.id == orm_project.id
     assert project.status == orm_project.status
     assert project.slug == orm_project.slug
@@ -95,7 +110,7 @@ def assert_project_equals(orm_project: Project, project: ApiProject):
     assert project.name == orm_project.name
 
 
-def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_member: ApiTeamMember):
+def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_member: RpcTeamMember):
     assert team_member.id == orm_team_member.id
     assert team_member.team_id == orm_team_member.team_id
     assert team_member.role == orm_team_member.get_team_role()
@@ -107,7 +122,7 @@ def assert_team_member_equals(orm_team_member: OrganizationMemberTeam, team_memb
 
 
 def assert_organization_member_equals(
-    orm_organization_member: OrganizationMember, organization_member: ApiOrganizationMember
+    orm_organization_member: OrganizationMember, organization_member: RpcOrganizationMember
 ):
     assert organization_member.organization_id == orm_organization_member.organization_id
     assert organization_member.id == orm_organization_member.id
@@ -138,7 +153,7 @@ def assert_organization_member_equals(
         )
 
 
-def assert_orgs_equal(orm_org: Organization, org: ApiOrganization) -> None:
+def assert_orgs_equal(orm_org: Organization, org: RpcOrganization) -> None:
     assert org.id == orm_org.id
     assert org.name == orm_org.name
     assert org.slug == orm_org.slug
@@ -187,3 +202,31 @@ def test_get_organization_id(org_factory: Callable[[], Organization]):
 
     for user_context in itertools.chain([None], orm_users):
         assert_get_organization_by_id_works(user_context, orm_org)
+
+
+@pytest.mark.django_db(transaction=True)
+@all_silo_test
+@parameterize_with_orgs_with_owner_team
+@use_real_service(organization_service, None)
+def test_get_all_org_roles(org_factory: Callable[[], Organization]):
+    _, orm_users = org_factory()
+    member = OrganizationMember.objects.get(user_id=orm_users[1].id)
+
+    all_org_roles = ["owner", "member", "manager"]
+    service_org_roles = organization_service.get_all_org_roles(
+        organization_member=None, member_id=member.id
+    )
+    assert set(all_org_roles) == set(service_org_roles)
+
+
+@pytest.mark.django_db(transaction=True)
+@all_silo_test
+@parameterize_with_orgs_with_owner_team
+@use_real_service(organization_service, None)
+def test_get_top_dog_team_member_ids(org_factory: Callable[[], Organization]):
+    orm_org, orm_users = org_factory()
+    members = [OrganizationMember.objects.get(user_id=user.id) for user in orm_users]
+
+    all_top_dogs = [members[1].id, members[2].id]
+    service_top_dogs = organization_service.get_top_dog_team_member_ids(organization_id=orm_org)
+    assert set(all_top_dogs) == set(service_top_dogs)

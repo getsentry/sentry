@@ -1,13 +1,25 @@
 import {Fragment, useState} from 'react';
+import styled from '@emotion/styled';
 import isNil from 'lodash/isNil';
 
+import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import {
+  getMappedThreadState,
+  getThreadStateHelpText,
+  ThreadStates,
+} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import Pill from 'sentry/components/pill';
 import Pills from 'sentry/components/pills';
+import QuestionTooltip from 'sentry/components/questionTooltip';
+import TextOverflow from 'sentry/components/textOverflow';
+import {IconClock, IconInfo, IconLock, IconPlay, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {
   EntryType,
   Event,
   Frame,
+  Organization,
   PlatformType,
   Project,
   STACK_TYPE,
@@ -33,7 +45,8 @@ type Props = Pick<ExceptionProps, 'groupingCurrentLevel' | 'hasHierarchicalGroup
     values?: Array<Thread>;
   };
   event: Event;
-  projectId: Project['id'];
+  organization: Organization;
+  projectSlug: Project['slug'];
 };
 
 type State = {
@@ -55,12 +68,31 @@ function getIntendedStackView(
   return stacktrace?.hasSystemFrames ? STACK_VIEW.APP : STACK_VIEW.FULL;
 }
 
+export function getThreadStateIcon(state: ThreadStates | undefined) {
+  if (isNil(state)) {
+    return null;
+  }
+  switch (state) {
+    case ThreadStates.BLOCKED:
+      return <IconLock isSolid />;
+    case ThreadStates.TIMED_WAITING:
+      return <IconTimer />;
+    case ThreadStates.WAITING:
+      return <IconClock />;
+    case ThreadStates.RUNNABLE:
+      return <IconPlay />;
+    default:
+      return <IconInfo />;
+  }
+}
+
 export function ThreadsV2({
   data,
   event,
-  projectId,
+  projectSlug,
   hasHierarchicalGrouping,
   groupingCurrentLevel,
+  organization,
 }: Props) {
   const threads = data.values ?? [];
 
@@ -112,7 +144,14 @@ export function ThreadsV2({
   }
 
   function renderPills() {
-    const {id, name, current, crashed} = activeThread ?? {};
+    const {
+      id,
+      name,
+      current,
+      crashed,
+      state: threadState,
+      lockReason,
+    } = activeThread ?? {};
 
     if (isNil(id) || !name) {
       return null;
@@ -128,6 +167,8 @@ export function ThreadsV2({
             {crashed ? t('yes') : t('no')}
           </Pill>
         )}
+        {!isNil(threadState) && <Pill name={t('state')} value={threadState} />}
+        {!isNil(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
     );
   }
@@ -152,7 +193,7 @@ export function ThreadsV2({
               ? STACK_VIEW.FULL
               : STACK_VIEW.APP
           }
-          projectId={projectId}
+          projectSlug={projectSlug}
           newestFirst={recentFirst}
           event={event}
           platform={platform}
@@ -199,84 +240,167 @@ export function ThreadsV2({
   }
 
   const platform = getPlatform();
+  const threadStateDisplay = getMappedThreadState(activeThread?.state);
 
   return (
-    <TraceEventDataSection
-      type={EntryType.THREADS}
-      stackType={STACK_TYPE.ORIGINAL}
-      projectId={projectId}
-      eventId={event.id}
-      recentFirst={isStacktraceNewestFirst()}
-      fullStackTrace={stackView === STACK_VIEW.FULL}
-      title={
-        hasMoreThanOneThread && activeThread ? (
-          <ThreadSelector
-            threads={threads}
-            activeThread={activeThread}
-            event={event}
-            onChange={thread => {
-              setState({
-                ...state,
-                activeThread: thread,
-              });
-            }}
-            exception={exception}
-            fullWidth
-          />
-        ) : (
-          <PermalinkTitle>{t('Stack Trace')}</PermalinkTitle>
-        )
-      }
-      platform={platform}
-      hasMinified={
-        !!exception?.values?.find(value => value.rawStacktrace) ||
-        !!activeThread?.rawStacktrace
-      }
-      hasVerboseFunctionNames={
-        !!exception?.values?.some(
-          value =>
-            !!value.stacktrace?.frames?.some(
-              frame =>
-                !!frame.rawFunction &&
-                !!frame.function &&
-                frame.rawFunction !== frame.function
-            )
-        ) ||
-        !!activeThread?.stacktrace?.frames?.some(
-          frame =>
-            !!frame.rawFunction &&
-            !!frame.function &&
-            frame.rawFunction !== frame.function
-        )
-      }
-      hasAbsoluteFilePaths={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
-      }
-      hasAbsoluteAddresses={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-      }
-      hasAppOnlyFrames={
-        !!exception?.values?.some(
-          value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
-        ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
-      }
-      hasNewestFirst={
-        !!exception?.values?.some(value => (value.stacktrace?.frames ?? []).length > 1) ||
-        (activeThread?.stacktrace?.frames ?? []).length > 1
-      }
-      stackTraceNotFound={stackTraceNotFound}
-      wrapTitle={false}
-    >
-      {childrenProps => (
+    <Fragment>
+      {hasMoreThanOneThread && organization.features.includes('anr-improvements') && (
         <Fragment>
-          {renderPills()}
-          {renderContent(childrenProps)}
+          <Grid>
+            <EventDataSection type={EntryType.THREADS} title={t('Threads')}>
+              {activeThread && (
+                <Wrapper>
+                  <ThreadSelector
+                    threads={threads}
+                    activeThread={activeThread}
+                    event={event}
+                    onChange={thread => {
+                      setState({
+                        ...state,
+                        activeThread: thread,
+                      });
+                    }}
+                    exception={exception}
+                  />
+                </Wrapper>
+              )}
+            </EventDataSection>
+            {activeThread && activeThread.state && (
+              <EventDataSection type={EntryType.THREAD_STATE} title={t('Thread State')}>
+                <ThreadStateWrapper>
+                  {getThreadStateIcon(threadStateDisplay)}
+                  <ThreadState>{threadStateDisplay}</ThreadState>
+                  {threadStateDisplay && (
+                    <QuestionTooltip
+                      position="top"
+                      size="xs"
+                      containerDisplayMode="block"
+                      title={getThreadStateHelpText(threadStateDisplay)}
+                    />
+                  )}
+                  {<LockReason>{activeThread?.lockReason}</LockReason>}
+                </ThreadStateWrapper>
+              </EventDataSection>
+            )}
+          </Grid>
+          <EventDataSection type={EntryType.THREAD_TAGS} title={t('Thread Tags')}>
+            {renderPills()}
+          </EventDataSection>
         </Fragment>
       )}
-    </TraceEventDataSection>
+      <TraceEventDataSection
+        type={EntryType.THREADS}
+        stackType={STACK_TYPE.ORIGINAL}
+        projectSlug={projectSlug}
+        eventId={event.id}
+        recentFirst={isStacktraceNewestFirst()}
+        fullStackTrace={stackView === STACK_VIEW.FULL}
+        title={
+          hasMoreThanOneThread &&
+          activeThread &&
+          !organization.features.includes('anr-improvements') ? (
+            <ThreadSelector
+              threads={threads}
+              activeThread={activeThread}
+              event={event}
+              onChange={thread => {
+                setState({
+                  ...state,
+                  activeThread: thread,
+                });
+              }}
+              exception={exception}
+              fullWidth
+            />
+          ) : (
+            <PermalinkTitle>
+              {hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
+            </PermalinkTitle>
+          )
+        }
+        platform={platform}
+        hasMinified={
+          !!exception?.values?.find(value => value.rawStacktrace) ||
+          !!activeThread?.rawStacktrace
+        }
+        hasVerboseFunctionNames={
+          !!exception?.values?.some(
+            value =>
+              !!value.stacktrace?.frames?.some(
+                frame =>
+                  !!frame.rawFunction &&
+                  !!frame.function &&
+                  frame.rawFunction !== frame.function
+              )
+          ) ||
+          !!activeThread?.stacktrace?.frames?.some(
+            frame =>
+              !!frame.rawFunction &&
+              !!frame.function &&
+              frame.rawFunction !== frame.function
+          )
+        }
+        hasAbsoluteFilePaths={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
+        }
+        hasAbsoluteAddresses={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        }
+        hasAppOnlyFrames={
+          !!exception?.values?.some(
+            value => !!value.stacktrace?.frames?.some(frame => frame.inApp !== true)
+          ) || !!activeThread?.stacktrace?.frames?.some(frame => frame.inApp !== true)
+        }
+        hasNewestFirst={
+          !!exception?.values?.some(
+            value => (value.stacktrace?.frames ?? []).length > 1
+          ) || (activeThread?.stacktrace?.frames ?? []).length > 1
+        }
+        stackTraceNotFound={stackTraceNotFound}
+        wrapTitle={false}
+      >
+        {childrenProps => (
+          <Fragment>
+            {!organization.features.includes('anr-improvements') && renderPills()}
+            {renderContent(childrenProps)}
+          </Fragment>
+        )}
+      </TraceEventDataSection>
+    </Fragment>
   );
 }
+
+const Grid = styled('div')`
+  display: grid;
+  grid-template-columns: auto 1fr;
+`;
+
+const ThreadStateWrapper = styled('div')`
+  display: flex;
+  position: relative;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: ${space(0.5)};
+`;
+
+const ThreadState = styled(TextOverflow)`
+  max-width: 100%;
+  text-align: left;
+  font-weight: bold;
+`;
+
+const LockReason = styled(TextOverflow)`
+  font-weight: 400;
+  color: ${p => p.theme.gray300};
+`;
+
+const Wrapper = styled('div')`
+  align-items: center;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  justify-content: flex-start;
+`;

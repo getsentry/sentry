@@ -35,6 +35,163 @@ class ReleaseFilesListTest(APITestCase):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(releasefile.id)
 
+    def test_name_search(self):
+        project = self.create_project(name="foo")
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+
+        releasefile_foo = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="foo.js", type="release.file"),
+            name="~/foo.js",
+        )
+        releasefile_bar = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(name="bar.js", type="release.file"),
+            name="~/bar.js",
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-files",
+            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url + "?query=foo")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(releasefile_foo.id)
+
+        response = self.client.get(url + "?query=bar")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(releasefile_bar.id)
+
+        response = self.client.get(url + "?query=foo&query=bar")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        # Should be sorted by name
+        assert response.data[0]["id"] == str(releasefile_bar.id)
+        assert response.data[1]["id"] == str(releasefile_foo.id)
+
+        response = self.client.get(url + "?query=missing")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_checksum_search(self):
+        project = self.create_project(name="foo")
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+
+        releasefile_foo = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(
+                name="foo.js",
+                type="release.file",
+                checksum="3004341003e829253133f75eac9367167ef8d5ea",
+            ),
+            name="~/foo.js",
+        )
+        releasefile_bar = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(
+                name="bar.js",
+                type="release.file",
+                checksum="3003341003e829253143f75eac9367167ef8d5ea",
+            ),
+            name="~/bar.js",
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-files",
+            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+        )
+
+        self.login_as(user=self.user)
+
+        response = self.client.get(url + "?checksum=3004341003e829253133f75eac9367167ef8d5ea")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(releasefile_foo.id)
+
+        response = self.client.get(url + "?checksum=3003341003e829253143f75eac9367167ef8d5ea")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(releasefile_bar.id)
+
+        response = self.client.get(
+            url
+            + "?checksum=3004341003e829253133f75eac9367167ef8d5ea&checksum=3003341003e829253143f75eac9367167ef8d5ea"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 2
+        assert response.data[0]["id"] == str(releasefile_bar.id)
+        assert response.data[1]["id"] == str(releasefile_foo.id)
+
+        response = self.client.get(url + "?checksum=0000111122223333444455556666777788889999")
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
+    def test_queries_should_be_narrowing_search(self):
+        project = self.create_project(name="foo")
+
+        release = Release.objects.create(organization_id=project.organization_id, version="1")
+        release.add_project(project)
+
+        ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(
+                name="foo.js",
+                type="release.file",
+                checksum="3004341003e829253133f75eac9367167ef8d5ea",
+            ),
+            name="~/foo.js",
+        )
+        releasefile_bar = ReleaseFile.objects.create(
+            organization_id=project.organization_id,
+            release_id=release.id,
+            file=File.objects.create(
+                name="bar.js",
+                type="release.file",
+                checksum="3003341003e829253143f75eac9367167ef8d5ea",
+            ),
+            name="~/bar.js",
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-release-files",
+            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+        )
+
+        self.login_as(user=self.user)
+
+        # Found `foo` and `bar` by name, but only `bar` by checksum.
+        response = self.client.get(
+            url + "?query=foo&query=bar&checksum=3003341003e829253143f75eac9367167ef8d5ea"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(releasefile_bar.id)
+
+        # Found `foo` and `bar` by name, but nothing by checksum.
+        response = self.client.get(
+            url + "?query=foo&query=bar&checksum=0000111122223333444455556666777788889999"
+        )
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 0
+
 
 @region_silo_test(stable=True)
 class ReleaseFileCreateTest(APITestCase):

@@ -12,7 +12,7 @@ import {mergeProps} from '@react-aria/utils';
 import {useOverlayTriggerState} from '@react-stately/overlays';
 import {OverlayTriggerProps as OverlayTriggerStateProps} from '@react-types/overlays';
 
-type PreventOverflowOptions = NonNullable<typeof preventOverflow['options']>;
+type PreventOverflowOptions = NonNullable<(typeof preventOverflow)['options']>;
 
 /**
  * PopperJS modifier to change the popper element's width/height to prevent

@@ -11,13 +11,14 @@ from tests.sentry.release_health.release_monitor import (
 pytestmark = pytest.mark.sentry_metrics
 
 
+@region_silo_test(stable=True)
 class MetricFetchProjectsWithRecentSessionsTest(
     BaseFetchProjectsWithRecentSessionsTest, TestCase, BaseMetricsTestCase
 ):
     backend_class = MetricReleaseMonitorBackend
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class SessionFetchProjectReleaseHealthTotalsTest(
     BaseFetchProjectReleaseHealthTotalsTest, TestCase, BaseMetricsTestCase
 ):

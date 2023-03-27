@@ -1,10 +1,19 @@
-import {TagFacetsStyles} from 'sentry/components/group/tagFacets';
+import type {SourceMapProcessingIssueType} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebug';
+import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
+import {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 type IssueStream = {
   group_id: string;
   tab: string;
   was_shown_suggestion: boolean;
 };
+
+type SourceMapDebugParam = {
+  type: SourceMapProcessingIssueType;
+  group_id?: string;
+} & BaseEventAnalyticsParams;
+
+interface GroupEventParams extends CommonGroupAnalyticsData, BaseEventAnalyticsParams {}
 
 export type IssueEventParameters = {
   'event_cause.dismissed': {};
@@ -23,8 +32,35 @@ export type IssueEventParameters = {
   };
   'issue.search_sidebar_clicked': {};
   'issue.shared_publicly': {};
+  'issue_details.copy_event_link_clicked': GroupEventParams;
+  'issue_details.event_details_clicked': GroupEventParams;
+  'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.performance.autogrouped_siblings_toggle': {};
   'issue_details.performance.hidden_spans_expanded': {};
+  'issue_details.view_hierarchy.hover_rendering_system': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_tree': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_details.view_hierarchy.select_from_wireframe': {
+    platform?: string;
+    user_org_role?: string;
+  };
+  'issue_error_banner.proguard_misconfigured.clicked': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_misconfigured.displayed': {
+    group?: string;
+    platform?: string;
+  };
+  'issue_error_banner.proguard_missing_mapping.displayed': {
+    group?: string;
+    platform?: string;
+  };
   'issue_error_banner.viewed': {
     error_message: string[];
     error_type: string[];
@@ -45,20 +81,17 @@ export type IssueEventParameters = {
   'issue_group_details.tags.bar.clicked': {
     is_mobile: boolean;
     tag: string;
-    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.bar.hovered': {
     is_mobile: boolean;
     tag: string;
-    type: TagFacetsStyles;
     value: string;
     platform?: string;
   };
   'issue_group_details.tags.show_all_tags.clicked': {
     is_mobile: boolean;
-    type: TagFacetsStyles;
     platform?: string;
     tag?: string;
   };
@@ -101,6 +134,8 @@ export type IssueEventParameters = {
   };
   'issues_tab.viewed': {
     num_issues: number;
+    num_new_issues: number;
+    num_old_issues: number;
     num_perf_issues: number;
     page: number;
     query: string;
@@ -125,6 +160,8 @@ export type IssueEventParameters = {
     node_key: string;
   };
   resolve_issue: {release: string};
+  'source_map_debug.docs_link_clicked': SourceMapDebugParam;
+  'source_map_debug.expand_clicked': SourceMapDebugParam;
   'span_view.embedded_child.hide': {};
   'span_view.embedded_child.show': {};
   'tag.clicked': {
@@ -139,7 +176,18 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'event_cause.docs_clicked': 'Event Cause Docs Clicked',
   'event_cause.snoozed': 'Event Cause Snoozed',
   'event_cause.dismissed': 'Event Cause Dismissed',
+  'issue_details.view_hierarchy.hover_rendering_system':
+    'View Hierarchy: Hovered rendering system icon',
+  'issue_details.view_hierarchy.select_from_tree': 'View Hierarchy: Selection from tree',
+  'issue_details.view_hierarchy.select_from_wireframe':
+    'View Hierarchy: Selection from wireframe',
   'issue_error_banner.viewed': 'Issue Error Banner Viewed',
+  'issue_error_banner.proguard_misconfigured.displayed':
+    'Proguard Potentially Misconfigured Issue Error Banner Displayed',
+  'issue_error_banner.proguard_missing_mapping.displayed':
+    'Proguard Missing Mapping Issue Error Banner Displayed',
+  'issue_error_banner.proguard_misconfigured.clicked':
+    'Proguard Potentially Misconfigured Issue Error Banner Link Clicked',
   'issues_tab.viewed': 'Viewed Issues Tab',
   'issue_search.failed': 'Issue Search: Failed',
   'issue_search.empty': 'Issue Search: Empty',
@@ -179,4 +227,9 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Performance Issue Details: Autogrouped Siblings Toggled',
   'issue_details.performance.hidden_spans_expanded':
     'Performance Issue Details: Hidden Spans Expanded',
+  'source_map_debug.docs_link_clicked': 'Source Map Debug: Docs Clicked',
+  'source_map_debug.expand_clicked': 'Source Map Debug: Expand Clicked',
+  'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
+  'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
+  'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
 };

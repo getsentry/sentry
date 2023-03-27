@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
@@ -6,20 +6,20 @@ import emailImage from 'sentry-images/spot/releases-tour-email.svg';
 import resolutionImage from 'sentry-images/spot/releases-tour-resolution.svg';
 import statsImage from 'sentry-images/spot/releases-tour-stats.svg';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openCreateReleaseIntegration} from 'sentry/actionCreators/modal';
 import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import {Item} from 'sentry/components/dropdownAutoComplete/types';
 import Link from 'sentry/components/links/link';
 import {TourImage, TourStep, TourText} from 'sentry/components/modals/featureTourModal';
 import {Panel} from 'sentry/components/panels';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
-import {IconAdd, IconCopy} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, Project, SentryApp} from 'sentry/types';
 import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useApi from 'sentry/utils/useApi';
@@ -162,29 +162,6 @@ const ReleasesPromo = ({organization, project}: Props) => {
     return newToken.token;
   };
 
-  const handleCopy = async () => {
-    if (!token || !selectedItem) {
-      addErrorMessage(t('Select an integration for your auth token!'));
-      return;
-    }
-    const current_text = `
-      # Install the cli
-      curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
-      # Setup configuration values
-      SENTRY_AUTH_TOKEN=${token} # From internal integration: ${selectedItem.value.name}
-      SENTRY_ORG=${organization.slug}
-      SENTRY_PROJECT=${project.slug}
-      VERSION=\`sentry-cli releases propose-version\`
-      # Workflow to create releases
-      sentry-cli releases new "$VERSION"
-      sentry-cli releases set-commits "$VERSION" --auto
-      sentry-cli releases finalize "$VERSION"
-      `;
-    await navigator.clipboard.writeText(current_text);
-    addSuccessMessage(t('Copied to clipboard!'));
-    trackQuickstartCopy();
-  };
-
   const renderIntegrationNode = (integration: SentryApp) => {
     return {
       value: {slug: integration.slug, name: integration.name},
@@ -196,6 +173,30 @@ const ReleasesPromo = ({organization, project}: Props) => {
       ),
     };
   };
+
+  const codeChunks = useMemo(
+    () => [
+      `# Install the cli
+curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
+
+# Setup configuration values
+SENTRY_AUTH_TOKEN=`,
+
+      token && selectedItem
+        ? `${token} # From internal integration: ${selectedItem.value.name}`
+        : '<click-here-for-your-token>',
+      `
+SENTRY_ORG=${organization.slug}
+SENTRY_PROJECT=${project.slug}
+VERSION=\`sentry-cli releases propose-version\`
+
+# Workflow to create releases
+sentry-cli releases new "$VERSION"
+sentry-cli releases set-commits "$VERSION" --auto
+sentry-cli releases finalize "$VERSION"`,
+    ],
+    [token, selectedItem, organization.slug, project.slug]
+  );
 
   return renderComponent(
     <Panel>
@@ -219,112 +220,100 @@ const ReleasesPromo = ({organization, project}: Props) => {
           )}
         </p>
 
-        <CodeBlock>
-          <CopyButton onClick={handleCopy}>
-            <IconCopy />
-          </CopyButton>
-          <Comment># Install the cli</Comment>
-          <Bash>
-            curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION="2.2.0" bash
-          </Bash>
-          <Bash>{'\n'}</Bash>
-          <Comment># Setup configuration values</Comment>
-          <Bash>
-            SENTRY_AUTH_TOKEN=
-            <StyledDropdownAutoComplete
-              minWidth={300}
-              maxHeight={400}
-              onOpen={e => {
-                // This can be called multiple times and does not always have `event`
-                e?.stopPropagation();
-              }}
-              items={[
-                {
-                  label: <GroupHeader>{t('Available Integrations')}</GroupHeader>,
-                  id: 'available-integrations',
-                  items: (integrations || []).map(renderIntegrationNode),
-                },
-              ]}
-              alignMenu="left"
-              onSelect={({label, value}) => {
-                selectItem({label, value});
-                fetchToken(value.slug);
-              }}
-              itemSize="small"
-              searchPlaceholder={t('Select Internal Integration')}
-              menuFooter={
-                <Access access={['org:integrations']}>
-                  {({hasAccess}) => (
-                    <Tooltip
-                      title={t(
-                        'You must be an organization owner, manager or admin to create an integration.'
-                      )}
-                      disabled={hasAccess}
-                    >
-                      <CreateIntegrationLink
-                        to=""
-                        data-test-id="create-release-integration"
-                        disabled={!hasAccess}
-                        onClick={() =>
-                          openCreateReleaseIntegration({
-                            organization,
-                            project,
-                            onCreateSuccess: (integration: SentryApp) => {
-                              setIntegrations([integration, ...integrations]);
-                              const {label, value} = renderIntegrationNode(integration);
-                              selectItem({
-                                label,
-                                value,
-                              });
-                              fetchToken(value.slug);
-                              trackQuickstartCreatedIntegration(integration);
-                            },
-                            onCancel: () => {
-                              trackCreateIntegrationModalClose();
-                            },
-                          })
-                        }
+        <CodeSnippetWrapper>
+          <CodeSnippet
+            dark
+            language="bash"
+            hideCopyButton={!token || !selectedItem}
+            onCopy={trackQuickstartCopy}
+          >
+            {codeChunks.join('')}
+          </CodeSnippet>
+          <CodeSnippetOverlay className="prism-dark language-bash">
+            <CodeSnippetOverlaySpan>{codeChunks[0]}</CodeSnippetOverlaySpan>
+            <CodeSnippetDropdownWrapper>
+              <CodeSnippetDropdown
+                minWidth={300}
+                maxHeight={400}
+                onOpen={e => {
+                  // This can be called multiple times and does not always have `event`
+                  e?.stopPropagation();
+                }}
+                items={[
+                  {
+                    label: <GroupHeader>{t('Available Integrations')}</GroupHeader>,
+                    id: 'available-integrations',
+                    items: (integrations || []).map(renderIntegrationNode),
+                  },
+                ]}
+                alignMenu="left"
+                onSelect={({label, value}) => {
+                  selectItem({label, value});
+                  fetchToken(value.slug);
+                }}
+                itemSize="small"
+                searchPlaceholder={t('Select Internal Integration')}
+                menuFooter={
+                  <Access access={['org:integrations']}>
+                    {({hasAccess}) => (
+                      <Tooltip
+                        title={t(
+                          'You must be an organization owner, manager or admin to create an integration.'
+                        )}
+                        disabled={hasAccess}
                       >
-                        <MenuItemFooterWrapper>
-                          <IconContainer>
-                            <IconAdd color="activeText" isCircled legacySize="14px" />
-                          </IconContainer>
-                          <Label>{t('Create New Integration')}</Label>
-                        </MenuItemFooterWrapper>
-                      </CreateIntegrationLink>
-                    </Tooltip>
-                  )}
-                </Access>
-              }
-              disableLabelPadding
-              emptyHidesInput
-            >
-              {() => {
-                return token && selectedItem ? (
-                  <span style={{display: 'flex'}}>
-                    <Bash>{token}</Bash>
-                    <Comment>{` # From internal integration: ${selectedItem.value.name} `}</Comment>
-                  </span>
-                ) : (
-                  <Bash style={{color: '#7cc5c4'}}>{'<click-here-for-your-token>'}</Bash>
-                );
-              }}
-            </StyledDropdownAutoComplete>
-          </Bash>
-
-          <Bash>{`SENTRY_ORG=${organization.slug}`}</Bash>
-          <Bash>{`SENTRY_PROJECT=${project.slug}`}</Bash>
-          <Bash>VERSION=`sentry-cli releases propose-version`</Bash>
-          <Bash>{'\n'}</Bash>
-          <Comment># Workflow to create releases</Comment>
-          <Bash>sentry-cli releases new "$VERSION"</Bash>
-          <Bash>sentry-cli releases set-commits "$VERSION" --auto</Bash>
-          <Bash>sentry-cli releases finalize "$VERSION"</Bash>
-        </CodeBlock>
+                        <CreateIntegrationLink
+                          to=""
+                          data-test-id="create-release-integration"
+                          disabled={!hasAccess}
+                          onClick={() =>
+                            openCreateReleaseIntegration({
+                              organization,
+                              project,
+                              onCreateSuccess: (integration: SentryApp) => {
+                                setIntegrations([integration, ...integrations]);
+                                const {label, value} = renderIntegrationNode(integration);
+                                selectItem({
+                                  label,
+                                  value,
+                                });
+                                fetchToken(value.slug);
+                                trackQuickstartCreatedIntegration(integration);
+                              },
+                              onCancel: () => {
+                                trackCreateIntegrationModalClose();
+                              },
+                            })
+                          }
+                        >
+                          <MenuItemFooterWrapper>
+                            <IconContainer>
+                              <IconAdd color="activeText" isCircled legacySize="14px" />
+                            </IconContainer>
+                            <Label>{t('Create New Integration')}</Label>
+                          </MenuItemFooterWrapper>
+                        </CreateIntegrationLink>
+                      </Tooltip>
+                    )}
+                  </Access>
+                }
+                disableLabelPadding
+                emptyHidesInput
+              >
+                {() => <CodeSnippetOverlaySpan>{codeChunks[1]}</CodeSnippetOverlaySpan>}
+              </CodeSnippetDropdown>
+            </CodeSnippetDropdownWrapper>
+            <CodeSnippetOverlaySpan>{codeChunks[2]}</CodeSnippetOverlaySpan>
+          </CodeSnippetOverlay>
+        </CodeSnippetWrapper>
       </Container>
     </Panel>
   );
 };
+
+const Container = styled('div')`
+  padding: ${space(3)};
+`;
 
 const ContainerHeader = styled('div')`
   display: flex;
@@ -347,48 +336,52 @@ const ContainerHeader = styled('div')`
   }
 `;
 
-const CodeBlock = styled('pre')`
-  background: #251f3d;
-  display: flex;
-  flex-direction: column;
-  padding: ${space(2)};
-  overflow: initial;
+const CodeSnippetWrapper = styled('div')`
   position: relative;
 `;
 
-const CopyButton = styled(Button)`
+/**
+ * CodeSnippet stringifies all inner children (due to Prism code highlighting), so we
+ * can't put CodeSnippetDropdown inside of it. Instead, we can render a pre wrap
+ * containing the same code (without Prism highlighting) with CodeSnippetDropdown in the
+ * middle and overlay it on top of CodeSnippet.
+ */
+const CodeSnippetOverlay = styled('pre')`
   position: absolute;
-  right: 20px;
-`;
-const Language = styled('code')`
-  font-size: 15px;
-  text-shadow: none;
-  direction: ltr;
-  text-align: left;
-  white-space: pre;
-  word-spacing: normal;
-  word-break: normal;
-  line-height: 1.5;
-  display: flex;
-  align-items: center;
-`;
-const Bash = styled(Language)`
-  color: #f2edf6;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  margin-bottom: 0;
+  pointer-events: none;
+
+  && {
+    background: transparent;
+  }
 `;
 
-const Comment = styled(Language)`
-  color: #77658b;
-`;
-const Container = styled('div')`
-  padding: ${space(3)};
+/**
+ * Invisible code span overlaid on top of the highlighted code. Exists only to
+ * properly position <CodeSnippetDropdown /> inside <CodeSnippetOverlay />.
+ */
+const CodeSnippetOverlaySpan = styled('span')`
+  visibility: hidden;
 `;
 
-const StyledDropdownAutoComplete = styled(DropdownAutoComplete)`
+const CodeSnippetDropdownWrapper = styled('span')`
+  /* Re-enable pointer events (disabled by CodeSnippetOverlay) */
+  pointer-events: initial;
+`;
+
+const CodeSnippetDropdown = styled(DropdownAutoComplete)`
+  position: absolute;
   font-family: ${p => p.theme.text.family};
   border: none;
   border-radius: 4px;
   width: 300px;
 `;
+
 const GroupHeader = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};

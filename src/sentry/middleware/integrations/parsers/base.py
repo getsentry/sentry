@@ -3,13 +3,14 @@ from __future__ import annotations
 import abc
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Callable, List, Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
 from django.http import HttpRequest, HttpResponse
 from django.urls import ResolverMatch, resolve
 
-from sentry.services.hybrid_cloud.integration import APIIntegration, integration_service
-from sentry.services.hybrid_cloud.organization import ApiOrganizationSummary, organization_service
+from sentry.models.integrations import Integration
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
+from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.silo import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient
 from sentry.types.region import Region, get_region_for_organization
@@ -103,14 +104,16 @@ class BaseRequestParser(abc.ABC):
         """
         return self.response_handler(self.request)
 
-    def get_integration(self) -> APIIntegration | None:
+    def get_integration(self) -> RpcIntegration | None:
         """
         Parse the request to retreive organizations to forward the request to.
         Should be overwritten by implementation.
         """
         return None
 
-    def get_organizations(self, integration: APIIntegration = None) -> List[ApiOrganizationSummary]:
+    def get_organizations(
+        self, integration: Integration = None
+    ) -> Sequence[RpcOrganizationSummary]:
         """
         Use the get_integration() method to identify organizations associated with
         the integration request.
@@ -131,7 +134,9 @@ class BaseRequestParser(abc.ABC):
             user_id=None, scope=None, only_visible=False, organization_ids=organization_ids
         )
 
-    def get_regions(self, organizations: List[ApiOrganizationSummary] = None) -> List[Region]:
+    def get_regions(
+        self, organizations: Sequence[RpcOrganizationSummary] = None
+    ) -> Sequence[Region]:
         """
         Use the get_organizations() method to identify forwarding regions.
         """

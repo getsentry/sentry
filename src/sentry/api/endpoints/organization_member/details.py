@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,7 +11,6 @@ from sentry.api.bases import OrganizationMemberEndpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithRolesSerializer
-from sentry.api.serializers.rest_framework import ListField
 from sentry.apidocs.constants import (
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
@@ -29,14 +27,13 @@ from sentry.models import (
     OrganizationMember,
     OrganizationMemberTeam,
     Project,
-    Team,
-    TeamStatus,
     UserOption,
 )
 from sentry.roles import organization_roles, team_roles
 from sentry.utils import metrics
 
-from . import get_allowed_org_roles
+from . import InvalidTeam, get_allowed_org_roles, save_team_assignments
+from .index import OrganizationMemberSerializer
 
 ERR_NO_AUTH = "You cannot remove this member with an unauthenticated API request."
 ERR_INSUFFICIENT_ROLE = "You cannot remove a member who has more access than you."
@@ -53,13 +50,6 @@ MEMBER_ID_PARAM = OpenApiParameter(
     type=str,
     location="path",
 )
-
-
-class OrganizationMemberSerializer(serializers.Serializer):
-    reinvite = serializers.BooleanField()
-    regenerate = serializers.BooleanField()
-    role = serializers.ChoiceField(choices=roles.get_choices(), required=True)
-    teams = ListField(required=False, allow_null=False)
 
 
 class RelaxedMemberPermission(OrganizationPermission):
@@ -151,18 +141,25 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
-        serializer = OrganizationMemberSerializer(data=request.data, partial=True)
+        allowed_roles = get_allowed_org_roles(request, organization)
+        serializer = OrganizationMemberSerializer(
+            data=request.data,
+            partial=True,
+            context={
+                "organization": organization,
+                "allowed_roles": allowed_roles,
+            },
+        )
 
         if not serializer.is_valid():
             return Response(status=400)
 
         try:
-            auth_provider = AuthProvider.objects.get(organization=organization)
+            auth_provider = AuthProvider.objects.get(organization_id=organization.id)
             auth_provider = auth_provider.get_provider()
         except AuthProvider.DoesNotExist:
             auth_provider = None
 
-        allowed_roles = get_allowed_org_roles(request, organization)
         result = serializer.validated_data
 
         # XXX(dcramer): if/when this expands beyond reinvite we need to check
@@ -198,32 +195,35 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 # TODO(dcramer): proper error message
                 return Response({"detail": ERR_UNINVITABLE}, status=400)
 
-        if "teams" in result:
-            # dupe code from member_index
-            # ensure listed teams are real teams
-            teams = list(
-                Team.objects.filter(
-                    organization=organization, status=TeamStatus.VISIBLE, slug__in=result["teams"]
-                )
-            )
-
-            if len(set(result["teams"])) != len(teams):
+        # Set the team-role before org-role. If the org-role has elevated permissions
+        # on the teams, the team-roles can be overwritten later
+        if "teamRoles" in result or "teams" in result:
+            try:
+                if "teamRoles" in result:
+                    # If orgs do not have the flag, we'll set their team-roles to None
+                    team_roles = (
+                        result.get("teamRoles")
+                        if features.has("organizations:team-roles", organization)
+                        else [(team, None) for team, _ in result.get("teamRoles", [])]
+                    )
+                    save_team_assignments(member, None, team_roles)
+                elif "teams" in result:
+                    save_team_assignments(member, result.get("teams"))
+            except InvalidTeam:
                 return Response({"teams": "Invalid team"}, status=400)
 
-            with transaction.atomic():
-                # teams may be empty
-                OrganizationMemberTeam.objects.filter(organizationmember=member).delete()
-                OrganizationMemberTeam.objects.bulk_create(
-                    [OrganizationMemberTeam(team=team, organizationmember=member) for team in teams]
-                )
-
-        assigned_role = result.get("role")
-        if assigned_role and (assigned_role != member.role):
-            allowed_roles = get_allowed_org_roles(request, organization)
+        assigned_org_role = result.get("orgRole") or result.get("role")
+        if assigned_org_role and getattr(member.flags, "idp:role-restricted"):
+            return Response(
+                {
+                    "role": "This user's org-role is managed through your organization's identity provider."
+                },
+                status=403,
+            )
+        elif assigned_org_role:
             allowed_role_ids = {r.id for r in allowed_roles}
-
             # A user cannot promote others above themselves
-            if assigned_role not in allowed_role_ids:
+            if assigned_org_role not in allowed_role_ids:
                 return Response(
                     {"role": "You do not have permission to assign the given role."}, status=403
                 )
@@ -235,18 +235,20 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                     status=403,
                 )
 
-            if member.user == request.user:
+            if member.user == request.user and (assigned_org_role != member.role):
                 return Response({"detail": "You cannot make changes to your own role."}, status=400)
 
             if (
-                organization_roles.get(assigned_role).is_retired
-                and assigned_role != member.role
-                and features.has("organizations:team-roles", organization)
+                features.has("organizations:team-roles", organization)
+                and organization_roles.get(assigned_org_role).is_retired
+                and assigned_org_role != member.role
             ):
-                message = f"The role '{assigned_role}' is deprecated and may no longer be assigned."
+                message = (
+                    f"The role '{assigned_org_role}' is deprecated and may no longer be assigned."
+                )
                 return Response({"detail": message}, status=400)
 
-            self._change_org_member_role(member, assigned_role)
+            self._change_org_role(member, assigned_org_role)
 
         self.create_audit_entry(
             request=request,
@@ -268,7 +270,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         )
 
     @staticmethod
-    def _change_org_member_role(member: OrganizationMember, role: str) -> None:
+    def _change_org_role(member: OrganizationMember, role: str) -> None:
         new_minimum_team_role = roles.get_minimum_team_role(role)
         lesser_team_roles = [
             r.id for r in team_roles.get_all() if r.priority <= new_minimum_team_role.priority
@@ -318,7 +320,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
         if request.user.is_authenticated and not is_active_superuser(request):
             try:
                 acting_member = OrganizationMember.objects.get(
-                    organization=organization, user=request.user
+                    organization=organization, user_id=request.user.id
                 )
             except OrganizationMember.DoesNotExist:
                 return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
@@ -326,8 +328,16 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 if acting_member != member:
                     if not request.access.has_scope("member:admin"):
                         return Response({"detail": ERR_INSUFFICIENT_SCOPE}, status=400)
-                    elif not roles.can_manage(acting_member.role, member.role):
-                        return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
+                    else:
+                        can_manage = False
+                        # check org roles through teams
+                        for role in acting_member.get_all_org_roles():
+                            if roles.can_manage(role, member.role):
+                                can_manage = True
+                                break
+
+                        if not can_manage:
+                            return Response({"detail": ERR_INSUFFICIENT_ROLE}, status=400)
 
         # TODO(dcramer): do we even need this check?
         elif not request.access.has_scope("member:admin"):
@@ -335,6 +345,12 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
 
         if member.is_only_owner():
             return Response({"detail": ERR_ONLY_OWNER}, status=403)
+
+        if getattr(member.flags, "idp:provisioned"):
+            return Response(
+                {"detail": "This user is managed through your organization's identity provider."},
+                status=403,
+            )
 
         audit_data = member.get_audit_log_data()
 

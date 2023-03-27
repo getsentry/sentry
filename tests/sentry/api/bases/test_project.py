@@ -1,5 +1,4 @@
 from sentry.api.bases.project import ProjectPermission
-from sentry.models import ApiKey
 from sentry.testutils import TestCase
 from sentry.testutils.silo import region_silo_test
 
@@ -19,7 +18,7 @@ class ProjectPermissionBase(TestCase):
         return perm.has_permission(request, None) and perm.has_object_permission(request, None, obj)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectPermissionTest(ProjectPermissionBase):
     def test_regular_user(self):
         user = self.create_user(is_superuser=False)
@@ -50,25 +49,25 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("GET", self.project, user=user)
 
     def test_api_key_with_org_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_without_org_access(self):
-        key = ApiKey.objects.create(
+        key = self.create_api_key(
             organization=self.create_organization(), scope_list=["project:read"]
         )
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_without_access(self):
-        key = ApiKey.objects.create(organization=self.org)
+        key = self.create_api_key(organization=self.org)
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_with_wrong_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["team:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert not self.has_object_perm("PUT", self.project, auth=key)
 
     def test_admin_without_team_access(self):
@@ -153,7 +152,7 @@ class ProjectPermissionTest(ProjectPermissionBase):
         assert self.has_object_perm("GET", project, user=user)
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
     def setUp(self):
         super().setUp()
@@ -192,25 +191,25 @@ class ProjectPermissionNoJoinLeaveTest(ProjectPermissionBase):
         assert self.has_object_perm("GET", self.project, user=user)
 
     def test_api_key_with_org_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_without_org_access(self):
-        key = ApiKey.objects.create(
+        key = self.create_api_key(
             organization=self.create_organization(), scope_list=["project:read"]
         )
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_without_access(self):
-        key = ApiKey.objects.create(organization=self.org)
+        key = self.create_api_key(organization=self.org)
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_with_wrong_access(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["team:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["team:read"])
         assert not self.has_object_perm("GET", self.project, auth=key)
 
     def test_api_key_with_wrong_access_for_method(self):
-        key = ApiKey.objects.create(organization=self.org, scope_list=["project:read"])
+        key = self.create_api_key(organization=self.org, scope_list=["project:read"])
         assert not self.has_object_perm("PUT", self.project, auth=key)
 
     def test_admin_without_team_access(self):

@@ -14,9 +14,9 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import TransactionNameSearchBar from 'sentry/components/performance/searchBar';
 import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKeyTransactionsManager';
 import ProjectPageFilter from 'sentry/components/projectPageFilter';
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization, PageFilters, Project} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
@@ -119,6 +119,11 @@ export function PerformanceLanding(props: Props) {
     if (transactionValues.length) {
       return transactionValues[0];
     }
+    if (conditions.freeText.length > 0) {
+      // raw text query will be wrapped in wildcards in generatePerformanceEventView
+      // so no need to wrap it here
+      return conditions.freeText.join(' ');
+    }
     return '';
   };
 
@@ -180,7 +185,7 @@ export function PerformanceLanding(props: Props) {
 
             <TabList hideBorder>
               {LANDING_DISPLAYS.map(({label, field}) => (
-                <Item key={field}>{label}</Item>
+                <TabList.Item key={field}>{label}</TabList.Item>
               ))}
             </TabList>
           </Layout.Header>
@@ -188,7 +193,7 @@ export function PerformanceLanding(props: Props) {
           <Layout.Body data-test-id="performance-landing-body">
             <Layout.Main fullWidth>
               <TabPanels>
-                <Item key={landingDisplay.field}>
+                <TabPanels.Item key={landingDisplay.field}>
                   <MetricsCardinalityProvider
                     sendOutcomeAnalytics
                     organization={organization}
@@ -266,7 +271,7 @@ export function PerformanceLanding(props: Props) {
                       }}
                     </MetricsDataSwitcher>
                   </MetricsCardinalityProvider>
-                </Item>
+                </TabPanels.Item>
               </TabPanels>
             </Layout.Main>
           </Layout.Body>

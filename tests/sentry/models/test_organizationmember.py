@@ -10,6 +10,7 @@ from sentry.auth import manager
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.models import INVITE_DAYS_VALID, InviteStatus, OrganizationMember, OrganizationOption
 from sentry.models.authprovider import AuthProvider
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.silo import exempt_from_silo_limits, region_silo_test
@@ -261,6 +262,24 @@ class OrganizationMemberTest(TestCase):
         assert "alerts:write" not in member.get_scopes()
         assert "alerts:write" in admin.get_scopes()
 
+    def test_scopes_with_team_org_role(self):
+        member = OrganizationMember.objects.create(
+            organization=self.organization,
+            role="member",
+            email="test@example.com",
+        )
+        owner = OrganizationMember.objects.create(
+            organization=self.organization,
+            role="owner",
+            email="owner@example.com",
+        )
+        owner_member_scopes = member.get_scopes() | owner.get_scopes()
+
+        team = self.create_team(organization=self.organization, org_role="owner")
+        OrganizationMemberTeam.objects.create(organizationmember=member, team=team)
+
+        assert member.get_scopes() == owner_member_scopes
+
     def test_get_contactable_members_for_org(self):
         organization = self.create_organization()
         user1 = self.create_user()
@@ -332,9 +351,27 @@ class OrganizationMemberTest(TestCase):
         user = self.create_user()
         with pytest.raises(
             UnableToAcceptMemberInvitationException,
-            match="You do not have permission approve a member invitation with the role admin.",
+            match="You do not have permission to approve a member invitation with the role admin.",
         ):
             member.validate_invitation(user, [roles.get("member")])
+
+    def test_validate_invitation_with_org_role_from_team(self):
+        team = self.create_team(org_role="admin")
+        member = self.create_member(
+            organization=self.organization,
+            invite_status=InviteStatus.REQUESTED_TO_BE_INVITED.value,
+            email="hello@sentry.io",
+            role="member",
+            teams=[team],
+        )
+        user = self.create_user()
+        assert member.validate_invitation(user, [roles.get("admin"), roles.get("member")])
+
+        with pytest.raises(
+            UnableToAcceptMemberInvitationException,
+            match="You do not have permission to approve a member invitation with the role admin.",
+        ):
+            member.validate_invitation(user, [roles.get("manager")])
 
     def test_approve_member_invitation(self):
         member = self.create_member(
@@ -366,3 +403,19 @@ class OrganizationMemberTest(TestCase):
             roles.get("admin"),
             roles.get("manager"),
         ]
+
+    def test_org_roles_by_source(self):
+        manager_team = self.create_team(organization=self.organization, org_role="manager")
+        owner_team = self.create_team(organization=self.organization, org_role="owner")
+        owner_team2 = self.create_team(organization=self.organization, org_role="owner")
+        member = self.create_member(
+            organization=self.organization,
+            teams=[manager_team, owner_team, owner_team2],
+            user=self.create_user(),
+            role="member",
+        )
+
+        roles = member.get_org_roles_from_teams_by_source()
+        assert roles[0][1].id == "owner"
+        assert roles[-1][0] == manager_team.slug
+        assert roles[-1][1].id == "manager"

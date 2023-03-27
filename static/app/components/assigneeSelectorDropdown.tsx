@@ -17,7 +17,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import GroupStore from 'sentry/stores/groupStore';
 import MemberListStore from 'sentry/stores/memberListStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import type {
   Actor,
   Organization,
@@ -30,7 +30,8 @@ import {buildTeamId, buildUserId, valueIsEqual} from 'sentry/utils';
 
 export type SuggestedAssignee = Actor & {
   assignee: AssignableTeam | User;
-  suggestedReason: string;
+  suggestedReason: SuggestedOwnerReason;
+  suggestedReasonText?: React.ReactNode;
 };
 
 type AssignableTeam = {
@@ -45,26 +46,27 @@ type RenderProps = {
   isOpen: boolean;
   loading: boolean;
   suggestedAssignees: SuggestedAssignee[];
-  assignedTo?: Actor;
 };
+
+export type OnAssignCallback = (
+  type: Actor['type'],
+  assignee: User | Actor,
+  suggestedAssignee?: SuggestedAssignee
+) => void;
 
 export interface AssigneeSelectorDropdownProps {
   children: (props: RenderProps) => React.ReactNode;
   id: string;
   organization: Organization;
+  assignedTo?: Actor;
   disabled?: boolean;
   memberList?: User[];
-  onAssign?: (
-    type: Actor['type'],
-    assignee: User | Actor,
-    suggestedAssignee?: SuggestedAssignee
-  ) => void;
+  onAssign?: OnAssignCallback;
   owners?: Omit<SuggestedAssignee, 'assignee'>[];
 }
 
 type State = {
   loading: boolean;
-  assignedTo?: Actor;
   memberList?: User[];
   suggestedOwners?: SuggestedOwner[] | null;
 };
@@ -95,7 +97,6 @@ export class AssigneeSelectorDropdown extends Component<
       const group = GroupStore.get(this.props.id);
       this.setState({
         loading,
-        assignedTo: group?.assignedTo,
         suggestedOwners: group?.owners,
       });
     }
@@ -126,7 +127,7 @@ export class AssigneeSelectorDropdown extends Component<
     if (currentMembers === undefined && nextState.memberList !== currentMembers) {
       return true;
     }
-    return !valueIsEqual(nextState.assignedTo, this.state.assignedTo, true);
+    return !valueIsEqual(this.props.assignedTo, nextProps.assignedTo, true);
   }
 
   componentWillUnmount() {
@@ -162,7 +163,6 @@ export class AssigneeSelectorDropdown extends Component<
     }
     const group = GroupStore.get(this.props.id);
     this.setState({
-      assignedTo: group?.assignedTo,
       suggestedOwners: group?.owners,
       loading: GroupStore.hasStatus(this.props.id, 'assignTo'),
     });
@@ -220,7 +220,7 @@ export class AssigneeSelectorDropdown extends Component<
       const suggestion = this.getSuggestedAssignees().find(
         actor => actor.type === suggestionType && actor.id === assignee.id
       );
-      onAssign?.(type, assignee, suggestion);
+      onAssign(type, assignee, suggestion);
     }
   };
 
@@ -231,7 +231,10 @@ export class AssigneeSelectorDropdown extends Component<
     e.stopPropagation();
   };
 
-  renderMemberNode(member: User, suggestedReason?: string): ItemsBeforeFilter[0] {
+  renderMemberNode(
+    member: User,
+    suggestedReason?: React.ReactNode
+  ): ItemsBeforeFilter[0] {
     const sessionUser = ConfigStore.get('user');
 
     const handleSelect = () => this.assignToUser(member);
@@ -257,9 +260,9 @@ export class AssigneeSelectorDropdown extends Component<
                     : member.name || member.email}
                 </Highlight>
               </AssigneeLabel>
-              <AssigneeLabel>
-                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-              </AssigneeLabel>
+              {suggestedReason && (
+                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+              )}
             </div>
           ) : (
             <Label>
@@ -283,7 +286,7 @@ export class AssigneeSelectorDropdown extends Component<
 
   renderTeamNode(
     assignableTeam: AssignableTeam,
-    suggestedReason?: string
+    suggestedReason?: React.ReactNode
   ): ItemsBeforeFilter[0] {
     const {id, display, team} = assignableTeam;
 
@@ -302,9 +305,9 @@ export class AssigneeSelectorDropdown extends Component<
               <AssigneeLabel>
                 <Highlight text={inputValue}>{display}</Highlight>
               </AssigneeLabel>
-              <AssigneeLabel>
-                {suggestedReason && <SuggestedReason>{suggestedReason}</SuggestedReason>}
-              </AssigneeLabel>
+              {suggestedReason && (
+                <SuggestedAssigneeReason>{suggestedReason}</SuggestedAssigneeReason>
+              )}
             </div>
           ) : (
             <Label>
@@ -320,24 +323,17 @@ export class AssigneeSelectorDropdown extends Component<
   renderSuggestedAssigneeNodes(): React.ComponentProps<
     typeof DropdownAutoComplete
   >['items'] {
-    const {assignedTo} = this.state;
-    const textReason: Record<SuggestedOwnerReason, string> = {
-      suspectCommit: t('Suspect Commit'),
-      releaseCommit: t('Suspect Release'),
-      ownershipRule: t('Ownership Rule'),
-      codeowners: t('Codeowners'),
-    };
+    const {assignedTo} = this.props;
     // filter out suggested assignees if a suggestion is already selected
     return this.getSuggestedAssignees()
       .filter(({type, id}) => !(type === assignedTo?.type && id === assignedTo?.id))
       .filter(({type}) => type === 'user' || type === 'team')
-      .map(({type, suggestedReason, assignee}) => {
-        const reason = textReason[suggestedReason] ?? suggestedReason;
+      .map(({type, suggestedReasonText, assignee}) => {
         if (type === 'user') {
-          return this.renderMemberNode(assignee as User, reason);
+          return this.renderMemberNode(assignee as User, suggestedReasonText);
         }
 
-        return this.renderTeamNode(assignee as AssignableTeam, reason);
+        return this.renderTeamNode(assignee as AssignableTeam, suggestedReasonText);
       });
   }
 
@@ -493,10 +489,18 @@ export class AssigneeSelectorDropdown extends Component<
       return [];
     }
 
-    const suggestedAssignees: Array<SuggestedAssignee | null> = suggestedOwners.map(
-      owner => {
+    const textReason: Record<SuggestedOwnerReason, string> = {
+      suspectCommit: t('Suspect Commit'),
+      ownershipRule: t('Ownership Rule'),
+      projectOwnership: t('Ownership Rule'),
+      // TODO: codeowners may no longer exist
+      codeowners: t('Codeowners'),
+    };
+    return suggestedOwners
+      .map<SuggestedAssignee | null>(owner => {
         // converts a backend suggested owner to a suggested assignee
         const [ownerType, id] = owner.owner.split(':');
+        const suggestedReasonText = textReason[owner.type];
         if (ownerType === 'user') {
           const member = memberList.find(user => user.id === id);
           if (member) {
@@ -505,6 +509,7 @@ export class AssigneeSelectorDropdown extends Component<
               type: 'user',
               name: member.name,
               suggestedReason: owner.type,
+              suggestedReasonText,
               assignee: member,
             };
           }
@@ -518,22 +523,23 @@ export class AssigneeSelectorDropdown extends Component<
               type: 'team',
               name: matchingTeam.team.name,
               suggestedReason: owner.type,
+              suggestedReasonText,
               assignee: matchingTeam,
             };
           }
         }
 
         return null;
-      }
-    );
-
-    return suggestedAssignees.filter((owner): owner is SuggestedAssignee => !!owner);
+      })
+      .filter((owner): owner is SuggestedAssignee => !!owner);
   }
 
   render() {
-    const {disabled, children} = this.props;
-    const {loading, assignedTo} = this.state;
+    const {disabled, children, assignedTo} = this.props;
+    const {loading} = this.state;
     const memberList = this.memberList();
+
+    const suggestedAssignees = this.getSuggestedAssignees();
 
     return (
       <DropdownAutoComplete
@@ -572,8 +578,7 @@ export class AssigneeSelectorDropdown extends Component<
             loading,
             isOpen,
             getActorProps,
-            assignedTo,
-            suggestedAssignees: this.getSuggestedAssignees(),
+            suggestedAssignees,
           })
         }
       </DropdownAutoComplete>
@@ -654,6 +659,11 @@ const AssigneeLabel = styled('div')`
   ${p => p.theme.overflowEllipsis}
   margin-left: ${space(1)};
   max-width: 300px;
+`;
+
+const SuggestedAssigneeReason = styled(AssigneeLabel)`
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const GroupHeader = styled('div')`

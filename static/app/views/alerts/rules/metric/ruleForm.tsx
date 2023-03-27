@@ -22,7 +22,7 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {metric} from 'sentry/utils/analytics';
@@ -42,6 +42,7 @@ import {AlertRuleType} from 'sentry/views/alerts/types';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
+  MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 
@@ -93,6 +94,7 @@ type Props = {
 
 type State = {
   aggregate: string;
+  alertType: MetricAlertType;
   // `null` means loading
   availableActions: MetricActionTemplate[] | null;
   comparisonType: AlertRuleComparisonType;
@@ -101,6 +103,7 @@ type State = {
   dataset: Dataset;
   environment: string | null;
   eventTypes: EventTypes[];
+  isQueryValid: boolean;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -146,9 +149,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     const {rule, location} = this.props;
     const triggersClone = [...rule.triggers];
     const {
-      aggregate,
+      aggregate: _aggregate,
       eventTypes: _eventTypes,
-      dataset,
+      dataset: _dataset,
       name,
       showMEPAlertBanner,
     } = location?.query ?? {};
@@ -159,14 +162,18 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       triggersClone.push(createDefaultTrigger(AlertRuleTriggerType.WARNING));
     }
 
+    const aggregate = _aggregate ?? rule.aggregate;
+    const dataset = _dataset ?? rule.dataset;
+
     return {
       ...super.getDefaultState(),
 
       name: name ?? rule.name ?? '',
-      aggregate: aggregate ?? rule.aggregate,
-      dataset: dataset ?? rule.dataset,
+      aggregate,
+      dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
       query: rule.query ?? '',
+      isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
@@ -182,6 +189,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       showMEPAlertBanner: showMEPAlertBanner ?? false,
+      alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
     };
   }
 
@@ -448,6 +456,13 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
 
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
+    if (name === 'alertType') {
+      this.setState({
+        alertType: value as MetricAlertType,
+      });
+      return;
+    }
+
     if (
       [
         'aggregate',
@@ -457,19 +472,26 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
         'environment',
         'comparisonDelta',
         'projectId',
+        'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project}) => ({
-        [name]: value,
-        project: name === 'projectId' ? projects.find(({id}) => id === value) : _project,
-      }));
+      this.setState(({project: _project, aggregate, dataset, alertType}) => {
+        const newAlertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
+
+        return {
+          [name]: value,
+          project:
+            name === 'projectId' ? projects.find(({id}) => id === value) : _project,
+          alertType: alertType !== newAlertType ? 'custom' : alertType,
+        };
+      });
     }
   };
 
   // We handle the filter update outside of the fieldChange handler since we
   // don't want to update the filter on every input change, just on blurs and
   // searches.
-  handleFilterUpdate = (query: string) => {
+  handleFilterUpdate = (query: string, isQueryValid: boolean) => {
     const {organization, sessionId} = this.props;
 
     trackAdvancedAnalyticsEvent('alert_builder.filter', {
@@ -478,7 +500,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       query,
     });
 
-    this.setState({query});
+    this.setState({query, isQueryValid});
   };
 
   handleSubmit = async (
@@ -763,6 +785,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       eventTypes,
       dataset,
       showMEPAlertBanner,
+      alertType,
     } = this.state;
 
     const chartProps = {
@@ -782,7 +805,6 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
     };
-    const alertType = getAlertTypeFromAggregateDataset({aggregate, dataset});
 
     const wizardBuilderChart = (
       <TriggersChart
@@ -844,7 +866,8 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
     return (
       <Access access={['alerts:write']}>
         {({hasAccess}) => {
-          const disabled = loading || !(isActiveSuperuser() || hasAccess);
+          const formDisabled = loading || !(isActiveSuperuser() || hasAccess);
+          const submitDisabled = formDisabled || !this.state.isQueryValid;
 
           return (
             <Fragment>
@@ -861,7 +884,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   apiEndpoint={`/organizations/${organization.slug}/alert-rules/${
                     ruleId ? `${ruleId}/` : ''
                   }`}
-                  submitDisabled={disabled}
+                  submitDisabled={submitDisabled}
                   initialData={{
                     name,
                     dataset,
@@ -872,6 +895,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                     environment: rule.environment || null,
                     owner: rule.owner,
                     projectId: project.id,
+                    alertType,
                   }}
                   saveOnBlur={false}
                   onSubmit={this.handleSubmit}
@@ -881,7 +905,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                   extraButton={
                     rule.id ? (
                       <Confirm
-                        disabled={disabled}
+                        disabled={formDisabled}
                         message={t('Are you sure you want to delete this alert rule?')}
                         header={t('Delete Alert Rule?')}
                         priority="danger"
@@ -900,7 +924,7 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       project={project}
                       organization={organization}
                       router={router}
-                      disabled={disabled}
+                      disabled={formDisabled}
                       thresholdChart={wizardBuilderChart}
                       onFilterSearch={this.handleFilterUpdate}
                       allowChangeEventTypes={
@@ -921,9 +945,9 @@ class RuleFormContainer extends AsyncComponent<Props, State> {
                       showMEPAlertBanner={showMEPAlertBanner}
                     />
                     <AlertListItem>{t('Set thresholds')}</AlertListItem>
-                    {thresholdTypeForm(disabled)}
-                    {triggerForm(disabled)}
-                    {ruleNameOwnerForm(disabled)}
+                    {thresholdTypeForm(formDisabled)}
+                    {triggerForm(formDisabled)}
+                    {ruleNameOwnerForm(formDisabled)}
                   </List>
                 </Form>
               </Main>

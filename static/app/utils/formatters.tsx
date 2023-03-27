@@ -54,22 +54,31 @@ export const HOUR = 3600000;
 export const MINUTE = 60000;
 export const SECOND = 1000;
 
+/**
+ * Returns a human redable duration rounded to the largest unit.
+ *
+ * e.g. 2 days, or 3 months, or 25 seoconds
+ *
+ * Use `getExactDuration` for exact durations
+ */
 export function getDuration(
   seconds: number,
   fixedDigits: number = 0,
   abbreviation: boolean = false,
-  extraShort: boolean = false
+  extraShort: boolean = false,
+  absolute: boolean = false
 ): string {
-  // value in milliseconds
-  const msValue = seconds * 1000;
-  const value = Math.abs(msValue);
+  const absValue = Math.abs(seconds * 1000);
 
-  if (value >= MONTH && !extraShort) {
+  // value in milliseconds
+  const msValue = absolute ? absValue : seconds * 1000;
+
+  if (absValue >= MONTH && !extraShort) {
     const {label, result} = roundWithFixed(msValue / MONTH, fixedDigits);
     return `${label}${abbreviation ? t('mo') : ` ${tn('month', 'months', result)}`}`;
   }
 
-  if (value >= WEEK) {
+  if (absValue >= WEEK) {
     const {label, result} = roundWithFixed(msValue / WEEK, fixedDigits);
     if (extraShort) {
       return `${label}${t('w')}`;
@@ -80,14 +89,16 @@ export function getDuration(
     return `${label} ${tn('week', 'weeks', result)}`;
   }
 
-  if (value >= DAY) {
+  if (absValue >= DAY) {
     const {label, result} = roundWithFixed(msValue / DAY, fixedDigits);
-    return `${label}${
-      abbreviation || extraShort ? t('d') : ` ${tn('day', 'days', result)}`
-    }`;
+
+    if (extraShort || abbreviation) {
+      return `${label}${t('d')}`;
+    }
+    return `${label} ${tn('day', 'days', result)}`;
   }
 
-  if (value >= HOUR) {
+  if (absValue >= HOUR) {
     const {label, result} = roundWithFixed(msValue / HOUR, fixedDigits);
     if (extraShort) {
       return `${label}${t('h')}`;
@@ -98,7 +109,7 @@ export function getDuration(
     return `${label} ${tn('hour', 'hours', result)}`;
   }
 
-  if (value >= MINUTE) {
+  if (absValue >= MINUTE) {
     const {label, result} = roundWithFixed(msValue / MINUTE, fixedDigits);
     if (extraShort) {
       return `${label}${t('m')}`;
@@ -109,7 +120,7 @@ export function getDuration(
     return `${label} ${tn('minute', 'minutes', result)}`;
   }
 
-  if (value >= SECOND) {
+  if (absValue >= SECOND) {
     const {label, result} = roundWithFixed(msValue / SECOND, fixedDigits);
     if (extraShort || abbreviation) {
       return `${label}${t('s')}`;
@@ -117,11 +128,20 @@ export function getDuration(
     return `${label} ${tn('second', 'seconds', result)}`;
   }
 
-  const {label} = roundWithFixed(msValue, fixedDigits);
+  const {label, result} = roundWithFixed(msValue, fixedDigits);
 
-  return label + t('ms');
+  if (extraShort || abbreviation) {
+    return `${label}${t('ms')}`;
+  }
+
+  return `${label} ${tn('millisecond', 'milliseconds', result)}`;
 }
 
+/**
+ * Returns a human readable exact duration.
+ *
+ * e.g. 1 hour 25 minutes 15 seconds
+ */
 export function getExactDuration(seconds: number, abbreviation: boolean = false) {
   const convertDuration = (secs: number, abbr: boolean): string => {
     // value in milliseconds
@@ -137,45 +157,42 @@ export function getExactDuration(seconds: number, abbreviation: boolean = false)
 
     if (value >= WEEK) {
       const {quotient, remainder} = divideBy(WEEK);
+      const suffix = abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`;
 
-      return `${quotient}${
-        abbr ? t('wk') : ` ${tn('week', 'weeks', quotient)}`
-      } ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
     if (value >= DAY) {
       const {quotient, remainder} = divideBy(DAY);
+      const suffix = abbr ? t('d') : ` ${tn('day', 'days', quotient)}`;
 
-      return `${quotient}${
-        abbr ? t('d') : ` ${tn('day', 'days', quotient)}`
-      } ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
     if (value >= HOUR) {
       const {quotient, remainder} = divideBy(HOUR);
+      const suffix = abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`;
 
-      return `${quotient}${
-        abbr ? t('hr') : ` ${tn('hour', 'hours', quotient)}`
-      } ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
     if (value >= MINUTE) {
       const {quotient, remainder} = divideBy(MINUTE);
+      const suffix = abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`;
 
-      return `${quotient}${
-        abbr ? t('min') : ` ${tn('minute', 'minutes', quotient)}`
-      } ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
     if (value >= SECOND) {
       const {quotient, remainder} = divideBy(SECOND);
+      const suffix = abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`;
 
-      return `${quotient}${
-        abbr ? t('s') : ` ${tn('second', 'seconds', quotient)}`
-      } ${convertDuration(remainder / 1000, abbr)}`;
+      return `${quotient}${suffix} ${convertDuration(remainder / 1000, abbr)}`;
     }
 
     if (value === 0) {
       return '';
     }
 
-    return `${msValue}${abbr ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`}`;
+    const suffix = abbr ? t('ms') : ` ${tn('millisecond', 'milliseconds', value)}`;
+
+    return `${msValue}${suffix}`;
   };
 
   const result = convertDuration(seconds, abbreviation).trim();
@@ -262,7 +279,7 @@ const numberFormats = [
 export function formatAbbreviatedNumber(number: number | string) {
   number = Number(number);
 
-  let lookup: typeof numberFormats[number];
+  let lookup: (typeof numberFormats)[number];
 
   // eslint-disable-next-line no-cond-assign
   for (let i = 0; (lookup = numberFormats[i]); i++) {

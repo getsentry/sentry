@@ -17,6 +17,7 @@ const optionsAvailable = [
   'auth.user-rate-limit',
   'api.rate-limit.org-create',
   'beacon.anonymous',
+  'performance.issues.all.problem-detection',
   'performance.issues.n_plus_one_db.problem-creation',
   'performance.issues.n_plus_one_db_ext.problem-creation',
   'performance.issues.n_plus_one_db.count_threshold',
@@ -34,10 +35,24 @@ const optionsAvailable = [
   'performance.issues.compressed_assets.ea-rollout',
   'performance.issues.compressed_assets.ga-rollout',
   'performance.issues.file_io_main_thread.problem-creation',
-  'performance.issues.slow_span.problem-creation',
-  'performance.issues.slow_span.la-rollout',
-  'performance.issues.slow_span.ea-rollout',
-  'performance.issues.slow_span.ga-rollout',
+  'performance.issues.slow_db_query.problem-creation',
+  'performance.issues.slow_db_query.la-rollout',
+  'performance.issues.slow_db_query.ea-rollout',
+  'performance.issues.slow_db_query.ga-rollout',
+  'performance.issues.render_blocking_assets.problem-creation',
+  'performance.issues.render_blocking_assets.la-rollout',
+  'performance.issues.render_blocking_assets.ea-rollout',
+  'performance.issues.render_blocking_assets.ga-rollout',
+  'performance.issues.m_n_plus_one_db.problem-creation',
+  'performance.issues.m_n_plus_one_db.la-rollout',
+  'performance.issues.m_n_plus_one_db.ea-rollout',
+  'performance.issues.m_n_plus_one_db.ga-rollout',
+  'profile.issues.blocked_main_thread-ingest.la-rollout',
+  'profile.issues.blocked_main_thread-ingest.ea-rollout',
+  'profile.issues.blocked_main_thread-ingest.ga-rollout',
+  'profile.issues.blocked_main_thread-ppg.la-rollout',
+  'profile.issues.blocked_main_thread-ppg.ea-rollout',
+  'profile.issues.blocked_main_thread-ppg.ga-rollout',
 ];
 
 type Field = ReturnType<typeof getOption>;
@@ -112,6 +127,10 @@ export default class AdminSettings extends AsyncView<{}, State> {
 
           <Feature features={['organizations:performance-issues-dev']}>
             <Panel>
+              <PanelHeader>Performance Issues - All</PanelHeader>
+              {fields['performance.issues.all.problem-detection']}
+            </Panel>
+            <Panel>
               <PanelHeader>Performance Issues - Detectors</PanelHeader>
               {fields['performance.issues.n_plus_one_db.problem-creation']}
               {fields['performance.issues.n_plus_one_db_ext.problem-creation']}
@@ -145,10 +164,47 @@ export default class AdminSettings extends AsyncView<{}, State> {
             </Panel>
             <Panel>
               <PanelHeader>Performance Issues - Slow DB Span Detector</PanelHeader>
-              {fields['performance.issues.slow_span.problem-creation']}
-              {fields['performance.issues.slow_span.la-rollout']}
-              {fields['performance.issues.slow_span.ea-rollout']}
-              {fields['performance.issues.slow_span.ga-rollout']}
+              {fields['performance.issues.slow_db_query.problem-creation']}
+              {fields['performance.issues.slow_db_query.la-rollout']}
+              {fields['performance.issues.slow_db_query.ea-rollout']}
+              {fields['performance.issues.slow_db_query.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Performance Issues - Large Render Blocking Asset Detector
+              </PanelHeader>
+              {fields['performance.issues.render_blocking_assets.problem-creation']}
+              {fields['performance.issues.render_blocking_assets.la-rollout']}
+              {fields['performance.issues.render_blocking_assets.ea-rollout']}
+              {fields['performance.issues.render_blocking_assets.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>Performance Issues - MN+1 DB Detector</PanelHeader>
+              {fields['performance.issues.m_n_plus_one_db.problem-creation']}
+              {fields['performance.issues.m_n_plus_one_db.la-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ea-rollout']}
+              {fields['performance.issues.m_n_plus_one_db.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Ingest
+              </PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ingest.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ingest.ga-rollout']}
+            </Panel>
+            <Panel>
+              <PanelHeader>
+                Profiling Issues - Block Main Thread Detector Post Process Group
+              </PanelHeader>
+              {fields['profile.issues.blocked_main_thread-ppg.la-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ea-rollout']}
+              {fields['profile.issues.blocked_main_thread-ppg.ga-rollout']}
+            </Panel>
+          </Feature>
+          <Feature features={['organizations:view-hierarchies-options-dev']}>
+            <Panel>
+              <PanelHeader>View Hierarchy</PanelHeader>
             </Panel>
           </Feature>
         </Form>

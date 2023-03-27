@@ -14,7 +14,12 @@ from sentry.api.exceptions import (
 from sentry.auth import access
 from sentry.auth.superuser import Superuser, is_active_superuser
 from sentry.auth.system import is_system_auth
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.services.hybrid_cloud import extract_id_from
+from sentry.services.hybrid_cloud.organization import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+    organization_service,
+)
 from sentry.utils import auth
 
 if TYPE_CHECKING:
@@ -79,44 +84,62 @@ class SuperuserPermission(permissions.BasePermission):  # type: ignore[misc]
 
 
 class SentryPermission(ScopedPermission):
-    def is_not_2fa_compliant(self, request: Request, organization: Organization) -> bool:
+    def is_not_2fa_compliant(
+        self, request: Request, organization: RpcOrganization | Organization
+    ) -> bool:
         return False
 
-    def needs_sso(self, request: Request, organization: Organization) -> bool:
+    def needs_sso(self, request: Request, organization: Organization | RpcOrganization) -> bool:
         return False
 
-    def is_member_disabled_from_limit(self, request: Request, organization: Organization) -> bool:
+    def is_member_disabled_from_limit(
+        self,
+        request: Request,
+        organization: RpcUserOrganizationContext | RpcOrganization | Organization,
+    ) -> bool:
         return False
 
-    def determine_access(self, request: Request, organization: Organization) -> None:
+    # This wide typing on organization gives us a lot of flexibility as we move forward with hybrid cloud.
+    # Once we have fully encircled all call sites (which are MANY!) we can collapse the typing around a single
+    # usage (likely the RpcUserOrganizationContext, which is necessary for access and organization details).
+    # For now, this wide typing allows incremental rollout of those changes.  Be mindful how you use
+    # organization in this method to stay compatible with all 3 paths.
+    def determine_access(
+        self, request: Request, organization: RpcUserOrganizationContext | Organization | int
+    ) -> None:
         from sentry.api.base import logger
 
-        org_context = organization_service.get_organization_by_id(
-            id=organization.id, user_id=request.user.id if request.user else None
-        )
+        org_context: RpcUserOrganizationContext | None
+        if isinstance(organization, RpcUserOrganizationContext):
+            org_context = organization
+        else:
+            org_context = organization_service.get_organization_by_id(
+                id=extract_id_from(organization), user_id=request.user.id if request.user else None
+            )
+
         if org_context is None:
             assert False, "Failed to fetch organization in determine_access"
 
         if request.user and request.user.is_authenticated and request.auth:
             request.access = access.from_request_org_and_scopes(
                 request=request,
-                api_user_org_context=org_context,
+                rpc_user_org_context=org_context,
                 scopes=request.auth.get_scopes(),
             )
             return
 
         if request.auth:
-            request.access = access.from_api_auth(
-                auth=request.auth, api_user_org_context=org_context
+            request.access = access.from_rpc_auth(
+                auth=request.auth, rpc_user_org_context=org_context
             )
             return
 
         request.access = access.from_request_org_and_scopes(
             request=request,
-            api_user_org_context=org_context,
+            rpc_user_org_context=org_context,
         )
 
-        extra = {"organization_id": organization.id, "user_id": request.user.id}
+        extra = {"organization_id": extract_id_from(organization), "user_id": request.user.id}
 
         if auth.is_user_signed_request(request):
             # if the user comes from a signed request
@@ -127,7 +150,7 @@ class SentryPermission(ScopedPermission):
             )
         elif request.user.is_authenticated:
             # session auth needs to confirm various permissions
-            if self.needs_sso(request, organization):
+            if self.needs_sso(request, org_context.organization):
 
                 logger.info(
                     "access.must-sso",
@@ -142,17 +165,17 @@ class SentryPermission(ScopedPermission):
 
                 raise SsoRequired(organization, after_login_redirect=after_login_redirect)
 
-            if self.is_not_2fa_compliant(request, organization):
+            if self.is_not_2fa_compliant(request, org_context.organization):
                 logger.info(
                     "access.not-2fa-compliant",
                     extra=extra,
                 )
-                if request.user.is_superuser and organization.id != Superuser.org_id:
+                if request.user.is_superuser and extract_id_from(organization) != Superuser.org_id:
                     raise SuperuserRequired()
 
                 raise TwoFactorRequired()
 
-            if self.is_member_disabled_from_limit(request, organization):
+            if self.is_member_disabled_from_limit(request, org_context):
                 logger.info(
                     "access.member-disabled-from-limit",
                     extra=extra,

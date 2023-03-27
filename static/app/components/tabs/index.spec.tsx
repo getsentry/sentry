@@ -1,6 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Item, TabList, TabPanels, Tabs} from 'sentry/components/tabs';
+import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details', content: 'So by colonel hearted ferrars.'},
@@ -28,12 +28,12 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -59,12 +59,12 @@ describe('Tabs', () => {
       <Tabs disabled>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -86,24 +86,24 @@ describe('Tabs', () => {
     });
   });
 
-  it('changes tabs on click', () => {
+  it('changes tabs on click', async () => {
     render(
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
     );
 
     // Click on the Activity tab
-    userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'Activity'}));
 
     // The Activity tab is selected and its content rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
@@ -113,28 +113,28 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
   });
 
-  it('changes tabs using keyboard navigation', () => {
+  it('changes tabs using keyboard navigation', async () => {
     render(
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
     );
 
     // Focus on tab list
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab to the right (Activity)
-    userEvent.keyboard('{arrowRight}{enter}');
+    await userEvent.keyboard('{arrowRight}{enter}');
 
     // The Activity tab is selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
@@ -144,28 +144,28 @@ describe('Tabs', () => {
     expect(screen.getByText(TABS[1].content)).toBeInTheDocument();
   });
 
-  it('changes tabs on key press in vertical orientation', () => {
+  it('changes tabs on key press in vertical orientation', async () => {
     render(
       <Tabs orientation="vertical">
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.label}</Item>
+            <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
     );
 
     // Focus on tab list
-    userEvent.tab();
+    await userEvent.tab();
     expect(screen.getByRole('tab', {name: 'Details'})).toHaveFocus();
 
     // Press Arrow Right to select the next tab below (Activity)
-    userEvent.keyboard('{arrowDown}{enter}');
+    await userEvent.keyboard('{arrowDown}{enter}');
 
     // The Activity tab should now be selected and its contents rendered
     expect(screen.getByRole('tab', {name: 'Activity'})).toHaveAttribute(
@@ -180,14 +180,14 @@ describe('Tabs', () => {
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key} disabled>
+            <TabList.Item key={tab.key} disabled>
               {tab.label}
-            </Item>
+            </TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>
@@ -201,20 +201,20 @@ describe('Tabs', () => {
     });
   });
 
-  it('renders tab links', () => {
+  it('renders tab links', async () => {
     const routerContext = TestStubs.routerContext();
     render(
       <Tabs>
         <TabList>
           {TABS.map(tab => (
-            <Item key={tab.key} to="/some-link">
+            <TabList.Item key={tab.key} to="#some-link">
               {tab.label}
-            </Item>
+            </TabList.Item>
           ))}
         </TabList>
         <TabPanels>
           {TABS.map(tab => (
-            <Item key={tab.key}>{tab.content}</Item>
+            <TabPanels.Item key={tab.key}>{tab.content}</TabPanels.Item>
           ))}
         </TabPanels>
       </Tabs>,
@@ -225,7 +225,7 @@ describe('Tabs', () => {
       const tabEl = screen.getByRole('tab', {name: tab.label});
       expect(within(tabEl).getByRole('link', {hidden: true})).toHaveAttribute(
         'href',
-        '/some-link'
+        '#some-link'
       );
     });
 
@@ -234,9 +234,21 @@ describe('Tabs', () => {
     // tab/window. The current view shouldn't update.
     const secondTabEl = screen.getByRole('tab', {name: TABS[1].label});
     const secondTabLink = within(secondTabEl).getByRole('link', {hidden: true});
-    userEvent.click(secondTabLink, {metaKey: true});
-    userEvent.click(secondTabLink, {ctrlKey: true});
-    userEvent.click(secondTabLink, {shiftKey: true});
+
+    const user = userEvent.setup();
+
+    await user.keyboard('[MetaLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/MetaLeft]');
+
+    await user.keyboard('[ControlLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/ControlLeft]');
+
+    await user.keyboard('[ShiftLeft>]');
+    await user.click(secondTabLink);
+    await user.keyboard('[/ShiftLeft]');
+
     expect(screen.getByRole('tab', {name: TABS[0].label})).toHaveAttribute(
       'aria-selected',
       'true'

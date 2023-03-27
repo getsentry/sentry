@@ -11,6 +11,7 @@ export interface FlamegraphFrame {
   parent: FlamegraphFrame | null;
   start: number;
   processId?: number;
+  profileIds?: string[];
   threadId?: number;
 }
 

@@ -17,6 +17,6 @@ function getKnownData(data: Props['data']) {
     }));
 }
 
-const DefaultContextType = ({data}: Props) => <ContextBlock data={getKnownData(data)} />;
-
-export default DefaultContextType;
+export const DefaultContext = ({data}: Props) => (
+  <ContextBlock data={getKnownData(data)} />
+);

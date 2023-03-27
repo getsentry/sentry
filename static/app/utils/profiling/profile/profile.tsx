@@ -8,10 +8,6 @@ interface ProfileStats {
   negativeSamplesCount: number;
 }
 
-// This is a simplified port of speedscope's profile with a few simplifications and some removed functionality + some added functionality.
-// head at commit e37f6fa7c38c110205e22081560b99cb89ce885e
-
-// We should try and remove these as we adopt our own profile format and only rely on the sampled format.
 export class Profile {
   // Duration of the profile
   duration: number;
@@ -22,13 +18,14 @@ export class Profile {
   // For JS self profiles, this is the time origin (https://www.w3.org/TR/hr-time-2/#dfn-time-origin), for others it's epoch time
   endedAt: number;
   threadId: number;
+  type: string;
 
   // Unit in which the timings are reported in
   unit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
 
-  appendOrderTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
+  callTree: CallTreeNode = new CallTreeNode(Frame.Root, null);
   framesInStack: Set<Profiling.Event['frame']> = new Set();
 
   // Min duration of a single frame in our profile
@@ -43,6 +40,8 @@ export class Profile {
     negativeSamplesCount: 0,
   };
 
+  callTreeNodeProfileIdMap: Map<CallTreeNode, string[]> = new Map();
+
   constructor({
     duration,
     startedAt,
@@ -50,12 +49,14 @@ export class Profile {
     name,
     unit,
     threadId,
+    type,
   }: {
     duration: number;
     endedAt: number;
     name: string;
     startedAt: number;
     threadId: number;
+    type: string;
     unit: string;
   }) {
     this.threadId = threadId;
@@ -64,6 +65,7 @@ export class Profile {
     this.endedAt = endedAt;
     this.name = name;
     this.unit = unit;
+    this.type = type ?? '';
   }
 
   static Empty = new Profile({
@@ -73,6 +75,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
+    type: '',
   }).build();
 
   isEmpty(): boolean {
@@ -87,13 +90,16 @@ export class Profile {
     if (duration < 0) {
       this.stats.negativeSamplesCount++;
     }
+    if (duration > 0) {
+      this.rawWeights.push(duration);
+    }
   }
 
   forEach(
     openFrame: (node: CallTreeNode, value: number) => void,
     closeFrame: (node: CallTreeNode, value: number) => void
   ): void {
-    let prevStack: CallTreeNode[] = [];
+    const prevStack: CallTreeNode[] = [];
     let value = 0;
 
     let sampleIndex = 0;
@@ -101,7 +107,7 @@ export class Profile {
     for (const stackTop of this.samples) {
       let top: CallTreeNode | null = stackTop;
 
-      while (top && !top.isRoot() && prevStack.indexOf(top) === -1) {
+      while (top && !top.isRoot && prevStack.indexOf(top) === -1) {
         top = top.parent;
       }
 
@@ -114,19 +120,20 @@ export class Profile {
 
       let node: CallTreeNode | null = stackTop;
 
-      while (node && !node.isRoot() && node !== top) {
-        toOpen.unshift(node);
+      while (node && !node.isRoot && node !== top) {
+        toOpen.push(node);
         node = node.parent;
       }
 
-      for (const toOpenNode of toOpen) {
-        openFrame(toOpenNode, value);
+      for (let i = toOpen.length - 1; i >= 0; i--) {
+        openFrame(toOpen[i], value);
+        prevStack.push(toOpen[i]);
       }
 
-      prevStack = prevStack.concat(toOpen);
       value += this.weights[sampleIndex++];
     }
 
+    // Close any remaining frames
     for (let i = prevStack.length - 1; i >= 0; i--) {
       closeFrame(prevStack[i], value);
     }

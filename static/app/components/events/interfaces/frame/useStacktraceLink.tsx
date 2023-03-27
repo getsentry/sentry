@@ -1,5 +1,5 @@
 import type {Event, Frame, StacktraceLinkResult} from 'sentry/types';
-import {QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {QueryKey, useQuery, UseQueryOptions} from 'sentry/utils/queryClient';
 
 interface UseStacktraceLinkProps {
   event: Event;
@@ -14,7 +14,10 @@ const stacktraceLinkQueryKey = (
   query: any
 ): QueryKey => [`/projects/${orgSlug}/${projectSlug}/stacktrace-link/`, {query}];
 
-function useStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps) {
+function useStacktraceLink(
+  {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
+  options: Partial<UseQueryOptions<StacktraceLinkResult>> = {}
+) {
   const query = {
     file: frame.filename,
     platform: event.platform,
@@ -23,6 +26,7 @@ function useStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLi
     ...(frame.absPath && {absPath: frame.absPath}),
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
+    lineNo: frame.lineNo,
   };
 
   return useQuery<StacktraceLinkResult>(
@@ -30,6 +34,8 @@ function useStacktraceLink({event, frame, orgSlug, projectSlug}: UseStacktraceLi
     {
       staleTime: Infinity,
       retry: false,
+      refetchOnWindowFocus: false,
+      ...options,
     }
   );
 }

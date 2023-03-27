@@ -1,7 +1,6 @@
 import {RouteComponentProps} from 'react-router';
 
 import * as Layout from 'sentry/components/layouts/thirds';
-import NoProjectMessage from 'sentry/components/noProjectMessage';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {Organization} from 'sentry/types';
@@ -34,15 +33,13 @@ function EventDetails(props: Props) {
       projectSlug={projectSlug}
     >
       <Layout.Page>
-        <NoProjectMessage organization={organization}>
-          <EventDetailsContent
-            organization={organization}
-            location={location}
-            params={params}
-            eventSlug={eventSlug}
-            projects={projects}
-          />
-        </NoProjectMessage>
+        <EventDetailsContent
+          organization={organization}
+          location={location}
+          params={params}
+          eventSlug={eventSlug}
+          projects={projects}
+        />
       </Layout.Page>
     </SentryDocumentTitle>
   );

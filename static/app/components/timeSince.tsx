@@ -3,15 +3,12 @@ import isNumber from 'lodash/isNumber';
 import isString from 'lodash/isString';
 import moment from 'moment-timezone';
 
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {getDuration} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {ColorOrAlias} from 'sentry/utils/theme';
-
-import Tooltip from './tooltip';
-
-const ONE_MINUTE_IN_MS = 60000;
 
 function getDateObj(date: RelaxedDateType): Date {
   return isString(date) || isNumber(date) ? new Date(date) : date;
@@ -19,9 +16,13 @@ function getDateObj(date: RelaxedDateType): Date {
 
 type RelaxedDateType = string | number | Date;
 
+type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
+
 interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
+   *
+   * May be in the future
    */
   date: RelaxedDateType;
   /**
@@ -30,42 +31,90 @@ interface Props extends React.TimeHTMLAttributes<HTMLTimeElement> {
    */
   disabledAbsoluteTooltip?: boolean;
   /**
-   * Shortens the shortened relative time
-   * min to m, hr to h
+   * How often should the component live update the timestamp.
+   *
+   * You may specify a custom interval in milliseconds if necissary.
+   *
+   * @default minute
    */
-  extraShort?: boolean;
+  liveUpdateInterval?: 'minute' | 'second' | number;
   /**
-   * For relative time shortens minutes to min, hour to hr etc.
+   * Prefix before upcoming time (when the date is in the future)
+   *
+   * @default "in"
    */
-  shorten?: boolean;
+  prefix?: string;
   /**
    * Suffix after elapsed time e.g. "ago" in "5 minutes ago"
+   *
+   * @default "ago"
    */
   suffix?: string;
-
+  /**
+   * Customize the tooltip content. This replaces the long form of the timestamp
+   * completely.
+   */
   tooltipBody?: React.ReactNode;
+  /**
+   * Prefix content to add to the tooltip. Useful to indicate what the relative
+   * time is for
+   */
+  tooltipPrefix?: React.ReactNode;
+  /**
+   * Include seconds in the tooltip
+   */
   tooltipShowSeconds?: boolean;
-  tooltipTitle?: React.ReactNode;
+  /**
+   * Suffix content to add to the tooltip. Useful to indicate what the relative
+   * time is for
+   */
+  tooltipSuffix?: React.ReactNode;
+  /**
+   * Change the color of the underline
+   */
   tooltipUnderlineColor?: ColorOrAlias;
+  /**
+   * How much text should be used for the suffix:
+   *
+   * human:
+   *   hour, minute, second. Uses 'human' fuzzy foormatting for values such as 'a
+   *   minute' or 'a few seconds'. (This is the default)
+   *
+   * regular:
+   *   Shows the full units (hours, minutes, seconds)
+   *
+   * short:
+   *   Like exact but uses shorter units (hr, min, sec)
+   *
+   * extraShort:
+   *   Like short but uses very short units (h, m, s)
+   *
+   * NOTE: shot and extraShort do NOT currently support times in the future.
+   *
+   * @default human
+   */
+  unitStyle?: UnitStyle;
 }
 
 function TimeSince({
   date,
-  suffix = t('ago'),
   disabledAbsoluteTooltip,
   tooltipShowSeconds,
-  tooltipTitle,
+  tooltipPrefix: tooltipTitle,
   tooltipBody,
+  tooltipSuffix,
   tooltipUnderlineColor,
-  shorten,
-  extraShort,
+  unitStyle,
+  prefix = t('in'),
+  suffix = t('ago'),
+  liveUpdateInterval = 'minute',
   ...props
 }: Props) {
   const tickerRef = useRef<number | undefined>();
 
   const computeRelativeDate = useCallback(
-    () => getRelativeDate(date, suffix, shorten, extraShort),
-    [date, suffix, shorten, extraShort]
+    () => getRelativeDate(date, suffix, prefix, unitStyle),
+    [date, suffix, prefix, unitStyle]
   );
 
   const [relative, setRelative] = useState<string>(computeRelativeDate());
@@ -74,19 +123,28 @@ function TimeSince({
     // Immediately update if props change
     setRelative(computeRelativeDate());
 
+    const interval =
+      liveUpdateInterval === 'minute'
+        ? 60 * 1000
+        : liveUpdateInterval === 'second'
+        ? 1000
+        : liveUpdateInterval;
+
     // Start a ticker to update the relative time
-    tickerRef.current = window.setTimeout(
+    tickerRef.current = window.setInterval(
       () => setRelative(computeRelativeDate()),
-      ONE_MINUTE_IN_MS
+      interval
     );
 
-    return () => window.clearTimeout(tickerRef.current);
-  }, [computeRelativeDate]);
+    return () => window.clearInterval(tickerRef.current);
+  }, [liveUpdateInterval, computeRelativeDate]);
 
   const dateObj = getDateObj(date);
   const user = ConfigStore.get('user');
   const options = user ? user.options : null;
-  // Use short months when showing seconds, because "September" causes the tooltip to overflow.
+
+  // Use short months when showing seconds, because "September" causes the
+  // tooltip to overflow.
   const tooltipFormat = tooltipShowSeconds
     ? 'MMM D, YYYY h:mm:ss A z'
     : 'MMMM D, YYYY h:mm A z';
@@ -108,6 +166,7 @@ function TimeSince({
         <Fragment>
           {tooltipTitle && <div>{tooltipTitle}</div>}
           {tooltipBody ?? tooltip}
+          {tooltipSuffix && <div>{tooltipSuffix}</div>}
         </Fragment>
       }
     >
@@ -120,29 +179,33 @@ function TimeSince({
 
 export default TimeSince;
 
-export function getRelativeDate(
+function getRelativeDate(
   currentDateTime: RelaxedDateType,
   suffix?: string,
-  shorten?: boolean,
-  extraShort?: boolean
+  prefix?: string,
+  unitStyle: UnitStyle = 'human'
 ): string {
-  const date = getDateObj(currentDateTime);
+  const momentDate = moment(getDateObj(currentDateTime));
+  const isFuture = momentDate.isAfter(moment());
 
-  if ((shorten || extraShort) && suffix) {
-    return t('%(time)s %(suffix)s', {
-      time: getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort),
-      suffix,
-    });
-  }
-  if ((shorten || extraShort) && !suffix) {
-    return getDuration(moment().diff(moment(date), 'seconds'), 0, shorten, extraShort);
-  }
-  if (!suffix) {
-    return moment(date).fromNow(true);
-  }
-  if (suffix === 'ago') {
-    return moment(date).fromNow();
+  let deltaText: string = '';
+
+  if (unitStyle === 'human') {
+    // Moment provides a nice human relative date that uses "a few" for various units
+    deltaText = momentDate.fromNow(true);
+  } else {
+    deltaText = getDuration(
+      moment().diff(momentDate, 'seconds'),
+      0,
+      unitStyle === 'short',
+      unitStyle === 'extraShort',
+      isFuture
+    );
   }
 
-  return t('%(time)s %(suffix)s', {time: moment(date).fromNow(true), suffix});
+  if (!suffix && !prefix) {
+    return deltaText;
+  }
+
+  return isFuture ? `${prefix} ${deltaText}` : `${deltaText} ${suffix}`;
 }

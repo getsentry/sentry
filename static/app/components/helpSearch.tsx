@@ -7,7 +7,7 @@ import SearchResultWrapper from 'sentry/components/search/searchResultWrapper';
 import HelpSource from 'sentry/components/search/sources/helpSource';
 import {IconWindow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type ItemRenderer = React.ComponentProps<typeof Search>['renderItem'];
 

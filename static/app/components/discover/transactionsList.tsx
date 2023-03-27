@@ -5,11 +5,11 @@ import {Location, LocationDescriptor, Query} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
-import CompactSelect from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DiscoverButton from 'sentry/components/discoverButton';
 import Pagination, {CursorHandler} from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
 import DiscoverQuery, {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -17,9 +17,9 @@ import {Sort} from 'sentry/utils/discover/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Actions} from 'sentry/views/eventsV2/table/cellAction';
-import {TableColumn} from 'sentry/views/eventsV2/table/types';
-import {decodeColumnOrder} from 'sentry/views/eventsV2/utils';
+import {Actions} from 'sentry/views/discover/table/cellAction';
+import {TableColumn} from 'sentry/views/discover/table/types';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 import {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
@@ -112,6 +112,7 @@ type Props = {
    * The callback for when Open in Discover is clicked.
    */
   handleOpenInDiscoverClick?: (e: React.MouseEvent<Element>) => void;
+  referrer?: string;
   showTransactions?: TransactionFilterOptions;
   /**
    * A list of preferred table headers to use over the field names.
@@ -228,6 +229,7 @@ class _TransactionsList extends Component<Props> {
       titles,
       generateLink,
       forceLoading,
+      referrer,
     } = this.props;
 
     const eventView = this.getEventView();
@@ -256,6 +258,7 @@ class _TransactionsList extends Component<Props> {
             generateLink={generateLink}
             handleCellAction={handleCellAction}
             useAggregateAlias={false}
+            referrer={referrer}
           />
         </GuideAnchor>
       </Fragment>

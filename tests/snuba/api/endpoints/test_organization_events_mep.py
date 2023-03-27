@@ -3,6 +3,7 @@ from unittest import mock
 import pytest
 from django.urls import reverse
 
+from sentry.api.bases.organization_events import DATASET_OPTIONS
 from sentry.discover.models import TeamKeyTransaction
 from sentry.models import ProjectTeam
 from sentry.models.transaction_threshold import (
@@ -85,7 +86,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "dataset must be one of: discover, metricsEnhanced, metrics, profiles"
+            == f"dataset must be one of: {', '.join([key for key in DATASET_OPTIONS.keys()])}"
         )
 
     def test_out_of_retention(self):
@@ -2121,6 +2122,47 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         meta = response.data["meta"]
         assert meta["isMetricsData"]
 
+    def test_os_name_incompatible(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "os.name",
+                    "p90()",
+                ],
+                "query": "transaction:foo_transaction",
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "os.name is unavailable"
+
+    def test_os_name_falls_back(self):
+        self.store_transaction_metric(
+            1,
+            tags={"transaction": "foo_transaction", "transaction.status": "foobar"},
+            timestamp=self.min_ago,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "os.name",
+                    "p75()",
+                ],
+                "query": "transaction:foo_transaction",
+                "dataset": "metricsEnhanced",
+            }
+        )
+        assert response.status_code == 200, response.content
+        meta = response.data["meta"]
+        assert not meta["isMetricsData"]
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
@@ -2144,11 +2186,3 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Having not supported")
     def test_having_condition(self):
         super().test_having_condition()
-
-    @pytest.mark.xfail(reason="Meta for project_id is wrong")
-    def test_project_id(self):
-        super().test_project_id()
-
-    @pytest.mark.xfail(reason="Meta for project.id is wrong")
-    def test_project_dot_id(self):
-        super().test_project_dot_id()

@@ -11,7 +11,6 @@ import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
 
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {
   CanvasPoolManager,
@@ -24,13 +23,13 @@ import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
-  Rect,
 } from 'sentry/utils/profiling/gl/utils';
 import {SelectedFrameRenderer} from 'sentry/utils/profiling/renderers/selectedFrameRenderer';
 import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRenderer';
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
-import {useProfileTransaction} from 'sentry/views/profiling/profileGroupProvider';
+import {Rect} from 'sentry/utils/profiling/speedscope';
+import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -38,6 +37,10 @@ import {useDrawHoveredBorderEffect} from './interactions/useDrawHoveredBorderEff
 import {useDrawSelectedBorderEffect} from './interactions/useDrawSelectedBorderEffect';
 import {useInteractionViewCheckPoint} from './interactions/useInteractionViewCheckPoint';
 import {useWheelCenterZoom} from './interactions/useWheelCenterZoom';
+import {
+  CollapsibleTimelineLoadingIndicator,
+  CollapsibleTimelineMessage,
+} from './collapsibleTimeline';
 import {FlamegraphSpanTooltip} from './flamegraphSpanTooltip';
 
 interface FlamegraphSpansProps {
@@ -107,8 +110,11 @@ export function FlamegraphSpans({
     if (!spansRenderer) {
       return;
     }
-    spansRenderer.setSearchResults(flamegraphSearch.results.spans);
-  }, [spansRenderer, flamegraphSearch.results.spans]);
+    spansRenderer.setSearchResults(
+      flamegraphSearch.query,
+      flamegraphSearch.results.spans
+    );
+  }, [spansRenderer, flamegraphSearch.query, flamegraphSearch.results.spans]);
 
   useEffect(() => {
     if (!spansCanvas || !spansView || !spansRenderer || !spansTextRenderer) {
@@ -136,7 +142,7 @@ export function FlamegraphSpans({
 
     const drawText = () => {
       spansTextRenderer.draw(
-        spansView.configView.transformRect(spansView.configSpaceTransform),
+        spansView.toOriginConfigView(spansView.configView),
         spansView.fromTransformedConfigView(spansCanvas.physicalSpace),
         flamegraphSearch.results.spans
       );
@@ -375,13 +381,15 @@ export function FlamegraphSpans({
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
       {profiledTransaction.type === 'loading' ||
       profiledTransaction.type === 'initial' ? (
-        <LoadingIndicatorContainer>
-          <LoadingIndicator size={42} />
-        </LoadingIndicatorContainer>
+        <CollapsibleTimelineLoadingIndicator />
       ) : profiledTransaction.type === 'errored' ? (
-        <MessageContainer>{t('No associated transaction found')}</MessageContainer>
-      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length <= 1 ? (
-        <MessageContainer>{t('Transaction has no spans')}</MessageContainer>
+        <CollapsibleTimelineMessage>
+          {t('No associated transaction found')}
+        </CollapsibleTimelineMessage>
+      ) : profiledTransaction.type === 'resolved' && spanChart.spans.length < 1 ? (
+        <CollapsibleTimelineMessage>
+          {t('Transaction has no spans')}
+        </CollapsibleTimelineMessage>
       ) : null}
       {hoveredNode && spansRenderer && configSpaceCursor && spansCanvas && spansView ? (
         <FlamegraphSpanTooltip
@@ -398,29 +406,9 @@ export function FlamegraphSpans({
   );
 }
 
-const MessageContainer = styled('p')`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  width: 100%;
-  position: absolute;
-  color: ${p => p.theme.subText};
-`;
-
-const LoadingIndicatorContainer = styled('div')`
-  position: absolute;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
-`;
-
 const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
   width: 100%;
-  height: 100%;
+  height: calc(100% - 20px);
   position: absolute;
   left: 0;
   top: 0;

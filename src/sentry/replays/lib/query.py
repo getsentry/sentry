@@ -89,8 +89,34 @@ class Field:
         value: Union[List[str], str],
         is_wildcard: bool = False,
     ) -> Condition:
-
         return Condition(Column(self.query_alias or self.attribute_name), operator, value)
+
+
+class UUIDField(Field):
+    """
+    as our minimum supported clickhouse version is 20.3, we don't have
+    isUUIDOrZero function, so we must validate the uuid before supplying to clickhouse.
+    """
+
+    _operators = [Op.EQ, Op.NEQ, Op.IN, Op.NOT_IN]
+    _python_type = str
+
+    def as_condition(
+        self, field_alias: str, operator: Op, value: Union[List[str], str], is_wildcard: bool
+    ) -> Condition:
+        if isinstance(value, list):
+            uuids = _transform_uuids(value)
+            if uuids is None:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+            value = uuids
+        else:
+            uuids = _transform_uuids([value])
+            if uuids is None:
+                return Condition(Function("identity", parameters=[1]), Op.EQ, 2)
+
+            value = uuids[0]
+
+        return super().as_condition(field_alias, operator, value)
 
 
 class String(Field):
@@ -239,7 +265,7 @@ class Tag(Field):
                     Lambda(
                         ["tag_value"], _wildcard_search_function(value, Identifier("tag_value"))
                     ),
-                    _all_values_for_tag_key(field_alias),
+                    all_values_for_tag_key(field_alias, Column("tk"), Column("tv")),
                 ],
             ),
             operator,
@@ -253,7 +279,10 @@ class Tag(Field):
         expected = 0 if operator not in (Op.EQ, Op.IN) else 1
         function = "hasAny" if isinstance(values, list) else "has"
         return Condition(
-            Function(function, parameters=[_all_values_for_tag_key(key), values]),
+            Function(
+                function,
+                parameters=[all_values_for_tag_key(key, Column("tk"), Column("tv")), values],
+            ),
             Op.EQ,
             expected,
         )
@@ -399,7 +428,7 @@ def get_valid_sort_commands(
 # Tag filtering behavior.
 
 
-def _all_values_for_tag_key(key: str) -> Function:
+def all_values_for_tag_key(key: str, tag_key_column: Column, tag_value_column: Column) -> Function:
     return Function(
         "arrayFilter",
         parameters=[
@@ -407,13 +436,13 @@ def _all_values_for_tag_key(key: str) -> Function:
                 ["key", "mask"],
                 Function("equals", parameters=[Identifier("mask"), 1]),
             ),
-            Column("tv"),
-            _bitmask_on_tag_key(key),
+            tag_value_column,
+            _bitmask_on_tag_key(key, tag_key_column),
         ],
     )
 
 
-def _bitmask_on_tag_key(key: str) -> Function:
+def _bitmask_on_tag_key(key: str, tag_key_column: Column) -> Function:
     """Create a bit mask.
 
     Returns an array where the integer 1 represents a match.
@@ -426,8 +455,8 @@ def _bitmask_on_tag_key(key: str) -> Function:
                 ["index", "key"],
                 Function("equals", parameters=[Identifier("key"), key]),
             ),
-            Function("arrayEnumerate", parameters=[Column("tk")]),
-            Column("tk"),
+            Function("arrayEnumerate", parameters=[tag_key_column]),
+            tag_key_column,
         ],
     )
 

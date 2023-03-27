@@ -5,14 +5,16 @@ import {Location} from 'history';
 import {Button} from 'sentry/components/button';
 import Clipboard from 'sentry/components/clipboard';
 import DateTime from 'sentry/components/dateTime';
+import ContextIcon from 'sentry/components/events/contextSummary/contextIcon';
+import {generateIconName} from 'sentry/components/events/contextSummary/utils';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import TimeSince from 'sentry/components/timeSince';
-import Tooltip from 'sentry/components/tooltip';
-import {frontend} from 'sentry/data/platformCategories';
+import {Tooltip} from 'sentry/components/tooltip';
+import {backend} from 'sentry/data/platformCategories';
 import {IconCopy, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
-import {AvatarProject, OrganizationSummary} from 'sentry/types';
+import {space} from 'sentry/styles/space';
+import {OrganizationSummary} from 'sentry/types';
 import {Event, EventTransaction} from 'sentry/types/event';
 import {getShortEventId} from 'sentry/utils/events';
 import {getDuration} from 'sentry/utils/formatters';
@@ -24,7 +26,7 @@ import {
 import {isTransaction} from 'sentry/utils/performance/quickTrace/utils';
 import Projects from 'sentry/utils/projects';
 import theme from 'sentry/utils/theme';
-import EventCreatedTooltip from 'sentry/views/organizationGroupDetails/eventCreatedTooltip';
+import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 import QuickTraceMeta from './quickTraceMeta';
 import {MetaData} from './styles';
@@ -91,7 +93,7 @@ class EventMetas extends Component<Props, State> {
     // Replay preview gets rendered as part of the breadcrumb section. We need
     // to check for presence of both to show the replay link button here.
     const hasReplay =
-      organization.features.includes('session-replay-ui') &&
+      organization.features.includes('session-replay') &&
       Boolean(event.entries.find(({type}) => type === 'breadcrumbs')) &&
       Boolean(event?.tags?.find(({key}) => key === 'replayId')?.value);
 
@@ -116,14 +118,19 @@ class EventMetas extends Component<Props, State> {
       />
     );
 
-    const httpStatus = <HttpStatus event={event} />;
-
     return (
       <Projects orgId={organization.slug} slugs={[projectId]}>
         {({projects}) => {
           const project = projects.find(p => p.slug === projectId);
+          const isBackendProject =
+            !!project?.platform && backend.includes(project.platform as any);
+
           return (
-            <EventDetailHeader type={type} hasReplay={hasReplay}>
+            <EventDetailHeader
+              type={type}
+              isBackendProject={isBackendProject}
+              hasReplay={hasReplay}
+            >
               <MetaData
                 headingText={t('Event ID')}
                 tooltipText={t('The unique ID assigned to this %s.', type)}
@@ -159,16 +166,27 @@ class EventMetas extends Component<Props, State> {
                   })}
                 />
               )}
-              {isTransaction(event) && (
+              {isTransaction(event) && isBackendProject && (
                 <MetaData
                   headingText={t('Status')}
                   tooltipText={t(
                     'The status of this transaction indicating if it succeeded or otherwise.'
                   )}
-                  bodyText={getStatusBodyText(project, event, meta)}
-                  subtext={httpStatus}
+                  bodyText={getStatusBodyText(event)}
+                  subtext={<HttpStatus event={event} />}
                 />
               )}
+              {isTransaction(event) &&
+                (event.contexts.browser ? (
+                  <MetaData
+                    headingText={t('Browser')}
+                    tooltipText={t('The browser used in this transaction.')}
+                    bodyText={<BrowserDisplay event={event} />}
+                    subtext={event.contexts.browser?.version}
+                  />
+                ) : (
+                  <span />
+                ))}
               {hasReplay && (
                 <ReplayButtonContainer>
                   <Button href="#breadcrumbs" size="sm" icon={<IconPlay size="xs" />}>
@@ -196,20 +214,58 @@ class EventMetas extends Component<Props, State> {
   }
 }
 
+const BrowserCenter = styled('span')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${space(1)};
+`;
+
+const IconContainer = styled('div')`
+  width: 20px;
+  height: 20px;
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  margin-top: ${space(0.25)};
+`;
+
+const BrowserDisplay = ({event}: {event: Event}) => {
+  const icon = generateIconName(
+    event.contexts.browser?.name,
+    event.contexts.browser?.version
+  );
+  return (
+    <BrowserCenter>
+      <IconContainer>
+        <ContextIcon name={icon} />
+      </IconContainer>
+      <span>{event.contexts.browser?.name}</span>
+    </BrowserCenter>
+  );
+};
+
 type EventDetailHeaderProps = {
   hasReplay: boolean;
+  isBackendProject: boolean;
   type?: 'transaction' | 'event';
 };
 
-function getEventDetailHeaderCols({hasReplay, type}: EventDetailHeaderProps): string {
-  if (type === 'transaction') {
-    return hasReplay
-      ? 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 5fr minmax(325px, 1fr);'
-      : 'grid-template-columns: minmax(160px, 1fr) minmax(160px, 1fr) minmax(160px, 1fr) 6fr;';
-  }
-  return hasReplay
-    ? 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 5fr minmax(325px, 1fr);'
-    : 'grid-template-columns: minmax(160px, 1fr) minmax(200px, 1fr) 6fr;';
+export function getEventDetailHeaderCols({
+  hasReplay,
+  isBackendProject,
+  type,
+}: EventDetailHeaderProps): string {
+  return `grid-template-columns: ${[
+    'minmax(160px, 1fr)', // Event ID
+    type === 'transaction' ? 'minmax(160px, 1fr)' : 'minmax(200px, 1fr)', // Duration or Created Time
+    type === 'transaction' && isBackendProject && 'minmax(160px, 1fr)', // Status
+    type === 'transaction' && 'minmax(160px, 1fr) ', // Browser
+    hasReplay ? '5fr' : '6fr', // Replay
+    hasReplay && 'minmax(325px, 1fr)', // Quick Trace
+  ]
+    .filter(Boolean)
+    .join(' ')};`;
 }
 
 const EventDetailHeader = styled('div')<EventDetailHeaderProps>`
@@ -292,31 +348,7 @@ export function HttpStatus({event}: {event: Event}) {
   return <Fragment>HTTP {tag.value}</Fragment>;
 }
 
-/*
-  TODO: Ash
-  I put this in place as a temporary patch to prevent successful frontend transactions from being set as 'unknown', which is what Relay sets by default
-  if there is no status set by the SDK. In the future, the possible statuses will be revised and frontend transactions should properly have a status set.
-  When that change is implemented, this function can simply be replaced with:
-
-  event.contexts?.trace?.status ?? '\u2014';
-*/
-
-export function getStatusBodyText(
-  project: AvatarProject | undefined,
-  event: EventTransaction,
-  meta: TraceMeta | null
-): string {
-  const isFrontendProject = frontend.some(val => val === project?.platform);
-
-  if (
-    isFrontendProject &&
-    meta &&
-    meta.errors === 0 &&
-    event.contexts?.trace?.status === 'unknown'
-  ) {
-    return 'ok';
-  }
-
+export function getStatusBodyText(event: EventTransaction): string {
   return event.contexts?.trace?.status ?? '\u2014';
 }
 

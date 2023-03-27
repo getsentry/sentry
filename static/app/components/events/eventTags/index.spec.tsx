@@ -25,14 +25,14 @@ describe('event tags', function () {
     render(
       <EventTags
         organization={organization}
-        projectId={project.id}
+        projectSlug={project.slug}
         location={router.location}
         event={event}
       />,
       {organization}
     );
 
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(
@@ -73,7 +73,7 @@ describe('event tags', function () {
     render(
       <EventTags
         organization={organization}
-        projectId={project.id}
+        projectSlug={project.slug}
         location={router.location}
         event={event}
       />,
@@ -84,7 +84,7 @@ describe('event tags', function () {
     expect(screen.getByText('iOS')).toBeInTheDocument();
 
     expect(screen.getByText('app.device')).toBeInTheDocument();
-    userEvent.hover(screen.getByText(/redacted/));
+    await userEvent.hover(screen.getByText(/redacted/));
 
     expect(
       await screen.findByText(

@@ -6,10 +6,13 @@ from unittest.mock import Mock, patch
 from django.conf import settings
 from snuba_sdk import Column, Condition, Entity, Op, Query, Request
 
+from sentry import nodestore
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import Event
 from sentry.eventstream.base import EventStreamEventType
 from sentry.eventstream.kafka import KafkaEventStream
-from sentry.eventstream.snuba import SnubaEventStream
+from sentry.eventstream.snuba import SnubaEventStream, SnubaProtocolEventStream
+from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.testutils import SnubaTestCase, TestCase
 from sentry.testutils.silo import region_silo_test
@@ -216,6 +219,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
 
     @patch("sentry.eventstream.insert", autospec=True)
     def test_groupevent_occurrence_passed(self, mock_eventstream_insert):
+
         now = datetime.utcnow()
         event = self.__build_transaction_event()
         event.group_id = self.group.id
@@ -235,7 +239,6 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         self.__produce_event(*insert_args, **insert_kwargs)
         producer = self.producer_mock
         produce_args, produce_kwargs = list(producer.produce.call_args)
-
         version, type_, payload1, payload2 = json.loads(produce_kwargs["value"])
         assert produce_kwargs["topic"] == settings.KAFKA_EVENTSTREAM_GENERIC
         assert produce_kwargs["key"] is None
@@ -244,6 +247,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         occurrence_data = group_event.occurrence.to_dict()
         del occurrence_data["evidence_data"]
         del occurrence_data["evidence_display"]
+        assert payload1["occurrence_id"] == occurrence_data.get("id")
         assert payload1["occurrence_data"] == occurrence_data
         assert payload1["group_id"] == self.group.id
 
@@ -297,6 +301,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_errors") in headers
+        assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_errors"
 
     @patch("sentry.eventstream.insert", autospec=True)
@@ -322,6 +327,7 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_transactions") in headers
+        assert "occurrence_id" not in dict(headers)
         assert body["queue"] == "post_process_transactions"
 
     @patch("sentry.eventstream.insert", autospec=True)
@@ -350,4 +356,43 @@ class SnubaEventStreamTest(TestCase, SnubaTestCase, OccurrenceTestMixin):
         headers, body = self.__produce_payload(*insert_args, **insert_kwargs)
 
         assert ("queue", b"post_process_issue_platform") in headers
+        assert ("occurrence_id", bytes(group_event.occurrence.id, encoding="utf-8")) in headers
         assert body["queue"] == "post_process_issue_platform"
+
+    def test_insert_generic_event_contexts(self):
+        es = SnubaProtocolEventStream()
+
+        profile_message = load_data("generic-event-profiling")
+        geo_interface = {"city": "San Francisco", "country_code": "US", "region": "California"}
+        event_data = profile_message["event"]
+        event_data["user"] = {"geo": geo_interface}
+
+        project_id = event_data.get("project_id", self.project.id)
+        event_data["timestamp"] = datetime.utcnow().isoformat()
+
+        occurrence, group_info = process_event_and_issue_occurrence(
+            self.build_occurrence_data(event_id=event_data["event_id"], project_id=project_id),
+            event_data,
+        )
+
+        event = Event(
+            event_id=occurrence.event_id,
+            project_id=project_id,
+            data=nodestore.get(Event.generate_node_id(project_id, occurrence.event_id)),
+        )
+        group_event = event.for_group(group_info.group)
+        group_event.occurrence = occurrence
+
+        with patch.object(es, "_send") as send:
+            es.insert(
+                group_event,
+                True,
+                True,
+                False,
+                "",
+                0.0,
+            )
+            send_extra_data_data = send.call_args.kwargs["extra_data"][0]["data"]
+            assert "contexts" in send_extra_data_data
+            contexts_after_processing = send_extra_data_data["contexts"]
+            assert contexts_after_processing == {**{"geo": geo_interface}}

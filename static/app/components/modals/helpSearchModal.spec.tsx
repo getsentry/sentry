@@ -61,7 +61,7 @@ describe('Docs Search Modal', function () {
         params={{}}
         routeParams={router.params}
       >
-        {<div>placeholder content</div>}
+        <div>placeholder content</div>
       </App>,
       {
         context: routerContext,

@@ -9,11 +9,11 @@ import Count from 'sentry/components/count';
 import DateTime from 'sentry/components/dateTime';
 import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
-import Tooltip from 'sentry/components/tooltip';
+import {Tooltip} from 'sentry/components/tooltip';
 import Version from 'sentry/components/version';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 import {SourceMapsArchive} from 'sentry/types';
 
 type Props = {

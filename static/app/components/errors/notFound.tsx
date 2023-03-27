@@ -4,10 +4,10 @@ import {Alert} from 'sentry/components/alert';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 const NotFound = () => (
-  <NotFoundAlert type="error" showIcon>
+  <Alert type="error" showIcon>
     <Heading>{t('Page Not Found')}</Heading>
     <p>{t('The page you are looking for was not found.')}</p>
     <p>{t('You may wish to try the following:')}</p>
@@ -37,12 +37,8 @@ const NotFound = () => (
         link: <Link to="/" />,
       })}
     </p>
-  </NotFoundAlert>
+  </Alert>
 );
-
-const NotFoundAlert = styled(Alert)`
-  margin: ${space(3)} 0;
-`;
 
 const Heading = styled('h1')`
   font-size: ${p => p.theme.fontSizeLarge};

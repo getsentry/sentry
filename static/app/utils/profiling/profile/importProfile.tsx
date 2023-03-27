@@ -1,18 +1,16 @@
 import * as Sentry from '@sentry/react';
 import {Transaction} from '@sentry/types';
 
+import {Image} from 'sentry/types/debugImage';
+
 import {
-  isChromeTraceFormat,
-  isChromeTraceObjectFormat,
   isEventedProfile,
   isJSProfile,
   isSampledProfile,
   isSchema,
   isSentrySampledProfile,
-  isTypescriptChromeTraceArrayFormat,
 } from '../guards/profile';
 
-import {parseTypescriptChromeTraceArrayFormat} from './chromeTraceProfile';
 import {EventedProfile} from './eventedProfile';
 import {JSSelfProfile} from './jsSelfProfile';
 import {Profile} from './profile';
@@ -26,6 +24,8 @@ import {
 
 export interface ImportOptions {
   transaction: Transaction | undefined;
+  type: 'flamegraph' | 'flamechart';
+  profileIds?: Readonly<string[]>;
 }
 
 export interface ProfileGroup {
@@ -36,15 +36,13 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
+  images?: Image[];
 }
 
 export function importProfile(
-  input:
-    | Profiling.Schema
-    | JSSelfProfiling.Trace
-    | ChromeTrace.ProfileType
-    | Profiling.SentrySampledProfile,
-  traceID: string
+  input: Readonly<Profiling.ProfileInput>,
+  traceID: string,
+  type: 'flamegraph' | 'flamechart'
 ): ProfileGroup {
   const transaction = Sentry.startTransaction({
     op: 'import',
@@ -57,15 +55,7 @@ export function importProfile(
       if (transaction) {
         transaction.setTag('profile.type', 'js-self-profile');
       }
-      return importJSSelfProfile(input, traceID, {transaction});
-    }
-
-    if (isChromeTraceFormat(input)) {
-      // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
-      if (transaction) {
-        transaction.setTag('profile.type', 'chrometrace');
-      }
-      return importChromeTrace(input, traceID, {transaction});
+      return importJSSelfProfile(input, traceID, {transaction, type});
     }
 
     if (isSentrySampledProfile(input)) {
@@ -73,7 +63,7 @@ export function importProfile(
       if (transaction) {
         transaction.setTag('profile.type', 'sentry-sampled');
       }
-      return importSentrySampledProfile(input, {transaction});
+      return importSentrySampledProfile(input, {transaction, type});
     }
 
     if (isSchema(input)) {
@@ -81,7 +71,7 @@ export function importProfile(
       if (transaction) {
         transaction.setTag('profile.type', 'schema');
       }
-      return importSchema(input, traceID, {transaction});
+      return importSchema(input, traceID, {transaction, type});
     }
 
     throw new Error('Unsupported trace format');
@@ -98,7 +88,7 @@ export function importProfile(
 }
 
 function importJSSelfProfile(
-  input: JSSelfProfiling.Trace,
+  input: Readonly<JSSelfProfiling.Trace>,
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
@@ -119,24 +109,8 @@ function importJSSelfProfile(
   };
 }
 
-function importChromeTrace(
-  input: ChromeTrace.ProfileType,
-  traceID: string,
-  options: ImportOptions
-): ProfileGroup {
-  if (isChromeTraceObjectFormat(input)) {
-    throw new Error('Chrometrace object format is not yet supported');
-  }
-
-  if (isTypescriptChromeTraceArrayFormat(input)) {
-    return parseTypescriptChromeTraceArrayFormat(input, traceID, options);
-  }
-
-  throw new Error('Failed to parse trace input format');
-}
-
 function importSentrySampledProfile(
-  input: Profiling.SentrySampledProfile,
+  input: Readonly<Profiling.SentrySampledProfile>,
   options: ImportOptions
 ): ProfileGroup {
   const frameIndex = createSentrySampleProfileFrameIndex(input.profile.frames);
@@ -155,10 +129,11 @@ function importSentrySampledProfile(
 
   for (const key in samplesByThread) {
     samplesByThread[key].sort(
-      (a, b) =>
-        parseInt(a.elapsed_since_start_ns, 10) - parseInt(b.elapsed_since_start_ns, 10)
+      (a, b) => a.elapsed_since_start_ns - b.elapsed_since_start_ns
     );
   }
+
+  let activeProfileIndex = 0;
 
   const profiles: Profile[] = [];
 
@@ -171,10 +146,14 @@ function importSentrySampledProfile(
       },
     };
 
+    if (key === String(input.transaction.active_thread_id)) {
+      activeProfileIndex = profiles.length;
+    }
+
     profiles.push(
       wrapWithSpan(
         options.transaction,
-        () => SentrySampledProfile.FromProfile(profile, frameIndex),
+        () => SentrySampledProfile.FromProfile(profile, frameIndex, {type: options.type}),
         {
           op: 'profile.import',
           description: 'evented',
@@ -183,44 +162,41 @@ function importSentrySampledProfile(
     );
   }
 
-  const firstTransaction = input.transactions?.[0];
+  const firstSample = input.profile.samples[0];
+  const lastSample = input.profile.samples[input.profile.samples.length - 1];
+  const duration = lastSample.elapsed_since_start_ns - firstSample.elapsed_since_start_ns;
+
   return {
-    transactionID: firstTransaction?.id ?? null,
-    traceID: firstTransaction?.trace_id ?? '',
-    name: firstTransaction?.name ?? '',
-    activeProfileIndex: 0,
+    transactionID: input.transaction.id,
+    traceID: input.transaction.trace_id,
+    name: input.transaction.name,
+    activeProfileIndex,
     measurements: {},
     metadata: {
-      // androidAPILevel: number;
-      // deviceClassification: string;
-      // organizationID: number;
-      // projectID: number;
-      // received: string;
-
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
       deviceModel: input.device.model,
       deviceOSName: input.os.name,
       deviceOSVersion: input.os.version,
-      durationNS: parseInt(
-        input.profile.samples[input.profile.samples.length - 1].elapsed_since_start_ns,
-        10
-      ),
+      durationNS: duration,
       environment: input.environment,
       platform: input.platform,
       profileID: input.event_id,
+      projectID: input.project_id,
+      release: input.release,
 
       // these don't really work for multiple transactions
-      transactionID: firstTransaction?.id,
-      transactionName: firstTransaction?.name,
-      traceID: firstTransaction?.trace_id,
+      transactionID: input.transaction.id,
+      transactionName: input.transaction.name,
+      traceID: input.transaction.trace_id,
     },
     profiles,
+    images: input.debug_meta?.images,
   };
 }
 
-function importSchema(
-  input: Profiling.Schema,
+export function importSchema(
+  input: Readonly<Profiling.Schema>,
   traceID: string,
   options: ImportOptions
 ): ProfileGroup {
@@ -237,25 +213,28 @@ function importSchema(
     metadata: input.metadata ?? {},
     measurements: input.measurements ?? {},
     profiles: input.profiles.map(profile =>
-      importSingleProfile(profile, frameIndex, options)
+      importSingleProfile(profile, frameIndex, {
+        ...options,
+        profileIds: input.shared.profile_ids,
+      })
     ),
   };
 }
 
 function importSingleProfile(
-  profile: Profiling.ProfileTypes,
+  profile: Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace,
   frameIndex: ReturnType<typeof createFrameIndex>,
-  {transaction}: ImportOptions
+  {transaction, type, profileIds}: ImportOptions
 ): Profile {
   if (isEventedProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return EventedProfile.FromProfile(profile, frameIndex);
+      return EventedProfile.FromProfile(profile, frameIndex, {type});
     }
 
     return wrapWithSpan(
       transaction,
-      () => EventedProfile.FromProfile(profile, frameIndex),
+      () => EventedProfile.FromProfile(profile, frameIndex, {type}),
       {
         op: 'profile.import',
         description: 'evented',
@@ -265,12 +244,12 @@ function importSingleProfile(
   if (isSampledProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return SampledProfile.FromProfile(profile, frameIndex);
+      return SampledProfile.FromProfile(profile, frameIndex, {type, profileIds});
     }
 
     return wrapWithSpan(
       transaction,
-      () => SampledProfile.FromProfile(profile, frameIndex),
+      () => SampledProfile.FromProfile(profile, frameIndex, {type, profileIds}),
       {
         op: 'profile.import',
         description: 'sampled',
@@ -280,12 +259,17 @@ function importSingleProfile(
   if (isJSProfile(profile)) {
     // In some cases, the SDK may return transaction as undefined and we dont want to throw there.
     if (!transaction) {
-      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames));
+      return JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
+        type,
+      });
     }
 
     return wrapWithSpan(
       transaction,
-      () => JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames)),
+      () =>
+        JSSelfProfile.FromProfile(profile, createFrameIndex('web', profile.frames), {
+          type,
+        }),
       {
         op: 'profile.import',
         description: 'js-self-profile',
@@ -331,10 +315,10 @@ function readFileAsString(file: File): Promise<string> {
   });
 }
 
-export async function importDroppedProfile(
+export async function parseDroppedProfile(
   file: File,
   parsers: JSONParser[] = TRACE_JSON_PARSERS
-): Promise<ProfileGroup> {
+): Promise<Profiling.ProfileInput> {
   const fileContents = await readFileAsString(file);
 
   for (const parser of parsers) {
@@ -345,7 +329,7 @@ export async function importDroppedProfile(
         throw new TypeError('Input JSON is not an object');
       }
 
-      return importProfile(json, file.name);
+      return json;
     }
   }
 

@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
+import {ThreadStates} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import TextOverflow from 'sentry/components/textOverflow';
 import {t, tct} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   details: ThreadInfo;
@@ -12,12 +13,17 @@ type Props = {
 type ThreadInfo = {
   filename?: string;
   label?: string;
+  state?: ThreadStates;
 };
+
+function getThreadLabel(details: ThreadInfo) {
+  return details?.label || `<${t('unknown')}>`;
+}
 
 const SelectedOption = ({id, details}: Props) => (
   <Wrapper>
     <ThreadId>{tct('Thread #[id]:', {id})}</ThreadId>
-    <Label>{details?.label || `<${t('unknown')}>`}</Label>
+    <Label>{getThreadLabel(details)}</Label>
   </Wrapper>
 );
 

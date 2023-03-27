@@ -1,28 +1,37 @@
 import {useCallback} from 'react';
+import {vec2} from 'gl-matrix';
 
 import {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {getCenterScaleMatrix} from 'sentry/utils/profiling/gl/utils';
+import {getCenterScaleMatrixFromMousePosition} from 'sentry/utils/profiling/gl/utils';
 
 export function useWheelCenterZoom(
   canvas: FlamegraphCanvas | null,
   view: CanvasView<any> | null,
-  canvasPoolManager: CanvasPoolManager
+  canvasPoolManager: CanvasPoolManager,
+  disable: boolean = false
 ) {
   const zoom = useCallback(
     (evt: WheelEvent) => {
-      if (!canvas || !view) {
+      if (!canvas || !view || disable) {
         return;
       }
 
+      evt.preventDefault();
+
       const scale = 1 - evt.deltaY * 0.01 * -1; // -1 to invert scale
       canvasPoolManager.dispatch('transform config view', [
-        getCenterScaleMatrix(scale, evt.offsetX, evt.offsetY, view, canvas),
+        getCenterScaleMatrixFromMousePosition(
+          scale,
+          vec2.fromValues(evt.offsetX, evt.offsetY),
+          view,
+          canvas
+        ),
         view,
       ]);
     },
-    [canvas, view, canvasPoolManager]
+    [canvas, view, canvasPoolManager, disable]
   );
 
   return zoom;

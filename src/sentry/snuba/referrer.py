@@ -1,14 +1,17 @@
+import enum
 import logging
 from enum import Enum, unique
-from typing import Optional
+from itertools import chain
+from typing import Mapping, Optional
 
+from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
 
 @unique
-class Referrer(Enum):
+class ReferrerBase(Enum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
@@ -66,6 +69,9 @@ class Referrer(Enum):
     API_GROUP_EVENTS_PERFORMANCE_DIRECT_HIT = "api.group-events.performance.direct-hit"
     API_GROUP_EVENTS_PERFORMANCE = "api.group-events.performance"
     API_GROUP_HASHES_LEVELS_GET_LEVEL_NEW_ISSUES = "api.group_hashes_levels.get_level_new_issues"
+    API_GROUP_HASHES_LEVELS_GET_HASH_FOR_PARENT_LEVEL = (
+        "api.group_hashes_levels.get_hash_for_parent_level"
+    )
     API_GROUP_HASHES_LEVELS_GET_LEVELS_OVERVIEW = "api.group_hashes_levels.get_levels_overview"
     API_GROUP_HASHES = "api.group-hashes"
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
@@ -346,6 +352,16 @@ class Referrer(Enum):
     DYNAMIC_SAMPLING_DISTRIBUTION_GET_MOST_RECENT_DAY_WITH_TRANSACTIONS = (
         "dynamic-sampling.distribution.get-most-recent-day-with-transactions"
     )
+    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
+        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
+        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
+        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
+    )
+    DYNAMIC_SAMPLING_COUNTERS_FETCH_ACTIVE_ORGS = "dynamic_sampling.counters.fetch_active_orgs"
     EVENTSTORE_GET_EVENT_BY_ID_NODESTORE = "eventstore.get_event_by_id_nodestore"
     EVENTSTORE_GET_EVENTS = "eventstore.get_events"
     EVENTSTORE_GET_NEXT_OR_PREV_EVENT_ID = "eventstore.get_next_or_prev_event_id"
@@ -361,7 +377,7 @@ class Referrer(Enum):
         "getsentry.promotion.mobile_performance_adoption.check_eligible"
     )
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
-    GROUP_GET_LATEST = "group.get_latest"
+    GROUP_GET_LATEST = "Group.get_latest"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
     INCIDENTS_GET_INCIDENT_AGGREGATES = "incidents.get_incident_aggregates"
@@ -459,11 +475,16 @@ class Referrer(Enum):
     REPROCESSING2_START_GROUP_REPROCESSING = "reprocessing2.start_group_reprocessing"
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
+    SEARCH_GROUP_INDEX = "search.group_index"
+    SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_ERROR_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_error_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_error_seen_stats_query"
     )
     SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_PERF_SEEN_STATS_QUERY = (
-        "serializers.groupserializersnuba._execute_perf_seen_stats_query"
+        "serializers.GroupSerializerSnuba._execute_perf_seen_stats_query"
+    )
+    SERIALIZERS_GROUPSERIALIZERSNUBA__EXECUTE_GENERIC_SEEN_STATS_QUERY = (
+        "serializers.GroupSerializerSnuba._execute_generic_seen_stats_query"
     )
     SESSIONS_CRASH_FREE_BREAKDOWN = "sessions.crash-free-breakdown"
     SESSIONS_GET_ADOPTION = "sessions.get-adoption"
@@ -494,12 +515,14 @@ class Referrer(Enum):
     SUBSCRIPTIONS_EXECUTOR = "subscriptions_executor"
     TAGSTORE__GET_TAG_KEY_AND_TOP_VALUES = "tagstore._get_tag_key_and_top_values"
     TAGSTORE__GET_TAG_KEYS_AND_TOP_VALUES = "tagstore._get_tag_keys_and_top_values"
-    TAGSTORE__GET_TAG_KEYS = "tagstore._get_tag_keys"
+    TAGSTORE__GET_TAG_KEYS = "tagstore.__get_tag_keys"
     TAGSTORE_GET_GROUP_LIST_TAG_VALUE = "tagstore.get_group_list_tag_value"
     TAGSTORE_GET_GROUP_TAG_VALUE_ITER = "tagstore.get_group_tag_value_iter"
     TAGSTORE_GET_GROUPS_USER_COUNTS = "tagstore.get_groups_user_counts"
     TAGSTORE_GET_PERF_GROUP_LIST_TAG_VALUE = "tagstore.get_perf_group_list_tag_value"
     TAGSTORE_GET_PERF_GROUPS_USER_COUNTS = "tagstore.get_perf_groups_user_counts"
+    TAGSTORE_GET_GENERIC_GROUP_LIST_TAG_VALUE = "tagstore.get_generic_group_list_tag_value"
+    TAGSTORE_GET_GENERIC_GROUPS_USER_COUNTS = "tagstore.get_generic_groups_user_counts"
     TAGSTORE_GET_RELEASE_TAGS = "tagstore.get_release_tags"
     TAGSTORE_GET_TAG_VALUE_PAGINATOR_FOR_PROJECTS = "tagstore.get_tag_value_paginator_for_projects"
     TASKS_MONITOR_RELEASE_ADOPTION = "tasks.monitor_release_adoption"
@@ -507,28 +530,6 @@ class Referrer(Enum):
         "tasks.process_projects_with_sessions.session_count"
     )
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
-    TSDB_MODELID_1 = "tsdb-modelid:1"
-    TSDB_MODELID_10 = "tsdb-modelid:10"
-    TSDB_MODELID_100 = "tsdb-modelid:100"
-    TSDB_MODELID_101 = "tsdb-modelid:101"
-    TSDB_MODELID_104 = "tsdb-modelid:104"
-    TSDB_MODELID_200 = "tsdb-modelid:200"
-    TSDB_MODELID_201 = "tsdb-modelid:201"
-    TSDB_MODELID_202 = "tsdb-modelid:202"
-    TSDB_MODELID_300 = "tsdb-modelid:300"
-    TSDB_MODELID_302 = "tsdb-modelid:302"
-    TSDB_MODELID_4 = "tsdb-modelid:4"
-    TSDB_MODELID_407 = "tsdb-modelid:407"
-    TSDB_MODELID_601 = "tsdb-modelid:601"
-    TSDB_MODELID_602 = "tsdb-modelid:602"
-    TSDB_MODELID_603 = "tsdb-modelid:603"
-    TSDB_MODELID_604 = "tsdb-modelid:604"
-    TSDB_MODELID_605 = "tsdb-modelid:605"
-    TSDB_MODELID_606 = "tsdb-modelid:606"
-    TSDB_MODELID_607 = "tsdb-modelid:607"
-    TSDB_MODELID_608 = "tsdb-modelid:608"
-    TSDB_MODELID_609 = "tsdb-modelid:609"
-    TSDB_MODELID_610 = "tsdb-modelid:610"
     UNKNOWN = "unknown"
     UNMERGE = "unmerge"
     WEEKLY_REPORTS_KEY_TRANSACTIONS_LAST_WEEK = "weekly_reports.key_transactions.last_week"
@@ -541,6 +542,52 @@ class Referrer(Enum):
     TESTING_TEST = "testing.test"
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
+
+
+TSDBModelReferrer = enum.Enum(
+    "TSDBModelReferrer",
+    {f"TSDB_MODELID_{model.value}": f"tsdb-modelid:{model.value}" for model in TSDBModel},
+)
+
+# specific suffixes that apply to tsdb-modelid referrers, these are optional
+# and are passed around through using `referrer_suffix`.
+TSDB_MODEL_TO_SUFFIXES = {
+    TSDBModel.group: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
+    TSDBModel.group_performance: {
+        "frequency_snoozes",
+        "alert_event_frequency",
+        "alert_event_frequency_percent",
+    },
+    TSDBModel.users_affected_by_group: {"user_count_snoozes", "alert_event_uniq_user_frequency"},
+    TSDBModel.users_affected_by_perf_group: {
+        "user_count_snoozes",
+        "alert_event_uniq_user_frequency",
+    },
+}
+
+
+def generate_enums() -> Mapping[str, str]:
+    enums = {}
+    for model, suffixes in TSDB_MODEL_TO_SUFFIXES.items():
+        for suffix in suffixes:
+            enums[f"TSDB_MODELID_{model.value}_{suffix}"] = f"tsdb-modelid:{model.value}.{suffix}"
+    return enums
+
+
+TSDBModelSuffixReferrer = enum.Enum(
+    "TSDBModelSuffixReferrer",
+    generate_enums(),
+)
+
+
+Referrer = enum.Enum(
+    "Referrer",
+    [(i.name, i.value) for i in chain(ReferrerBase, TSDBModelReferrer, TSDBModelSuffixReferrer)],
+)
 
 
 def validate_referrer(referrer: Optional[str]):

@@ -8,7 +8,7 @@ import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 
 type Props = {
-  alert: ReturnType<typeof AlertStore['getState']>[number];
+  alert: ReturnType<(typeof AlertStore)['getState']>[number];
   system: boolean;
 };
 

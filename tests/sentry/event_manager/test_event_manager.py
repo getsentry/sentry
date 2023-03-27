@@ -40,6 +40,12 @@ from sentry.event_manager import (
 from sentry.eventstore.models import Event
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.issues.grouptype import (
+    ErrorGroupType,
+    GroupCategory,
+    PerformanceNPlusOneGroupType,
+    PerformanceSlowDBQueryGroupType,
+)
 from sentry.models import (
     Activity,
     Commit,
@@ -79,7 +85,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.silo import region_silo_test
 from sentry.types.activity import ActivityType
-from sentry.types.issues import GroupCategory, GroupType
 from sentry.utils import json
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.outcomes import Outcome
@@ -279,6 +284,73 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
+
+        assert group.times_seen == 2
+        assert group.last_seen == event2.datetime
+
+        # After expiry, new events are still assigned to the same group:
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+        event3 = save_event(4)
+        assert event3.group_id == event2.group_id
+
+    def test_applies_downgrade_hierarchical(self):
+        project = self.project
+        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_expiry", 0)
+
+        timestamp = time() - 300
+
+        def save_event(ts_offset):
+            ts = timestamp + ts_offset
+            manager = EventManager(
+                make_event(
+                    message="foo 123",
+                    event_id=hex(2**127 + int(ts))[-32:],
+                    timestamp=ts,
+                    exception={
+                        "values": [
+                            {
+                                "type": "Hello",
+                                "stacktrace": {
+                                    "frames": [
+                                        {
+                                            "function": "not_in_app_function",
+                                        },
+                                        {
+                                            "function": "in_app_function",
+                                        },
+                                    ]
+                                },
+                            }
+                        ]
+                    },
+                )
+            )
+            manager.normalize()
+            with self.tasks():
+                return manager.save(project.id)
+
+        event = save_event(0)
+
+        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
+        project.update_option("sentry:secondary_grouping_config", "mobile:2021-02-12")
+        project.update_option("sentry:secondary_grouping_expiry", time() + (24 * 90 * 3600))
+
+        # Switching to newstyle grouping changes hashes as 123 will be removed
+        event2 = save_event(2)
+
+        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        assert event.group_id == event2.group_id
+
+        group = Group.objects.get(id=event.group_id)
+
+        group_hashes = GroupHash.objects.filter(
+            project=self.project, hash__in=event.get_hashes().hashes
+        )
+        assert group_hashes
+        for hash in group_hashes:
+            assert hash.group_id == event.group_id
 
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
@@ -1368,7 +1440,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
     def test_user_report_gets_environment(self):
         project = self.create_project()
         environment = Environment.objects.create(
-            project_id=project.id, organization_id=project.organization_id, name="production"
+            organization_id=project.organization_id, name="production"
         )
         environment.add_project(project)
 
@@ -2219,6 +2291,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
             assert record.data["slug"] == self.project.slug
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_creation(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -2275,14 +2348,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.location() == "/books/"
             assert group.level == 40
             assert group.issue_category == GroupCategory.PERFORMANCE
-            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            assert group.issue_type == PerformanceNPlusOneGroupType
             assert EventPerformanceProblem.fetch(
                 event, expected_hash
             ).problem == PerformanceProblem(
                 expected_hash,
                 "db",
                 description,
-                GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
+                PerformanceNPlusOneGroupType,
                 ["8dd7a5869a4f4583"],
                 ["9179e43ae844b174"],
                 [
@@ -2297,8 +2370,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                     "88a5ccaf25b9bd8f",
                     "bb32cf50fc56b296",
                 ],
+                {},
+                [],
             )
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_update(self):
         self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
@@ -2309,7 +2385,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             event = manager.save(self.project.id)
             group = event.groups[0]
             assert group.issue_category == GroupCategory.PERFORMANCE
-            assert group.issue_type == GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES
+            assert group.issue_type == PerformanceNPlusOneGroupType
             group.data["metadata"] = {
                 "location": "hi",
                 "title": "lol",
@@ -2337,6 +2413,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert group.message == "nope"
             assert group.culprit == "/books/"
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_error_issue_no_associate_perf_event(self):
         """Test that you can't associate a performance event with an error issue"""
@@ -2354,7 +2431,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.ERROR.value
+            group.type = ErrorGroupType.type_id
             group.save()
             manager = EventManager(make_event(**get_event("n-plus-one-in-django-index-view")))
             manager.normalize()
@@ -2362,6 +2439,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     def test_perf_issue_no_associate_error_event(self):
         """Test that you can't associate an error event with a performance issue"""
@@ -2379,7 +2457,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             # sneakily make the group type wrong
             group = event.groups[0]
-            group.type = GroupType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES.value
+            group.type = PerformanceNPlusOneGroupType.type_id
             group.save()
             manager = EventManager(make_event())
             manager.normalize()
@@ -2387,6 +2465,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
             assert len(event.groups) == 0
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_ignored(self):
@@ -2404,6 +2483,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
             assert event.get_event_type() == "transaction"
             assert data["hashes"] == []
 
+    @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
     def test_perf_issue_creation_over_ignored_threshold(self):
@@ -2437,15 +2517,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
 
     @override_options(
         {
-            "performance.issues.slow_span.problem-creation": 1.0,
+            "performance.issues.slow_db_query.problem-creation": 1.0,
             "performance_issue_creation_rate": 1.0,
+            "performance.issues.all.problem-detection": 1.0,
         }
     )
     @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=True)
-    def test_perf_issue_slow_db_issue_not_created(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        with mock.patch("sentry_sdk.tracing.Span.containing_transaction") as transaction:
+    def test_perf_issue_slow_db_issue_is_created(self):
+        def attempt_to_generate_slow_db_issue() -> Event:
             last_event = None
 
             for _ in range(100):
@@ -2454,29 +2533,17 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin):
                 event = manager.save(self.project.id)
                 last_event = event
 
-            # The group should not be created, but there should be a tag on the transaction
-            assert len(last_event.groups) == 0
-            transaction.set_tag.assert_called_with("_will_create_slow_db_issue", "true")
+            return last_event
 
-    @override_options(
-        {
-            "performance.issues.slow_span.problem-creation": 1.0,
-            "performance_issue_creation_rate": 1.0,
-        }
-    )
-    @override_settings(SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE=False)
-    def test_perf_issue_slow_db_issue_not_created_with_noise_flag_false(self):
-        self.project.update_option("sentry:performance_issue_creation_rate", 1.0)
-
-        last_event = None
-
-        for _ in range(100):
-            manager = EventManager(make_event(**get_event("slow-db-spans")))
-            manager.normalize()
-            event = manager.save(self.project.id)
-            last_event = event
-
+        # Should not create the group without the feature flag
+        last_event = attempt_to_generate_slow_db_issue()
         assert len(last_event.groups) == 0
+
+        with self.feature({"organizations:performance-slow-db-issue": True}):
+            last_event = attempt_to_generate_slow_db_issue()
+
+            assert len(last_event.groups) == 1
+            assert last_event.groups[0].type == PerformanceSlowDBQueryGroupType.type_id
 
 
 class AutoAssociateCommitTest(TestCase, EventManagerTestMixin):

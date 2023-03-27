@@ -37,7 +37,7 @@ jobs:
             2>&1 | tee sync-report.txt
 
       - name: Read sync output into variable
-        uses: actions/github-script@deb7ae927cc19ae3a8b57293dd5cd2f16171e1e2  # v4
+        uses: actions/github-script@d556feaca394842dc55e4734bf3bb9f685482fa0  # v6.3.3
         if: github.event_name == 'pull_request'
         id: github-label-sync
         with:

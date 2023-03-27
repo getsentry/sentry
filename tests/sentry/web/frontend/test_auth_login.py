@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 from urllib.parse import urlencode
@@ -6,6 +7,7 @@ import pytest
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import urlquote
 
 from sentry import newsletter, options
@@ -43,7 +45,10 @@ class AuthLoginTest(TestCase):
 
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/login.html")
-        assert len(resp.context["messages"]) == 1
+
+        messages = list(resp.context["messages"])
+        assert len(messages) == 1
+        assert messages[0].message == "Your session has expired."
 
     def test_login_invalid_password(self):
         # load it once for test cookie
@@ -224,6 +229,7 @@ class AuthLoginTest(TestCase):
         # Invitation was accepted
         assert len(invite_helper.accept_invite.mock_calls) == 1
         assert resp.status_code == 302
+        assert "/organizations/new/" in resp["Location"]
 
     def test_register_renders_correct_template(self):
         options.set("auth.allow-registration", True)
@@ -268,6 +274,35 @@ class AuthLoginTest(TestCase):
         )
         assert resp.status_code == 302
         assert len(invite_helper.accept_invite.mock_calls) == 1
+
+    def test_register_new_user_accepts_invite_using_session(self):
+        invite = self.create_member(
+            email="member@example.com",
+            token="abcdef",
+            token_expires_at=timezone.now() + timedelta(hours=24),
+            organization_id=self.organization.id,
+        )
+        self.session["can_register"] = True
+        self.session["invite_token"] = invite.token
+        self.session["invite_member_id"] = invite.id
+        self.save_session()
+
+        self.client.get(self.path)
+        resp = self.client.post(
+            self.path,
+            {
+                "username": "member@example.com",
+                "password": "foobar",
+                "name": "Foo Bar",
+                "op": "register",
+            },
+        )
+        assert resp.status_code == 302
+        assert f"/organizations/{self.organization.slug}/issues/" in resp["Location"]
+        invite.refresh_from_db()
+        assert invite.user_id
+        assert invite.token is None
+        assert invite.user.username == "member@example.com"
 
     def test_redirects_to_relative_next_url(self):
         next = "/welcome"
@@ -431,6 +466,37 @@ class AuthLoginCustomerDomainTest(TestCase):
     def path(self):
         return reverse("sentry-login")
 
+    def test_renders_correct_template_existent_org(self):
+        resp = self.client.get(
+            self.path,
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
+        self.assertTemplateUsed("sentry/organization-login.html")
+
+    def test_renders_correct_template_existent_org_preserve_querystring(self):
+        resp = self.client.get(
+            f"{self.path}?one=two",
+            HTTP_HOST=f"{self.organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert resp.status_code == 200
+        assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/?one=two", 302)]
+        self.assertTemplateUsed("sentry/organization-login.html")
+
+    def test_renders_correct_template_nonexistent_org(self):
+        resp = self.client.get(
+            self.path,
+            HTTP_HOST="does-not-exist.testserver",
+        )
+
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/login.html")
+
     def test_login_valid_credentials(self):
         # load it once for test cookie
         self.client.get(self.path)
@@ -446,6 +512,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             ("http://albertos-apples.testserver/auth/login/", 302),
             ("http://testserver/organizations/new/", 302),
         ]
+        self.assertTemplateUsed("sentry/login.html")
 
     def test_login_valid_credentials_with_org(self):
         self.create_organization(name="albertos-apples", owner=self.user)
@@ -535,6 +602,25 @@ class AuthLoginCustomerDomainTest(TestCase):
     def test_login_valid_credentials_orgless(self):
         user = self.create_user()
         self.create_organization(name="albertos-apples")
+        with override_settings(MIDDLEWARE=tuple(provision_middleware())):
+            # load it once for test cookie
+            self.client.get(self.path)
+
+            resp = self.client.post(
+                self.path,
+                {"username": user.username, "password": "admin", "op": "login"},
+                SERVER_NAME="albertos-apples.testserver",
+                follow=True,
+            )
+
+            assert resp.status_code == 200
+            assert resp.redirect_chain == [
+                ("http://albertos-apples.testserver/auth/login/", 302),
+                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
+            ]
+
+    def test_login_valid_credentials_org_does_not_exist(self):
+        user = self.create_user()
         with override_settings(MIDDLEWARE=tuple(provision_middleware())):
             # load it once for test cookie
             self.client.get(self.path)

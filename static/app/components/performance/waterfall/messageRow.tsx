@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {ROW_HEIGHT} from 'sentry/components/performance/waterfall/constants';
 import {Row} from 'sentry/components/performance/waterfall/row';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 export const MessageRow = styled(Row)`
   display: block;

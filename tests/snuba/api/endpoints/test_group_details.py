@@ -16,7 +16,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
+@region_silo_test(stable=True)
 class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_multiple_environments(self):
         group = self.create_group()
@@ -183,7 +183,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             project=event.project,
             organization=event.project.organization,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user=self.user,
+            user_id=self.user.id,
         )
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content

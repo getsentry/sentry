@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import {PanelHeader} from 'sentry/components/panels';
 import {t} from 'sentry/locale';
-import space from 'sentry/styles/space';
+import {space} from 'sentry/styles/space';
 
 type Props = {
   withChart: boolean;
@@ -46,6 +46,7 @@ const IssueWrapper = styled(Heading)`
 const EventUserWrapper = styled(Heading)`
   justify-content: flex-end;
   width: 60px;
+  white-space: nowrap;
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;
