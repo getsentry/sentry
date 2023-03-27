@@ -52,7 +52,7 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     # This field represents the date of the upload that we show in the UI.
     date_uploaded = models.DateTimeField(default=timezone.now)
 
