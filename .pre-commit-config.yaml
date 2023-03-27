@@ -60,6 +60,8 @@ repos:
       require_serial: true
       additional_dependencies: [ "pyright@1.1.186" ]
       args: [ '--project', 'pyrightconfig-commithook.json' ]
+    # You can use `SKIP=prevent-push git push` to skip this hook in an
+    # emergency.
     - id: prevent-push
       name: prevent pushing master
       stages: [push]
