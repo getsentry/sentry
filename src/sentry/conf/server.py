@@ -1031,8 +1031,6 @@ SENTRY_FEATURES = {
     "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
-    # Enables codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.

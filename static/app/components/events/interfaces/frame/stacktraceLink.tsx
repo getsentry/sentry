@@ -116,14 +116,12 @@ function shouldShowCodecovFeatures(
   organization: Organization,
   match: StacktraceLinkResult
 ) {
-  const enabled =
-    organization.features.includes('codecov-stacktrace-integration') &&
-    organization.codecovAccess;
-
   const codecovStatus = match.codecov?.status;
   const validStatus = codecovStatus && codecovStatus !== CodecovStatusCode.NO_INTEGRATION;
 
-  return enabled && validStatus && match.config?.provider.key === 'github';
+  return (
+    organization.codecovAccess && validStatus && match.config?.provider.key === 'github'
+  );
 }
 
 function shouldShowCodecovPrompt(
