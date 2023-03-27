@@ -1,4 +1,3 @@
-import ObjectInspector from 'sentry/components/objectInspector';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -50,7 +49,7 @@ export function getDescription(crumb: Crumb) {
     case BreadcrumbType.NAVIGATION:
       return `${crumbData?.to ?? ''}`;
     case BreadcrumbType.DEFAULT:
-      return <ObjectInspector data={crumbData} />;
+      return crumbData;
     default:
       return crumb.message || '';
   }

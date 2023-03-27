@@ -1,4 +1,4 @@
-import {CSSProperties, memo, useCallback} from 'react';
+import {CSSProperties, memo, MouseEvent, useCallback} from 'react';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import type {Crumb} from 'sentry/types/breadcrumbs';
@@ -6,19 +6,30 @@ import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 interface Props {
   breadcrumb: Crumb;
+  index: number;
   isCurrent: boolean;
   isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
   breadcrumbIndex?: number[][];
+  expandPaths?: string[];
+  onDimensionChange?: (
+    index: number,
+    path: string,
+    expandedState: Record<string, boolean>,
+    event: MouseEvent<HTMLDivElement>
+  ) => void;
 }
 
 function BreadcrumbRow({
   breadcrumb,
+  expandPaths,
+  index,
+  isCurrent,
+  onDimensionChange,
+  isHovered,
   startTimestampMs,
   style,
-  isCurrent,
-  isHovered,
 }: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
@@ -38,6 +49,7 @@ function BreadcrumbRow({
 
   return (
     <BreadcrumbItem
+      index={index}
       crumb={breadcrumb}
       isCurrent={isCurrent}
       isHovered={isHovered}
@@ -46,6 +58,8 @@ function BreadcrumbRow({
       onMouseLeave={onMouseLeave}
       startTimestampMs={startTimestampMs}
       style={style}
+      expandPaths={expandPaths}
+      onDimensionChange={onDimensionChange}
     />
   );
 }
