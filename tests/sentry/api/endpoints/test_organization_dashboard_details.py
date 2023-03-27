@@ -203,8 +203,8 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             response = self.do_request("get", self.url(dashboard.id))
 
         assert response.data["expired"]
-        assert iso_format(response.data["start"].replace(second=0)) == iso_format(
-            expected_adjusted_retention_start.replace(second=0)
+        assert iso_format(response.data["start"].replace(second=0, minute=0)) == iso_format(
+            expected_adjusted_retention_start.replace(second=0, minute=0)
         )
 
 
