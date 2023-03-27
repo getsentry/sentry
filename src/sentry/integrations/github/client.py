@@ -11,7 +11,7 @@ from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions.base import ApiError, NotWorkingInstallation, ServerError
 from sentry.utils import jwt
 from sentry.utils.cache import cache
 from sentry.utils.json import JSONData
@@ -252,14 +252,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         only_use_cache = False
 
         remaining_requests = MINIMUM_REQUESTS
-        try:
-            rate_limit = self.get_rate_limit()
-            remaining_requests = rate_limit.remaining
-            logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
-        except ApiError:
+        # This call only raises if it requires to abort the task
+        rate_limit = self._get_rate_limit()
+        if not rate_limit:
             only_use_cache = True
-            # Report so we can investigate
-            logger.exception("Loading trees from cache. Execution will continue. Check logs.")
 
         for index, repo_info in enumerate(repositories):
             repo_full_name = repo_info["full_name"]
@@ -289,6 +285,37 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                 )
 
         return trees
+
+    def _get_rate_limit(self) -> GithubRateLimitInfo:
+        rate_limit = None
+        try:
+            rate_limit = self.get_rate_limit()
+            logger.info("Current rate limit info.", extra={"rate_limit": rate_limit})
+        except ApiError as error:
+            msg = error.text
+            if error.json:
+                json_data: JSONData = error.json
+                msg = json_data.get("message")
+
+            if error.code == 500:
+                logger.warning("Github unavailable at the moment. Aborting.")
+                # Catch this at the task level
+                raise ServerError(error)
+
+            # The Although message
+            if msg.startswith(
+                "Although you appear to have the correct authorization credentials"
+            ) or msg in ("This installation has been suspended", "Not Found"):
+                # XXX: Ideally we should disable the integration and would not try until
+                # the customer fixes the installation
+                logger.warning("This org has a non working Github installation. Aborting.")
+                # Catch this at the task level
+                raise NotWorkingInstallation(error)
+            else:
+                # Report so we can investigate
+                raise error
+
+        return rate_limit
 
     def _populate_tree(
         self, repo_info: Dict[str, str], only_use_cache: bool, cache_seconds: int

@@ -37,3 +37,14 @@ class ApiError(Exception):
         elif response.status_code == 429:
             return ApiRateLimitedError(response.text)
         return cls(response.text, response.status_code, url=url)
+
+
+# When there's a problem with the installation of the integration
+# Customer intervention is required
+class NotWorkingInstallation(Exception):
+    pass
+
+
+# When the 3rd party integration returns server errors (5xx)
+class ServerError(Exception):
+    pass

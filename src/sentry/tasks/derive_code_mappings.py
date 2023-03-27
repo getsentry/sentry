@@ -15,7 +15,7 @@ from sentry.models.integrations.repository_project_path_config import Repository
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import RpcOrganizationIntegration, integration_service
-from sentry.shared_integrations.exceptions.base import ApiError
+from sentry.shared_integrations.exceptions.base import ApiError, NotWorkingInstallation, ServerError
 from sentry.tasks.base import instrumented_task
 from sentry.utils.json import JSONData
 from sentry.utils.locking import UnableToAcquireLock
@@ -116,6 +116,8 @@ def derive_code_mappings(
             trees = installation.get_trees_for_org()  # type: ignore
     except ApiError as error:
         process_error(error, extra)
+        return
+    except (ServerError, NotWorkingInstallation):
         return
     except UnableToAcquireLock as error:
         extra["error"] = error
