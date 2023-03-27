@@ -133,6 +133,8 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+CONF_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # XXX(dcramer): handle case when we've installed from source vs just running
 # this straight out of the repository
 if "site-packages" in __file__:
@@ -1141,8 +1143,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
-    # Use a larger sample size & merge threshold for transaction clustering.
-    "organizations:transaction-name-clusterer-2x": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.

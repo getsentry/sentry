@@ -98,7 +98,7 @@ describe('Project Ownership', () => {
       screen.getByText(`path:raven/base.py ${user.email}`, {exact: false})
     ).toBeInTheDocument();
     expect(
-      screen.getByText(`url:https://example.com/path ${user.email}`, {exact: false})
+      screen.getByText(`url:*/path ${user.email}`, {exact: false})
     ).toBeInTheDocument();
 
     // Rule builder hidden TODO: remove when streamline-targeting-context is GA

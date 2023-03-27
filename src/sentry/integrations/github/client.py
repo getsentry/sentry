@@ -226,6 +226,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.warning(f"Github failed to respond. {msg}.", extra=extra)
         elif txt == "Bad credentials":
             logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+        elif txt == "Connection reset by peer":
+            logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+        elif txt == "Connection broken: invalid chunk length":
+            logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
         elif txt.startswith("Unable to reach host:"):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
         elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
