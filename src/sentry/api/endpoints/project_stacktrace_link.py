@@ -268,11 +268,9 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):  # type: ignore
                 should_get_coverage = codecov_enabled(project.organization, request.user)
                 scope.set_tag("codecov.enabled", should_get_coverage)
                 if should_get_coverage:
-                    codecov_data, err = fetch_codecov_data(config=current_config)
+                    codecov_data = fetch_codecov_data(config=current_config)
                     if codecov_data:
                         result["codecov"] = codecov_data
-                    if err:
-                        logger.exception(err)
             try:
                 set_tags(scope, result)
             except Exception:
