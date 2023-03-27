@@ -17,6 +17,7 @@ import marked from 'sentry/utils/marked';
 import {useQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {useCustomerPolicies} from 'sentry/views/issueDetails/openAIFixSuggestion/useCustomerPolicies';
 import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
@@ -42,7 +43,7 @@ export function OpenAIFixSuggestionPanel({eventID, projectSlug}: Props) {
   const organization = useOrganization();
   const router = useRouter();
   const showSuggestedFix = !!router.location.query.showSuggestedFix;
-  const hasSignedDPA = false;
+  const {hasSignedDPA} = useCustomerPolicies();
   const [agreedForwardDataToOpenAI] = useOpenAISuggestionLocalStorage();
   const [expandedSuggestedFix, setExpandedSuggestedFix] = useState(showSuggestedFix);
 

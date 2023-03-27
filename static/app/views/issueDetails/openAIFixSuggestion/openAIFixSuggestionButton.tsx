@@ -7,6 +7,7 @@ import {t} from 'sentry/locale';
 import {Group} from 'sentry/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import {useCustomerPolicies} from 'sentry/views/issueDetails/openAIFixSuggestion/useCustomerPolicies';
 import {useOpenAISuggestionLocalStorage} from 'sentry/views/issueDetails/openAIFixSuggestion/useOpenAISuggestionLocalStorage';
 import {experimentalFeatureTooltipDesc} from 'sentry/views/issueDetails/openAIFixSuggestion/utils';
 
@@ -27,10 +28,10 @@ export function OpenAIFixSuggestionButton({
 }: Props) {
   const organization = useOrganization();
   const router = useRouter();
-  const hasSignedDPA = false;
 
   const [agreedForwardDataToOpenAI, setAgreedForwardDataToOpenAI] =
     useOpenAISuggestionLocalStorage();
+  const {hasSignedDPA} = useCustomerPolicies();
 
   const handleShowAISuggestion = useCallback(() => {
     router.push({
