@@ -23,6 +23,7 @@ export type IssueEventParameters = {
     platform?: string;
     project_id?: string;
   };
+  'inbox_tab.clicked': {query: string};
   'inbox_tab.issue_clicked': {
     group_id: string;
   };
@@ -232,4 +233,5 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',
   'issue_details.event_details_clicked': 'Issue Details: Full Event Details Clicked',
   'issue_details.header_view_replay_clicked': 'Issue Details: Header View Replay Clicked',
+  'inbox_tab.clicked': 'Clicked Inbox Tab',
 };

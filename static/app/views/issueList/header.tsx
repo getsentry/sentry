@@ -16,7 +16,7 @@ import {IconPause, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {Organization} from 'sentry/types';
-import {trackAnalyticsEvent} from 'sentry/utils/analytics';
+import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAnalyticsEvent';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IssueListSetAsDefault from 'sentry/views/issueList/issueListSetAsDefault';
@@ -96,11 +96,7 @@ function IssueListHeader({
   function trackTabClick(tabQuery: string) {
     // Clicking on inbox tab and currently another tab is active
     if (tabQuery === Query.FOR_REVIEW && query !== Query.FOR_REVIEW) {
-      trackAnalyticsEvent({
-        eventKey: 'inbox_tab.clicked',
-        eventName: 'Clicked Inbox Tab',
-        organization_id: organization.id,
-      });
+      trackAdvancedAnalyticsEvent('inbox_tab.clicked', {organization, query: tabQuery});
     }
   }
 
