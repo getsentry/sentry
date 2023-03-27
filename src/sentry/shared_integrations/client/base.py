@@ -12,7 +12,7 @@ from sentry.http import build_session
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
 
-from ..exceptions import ApiHostError, ApiTimeoutError
+from ..exceptions import ApiConnectionResetError, ApiHostError, ApiTimeoutError
 from ..exceptions.base import ApiError
 from ..response.base import BaseApiResponse
 from ..track_response import TrackResponseMixin
@@ -156,6 +156,24 @@ class BaseApiClient(TrackResponseMixin):
                     raise ApiError("Internal Error", url=full_url) from e
                 self.track_response_data(resp.status_code, span, e)
                 raise ApiError.from_response(resp, url=full_url) from e
+
+            except Exception as e:
+                # Sometimes a ConnectionResetError shows up two or three deep in an exception
+                # chain, and you end up with an exception like
+                #     `ChunkedEncodingError("Connection broken: ConnectionResetError(104, 'Connection reset by peer')",
+                #          ConnectionResetError(104, 'Connection reset by peer'))`,
+                # which is a ChunkedEncodingError caused by a ProtocolError caused by a ConnectionResetError.
+                # Rather than worrying about what the other layers might be, we just stringify to detect this.
+                if "ConnectionResetError" in str(e):
+                    self.track_response_data("connection_reset_error", span, e)
+                    raise ApiConnectionResetError("Connection reset by peer", url=full_url) from e
+                # The same thing can happen with an InvalidChunkLength exception, which is a subclass of HTTPError
+                if "InvalidChunkLength" in str(e):
+                    self.track_response_data("invalid_chunk_length", span, e)
+                    raise ApiError("Connection broken: invalid chunk length", url=full_url) from e
+
+                # If it's not something we recognize, let the caller deal with it
+                raise e
 
             self.track_response_data(resp.status_code, span, None, resp)
 

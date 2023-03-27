@@ -1,12 +1,24 @@
+import errno
 from time import time
 from unittest import mock
 
+import pytest
 import responses
+from requests import Response
+from requests.exceptions import ConnectionError, HTTPError, Timeout
+from urllib3.exceptions import InvalidChunkLength
+from urllib3.response import HTTPResponse
 
 from sentry.identity import register
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.client import ApiClient, OAuth2RefreshMixin
 from sentry.models import Identity, IdentityProvider
+from sentry.shared_integrations.exceptions import (
+    ApiConnectionResetError,
+    ApiHostError,
+    ApiTimeoutError,
+)
+from sentry.shared_integrations.exceptions.base import ApiError
 from sentry.testutils import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -141,6 +153,123 @@ class ApiClientTest(TestCase):
         )
         resp = ApiClient().delete("http://example.com/3", allow_redirects=True)
         assert resp.status_code == destination_status
+
+    def test_connection_error_handling(self):
+        """
+        Test handling of `ConnectionError`s raised by the `requests` library. (It's worth specifying
+        because we also handle built-in `ConnectionError`s (specifically, `ConnectionResetError`s`).)
+        """
+        client = ApiClient()
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=ConnectionError("foo"),
+            ):
+                with pytest.raises(ApiHostError):
+                    client.get("http://example.com")
+                    assert track_response_data_spy.call_args.args[0] == "connection_error"
+
+    def test_timeout_handling(self):
+        """Test handling of `Timeout` errors"""
+        client = ApiClient()
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=Timeout("foo"),
+            ):
+                with pytest.raises(ApiTimeoutError):
+                    client.get("http://example.com")
+                    assert track_response_data_spy.call_args.args[0] == "timeout"
+
+    def test_http_error_handling_with_response(self):
+        """
+        Test handling of `HTTPError`s raised by the `requests` library. (It's worth specifying
+        because we also handle `HTTPError`s (specifically, `InvalidChunkLength` errors) from `urllib3`.)
+        """
+        client = ApiClient()
+        mock_error_response = Response()
+        mock_error_response.status_code = 500
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=HTTPError("foo", response=mock_error_response),
+            ):
+                with pytest.raises(ApiError):
+                    client.get("http://example.com")
+                    assert track_response_data_spy.call_args.args[0] == 500
+
+    def test_http_error_handling_without_response(self):
+        """
+        Test handling of `HTTPError`s raised by the `requests` library. (It's worth specifying
+        because we also handle `HTTPError`s (specifically, `InvalidChunkLength` errors) from `urllib3`.)
+        """
+        client = ApiClient()
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=HTTPError("foo", response=None),
+            ):
+                with pytest.raises(ApiError):
+                    client.get("http://example.com")
+                    assert track_response_data_spy.call_args.args[0] == "unknown"
+
+    def test_chained_connection_reset_error_handling(self):
+        """Test handling of errors caused by `ConnectionResetError` errors"""
+        client = ApiClient()
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            chained_error = ConnectionResetError(errno.ECONNRESET, "Connection reset by peer")
+            caught_error = Exception(
+                errno.ECONNRESET, 'ConnectionResetError(104, "Connection reset by peer")'
+            )
+            caught_error.__cause__ = chained_error
+
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=caught_error,
+            ):
+                with pytest.raises(ApiConnectionResetError):
+                    client.get("http://example.com")
+                    assert track_response_data_spy.call_args.args[0] == "connection_reset_error"
+
+    def test_chained_invalid_chunk_length_error_handling(self):
+        """Test handling of errors caused by `InvalidChunkLength` errors"""
+        client = ApiClient()
+        mock_error_response = HTTPResponse()
+
+        with mock.patch.object(
+            client, "track_response_data", wraps=client.track_response_data
+        ) as track_response_data_spy:
+            chained_error = InvalidChunkLength(mock_error_response, "")
+            caught_error = Exception(
+                "Connection broken: InvalidChunkLength(got length b'', 0 bytes read)"
+            )
+            caught_error.__cause__ = chained_error
+
+            with mock.patch(
+                "requests.sessions.Session.get",
+                side_effect=caught_error,
+            ):
+                with pytest.raises(ApiError):
+                    client.get("http://example.com")
+                    assert (
+                        track_response_data_spy.call_args.args[0]
+                        == "Connection broken: invalid chunk length"
+                    )
 
 
 class OAuthProvider(OAuth2Provider):

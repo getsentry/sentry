@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import errno
 from typing import Any, Mapping
 from urllib.parse import urlparse
 
@@ -10,6 +11,7 @@ from rest_framework.response import Response
 from .base import ApiError
 
 __all__ = (
+    "ApiConnectionResetError",
     "ApiError",
     "ApiHostError",
     "ApiTimeoutError",
@@ -55,6 +57,10 @@ class ApiUnauthorized(ApiError):
 
 class ApiRateLimitedError(ApiError):
     code = 429
+
+
+class ApiConnectionResetError(ApiError):
+    code = errno.ECONNRESET
 
 
 class UnsupportedResponseType(ApiError):
