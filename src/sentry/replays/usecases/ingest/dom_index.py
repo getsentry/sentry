@@ -1,7 +1,6 @@
 import time
 import uuid
-import zlib
-from typing import List, Literal, Optional, TypedDict
+from typing import Any, Dict, List, Literal, Optional, TypedDict
 
 from django.conf import settings
 
@@ -48,10 +47,10 @@ def parse_and_emit_replay_actions(
     project_id: int,
     replay_id: str,
     retention_days: int,
-    segment_bytes: bytes,
+    segment_data: List[Dict[str, Any]],
 ) -> None:
     with metrics.timer("replays.usecases.ingest.dom_index.parse_and_emit_replay_actions"):
-        message = parse_replay_actions(project_id, replay_id, retention_days, segment_bytes)
+        message = parse_replay_actions(project_id, replay_id, retention_days, segment_data)
         if message is not None:
             publisher = _initialize_publisher()
             publisher.publish("ingest-replay-events", json.dumps(message))
@@ -61,10 +60,10 @@ def parse_replay_actions(
     project_id: int,
     replay_id: str,
     retention_days: int,
-    segment_bytes: bytes,
+    segment_data: List[Dict[str, Any]],
 ) -> Optional[ReplayActionsEvent]:
     """Parse RRWeb payload to ReplayActionsEvent."""
-    actions = get_user_actions(segment_bytes)
+    actions = get_user_actions(segment_data)
     if len(actions) == 0:
         return None
 
@@ -99,11 +98,9 @@ def create_replay_actions_payload(
     }
 
 
-def get_user_actions(segment_data: bytes) -> List[ReplayActionsEventPayloadClick]:
+def get_user_actions(events: List[Dict[str, Any]]) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
-    events = json.loads(decompress(segment_data))
     result = []
-
     for event in events:
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
@@ -128,14 +125,6 @@ def get_user_actions(segment_data: bytes) -> List[ReplayActionsEventPayloadClick
                 )
 
     return result
-
-
-def decompress(data: bytes) -> bytes:
-    """Return decompressed bytes."""
-    if data.startswith(b"["):
-        return data
-    else:
-        return zlib.decompress(data, zlib.MAX_WBITS | 32)
 
 
 def _initialize_publisher() -> KafkaPublisher:

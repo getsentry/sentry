@@ -1,25 +1,10 @@
-import zlib
-
 from sentry.utils import json
-from src.sentry.replays.usecases.ingest.dom_index import (
-    decompress,
-    get_user_actions,
-    parse_replay_actions,
-)
-
-
-def test_decompress():
-    """Test "decompress" function."""
-    data = b"[]"
-    assert decompress(data) == data
-
-    compressed_data = zlib.compress(data)
-    assert decompress(compressed_data) == data
+from src.sentry.replays.usecases.ingest.dom_index import get_user_actions, parse_replay_actions
 
 
 def test_get_user_actions():
     """Test "get_user_actions" function."""
-    data = [
+    events = [
         {
             "type": 5,
             "timestamp": 1674298825,
@@ -52,7 +37,7 @@ def test_get_user_actions():
         }
     ]
 
-    user_actions = get_user_actions(zlib.compress(json.dumps(data).encode()))
+    user_actions = get_user_actions(events)
     assert len(user_actions) == 1
     assert user_actions[0]["node_id"] == 1
     assert user_actions[0]["tag"] == "div"
@@ -69,7 +54,7 @@ def test_get_user_actions():
 
 
 def test_parse_replay_actions():
-    event = [
+    events = [
         {
             "type": 5,
             "timestamp": 1674291701348,
@@ -101,7 +86,7 @@ def test_parse_replay_actions():
             },
         }
     ]
-    replay_actions = parse_replay_actions(1, "1", 30, json.dumps(event).encode())
+    replay_actions = parse_replay_actions(1, "1", 30, events)
 
     assert replay_actions["type"] == "replay_event"
     assert isinstance(replay_actions["start_time"], float)
