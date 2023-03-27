@@ -10,7 +10,6 @@ from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
 
-@apply_feature_flag_on_cls("organizations:codecov-stacktrace-integration")
 @apply_feature_flag_on_cls("organizations:auto-enable-codecov")
 class AutoEnableCodecovTest(TestCase):
     def setUp(self):
