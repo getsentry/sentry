@@ -127,7 +127,7 @@ _global_service_registry: Dict[str, DelegatingRpcService] = {}
 class RpcService(InterfaceWithLifecycle):
     """A set of methods to be exposed as part of the RPC interface.
 
-    Extend this class to declare a "base service" where the methhod interfaces are
+    Extend this class to declare a "base service" where the method interfaces are
     declared and decorated by `@rpc_service`. Then extend that base service class
     with the local (database-backed) implementation.
 
