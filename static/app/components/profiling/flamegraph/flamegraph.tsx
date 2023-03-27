@@ -383,7 +383,7 @@ function Flamegraph(): ReactElement {
           const newConfigView = computeMinZoomConfigViewForFrames(
             newView.configView,
             rectFrames
-          );
+          ).transformRect(newView.configSpaceTransform);
           newView.setConfigView(newConfigView);
           return newView;
         }
