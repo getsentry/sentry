@@ -26,7 +26,6 @@ export const makeSentrySampledProfile = (
         model: 'iPhone14,3',
       },
       timestamp: '2022-09-01T09:45:00.000Z',
-      release: '0.1 (199)',
       platform: 'cocoa',
       profile: {
         samples: [
