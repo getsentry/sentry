@@ -8,14 +8,17 @@ import {
 export type UIFrameNode = {
   duration: number;
   end: number;
-  node: Profiling.FrameRender;
+  node: Profiling.MeasurementValue;
   start: number;
   type: 'slow' | 'frozen';
 };
 
 type FrameRenders = NonNullable<Profiling.Schema['measurements']>;
 
-function sortFramesByStartedTime(a: Profiling.FrameRender, b: Profiling.FrameRender) {
+function sortFramesByStartedTime(
+  a: Profiling.MeasurementValue,
+  b: Profiling.MeasurementValue
+) {
   return a.elapsed_since_start_ns - a.value - (b.elapsed_since_start_ns - b.value);
 }
 
