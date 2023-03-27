@@ -6,7 +6,6 @@ from uuid import uuid4
 import click
 from django.utils import timezone
 
-from sentry.models import ArtifactBundle
 from sentry.runner.decorators import log_options
 
 # allows services like tagstore to add their own (abstracted) models
@@ -256,11 +255,11 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             for item in queryset:
                 item.delete_file()
 
-        if is_filtered(ArtifactBundle):
+        if is_filtered(models.ArtifactBundle):
             if not silent:
                 click.echo(">> Skipping ArtifactBundle files")
         else:
-            ArtifactBundle.delete_old_entries(expired_threshold=days)
+            models.ArtifactBundle.delete_old_entries(expired_threshold=days)
 
         project_id = None
         if project:
