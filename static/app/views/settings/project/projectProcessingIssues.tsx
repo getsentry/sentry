@@ -328,7 +328,9 @@ class ProjectProcessingIssues extends Component<Props, State> {
             <Tag tooltipText={t('Latest Release Observed with Issue')}>
               {release ? <Version version={release} /> : t('none')}
             </Tag>{' '}
-            <Tag tooltipText={t('Latest Distribution Observed with Issue')}>{dist || t('none')}</Tag>
+            <Tag tooltipText={t('Latest Distribution Observed with Issue')}>
+              {dist || t('none')}
+            </Tag>
           </div>
         )}
       </span>
