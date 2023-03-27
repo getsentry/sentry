@@ -1,8 +1,7 @@
 import logging
 import time
-from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Iterator, List, Tuple
+from typing import Iterator, List, Tuple
 
 from snuba_sdk import (
     Column,
@@ -11,7 +10,6 @@ from snuba_sdk import (
     Entity,
     Function,
     Granularity,
-    LimitBy,
     Op,
     OrderBy,
     Query,
@@ -32,7 +30,9 @@ MAX_PROJECTS_PER_QUERY = 5000
 MAX_TRANSACTIONS_PER_PROJECT = 20
 
 
-def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[List[int]]:
+def get_orgs_with_project_counts_without_modulo(
+    max_orgs: int, max_projects: int
+) -> Iterator[List[int]]:
     """
     Fetch organisations in batches.
     A batch will return at max max_orgs elements
@@ -99,97 +99,3 @@ def get_orgs_with_project_counts(max_orgs: int, max_projects: int) -> Iterator[L
             break
     if len(last_result) > 0:
         yield [org_id for org_id, _ in last_result]
-
-
-def fetch_projects_with_total_volumes(
-    org_ids: List[int], max_transactions=MAX_TRANSACTIONS_PER_PROJECT
-) -> Any:
-    """ """
-    aggregated_projects = defaultdict(list)
-    start_time = time.time()
-    offset = 0
-    org_ids = list(org_ids)
-    transaction_string_id = indexer.resolve_shared_org("decision")
-    transaction_tag = f"tags_raw[{transaction_string_id}]"
-    metric_id = indexer.resolve_shared_org(str(TransactionMRI.COUNT_PER_ROOT_PROJECT.value))
-
-    keep_count = Function(
-        "count",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "keep"],
-            )
-        ],
-        alias="keep_count",
-    )
-    drop_count = Function(
-        "count",
-        [
-            Function(
-                "equals",
-                [Column(transaction_tag), "drop"],
-            )
-        ],
-        alias="drop_count",
-    )
-
-    while (time.time() - start_time) < MAX_SECONDS:
-        query = (
-            Query(
-                match=Entity(EntityKey.GenericOrgMetricsCounters.value),
-                select=[
-                    Function("sum", [Column("value")], "root_count_value"),
-                    Column("org_id"),
-                    Column("project_id"),
-                    keep_count,
-                    drop_count,
-                ],
-                groupby=[
-                    Column("org_id"),
-                    Column("project_id"),
-                ],
-                where=[
-                    Condition(Column("timestamp"), Op.GTE, datetime.utcnow() - timedelta(days=6)),
-                    Condition(Column("timestamp"), Op.LT, datetime.utcnow()),
-                    Condition(Column("metric_id"), Op.EQ, metric_id),
-                    Condition(Column("org_id"), Op.IN, org_ids),
-                ],
-                granularity=Granularity(3600),
-                orderby=[
-                    OrderBy(Column("org_id"), Direction.ASC),
-                    OrderBy(Column("project_id"), Direction.ASC),
-                ],
-            )
-            .set_limitby(
-                LimitBy(columns=[Column("org_id"), Column("project_id")], count=max_transactions)
-            )
-            .set_limit(CHUNK_SIZE + 1)
-            .set_offset(offset)
-        )
-        request = Request(
-            dataset=Dataset.PerformanceMetrics.value, app_id="dynamic_sampling", query=query
-        )
-        data = raw_snql_query(
-            request,
-            referrer=Referrer.DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT.value,
-        )["data"]
-        count = len(data)
-        more_results = count > CHUNK_SIZE
-        offset += CHUNK_SIZE
-
-        if more_results:
-            data = data[:-1]
-
-        for row in data:
-            aggregated_projects[row["org_id"]].append((row["project_id"], row["root_count_value"]))
-
-        if not more_results:
-            break
-    else:
-        logger.error(
-            "",
-            extra={"offset": offset},
-        )
-
-    return None
