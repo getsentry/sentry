@@ -8,7 +8,12 @@ import sentry_sdk
 
 from sentry.integrations.client import ApiClient
 from sentry.integrations.github.utils import get_jwt, get_next_link
-from sentry.integrations.utils.code_mapping import Repo, RepoTree, filter_source_code_files
+from sentry.integrations.utils.code_mapping import (
+    MAX_CONNECTION_ERRORS,
+    Repo,
+    RepoTree,
+    filter_source_code_files,
+)
 from sentry.models import Integration, Repository
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.shared_integrations.exceptions.base import ApiError
@@ -261,6 +266,7 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         """
         trees: Dict[str, RepoTree] = {}
         only_use_cache = False
+        connection_error_count = 0
 
         remaining_requests = MINIMUM_REQUESTS
         try:
@@ -292,12 +298,21 @@ class GitHubClientMixin(ApiClient):  # type: ignore
                     repo_info, only_use_cache, (3600 * 24) + (3600 * (index % 24))
                 )
             except ApiError as error:
-                self._populate_trees_process_error(error, extra)
+                should_count_error = self._populate_trees_process_error(error, extra)
+                if should_count_error:
+                    connection_error_count += 1
             except Exception:
                 # Report for investigation but do not stop processing
                 logger.exception(
                     "Failed to populate_tree. Investigate. Contining execution.", extra=extra
                 )
+
+            if connection_error_count >= MAX_CONNECTION_ERRORS:
+                logger.warning(
+                    "Falling back to the cache because we've hit too many errors connecting to GitHub.",
+                    extra=extra,
+                )
+                only_use_cache = True
 
         return trees
 
