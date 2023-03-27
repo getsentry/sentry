@@ -112,9 +112,9 @@ class ProcessingIssueManager(BaseManager):
         data = dict(data or {})
         data["_scope"] = scope
         data["_object"] = object
-        if release is not None:
+        if release:
             data["release"] = release
-            if dist is not None:
+            if dist:
                 data["dist"] = dist
 
         issue, created = ProcessingIssue.objects.get_or_create(
@@ -124,7 +124,7 @@ class ProcessingIssueManager(BaseManager):
 
         if not created:
             prev_release = issue.data.get("release")
-            if release is not None and self.is_release_newer(
+            if release and self.is_release_newer(
                 raw_event.project.organization.id, release, prev_release
             ):
                 issue.data["release"] = release
@@ -136,7 +136,7 @@ class ProcessingIssueManager(BaseManager):
                 if "dist" in issue.data:
                     issue.data.pop("dist")
 
-                if dist is not None:
+                if dist:
                     issue.data["dist"] = dist
 
         # We want to save the updated data.
