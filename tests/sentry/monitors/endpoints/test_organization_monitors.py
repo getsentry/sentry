@@ -58,6 +58,16 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
             ],
         )
 
+    def test_monitor_environment(self):
+        monitor = self._create_monitor()
+        self._create_monitor_environment(monitor)
+
+        monitor_hidden = self._create_monitor(name="hidden")
+        self._create_monitor_environment(monitor_hidden, name="hidden")
+
+        response = self.get_success_response(self.organization.slug, environment="production")
+        self.check_valid_response(response, [monitor])
+
 
 @region_silo_test(stable=True)
 class CreateOrganizationMonitorTest(MonitorTestCase):

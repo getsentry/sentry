@@ -6,7 +6,6 @@ import {
   screen,
   userEvent,
   waitFor,
-  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -72,7 +71,9 @@ describe('SavedIssueSearches', function () {
 
     const {container} = render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
 
     expect(container).toSnapshot();
   });
@@ -89,9 +90,7 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(screen.getAllByText('Test Search')).toHaveLength(4);
+    expect(await screen.findAllByText('Test Search')).toHaveLength(4);
     await userEvent.click(screen.getByRole('button', {name: /show 2 more/i}));
     expect(screen.getAllByText('Test Search')).toHaveLength(6);
   });
@@ -104,9 +103,7 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    await userEvent.click(screen.getByRole('button', {name: 'Assigned to Me'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Assigned to Me'}));
     expect(defaultProps.onSavedSearchSelect).toHaveBeenLastCalledWith(recommendedSearch);
 
     await userEvent.click(screen.getByRole('button', {name: 'Last 4 Hours'}));
@@ -121,9 +118,9 @@ describe('SavedIssueSearches', function () {
 
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(screen.getByText(/You don't have any saved searches/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/You don't have any saved searches/i)
+    ).toBeInTheDocument();
   });
 
   it('does not show overflow menu for recommended searches', async function () {
@@ -133,11 +130,11 @@ describe('SavedIssueSearches', function () {
     });
     render(<SavedIssueSearches {...defaultProps} />);
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    expect(
-      screen.queryByRole('button', {name: /saved search options/i})
-    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('button', {name: /saved search options/i})
+      ).not.toBeInTheDocument();
+    });
   });
 
   it('can delete an org saved search with correct permissions', async function () {
@@ -153,9 +150,9 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    await userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
     await userEvent.click(screen.getByRole('menuitemradio', {name: /delete/i}));
 
     const modal = screen.getByRole('dialog');
@@ -191,9 +188,9 @@ describe('SavedIssueSearches', function () {
       </Fragment>
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    await userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
     await userEvent.click(screen.getByRole('menuitemradio', {name: /edit/i}));
 
     const modal = screen.getByRole('dialog');
@@ -232,9 +229,9 @@ describe('SavedIssueSearches', function () {
       />
     );
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
-    await userEvent.click(screen.getByRole('button', {name: /saved search options/i}));
+    await userEvent.click(
+      await screen.findByRole('button', {name: /saved search options/i})
+    );
 
     expect(
       screen.getByText('You do not have permission to delete this search.')
@@ -260,10 +257,8 @@ describe('SavedIssueSearches', function () {
     render(<SavedIssueSearches {...defaultProps} />);
     renderGlobalModal();
 
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-
     await userEvent.click(
-      screen.getByRole('button', {name: /create a new saved search/i})
+      await screen.findByRole('button', {name: /create a new saved search/i})
     );
 
     const modal = screen.getByRole('dialog');
@@ -288,6 +283,8 @@ describe('SavedIssueSearches', function () {
     });
 
     // Modal should close
-    await waitForElementToBeRemoved(() => screen.getByRole('dialog'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
   });
 });

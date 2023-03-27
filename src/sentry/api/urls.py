@@ -94,6 +94,7 @@ from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
+from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
 from .endpoints.assistant import AssistantEndpoint
 from .endpoints.auth_config import AuthConfigEndpoint
 from .endpoints.auth_index import AuthIndexEndpoint
@@ -212,6 +213,7 @@ from .endpoints.internal import (
 )
 from .endpoints.issue_occurrence import IssueOccurrenceEndpoint
 from .endpoints.notifications import (
+    NotificationActionsAvailableEndpoint,
     NotificationActionsDetailsEndpoint,
     NotificationActionsIndexEndpoint,
 )
@@ -1334,6 +1336,11 @@ ORGANIZATION_URLS = [
         NotificationActionsDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notification-actions-details",
     ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/notifications/available-actions/$",
+        NotificationActionsAvailableEndpoint.as_view(),
+        name="sentry-api-0-organization-notification-available-actions",
+    ),
     # Monitors
     url(
         r"^(?P<organization_slug>[^\/]+)/monitors/$",
@@ -2007,6 +2014,11 @@ PROJECT_URLS = [
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/releases/(?P<version>[^/]+)/files/(?P<file_id>[^/]+)/$",
         ProjectReleaseFileDetailsEndpoint.as_view(),
         name="sentry-api-0-project-release-file-details",
+    ),
+    url(
+        r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/artifact-lookup/$",
+        ProjectArtifactLookupEndpoint.as_view(),
+        name="sentry-api-0-project-artifact-lookup",
     ),
     url(
         r"^(?P<organization_slug>[^\/]+)/(?P<project_slug>[^\/]+)/rules/$",
