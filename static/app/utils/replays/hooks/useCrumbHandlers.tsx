@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import isObject from 'lodash/isObject';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {relativeTimeInMs} from 'sentry/components/replays/utils';
@@ -23,7 +22,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
         setCurrentHoverTime(relativeTimeInMs(item.timestamp ?? '', startTimestampMs));
       }
 
-      if (isObject(item.data) && 'nodeId' in item.data) {
+      if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
         // XXX: Kind of hacky, but mouseLeave does not fire if you move from a
         // crumb to a tooltip
         clearAllHighlights();
@@ -37,7 +36,7 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
     (item: Crumb | NetworkSpan) => {
       setCurrentHoverTime(undefined);
 
-      if (isObject(item.data) && 'nodeId' in item.data) {
+      if (item.data && typeof item.data === 'object' && 'nodeId' in item.data) {
         removeHighlight({nodeId: item.data.nodeId});
       }
     },
@@ -51,7 +50,8 @@ function useCrumbHandlers(startTimestampMs: number = 0) {
       }
 
       if (
-        isObject(crumb.data) &&
+        crumb.data &&
+        typeof crumb.data === 'object' &&
         'action' in crumb.data &&
         crumb.data.action === 'largest-contentful-paint'
       ) {
