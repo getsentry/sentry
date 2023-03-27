@@ -31,7 +31,8 @@ class CodecovIntegrationError(Enum):
 
 
 def codecov_enabled(organization: Organization) -> bool:
-    return organization.flags.codecov_access
+    # We only need to check the organization flag since the flag will not be set if the plan-based feature flag is False.
+    return bool(organization.flags.codecov_access)
 
 
 def has_codecov_integration(organization: Organization) -> Tuple[bool, str | None]:
