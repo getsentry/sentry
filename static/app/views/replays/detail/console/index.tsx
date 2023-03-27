@@ -1,4 +1,4 @@
-import {memo, useCallback, useMemo, useRef} from 'react';
+import {memo, useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -33,7 +33,7 @@ const cellMeasurer = {
 
 function Console({breadcrumbs, startTimestampMs}: Props) {
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
-  const {items, setSearchTerm} = filterProps;
+  const {searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {currentTime, currentHoverTime} = useReplayContext();
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
@@ -58,6 +58,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     ref: listRef,
     deps,
   });
+
+  // Need to reset `expandPaths` if items changes (e.g. when filtering)
+  useEffect(() => {
+    expandPaths.current = new Map();
+  }, [cache, items]);
 
   const handleDimensionChange = useCallback(
     (index: number, path: string, expandedState: Record<string, boolean>) => {
@@ -107,7 +112,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       <CellMeasurer
         cache={cache}
         columnIndex={0}
-        key={key}
+        // Set key based on filters, otherwise we can have odd expand/collapse state
+        // with <ObjectInspector> when filtering
+        key={`${searchTerm}-${logLevel.join(',')}-${key}`}
         parent={parent}
         rowIndex={index}
       >
