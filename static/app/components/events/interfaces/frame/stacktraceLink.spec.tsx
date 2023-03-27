@@ -203,7 +203,6 @@ describe('StacktraceLink', function () {
   it('renders the codecov link', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
@@ -239,7 +238,6 @@ describe('StacktraceLink', function () {
   it('renders the missing coverage warning', async function () {
     const organization = {
       ...org,
-      features: ['codecov-stacktrace-integration'],
       codecovAccess: true,
     };
     MockApiClient.addMockResponse({
