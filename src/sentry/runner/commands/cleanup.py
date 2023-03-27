@@ -192,6 +192,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         DELETES = [
             (models.EventAttachment, "date_added", "date_added"),
             (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
+            (models.ArtifactBundle, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead
@@ -254,12 +255,6 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
             queryset = ExportedData.objects.filter(date_expired__lt=(timezone.now()))
             for item in queryset:
                 item.delete_file()
-
-        if is_filtered(models.ArtifactBundle):
-            if not silent:
-                click.echo(">> Skipping ArtifactBundle files")
-        else:
-            models.ArtifactBundle.delete_old_entries(expired_threshold=days)
 
         project_id = None
         if project:
