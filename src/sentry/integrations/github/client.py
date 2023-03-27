@@ -178,7 +178,8 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         repositories = self._populate_repositories(gh_org, cache_seconds)
         extra.update({"repos_num": str(len(repositories))})
         trees = self._populate_trees(repositories)
-        logger.info("Using cached trees for Github org.", extra=extra)
+        if trees:
+            logger.info("Using cached trees for Github org.", extra=extra)
 
         try:
             rate_limit = self.get_rate_limit()
@@ -225,6 +226,10 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             logger.warning(f"Github failed to respond. {msg}.", extra=extra)
         elif txt == "Bad credentials":
             logger.warning(f"No permission granted for this repo. {msg}.", extra=extra)
+        elif txt == "Connection reset by peer":
+            logger.warning(f"Connection reset by GitHub. {msg}.", extra=extra)
+        elif txt == "Connection broken: invalid chunk length":
+            logger.warning(f"Connection broken by chunk with invalid length. {msg}.", extra=extra)
         elif txt.startswith("Unable to reach host:"):
             logger.warning(f"Unable to reach host at the moment. {msg}.", extra=extra)
         elif txt.startswith("Due to U.S. trade controls law restrictions, this GitHub"):
@@ -350,23 +355,12 @@ class GitHubClientMixin(ApiClient):  # type: ignore
         Use response_key when the API stores the results within a key.
         For instance, the repositories API returns the list of repos under the "repositories" key
         """
-        with sentry_sdk.configure_scope() as scope:
-            if scope.span is not None:
-                parent_span_id = scope.span.span_id
-                trace_id = scope.span.trace_id
-            else:
-                parent_span_id = None
-                trace_id = None
-
         if page_number_limit is None or page_number_limit > self.page_number_limit:
             page_number_limit = self.page_number_limit
 
-        with sentry_sdk.start_transaction(
+        with sentry_sdk.start_span(
             op=f"{self.integration_type}.http.pagination",
-            name=f"{self.integration_type}.http_response.pagination.{self.name}",
-            parent_span_id=parent_span_id,
-            trace_id=trace_id,
-            sampled=True,
+            description=f"{self.integration_type}.http_response.pagination.{self.name}",
         ):
             output = []
 
@@ -375,15 +369,29 @@ class GitHubClientMixin(ApiClient):  # type: ignore
             resp = self.get(path, params={"per_page": self.page_size})
             logger.info(resp)
             output.extend(resp) if not response_key else output.extend(resp[response_key])
+            next_link = get_next_link(resp)
+
+            # XXX: Debugging code; remove afterward
+            if (
+                response_key
+                and response_key == "repositories"
+                and resp["total_count"] > 0
+                and not output
+            ):
+                logger.info(f"headers: {resp.headers}")
+                logger.info(f"output: {output}")
+                logger.info(f"next_link: {next_link}")
+                logger.error("No list of repos even when there's some. Investigate.")
 
             # XXX: In order to speed up this function we will need to parallelize this
             # Use ThreadPoolExecutor; see src/sentry/utils/snuba.py#L358
-            while get_next_link(resp) and page_number < page_number_limit:
-                new_path = get_next_link(resp)
-                logger.info(f"Page {page_number}: {path}")
-                resp = self.get(new_path)
+            while next_link and page_number < page_number_limit:
+                resp = self.get(next_link)
                 logger.info(resp)
                 output.extend(resp) if not response_key else output.extend(resp[response_key])
+
+                next_link = get_next_link(resp)
+                logger.info(f"Page {page_number}: {next_link}")
                 page_number += 1
             return output
 

@@ -40,6 +40,7 @@ declare namespace Profiling {
 
   type SentrySampledProfile = {
     event_id: string;
+    project_id: number;
     version: string;
     os: {
       name: string;
@@ -58,7 +59,7 @@ declare namespace Profiling {
       version: string;
     };
     timestamp: string;
-    release: string;
+    release: Release | null;
     platform: string;
     environment?: string;
     debug_meta?: {

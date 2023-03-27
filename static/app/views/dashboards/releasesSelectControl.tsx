@@ -53,7 +53,7 @@ function ReleasesSelectControl({
   const activeReleasesSet = new Set(activeReleases);
 
   return (
-    <CompactSelect
+    <StyledCompactSelect
       multiple
       clearable
       searchable
@@ -85,7 +85,7 @@ function ReleasesSelectControl({
           ],
         },
       ]}
-      onChange={opts => setActiveReleases(opts.map(opt => opt.value))}
+      onChange={opts => setActiveReleases(opts.map(opt => opt.value as string))}
       onClose={() => {
         resetSearch();
         handleChangeFilter?.({
@@ -110,6 +110,12 @@ export default ReleasesSelectControl;
 
 const StyledBadge = styled(Badge)`
   flex-shrink: 0;
+`;
+
+const StyledCompactSelect = styled(CompactSelect)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    max-width: 300px;
+  }
 `;
 
 const ButtonLabelWrapper = styled('span')`

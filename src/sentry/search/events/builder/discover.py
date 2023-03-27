@@ -633,6 +633,7 @@ class QueryBuilder(BaseQueryBuilder):
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
             resolved_column = self.resolve_column(column, alias=True)
+
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
 
@@ -654,6 +655,15 @@ class QueryBuilder(BaseQueryBuilder):
         """
         tag_match = constants.TAG_KEY_RE.search(raw_field)
         field = tag_match.group("tag") if tag_match else raw_field
+
+        if field == "group_id":
+            # We don't expose group_id publicly, so if a user requests it
+            # we expect it is a custom tag. Convert it to tags[group_id]
+            # and ensure it queries tag data
+            # These maps are updated so the response can be mapped back to group_id
+            self.tag_to_prefixed_map["group_id"] = "tags[group_id]"
+            self.prefixed_to_tag_map["tags[group_id]"] = "group_id"
+            raw_field = "tags[group_id]"
 
         if constants.VALID_FIELD_PATTERN.match(field):
             return self.aliased_column(raw_field) if alias else self.column(raw_field)

@@ -10,6 +10,7 @@ import Hook from 'sentry/components/hook';
 import Link from 'sentry/components/links/link';
 import LogoSentry from 'sentry/components/logoSentry';
 import {OnboardingContext} from 'sentry/components/onboarding/onboardingContext';
+import {PRODUCT} from 'sentry/components/onboarding/productSelection';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {PlatformKey} from 'sentry/data/platformCategories';
 import {IconArrow} from 'sentry/icons';
@@ -143,14 +144,41 @@ function Onboarding(props: Props) {
     props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${step.id}/`));
   };
 
-  const goNextStep = (step: StepDescriptor) => {
-    const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
-    const nextStep = onboardingSteps[currentStepIndex + 1];
-    if (step.cornerVariant !== nextStep.cornerVariant) {
-      cornerVariantControl.start('none');
-    }
-    props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
-  };
+  const goNextStep = useCallback(
+    (step: StepDescriptor, platforms?: PlatformKey[]) => {
+      const currentStepIndex = onboardingSteps.findIndex(s => s.id === step.id);
+      const nextStep = onboardingSteps[currentStepIndex + 1];
+
+      if (nextStep.id === 'setup-docs' && !platforms) {
+        return;
+      }
+
+      if (step.cornerVariant !== nextStep.cornerVariant) {
+        cornerVariantControl.start('none');
+      }
+
+      if (
+        nextStep.id === 'setup-docs' &&
+        platforms?.[0] === 'javascript-react' &&
+        organization.features?.includes('onboarding-docs-with-product-selection')
+      ) {
+        props.router.push(
+          normalizeUrl(
+            `/onboarding/${organization.slug}/${nextStep.id}/?product=${PRODUCT.PERFORMANCE_MONITORING}&product=${PRODUCT.SESSION_REPLAY}`
+          )
+        );
+        return;
+      }
+      props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
+    },
+    [
+      organization.slug,
+      onboardingSteps,
+      cornerVariantControl,
+      props.router,
+      organization.features,
+    ]
+  );
 
   const deleteProject = useCallback(
     async (projectSlug: string) => {
@@ -321,13 +349,18 @@ function Onboarding(props: Props) {
                 active
                 data-test-id={`onboarding-step-${stepObj.id}`}
                 stepIndex={stepIndex}
-                onComplete={() => stepObj && goNextStep(stepObj)}
+                onComplete={platforms => {
+                  if (stepObj) {
+                    goNextStep(stepObj, platforms);
+                  }
+                }}
                 orgId={organization.slug}
                 search={props.location.search}
                 route={props.route}
                 router={props.router}
                 location={props.location}
                 jumpToSetupProject={jumpToSetupProject}
+                selectedProjectSlug={selectedProjectSlug}
                 {...{
                   genSkipOnboardingLink,
                 }}

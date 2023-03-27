@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Any, Dict, Optional, Sequence, Tuple
+from typing import Any, Dict, Sequence, Tuple
 
 import requests
 from rest_framework import status
@@ -17,7 +17,7 @@ CODECOV_REPORT_URL = (
     "https://api.codecov.io/api/v2/{service}/{owner_username}/repos/{repo_name}/file_report/{path}"
 )
 CODECOV_REPOS_URL = "https://api.codecov.io/api/v2/{service}/{owner_username}"
-CODECOV_TIMEOUT = 2
+CODECOV_TIMEOUT = 10
 
 logger = logging.getLogger(__name__)
 
@@ -44,12 +44,12 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
     Returns a tuple of (has_codecov_integration, error_message)
     """
-    codecov_token = options.get("codecov.client-secret")
-    if not codecov_token:
-        return False, CodecovIntegrationError.MISSING_TOKEN.value
-
     integrations = Integration.objects.filter(organizations=organization.id, provider="github")
     if not integrations.exists():
+        logger.info(
+            "codecov.get_integrations",
+            extra={"error": "Missing github integration", "org_id": organization.id},
+        )
         return False, CodecovIntegrationError.MISSING_GH.value
 
     for integration in integrations:
@@ -63,16 +63,17 @@ def has_codecov_integration(organization: Organization) -> Tuple[bool, str | Non
 
         owner_username, _ = repos[0].get("full_name").split("/")
         url = CODECOV_REPOS_URL.format(service="github", owner_username=owner_username)
-        response = requests.get(url, headers={"Authorization": f"Bearer {codecov_token}"})
+        response = requests.get(url)
         if response.status_code == 200:
+            logger.info(
+                "codecov.check_integration_success",
+                extra={"url": url, "org_id": organization.id, "status_code": 200},
+            )
             return True, None  # We found a codecov integration, so we can stop looking
 
         logger.warning(
-            "codecov.get_repositories",
-            extra={
-                "url": url,
-                "status_code": response.status_code,
-            },
+            "codecov.check_integration_failed",
+            extra={"url": url, "status_code": response.status_code, "org_id": organization.id},
         )
 
     # None of the Github Integrations had a Codecov integration
@@ -134,7 +135,9 @@ def get_codecov_data(repo: str, service: str, path: str) -> Tuple[LineCoverage |
     return line_coverage, codecov_url
 
 
-def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def fetch_codecov_data(config: Dict[str, Any]) -> Dict[str, Any]:
+    data = {}
+    message = ""
     try:
         repo = config["repository"].name
         service = config["config"]["provider"]["key"]
@@ -142,31 +145,31 @@ def fetch_codecov_data(config: Any) -> Tuple[Optional[Dict[str, Any]], Optional[
 
         lineCoverage, codecovUrl = get_codecov_data(repo, service, path)
         if lineCoverage and codecovUrl:
-            return {
+            data = {
                 "lineCoverage": lineCoverage,
                 "coverageUrl": codecovUrl,
                 "status": status.HTTP_200_OK,
-            }, None
+            }
     except requests.exceptions.HTTPError as error:
         data = {
             "attemptedUrl": error.response.url,
             "status": error.response.status_code,
         }
 
-        message = None
-        if error.response.status_code == status.HTTP_404_NOT_FOUND:
-            message = "Failed to get expected data from Codecov. Continuing execution."
-
-        return data, message
+        # Do not report an error when coverage is not found
+        if error.response.status_code != status.HTTP_404_NOT_FOUND:
+            message = f"Codecov HTTP error: {error.response.status_code}. Continuing execution."
     except requests.Timeout:
         with configure_scope() as scope:
             scope.set_tag("codecov.timeout", True)
-        return {
-            "status": status.HTTP_408_REQUEST_TIMEOUT,
-        }, "Codecov request timed out. Continuing execution."
-    except Exception:
-        return {
-            "status": status.HTTP_500_INTERNAL_SERVER_ERROR,
-        }, "Something unexpected happened. Continuing execution."
+            scope.set_tag("codecov.timeout_secs", CODECOV_TIMEOUT)
+            scope.set_tag("codecov.http_code", status.HTTP_408_REQUEST_TIMEOU)
+        data = {"status": status.HTTP_408_REQUEST_TIMEOUT}
+    except Exception as error:
+        data = {"status": status.HTTP_500_INTERNAL_SERVER_ERROR}
+        message = f"{error}. Continuing execution."
 
-    return None, None
+    if message:
+        logger.exception(message)
+
+    return data

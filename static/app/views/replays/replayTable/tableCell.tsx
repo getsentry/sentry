@@ -12,7 +12,7 @@ import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import CHART_PALETTE from 'sentry/constants/chartPalette';
 import {IconCalendar, IconLocation} from 'sentry/icons';
-import {tn} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space, ValidSize} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
@@ -83,7 +83,9 @@ export function ReplayCell({
       <UserBadgeFullWidth
         avatarSize={24}
         displayName={
-          <MainLink to={replayDetails}>{replay.user.display_name || ''}</MainLink>
+          <MainLink to={replayDetails}>
+            {replay.user.display_name || t('Unknown User')}
+          </MainLink>
         }
         user={{
           username: replay.user.display_name || '',
