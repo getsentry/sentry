@@ -1,6 +1,6 @@
 import logging
 from random import random
-from typing import Any, Callable, Dict, Mapping
+from typing import Callable, Dict, Mapping
 
 import jsonschema
 import pytz
@@ -99,13 +99,13 @@ def parse_message_value(value: str, topic: str) -> PayloadV3:
                 raise InvalidSchemaError("Message wrapper does not match schema")
 
     schema_version: int = wrapper["version"]
+    payload: PayloadV3 = wrapper["payload"]
 
     if old_version:
         if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
             raise InvalidMessageError("Version specified in wrapper has no schema")
 
-        payload: Dict[str, Any] = wrapper["payload"]
         with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_payload"):
             try:
                 jsonschema.validate(payload, SUBSCRIPTION_PAYLOAD_VERSIONS[schema_version])
@@ -118,7 +118,6 @@ def parse_message_value(value: str, topic: str) -> PayloadV3:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
             raise InvalidMessageError("Version specified in wrapper has no schema")
 
-        payload: PayloadV3 = wrapper["payload"]
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
     # the dict around, but until we get time to refactor we can keep things working
