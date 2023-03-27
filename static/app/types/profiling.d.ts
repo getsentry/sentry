@@ -59,7 +59,7 @@ declare namespace Profiling {
       version: string;
     };
     timestamp: string;
-    release: string;
+    release: Release | null;
     platform: string;
     environment?: string;
     debug_meta?: {
