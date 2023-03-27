@@ -35,6 +35,37 @@ class ProcessingIssueTest(TestCase):
 
         assert EventProcessingIssue.objects.count() == 0
 
+    def test_with_no_release_dist(self):
+        project = self.create_project(name="foo")
+
+        scope = "ab"
+        object = "cd"
+        checksum = get_processing_issue_checksum(scope=scope, object=object)
+
+        raw_event = RawEvent.objects.create(
+            project_id=project.id,
+            event_id="abc",
+        )
+
+        manager = ProcessingIssueManager()
+        manager.record_processing_issue(
+            raw_event=raw_event, scope=scope, object=object, type=EventError.NATIVE_MISSING_DSYM
+        )
+
+        issues = ProcessingIssue.objects.filter(
+            project_id=project.id, checksum=checksum, type=EventError.NATIVE_MISSING_DSYM
+        )
+        assert len(issues) == 1
+        assert issues[0].data == {
+            "_object": object,
+            "_scope": scope,
+        }
+
+        event_issues = EventProcessingIssue.objects.filter(
+            raw_event=raw_event, processing_issue=issues[0]
+        )
+        assert len(event_issues) == 1
+
     def test_with_release_dist_pair_and_no_previous_issue(self):
         project = self.create_project(name="foo")
         release = self.create_release(version="1.0", project=project)

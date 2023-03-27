@@ -114,8 +114,8 @@ class ProcessingIssueManager(BaseManager):
         data["_object"] = object
         if release is not None:
             data["release"] = release
-        if dist is not None:
-            data["dist"] = dist
+            if dist is not None:
+                data["dist"] = dist
 
         issue, created = ProcessingIssue.objects.get_or_create(
             project_id=raw_event.project_id, checksum=checksum, type=type, defaults=dict(data=data)
