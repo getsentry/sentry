@@ -70,13 +70,15 @@ class StringIndexer(BaseIndexer):
 @region_silo_only_model
 class PerfStringIndexer(BaseIndexer):
     __include_in_export__ = False
+    use_case_id = models.CharField(default="performance", max_length=120)
 
     class Meta:
         db_table = "sentry_perfstringindexer"
         app_label = "sentry"
         constraints = [
             models.UniqueConstraint(
-                fields=["string", "organization_id"], name="perf_unique_org_string"
+                fields=("string", "organization_id", "use_case_id"),
+                name="perf_unique_org_string_usecase",
             ),
         ]
 
