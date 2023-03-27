@@ -205,7 +205,7 @@ class MonitorConsumerTest(TestCase):
     def test_monitor_create(self):
         message = self.get_message(
             "my-new-monitor",
-            monitor_config={"schedule": "5 * * * *", "schedule_type": "crontab"},
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
         )
         _process_message(message)
 
@@ -222,7 +222,7 @@ class MonitorConsumerTest(TestCase):
         monitor = self._create_monitor(slug="my-monitor")
         message = self.get_message(
             "my-monitor",
-            monitor_config={"schedule": "13 * * * *", "schedule_type": "crontab"},
+            monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
         )
         _process_message(message)
 
