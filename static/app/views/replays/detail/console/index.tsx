@@ -1,4 +1,4 @@
-import {memo, useMemo, useRef} from 'react';
+import {memo, useCallback, useMemo, useRef} from 'react';
 import {
   AutoSizer,
   CellMeasurer,
@@ -33,7 +33,7 @@ const cellMeasurer = {
 
 function Console({breadcrumbs, startTimestampMs}: Props) {
   const filterProps = useConsoleFilters({breadcrumbs: breadcrumbs || []});
-  const {items, setSearchTerm} = filterProps;
+  const {expandPaths, searchTerm, logLevel, items, setSearchTerm} = filterProps;
   const clearSearchTerm = () => setSearchTerm('');
   const {currentTime, currentHoverTime} = useReplayContext();
 
@@ -47,11 +47,29 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
     [breadcrumbs]
   );
 
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
+
+  const handleDimensionChange = useCallback(
+    (index: number, path: string, expandedState: Record<string, boolean>) => {
+      const rowState = expandPaths.get(index) || new Set();
+      if (expandedState[path]) {
+        rowState.add(path);
+      } else {
+        // Collapsed, i.e. its default state, so no need to store state
+        rowState.delete(path);
+      }
+      expandPaths.set(index, rowState);
+      cache.clear(index, 0);
+      listRef.current?.recomputeGridSize({rowIndex: index});
+      listRef.current?.forceUpdateGrid();
+    },
+    [cache, expandPaths, listRef]
+  );
 
   const current = useMemo(
     () =>
@@ -84,7 +102,9 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
       <CellMeasurer
         cache={cache}
         columnIndex={0}
-        key={key}
+        // Set key based on filters, otherwise we can have odd expand/collapse state
+        // with <ObjectInspector> when filtering
+        key={`${searchTerm}-${logLevel.join(',')}-${key}`}
         parent={parent}
         rowIndex={index}
       >
@@ -92,8 +112,11 @@ function Console({breadcrumbs, startTimestampMs}: Props) {
           isCurrent={current?.id === item.id}
           isHovered={hovered?.id === item.id}
           breadcrumb={item}
+          index={index}
           startTimestampMs={startTimestampMs}
           style={style}
+          expandPaths={Array.from(expandPaths.get(index) || [])}
+          onDimensionChange={handleDimensionChange}
         />
       </CellMeasurer>
     );

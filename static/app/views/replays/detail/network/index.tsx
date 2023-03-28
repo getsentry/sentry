@@ -85,13 +85,14 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   );
 
   const gridRef = useRef<MultiGrid>(null);
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
       dynamicColumnIndex: 1,
-      deps: [items, searchTerm],
+      deps,
     });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {

@@ -437,7 +437,6 @@ const appConfig: Configuration = {
       vm: false,
       stream: false,
       crypto: require.resolve('crypto-browserify'),
-      util: require.resolve('util'),
       // `yarn why` says this is only needed in dev deps
       string_decoder: false,
     },

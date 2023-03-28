@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import type {
   BreadcrumbLevelType,
@@ -26,6 +26,7 @@ type Options = {
 };
 
 type Return = {
+  expandPaths: Map<number, Set<string>>;
   getLogLevels: () => {label: string; value: string}[];
   items: Item[];
   logLevel: BreadcrumbType[];
@@ -79,13 +80,24 @@ function optionValueToLabel(value: string) {
 
 function useConsoleFilters({breadcrumbs}: Options): Return {
   const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  // Keep a reference of object paths that are expanded (via <ObjectInspector>)
+  // by log row, so they they can be restored as the Console pane is scrolling.
+  // Due to virtualization, components can be unmounted as the user scrolls, so
+  // state needs to be remembered.
+  //
+  // Note that this is intentionally not in state because we do not want to
+  // re-render when items are expanded/collapsed, though it may work in state as well.
+  const expandPaths = useRef(new Map<number, Set<string>>());
 
   const typeDefaultCrumbs = useMemo(
     () => breadcrumbs.filter(isBreadcrumbTypeDefault),
     [breadcrumbs]
   );
 
-  const logLevel = decodeList(query.f_c_logLevel).filter(isBreadcrumbTypeValue);
+  const logLevel = useMemo(
+    () => decodeList(query.f_c_logLevel).filter(isBreadcrumbTypeValue),
+    [query.f_c_logLevel]
+  );
   const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
 
   const items = useMemo(
@@ -119,16 +131,25 @@ function useConsoleFilters({breadcrumbs}: Options): Return {
   );
 
   const setLogLevel = useCallback(
-    (f_c_logLevel: string[]) => setFilter({f_c_logLevel}),
-    [setFilter]
+    (f_c_logLevel: string[]) => {
+      setFilter({f_c_logLevel});
+      // Need to reset `expandPaths` when filtering
+      expandPaths.current = new Map();
+    },
+    [setFilter, expandPaths]
   );
 
   const setSearchTerm = useCallback(
-    (f_c_search: string) => setFilter({f_c_search: f_c_search || undefined}),
-    [setFilter]
+    (f_c_search: string) => {
+      setFilter({f_c_search: f_c_search || undefined});
+      // Need to reset `expandPaths` when filtering
+      expandPaths.current = new Map();
+    },
+    [setFilter, expandPaths]
   );
 
   return {
+    expandPaths: expandPaths.current,
     getLogLevels,
     items,
     logLevel,

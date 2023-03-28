@@ -73,10 +73,11 @@ function Breadcrumbs({breadcrumbs, startTimestampMs}: Props) {
     [itemLookup, breadcrumbs, currentHoverTime, startTimestampMs]
   );
 
+  const deps = useMemo(() => [items], [items]);
   const {cache, updateList} = useVirtualizedList({
     cellMeasurer,
     ref: listRef,
-    deps: [items],
+    deps,
   });
 
   useScrollToCurrentItem({
