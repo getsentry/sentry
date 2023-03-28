@@ -60,10 +60,7 @@ describe('OrganizationGeneralSettings', function () {
   });
 
   it('can enable "codecov access"', async function () {
-    defaultProps.organization.features.push(
-      'codecov-stacktrace-integration',
-      'codecov-integration'
-    );
+    defaultProps.organization.features.push('codecov-integration');
     organization.codecovAccess = false;
     render(<OrganizationGeneralSettings {...defaultProps} />);
     const mock = MockApiClient.addMockResponse({
