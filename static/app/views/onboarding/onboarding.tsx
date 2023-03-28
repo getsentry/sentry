@@ -22,6 +22,7 @@ import handleXhrErrorResponse from 'sentry/utils/handleXhrErrorResponse';
 import Redirect from 'sentry/utils/redirect';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import PageCorners from 'sentry/views/onboarding/components/pageCorners';
@@ -82,6 +83,16 @@ function Onboarding(props: Props) {
   const onboardingContext = useContext(OnboardingContext);
   const selectedPlatforms = clientState?.selectedPlatforms || [];
   const selectedProjectSlug = selectedPlatforms[0];
+  const {
+    logExperiment: productSelectionLogExperiment,
+    experimentAssignment: productSelectionAssignment,
+  } = useExperiment('OnboardingProductSelectionExperiment', {
+    logExperimentOnMount: false,
+  });
+
+  const docsWithProductSelection = !!organization.features?.includes(
+    'onboarding-docs-with-product-selection'
+  );
 
   const {
     params: {step: stepId},
@@ -94,6 +105,12 @@ function Onboarding(props: Props) {
       window.clearTimeout(cornerVariantTimeoutRed.current);
     };
   }, []);
+
+  useEffect(() => {
+    if (docsWithProductSelection) {
+      productSelectionLogExperiment();
+    }
+  }, [productSelectionLogExperiment, docsWithProductSelection]);
 
   const heartbeatFooter = !!organization?.features.includes(
     'onboarding-heartbeat-footer'
@@ -160,14 +177,16 @@ function Onboarding(props: Props) {
       if (
         nextStep.id === 'setup-docs' &&
         platforms?.[0] === 'javascript-react' &&
-        organization.features?.includes('onboarding-docs-with-product-selection')
+        docsWithProductSelection
       ) {
-        props.router.push(
-          normalizeUrl(
-            `/onboarding/${organization.slug}/${nextStep.id}/?product=${PRODUCT.PERFORMANCE_MONITORING}&product=${PRODUCT.SESSION_REPLAY}`
-          )
-        );
-        return;
+        if (productSelectionAssignment === 'variant1') {
+          props.router.push(
+            normalizeUrl(
+              `/onboarding/${organization.slug}/${nextStep.id}/?product=${PRODUCT.PERFORMANCE_MONITORING}&product=${PRODUCT.SESSION_REPLAY}`
+            )
+          );
+          return;
+        }
       }
       props.router.push(normalizeUrl(`/onboarding/${organization.slug}/${nextStep.id}/`));
     },
@@ -176,7 +195,8 @@ function Onboarding(props: Props) {
       onboardingSteps,
       cornerVariantControl,
       props.router,
-      organization.features,
+      productSelectionAssignment,
+      docsWithProductSelection,
     ]
   );
 

@@ -39,6 +39,32 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
 type PlatformDoc = {html: string; link: string};
 
+function OnboardingProductSelection({organization}: {organization: Organization}) {
+  const {experimentAssignment: productSelectionAssignment} = useExperiment(
+    'OnboardingProductSelectionExperiment',
+    {
+      logExperimentOnMount: false,
+    }
+  );
+
+  const docsWithProductSelection = !!organization.features?.includes(
+    'onboarding-docs-with-product-selection'
+  );
+
+  if (!docsWithProductSelection) {
+    return null;
+  }
+
+  if (
+    productSelectionAssignment === 'variant1' ||
+    productSelectionAssignment === 'variant2'
+  ) {
+    return <ProductSelection />;
+  }
+
+  return null;
+}
+
 type Props = {
   search: string;
 } & StepProps;
@@ -56,6 +82,7 @@ function ProjectDocs(props: {
       Platform documentation is not rendered in for tests in CI
     </Alert>
   );
+
   const missingExampleWarning = () => {
     const missingExample =
       props.platformDocs && props.platformDocs.html.includes(INCOMPLETE_DOC_FLAG);
@@ -108,10 +135,9 @@ function ProjectDocs(props: {
         )}
         platform={currentPlatform}
       />
-      {currentPlatform === 'javascript-react' &&
-        props.organization.features?.includes(
-          'onboarding-docs-with-product-selection'
-        ) && <ProductSelection />}
+      {currentPlatform === 'javascript-react' && (
+        <OnboardingProductSelection organization={props.organization} />
+      )}
       {getDynamicText({
         value: !props.hasError ? docs : loadingError,
         fixed: testOnlyAlert,
@@ -129,12 +155,12 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
     props.selectedProjectSlug
   );
 
-  const {logExperiment, experimentAssignment} = useExperiment(
-    'OnboardingNewFooterExperiment',
-    {
-      logExperimentOnMount: false,
-    }
-  );
+  const {
+    logExperiment: newFooterLogExperiment,
+    experimentAssignment: newFooterAssignment,
+  } = useExperiment('OnboardingNewFooterExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const singleSelectPlatform = !!organization?.features.includes(
     'onboarding-remove-multiselect-platform'
@@ -260,9 +286,9 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
   // log experiment on mount if feature enabled
   useEffect(() => {
     if (heartbeatFooter) {
-      logExperiment();
+      newFooterLogExperiment();
     }
-  }, [logExperiment, heartbeatFooter]);
+  }, [newFooterLogExperiment, heartbeatFooter]);
 
   if (!project) {
     return null;
@@ -336,7 +362,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
       </Wrapper>
 
       {heartbeatFooter ? (
-        experimentAssignment === 'variant2' ? (
+        newFooterAssignment === 'variant2' ? (
           <FooterWithViewSampleErrorButton
             projectSlug={project.slug}
             projectId={project.id}
@@ -345,7 +371,7 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
             location={location}
             newOrg
           />
-        ) : experimentAssignment === 'variant1' ? (
+        ) : newFooterAssignment === 'variant1' ? (
           <Footer
             projectSlug={project.slug}
             projectId={project.id}
