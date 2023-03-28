@@ -80,6 +80,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                         "project_id": event.project_id,
                         "event_id": event.event_id,
                         "channel_name": self.get_option("channel"),
+                        "rule_id": rule.id,
                     },
                 )
 
