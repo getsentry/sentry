@@ -5,7 +5,7 @@ import responses
 from sentry import audit_log
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organization import Organization
-from sentry.tasks.auto_enable_codecov import enable_for_organization, schedule_organizations
+from sentry.tasks.auto_enable_codecov import auto_enable_codecov
 from sentry.testutils import TestCase
 from sentry.testutils.helpers import apply_feature_flag_on_cls
 
@@ -41,7 +41,7 @@ class AutoEnableCodecovTest(TestCase):
     def test_has_codecov_integration(self, mock_get_repositories):
         AuditLogEntry.objects.all().delete()
         assert not self.org_1.flags.codecov_access.is_set
-        enable_for_organization(self.org_1.id)
+        auto_enable_codecov(self.org_1.id)
 
         assert mock_get_repositories.call_count == 1
 
@@ -60,15 +60,9 @@ class AutoEnableCodecovTest(TestCase):
     )
     def test_no_codecov_integration(self, mock_get_repositories):
         assert not self.org_1.flags.codecov_access.is_set
-        enable_for_organization(self.org_1.id)
+        auto_enable_codecov(self.org_1.id)
 
         assert mock_get_repositories.call_count == 1
 
         org = Organization.objects.get(id=self.org_1.id)
         assert not org.flags.codecov_access.is_set
-
-    @patch("sentry.tasks.auto_enable_codecov.enable_for_organization")
-    def test_schedules_for_orgs(self, mock_enable_for_organization):
-        schedule_organizations()
-
-        assert mock_enable_for_organization.call_count == 3
