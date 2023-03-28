@@ -150,7 +150,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         self, data: NotificationActionInputData
     ) -> NotificationActionInputData:
         """
-        Validates assuming that SPECIFIC targets for SLACK service has the following target data:
+        Validates that SPECIFIC targets for SLACK service has the following target data:
             target_display: Slack channel name
             target_identifier: Slack channel id (optional)
         NOTE: Reaches out to via slack integration to verify channel
@@ -163,6 +163,11 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
 
         channel_name = data.get("target_display")
         channel_id = data.get("target_identifier")
+
+        if not channel_name:
+            raise serializers.ValidationError(
+                {"target_display": "Did not receive a slack user or channel name."}
+            )
 
         # If we've received a channel and id, verify them against one another
         if channel_name and channel_id:
@@ -178,11 +183,6 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
             return data
 
         # If we've only received a channel name, ask slack for its id
-        if not channel_name:
-            raise serializers.ValidationError(
-                {"target_display": "Did not receive a slack user or channel name."}
-            )
-
         generic_error_message = f"Could not fetch channel id from Slack for '{channel_name}'. Try providing the channel id, or try again later."
         try:
             _prefix, channel_id, timed_out, = get_channel_id(
@@ -209,7 +209,7 @@ class NotificationActionSerializer(CamelSnakeModelSerializer):
         self, data: NotificationActionInputData
     ) -> NotificationActionInputData:
         """
-        Validates assuming that SPECIFIC targets for PAGERDUTY service has the following target data:
+        Validates that SPECIFIC targets for PAGERDUTY service has the following target data:
             target_display: PagerDutyService.service_name
             target_identifier: PagerDutyService.id
         """

@@ -3,8 +3,8 @@
 ## Background
 
 Notification Actions are meant to be a generic abstraction of the actions we fire when alert rules go off.
-The structure of the model for `NotificationAction` was abstracted from `AlertRuleTriggerAction` but is intentionally unrelated to issues/events/incidents.
-Instead, they are meant to help new features fire notifications to integrations instead of through personal notifications. These notifications can be configured across the whole organization/project, rather than per recipient. It was originally designed for Spike Protection, but should be generic enough to apply to any other part of Sentry.
+The structure of the model for `NotificationAction` was abstracted from `AlertRuleTriggerAction` but decouples it from issues/events/incidents.
+Instead, they are meant to help send notifications to third-party integrations rather than individual channels such as email, or personal notifications settings. These notifications can be configured across the whole organization/project, rather than per recipient. It was originally designed for Spike Protection, but should be generic enough to apply to any other part of Sentry.
 
 Some examples of possible notification actions:
 - Receiving audit log entries to a slack channel
