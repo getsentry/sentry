@@ -1,10 +1,14 @@
 import {Fragment, useCallback, useEffect} from 'react';
+import {Link} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Checkbox from 'sentry/components/checkbox';
 import ExternalLink from 'sentry/components/links/externalLink';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {decodeList} from 'sentry/utils/queryString';
@@ -19,9 +23,10 @@ export enum PRODUCT {
 
 type Props = {
   defaultSelectedProducts?: PRODUCT[];
+  lazyLoader?: boolean;
 };
 
-export function ProductSelection({defaultSelectedProducts}: Props) {
+export function ProductSelection({defaultSelectedProducts, lazyLoader}: Props) {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
 
@@ -57,10 +62,14 @@ export function ProductSelection({defaultSelectedProducts}: Props) {
   return (
     <Fragment>
       <TextBlock>
-        {tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
-          npm: <strong>npm</strong>,
-          yarn: <strong>yarn</strong>,
-        })}
+        {lazyLoader
+          ? tct('In this quick guide you’ll use our [lazyLoader] to set up:', {
+              lazyLoader: <strong>Lazy Loader</strong>,
+            })
+          : tct('In this quick guide you’ll use [npm] or [yarn] to set up:', {
+              npm: <strong>npm</strong>,
+              yarn: <strong>yarn</strong>,
+            })}
       </TextBlock>
       <Products>
         <Product
@@ -135,6 +144,26 @@ export function ProductSelection({defaultSelectedProducts}: Props) {
           />
         </Product>
       </Products>
+      {lazyLoader && (
+        <AlternativeInstallationAlert
+          type="info"
+          showIcon
+          trailingItems={
+            <Button
+              priority="link"
+              size="xs"
+              icon={<IconClose />}
+              aria-label={t('Dismiss Alert')}
+            />
+          }
+        >
+          {tct('Prefer to set up Sentry using [npm] or [yarn]? [goHere].', {
+            npm: <strong>npm</strong>,
+            yarn: <strong>yarn</strong>,
+            goHere: <Link to="">{t('Go here')}</Link>,
+          })}
+        </AlternativeInstallationAlert>
+      )}
       <Divider />
     </Fragment>
   );
@@ -175,4 +204,8 @@ const TooltipDescription = styled('div')`
   gap: ${space(0.5)};
   justify-content: flex-start;
   text-align: left;
+`;
+
+const AlternativeInstallationAlert = styled(Alert)`
+  margin-top: ${space(3)};
 `;

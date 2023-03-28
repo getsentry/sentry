@@ -25,6 +25,7 @@ import {useExperiment} from 'sentry/utils/useExperiment';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import SetupIntroduction from 'sentry/views/onboarding/components/setupIntroduction';
+import {SetupDocsLoader} from 'sentry/views/onboarding/setupDocsLoader';
 
 import FirstEventFooter from './components/firstEventFooter';
 import ProjectSidebarSection from './components/projectSidebarSection';
@@ -39,7 +40,13 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 
 type PlatformDoc = {html: string; link: string};
 
-function OnboardingProductSelection({organization}: {organization: Organization}) {
+function OnboardingProductSelection({
+  organization,
+  currentPlatform,
+}: {
+  currentPlatform: PlatformKey;
+  organization: Organization;
+}) {
   const {
     experimentAssignment: productSelectionAssignment,
     logExperiment: productSelectionLogExperiment,
@@ -50,27 +57,49 @@ function OnboardingProductSelection({organization}: {organization: Organization}
   const docsWithProductSelection = !!organization.features?.includes(
     'onboarding-docs-with-product-selection'
   );
+  // const projectLoader = !!organization.features?.includes('onboarding-project-loader');
+  const projectLoader = true;
 
   useEffect(() => {
-    if (docsWithProductSelection) {
+    if (docsWithProductSelection && currentPlatform === 'javascript-react') {
       productSelectionLogExperiment();
     }
-  }, [productSelectionLogExperiment, docsWithProductSelection]);
+  }, [productSelectionLogExperiment, currentPlatform, docsWithProductSelection]);
 
-  if (!docsWithProductSelection) {
+  if (currentPlatform === 'javascript-react') {
+    if (!docsWithProductSelection) {
+      return null;
+    }
+
+    if (productSelectionAssignment === 'variant1') {
+      return (
+        <ProductSelection
+          defaultSelectedProducts={[
+            PRODUCT.PERFORMANCE_MONITORING,
+            PRODUCT.SESSION_REPLAY,
+          ]}
+        />
+      );
+    }
+
+    if (productSelectionAssignment === 'variant2') {
+      return <ProductSelection />;
+    }
+
     return null;
   }
 
-  if (productSelectionAssignment === 'variant1') {
+  if (currentPlatform === 'javascript') {
+    if (!projectLoader) {
+      return null;
+    }
+
     return (
       <ProductSelection
         defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+        lazyLoader
       />
     );
-  }
-
-  if (productSelectionAssignment === 'variant2') {
-    return <ProductSelection />;
   }
 
   return null;
@@ -88,6 +117,8 @@ function ProjectDocs(props: {
   platformDocs: PlatformDoc | null;
   project: Project;
 }) {
+  const projectLoader = true;
+
   const testOnlyAlert = (
     <Alert type="warning">
       Platform documentation is not rendered in for tests in CI
@@ -118,23 +149,6 @@ function ProjectDocs(props: {
     );
   };
 
-  const docs = props.platformDocs !== null && (
-    <DocsWrapper key={props.platformDocs.html}>
-      <DocumentationWrapper dangerouslySetInnerHTML={{__html: props.platformDocs.html}} />
-      {missingExampleWarning()}
-    </DocsWrapper>
-  );
-
-  const loadingError = (
-    <LoadingError
-      message={t(
-        'Failed to load documentation for the %s platform.',
-        props.project?.platform
-      )}
-      onRetry={props.onRetry}
-    />
-  );
-
   const currentPlatform = props.platform ?? props.project?.platform ?? 'other';
 
   return (
@@ -146,13 +160,35 @@ function ProjectDocs(props: {
         )}
         platform={currentPlatform}
       />
-      {currentPlatform === 'javascript-react' && (
-        <OnboardingProductSelection organization={props.organization} />
+      <OnboardingProductSelection
+        organization={props.organization}
+        currentPlatform={currentPlatform}
+      />
+      {currentPlatform === 'javascript' && projectLoader ? (
+        <SetupDocsLoader />
+      ) : (
+        getDynamicText({
+          value: !props.hasError ? (
+            props.platformDocs !== null && (
+              <DocsWrapper>
+                <DocumentationWrapper
+                  dangerouslySetInnerHTML={{__html: props.platformDocs.html}}
+                />
+                {missingExampleWarning()}
+              </DocsWrapper>
+            )
+          ) : (
+            <LoadingError
+              message={t(
+                'Failed to load documentation for the %s platform.',
+                props.project?.platform
+              )}
+              onRetry={props.onRetry}
+            />
+          ),
+          fixed: testOnlyAlert,
+        })
       )}
-      {getDynamicText({
-        value: !props.hasError ? docs : loadingError,
-        fixed: testOnlyAlert,
-      })}
     </Fragment>
   );
 }
