@@ -80,9 +80,18 @@
 
         var oldInit = SDK.init;
 
-          if (_config.tracesSampleRate) {
-            _config.integrations = [new Sentry.BrowserTracing()];
-          }
+        var integrations = [];
+        if (_config.tracesSampleRate) {
+          integrations.push(new Sentry.BrowserTracing());
+        }
+
+        if (_config.replaysSessionSampleRate || _config.replaysOnErrorSampleRate) {
+          integrations.push(new Sentry.Replay());
+        }
+
+        if(integrations.length) {
+          _config.integrations = integrations;
+        }
 
         // Configure it using provided DSN and config object
         SDK.init = function(options) {
