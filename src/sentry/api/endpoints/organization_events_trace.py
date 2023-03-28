@@ -187,6 +187,7 @@ class TraceEvent:
                 continue
 
             suspect_spans: List[str] = []
+            start = end = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
@@ -207,6 +208,16 @@ class TraceEvent:
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
                             if event_span.get("span_id") in problem.offender_span_ids:
+                                start = (
+                                    min(start, event_span.get("start_timestamp"))
+                                    if start
+                                    else event_span.get("start_timestamp")
+                                )
+                                end = (
+                                    max(end, event_span.get("timestamp"))
+                                    if end
+                                    else event_span.get("timestamp")
+                                )
                                 suspect_spans.append(event_span.get("span_id"))
                 else:
                     span = [self.event["trace.span"]]
@@ -231,6 +242,8 @@ class TraceEvent:
                     "level": constants.LOG_LEVELS[group.level],
                     "culprit": group.culprit,
                     "type": group.type,
+                    "start": start,
+                    "end": end,
                 }
             )
 
