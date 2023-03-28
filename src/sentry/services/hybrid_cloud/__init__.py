@@ -3,6 +3,7 @@ from __future__ import annotations
 import contextlib
 import dataclasses
 import datetime
+import functools
 import inspect
 import logging
 import threading
@@ -17,6 +18,8 @@ from typing import (
     Iterable,
     List,
     Mapping,
+    Optional,
+    Tuple,
     Type,
     TypeVar,
     cast,
@@ -57,8 +60,61 @@ class InterfaceWithLifecycle(ABC):
         pass
 
 
+def report_pydantic_type_validation_error(
+    field: pydantic.fields.ModelField, value: Any, errors: pydantic.error_wrappers.ErrorList
+) -> None:
+    with sentry_sdk.push_scope() as scope:
+        scope.set_level("warning")
+        scope.set_tag("field", field.name)
+        scope.set_extra("value_type", str(type(value)))
+        scope.set_extra("errors", str(errors))
+        sentry_sdk.capture_message("Pydantic type validation error")
+
+
+def _hack_pydantic_type_validation() -> None:
+    """Disable strict type checking on Pydantic models.
+
+    This is a temporary measure to ensure stability while we represent RpcModel
+    objects as Pydantic models. Previously, those objects were dataclasses whose type
+    annotations were checked statically but not at runtime. There may be bugs where
+    those objects are constructed with the wrong type (typically None on a
+    non-Optional field), but otherwise everything works.
+
+    To prevent these from being hard errors, override Pydantic's validation behavior.
+    Unfortunately, there is no way (that we know of) to do this only on RpcModel and
+    its subclasses. We have to kludge it by tampering with Pydantic's global
+    ModelField class, which would affect the behavior of all types extending
+    pydantic.BaseModel in the code base. (As of this writing, there are no such
+    classes other than RpcModel, but be warned.)
+
+    See https://github.com/pydantic/pydantic/issues/897
+
+    TODO: Remove this kludge when we are reasonable confident it is no longer
+          producing any warnings
+    """
+
+    builtin_validate = pydantic.fields.ModelField.validate
+
+    def validate(
+        field: pydantic.fields.ModelField, value: Any, *args: Any, **kwargs: Any
+    ) -> Tuple[Optional[Any], Optional[pydantic.error_wrappers.ErrorList]]:
+        result, errors = builtin_validate(field, value, *args, **kwargs)
+        if errors:
+            report_pydantic_type_validation_error(field, value, errors)
+        return result, None
+
+    functools.update_wrapper(validate, builtin_validate)
+    pydantic.fields.ModelField.validate = validate
+
+
+_hack_pydantic_type_validation()
+
+
 class RpcModel(pydantic.BaseModel):
     """A serializable object that may be part of an RPC schema."""
+
+    class Config:
+        arbitrary_types_allowed = True
 
     @classmethod
     def get_field_names(cls) -> Iterable[str]:
