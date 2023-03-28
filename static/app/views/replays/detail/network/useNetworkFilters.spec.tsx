@@ -207,20 +207,20 @@ describe('useNetworkFilters', () => {
       .mockReturnValueOnce({
         pathname: '/',
         query: {
-          n_detail_row: 0,
+          n_detail_row: '0',
           n_detail_tab: 'response',
         },
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
-        query: {f_n_type: TYPE_FILTER, n_detail_row: 0, n_detail_tab: 'response'},
+        query: {f_n_type: TYPE_FILTER, n_detail_row: '0', n_detail_tab: 'response'},
       } as Location<FilterFields>)
       .mockReturnValueOnce({
         pathname: '/',
         query: {
           f_n_type: TYPE_FILTER,
           f_n_status: STATUS_FILTER,
-          n_detail_row: 0,
+          n_detail_row: '0',
           n_detail_tab: 'response',
         },
       } as Location<FilterFields>);
