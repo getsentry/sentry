@@ -1,21 +1,25 @@
 import {CSSProperties, memo, useCallback} from 'react';
 
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import type {Crumb} from 'sentry/types/breadcrumbs';
-import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 
 interface Props {
   breadcrumb: Crumb;
-  breadcrumbs: Crumb[];
+  isCurrent: boolean;
+  isHovered: boolean;
   startTimestampMs: number;
   style: CSSProperties;
+  breadcrumbIndex?: number[][];
 }
 
-function BreadcrumbRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props) {
-  const {currentTime, currentHoverTime} = useReplayContext();
-
+function BreadcrumbRow({
+  breadcrumb,
+  startTimestampMs,
+  style,
+  isCurrent,
+  isHovered,
+}: Props) {
   const {handleMouseEnter, handleMouseLeave, handleClick} =
     useCrumbHandlers(startTimestampMs);
 
@@ -31,25 +35,6 @@ function BreadcrumbRow({breadcrumb, breadcrumbs, startTimestampMs, style}: Props
     () => handleMouseLeave(breadcrumb),
     [handleMouseLeave, breadcrumb]
   );
-
-  const current = getPrevReplayEvent({
-    items: breadcrumbs,
-    targetTimestampMs: startTimestampMs + currentTime,
-    allowEqual: true,
-    allowExact: true,
-  });
-
-  const hovered = currentHoverTime
-    ? getPrevReplayEvent({
-        items: breadcrumbs,
-        targetTimestampMs: startTimestampMs + currentHoverTime,
-        allowEqual: true,
-        allowExact: true,
-      })
-    : undefined;
-
-  const isCurrent = breadcrumb.id === current?.id;
-  const isHovered = breadcrumb.id === hovered?.id;
 
   return (
     <BreadcrumbItem

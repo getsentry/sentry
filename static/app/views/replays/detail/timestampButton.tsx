@@ -1,3 +1,4 @@
+import {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import DateTime from 'sentry/components/dateTime';
@@ -11,7 +12,7 @@ type Props = {
   timestampMs: string | number | Date;
   className?: string;
   format?: 'mm:ss' | 'mm:ss.SSS';
-  onClick?: () => void;
+  onClick?: (event: MouseEvent) => void;
 };
 
 function TimestampButton({
@@ -38,7 +39,7 @@ function TimestampButton({
 const StyledButton = styled('button')`
   background: transparent;
   border: none;
-  color: 'inherit';
+  color: inherit;
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
 

@@ -3,6 +3,7 @@ from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
 from django.db import models
+from django.db.models.signals import post_delete
 from django.utils import timezone
 from symbolic import SymbolicError, normalize_debug_id
 
@@ -51,9 +52,9 @@ class ArtifactBundle(Model):
     bundle_id = models.UUIDField(default=NULL_UUID)
     file = FlexibleForeignKey("sentry.File")
     artifact_count = BoundedPositiveIntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
+    date_added = models.DateTimeField(default=timezone.now, db_index=True)
     # This field represents the date of the upload that we show in the UI.
-    date_uploaded = models.DateTimeField(default=timezone.now, null=True)
+    date_uploaded = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
@@ -71,6 +72,13 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
+
+
+def delete_file_for_artifact_bundle(instance, **kwargs):
+    instance.file.delete()
+
+
+post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
 @region_silo_only_model
@@ -217,14 +225,14 @@ class ArtifactBundleArchive:
 
         return results
 
-    def get_files_by_file_path_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
-        def filter_function(file_path: str, info: dict) -> bool:
+    def get_files_by_url_or_debug_id(self, query: Optional[str]) -> Dict[str, dict]:
+        def filter_function(_: str, info: dict) -> bool:
             if query is None:
                 return True
 
             normalized_query = query.lower()
 
-            if normalized_query in file_path.lower():
+            if normalized_query in info.get("url", "").lower():
                 return True
 
             headers = self.normalize_headers(info.get("headers", {}))
@@ -250,3 +258,8 @@ class ArtifactBundleArchive:
             return entry[1]
 
         return None
+
+    def get_file_url_by_file_path(self, file_path):
+        files = self.manifest.get("files", {})
+        file_info = files.get(file_path, {})
+        return file_info.get("url")

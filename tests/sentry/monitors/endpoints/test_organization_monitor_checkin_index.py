@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.utils import timezone
 from freezegun import freeze_time
 
+from sentry.models import Environment
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorStatus
 from sentry.testutils import MonitorTestCase
 from sentry.testutils.silo import region_silo_test
@@ -72,3 +73,55 @@ class ListMonitorCheckInsTest(MonitorTestCase):
             **{"start": startOneDayAgo.isoformat(), "end": end.isoformat()},
         )
         assert resp.data[0]["id"] == str(checkin.guid)
+
+    def test_simple_environment(self):
+        self.login_as(self.user)
+
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="jungle")
+        checkin1 = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "jungle"}
+        )
+        assert len(resp.data) == 1
+        assert resp.data[0]["id"] == str(checkin1.guid)
+        assert resp.data[0]["environment"] == str(checkin1.monitor_environment.environment.name)
+
+    def test_bad_monitorenvironment(self):
+        self.login_as(self.user)
+
+        monitor = self._create_monitor()
+        monitor_environment = self._create_monitor_environment(monitor, name="jungle")
+        Environment.objects.create(name="volcano", organization_id=self.organization.id)
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=2),
+            status=CheckInStatus.OK,
+        )
+        MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_environment,
+            project_id=self.project.id,
+            date_added=monitor.date_added - timedelta(minutes=1),
+            status=CheckInStatus.OK,
+        )
+
+        resp = self.get_success_response(
+            self.organization.slug, monitor.slug, **{"statsPeriod": "1d", "environment": "volcano"}
+        )
+        assert len(resp.data) == 0

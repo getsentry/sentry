@@ -143,7 +143,7 @@ describe('OrganizationSettingsForm', function () {
       {
         organization: {
           ...organization,
-          features: ['codecov-stacktrace-integration', 'codecov-integration'],
+          features: ['codecov-integration'],
         },
       }
     );

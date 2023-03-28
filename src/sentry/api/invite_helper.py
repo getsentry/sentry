@@ -193,7 +193,7 @@ class ApiInviteHelper:
             return None
 
         try:
-            provider = AuthProvider.objects.get(organization=om.organization)
+            provider = AuthProvider.objects.get(organization_id=om.organization.id)
         except AuthProvider.DoesNotExist:
             provider = None
 

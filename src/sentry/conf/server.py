@@ -133,6 +133,8 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+CONF_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # XXX(dcramer): handle case when we've installed from source vs just running
 # this straight out of the repository
 if "site-packages" in __file__:
@@ -882,8 +884,8 @@ CELERYBEAT_SCHEDULE = {
     },
     "auto-enable-codecov": {
         "task": "sentry.tasks.auto_enable_codecov.schedule_organizations",
-        # Run job every 4 hours at min 20
-        "schedule": crontab(minute=20, hour="*/4"),
+        # Run job every hour at min 20
+        "schedule": crontab(minute=20, hour="*/1"),
         "options": {"expires": 3600},
     },
     "dynamic-sampling-prioritize-projects": {
@@ -1029,10 +1031,6 @@ SENTRY_FEATURES = {
     "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
-    # Enables codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration": False,
-    # Enables V2 for codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration-v2": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1040,7 +1038,7 @@ SENTRY_FEATURES = {
     # Enables getting commit sha from git blame for codecov.
     "organizations:codecov-commit-sha-from-git-blame": False,
     # Enables automatically deriving of code mappings
-    "organizations:derive-code-mappings": False,
+    "organizations:derive-code-mappings": True,
     # Enable advanced search features, like negation and wildcard matching.
     "organizations:advanced-search": True,
     # Use metrics as the dataset for crash free metric alerts
@@ -1141,8 +1139,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
-    # Use a larger sample size & merge threshold for transaction clustering.
-    "organizations:transaction-name-clusterer-2x": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1332,6 +1328,10 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-deletion-on-back-click": False,
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
+    # Enable the project loader feature in the onboarding
+    "organizations:onboarding-project-loader": False,
+    # Enable OpenAI suggestions in the issue details page
+    "organizations:open-ai-suggestion": False,
     # Enable ANR rates in project details page
     "organizations:anr-rate": False,
     # Enable tag improvements in the issue details page
@@ -1762,6 +1762,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
+
+# Secret key for OpenAI
+OPENAI_API_KEY = None
 
 SENTRY_SCOPES = {
     "org:read",
@@ -2681,10 +2684,14 @@ KAFKA_OUTCOMES = "outcomes"
 KAFKA_OUTCOMES_BILLING = "outcomes-billing"
 KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
 KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
+KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
+
+# To be deprecated. Should be replaced by the single KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS topic
 KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS = (
     "generic-metrics-distributions-subscription-results"
 )
 KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS = "generic-metrics-sets-subscription-results"
+
 KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS = "sessions-subscription-results"
 KAFKA_METRICS_SUBSCRIPTIONS_RESULTS = "metrics-subscription-results"
 KAFKA_INGEST_EVENTS = "ingest-events"
@@ -2729,6 +2736,7 @@ KAFKA_TOPICS = {
     KAFKA_OUTCOMES_BILLING: None,
     KAFKA_EVENTS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_TRANSACTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
+    KAFKA_GENERIC_METRICS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_SETS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_GENERIC_METRICS_DISTRIBUTIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
     KAFKA_SESSIONS_SUBSCRIPTIONS_RESULTS: {"cluster": "default"},
@@ -3086,6 +3094,7 @@ SENTRY_PERFORMANCE_ISSUES_RATE_LIMITER_OPTIONS = {}
 SENTRY_PERFORMANCE_ISSUES_REDUCE_NOISE = False
 
 SENTRY_ISSUE_PLATFORM_RATE_LIMITER_OPTIONS = {}
+SENTRY_ISSUE_PLATFORM_FUTURES_MAX_LIMIT = 10000
 
 SENTRY_REGION = os.environ.get("SENTRY_REGION", None)
 SENTRY_REGION_CONFIG: Iterable[Region] = ()

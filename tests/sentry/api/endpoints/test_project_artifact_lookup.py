@@ -286,7 +286,7 @@ class ArtifactLookupTest(APITestCase):
 
         assert len(response) == 1
         assert response[0]["type"] == "file"
-        assert response[0]["abs_path"] == "application.js"
+        assert response[0]["abs_path"] == "http://example.com/application.js"
         assert response[0]["headers"] == file_headers
         self.assert_download_matches_file(response[0]["url"], file)
 

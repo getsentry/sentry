@@ -48,12 +48,12 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
     setLoading(true);
 
     try {
-      const {html: reponse} = await loadDocs(
+      const {html: reponse} = await loadDocs({
         api,
-        organization.slug,
-        params.projectId,
-        params.platform as PlatformKey
-      );
+        orgSlug: organization.slug,
+        projectSlug: params.projectId,
+        platform: params.platform as PlatformKey,
+      });
       setHtml(reponse);
     } catch (err) {
       setError(err);
@@ -99,7 +99,7 @@ export function ProjectInstallPlatform({location, params, route, router}: Props)
   return (
     <Fragment>
       <StyledPageHeader>
-        <h2>{t('Configure %(platform)s', {platform: platform.name})}</h2>
+        <h2>{t('Configure %(platform)s SDK', {platform: platform.name})}</h2>
         <ButtonBar gap={1}>
           <Button
             icon={<IconChevron direction="left" size="sm" />}

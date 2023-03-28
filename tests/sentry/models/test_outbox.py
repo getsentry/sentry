@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import ContextManager
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 from freezegun import freeze_time
@@ -58,7 +58,8 @@ def test_creating_user_outboxes():
 
 @pytest.mark.django_db(transaction=True)
 @region_silo_test(stable=True)
-def test_concurrent_coalesced_object_processing():
+@patch("sentry.models.outbox.metrics")
+def test_concurrent_coalesced_object_processing(mock_metrics):
     # Two objects coalesced
     outbox = OrganizationMember.outbox_for_update(org_id=1, org_member_id=1)
     outbox.save()
@@ -87,6 +88,16 @@ def test_concurrent_coalesced_object_processing():
         assert RegionOutbox.objects.count() == 3
         assert outbox.select_coalesced_messages().count() == 1
         assert len(list(RegionOutbox.find_scheduled_shards())) == 2
+
+        expected = [
+            call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+            call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+            call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+            call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+            call("outbox.saved", 1, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+            call("outbox.processed", 2, tags={"category": "ORGANIZATION_MEMBER_UPDATE"}),
+        ]
+        assert mock_metrics.incr.mock_calls == expected
     except Exception as e:
         ctx.__exit__(type(e), e, None)
         raise e
