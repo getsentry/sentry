@@ -18,18 +18,18 @@ from sentry.db.models import (
 )
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.utils.retries import TimedRetryPolicy
 
 if TYPE_CHECKING:
     from sentry.models import Organization, Project, User
+    from sentry.services.hybrid_cloud.user import RpcUser
 
 
 class TeamManager(BaseManager):
     def get_for_user(
         self,
         organization: "Organization",
-        user: Union["User", RpcUser],
+        user: Union["User", "RpcUser"],
         scope: Optional[str] = None,
         with_projects: bool = False,
     ) -> Union[Sequence["Team"], Sequence[Tuple["Team", Sequence["Project"]]]]:
