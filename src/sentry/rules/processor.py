@@ -240,7 +240,7 @@ class RuleProcessor:
 
             action_inst = action_cls(self.project, data=action, rule=rule)
             results = safe_execute(
-                action_inst.after, event=self.event, state=state, _with_transaction=False
+                action_inst.after, event=self.event, state=state, _with_transaction=False, rule=rule
             )
             if results is None:
                 self.logger.warning("Action %s did not return any futures", action["id"])
