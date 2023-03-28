@@ -39,11 +39,9 @@ def get_next_schedule(last_checkin, schedule_type, schedule):
         itr = croniter(schedule, last_checkin)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
-        count, unit_name = schedule
-        # count is the "number of units" and unit_name is the "unit name of interval"
-        # which is inverse from what rrule calls them
+        interval, unit_name = schedule
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=count, dtstart=last_checkin, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=interval, dtstart=last_checkin, count=2
         )
         if rule[0] > last_checkin:
             next_schedule = rule[0]
