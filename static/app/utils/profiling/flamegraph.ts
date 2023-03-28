@@ -366,6 +366,8 @@ export class Flamegraph {
   }
 }
 
+const isSystemFrame = (frame: FlamegraphFrame) => !frame.node.frame.is_application;
+
 function collapse(frame: FlamegraphFrame) {
   frame.children = frame.children.reduce((acc, child) => {
     acc.push(collapse(child));
@@ -376,13 +378,11 @@ function collapse(frame: FlamegraphFrame) {
     return frame;
   }
 
-  const isSystemFrame = !frame.node.frame.is_application;
-
   const children = frame.children;
 
   if (children.length === 1) {
     const [child] = children;
-    if (isSystemFrame) {
+    if (isSystemFrame(frame) && isSystemFrame(child)) {
       if (!child.collapsed) {
         child.collapsed = 1;
       } else {
