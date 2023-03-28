@@ -1,5 +1,4 @@
 import zipfile
-from datetime import timedelta
 from enum import Enum
 from typing import IO, Callable, Dict, List, Optional, Tuple
 
@@ -19,9 +18,6 @@ from sentry.utils import json
 
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
-# We want to delete entries that are more than 97 days old, which is equal to 3 months + 1 week. We want to give
-# one week of buffer in order to avoid problems for deletions across related entities.
-OLD_ENTRIES_THRESHOLD = 97
 
 
 class SourceFileType(Enum):
@@ -76,13 +72,6 @@ class ArtifactBundle(Model):
             return release_artifact_bundle.release_name, release_artifact_bundle.dist_name
         except IndexError:
             return None, None
-
-    @classmethod
-    def delete_old_entries(cls, expired_threshold: Optional[int]):
-        expiration_time = timezone.now() - timedelta(
-            days=expired_threshold or OLD_ENTRIES_THRESHOLD
-        )
-        ArtifactBundle.objects.filter(date_added__lt=expiration_time).delete()
 
 
 def delete_file_for_artifact_bundle(instance, **kwargs):
