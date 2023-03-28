@@ -1761,6 +1761,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
 
+# Secret key for OpenAI
+OPENAI_API_KEY = None
+
 SENTRY_SCOPES = {
     "org:read",
     "org:write",
