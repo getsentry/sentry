@@ -437,6 +437,7 @@ const LeftLineTitle = styled('div')`
 
 const RepeatedContent = styled(LeftLineTitle)`
   justify-content: center;
+  margin-right: ${space(1)};
 `;
 
 const NativeLineContent = styled('div')<{isFrameAfterLastNonApp: boolean}>`

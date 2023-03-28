@@ -18,8 +18,8 @@ type Props = {
   platform: PlatformType;
   expandFirstFrame?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
-  hideIcon?: boolean;
   includeSystemFrames?: boolean;
+  inlined?: boolean;
   isHoverPreviewed?: boolean;
   maxDepth?: number;
   meta?: Record<any, any>;
@@ -32,6 +32,7 @@ function Content({
   event,
   newestFirst,
   isHoverPreviewed,
+  inlined,
   groupingCurrentLevel,
   includeSystemFrames = true,
   expandFirstFrame = true,
@@ -171,7 +172,9 @@ function Content({
           prevFrame,
           nextFrame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
-          emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
+          emptySourceNotation: inlined
+            ? false
+            : lastFrameIndex === frameIndex && frameIndex === 0,
           platform,
           timesRepeated: nRepeats,
           showingAbsoluteAddress: showingAbsoluteAddresses,
@@ -231,7 +234,11 @@ function Content({
 
   return (
     <Wrapper className={className}>
-      <Frames isHoverPreviewed={isHoverPreviewed} data-test-id="stack-trace">
+      <Frames
+        isHoverPreviewed={isHoverPreviewed}
+        inlined={inlined}
+        data-test-id="stack-trace"
+      >
         {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
       </Frames>
     </Wrapper>
@@ -248,7 +255,7 @@ const Wrapper = styled(Panel)`
   }
 `;
 
-const Frames = styled('ul')<{isHoverPreviewed?: boolean}>`
+export const Frames = styled('ul')<{inlined?: boolean; isHoverPreviewed?: boolean}>`
   background: ${p => p.theme.background};
   border-radius: ${p => p.theme.borderRadius};
   border: 1px ${p => 'solid ' + p.theme.border};
@@ -267,5 +274,13 @@ const Frames = styled('ul')<{isHoverPreviewed?: boolean}>`
       border-radius: 0;
       box-shadow: none;
       margin-bottom: 0;
+    `}
+
+  ${p =>
+    p.inlined &&
+    `
+      border-radius: 0;
+      border-left: 0;
+      border-right: 0;
     `}
 `;
