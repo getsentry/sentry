@@ -117,7 +117,7 @@ class HandleMessageTest(BaseQuerySubscriptionTest, TestCase):
 
 class ParseMessageValueTest(BaseQuerySubscriptionTest, unittest.TestCase):
     def run_test(self, message):
-        parse_message_value(json.dumps(message), self.topic, self.jsoncodec)
+        parse_message_value(json.dumps(message), self.jsoncodec)
 
     def run_invalid_schema_test(self, message):
         with pytest.raises(InvalidSchemaError):
