@@ -79,7 +79,7 @@ def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> Payload
     :param value: A json formatted string
     :return: A dict with the parsed message
     """
-    SUPPORTED_SCHEMA_VERSION = 3
+    # SUPPORTED_SCHEMA_VERSION = 3
     old_version = False
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
@@ -97,10 +97,10 @@ def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> Payload
                 metrics.incr("snuba_query_subscriber.message_wrapper_invalid")
                 raise InvalidSchemaError("Message wrapper does not match schema")
 
-    schema_version: int = wrapper["version"]
     payload: PayloadV3 = wrapper["payload"]
 
     if old_version:
+        schema_version: int = wrapper["version"]
         if schema_version not in SUBSCRIPTION_PAYLOAD_VERSIONS:
             metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
             raise InvalidMessageError("Version specified in wrapper has no schema")
@@ -111,11 +111,6 @@ def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> Payload
             except jsonschema.ValidationError:
                 metrics.incr("snuba_query_subscriber.message_payload_invalid")
                 raise InvalidSchemaError("Message payload does not match schema")
-
-    else:
-        if schema_version != SUPPORTED_SCHEMA_VERSION:
-            metrics.incr("snuba_query_subscriber.message_wrapper_invalid_version")
-            raise InvalidMessageError("Version specified in wrapper has no schema")
 
     # XXX: Since we just return the raw dict here, when the payload changes it'll
     # break things. This should convert the payload into a class rather than passing
