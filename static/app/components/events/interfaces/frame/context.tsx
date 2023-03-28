@@ -206,9 +206,7 @@ const Context = ({
         />
       )}
 
-      {hasAssembly && (
-        <Assembly {...parseAssembly(frame.package)} filePath={frame.absPath} />
-      )}
+      {hasAssembly && <Assembly {...parseAssembly(frame.package)} />}
     </Wrapper>
   );
 };
