@@ -8,6 +8,8 @@ from django.conf import settings
 from sentry.utils import json, kafka_config, metrics
 from sentry.utils.pubsub import KafkaPublisher
 
+EVENT_LIMIT = 20
+
 replay_publisher: Optional[KafkaPublisher] = None
 
 ReplayActionsEventPayloadClick = TypedDict(
@@ -105,7 +107,7 @@ def get_user_actions(
 ) -> List[ReplayActionsEventPayloadClick]:
     """Return a list of ReplayActionsEventPayloadClick types."""
     result: List[ReplayActionsEventPayloadClick] = []
-    for event in events:
+    for event in events[:EVENT_LIMIT]:
         if event.get("type") == 5 and event.get("data", {}).get("tag") == "breadcrumb":
             payload = event["data"].get("payload", {})
             if payload.get("category") == "ui.click":
