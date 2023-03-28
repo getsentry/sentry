@@ -387,7 +387,7 @@ def cron(**options):
 
 
 @run.command("post-process-forwarder")
-@kafka_options("snuba-post-processor")
+@kafka_options("snuba-post-processor", allow_force_cluster=False)
 @strict_offset_reset_option()
 @click.option(
     "--topic",
@@ -472,12 +472,6 @@ def post_process_forwarder(**options):
     type=click.Choice(["earliest", "latest"]),
     help="Force subscriptions to start from a particular offset",
 )
-@click.option(
-    "--use-arroyo-consumer",
-    default=True,
-    is_flag=True,
-    help="Switches to the new arroyo consumer implementation.",
-)
 @strict_offset_reset_option()
 @log_options()
 @configuration
@@ -552,21 +546,9 @@ def ingest_consumer(consumer_types, all_consumer_types, **options):
 
 
 @run.command("occurrences-ingest-consumer")
+@kafka_options("occurrence-consumer", allow_force_cluster=False)
 @strict_offset_reset_option()
 @configuration
-@click.option(
-    "--consumer-group",
-    "group_id",
-    default="occurrence-consumer",
-    help="Kafka consumer group for the consumer.",
-)
-@click.option(
-    "--auto-offset-reset",
-    "auto_offset_reset",
-    default="latest",
-    type=click.Choice(["earliest", "latest", "error"]),
-    help="Position in the commit log topic to begin reading from when no prior offset has been recorded.",
-)
 def occurrences_ingest_consumer(**options):
     from django.conf import settings
 
