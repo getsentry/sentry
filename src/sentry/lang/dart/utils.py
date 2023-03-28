@@ -23,10 +23,10 @@ def has_dart_symbols_file(data):
 
 
 def get_dart_symbols_images(event: Event):
-    images = set()
-    for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=()):
-        images.add(str(image["uuid"]).lower())
-    return images
+    return {
+        str(image["uuid"]).lower()
+        for image in get_path(event, "debug_meta", "images", filter=is_valid_image, default=())
+    }
 
 
 def generate_dart_symbols_map(uuid: str, project: Project):
