@@ -79,7 +79,6 @@ def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> Payload
     :param value: A json formatted string
     :return: A dict with the parsed message
     """
-    # SUPPORTED_SCHEMA_VERSION = 3
     old_version = False
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
