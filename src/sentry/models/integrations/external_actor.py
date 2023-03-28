@@ -9,6 +9,7 @@ from sentry.db.models import (
     FlexibleForeignKey,
     region_silo_only_model,
 )
+from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.types.integrations import ExternalProviders
 
 logger = logging.getLogger(__name__)
@@ -46,7 +47,7 @@ class ExternalActor(DefaultFieldsModel):
         install = self.integration.get_installation(self.organization_id)
 
         install.notify_remove_external_team(external_team=self, team=self.actor.resolve())
-        install.remove_notification_settings(
+        notifications_service.remove_notification_settings(
             actor_id=self.actor_id, provider=ExternalProviders(self.provider)
         )
 

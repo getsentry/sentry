@@ -255,7 +255,7 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase):
     def test_reinvite_sso_link(self):
         member = self.create_user("bar@example.com")
         member_om = self.create_member(organization=self.organization, user=member, role="member")
-        AuthProvider.objects.create(organization=self.organization, provider="dummy", flags=1)
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy", flags=1)
 
         with self.tasks():
             self.get_success_response(self.organization.slug, member_om.id, reinvite=1)

@@ -60,7 +60,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest):
     @patch("sentry.api.endpoints.organization_member.requests.join.logger")
     def test_org_sso_enabled(self, mock_log):
         with exempt_from_silo_limits():
-            AuthProvider.objects.create(organization=self.organization, provider="google")
+            AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
 
         self.get_error_response(self.organization.slug, email=self.email, status_code=403)
 

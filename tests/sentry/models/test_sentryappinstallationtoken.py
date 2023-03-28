@@ -27,11 +27,11 @@ class SentryAppInstallationTokenTest(TestCase):
 
         self.install = SentryAppInstallation.objects.create(
             sentry_app=sentry_app,
-            organization=self.organization,
+            organization_id=self.organization.id,
         )
 
         SentryAppInstallationForProvider.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             provider=self.provider,
             sentry_app_installation=self.install,
         )

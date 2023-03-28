@@ -57,7 +57,7 @@ class SlackUnlinkIdentityView(BaseView):
             )
 
         try:
-            Identity.objects.filter(idp=idp, external_id=params["slack_id"]).delete()
+            Identity.objects.filter(idp_id=idp.id, external_id=params["slack_id"]).delete()
         except IntegrityError:
             logger.exception("slack.unlink.integrity-error")
             raise Http404

@@ -63,7 +63,9 @@ class MSTeamsMessageBuilderTest(TestCase):
             external_id="f3ll0wsh1p",
             metadata={},
         )
-        OrganizationIntegration.objects.create(organization=self.org, integration=self.integration)
+        OrganizationIntegration.objects.create(
+            organization_id=self.org.id, integration=self.integration
+        )
 
         self.project1 = self.create_project(organization=self.org)
         self.event1 = self.store_event(

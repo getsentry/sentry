@@ -6,10 +6,12 @@ from sentry.models import (
     Identity,
     IdentityProvider,
     IdentityStatus,
-    Integration,
     Organization,
+    OrganizationMember,
     User,
 )
+from sentry.services.hybrid_cloud.identity import RpcIdentityProvider, identity_service
+from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 
 
@@ -18,22 +20,21 @@ def get_identity_or_404(
     user: User,
     integration_id: int,
     organization_id: Optional[int] = None,
-) -> Tuple[Organization, Integration, IdentityProvider]:
+) -> Tuple[Organization, RpcIntegration, RpcIdentityProvider]:
     """For endpoints, short-circuit with a 404 if we cannot find everything we need."""
-    try:
-        integration = Integration.objects.get(id=integration_id)
-        idp = IdentityProvider.objects.get(
-            external_id=integration.external_id, type=EXTERNAL_PROVIDERS[provider]
-        )
-        organization_filters = dict(
-            member_set__user=user,
-            organizationintegration__integration=integration,
-        )
-        # If provided, ensure organization_id is valid.
-        if organization_id:
-            organization_filters.update(dict(id=organization_id))
-        organization = Organization.objects.filter(**organization_filters)[0]
-    except Exception:
+    if provider not in EXTERNAL_PROVIDERS:
+        raise Http404
+
+    integration = integration_service.get_integration(integration_id=integration_id)
+    idp = identity_service.get_provider(
+        provider_ext_id=integration.external_id, provider_type=EXTERNAL_PROVIDERS[provider]
+    )
+
+    qs = OrganizationMember.objects.get_for_integration(integration, user)
+    if organization_id:
+        qs = qs.filter(organization_id=organization_id)
+    organization = qs.first().organization if qs else None
+    if organization is None:
         raise Http404
     return organization, integration, idp
 

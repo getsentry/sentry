@@ -59,7 +59,9 @@ class StatusActionTest(BaseEventTest):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
         """
-        auth_idp = AuthProvider.objects.create(organization=self.organization, provider="dummy")
+        auth_idp = AuthProvider.objects.create(
+            organization_id=self.organization.id, provider="dummy"
+        )
         AuthIdentity.objects.create(auth_provider=auth_idp, user=self.user)
 
         status_action = {"name": "status", "value": "ignored", "type": "button"}
@@ -180,7 +182,7 @@ class StatusActionTest(BaseEventTest):
             external_id="TXXXXXXX2",
             metadata={"access_token": "xoxa-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"},
         )
-        OrganizationIntegration.objects.create(organization=org2, integration=integration2)
+        OrganizationIntegration.objects.create(organization_id=org2.id, integration=integration2)
 
         idp2 = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX2", config={})
         Identity.objects.create(

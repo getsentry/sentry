@@ -149,7 +149,7 @@ class AcceptInviteTest(TestCase):
             self._assert_pending_invite_details_not_in_session(resp)
 
     def test_user_can_use_sso(self):
-        AuthProvider.objects.create(organization=self.organization, provider="google")
+        AuthProvider.objects.create(organization_id=self.organization.id, provider="google")
         self.login_as(self.user)
 
         om = Factories.create_member(

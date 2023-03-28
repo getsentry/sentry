@@ -4,6 +4,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Tuple
 
 from sentry.api.paginator import OffsetPaginator
+from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.models.integrations import Integration, OrganizationIntegration
 from sentry.services.hybrid_cloud import RpcPaginationArgs, RpcPaginationResult
 from sentry.services.hybrid_cloud.integration import (
@@ -22,6 +23,19 @@ logger = logging.getLogger(__name__)
 class DatabaseBackedIntegrationService(IntegrationService):
     def close(self) -> None:
         pass
+
+    def send_message(
+        self, *, integration_id: int, organization_id: int, channel: str, message: str
+    ) -> bool:
+        integration = Integration.objects.filter(id=integration_id).first()
+        if integration is None:
+            return False
+        install = self.get_installation(integration=integration, organization_id=organization_id)
+        if isinstance(install, NotifyBasicMixin):
+            install.send_message(channel_id=channel, message=message)
+            return True
+
+        return False
 
     def page_integration_ids(
         self,

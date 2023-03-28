@@ -99,10 +99,10 @@ class VercelIntegrationTest(IntegrationTestCase):
             "installation_type": installation_type,
         }
         assert OrganizationIntegration.objects.get(
-            integration=integration, organization=self.organization
+            integration=integration, organization_id=self.organization.id
         )
         assert SentryAppInstallationForProvider.objects.get(
-            organization=self.organization, provider="vercel"
+            organization_id=self.organization.id, provider="vercel"
         )
 
     @responses.activate
@@ -126,7 +126,7 @@ class VercelIntegrationTest(IntegrationTestCase):
         )
         sentry_app_installation = SentryAppInstallation.objects.get(sentry_app=sentry_app)
         SentryAppInstallationForProvider.objects.create(
-            organization=self.organization,
+            organization_id=self.organization.id,
             provider="vercel",
             sentry_app_installation=sentry_app_installation,
         )

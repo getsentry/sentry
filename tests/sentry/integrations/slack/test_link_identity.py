@@ -107,7 +107,8 @@ class SlackIntegrationUnlinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def test_user_with_multiple_organizations(self):
         # Create a second organization where the user is _not_ a member.
         OrganizationIntegration.objects.create(
-            organization=self.create_organization(name="Another Org"), integration=self.integration
+            organization_id=self.create_organization(name="Another Org").id,
+            integration=self.integration,
         )
 
         # Unlink identity of user.

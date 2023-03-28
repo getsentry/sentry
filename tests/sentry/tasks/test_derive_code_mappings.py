@@ -433,7 +433,7 @@ class TestPythonDeriveCodeMappings(BaseDeriveCodeMappings):
         self, mock_logger, mock_generate_code_mappings, mock_get_trees_for_org
     ):
         organization_integration = OrganizationIntegration.objects.get(
-            organization=self.organization, integration=self.integration
+            organization_id=self.organization.id, integration=self.integration
         )
         repository = Repository.objects.create(
             name="repo",

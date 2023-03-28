@@ -193,7 +193,7 @@ class GitHubAppsProviderTest(TestCase):
         self.provider.link_auth(user, organization, {"integration_id": integration.id})
 
         assert OrganizationIntegration.objects.filter(
-            organization=organization, integration=integration
+            organization_id=organization.id, integration=integration
         ).exists()
 
     def test_delete_repository(self):

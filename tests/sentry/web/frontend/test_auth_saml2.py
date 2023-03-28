@@ -54,7 +54,7 @@ class AuthSAML2Test(AuthProviderTestCase):
         self.user = self.create_user("rick@onehundredyears.com")
         self.org = self.create_organization(owner=self.user, name="saml2-org")
         self.auth_provider = AuthProvider.objects.create(
-            provider=self.provider_name, config=dummy_provider_config, organization=self.org
+            provider=self.provider_name, config=dummy_provider_config, organization_id=self.org.id
         )
 
         # The system.url-prefix, which is used to generate absolute URLs, must

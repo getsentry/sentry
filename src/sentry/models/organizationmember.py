@@ -33,6 +33,7 @@ from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
+from sentry.services.hybrid_cloud import extract_id_from
 from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
@@ -91,10 +92,10 @@ class OrganizationMemberManager(BaseManager):
             email__exact=None
         ).exclude(organization_id__in=orgs_with_scim).delete()
 
-    def get_for_integration(self, integration: RpcIntegration, actor: RpcUser) -> QuerySet:
+    def get_for_integration(self, integration: RpcIntegration | int, actor: RpcUser) -> QuerySet:
         return self.filter(
             user_id=actor.id,
-            organization__organizationintegration__integration_id=integration.id,
+            organization__organizationintegration__integration_id=extract_id_from(integration),
         ).select_related("organization")
 
     def get_member_invite_query(self, id: int) -> QuerySet:

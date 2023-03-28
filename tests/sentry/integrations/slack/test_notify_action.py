@@ -352,7 +352,7 @@ class SlackNotifyActionTest(RuleTestCase):
 
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
         OrganizationIntegration.objects.filter(
             integration=self.integration, organization=self.event.project.organization
         ).update(status=ObjectStatus.DISABLED)
@@ -396,7 +396,7 @@ class SlackNotifyActionTest(RuleTestCase):
     @responses.activate
     def test_multiple_integrations(self):
         org = self.create_organization(owner=self.user)
-        OrganizationIntegration.objects.create(organization=org, integration=self.integration)
+        OrganizationIntegration.objects.create(organization_id=org.id, integration=self.integration)
 
         event = self.get_event()
 
