@@ -44,7 +44,7 @@ class MetricsIngestConfiguration:
     cardinality_limiter_cluster_options: Mapping[str, Any]
     cardinality_limiter_namespace: str
 
-    input_schema_validation_option_name: str
+    input_schema_validation_option_name: Optional[str] = None
 
     index_tag_values_option_name: Optional[str] = None
     is_output_sliced: Optional[bool] = False

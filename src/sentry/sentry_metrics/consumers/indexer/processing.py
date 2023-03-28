@@ -86,7 +86,10 @@ class MessageProcessor:
         is_output_sliced = self._config.is_output_sliced or False
 
         arroyo_input_codec_should_sample = (
-            0.0 < options.get(self._config.input_schema_validation_option_name) < random.random()
+            self._config.input_schema_validation_option_name
+            and 0.0
+            < options.get(self._config.input_schema_validation_option_name)
+            < random.random()
         )
 
         batch = IndexerBatch(
