@@ -2,12 +2,15 @@ import {useMemo, useRef} from 'react';
 import {AutoSizer, CellMeasurer, GridCellProps, MultiGrid} from 'react-virtualized';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
 import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {getPrevReplayEvent} from 'sentry/utils/replays/getReplayEvent';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useOrganization from 'sentry/utils/useOrganization';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
+import NetworkDetails from 'sentry/views/replays/detail/network/networkDetails';
 import NetworkFilters from 'sentry/views/replays/detail/network/networkFilters';
 import NetworkHeaderCell, {
   COLUMN_COUNT,
@@ -34,7 +37,13 @@ const cellMeasurer = {
 };
 
 function NetworkList({networkSpans, startTimestampMs}: Props) {
+  const organization = useOrganization();
   const {currentTime, currentHoverTime} = useReplayContext();
+
+  const initialRequestDetailsHeight = useMemo(
+    () => Math.max(150, window.innerHeight * 0.25),
+    []
+  );
 
   const filterProps = useNetworkFilters({networkSpans: networkSpans || []});
   const {items: filteredItems, searchTerm, setSearchTerm} = filterProps;
@@ -76,13 +85,14 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
   );
 
   const gridRef = useRef<MultiGrid>(null);
+  const deps = useMemo(() => [items, searchTerm], [items, searchTerm]);
   const {cache, getColumnWidth, onScrollbarPresenceChange, onWrapperResize} =
     useVirtualizedGrid({
       cellMeasurer,
       gridRef,
       columnCount: COLUMN_COUNT,
       dynamicColumnIndex: 1,
-      deps: [items, searchTerm],
+      deps,
     });
 
   const cellRenderer = ({columnIndex, rowIndex, key, style, parent}: GridCellProps) => {
@@ -120,6 +130,7 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
               handleMouseLeave={handleMouseLeave}
               isCurrent={network.id === current?.id}
               isHovered={network.id === hovered?.id}
+              rowIndex={rowIndex}
               sortConfig={sortConfig}
               span={network}
               startTimestampMs={startTimestampMs}
@@ -135,48 +146,62 @@ function NetworkList({networkSpans, startTimestampMs}: Props) {
     <FluidHeight>
       <NetworkFilters networkSpans={networkSpans} {...filterProps} />
       <NetworkTable>
-        {networkSpans ? (
-          <AutoSizer onResize={onWrapperResize}>
-            {({width, height}) => (
-              <MultiGrid
-                ref={gridRef}
-                cellRenderer={cellRenderer}
-                columnCount={COLUMN_COUNT}
-                columnWidth={getColumnWidth(width)}
-                deferredMeasurementCache={cache}
-                estimatedColumnSize={100}
-                estimatedRowSize={BODY_HEIGHT}
-                fixedRowCount={1}
-                height={height}
-                noContentRenderer={() => (
-                  <NoRowRenderer
-                    unfilteredItems={networkSpans}
-                    clearSearchTerm={clearSearchTerm}
-                  >
-                    {t('No network requests recorded')}
-                  </NoRowRenderer>
+        <FluidHeight>
+          {networkSpans ? (
+            <OverflowHidden>
+              <AutoSizer onResize={onWrapperResize}>
+                {({height, width}) => (
+                  <MultiGrid
+                    ref={gridRef}
+                    cellRenderer={cellRenderer}
+                    columnCount={COLUMN_COUNT}
+                    columnWidth={getColumnWidth(width)}
+                    deferredMeasurementCache={cache}
+                    estimatedColumnSize={100}
+                    estimatedRowSize={BODY_HEIGHT}
+                    fixedRowCount={1}
+                    height={height}
+                    noContentRenderer={() => (
+                      <NoRowRenderer
+                        unfilteredItems={networkSpans}
+                        clearSearchTerm={clearSearchTerm}
+                      >
+                        {t('No network requests recorded')}
+                      </NoRowRenderer>
+                    )}
+                    onScrollbarPresenceChange={onScrollbarPresenceChange}
+                    overscanColumnCount={COLUMN_COUNT}
+                    overscanRowCount={5}
+                    rowCount={items.length + 1}
+                    rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
+                    width={width}
+                  />
                 )}
-                onScrollbarPresenceChange={onScrollbarPresenceChange}
-                overscanColumnCount={COLUMN_COUNT}
-                overscanRowCount={5}
-                rowCount={items.length + 1}
-                rowHeight={({index}) => (index === 0 ? HEADER_HEIGHT : BODY_HEIGHT)}
-                width={width}
-              />
-            )}
-          </AutoSizer>
-        ) : (
-          <Placeholder height="100%" />
-        )}
+              </AutoSizer>
+            </OverflowHidden>
+          ) : (
+            <Placeholder height="100%" />
+          )}
+          <Feature
+            features={['session-replay-network-details']}
+            organization={organization}
+            renderDisabled={false}
+          >
+            <NetworkDetails initialHeight={initialRequestDetailsHeight} items={items} />
+          </Feature>
+        </FluidHeight>
       </NetworkTable>
     </FluidHeight>
   );
 }
 
-const NetworkTable = styled('div')`
+const OverflowHidden = styled('div')`
   position: relative;
   height: 100%;
   overflow: hidden;
+`;
+
+const NetworkTable = styled(OverflowHidden)`
   border: 1px solid ${p => p.theme.border};
   border-radius: ${p => p.theme.borderRadius};
 `;
