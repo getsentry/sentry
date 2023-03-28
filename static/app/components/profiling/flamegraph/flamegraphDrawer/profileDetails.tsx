@@ -35,9 +35,6 @@ function renderValue(
   value: number | string | undefined,
   profileGroup?: ProfileGroup
 ) {
-  if (key === 'durationNS' && typeof value === 'number') {
-    return nsFormatter(value);
-  }
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
   }
@@ -317,7 +314,9 @@ function TransactionEventDetails({
       {
         key: 'duration',
         label: t('Duration'),
-        value: profileMetadata.durationNS && nsFormatter(profileMetadata.durationNS),
+        value: msFormatter(
+          (transaction.endTimestamp - transaction.startTimestamp) * 1000
+        ),
       },
       {
         key: 'threads',
@@ -474,7 +473,7 @@ function ProfileEventDetails({
   );
 }
 
-const nsFormatter = makeFormatter('nanoseconds');
+const msFormatter = makeFormatter('milliseconds');
 
 const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('transaction')]: 'transactionName',
@@ -484,7 +483,6 @@ const PROFILE_DETAILS_KEY: Record<string, string> = {
   [t('platform')]: 'platform',
   [t('release')]: 'release',
   [t('environment')]: 'environment',
-  [t('duration')]: 'durationNS',
   [t('threads')]: 'threads',
 };
 

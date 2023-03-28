@@ -86,15 +86,7 @@ function getTransactionConfigSpace(
   }
 
   // No transaction was found, so best we can do is align it to the starting
-  // position of the profiles
-  const duration = profileGroup.metadata.durationNS;
-
-  // If durationNs is present, use it
-  if (typeof duration === 'number') {
-    return new Rect(0, 0, formatTo(duration, 'nanoseconds', unit), 0);
-  }
-
-  // else fallback to Math.max of profile durations
+  // position of the profiles - find the max of profile durations
   const maxProfileDuration = Math.max(...profileGroup.profiles.map(p => p.duration));
   return new Rect(0, 0, maxProfileDuration, 0);
 }
