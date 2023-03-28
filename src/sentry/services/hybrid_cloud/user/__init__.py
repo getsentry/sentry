@@ -5,14 +5,12 @@
 
 import datetime
 from abc import abstractmethod
+from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, FrozenSet, List, Optional, TypedDict
 
-from pydantic.fields import Field
-
-from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.silo import SiloMode
 
 if TYPE_CHECKING:
@@ -20,29 +18,33 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
-class RpcAvatar(RpcModel):
+@dataclass(frozen=True, eq=True)
+class RpcAvatar:
     id: int = 0
     file_id: int = 0
     ident: str = ""
     avatar_type: str = "letter_avatar"
 
 
-class RpcUserEmail(RpcModel):
+@dataclass(frozen=True, eq=True)
+class RpcUserEmail:
     id: int = 0
     email: str = ""
     is_verified: bool = False
 
 
-class RpcAuthenticator(RpcModel):
+@dataclass(frozen=True, eq=True)
+class RpcAuthenticator:
     id: int = 0
     user_id: int = -1
-    created_at: datetime.datetime = DEFAULT_DATE
-    last_used_at: Optional[datetime.datetime] = None
+    created_at: datetime.datetime = datetime.datetime(2000, 1, 1)
+    last_used_at: datetime.datetime = datetime.datetime(2000, 1, 1)
     type: int = -1
     config: Any = None
 
 
-class RpcUser(RpcModel):
+@dataclass(frozen=True, eq=True)
+class RpcUser:
     id: int = -1
     pk: int = -1
     name: str = ""
@@ -61,19 +63,13 @@ class RpcUser(RpcModel):
     is_sentry_app: bool = False
     password_usable: bool = False
     is_password_expired: bool = False
-    session_nonce: Optional[str] = None
+    session_nonce: str = ""
 
     roles: FrozenSet[str] = frozenset()
     permissions: FrozenSet[str] = frozenset()
     avatar: Optional[RpcAvatar] = None
-    useremails: List[RpcUserEmail] = Field(default_factory=list)
-    authenticators: List[RpcAuthenticator] = Field(default_factory=list)
-
-    def __hash__(self) -> int:
-        # Mimic the behavior of hashing a Django ORM entity, for compatibility with
-        # legacy code that treats User entities as dict keys.
-        # TODO: Remove the need for this
-        return hash((self.id, self.pk))
+    useremails: FrozenSet[RpcUserEmail] = frozenset()
+    authenticators: FrozenSet[RpcAuthenticator] = frozenset()
 
     def has_usable_password(self) -> bool:
         return self.password_usable
@@ -120,17 +116,7 @@ class UserUpdateArgs(TypedDict, total=False):
     avatar_type: int
 
 
-class UserService(RpcService):
-    key = "user"
-    local_mode = SiloMode.CONTROL
-
-    @classmethod
-    def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
-
-        return DatabaseBackedUserService()
-
-    @rpc_method
+class UserService(InterfaceWithLifecycle):
     @abstractmethod
     def serialize_many(
         self,
@@ -142,16 +128,13 @@ class UserService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
-    @rpc_method
     @abstractmethod
     def get_many(self, *, filter: UserFilterArgs) -> List[RpcUser]:
         pass
 
-    @rpc_method
     @abstractmethod
     def get_many_by_email(
         self,
-        *,
         emails: List[str],
         is_active: bool = True,
         is_verified: bool = True,
@@ -166,10 +149,9 @@ class UserService(RpcService):
         """
         pass
 
-    @rpc_method
     @abstractmethod
     def get_by_username(
-        self, *, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
+        self, username: str, with_valid_password: bool = True, is_active: Optional[bool] = None
     ) -> List[RpcUser]:
         """
         Return a list of users that match a username and falling back to email
@@ -183,20 +165,22 @@ class UserService(RpcService):
         """
         pass
 
-    @rpc_method
     @abstractmethod
-    def get_from_group(self, *, group: "Group") -> List[RpcUser]:
+    def get_from_group(self, group: "Group") -> List[RpcUser]:
         """Get all users in all teams in a given Group's project."""
         pass
 
-    @rpc_method
     @abstractmethod
     def get_by_actor_ids(self, *, actor_ids: List[int]) -> List[RpcUser]:
         pass
 
-    @rpc_method
     @abstractmethod
-    def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
+    def update_user(
+        self,
+        *,
+        user_id: int,
+        attrs: UserUpdateArgs,
+    ) -> Any:
         # Returns a serialized user
         pass
 
@@ -214,4 +198,16 @@ class UserService(RpcService):
             return None
 
 
-user_service: UserService = cast(UserService, UserService.create_delegation())
+def impl_with_db() -> UserService:
+    from sentry.services.hybrid_cloud.user.impl import DatabaseBackedUserService
+
+    return DatabaseBackedUserService()
+
+
+user_service: UserService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
+        SiloMode.CONTROL: impl_with_db,
+    }
+)

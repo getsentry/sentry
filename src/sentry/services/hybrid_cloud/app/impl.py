@@ -45,10 +45,10 @@ class DatabaseBackedAppService(AppService):
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         return [
             RpcSentryAppComponent(
-                uuid=str(c.uuid),
+                uuid=c.uuid,
                 sentry_app_id=c.sentry_app_id,
                 type=c.type,
-                app_schema=c.schema,
+                schema=c.schema,
             )
             for c in SentryAppComponent.objects.filter(sentry_app_id=app_id)
         ]

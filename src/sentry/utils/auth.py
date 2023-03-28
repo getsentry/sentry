@@ -251,9 +251,7 @@ def find_users(
     Return a list of users that match a username
     and falling back to email
     """
-    return user_service.get_by_username(
-        username=username, with_valid_password=with_valid_password, is_active=is_active
-    )
+    return user_service.get_by_username(username, with_valid_password, is_active)
 
 
 def login(
