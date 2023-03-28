@@ -86,7 +86,7 @@ def _get_public_dsn():
 
     result = cache.get(cache_key)
     if result is None:
-        key = project_key_service.get_project_key(project_id=project_id, role=ProjectKeyRole.store)
+        key = project_key_service.get_project_key(project_id, ProjectKeyRole.store)
         if key:
             result = key.dsn_public
         else:

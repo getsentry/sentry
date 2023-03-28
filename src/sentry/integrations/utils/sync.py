@@ -80,7 +80,7 @@ def sync_group_assignee_inbound(
             GroupAssignee.objects.deassign(group)
         return affected_groups
 
-    users = user_service.get_many_by_email(emails=[email])
+    users = user_service.get_many_by_email([email])
     users_by_id = {user.id: user for user in users}
     projects_by_user = Project.objects.get_by_users(users)
 

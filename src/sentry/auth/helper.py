@@ -228,10 +228,7 @@ class AuthIdentityHandler:
 
     def _handle_new_membership(self, auth_identity: RpcAuthIdentity) -> RpcOrganizationMember:
         user, om = auth_service.handle_new_membership(
-            request=self.request,
-            organization=self.organization,
-            auth_identity=auth_identity,
-            auth_provider=self.auth_provider,
+            self.request, self.organization, auth_identity, self.auth_provider
         )
 
         if om is not None:
