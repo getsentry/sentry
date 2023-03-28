@@ -123,7 +123,7 @@ def get_user_actions(
                         "text": node["textContent"][:1024],
                         "role": attributes.get("role", "")[:32],
                         "alt": attributes.get("alt", "")[:64],
-                        "testid": attributes.get("testid", "")[:64],
+                        "testid": attributes.get("data-testid", "")[:64],
                         "aria_label": attributes.get("aria-label", "")[:64],
                         "title": attributes.get("title", "")[:64],
                         "timestamp": int(payload["timestamp"]),
