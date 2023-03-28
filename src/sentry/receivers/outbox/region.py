@@ -25,7 +25,7 @@ def process_organization_mapping_verifications(object_identifier: int, **kwds: A
     if (org := maybe_process_tombstone(Organization, object_identifier)) is None:
         return
 
-    organization_mapping_service.verify_mappings(organization_id=org.id, slug=org.slug)
+    organization_mapping_service.verify_mappings(org.id, org.slug)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.AUDIT_LOG_EVENT)
@@ -55,7 +55,7 @@ def process_organization_updates(object_identifier: int, **kwds: Any):
         return
 
     update = update_organization_mapping_from_instance(org)
-    organization_mapping_service.update(organization_id=org.id, update=update)
+    organization_mapping_service.update(org.id, update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.PROJECT_UPDATE)

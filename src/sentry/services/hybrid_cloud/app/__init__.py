@@ -5,16 +5,13 @@
 
 import abc
 import datetime
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict, cast
-
-from pydantic.fields import Field
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Any, List, Mapping, Optional, Protocol, TypedDict
 
 from sentry.constants import SentryAppInstallationStatus
 from sentry.models import SentryApp, SentryAppInstallation
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
@@ -23,7 +20,8 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.auth import AuthenticationContext
 
 
-class RpcSentryAppService(RpcModel):
+@dataclass
+class RpcSentryAppService:
     """
     A `SentryAppService` (a notification service) wrapped up and serializable via the
     rpc interface.
@@ -34,33 +32,36 @@ class RpcSentryAppService(RpcModel):
     service_type: str = "sentry_app"
 
 
-class RpcSentryApp(RpcModel):
+@dataclass
+class RpcSentryApp:
     id: int = -1
-    scope_list: List[str] = Field(default_factory=list)
+    scope_list: List[str] = field(default_factory=list)
     application_id: int = -1
     proxy_user_id: Optional[int] = None  # can be null on deletion.
     owner_id: int = -1  # relation to an organization
     name: str = ""
     slug: str = ""
     uuid: str = ""
-    events: List[str] = Field(default_factory=list)
-    webhook_url: Optional[str] = None
+    events: List[str] = field(default_factory=list)
+    webhook_url: str = ""
 
 
-class RpcSentryAppInstallation(RpcModel):
+@dataclass
+class RpcSentryAppInstallation:
     id: int = -1
     organization_id: int = -1
     status: int = SentryAppInstallationStatus.PENDING
-    sentry_app: RpcSentryApp = Field(default_factory=lambda: RpcSentryApp())
+    sentry_app: RpcSentryApp = field(default_factory=lambda: RpcSentryApp())
     date_deleted: Optional[datetime.datetime] = None
     uuid: str = ""
 
 
-class RpcSentryAppComponent(RpcModel):
+@dataclass
+class RpcSentryAppComponent:
     uuid: str = ""
     sentry_app_id: int = -1
     type: str = ""
-    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+    schema: Mapping[str, Any] = field(default_factory=dict)
 
 
 class SentryAppEventDataInterface(Protocol):
@@ -80,7 +81,7 @@ class SentryAppEventDataInterface(Protocol):
         pass
 
 
-@dataclass  # TODO: Make compatible with RpcModel
+@dataclass
 class RpcSentryAppEventData(SentryAppEventDataInterface):
     id: str = ""
     label: str = ""
@@ -111,17 +112,7 @@ class SentryAppInstallationFilterArgs(TypedDict, total=False):
     uuids: List[str]
 
 
-class AppService(RpcService):
-    key = "app"
-    local_mode = SiloMode.CONTROL
-
-    @classmethod
-    def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.app.impl import DatabaseBackedAppService
-
-        return DatabaseBackedAppService()
-
-    @rpc_method
+class AppService(InterfaceWithLifecycle):
     @abc.abstractmethod
     def serialize_many(
         self,
@@ -132,21 +123,18 @@ class AppService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def get_many(
         self, *, filter: SentryAppInstallationFilterArgs
     ) -> List[RpcSentryAppInstallation]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def find_installation_by_proxy_user(
         self, *, proxy_user_id: int, organization_id: int
     ) -> Optional[RpcSentryAppInstallation]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def get_installed_for_organization(
         self,
@@ -155,7 +143,6 @@ class AppService(RpcService):
     ) -> List[RpcSentryAppInstallation]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def find_alertable_services(self, *, organization_id: int) -> List[RpcSentryAppService]:
         pass
@@ -175,12 +162,10 @@ class AppService(RpcService):
             webhook_url=app.webhook_url,
         )
 
-    @rpc_method
     @abc.abstractmethod
     def find_service_hook_sentry_app(self, *, api_application_id: int) -> Optional[RpcSentryApp]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def get_custom_alert_rule_actions(
         self,
@@ -191,12 +176,10 @@ class AppService(RpcService):
     ) -> List[Mapping[str, Any]]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def find_app_components(self, *, app_id: int) -> List[RpcSentryAppComponent]:
         pass
 
-    @rpc_method
     @abc.abstractmethod
     def get_related_sentry_app_components(
         self,
@@ -224,7 +207,6 @@ class AppService(RpcService):
             uuid=app.uuid,
         )
 
-    @rpc_method
     @abc.abstractmethod
     def trigger_sentry_app_action_creators(
         self, *, fields: List[Mapping[str, Any]], install_uuid: Optional[str]
@@ -232,4 +214,16 @@ class AppService(RpcService):
         pass
 
 
-app_service = cast(AppService, AppService.create_delegation())
+def impl_with_db() -> AppService:
+    from sentry.services.hybrid_cloud.app.impl import DatabaseBackedAppService
+
+    return DatabaseBackedAppService()
+
+
+app_service: AppService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.CONTROL: impl_with_db,
+        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
+    }
+)

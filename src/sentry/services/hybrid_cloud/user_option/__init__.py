@@ -4,17 +4,18 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import Any, Iterable, List, Optional, TypedDict, cast
+from dataclasses import dataclass
+from typing import Any, Iterable, List, Optional, TypedDict
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation, stubbed
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo import SiloMode
 
 
-class RpcUserOption(RpcModel):
+@dataclass
+class RpcUserOption:
     id: int = -1
     user_id: int = -1
     value: Any = None
@@ -47,17 +48,7 @@ class UserOptionFilterArgs(TypedDict, total=False):
     organization_id: Optional[int]
 
 
-class UserOptionService(RpcService):
-    key = "user_option"
-    local_mode = SiloMode.CONTROL
-
-    @classmethod
-    def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
-
-        return DatabaseBackedUserOptionService()
-
-    @rpc_method
+class UserOptionService(InterfaceWithLifecycle):
     @abstractmethod
     def serialize_many(
         self,
@@ -68,17 +59,14 @@ class UserOptionService(RpcService):
     ) -> List[OpaqueSerializedResponse]:
         pass
 
-    @rpc_method
     @abstractmethod
     def get_many(self, *, filter: UserOptionFilterArgs) -> List[RpcUserOption]:
         pass
 
-    @rpc_method
     @abstractmethod
     def delete_options(self, *, option_ids: List[int]) -> None:
         pass
 
-    @rpc_method
     @abstractmethod
     def set_option(
         self,
@@ -92,6 +80,16 @@ class UserOptionService(RpcService):
         pass
 
 
-user_option_service: UserOptionService = cast(
-    UserOptionService, UserOptionService.create_delegation()
+def impl_with_db() -> UserOptionService:
+    from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
+
+    return DatabaseBackedUserOptionService()
+
+
+user_option_service: UserOptionService = silo_mode_delegation(
+    {
+        SiloMode.MONOLITH: impl_with_db,
+        SiloMode.REGION: stubbed(impl_with_db, SiloMode.CONTROL),
+        SiloMode.CONTROL: impl_with_db,
+    }
 )

@@ -87,22 +87,18 @@ class OrganizationMappingTest(TransactionTestCase):
         assert rpc_org_mapping.customer_id is None
 
         organization_mapping_service.update(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(customer_id="test"),
+            self.organization.id, RpcOrganizationMappingUpdate(customer_id="test")
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
 
         organization_mapping_service.update(
-            organization_id=self.organization.id,
-            update=RpcOrganizationMappingUpdate(name="new name!"),
+            self.organization.id, RpcOrganizationMappingUpdate(name="new name!")
         )
         org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.customer_id == "test"
         assert org_mapping.name == "new name!"
 
-        organization_mapping_service.update(
-            organization_id=self.organization.id, update=RpcOrganizationMappingUpdate()
-        )
+        organization_mapping_service.update(self.organization.id, RpcOrganizationMappingUpdate())
         # Does not overwrite with empty value.
         assert org_mapping.name == "new name!"
