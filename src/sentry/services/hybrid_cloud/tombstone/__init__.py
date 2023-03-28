@@ -4,14 +4,12 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from dataclasses import dataclass
 
-from sentry.services.hybrid_cloud import InterfaceWithLifecycle, silo_mode_delegation
+from sentry.services.hybrid_cloud import InterfaceWithLifecycle, RpcModel, silo_mode_delegation
 from sentry.silo import SiloMode
 
 
-@dataclass
-class RpcTombstone:
+class RpcTombstone(RpcModel):
     table_name: str = ""
     identifier: int = -1
 

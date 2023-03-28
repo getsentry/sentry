@@ -361,7 +361,7 @@ class OrganizationMember(Model):
         }
 
         if not self.user.password:
-            password_hash = lost_password_hash_service.get_or_create(self.user.id)
+            password_hash = lost_password_hash_service.get_or_create(user_id=self.user.id)
             context["set_password_url"] = password_hash.get_absolute_url(mode="set_password")
 
         msg = MessageBuilder(

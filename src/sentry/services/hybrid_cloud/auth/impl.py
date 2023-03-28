@@ -1,8 +1,7 @@
 from __future__ import annotations
 
 import base64
-import dataclasses
-from typing import List, Mapping, Tuple
+from typing import List, Mapping, Tuple, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, F, Q
@@ -51,8 +50,8 @@ from sentry.silo import SiloMode
 from sentry.utils.auth import AuthUserPasswordExpired
 from sentry.utils.types import Any
 
-_SSO_BYPASS = RpcMemberSsoState(False, True)
-_SSO_NONMEMBER = RpcMemberSsoState(False, False)
+_SSO_BYPASS = RpcMemberSsoState(is_required=False, is_valid=True)
+_SSO_NONMEMBER = RpcMemberSsoState(is_required=False, is_valid=False)
 
 
 # When OrgMemberMapping table is created for the control silo, org_member_class will use that rather
@@ -134,10 +133,10 @@ def query_sso_state(
 
 class DatabaseBackedAuthService(AuthService):
     def _serialize_auth_provider_flags(self, ap: AuthProvider) -> RpcAuthProviderFlags:
-        d: dict[str, bool] = {}
-        for f in dataclasses.fields(RpcAuthProviderFlags):
-            d[f.name] = bool(ap.flags[f.name])
-        return RpcAuthProviderFlags(**d)
+        return cast(
+            RpcAuthProviderFlags,
+            RpcAuthProviderFlags.serialize_by_field_name(ap.flags, value_transform=bool),
+        )
 
     def _serialize_auth_provider(self, ap: AuthProvider) -> RpcAuthProvider:
         return RpcAuthProvider(
