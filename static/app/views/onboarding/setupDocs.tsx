@@ -40,25 +40,36 @@ const INCOMPLETE_DOC_FLAG = 'TODO-ADD-VERIFICATION-EXAMPLE';
 type PlatformDoc = {html: string; link: string};
 
 function OnboardingProductSelection({organization}: {organization: Organization}) {
-  const {experimentAssignment: productSelectionAssignment} = useExperiment(
-    'OnboardingProductSelectionExperiment',
-    {
-      logExperimentOnMount: false,
-    }
-  );
+  const {
+    experimentAssignment: productSelectionAssignment,
+    logExperiment: productSelectionLogExperiment,
+  } = useExperiment('OnboardingProductSelectionExperiment', {
+    logExperimentOnMount: false,
+  });
 
   const docsWithProductSelection = !!organization.features?.includes(
     'onboarding-docs-with-product-selection'
   );
 
+  useEffect(() => {
+    if (docsWithProductSelection) {
+      productSelectionLogExperiment();
+    }
+  }, [productSelectionLogExperiment, docsWithProductSelection]);
+
   if (!docsWithProductSelection) {
     return null;
   }
 
-  if (
-    productSelectionAssignment === 'variant1' ||
-    productSelectionAssignment === 'variant2'
-  ) {
+  if (productSelectionAssignment === 'variant1') {
+    return (
+      <ProductSelection
+        defaultSelectedProducts={[PRODUCT.PERFORMANCE_MONITORING, PRODUCT.SESSION_REPLAY]}
+      />
+    );
+  }
+
+  if (productSelectionAssignment === 'variant2') {
     return <ProductSelection />;
   }
 
