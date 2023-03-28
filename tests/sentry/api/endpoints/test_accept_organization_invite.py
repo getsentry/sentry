@@ -79,9 +79,7 @@ class AcceptInviteTest(TestCase):
 
     def test_invite_not_pending(self):
         user = self.create_user(email="test@gmail.com")
-        om = Factories.create_member(
-            email="newuser@example.com", token="abc", organization=self.organization, user=user
-        )
+        om = Factories.create_member(token="abc", organization=self.organization, user=user)
         for path in self._get_paths([om.id, om.token]):
             resp = self.client.get(path)
             assert resp.status_code == 400

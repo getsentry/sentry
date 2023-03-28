@@ -880,17 +880,13 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
     def test_basic_auth_flow_as_user_with_confirmed_membership(self):
         user = self.create_user("foor@example.com")
         self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.email = "foor@example.com"
-        member.save()
 
         self.session["_next"] = reverse(
             "sentry-organization-settings", args=[self.organization.slug]
         )
         self.save_session()
-
         resp = self.client.post(
-            self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
+            self.path, {"username": user.username, "password": "admin", "op": "login"}, follow=True
         )
         assert resp.redirect_chain == [
             (reverse("sentry-organization-settings", args=[self.organization.slug]), 302),
@@ -1022,9 +1018,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         TotpInterface().enroll(user)
 
         self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.email = "foor@example.com"
-        member.save()
 
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True
@@ -1039,9 +1032,6 @@ class OrganizationAuthLoginTest(AuthProviderTestCase):
         TotpInterface().enroll(user)
 
         self.create_member(organization=self.organization, user=user)
-        member = OrganizationMember.objects.get(organization=self.organization, user=user)
-        member.email = "foor@example.com"
-        member.save()
 
         resp = self.client.post(
             self.path, {"username": user, "password": "admin", "op": "login"}, follow=True

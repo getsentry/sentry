@@ -221,7 +221,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user2 = self.create_user("foo@example.com")
         self.member = self.create_member(
             user=self.user2,
-            email="foo@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],
@@ -229,7 +228,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user3 = self.create_user("hellboy@example.com")
         self.member = self.create_member(
             user=self.user3,
-            email="hellboy@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],
@@ -237,7 +235,6 @@ class SlackIntegrationPostInstallTest(APITestCase):
         self.user4 = self.create_user("ialreadyexist@example.com")
         self.member = self.create_member(
             user=self.user4,
-            email="ialreadyexist@example.com",
             organization=self.organization,
             role="manager",
             teams=[self.team],

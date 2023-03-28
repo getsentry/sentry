@@ -200,7 +200,9 @@ class OrganizationMember(Model):
 
     @transaction.atomic
     def save(self, *args, **kwargs):
-        assert self.user_id or self.email, "Must set user or email"
+        assert (self.user_id is None and self.email) or (
+            self.user_id and self.email is None
+        ), "Must set either user or email"
         if self.token and not self.token_expires_at:
             self.refresh_expires_at()
         super().save(*args, **kwargs)
