@@ -192,6 +192,7 @@ def cleanup(days, project, concurrency, silent, model, router, timed):
         DELETES = [
             (models.EventAttachment, "date_added", "date_added"),
             (replay_models.ReplayRecordingSegment, "date_added", "date_added"),
+            (models.ArtifactBundle, "date_added", "date_added"),
         ]
         # Deletions that we run per project. In some cases we can't use an index on just the date
         # column, so as an alternative we use `(project_id, <date_col>)` instead
