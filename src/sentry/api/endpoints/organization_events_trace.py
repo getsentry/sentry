@@ -99,6 +99,8 @@ class TracePerformanceIssue(TypedDict):
     level: str
     culprit: str
     type: int
+    start: Optional[float]
+    end: Optional[float]
 
 
 LightResponse = TypedDict(
@@ -187,7 +189,8 @@ class TraceEvent:
                 continue
 
             suspect_spans: List[str] = []
-            start = end = None
+            start: Optional[float] = None
+            end: Optional[float] = None
             if light:
                 # This value doesn't matter for the light view
                 span = [self.event["trace.span"]]
@@ -208,16 +211,22 @@ class TraceEvent:
                     for event_span in self.nodestore_event.data.get("spans", []):
                         for problem in problems:
                             if event_span.get("span_id") in problem.offender_span_ids:
-                                start = (
-                                    min(start, event_span.get("start_timestamp"))
-                                    if start
-                                    else event_span.get("start_timestamp")
-                                )
-                                end = (
-                                    max(end, event_span.get("timestamp"))
-                                    if end
-                                    else event_span.get("timestamp")
-                                )
+                                try:
+                                    start_timestamp = float(event_span.get("start_timestamp"))
+                                    if start is None:
+                                        start = start_timestamp
+                                    else:
+                                        start = min(start, start_timestamp)
+                                except ValueError:
+                                    pass
+                                try:
+                                    end_timestamp = float(event_span.get("timestamp"))
+                                    if end is None:
+                                        end = end_timestamp
+                                    else:
+                                        end = min(end, end_timestamp)
+                                except ValueError:
+                                    pass
                                 suspect_spans.append(event_span.get("span_id"))
                 else:
                     span = [self.event["trace.span"]]
