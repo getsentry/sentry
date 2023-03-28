@@ -203,7 +203,7 @@ def get_owners(
     project: Project,
     event: Event | None = None,
     fallthrough_choice: FallthroughChoiceType | None = None,
-) -> List[RpcActor]:
+) -> Tuple[List[RpcActor], str]:
     """
     Given a project and an event, decide which users and teams are the owners.
 
@@ -234,17 +234,7 @@ def get_owners(
         if not features.has("organizations:notification-all-recipients", project.organization):
             recipients = recipients[-1:]
 
-    metrics.incr(
-        "features.owners.send_to",
-        tags={
-            "outcome": outcome
-            if outcome == "match" or fallthrough_choice is None
-            else fallthrough_choice.value,
-            "isUsingDefault": ProjectOwnership.get_ownership_cached(project.id) is None,
-        },
-        skip_internal=True,
-    )
-    return recipients
+    return (recipients, outcome)
 
 
 def get_owner_reason(
@@ -353,15 +343,28 @@ def determine_eligible_recipients(
             return [RpcActor.from_orm_team(team)]
 
     elif target_type == ActionTargetType.ISSUE_OWNERS:
-        suggested_assignees = get_owners(project, event, fallthrough_choice)
+        suggested_assignees, outcome = get_owners(project, event, fallthrough_choice)
+        suspect_commit_users = None
         if features.has("organizations:streamline-targeting-context", project.organization):
             try:
-                suggested_assignees += [
+                suspect_commit_users = [
                     RpcActor.from_rpc_user(user)
                     for user in get_suspect_commit_users(project, event)
                 ]
+                suggested_assignees.extend(suspect_commit_users)
             except Exception:
                 logger.exception("Could not get suspect committers. Continuing execution.")
+
+        metrics.incr(
+            "features.owners.send_to",
+            tags={
+                "outcome": outcome
+                if outcome == "match" or fallthrough_choice is None
+                else fallthrough_choice.value,
+                "hasSuspectCommitters": bool(suspect_commit_users),
+            },
+        )
+
         if suggested_assignees:
             return dedupe_suggested_assignees(suggested_assignees)
 

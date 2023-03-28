@@ -634,50 +634,56 @@ class GetOwnersCase(_ParticipantsTest):
     # If no event to match, we assume fallthrough is enabled
     def test_get_owners_no_event(self):
         self.create_ownership(self.project)
-        recipients = get_owners(project=self.project)
+        recipients, outcome = get_owners(project=self.project)
         self.assert_recipients(
             expected=[self.user_1, self.user_2, self.user_3], received=recipients
         )
+        assert outcome == "everyone"
 
     # If no match, and fallthrough is disabled
     def test_get_owners_empty(self):
         self.create_ownership(self.project)
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(expected=[], received=recipients)
+        assert outcome == "empty"
 
     # If no match, and fallthrough is enabled
     def test_get_owners_everyone(self):
         self.create_ownership(self.project, [], True)
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(
             expected=[self.user_1, self.user_2, self.user_3], received=recipients
         )
+        assert outcome == "everyone"
 
     # If matched, and all-recipients flag
     def test_get_owners_match(self):
         with self.feature("organizations:notification-all-recipients"):
             self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
             event = self.create_event(self.project)
-            recipients = get_owners(project=self.project, event=event)
+            recipients, outcome = get_owners(project=self.project, event=event)
             self.assert_recipients(
                 expected=[self.team_1, self.team_2, self.user_1], received=recipients
             )
+            assert outcome == "match"
 
     # If matched, and no all-recipients flag
     def test_get_owners_single_participant(self):
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3])
         event = self.create_event(self.project)
-        recipients = get_owners(project=self.project, event=event)
+        recipients, outcome = get_owners(project=self.project, event=event)
         self.assert_recipients(expected=[self.user_1], received=recipients)
+        assert outcome == "match"
 
     # If matched, we don't look at the fallthrough flag
     def test_get_owners_match_ignores_fallthrough(self):
         self.create_ownership(self.project, [self.rule_1, self.rule_2, self.rule_3], True)
         event_2 = self.create_event(self.project)
-        recipients_2 = get_owners(project=self.project, event=event_2)
+        recipients_2, outcome = get_owners(project=self.project, event=event_2)
         self.assert_recipients(expected=[self.user_1], received=recipients_2)
+        assert outcome == "match"
 
     def test_get_owner_reason(self):
         self.create_ownership(self.project, [], True)
