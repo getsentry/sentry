@@ -25,6 +25,7 @@ const COLUMNS: {
   label: ReactNode;
 }[] = [
   {field: 'status', label: t('Status')},
+  {field: 'method', label: t('Method')},
   {field: 'description', label: t('Path')},
   {field: 'op', label: t('Type')},
   {
