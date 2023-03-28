@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 from abc import abstractmethod
-from typing import TYPE_CHECKING, List, Sequence, cast
+from typing import TYPE_CHECKING, List, Optional, Sequence, cast
 
 from sentry.notifications.types import (
     NotificationScopeType,
@@ -84,6 +84,29 @@ class NotificationsService(RpcService):
             type=setting.type,
             value=setting.value,
         )
+
+    @rpc_method
+    @abstractmethod
+    def update_settings(
+        self,
+        *,
+        external_provider: ExternalProviders,
+        notification_type: NotificationSettingTypes,
+        setting_option: NotificationSettingOptionValues,
+        actor: RpcActor,
+        project_id: Optional[int] = None,
+        organization_id: Optional[int] = None,
+    ) -> None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def remove_notification_settings(self, *, actor_id: int, provider: ExternalProviders) -> None:
+        """
+        Delete notification settings based on an actor_id
+        There is no foreign key relationship so we have to manually cascade.
+        """
+        pass
 
 
 notifications_service: NotificationsService = cast(
