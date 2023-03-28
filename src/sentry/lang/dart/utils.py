@@ -9,6 +9,8 @@ from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.safe import get_path
 
+VIEW_HIERARCHY_TYPE_REGEX = re.compile("([^<>]+)(?:<([^<>]+)>)?")
+
 
 def is_valid_image(image):
     return bool(image) and image.get("type") == "dart_symbols" and image.get("uuid") is not None
@@ -40,33 +42,26 @@ def generate_dart_symbols_map(uuid: str, project: Project):
 
     If we preprocess it into a map, we can remove this code and just fetch the file.
     """
+    obfuscated_to_deobfuscated_name_map = {}
     with sentry_sdk.start_span(op="dart_symbols.generate_dart_symbols_map") as span:
-        dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
-        debug_file_path = dif_paths.get(uuid)
-        if debug_file_path is None:
-            return
-
         try:
+            dif_paths = ProjectDebugFile.difcache.fetch_difs(project, [uuid], features=["mapping"])
+            debug_file_path = dif_paths.get(uuid)
+            if debug_file_path is None:
+                return
+
             dart_symbols_file_size_in_mb = os.path.getsize(debug_file_path) / (1024 * 1024.0)
             span.set_tag("dart_symbols_file_size_in_mb", dart_symbols_file_size_in_mb)
-        except OSError as exc:
-            sentry_sdk.capture_exception(exc)
-            return
 
-        with open(debug_file_path) as f:
-            debug_array = json.loads(f.read())
-        obfuscated_to_deobfuscated_name_map = {}
-        try:
+            with open(debug_file_path) as f:
+                debug_array = json.loads(f.read())
+
             if len(debug_array) % 2 != 0:
                 raise Exception("Debug array contains an odd number of elements")
 
-            # Iterate by 2 since the array is a list of string pairs
-            for i in range(0, len(debug_array), 2):
-                deobfuscated_name = debug_array[i]
-                obfuscated_name = debug_array[i + 1]
-                obfuscated_to_deobfuscated_name_map[obfuscated_name] = deobfuscated_name
+            # Obfuscated names are the odd indices and deobfuscated names are the even indices
+            obfuscated_to_deobfuscated_name_map = dict(zip(debug_array[1::2], debug_array[::2]))
         except Exception as err:
-            # The expectation is that the debug array is a list of strings
             sentry_sdk.capture_exception(err)
             return
 
@@ -88,7 +83,6 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
         # both "xyz" or "abc" need to be deobfuscated. It may also be possible for
         # the values to be more complicated such as "_xyz", so the regex should capture
         # values other than "<" and ">".
-        TYPE_REGEX = r"([^<>]+)(?:<([^<>]+)>)?"
         for dart_symbols_uuid in dart_symbols_uuids:
             map = generate_dart_symbols_map(dart_symbols_uuid, project)
             if map is None:
@@ -98,7 +92,7 @@ def _deobfuscate_view_hierarchy(event_data: Event, project: Project, view_hierar
             while windows_to_deobfuscate:
                 window = windows_to_deobfuscate.pop()
 
-                matcher = re.match(TYPE_REGEX, window.get("type"))
+                matcher = re.match(VIEW_HIERARCHY_TYPE_REGEX, window.get("type"))
                 if not matcher:
                     continue
                 obfuscated_values = matcher.groups()
