@@ -1,5 +1,5 @@
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs, urlencode, urlparse, quote
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import responses
 
