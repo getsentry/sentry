@@ -1220,7 +1220,7 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.CLICK_ALT]: {
-    desc: t('`alt` attribute of an element that was clicked'),
+    desc: t('`alt` of an element that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
