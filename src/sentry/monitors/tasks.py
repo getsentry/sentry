@@ -10,6 +10,7 @@ from .models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorEnvironment,
     MonitorFailure,
     MonitorStatus,
     MonitorType,
@@ -39,6 +40,28 @@ def check_monitors(current_datetime=None):
         current_datetime = timezone.now()
 
     qs = Monitor.objects.filter(
+        type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
+    ).exclude(
+        status__in=[
+            MonitorStatus.DISABLED,
+            MonitorStatus.PENDING_DELETION,
+            MonitorStatus.DELETION_IN_PROGRESS,
+        ]
+    )[
+        :MONITOR_LIMIT
+    ]
+    metrics.gauge("sentry.monitors.tasks.check_monitors.missing_count", qs.count())
+    for monitor in qs:
+        logger.info("monitor.missed-checkin", extra={"monitor_id": monitor.id})
+        # add missed checkin
+        checkin = MonitorCheckIn.objects.create(
+            project_id=monitor.project_id,
+            monitor=monitor,
+            status=CheckInStatus.MISSED,
+        )
+        monitor.mark_failed(reason=MonitorFailure.MISSED_CHECKIN)
+
+    qs = MonitorEnvironment.objects.filter(
         type__in=[MonitorType.CRON_JOB], next_checkin__lt=current_datetime
     ).exclude(
         status__in=[
