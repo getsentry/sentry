@@ -27,7 +27,7 @@ class DummyOAuth2Provider(OAuth2Provider):
 class OAuth2ProviderTest(TestCase):
     @cached_property
     def auth_provider(self):
-        return AuthProvider.objects.create(provider="oauth2", organization=self.organization)
+        return AuthProvider.objects.create(provider="oauth2", organization_id=self.organization.id)
 
     def test_refresh_identity_without_refresh_token(self):
         auth_identity = AuthIdentity.objects.create(
