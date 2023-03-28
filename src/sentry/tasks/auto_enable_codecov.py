@@ -28,14 +28,6 @@ def auto_enable_codecov(dry_run=False) -> None:
 
         logger.info("Processing organization", extra={"organization_id": organization.id})
         try:
-            has_integration, error = has_codecov_integration(organization)
-            if not has_integration:
-                logger.info(
-                    "No codecov integration exists for organization",
-                    extra={"organization_id": organization.id, "error": error},
-                )
-                return
-
             if organization.flags.codecov_access.is_set:
                 logger.info(
                     "Codecov Access flag already set",
@@ -43,6 +35,14 @@ def auto_enable_codecov(dry_run=False) -> None:
                         "organization_id": organization.id,
                         "codecov_access": organization.flags.codecov_access,
                     },
+                )
+                return
+
+            has_integration, error = has_codecov_integration(organization)
+            if not has_integration:
+                logger.info(
+                    "No codecov integration exists for organization",
+                    extra={"organization_id": organization.id, "error": error},
                 )
                 return
 
