@@ -257,6 +257,15 @@ class AuthIndexEndpoint(Endpoint):
 
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)
+            logging.info(
+                "Superuser access granted",
+                extra={
+                    "reason": request.data.get("superuserReason", "No reason specified"),
+                    "category": request.data.get(
+                        "superuserAccessCategory", "No category specified"
+                    ),
+                },
+            )
 
         request.user = request._request.user
 
