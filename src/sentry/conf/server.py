@@ -1240,6 +1240,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-widget-designs": False,
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable new trends
+    "organizations:performance-new-trends": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1328,6 +1330,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-deletion-on-back-click": False,
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
+    # Enable the project loader feature in the onboarding
+    "organizations:onboarding-project-loader": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
     # Enable ANR rates in project details page
