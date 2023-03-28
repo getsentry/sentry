@@ -5,7 +5,6 @@ from unittest.mock import patch
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
-from django.urls import reverse
 from django.utils import timezone
 from pytz import UTC
 from rest_framework import status
@@ -786,12 +785,32 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
-    def test_provider_config(self):
-        org = self.create_organization(owner=self.user)
-        url = reverse("sentry-api-0-organization-details", kwargs={"organization_slug": org.slug})
-        self.login_as(user=self.user)
-        resp = self.client.put(url, data={"provider": "dummy"})
-        assert resp.status_code == 200, resp.content
+    def test_update_configure_provider(self):
+        config = {"option": "test_one"}
+        config_two = {"option": "test_two"}
+        provider = "provider_one"
+        provider_two = "provider_two"
+        self.get_success_response(
+            self.organization.slug, method="put", provider=provider, config=config
+        )
+        auth_provider = AuthProvider.objects.get(organization=self.organization.id)
+        assert auth_provider.provider == provider
+        assert auth_provider.config == config
+
+        self.get_success_response(
+            self.organization.slug, method="put", provider=provider_two, config=config_two
+        )
+        auth_provider = AuthProvider.objects.get(organization=self.organization.id)
+        assert auth_provider.provider == provider_two
+        assert auth_provider.config == config_two
+
+    def test_invalid_provider_configuration(self):
+        self.get_error_response(
+            self.organization.slug, method="put", provider="provider", status_code=400
+        )
+        self.get_error_response(
+            self.organization.slug, method="put", config={"option": "test"}, status_code=400
+        )
 
 
 @region_silo_test
