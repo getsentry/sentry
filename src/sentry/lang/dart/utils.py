@@ -9,7 +9,7 @@ from sentry.models import Project, ProjectDebugFile
 from sentry.utils import json
 from sentry.utils.safe import get_path
 
-VIEW_HIERARCHY_TYPE_REGEX = re.compile("([^<>]+)(?:<([^<>]+)>)?")
+VIEW_HIERARCHY_TYPE_REGEX = re.compile(r"([^<>]+)(?:<([^<>]+)>)?")
 
 
 def is_valid_image(image):
