@@ -608,6 +608,31 @@ class Release(Model):
             # This can happen on invalid legacy releases
             return False
 
+    @staticmethod
+    def is_release_newer_or_equal(org_id, release, other_release):
+        if release is None:
+            return False
+
+        if other_release is None:
+            return True
+
+        if release == other_release:
+            return True
+
+        releases = {
+            release.version: float(release.date_added.timestamp())
+            for release in Release.objects.filter(
+                organization_id=org_id, version__in=[release, other_release]
+            )
+        }
+        release_date = releases.get(release)
+        other_release_date = releases.get(other_release)
+
+        if release_date is not None and other_release_date is not None:
+            return release_date > other_release_date
+
+        return False
+
     @classmethod
     def get_cache_key(cls, organization_id, version):
         return f"release:3:{organization_id}:{md5_text(version).hexdigest()}"
