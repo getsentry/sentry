@@ -171,7 +171,7 @@ function importSentrySampledProfile(
     traceID: input.transaction.trace_id,
     name: input.transaction.name,
     activeProfileIndex,
-    measurements: {},
+    measurements: input.measurements,
     metadata: {
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
