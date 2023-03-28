@@ -144,7 +144,7 @@ describe('useNetworkFilters', () => {
   });
 
   it('should update the url when setters are called', () => {
-    const TYPE_FILTER = ['fetch'];
+    const TYPE_FILTER = ['resource.fetch'];
     const STATUS_FILTER = ['200'];
     const SEARCH_FILTER = 'pikachu';
 
@@ -228,7 +228,7 @@ describe('useNetworkFilters', () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {
-        f_n_type: ['fetch'],
+        f_n_type: ['resource.fetch'],
       },
     } as Location<FilterFields>);
 
@@ -257,7 +257,7 @@ describe('useNetworkFilters', () => {
       pathname: '/',
       query: {
         f_n_status: ['200'],
-        f_n_type: ['fetch'],
+        f_n_type: ['resource.fetch'],
         f_n_search: 'pokemon/',
       },
     } as Location<FilterFields>);
@@ -278,7 +278,7 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'fetch'},
+      {label: 'fetch', value: 'resource.fetch'},
     ]);
   });
 
@@ -290,10 +290,10 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'fetch'},
-      {label: 'link', value: 'link'},
-      {label: 'navigation.navigate', value: 'navigation.navigate'},
-      {label: 'script', value: 'script'},
+      {label: 'fetch', value: 'resource.fetch'},
+      {label: 'link', value: 'resource.link'},
+      {label: 'navigate', value: 'navigation.navigate'},
+      {label: 'script', value: 'resource.script'},
     ]);
   });
 
@@ -311,10 +311,10 @@ describe('getResourceTypes', () => {
     });
 
     expect(result.current.getResourceTypes()).toStrictEqual([
-      {label: 'fetch', value: 'fetch'},
-      {label: 'link', value: 'link'},
-      {label: 'navigation.navigate', value: 'navigation.navigate'},
-      {label: 'script', value: 'script'},
+      {label: 'fetch', value: 'resource.fetch'},
+      {label: 'link', value: 'resource.link'},
+      {label: 'navigate', value: 'navigation.navigate'},
+      {label: 'script', value: 'resource.script'},
     ]);
   });
 });

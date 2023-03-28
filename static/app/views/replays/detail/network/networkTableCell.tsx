@@ -84,11 +84,11 @@ const NetworkTableCell = forwardRef<HTMLDivElement, Props>(
       () => (
         <Cell {...columnProps}>
           <Tooltip
-            title={span.op.replace('resource.', '')}
+            title={span.op.split('.')?.[1] ?? span.op}
             isHoverable
             showOnlyOnOverflow
           >
-            <Text>{span.op.replace('resource.', '')}</Text>
+            <Text>{span.op.split('.')?.[1] ?? span.op}</Text>
           </Tooltip>
         </Cell>
       ),

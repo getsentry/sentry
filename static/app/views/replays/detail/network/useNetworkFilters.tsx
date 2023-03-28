@@ -36,7 +36,7 @@ const FILTERS = {
     (status.includes(UNKNOWN_STATUS) && item.data.statusCode === undefined),
 
   type: (item: NetworkSpan, types: string[]) =>
-    types.length === 0 || types.includes(item.op.replace('resource.', '')),
+    types.length === 0 || types.includes(item.op),
 
   searchTerm: (item: NetworkSpan, searchTerm: string) =>
     JSON.stringify(item.description).toLowerCase().includes(searchTerm),
@@ -61,17 +61,11 @@ function useNetworkFilters({networkSpans}: Options): Return {
 
   const getResourceTypes = useCallback(
     () =>
-      Array.from(
-        new Set(
-          networkSpans
-            .map(networkSpan => networkSpan.op.replace('resource.', ''))
-            .concat(type)
-        )
-      )
-        .sort()
+      Array.from(new Set(networkSpans.map(networkSpan => networkSpan.op).concat(type)))
+        .sort((a, b) => ((a.split('.')?.[1] ?? a) < (b.split('.')?.[1] ?? b) ? -1 : 1))
         .map(value => ({
           value,
-          label: value,
+          label: value.split('.')?.[1] ?? value,
         })),
     [networkSpans, type]
   );
