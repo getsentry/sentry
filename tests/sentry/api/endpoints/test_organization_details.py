@@ -785,7 +785,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         OrganizationMapping.objects.create(organization_id=999, slug="taken", region_name="us")
         self.get_error_response(self.organization.slug, slug="taken", status_code=409)
 
-    def test_update_configure_provider(self):
+    def test_configure_auth_provider(self):
         config = {"option": "test_one"}
         config_two = {"option": "test_two"}
         provider = "provider_one"
@@ -804,7 +804,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert auth_provider.provider == provider_two
         assert auth_provider.config == config_two
 
-    def test_invalid_provider_configuration(self):
+    def test_invalid_auth_provider_configuration(self):
         self.get_error_response(
             self.organization.slug, method="put", provider="provider", status_code=400
         )
