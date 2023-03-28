@@ -483,6 +483,11 @@ const generateBadgeTheme = (colors: BaseColors) => ({
     indicatorColor: colors.green300,
     color: colors.white,
   },
+  experimental: {
+    background: `linear-gradient(90deg, ${colors.blue300}, ${colors.green300})`,
+    indicatorColor: colors.green300,
+    color: colors.white,
+  },
   review: {
     background: colors.purple300,
     indicatorColor: colors.purple300,

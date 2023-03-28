@@ -71,6 +71,7 @@ export type TeamInsightsEventParameters = {
       | 'shared'
       | 'discarded'
       | 'open_in_discover'
+      | 'open_ai_suggested_fix'
       | 'assign'
       | ResolutionStatus;
     assigned_suggestion_reason?: string;

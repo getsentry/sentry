@@ -8,6 +8,7 @@ import {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
+import {OpenAIFixSuggestionPanel} from 'sentry/views/issueDetails/openAIFixSuggestion/openAIFixSuggestionPanel';
 
 import QuickTrace from './quickTrace';
 
@@ -25,6 +26,7 @@ const GroupEventHeader = ({event, group, project}: GroupEventHeaderProps) => {
   return (
     <DataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
+      <OpenAIFixSuggestionPanel projectSlug={project.slug} eventID={event.eventID} />
       <QuickTrace
         event={event}
         group={group}
