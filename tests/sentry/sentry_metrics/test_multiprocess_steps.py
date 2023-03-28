@@ -281,7 +281,8 @@ def __translated_payload(
     return payload
 
 
-def test_process_messages() -> None:
+def test_process_messages(set_sentry_option) -> None:
+    set_sentry_option("sentry-metrics.consumer-schema-validation.release-health.rollout-rate", 0.0)
     message_payloads = [counter_payload, distribution_payload, set_payload]
     message_batch = [
         Message(
