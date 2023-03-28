@@ -2,30 +2,37 @@ import click
 import yaml
 
 from sentry import options
+from sentry.runner.decorators import configuration
 
 
 @click.group()
+@configuration
 def configoptions():
     "Manages Sentry options."
 
 
 @configoptions.command()
 @click.option("--key", "-k", required=True, help="The key of the option to fetch.")
+@configuration
 def fetch(key):
+    "Fetches the option for the given key."
     click.echo(get(key))
 
 
 @configoptions.command()
+@configuration
 def fetchAll():
+    "Fetches all options."
     for opt in options.all():
         click.echo(f"{opt.name} ({opt.type}) = {options.get(opt.name)}")
 
 
 @configoptions.command()
 @click.argument("filename", required=True)
+@configuration
 def patch(filename):
+    "Updates, gets, and deletes options that are each subsectioned in the given file."
     with open(filename) as stream:
-
         # todo: add more file validation?
         file = yaml.safe_load(stream)
         data = file["data"]
@@ -41,6 +48,28 @@ def patch(filename):
 
         for key in keysToDelete:
             click.echo(delete(key))
+
+
+@configoptions.command()
+@click.argument("filename", required=True)
+@configuration
+def strict(filename):
+    "Deletes everything not in the uploaded file, and applies all of the changes in the file."
+    with open(filename) as stream:
+        # todo: add more file validation?
+        file = yaml.safe_load(stream)
+        data = file["data"]
+        file_keys = (key[0] for key in data)
+
+        db_keys = (opt.name for opt in options.all())
+
+        # update the database to remove all keys NOT in the given file.
+        for key in db_keys:
+            if key not in file_keys:
+                delete(key)
+
+        for key, val in data:
+            set(key, val)
 
 
 def get(key):
@@ -64,6 +93,7 @@ def set(key, val):
     except UnknownOption:
         options.register(key)
         options.set(key, val)
+        opt = options.lookup_key(key)
         return f"Registered key: {opt.name} ({opt.type}) = {options.get(opt.name)}"
 
 
