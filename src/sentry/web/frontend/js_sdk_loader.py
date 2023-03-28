@@ -20,6 +20,10 @@ CACHE_CONTROL = (
 
 class SdkConfig(TypedDict):
     dsn: str
+    tracesSampleRate: Optional[float]
+    replaysSessionSampleRate: Optional[float]
+    replaysOnErrorSampleRate: Optional[float]
+    debug: Optional[bool]
 
 
 class LoaderContext(TypedDict):
@@ -38,23 +42,26 @@ class JavaScriptSdkLoader(BaseView):
     def determine_active_organization(self, request: Request, organization_slug=None) -> None:
         pass
 
-    def _get_bundle_kind_modifier(self, key: ProjectKey, sdk_version: str) -> Tuple[str, bool]:
+    def _get_bundle_kind_modifier(
+        self, key: ProjectKey, sdk_version: str
+    ) -> Tuple[str, bool, bool, bool, bool]:
         """Returns a string that is used to modify the bundle name"""
 
         is_v7_sdk = sdk_version >= Version("7.0.0")
 
         is_lazy = True
         bundle_kind_modifier = ""
+        has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
+        has_performance = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE)
+        has_debug = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG)
 
         # The order in which these modifiers are added is important, as the
         # bundle name is built up from left to right.
         # https://docs.sentry.io/platforms/javascript/install/cdn/
 
-        if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_PERFORMANCE):
+        if has_performance:
             bundle_kind_modifier += ".tracing"
             is_lazy = False
-
-        has_replay = get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_REPLAY)
 
         # If the project does not have a v7 sdk set, we cannot load the replay bundle.
         if is_v7_sdk and has_replay:
@@ -69,10 +76,10 @@ class JavaScriptSdkLoader(BaseView):
         if is_v7_sdk and not has_replay:
             bundle_kind_modifier += ".es5"
 
-        if get_dynamic_sdk_loader_option(key, DynamicSdkLoaderOption.HAS_DEBUG):
+        if has_debug:
             bundle_kind_modifier += ".debug"
 
-        return bundle_kind_modifier, is_lazy
+        return bundle_kind_modifier, is_lazy, has_performance, has_replay, has_debug
 
     def _get_context(
         self, key: Optional[ProjectKey]
@@ -89,7 +96,13 @@ class JavaScriptSdkLoader(BaseView):
 
         sdk_version = get_browser_sdk_version(key)
 
-        bundle_kind_modifier, is_lazy = self._get_bundle_kind_modifier(key, sdk_version)
+        (
+            bundle_kind_modifier,
+            is_lazy,
+            has_performance,
+            has_replay,
+            has_debug,
+        ) = self._get_bundle_kind_modifier(key, sdk_version)
 
         js_sdk_loader_default_sdk_url_template_slot_count = (
             settings.JS_SDK_LOADER_DEFAULT_SDK_URL.count("%s")
@@ -108,9 +121,21 @@ class JavaScriptSdkLoader(BaseView):
         except TypeError:
             sdk_url = ""  # It fails if it cannot inject the version in the string
 
+        config: SdkConfig = {"dsn": key.dsn_public}
+
+        if has_debug:
+            config["debug"] = True
+
+        if has_performance:
+            config["tracesSampleRate"] = 0.1
+
+        if has_replay:
+            config["replaysSessionSampleRate"] = 0.1
+            config["replaysOnErrorSampleRate"] = 1
+
         return (
             {
-                "config": {"dsn": key.dsn_public},
+                "config": config,
                 "jsSdkUrl": sdk_url,
                 "publicKey": key.public_key,
                 "isLazy": is_lazy,
