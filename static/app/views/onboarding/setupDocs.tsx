@@ -104,15 +104,15 @@ function ProjectDocsReact({
     const products = location.query.product ?? [];
 
     const loadPlatform =
-      products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
-      products.includes(PRODUCT.SESSION_REPLAY)
+      productSelectionAssignment === 'baseline'
+        ? 'javascript-react'
+        : products.includes(PRODUCT.PERFORMANCE_MONITORING) &&
+          products.includes(PRODUCT.SESSION_REPLAY)
         ? ReactDocVariant.ErrorMonitoringPerformanceAndReplay
         : products.includes(PRODUCT.PERFORMANCE_MONITORING)
         ? ReactDocVariant.ErrorMonitoringAndPerformance
         : products.includes(PRODUCT.SESSION_REPLAY)
         ? ReactDocVariant.ErrorMonitoringAndSessionReplay
-        : productSelectionAssignment === 'baseline'
-        ? 'javascript-react'
         : ReactDocVariant.ErrorMonitoring;
 
     try {
