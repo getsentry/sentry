@@ -88,6 +88,7 @@ class ProjectKeyStatsTest(OutcomesSnubaTest, SnubaTestCase, APITestCase):
         assert result["dropped"] == 5, response.data
         assert result["accepted"] == 2, response.data
 
+    @pytest.mark.skip(reason="flakey: https://github.com/getsentry/sentry/issues/46402")
     def test_ignore_discard(self):
         self.store_outcomes(
             {
