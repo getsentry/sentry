@@ -1,5 +1,5 @@
 from unittest.mock import Mock, patch
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse, quote
 
 import responses
 
@@ -349,6 +349,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
         installation = integration.get_installation(self.organization.id)
 
         filepath = "sentry/tasks.py"
+        encoded_filepath = quote(filepath, safe="")
         ref = "master"
         event_frame = {
             "function": "handle_set_commits",
@@ -361,7 +362,7 @@ class GitlabIntegrationTest(IntegrationTestCase):
 
         responses.add(
             responses.GET,
-            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{filepath}/blame?ref={ref}&range[start]=30&range[end]=30",
+            f"https://gitlab.example.com/api/v4/projects/{external_id}/repository/files/{encoded_filepath}/blame?ref={ref}&range%5Bstart%5D=30&range%5Bend%5D=30",
             json=[
                 {
                     "commit": {
