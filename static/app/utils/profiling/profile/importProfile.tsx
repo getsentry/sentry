@@ -171,7 +171,7 @@ function importSentrySampledProfile(
     traceID: input.transaction.trace_id,
     name: input.transaction.name,
     activeProfileIndex,
-    measurements: {},
+    measurements: input.measurements,
     metadata: {
       deviceLocale: input.device.locale,
       deviceManufacturer: input.device.manufacturer,
@@ -183,6 +183,7 @@ function importSentrySampledProfile(
       platform: input.platform,
       profileID: input.event_id,
       projectID: input.project_id,
+      release: input.release,
 
       // these don't really work for multiple transactions
       transactionID: input.transaction.id,
