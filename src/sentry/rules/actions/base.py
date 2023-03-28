@@ -5,6 +5,7 @@ import logging
 from typing import Generator
 
 from sentry.eventstore.models import GroupEvent
+from sentry.models import Rule
 from sentry.rules.base import CallbackFuture, EventState, RuleBase
 
 logger = logging.getLogger("sentry.rules")
@@ -14,7 +15,9 @@ class EventAction(RuleBase, abc.ABC):
     rule_type = "action/event"
 
     @abc.abstractmethod
-    def after(self, event: GroupEvent, state: EventState) -> Generator[CallbackFuture, None, None]:
+    def after(
+        self, event: GroupEvent, state: EventState, rule: Rule
+    ) -> Generator[CallbackFuture, None, None]:
         """
         Executed after a Rule matches.
 
@@ -26,7 +29,7 @@ class EventAction(RuleBase, abc.ABC):
         Does not need to handle group state (e.g. is resolved or not)
         Caller will handle state
 
-        >>> def after(self, event, state):
+        >>> def after(self, event, state, rule):
         >>>     yield self.future(self.print_results)
         >>>
         >>> def print_results(self, event, futures):
