@@ -69,6 +69,9 @@ def code_owners_auto_sync(commit_id: int, **kwargs):
 
         codeowners = ProjectCodeOwners.objects.get(repository_project_path_config=code_mapping)
 
-        codeowners.update_schema(codeowner_contents["raw"])
+        codeowners.update_schema(
+            organization=code_mapping.organization_integration.organization,
+            raw=codeowner_contents["raw"],
+        )
 
         # TODO(Nisanthan): Record analytics on auto-sync success
