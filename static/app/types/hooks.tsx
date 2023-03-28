@@ -6,7 +6,7 @@ import {ButtonProps} from 'sentry/components/button';
 import type DateRange from 'sentry/components/organizations/timeRangeSelector/dateRange';
 import type SelectorItems from 'sentry/components/organizations/timeRangeSelector/selectorItems';
 import type SidebarItem from 'sentry/components/sidebar/sidebarItem';
-import type {Event, Group} from 'sentry/types';
+import type {Group} from 'sentry/types';
 import {UseExperiment} from 'sentry/utils/useExperiment';
 import {UsageStatsOrganizationProps} from 'sentry/views/organizationStats/usageStatsOrg';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -105,7 +105,6 @@ type CodecovLinkProps = {
 type QualitativeIssueFeedbackProps = {
   group: Group;
   organization: Organization;
-  event?: Event;
 };
 
 type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}) => void;

@@ -264,11 +264,7 @@ class GroupEventDetails extends Component<GroupEventDetailsProps, State> {
                     return (
                       <StyledLayoutMain>
                         {this.renderGroupStatusBanner()}
-                        <IssueFeedback
-                          organization={organization}
-                          group={group}
-                          event={event}
-                        />
+                        <IssueFeedback organization={organization} group={group} />
                         <QuickTraceContext.Provider value={results}>
                           {eventWithMeta && (
                             <GroupEventHeader
