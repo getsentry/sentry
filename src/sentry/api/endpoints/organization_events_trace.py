@@ -224,7 +224,7 @@ class TraceEvent:
                                     if end is None:
                                         end = end_timestamp
                                     else:
-                                        end = min(end, end_timestamp)
+                                        end = max(end, end_timestamp)
                                 except ValueError:
                                     pass
                                 suspect_spans.append(event_span.get("span_id"))
