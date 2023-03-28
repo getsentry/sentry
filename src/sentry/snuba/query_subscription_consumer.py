@@ -24,7 +24,7 @@ from django.conf import settings
 from sentry_kafka_schemas import get_schema
 from sentry_kafka_schemas.schema_types.events_subscription_results_v1 import (
     PayloadV3,
-    SubscriptionResults,
+    SubscriptionResult,
 )
 
 from sentry import options
@@ -82,7 +82,7 @@ def parse_message_value(value: str, topic: str, jsoncodec: JsonCodec) -> Payload
     old_version = False
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_parse"):
-        wrapper: SubscriptionResults = json.loads(value)
+        wrapper: SubscriptionResult = json.loads(value)
 
     with metrics.timer("snuba_query_subscriber.parse_message_value.json_validate_wrapper"):
         try:
@@ -128,6 +128,7 @@ def handle_message(
     topic: str,
     logical_topic: str,
     dataset: str,
+    jsoncodec: JsonCodec,
 ) -> None:
     """
     Parses the value from Kafka, and if valid passes the payload to the callback defined by the
@@ -141,7 +142,6 @@ def handle_message(
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}
             ):
-                jsoncodec = JsonCodec(get_schema(logical_topic)["schema"])
                 contents = parse_message_value(message_value, logical_topic, jsoncodec)
         except InvalidMessageError:
             # If the message is in an invalid format, just log the error
@@ -246,6 +246,8 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     def __init__(self, topic: str):
         self.topic = topic
         self.dataset = topic_to_dataset[self.topic]
+        self.logical_topic = dataset_to_logical_topic[self.dataset]
+        self.jsoncodec = JsonCodec(get_schema(self.logical_topic)["schema"])
 
     def create_with_partitions(
         self,
@@ -265,15 +267,15 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
                 offset = value.offset
                 partition = value.partition.index
                 message_value = value.payload.value
-                logical_topic = dataset_to_logical_topic[self.dataset]
                 try:
                     handle_message(
                         message_value,
                         offset,
                         partition,
                         self.topic,
-                        logical_topic,
+                        self.logical_topic,
                         self.dataset.value,
+                        self.jsoncodec,
                     )
                 except Exception:
                     # This is a failsafe to make sure that no individual message will block this
