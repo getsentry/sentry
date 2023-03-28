@@ -260,8 +260,6 @@ function SetupDocs({search, route, router, location, ...props}: Props) {
         loadPlatform = ReactDocVariant.ErrorMonitoringAndPerformance;
       } else if (products.includes(PRODUCT.SESSION_REPLAY)) {
         loadPlatform = ReactDocVariant.ErrorMonitoringAndSessionReplay;
-      } else {
-        loadPlatform = ReactDocVariant.ErrorMonitoring;
       }
     }
 
