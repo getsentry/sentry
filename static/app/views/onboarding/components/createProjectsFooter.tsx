@@ -21,6 +21,7 @@ import trackAdvancedAnalyticsEvent from 'sentry/utils/analytics/trackAdvancedAna
 import getPlatformName from 'sentry/utils/getPlatformName';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
+import useProjects from 'sentry/utils/useProjects';
 import useTeams from 'sentry/utils/useTeams';
 
 import {OnboardingState} from '../types';
@@ -50,10 +51,32 @@ export default function CreateProjectsFooter({
   const api = useApi();
   const {teams} = useTeams();
   const [clientState, setClientState] = usePersistedOnboardingState();
+  const {projects} = useProjects();
 
   const createProjects = async () => {
     if (!clientState) {
       // Do nothing if client state is not loaded yet.
+      return;
+    }
+
+    const createProjectForPlatforms = platforms
+      .filter(platform => !clientState.platformToProjectIdMap[platform])
+      // filter out platforms that already have a project
+      .filter(platform => !projects.find(p => p.platform === platform));
+
+    if (createProjectForPlatforms.length === 0) {
+      setClientState({
+        platformToProjectIdMap: clientState.platformToProjectIdMap,
+        selectedPlatforms: platforms,
+        state: 'projects_selected',
+        url: 'setup-docs/',
+      });
+      trackAdvancedAnalyticsEvent('growth.onboarding_set_up_your_projects', {
+        platforms: platforms.join(','),
+        platform_count: platforms.length,
+        organization,
+      });
+      onComplete(platforms);
       return;
     }
 
@@ -63,13 +86,11 @@ export default function CreateProjectsFooter({
       );
 
       const responses = await Promise.all(
-        platforms
-          .filter(platform => !clientState.platformToProjectIdMap[platform])
-          .map(platform =>
-            createProject(api, organization.slug, teams[0].slug, platform, platform, {
-              defaultRules: true,
-            })
-          )
+        createProjectForPlatforms.map(platform =>
+          createProject(api, organization.slug, teams[0].slug, platform, platform, {
+            defaultRules: true,
+          })
+        )
       );
       const nextState: OnboardingState = {
         platformToProjectIdMap: clientState.platformToProjectIdMap,

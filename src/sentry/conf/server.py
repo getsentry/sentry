@@ -133,6 +133,8 @@ APPEND_SLASH = True
 
 PROJECT_ROOT = os.path.normpath(os.path.join(os.path.dirname(__file__), os.pardir))
 
+CONF_DIR = os.path.abspath(os.path.dirname(__file__))
+
 # XXX(dcramer): handle case when we've installed from source vs just running
 # this straight out of the repository
 if "site-packages" in __file__:
@@ -1029,10 +1031,6 @@ SENTRY_FEATURES = {
     "organizations:artifact-bundles": False,
     # Enables tagging javascript errors from the browser console.
     "organizations:javascript-console-error-tag": False,
-    # Enables codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration": False,
-    # Enables V2 for codecov integration for stacktrace highlighting.
-    "organizations:codecov-stacktrace-integration-v2": False,
     # Enables the cron job to auto-enable codecov integrations.
     "organizations:auto-enable-codecov": False,
     # The overall flag for codecov integration, gated by plans.
@@ -1141,8 +1139,6 @@ SENTRY_FEATURES = {
     "organizations:transaction-name-mark-scrubbed-as-sanitized": False,
     # Try to derive normalization rules by clustering transaction names.
     "organizations:transaction-name-clusterer": False,
-    # Use a larger sample size & merge threshold for transaction clustering.
-    "organizations:transaction-name-clusterer-2x": False,
     # Sanitize transaction names in the ingestion pipeline.
     "organizations:transaction-name-sanitization": False,  # DEPRECATED
     # Extraction metrics for transactions during ingestion.
@@ -1244,6 +1240,8 @@ SENTRY_FEATURES = {
     "organizations:performance-new-widget-designs": False,
     # Enable metrics-backed transaction summary view
     "organizations:performance-metrics-backed-transaction-summary": False,
+    # Enable new trends
+    "organizations:performance-new-trends": False,
     # Enable consecutive db performance issue type
     "organizations:performance-consecutive-db-issue": False,
     # Enable consecutive http performance issue type
@@ -1332,6 +1330,8 @@ SENTRY_FEATURES = {
     "organizations:onboarding-project-deletion-on-back-click": False,
     # Disables multiselect platform in the onboarding flow
     "organizations:onboarding-remove-multiselect-platform": False,
+    # Enable the project loader feature in the onboarding
+    "organizations:onboarding-project-loader": False,
     # Enable OpenAI suggestions in the issue details page
     "organizations:open-ai-suggestion": False,
     # Enable ANR rates in project details page
@@ -1764,6 +1764,9 @@ SENTRY_CACHE_MAX_VALUE_SIZE = None
 # cannot be changed by managed users. Optionally include 'email' and
 # 'name' in SENTRY_MANAGED_USER_FIELDS.
 SENTRY_MANAGED_USER_FIELDS = ()
+
+# Secret key for OpenAI
+OPENAI_API_KEY = None
 
 SENTRY_SCOPES = {
     "org:read",

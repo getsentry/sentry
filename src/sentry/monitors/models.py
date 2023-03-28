@@ -34,18 +34,18 @@ SCHEDULE_INTERVAL_MAP = {
 }
 
 
-def get_next_schedule(base_datetime, schedule_type, schedule):
+def get_next_schedule(last_checkin, schedule_type, schedule):
     if schedule_type == ScheduleType.CRONTAB:
-        itr = croniter(schedule, base_datetime)
+        itr = croniter(schedule, last_checkin)
         next_schedule = itr.get_next(datetime)
     elif schedule_type == ScheduleType.INTERVAL:
         count, unit_name = schedule
         # count is the "number of units" and unit_name is the "unit name of interval"
         # which is inverse from what rrule calls them
         rule = rrule.rrule(
-            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=count, dtstart=base_datetime, count=2
+            freq=SCHEDULE_INTERVAL_MAP[unit_name], interval=count, dtstart=last_checkin, count=2
         )
-        if rule[0] > base_datetime:
+        if rule[0] > last_checkin:
             next_schedule = rule[0]
         else:
             next_schedule = rule[1]
@@ -203,13 +203,12 @@ class Monitor(Model):
     def get_audit_log_data(self):
         return {"name": self.name, "type": self.type, "status": self.status, "config": self.config}
 
-    def get_next_scheduled_checkin(self, last_checkin=None):
-        if last_checkin is None:
-            last_checkin = self.last_checkin
+    def get_next_scheduled_checkin(self, last_checkin):
         tz = pytz.timezone(self.config.get("timezone") or "UTC")
         schedule_type = self.config.get("schedule_type", ScheduleType.CRONTAB)
-        base_datetime = last_checkin.astimezone(tz)
-        next_checkin = get_next_schedule(base_datetime, schedule_type, self.config["schedule"])
+        next_checkin = get_next_schedule(
+            last_checkin.astimezone(tz), schedule_type, self.config["schedule"]
+        )
         return next_checkin + timedelta(minutes=int(self.config.get("checkin_margin") or 0))
 
     def mark_failed(self, last_checkin=None, reason=MonitorFailure.UNKNOWN):

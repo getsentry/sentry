@@ -526,7 +526,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Artifact Bundle')}
+            name={t('Debug ID Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
@@ -551,7 +551,7 @@ function buildRoutes() {
           })}
         >
           <Route
-            name={t('Artifact Bundle')}
+            name={t('Release Bundle')}
             path=":bundleId/"
             component={make(async () => {
               const {ProjectSourceMapsContainer} = await import(
