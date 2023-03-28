@@ -3,6 +3,7 @@
 beautifulsoup4>=4.7.1
 boto3>=1.22.12
 botocore>=1.25.12
+cachetools>=5
 celery>=4.4.7
 click>=8.0.4
 confluent-kafka>=1.9.2
@@ -15,7 +16,7 @@ djangorestframework>=3.12.4
 drf-spectacular>=0.22.1
 email-reply-parser>=0.5.12
 google-api-core>=2.10.1
-google-auth>=1.35.0
+google-auth>=2.4.0
 google-cloud-bigtable>=2.11.3
 google-cloud-core>=2.3.2
 google-cloud-functions>=1.8.1
