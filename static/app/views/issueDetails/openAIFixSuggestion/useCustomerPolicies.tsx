@@ -31,6 +31,6 @@ export function useCustomerPolicies() {
   });
 
   return {
-    hasSignedDPA: !!data?.dpa.consent,
+    hasSignedDPA: !!data?.dpa?.consent,
   };
 }
