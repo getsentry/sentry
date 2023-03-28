@@ -16,7 +16,7 @@ import SideTabs from 'sentry/views/replays/detail/layout/sideTabs';
 import SplitPanel from 'sentry/views/replays/detail/layout/splitPanel';
 
 const MIN_VIDEO_WIDTH = 325;
-const MIN_CONTENT_WIDTH = 325;
+const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
 const MIN_VIDEO_HEIGHT = 200;
 const MIN_CONTENT_HEIGHT = 180;
