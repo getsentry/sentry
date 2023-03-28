@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -17,9 +17,28 @@ export enum PRODUCT {
   SESSION_REPLAY = 'session-replay',
 }
 
-export function ProductSelection() {
+type Props = {
+  defaultSelectedProducts?: PRODUCT[];
+};
+
+export function ProductSelection({defaultSelectedProducts}: Props) {
   const router = useRouter();
   const products = decodeList(router.location.query.product);
+
+  useEffect(() => {
+    if (!defaultSelectedProducts) {
+      return;
+    }
+    router.push({
+      pathname: router.location.pathname,
+      query: {
+        ...router.location.query,
+        product: defaultSelectedProducts,
+      },
+    });
+    // Adding defaultSelectedProducts to the dependency array causes an max-depth error
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router]);
 
   const handleClickProduct = useCallback(
     (product: PRODUCT) => {
