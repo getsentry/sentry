@@ -550,6 +550,8 @@ export type ProcessingIssueItem = {
     image_arch: string;
     image_path: string;
     image_uuid: string;
+    dist?: string;
+    release?: string;
   };
   id: string;
   lastSeen: string;
