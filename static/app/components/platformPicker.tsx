@@ -262,6 +262,7 @@ const PlatformCard = styled(({platform, selected, onClear, ...props}) => (
   padding: 0 0 14px;
   border-radius: 4px;
   background: ${p => p.selected && p.theme.alert.info.backgroundLight};
+  cursor: pointer;
 
   &:hover {
     background: ${p => p.theme.alert.muted.backgroundLight};
