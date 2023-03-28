@@ -60,6 +60,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                         "service_id": service.id,
                         "project_id": event.project_id,
                         "event_id": event.event_id,
+                        "rule_id": rule.id,
                     },
                 )
                 raise e
@@ -74,6 +75,7 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
                     "event_id": event.event_id,
                     "service_name": service.service_name,
                     "service_id": service.id,
+                    "rule_id": rule.id,
                 },
             )
 
